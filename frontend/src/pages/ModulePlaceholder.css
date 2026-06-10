@@ -1,0 +1,52 @@
+.module-page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.module-page__main {
+  flex: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.module-page__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.module-page__title {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  color: var(--color-text-dark);
+}
+
+.module-page__message {
+  margin: 0 0 2rem;
+  font-size: 1.05rem;
+  color: var(--color-text-muted);
+}
+
+.module-page__back {
+  display: inline-block;
+  color: var(--color-maroon);
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--color-maroon);
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.module-page__back:hover {
+  background: var(--color-maroon);
+  color: #fff;
+}
