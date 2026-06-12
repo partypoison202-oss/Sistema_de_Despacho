@@ -7,6 +7,9 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 1rem 2rem;
+  height: 80px; 
+  display: flex;
+  align-items: center;
 }
 
 .app-header__brand {
@@ -32,7 +35,7 @@
 
 .app-header__brand-image {
   display: block;
-  height: 48px;
+  height: 130px;
   width: auto;
   max-width: min(100%, 320px);
   object-fit: contain;

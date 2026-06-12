@@ -1,0 +1,358 @@
+/* Layout y Fondo de Pantalla Crema */
+.report-layout {
+  min-height: 100vh;
+  background-color: #f4eee9; /* Fondo color crema suave del mockup */
+  display: flex;
+  flex-direction: column;
+  font-family: sans-serif;
+}
+
+/* Header Guinda */
+.report-header {
+  background-color: #6b1d33;
+  color: #ffffff;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.report-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.report-back-btn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 0.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.report-back-btn__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.report-header__eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #d1d5db;
+  margin: 0;
+}
+
+.report-header__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.report-header__badge {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Contenedor del Formulario */
+.report-container {
+  flex: 1;
+  padding: 2rem 1.5rem;
+  max-width: 65rem;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Tarjetas Blancas Contenedoras */
+.form-card {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.form-card--grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .form-card--grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.form-card--no-padding {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Inputs de Datos Generales */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group__label {
+  color: #c29b53;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.input-group__field {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  color: #111827;
+  background-color: #f9fafb;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-group__field:focus {
+  border-color: #6b1d33;
+}
+
+.input-group__field--disabled {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* Tabla del Check List */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.checklist-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.checklist-table th {
+  background-color: #6b1d33;
+  color: #ffffff;
+  padding: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.checklist-table td {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.font-bold { font-weight: 700; }
+.text-center { text-align: center; }
+.text-muted { color: #6b7280; font-size: 0.8rem; }
+
+/* Botones de Selección Circular (OK, NO OK, N/A) */
+.btn-toggle-group {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-toggle {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0.4rem 0.8rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 3.5rem;
+}
+
+/* Estados Activos Dinámicos */
+.btn-toggle--ok.active {
+  background-color: #e6f4ea;
+  color: #137333;
+  border-color: #137333;
+}
+
+.btn-toggle--no-ok.active {
+  background-color: #fce8e6;
+  color: #c5221f;
+  border-color: #c5221f;
+}
+
+.btn-toggle--na.active {
+  background-color: #fdfdea;
+  color: #dda72a82;
+  border-color: #dda72a82;
+}
+
+/* Sección de Observaciones */
+.observaciones-title {
+  color: #ffffff;
+  background-color: #6b1d33;
+  margin: -1.5rem -1.5rem 1.25rem -1.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+}
+
+.observaciones-textarea {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  font-size: 0.9rem;
+  font-family: sans-serif;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.observaciones-textarea:focus {
+  border-color: #6b1d33;
+}
+
+/* Botones Inferiores de Acción */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-action {
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-action--cancelar {
+  background-color: #eae3db;
+  color: #5c4d44;
+}
+
+.btn-action--cancelar:hover {
+  background-color: #ded5cb;
+}
+
+.btn-action--enviar {
+  background-color: #6b1d33;
+  color: #ffffff;
+}
+
+.btn-action--enviar:hover {
+  background-color: #541628;
+}
+
+/* Contenedor del grupo de botones y el lápiz */
+.btn-toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* Botón del lápiz para volver a editar */
+.btn-edit-note {
+  background: transparent;
+  border: none;
+  color: #374151;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-edit-note:hover {
+  background-color: #f3f4f6;
+  color: #6b1d33;
+}
+
+/* Fila expandida con fondo sutil para destacar del resto */
+.row-expanded-note {
+  background-color: #fafafa;
+}
+
+.row-expanded-note td {
+  padding: 0.75rem 1.5rem 1.25rem 1.5rem !important;
+}
+
+/* Caja contenedora interna de la nota específica */
+.specific-note-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.specific-note-textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-family: sans-serif;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.specific-note-textarea:focus {
+  border-color: #6b1d33;
+  box-shadow: 0 0 0 1px #6b1d33;
+}
+
+/* Acciones internas de la nota */
+.specific-note-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Botón institucional de Guardar Nota */
+.btn-save-note {
+  background-color: #6b1d33;
+  color: #ffffff;
+  border: none;
+  padding: 0.4rem 1.2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-save-note:hover {
+  background-color: #541628;
+}

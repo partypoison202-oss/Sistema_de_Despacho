@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { headerConfig } from '../config/header'
+import { headerConfig } from '../../config/header'
 import './Header.css'
 
 export default function Header() {

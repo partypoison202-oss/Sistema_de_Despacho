@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 56" fill="none">
-  <rect width="360" height="56" fill="transparent"/>
-  <rect x="0" y="8" width="40" height="40" rx="4" fill="#c5a059" opacity="0.2"/>
-  <path d="M10 16h20v5H22v27h-4V21H10v-5z" fill="#c5a059"/>
-  <text x="52" y="22" fill="#fff" font-family="Segoe UI, sans-serif" font-size="13" font-weight="600">Sistema de Transporte</text>
-  <text x="52" y="40" fill="#fff" font-family="Segoe UI, sans-serif" font-size="13" font-weight="600">Metropolitano</text>
-  <text x="180" y="52" text-anchor="middle" fill="#c5a059" opacity="0.7" font-family="Segoe UI, sans-serif" font-size="9">Reemplace con su imagen: header-brand.png</text>
-</svg>

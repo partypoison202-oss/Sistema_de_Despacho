@@ -1,3 +1,8 @@
+@import "tailwindcss";
+
+/* Esto le dice a Tailwind v4 que escanee explícitamente tus componentes de React */
+@source "./src/**/*.{js,jsx,ts,tsx}";
+
 :root {
   --color-maroon: #601a2a;
   --color-gold: #c5a059;

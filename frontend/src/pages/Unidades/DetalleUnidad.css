@@ -1,0 +1,401 @@
+.layout-container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  font-family: sans-serif;
+}
+
+
+.main-header {
+  background-color: #6b1d33;
+  color: #ffffff;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-button {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  padding: 0.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.back-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.back-button__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.header__eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #d1d5db;
+  margin: 0;
+  font-weight: 500;
+}
+
+.header__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.025em;
+}
+
+.header__badges {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+}
+
+.badge--gold {
+  background-color: #c29b53;
+  color: #ffffff;
+}
+
+.badge--outline {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 80rem;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.info-panel {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+@media (min-width: 768px) {
+  .info-panel {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+
+.dropdown-container {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dropdown-trigger {
+  background-color: #f4f0f2;
+  border: 1px solid #f3f4f6;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  width: 12rem;
+  height: 11rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.dropdown-trigger:hover {
+  background-color: #ede8eb;
+}
+
+.dropdown-trigger__icon-container {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  width: 4rem;
+}
+
+.dropdown-trigger__icon {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+}
+
+.dropdown-trigger__value {
+  color: #6b1d33;
+  font-weight: 700;
+  font-size: 1.25rem;
+  text-align: center;
+  min-height: 28px;
+}
+
+.dropdown-trigger__label {
+  color: #c29b53;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.125rem;
+}
+
+.dropdown-trigger__arrow {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  color: #000000;
+  transition: transform 0.2s;
+}
+
+.dropdown-trigger__arrow--open {
+  transform: rotate(180deg);
+}
+
+.arrow-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* Menú Flotante del Dropdown */
+.dropdown-menu {
+  position: absolute;
+  left: 0;
+  margin-top: 0.5rem;
+  width: 12rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.dropdown-menu__scroll {
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.dropdown-menu__item {
+  width: 100%;
+  text-align: left;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f9fafb;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dropdown-menu__item:hover {
+  background-color: #f4f0f2;
+  color: #6b1d33;
+  font-weight: 600;
+}
+
+/* Grid de Información de la Unidad */
+.data-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) { .data-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .data-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.data-item__label {
+  color: #c29b53;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0 0 0.25rem 0;
+}
+
+.data-item__value {
+  color: #1f2937;
+  font-weight: 500;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Estado Vacío (Cuando no hay unidad seleccionada) */
+.info-panel__placeholder {
+  flex: 1;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+@media (min-width: 768px) {
+  .info-panel__placeholder { text-align: left; }
+}
+
+.info-panel__placeholder p {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin: 0;
+}
+
+/* ==========================================================================
+   Sección: Áreas de Inspección
+   ========================================================================== */
+.zones-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.zones-section__eyebrow {
+  color: #c29b53;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: 0 0 0.25rem 0;
+}
+
+.zones-section__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.zones-section__subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.125rem 0 0 0;
+}
+
+/* Grid de las Tarjetas de Inspección */
+.zones-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) { .zones-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .zones-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.zone-card {
+  background-color: rgba(237, 232, 235, 0.5);
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.zone-card:hover {
+  background-color: #ede8eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.zone-card__image-container {
+  width: 100%;
+  height: 8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.zone-card__image {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Efecto espejo para el lado derecho usando la misma imagen lateral */
+.zone-card__image--flipped {
+  transform: scaleX(-1);
+}
+
+.zone-card__footer {
+  margin-top: 0.75rem;
+}
+
+.zone-card__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  color: #6b1d33;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.zone-card__arrow {
+  background-color: #6b1d33;
+  color: #ffffff;
+  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zone-card__description {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+}
+
+/* Ajustes para scrollbars del menú desplegable */
+.dropdown-menu__scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.dropdown-menu__scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.dropdown-menu__scroll::-webkit-scrollbar-thumb {
+  background: #c29b53;
+  border-radius: 3px;
+}

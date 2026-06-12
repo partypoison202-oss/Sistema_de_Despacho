@@ -1,6 +1,6 @@
-import Header from '../components/Header'
-import TransportCard from '../components/TransportCard'
-import { transportModules } from '../config/transportModules'
+import Header from '../../components/Header/Header'
+import TransportCard from '../../components/TransportCard'
+import { transportModules } from '../../config/transportModules'
 import './Dashboard.css'
 
 export default function Dashboard() {
