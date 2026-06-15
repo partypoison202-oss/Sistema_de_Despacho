@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Dashboard from './pages/Dashboard/Dashboard';
 import DetalleUnidad from './pages/Unidades/DetalleUnidad';
 import FormularioReporte from './pages/Unidades/FormularioReporte';
+import CargaExcel from './pages/CargaExcel/CargaExcel';
 
 function App() {
   return (
@@ -19,6 +20,10 @@ function App() {
           path="/transporte/:tipoTransporte/:unidadEco/reporte/:zona" 
           element={<FormularioReporte />} 
         />
+
+        {/* 📊 NUEVA RUTA INTEGRADA PARA EL EXCEL */}
+        {/* Coincide perfectamente con el navigate('/cargar-excel') en minúsculas del Header */}
+        <Route path="/cargar-excel" element={<CargaExcel />} />
       </Routes>
     </BrowserRouter>
   );

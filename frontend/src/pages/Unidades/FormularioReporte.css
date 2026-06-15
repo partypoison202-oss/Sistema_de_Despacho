@@ -356,3 +356,20 @@
 .btn-save-note:hover {
   background-color: #541628;
 }
+
+/* Estilo para mostrar la nota específica de forma permanente */
+.specific-note-display {
+  font-size: 0.75rem;
+  color: #4b5563;
+  background-color: #f3f4f6;
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-top: 8px;
+  word-break: break-word;
+  text-align: left;
+}
+
+.specific-note-label {
+  font-weight: 600;
+  margin-right: 4px;
+}

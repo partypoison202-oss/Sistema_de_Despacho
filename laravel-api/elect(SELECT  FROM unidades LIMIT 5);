@@ -1,0 +1,34 @@
+[90m= [39m[
+    {#7419
+      +"[1mcolumn_name[22m": [32m"[39m[32mid[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mbigint[39m[32m"[39m,
+    },
+    {#7416
+      +"[1mcolumn_name[22m": [32m"[39m[32munidad_id[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mbigint[39m[32m"[39m,
+    },
+    {#7424
+      +"[1mcolumn_name[22m": [32m"[39m[32mruta[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mcharacter varying[39m[32m"[39m,
+    },
+    {#7402
+      +"[1mcolumn_name[22m": [32m"[39m[32mnumero_tarjeton[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mcharacter varying[39m[32m"[39m,
+    },
+    {#7425
+      +"[1mcolumn_name[22m": [32m"[39m[32mnombre_conductor[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mcharacter varying[39m[32m"[39m,
+    },
+    {#7401
+      +"[1mcolumn_name[22m": [32m"[39m[32mfecha_registro[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mtimestamp without time zone[39m[32m"[39m,
+    },
+    {#7400
+      +"[1mcolumn_name[22m": [32m"[39m[32mcreated_at[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mtimestamp without time zone[39m[32m"[39m,
+    },
+    {#7399
+      +"[1mcolumn_name[22m": [32m"[39m[32mupdated_at[39m[32m"[39m,
+      +"[1mdata_type[22m": [32m"[39m[32mtimestamp without time zone[39m[32m"[39m,
+    },
+  ]

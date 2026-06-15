@@ -2,54 +2,102 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
-import './DetalleUnidad.css'; // Un solo CSS para las tres pantallas
+import './DetalleUnidad.css';
 
 export default function DetalleUnidad() {
-  const { tipoTransporte } = useParams(); // 👈 Detecta el ID desde la URL (urbanus, zafiro, vagoneta)
+  const { tipoTransporte } = useParams();
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
+  const [datosOperativos, setDatosOperativos] = useState({
+    conductor: 'Seleccione una unidad...',
+    ruta: 'Seleccione una unidad...'
+  });
+  const [cargandoDatos, setCargandoDatos] = useState(false);
 
-  // 1. Buscamos la configuración del transporte actual
   const configActual = transportModules.find(m => m.id === tipoTransporte);
-
-  // Si alguien escribe una URL rara, lo mandamos al dashboard
   if (!configActual) {
     return <div className="p-8">Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button></div>;
   }
 
-  // 2. Genera las unidades dinámicamente según el límite del transporte (ej. ECO042 o VAN020)
-  const unidadesMock = Array.from({ length: configActual.totalUnidades }, (_, index) => {
-    const numero = String(index + 1).padStart(3, '0');
-    return `${configActual.prefijoEco}${numero}`;
-  });
+  // Genera las unidades con prefijo "ECO" fijo
+  const getUnidadesList = () => {
+    const PREFIJO_FIJO = 'ECO';
 
-  // 3. Simulación de los datos del "Excel" (Esto cambiará cuando importes la librería de lectura de Excel)
-  const informacionUnidades = {
-    tipo: configActual.title,
-    eco: selectedOption,
-    conductor: 'Carlos Mendoza Ríos',
-    ruta: 'Ruta 12 — Centro / Venta Prieta',
-    fecha: '09 de junio de 2026'
+    if (tipoTransporte === 'zafiro') {
+      return Array.from({ length: 38 }, (_, i) => `${PREFIJO_FIJO}${100 + i}`); // 100..137
+    }
+    if (tipoTransporte === 'vagoneta') {
+      return Array.from({ length: 60 }, (_, i) => `${PREFIJO_FIJO}${200 + i}`); // 200..259
+    }
+    // Urbanus y otros
+    return Array.from({ length: configActual.totalUnidades }, (_, i) => {
+      const numero = String(i + 1).padStart(3, '0');
+      return `${PREFIJO_FIJO}${numero}`;
+    });
   };
+
+  const unidadesMock = getUnidadesList();
 
   const toggleDropdown = () => setIsOpen(!isOpen);
 
-  const handleSelectUnit = (unidad) => {
+  const handleSelectUnit = async (unidad) => {
     setSelectedOption(unidad);
     setIsOpen(false);
+    setCargandoDatos(true);
+
+    const matchNumeros = unidad.match(/\d+/);
+    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+
+    try {
+      const url = `http://localhost:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
+      console.log("Consultando URL:", url); // 👈 LOG 1
+
+      const respuesta = await fetch(url);
+      const resultado = await respuesta.json();
+
+      console.log("Respuesta completa:", resultado); // 👈 LOG 2
+
+      // Verificar si la respuesta contiene los datos esperados
+      if (respuesta.ok && resultado.status === 'success') {
+        // Aseguramos que los campos existan, incluso si están vacíos
+        const conductorMostrar = resultado.conductor && resultado.conductor !== 'Sin conductor' 
+                                  ? resultado.conductor 
+                                  : 'No reportado hoy';
+        const rutaMostrar = resultado.ruta && resultado.ruta !== 'Sin ruta asignada'
+                              ? resultado.ruta
+                              : 'Sin ruta';
+        
+        setDatosOperativos({
+          conductor: conductorMostrar,
+          ruta: rutaMostrar
+        });
+      } else {
+        // Si el status no es success o hay otro problema
+        console.warn("Respuesta con error o status no exitoso:", resultado);
+        setDatosOperativos({
+          conductor: 'No reportado hoy',
+          ruta: 'Sin ruta'
+        });
+      }
+    } catch (error) {
+      console.error("Error en la petición:", error);
+      setDatosOperativos({
+        conductor: 'Error de conexión',
+        ruta: 'No se pudo obtener'
+      });
+    } finally {
+      setCargandoDatos(false);
+    }
   };
 
-  // 🚀 Función modificada para redirigir dinámicamente al formulario con todo el contexto
   const handleZoneClick = (zonaLimpia) => {
-    // Redirige pasando el tipo, el ECO seleccionado y la zona (ej: /transporte/urbanus/ECO001/reporte/Costado-Izquierdo)
     navigate(`/transporte/${tipoTransporte}/${selectedOption}/reporte/${zonaLimpia.replace(' ', '-')}`);
   };
 
   return (
     <div className="layout-container">
-      {/* HEADER PRINCIPAL */}
       <header className="main-header">
         <div className="header__left">
           <button onClick={() => navigate('/')} className="back-button" aria-label="Volver">
@@ -62,17 +110,12 @@ export default function DetalleUnidad() {
             <h1 className="header__title">{selectedOption || "Seleccione Unidad"}</h1>
           </div>
         </div>
-
         <div className="header__badges">
           <span className="badge badge--gold">{configActual.title}</span>
-          <span className="badge badge--outline">En Operación</span>
         </div>
       </header>
 
-      {/* CONTENIDO PRINCIPAL */}
       <main className="main-content">
-        
-        {/* PANEL SUPERIOR */}
         <div className="info-panel">
           <div className="dropdown-container">
             <button onClick={toggleDropdown} className="dropdown-trigger">
@@ -105,23 +148,23 @@ export default function DetalleUnidad() {
             <div className="data-grid">
               <div className="data-item">
                 <h3 className="data-item__label">Tipo de Transporte</h3>
-                <p className="data-item__value">{informacionUnidades.tipo}</p>
+                <p className="data-item__value">{configActual.title}</p>
               </div>
               <div className="data-item">
                 <h3 className="data-item__label">Número ECO</h3>
-                <p className="data-item__value">{informacionUnidades.eco}</p>
+                <p className="data-item__value">{selectedOption}</p>
               </div>
               <div className="data-item">
                 <h3 className="data-item__label">Conductor Asignado</h3>
-                <p className="data-item__value">{informacionUnidades.conductor}</p>
+                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.5 : 1 }}>
+                  {cargandoDatos ? "Buscando..." : datosOperativos.conductor}
+                </p>
               </div>
               <div className="data-item">
                 <h3 className="data-item__label">Ruta Asignada</h3>
-                <p className="data-item__value">{informacionUnidades.ruta}</p>
-              </div>
-              <div className="data-item">
-                <h3 className="data-item__label">Fecha de Inspección</h3>
-                <p className="data-item__value">{informacionUnidades.fecha}</p>
+                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.5 : 1 }}>
+                  {cargandoDatos ? "Buscando..." : datosOperativos.ruta}
+                </p>
               </div>
             </div>
           ) : (
@@ -131,7 +174,6 @@ export default function DetalleUnidad() {
           )}
         </div>
 
-        {/* ÁREAS DE INSPECCIÓN DINÁMICAS */}
         {selectedOption && (
           <div className="zones-section">
             <div className="zones-section__header">
@@ -141,7 +183,6 @@ export default function DetalleUnidad() {
             </div>
 
             <div className="zones-grid">
-              {/* Costado Izquierdo */}
               <button onClick={() => handleZoneClick('Costado Izquierdo')} className="zone-card">
                 <div className="zone-card__image-container">
                   <img src={configActual.imagenesZonas.lateral} alt="Costado Izquierdo" className="zone-card__image" />
@@ -152,7 +193,6 @@ export default function DetalleUnidad() {
                 </div>
               </button>
 
-              {/* Costado Derecho (Espejeado) */}
               <button onClick={() => handleZoneClick('Costado Derecho')} className="zone-card">
                 <div className="zone-card__image-container">
                   <img src={configActual.imagenesZonas.lateral} alt="Costado Derecho" className="zone-card__image zone-card__image--flipped" />
@@ -163,7 +203,6 @@ export default function DetalleUnidad() {
                 </div>
               </button>
 
-              {/* Frente */}
               <button onClick={() => handleZoneClick('Frente')} className="zone-card">
                 <div className="zone-card__image-container">
                   <img src={configActual.imagenesZonas.frente} alt="Frente" className="zone-card__image" />
@@ -174,7 +213,6 @@ export default function DetalleUnidad() {
                 </div>
               </button>
 
-              {/* Parte Trasera */}
               <button onClick={() => handleZoneClick('Parte Trasera')} className="zone-card">
                 <div className="zone-card__image-container">
                   <img src={configActual.imagenesZonas.trasera} alt="Parte Trasera" className="zone-card__image" />

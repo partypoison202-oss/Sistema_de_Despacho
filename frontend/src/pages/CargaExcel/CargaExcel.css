@@ -1,0 +1,139 @@
+.excel-layout {
+  min-height: 100vh;
+  background-color: #f7f5f0;
+  padding: 2rem;
+  font-family: sans-serif;
+}
+
+.excel-header {
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+}
+
+.excel-back-btn {
+  background: none;
+  border: none;
+  color: #6b1d33;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  padding: 0;
+}
+
+.excel-header h1 {
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+}
+
+.excel-header p {
+  color: #6b7280;
+  margin: 0;
+}
+
+.excel-card {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  padding: 2.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.upload-zone {
+  border: 2px dashed #bc9b6a;
+  border-radius: 0.75rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background-color: #faf9f5;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transition: background-color 0.2s;
+}
+
+.upload-zone:hover {
+  background-color: #f3f0e6;
+}
+
+.upload-icon {
+  width: 48px;
+  height: 48px;
+  color: #bc9b6a;
+}
+
+.upload-label {
+  color: #4b5563;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.upload-input-hidden {
+  display: none;
+}
+
+.excel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-excel-cancelar {
+  background-color: #e5e7eb;
+  color: #374151;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-excel-procesar {
+  background-color: #6b1d33;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-excel-procesar:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.excel-card-procesado {
+  margin-bottom: 20px;
+  border-left: 4px solid #34a853;
+}
+
+.archivo-procesado-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0;
+}
+
+.archivo-procesado-nombre {
+  font-weight: 600;
+}
+
+/* Estilo para mostrar la nota específica de forma permanente */
+.specific-note-display {
+  font-size: 0.75rem;
+  color: #4b5563;
+  background-color: #f3f4f6;
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-top: 8px;
+  word-break: break-word;
+  text-align: left;
+}
+
+.specific-note-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
