@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Login from './pages/Login/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import DetalleUnidad from './pages/Unidades/DetalleUnidad';
 import FormularioReporte from './pages/Unidades/FormularioReporte';
@@ -8,8 +9,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Pantalla de Inicio de Sesión */}
+        <Route path="/" element={<Login />} />
+
         {/* Vista principal con las 3 flotas */}
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         
         {/* Panel de control de la unidad seleccionada (urbanus, zafiro, vagoneta) */}
         <Route path="/transporte/:tipoTransporte" element={<DetalleUnidad />} />

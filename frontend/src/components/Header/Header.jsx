@@ -11,7 +11,7 @@ export default function Header() {
           <img 
             src={headerConfig.image} 
             alt={headerConfig.alt} 
-            className="app-header__brand-logo-1" 
+            className="app-header__brand-logo-1"
           />
         </div>
         

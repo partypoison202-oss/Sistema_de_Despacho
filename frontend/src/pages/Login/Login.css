@@ -1,0 +1,102 @@
+.login {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6; /* Fondo gris claro */
+}
+
+.login__main {
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.login__card {
+  background: #fff;
+  padding: 2rem 2rem 3rem 2rem; /* Menos espacio arriba (2rem), se mantiene a los lados y abajo */
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.login__brand-image {
+  max-width: 220px; /* Logo más grande (antes 160px) */
+  height: auto;
+  margin: 0 auto 1.5rem; /* Margen inferior un poco menor para compactar */
+  display: block;
+}
+
+.login__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-maroon);
+  letter-spacing: -0.02em;
+}
+
+.login__subtitle {
+  margin: 0 0 2rem;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+}
+
+.login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.login__field label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.login__field input {
+  padding: 0.85rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--color-text-dark);
+  background-color: #f9fafb;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  outline: none;
+}
+
+.login__field input:focus {
+  border-color: var(--color-gold);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
+}
+
+.login__submit-btn {
+  background-color: var(--color-maroon);
+  color: #fff;
+  border: none;
+  padding: 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 6px rgba(96, 26, 42, 0.2);
+}
+
+.login__submit-btn:hover {
+  background-color: #4a1420; /* Tono más oscuro de guindo */
+}
+
+.login__submit-btn:active {
+  transform: scale(0.98);
+}
