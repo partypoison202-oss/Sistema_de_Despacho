@@ -6,47 +6,43 @@
 .app-header__inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem 2rem;
+  padding: 0.5rem 2rem;
   height: 80px; 
   display: flex;
+  justify-content: space-between;
   align-items: center;
 }
 
 .app-header__brand {
   display: inline-flex;
   align-items: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+  height: 100%; /* El contenedor del link ocupa toda la altura */
+  cursor: default;
   text-decoration: none;
+}
+
+/* Clases específicas para cada logo */
+.app-header__brand-logo-1,
+.app-header__brand-logo-2 {
+  display: block;
+  object-fit: contain;
   transition: opacity 0.2s ease;
 }
 
-.app-header__brand:hover {
-  opacity: 0.9;
-}
-
-.app-header__brand:focus-visible {
-  outline: 2px solid var(--color-gold);
-  outline-offset: 4px;
-  border-radius: 4px;
-}
-
-.app-header__brand-image {
-  display: block;
-  height: 130px;
+/* El logo 1 (400x400) */
+.app-header__brand-logo-1 {
+  height: 135px; /* Altura ideal para un header de 80px */
   width: auto;
-  max-width: min(100%, 320px);
-  object-fit: contain;
+}
+
+/* El logo 2 (872x312) - Ajustamos para que la altura visual coincida con el anterior */
+.app-header__brand-logo-2 {
+  height: 50px; /* Un poco menos de altura para compensar que es muy ancho */
+  width: auto;
 }
 
 @media (max-width: 640px) {
-  .app-header__inner {
-    padding: 0.875rem 1.25rem;
-  }
-
-  .app-header__brand-image {
-    height: 40px;
-  }
+  .app-header__inner { padding: 0.5rem 1.25rem; }
+  .app-header__brand-logo-1 { height: 40px; }
+  .app-header__brand-logo-2 { height: 30px; }
 }
