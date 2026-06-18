@@ -1,5 +1,5 @@
 // src/pages/Unidades/DetalleUnidad.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import './DetalleUnidad.css';
@@ -21,24 +21,30 @@ export default function DetalleUnidad() {
     return <div className="p-8">Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button></div>;
   }
 
-  // Genera las unidades con prefijo "ECO" fijo
-  const getUnidadesList = () => {
-    const PREFIJO_FIJO = 'ECO';
+  const [unidadesList, setUnidadesList] = useState([]);
+  const [cargandoUnidades, setCargandoUnidades] = useState(true);
 
-    if (tipoTransporte === 'zafiro') {
-      return Array.from({ length: 38 }, (_, i) => `${PREFIJO_FIJO}${100 + i}`); // 100..137
-    }
-    if (tipoTransporte === 'vagoneta') {
-      return Array.from({ length: 60 }, (_, i) => `${PREFIJO_FIJO}${200 + i}`); // 200..259
-    }
-    // Urbanus y otros
-    return Array.from({ length: configActual.totalUnidades }, (_, i) => {
-      const numero = String(i + 1).padStart(3, '0');
-      return `${PREFIJO_FIJO}${numero}`;
-    });
-  };
+  useEffect(() => {
+    const fetchUnidades = async () => {
+      try {
+        const respuesta = await fetch(`http://localhost:8000/api/unidades/listar/${tipoTransporte}`);
+        if (respuesta.ok) {
+          const datos = await respuesta.json();
+          // Agregar el prefijo ECO al número que viene de la BD
+          const unidadesFormateadas = datos.map(u => `ECO${String(u.numero_eco).padStart(3, '0')}`);
+          setUnidadesList(unidadesFormateadas);
+        } else {
+          console.error("Error al obtener la lista de unidades");
+        }
+      } catch (error) {
+        console.error("Error de conexión al obtener la lista de unidades", error);
+      } finally {
+        setCargandoUnidades(false);
+      }
+    };
 
-  const unidadesMock = getUnidadesList();
+    fetchUnidades();
+  }, [tipoTransporte]);
 
   const toggleDropdown = () => setIsOpen(!isOpen);
 
@@ -134,11 +140,15 @@ export default function DetalleUnidad() {
             {isOpen && (
               <div className="dropdown-menu">
                 <div className="dropdown-menu__scroll">
-                  {unidadesMock.map((unidad) => (
-                    <button key={unidad} onClick={() => handleSelectUnit(unidad)} className="dropdown-menu__item">
-                      {unidad}
-                    </button>
-                  ))}
+                  {cargandoUnidades ? (
+                    <div className="p-4 text-center text-gray-500">Cargando unidades...</div>
+                  ) : (
+                    unidadesList.map((unidad) => (
+                      <button key={unidad} onClick={() => handleSelectUnit(unidad)} className="dropdown-menu__item">
+                        {unidad}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
             )}
