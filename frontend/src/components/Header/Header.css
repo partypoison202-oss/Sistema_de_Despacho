@@ -46,3 +46,105 @@
   .app-header__brand-logo-1 { height: 40px; }
   .app-header__brand-logo-2 { height: 30px; }
 }
+
+/* Profile Dropdown Styles */
+.app-header__profile {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.app-header__profile-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.profile-icon {
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-gold);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  border: 2px solid #fff;
+  transition: transform 0.2s ease;
+}
+
+.profile-icon:hover {
+  transform: scale(1.05);
+}
+
+.app-header__profile-menu {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  width: 250px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.profile-info {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-name {
+  font-weight: bold;
+  color: #333;
+}
+
+.profile-username {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.profile-role {
+  font-size: 0.75rem;
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}
+
+.app-header__profile-menu hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid #ddd;
+}
+
+.profile-menu-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #333;
+  transition: background-color 0.2s ease;
+}
+
+.profile-menu-btn:hover {
+  background-color: #f9fafb;
+}
+
+.logout-btn {
+  color: #dc2626;
+}
+
+.logout-btn:hover {
+  background-color: #fef2f2;
+}

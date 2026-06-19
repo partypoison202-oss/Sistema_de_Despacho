@@ -180,3 +180,33 @@ VALUES
 ('Ok'),
 ('NO Ok'),
 ('N/A');
+
+-- Mas Tablas
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(30) UNIQUE NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT
+);
+
+INSERT INTO roles (codigo, nombre, descripcion)
+VALUES
+('ADMINISTRADOR', 'Administrador', 'Control total del sistema'),
+('CAPTURISTA', 'Capturista', 'Carga y edición de Excel'),
+('CENTRO_CONTROL', 'Centro de Control', 'Monitoreo y dashboard'),
+('TITAN', 'Titan', 'Reportes e inspecciones');
+
+CREATE TABLE usuarios (
+    id BIGSERIAL PRIMARY KEY,
+    nombre_completo VARCHAR(150) NOT NULL,
+    usuario VARCHAR(50) NOT NULL UNIQUE,
+    correo VARCHAR(150) UNIQUE,
+    contrasena VARCHAR(255) NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    rol_id INTEGER NOT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_usuarios_roles
+        FOREIGN KEY (rol_id)
+        REFERENCES roles(id)
+);

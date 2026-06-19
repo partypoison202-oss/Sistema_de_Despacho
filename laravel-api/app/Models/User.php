@@ -9,24 +9,48 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    protected $table = 'usuarios';
+    
+    const CREATED_AT = 'fecha_creacion';
+    const UPDATED_AT = 'fecha_actualizacion';
+
+    protected $fillable = [
+        'nombre_completo',
+        'usuario',
+        'correo',
+        'contrasena',
+        'activo',
+        'rol_id'
+    ];
+
+    protected $hidden = [
+        'contrasena',
+        'remember_token',
+    ];
+
+    public function getAuthPassword()
+    {
+        return $this->contrasena;
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'rol_id');
+    }
+
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'activo' => 'boolean',
+            'contrasena' => 'hashed',
         ];
     }
 }

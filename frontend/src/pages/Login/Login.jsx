@@ -1,18 +1,58 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
+import { AuthContext } from '../../context/AuthContext';
+import Swal from 'sweetalert2';
 import './Login.css';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Todavía no está conectado a la base de datos
-    // Solo redirigimos al dashboard
-    navigate('/dashboard');
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          usuario: username,
+          contrasena: password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de autenticación',
+          text: data.message || 'Credenciales incorrectas'
+        });
+        return;
+      }
+
+      login(data.user, data.access_token);
+      
+      if (data.user.role.codigo === 'CAPTURISTA') {
+        navigate('/cargar-excel');
+      } else {
+        navigate('/dashboard');
+      }
+      
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor'
+      });
+    }
   };
 
   return (
@@ -61,3 +101,4 @@ export default function Login() {
     </div>
   );
 }
+

@@ -1,35 +1,59 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import DetalleUnidad from './pages/Unidades/DetalleUnidad';
 import FormularioReporte from './pages/Unidades/FormularioReporte';
 import CargaExcel from './pages/CargaExcel/CargaExcel';
+import Usuarios from './pages/Usuarios/Usuarios';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Pantalla de Inicio de Sesión */}
-        <Route path="/" element={<Login />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Pantalla de Inicio de Sesión */}
+          <Route path="/" element={<Login />} />
 
-        {/* Vista principal con las 3 flotas */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        
-        {/* Panel de control de la unidad seleccionada (urbanus, zafiro, vagoneta) */}
-        <Route path="/transporte/:tipoTransporte" element={<DetalleUnidad />} />
+          {/* Rutas protegidas genéricas (ADMIN, CENTRO_CONTROL, TITAN) */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL', 'TITAN']}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/transporte/:tipoTransporte" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL', 'TITAN']}>
+              <DetalleUnidad />
+            </ProtectedRoute>
+          } />
 
-        {/* 🚀 RUTA ARREGLADA: Enlaza la URL de inspección con el Formulario */}
-        {/* Captura dinámicamente el tipo de transporte, el ECO y la zona (frente, lateral, etc.) */}
-        <Route 
-          path="/transporte/:tipoTransporte/:unidadEco/reporte/:zona" 
-          element={<FormularioReporte />} 
-        />
+          <Route path="/transporte/:tipoTransporte/:unidadEco/reporte/:zona" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL', 'TITAN']}>
+              <FormularioReporte />
+            </ProtectedRoute>
+          } />
 
-        {/* 📊 NUEVA RUTA INTEGRADA PARA EL EXCEL */}
-        {/* Coincide perfectamente con el navigate('/cargar-excel') en minúsculas del Header */}
-        <Route path="/cargar-excel" element={<CargaExcel />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Ruta protegida para Excel (ADMIN y CAPTURISTA) */}
+          <Route path="/cargar-excel" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CAPTURISTA']}>
+              <CargaExcel />
+            </ProtectedRoute>
+          } />
+
+          {/* Ruta protegida exclusiva para Administrador */}
+          <Route path="/usuarios" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
+              <Usuarios />
+            </ProtectedRoute>
+          } />
+
+          {/* Redirección por defecto si no existe la ruta */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
