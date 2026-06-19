@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\InformacionOperativa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -16,12 +15,7 @@ class DespachoController extends Controller
      */
     public function importar(Request $request)
     {
-        // Aumentar el tiempo máximo de ejecución para manejar muchos registros
-        // con conexión remota a Neon (cada query tiene latencia de red)
         set_time_limit(300);
-
-        // Forzar reconexión limpia para evitar reutilizar una conexión
-        // con una transacción abortada del pool de Neon
         DB::reconnect();
 
         $request->validate([
@@ -31,8 +25,7 @@ class DespachoController extends Controller
         $unidadesExcel = $request->input('unidades');
         $fechaHoy = Carbon::today()->toDateString();
 
-        // Pre-cargar todas las unidades en memoria para evitar N+1 queries
-        // Esto reduce ~80 queries individuales a 1 sola query
+        // Pre-cargar todas las unidades en memoria
         $todasLasUnidades = DB::table('unidades')
             ->select('id', 'numero_eco')
             ->get()
@@ -40,33 +33,33 @@ class DespachoController extends Controller
 
         \Log::info('Unidades pre-cargadas', ['total' => $todasLasUnidades->count()]);
 
-        // Preparar todos los registros válidos antes de la transacción
         $registrosParaInsertar = [];
         $filasIgnoradas = 0;
         $unidadesNoEncontradas = [];
+        // Esto te dirá exactamente cómo se llaman las claves que el Excel está enviando
+        \Log::info('Cabeceras del Excel detectadas:', array_keys($unidadesExcel[0]));
 
         foreach ($unidadesExcel as $fila) {
-            $numeroEco = trim((string) ($fila['ECONOMICO'] ?? ''));
-            $nombreConductor = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
-
-            // Ignorar registros sin ECO válido (debe ser numérico)
-            if (empty($numeroEco) || !is_numeric($numeroEco)) {
+            // Normalizar ECO: eliminar ceros a la izquierda y espacios
+            $numeroEcoRaw = trim((string) ($fila['ECONOMICO'] ?? ''));
+            $numeroEco = ltrim($numeroEcoRaw, '0'); // quita ceros a la izquierda
+            if ($numeroEco === '' || !is_numeric($numeroEco)) {
                 $filasIgnoradas++;
-                \Log::info('Fila ignorada: ECO no válido', ['eco' => $numeroEco]);
+                \Log::info('Fila ignorada: ECO no válido', ['eco' => $numeroEcoRaw]);
                 continue;
             }
 
-            // Ignorar filas sin unidad asignada
+            $nombreConductor = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
+
             if (strtoupper($nombreConductor) === 'FALTA DE UNIDAD') {
                 $filasIgnoradas++;
                 \Log::info('Fila ignorada: falta de unidad', ['eco' => $numeroEco]);
                 continue;
             }
 
-            // Padding del ECO a 3 dígitos
+            // Padear a 3 dígitos
             $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
 
-            // Buscar unidad en el cache en memoria (sin query a la BD)
             $unidad = $todasLasUnidades->get($numeroEcoClean);
 
             if (!$unidad) {
@@ -80,6 +73,8 @@ class DespachoController extends Controller
                 'ruta' => trim((string) ($fila['RUTA'] ?? '')),
                 'numero_tarjeton' => trim((string) ($fila['TARJETON'] ?? '')),
                 'nombre_conductor' => $nombreConductor,
+                'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
+                'estatus' => trim((string) ($fila['ESTATUS'] ?? 'Sin estatus')),
                 'fecha_registro' => now(),
             ];
         }
@@ -98,14 +93,12 @@ class DespachoController extends Controller
         }
 
         try {
-            // Eliminar registros del día actual
             DB::table('informacion_operativa')
                 ->whereDate('fecha_registro', $fechaHoy)
                 ->delete();
 
             \Log::info('Delete ejecutado sin transacción');
 
-            // Insertar en lotes de 50 para eficiencia
             $chunks = array_chunk($registrosParaInsertar, 50);
             foreach ($chunks as $chunk) {
                 DB::table('informacion_operativa')->insert($chunk);
@@ -140,46 +133,76 @@ class DespachoController extends Controller
     }
 
     /**
-     * Mapea el tipo de transporte del frontend al ID de la base de datos
+     * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
      */
-    private function getTransporteIdByTipo($tipo)
+/**
+     * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
+     */
+    public function conteoUnidadesPorTipo()
     {
-        $t = strtolower(trim($tipo));
-        if ($t === 'urbanus' || $t === 'urbanuss') return 1;
-        if ($t === 'zafiro') return 2;
-        if ($t === 'vagoneta' || $t === 'bagoneta') return 3;
-        return 0;
+        $fechaHoy = Carbon::today()->toDateString();
+
+        \Log::info('conteoUnidadesPorTipo - fechaHoy', ['fecha' => $fechaHoy]);
+
+        // Corregido: apuntamos a informacion_operativa.tipo
+        $conteos = DB::table('informacion_operativa')
+            ->whereDate('fecha_registro', $fechaHoy)
+            ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
+            ->groupBy('tipo')
+            ->get();
+
+        \Log::info('conteoUnidadesPorTipo - resultados crudos', $conteos->toArray());
+
+        // Normalizar claves a minúsculas
+        $resultado = [];
+        foreach ($conteos as $item) {
+            // Validamos que el tipo no sea null antes de procesar
+            if (!empty($item->tipo)) {
+                $tipo = strtolower(trim($item->tipo));
+                $resultado[$tipo] = (int)$item->total;
+            }
+        }
+
+        \Log::info('conteoUnidadesPorTipo - resultado final', $resultado);
+
+        return response()->json($resultado, 200);
     }
 
     /**
-     * Obtiene el listado de TODAS las unidades disponibles en la BD para un tipo
+     * Obtiene el listado de unidades que tienen registro operativo para hoy
+     * y pertenecen al tipo de transporte solicitado.
+     * Normaliza mayúsculas/minúsculas usando LOWER.
      */
     public function listarUnidadesPorTipo($tipo)
     {
-        $transporteId = $this->getTransporteIdByTipo($tipo);
+        $tipoNormalizado = strtolower(trim($tipo));
+        $fechaHoy = Carbon::today()->toDateString();
 
         $unidades = DB::table('unidades')
-            ->where('transporte_id', $transporteId)
-            ->select('numero_eco')
-            ->orderBy('numero_eco')
+            ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->select('unidades.numero_eco')
+            ->distinct()
+            ->orderBy('unidades.numero_eco')
             ->get();
 
         return response()->json($unidades, 200);
     }
-
     /**
      * Obtiene información operativa filtrada por tipo de unidad
+     * Normaliza mayúsculas/minúsculas usando LOWER.
      */
     public function obtenerPorTipo($tipo)
     {
+        $tipoNormalizado = strtolower(trim($tipo));
         $fechaHoy = Carbon::today()->toDateString();
-        $transporteId = $this->getTransporteIdByTipo($tipo);
 
         return response()->json(
             DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
-                ->where('unidades.transporte_id', $transporteId)
+                ->whereRaw('LOWER(unidades.tipo) = ?', [$tipoNormalizado])
                 ->select(
                     'unidades.numero_eco as economico',
                     'informacion_operativa.ruta',
@@ -193,16 +216,17 @@ class DespachoController extends Controller
 
     /**
      * Obtiene el detalle de una unidad específica por tipo y número ECO
+     * Normaliza mayúsculas/minúsculas usando LOWER.
      */
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
+        $tipoNormalizado = strtolower(trim($tipo));
         $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
-        $transporteId = $this->getTransporteIdByTipo($tipo);
 
         $info = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
-            ->where('unidades.transporte_id', $transporteId)
+            ->whereRaw('LOWER(unidades.tipo) = ?', [$tipoNormalizado])
             ->whereDate('informacion_operativa.fecha_registro', Carbon::today()->toDateString())
             ->select('informacion_operativa.ruta', 'informacion_operativa.nombre_conductor', 'unidades.numero_eco')
             ->first();
@@ -221,5 +245,101 @@ class DespachoController extends Controller
             ],
             200
         );
+    }
+
+    /**
+     * Actualiza los registros de informacion_operativa para el día actual
+     * a partir de los datos enviados desde la vista previa.
+     * Espera un array 'unidades' con los mismos campos que en la importación.
+     */
+    public function actualizar(Request $request)
+    {
+        $request->validate([
+            'unidades' => 'required|array',
+        ]);
+
+        $unidadesExcel = $request->input('unidades');
+        $fechaHoy = Carbon::today()->toDateString();
+
+        // Pre-cargar las unidades para mapear numero_eco -> id
+        $unidadesMap = DB::table('unidades')
+            ->select('id', 'numero_eco')
+            ->get()
+            ->keyBy('numero_eco');
+
+        $actualizados = 0;
+        $errores = [];
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($unidadesExcel as $fila) {
+                // Normalizar ECO (eliminar ceros a la izquierda)
+                $numeroEcoRaw = trim((string) ($fila['ECONOMICO'] ?? ''));
+                $numeroEco = ltrim($numeroEcoRaw, '0');
+                if ($numeroEco === '' || !is_numeric($numeroEco)) {
+                    $errores[] = "ECO inválido: {$numeroEcoRaw}";
+                    continue;
+                }
+                $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
+
+                $unidad = $unidadesMap->get($numeroEcoClean);
+                if (!$unidad) {
+                    $errores[] = "Unidad no encontrada: {$numeroEcoClean}";
+                    continue;
+                }
+
+                $registro = DB::table('informacion_operativa')
+                    ->where('unidad_id', $unidad->id)
+                    ->whereDate('fecha_registro', $fechaHoy)
+                    ->first();
+
+                if (!$registro) {
+                    $errores[] = "Registro de hoy no encontrado para ECO: {$numeroEcoClean}";
+                    continue;
+                }
+
+                $updateData = [];
+                if (array_key_exists('RUTA', $fila)) {
+                    $updateData['ruta'] = trim((string) $fila['RUTA']);
+                }
+                if (array_key_exists('TARJETON', $fila)) {
+                    $updateData['numero_tarjeton'] = trim((string) $fila['TARJETON']);
+                }
+                if (array_key_exists('NOMBRE_CONDUCTOR', $fila)) {
+                    $updateData['nombre_conductor'] = trim((string) $fila['NOMBRE_CONDUCTOR']);
+                }
+
+                if (!empty($updateData)) {
+                    DB::table('informacion_operativa')
+                        ->where('id', $registro->id)
+                        ->update($updateData);
+                    $actualizados++;
+                } else {
+                    $errores[] = "Sin datos para actualizar en ECO: {$numeroEcoClean}";
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Se actualizaron {$actualizados} registros.",
+                'errores' => $errores,
+                'actualizados' => $actualizados,
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error al actualizar registros', [
+                'mensaje' => $e->getMessage(),
+                'archivo' => $e->getFile(),
+                'linea' => $e->getLine(),
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al actualizar: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

@@ -5,11 +5,12 @@ use App\Http\Controllers\API\DespachoController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
 
-// Autenticación pública
-Route::post('/login', [AuthController::class, 'login']);
+// Autenticación pública (no requiere token)
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-// Rutas Protegidas por Sanctum
+// Todas las rutas dentro de este grupo requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
+    // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
@@ -20,16 +21,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     
-    // Ruta para que React suba el JSON del Excel procesado
+    // Gestión de Despacho
     Route::post('/despacho/importar', [DespachoController::class, 'importar']);
+    Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
+    Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
 
-    // ✅ IMPORTANTE: Esta ruta DEBE ir ANTES de la ruta genérica {tipo}
-    // De lo contrario, Laravel interpreta "detalle" como un tipo de transporte
+    // Rutas de Unidades (orden específico para evitar conflictos)
     Route::get('/unidades/detalle/{tipo}/{numeroEco}', [DespachoController::class, 'obtenerDetalleUnidad']);
-
-    // Ruta para obtener la lista de todas las unidades válidas en BD según su tipo
-    Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']);
-
-    // Ruta para que las pantallas de Urbanus, Zafiro, etc., pidan sus carros de hoy
+    Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']); // <-- Esta es la que necesitas
     Route::get('/unidades/{tipo}', [DespachoController::class, 'obtenerPorTipo']);
 });

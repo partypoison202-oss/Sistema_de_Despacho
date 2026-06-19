@@ -1,14 +1,24 @@
 /* src/pages/Unidades/CargaExcel.css */
 
-/* Contenedor principal: sin padding para permitir que el header se expanda */
+:root {
+  --color-primary: #6b1d33;
+  --color-primary-hover: #551728;
+  --color-gold: #bc9b6a;
+  --color-bg: #f7f5f0;
+  --color-card-bg: #ffffff;
+  --color-text: #374151;
+  --color-text-light: #6b7280;
+  --border-radius: 0.75rem;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
 .excel-layout {
   min-height: 100vh;
-  background-color: #f7f5f0;
+  background-color: var(--color-bg);
   display: flex;
   flex-direction: column;
 }
 
-/* Nuevo contenedor para el contenido principal, aquí movemos el padding */
 .excel-main-content {
   padding: 2rem;
   flex: 1;
@@ -20,27 +30,27 @@
 }
 
 .excel-header h1 {
-  color: #374151;
+  color: var(--color-text);
   margin: 0 0 0.5rem 0;
 }
 
 .excel-header p {
-  color: #6b7280;
+  color: var(--color-text-light);
   margin: 0;
 }
 
 .excel-card {
   max-width: 600px;
   margin: 0 auto;
-  background: white;
+  background: var(--color-card-bg);
   padding: 2.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
 }
 
 .upload-zone {
-  border: 2px dashed #bc9b6a;
-  border-radius: 0.75rem;
+  border: 2px dashed var(--color-gold);
+  border-radius: var(--border-radius);
   padding: 3rem 1.5rem;
   text-align: center;
   background-color: #faf9f5;
@@ -58,7 +68,7 @@
 
 .upload-zone-active {
   background-color: #f3f0e6;
-  border-color: #6b1d33;
+  border-color: var(--color-primary);
 }
 
 .upload-label {
@@ -75,7 +85,7 @@
 }
 
 .btn-excel-procesar {
-  background-color: #6b1d33;
+  background-color: var(--color-primary);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -91,11 +101,11 @@
 }
 
 .btn-excel-procesar:hover:not(:disabled) {
-  background-color: #551728;
+  background-color: var(--color-primary-hover);
 }
 
 .excel-card-procesado {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
   border-left: 4px solid #34a853;
 }
 
@@ -125,4 +135,10 @@
 .alert-error {
   background-color: #fce8e6;
   color: #c0392b;
+}
+
+/* Ajuste extra para que el contenedor de la vista previa herede el ancho */
+.preview-container {
+  max-width: 600px;
+  margin: 1.25rem auto 0;
 }

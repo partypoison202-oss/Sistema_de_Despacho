@@ -100,3 +100,19 @@
 .login__submit-btn:active {
   transform: scale(0.98);
 }
+
+.login__input--error {
+  border-color: #dc3545;
+}
+
+.login__error-message {
+  color: #dc3545;
+  font-size: 0.8rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.login__submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

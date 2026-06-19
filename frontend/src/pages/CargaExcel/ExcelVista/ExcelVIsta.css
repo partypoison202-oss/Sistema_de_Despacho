@@ -1,10 +1,12 @@
+/* src/pages/Unidades/ExcelVista/ExcelVista.css */
+
 .preview-container {
   margin-top: 20px;
 }
 
 .table-wrapper {
-  overflow: auto; /* Scroll horizontal y vertical */
-  max-height: 400px; /* Limita la altura para que no ocupe toda la pantalla */
+  overflow: auto;          /* Scroll horizontal y vertical */
+  max-height: 400px;       /* Limita la altura para no ocupar toda la pantalla */
   border: 1px solid #ccc;
 }
 
@@ -17,11 +19,17 @@
   background-color: #f3f3f3;
   padding: 10px;
   position: sticky;
-  top: 0; /* Mantiene el encabezado fijo al hacer scroll */
+  top: 0;                  /* Encabezado fijo al hacer scroll */
 }
 
 .excel-preview-table td {
   border: 1px solid #eee;
   padding: 8px;
   text-align: left;
+}
+
+.excel-actions-bottom {
+  margin-top: 20px;
+  text-align: right;
+  padding: 10px;
 }

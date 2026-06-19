@@ -1,4 +1,8 @@
+/* src/components/TransportCard.css */
+
+/* Contenedor principal de la tarjeta */
 .transport-card {
+  position: relative;              /* Necesario para el badge absoluto */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -18,11 +22,12 @@
 }
 
 .transport-card:focus-visible {
-  outline: 2px solid var(--color-blue);
+  outline: 2px solid var(--color-blue, #2563eb);
   outline-offset: 4px;
   border-radius: 8px;
 }
 
+/* Imagen */
 .transport-card__image-wrap {
   width: 100%;
   display: flex;
@@ -38,11 +43,12 @@
   object-fit: contain;
 }
 
+/* Títulos */
 .transport-card__title {
   margin: 0;
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--color-text-dark);
+  color: var(--color-text-dark, #1a1a1a);
   letter-spacing: -0.02em;
 }
 
@@ -52,11 +58,47 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-gold);
+  color: var(--color-gold, #bc9b6a);
 }
 
+/* Responsive */
 @media (max-width: 768px) {
   .transport-card__title {
     font-size: 1.4rem;
   }
+}
+
+/* ===== BADGE CIRCULAR ===== */
+.transport-card__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  background-color: #6b1d33;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Estado de carga (puntos suspensivos con animación) */
+.transport-card__badge-loading {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+/* Número dentro del badge */
+.transport-card__badge-number {
+  line-height: 1;
 }

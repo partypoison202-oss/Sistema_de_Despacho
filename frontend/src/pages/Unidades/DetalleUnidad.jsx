@@ -24,27 +24,52 @@ export default function DetalleUnidad() {
   const [unidadesList, setUnidadesList] = useState([]);
   const [cargandoUnidades, setCargandoUnidades] = useState(true);
 
+  // Obtener el token del localStorage (función auxiliar)
+  const getToken = () => localStorage.getItem('token');
+
   useEffect(() => {
     const fetchUnidades = async () => {
+      const token = getToken();
+      if (!token) {
+        console.warn('No hay token, redirigiendo al login...');
+        navigate('/login');
+        return;
+      }
+
       try {
-        const respuesta = await fetch(`http://localhost:8000/api/unidades/listar/${tipoTransporte}`);
+        const respuesta = await fetch(
+          `http://localhost:8000/api/unidades/listar/${tipoTransporte}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
         if (respuesta.ok) {
           const datos = await respuesta.json();
-          // Agregar el prefijo ECO al número que viene de la BD
-          const unidadesFormateadas = datos.map(u => `ECO${String(u.numero_eco).padStart(3, '0')}`);
+          // datos es un arreglo de objetos con { numero_eco: ... }
+          const unidadesFormateadas = datos.map(u =>
+            `ECO${String(u.numero_eco).padStart(3, '0')}`
+          );
           setUnidadesList(unidadesFormateadas);
+        } else if (respuesta.status === 401) {
+          console.error('Sesión expirada, redirigiendo al login...');
+          navigate('/login');
         } else {
-          console.error("Error al obtener la lista de unidades");
+          const errorText = await respuesta.text();
+          console.error('Error al obtener la lista de unidades:', respuesta.status, errorText);
         }
       } catch (error) {
-        console.error("Error de conexión al obtener la lista de unidades", error);
+        console.error('Error de conexión al obtener la lista de unidades', error);
       } finally {
         setCargandoUnidades(false);
       }
     };
 
     fetchUnidades();
-  }, [tipoTransporte]);
+  }, [tipoTransporte, navigate]);
 
   const toggleDropdown = () => setIsOpen(!isOpen);
 
@@ -57,30 +82,39 @@ export default function DetalleUnidad() {
     const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
     try {
+      const token = getToken();
+      if (!token) {
+        console.warn('No hay token, redirigiendo al login...');
+        navigate('/login');
+        return;
+      }
+
       const url = `http://localhost:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
-      console.log("Consultando URL:", url); // 👈 LOG 1
+      console.log("Consultando URL:", url);
 
-      const respuesta = await fetch(url);
+      const respuesta = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
       const resultado = await respuesta.json();
+      console.log("Respuesta completa:", resultado);
 
-      console.log("Respuesta completa:", resultado); // 👈 LOG 2
-
-      // Verificar si la respuesta contiene los datos esperados
       if (respuesta.ok && resultado.status === 'success') {
-        // Aseguramos que los campos existan, incluso si están vacíos
-        const conductorMostrar = resultado.conductor && resultado.conductor !== 'Sin conductor' 
-                                  ? resultado.conductor 
-                                  : 'No reportado hoy';
+        const conductorMostrar = resultado.conductor && resultado.conductor !== 'Sin conductor'
+          ? resultado.conductor
+          : 'No reportado hoy';
         const rutaMostrar = resultado.ruta && resultado.ruta !== 'Sin ruta asignada'
-                              ? resultado.ruta
-                              : 'Sin ruta';
-        
+          ? resultado.ruta
+          : 'Sin ruta';
+
         setDatosOperativos({
           conductor: conductorMostrar,
           ruta: rutaMostrar
         });
       } else {
-        // Si el status no es success o hay otro problema
         console.warn("Respuesta con error o status no exitoso:", resultado);
         setDatosOperativos({
           conductor: 'No reportado hoy',
@@ -142,9 +176,15 @@ export default function DetalleUnidad() {
                 <div className="dropdown-menu__scroll">
                   {cargandoUnidades ? (
                     <div className="p-4 text-center text-gray-500">Cargando unidades...</div>
+                  ) : unidadesList.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">No hay unidades con registro hoy</div>
                   ) : (
                     unidadesList.map((unidad) => (
-                      <button key={unidad} onClick={() => handleSelectUnit(unidad)} className="dropdown-menu__item">
+                      <button
+                        key={unidad}
+                        onClick={() => handleSelectUnit(unidad)}
+                        className="dropdown-menu__item"
+                      >
                         {unidad}
                       </button>
                     ))

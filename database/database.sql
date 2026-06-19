@@ -117,6 +117,9 @@ CREATE TABLE informacion_operativa (
     numero_tarjeton VARCHAR(20),
 
     nombre_conductor VARCHAR(200),
+    
+    tipo VARCHAR(50),  
+    estatus VARCHAR(20),
 
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
