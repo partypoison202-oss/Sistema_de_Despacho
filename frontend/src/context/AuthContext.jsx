@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       // Validate token and get user info
-      fetch('http://localhost:8000/api/me', {
+      fetch('http://127.0.0.1:8000/api/me', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     if (token) {
-      fetch('http://localhost:8000/api/logout', {
+      fetch('http://127.0.0.1:8000/api/logout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

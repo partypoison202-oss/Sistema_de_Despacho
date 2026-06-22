@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { generarPDFProfesional } from '../../utils/pdfGenerator';
 import { limpiarTexto } from '../../utils/limpiarTexto';
 import Header from '../../components/Header/Header';
+import Swal from 'sweetalert2';
 import './FormularioReporte.css';
 
 export default function FormularioReporte() {
@@ -65,7 +66,12 @@ export default function FormularioReporte() {
     e.preventDefault();
 
     if (!responsable || !kilometraje || Object.keys(estados).length === 0) {
-      alert('Por favor completa todos los campos obligatorios y al menos un estado de evaluación.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos incompletos',
+        text: 'Por favor completa todos los campos obligatorios y al menos un estado de evaluación.',
+        confirmButtonColor: '#601a2a'
+      });
       return;
     }
 
@@ -96,8 +102,14 @@ export default function FormularioReporte() {
     };
     console.log("Datos del reporte (para backend):", payload);
 
-    alert('PDF generado y descargado exitosamente');
-    navigate(`/transporte/${tipoTransporte}`);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Reporte Generado!',
+      text: 'El PDF se ha generado y descargado exitosamente.',
+      confirmButtonColor: '#c5a059'
+    }).then(() => {
+      navigate(`/transporte/${tipoTransporte}`);
+    });
   };
 
   // ... el resto del JSX es idéntico, solo cambia la importación y la llamada

@@ -20,6 +20,8 @@ export default function Usuarios() {
     rol_id: ''
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -27,8 +29,8 @@ export default function Usuarios() {
   const fetchData = async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([
-        fetch('http://localhost:8000/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:8000/api/users/roles', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('http://127.0.0.1:8000/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('http://127.0.0.1:8000/api/users/roles', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       const usersData = await usersRes.json();
@@ -66,9 +68,10 @@ export default function Usuarios() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const url = formData.id 
-      ? `http://localhost:8000/api/users/${formData.id}` 
-      : 'http://localhost:8000/api/users';
+      ? `http://127.0.0.1:8000/api/users/${formData.id}` 
+      : 'http://127.0.0.1:8000/api/users';
     const method = formData.id ? 'PUT' : 'POST';
 
     try {
@@ -86,6 +89,7 @@ export default function Usuarios() {
 
       if (!res.ok) {
         Swal.fire('Error', data.message || 'Error al guardar el usuario', 'error');
+        setIsSubmitting(false);
         return;
       }
 
@@ -94,12 +98,14 @@ export default function Usuarios() {
       fetchData();
     } catch (error) {
       Swal.fire('Error', 'Error de conexión', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleToggleActive = async (user) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/users/${user.id}`, {
+      const res = await fetch(`http://127.0.0.1:8000/api/users/${user.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +137,7 @@ export default function Usuarios() {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://localhost:8000/api/users/${id}`, {
+        const res = await fetch(`http://127.0.0.1:8000/api/users/${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -158,7 +164,10 @@ export default function Usuarios() {
         </div>
 
         {loading ? (
-          <p>Cargando usuarios...</p>
+          <div className="loading-state">
+            <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '3rem', height: '3rem', borderWidth: '4px' }}></span>
+            <p style={{ marginTop: '1rem', color: '#666', fontWeight: 'bold' }}>Cargando datos de usuarios...</p>
+          </div>
         ) : (
           <div className="table-responsive">
             <table className="usuarios-table">
@@ -210,6 +219,7 @@ export default function Usuarios() {
                   value={formData.nombre_completo}
                   onChange={e => setFormData({...formData, nombre_completo: e.target.value})}
                   required 
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="form-group">
@@ -219,6 +229,7 @@ export default function Usuarios() {
                   value={formData.usuario}
                   onChange={e => setFormData({...formData, usuario: e.target.value})}
                   required 
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="form-group">
@@ -228,6 +239,7 @@ export default function Usuarios() {
                   value={formData.contrasena}
                   onChange={e => setFormData({...formData, contrasena: e.target.value})}
                   required={!formData.id} 
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="form-group">
@@ -236,6 +248,7 @@ export default function Usuarios() {
                   value={formData.rol_id}
                   onChange={e => setFormData({...formData, rol_id: e.target.value})}
                   required
+                  disabled={isSubmitting}
                 >
                   <option value="">Seleccione un rol</option>
                   {roles.map(role => (
@@ -245,8 +258,14 @@ export default function Usuarios() {
               </div>
               
               <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn-save">Guardar</button>
+                <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Cancelar</button>
+                <button type="submit" className="btn-save" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <><span className="spinner"></span> Guardando...</>
+                  ) : (
+                    'Guardar'
+                  )}
+                </button>
               </div>
             </form>
           </div>

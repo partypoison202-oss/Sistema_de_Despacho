@@ -39,7 +39,7 @@ export default function DetalleUnidad() {
 
       try {
         const respuesta = await fetch(
-          `http://localhost:8000/api/unidades/listar/${tipoTransporte}`,
+          `http://127.0.0.1:8000/api/unidades/listar/${tipoTransporte}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -90,7 +90,7 @@ export default function DetalleUnidad() {
         return;
       }
 
-      const url = `http://localhost:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
+      const url = `http://127.0.0.1:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
       console.log("Consultando URL:", url);
 
       const respuesta = await fetch(url, {
@@ -165,7 +165,10 @@ export default function DetalleUnidad() {
               <div className="dropdown-menu">
                 <div className="dropdown-menu__scroll">
                   {cargandoUnidades ? (
-                    <div className="p-4 text-center text-gray-500">Cargando unidades...</div>
+                    <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)' }}></span>
+                      Cargando unidades...
+                    </div>
                   ) : unidadesList.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">No hay unidades con registro hoy</div>
                   ) : (
@@ -196,14 +199,14 @@ export default function DetalleUnidad() {
               </div>
               <div className="data-item">
                 <h3 className="data-item__label">Conductor Asignado</h3>
-                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.5 : 1 }}>
-                  {cargandoDatos ? "Buscando..." : datosOperativos.conductor}
+                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center' }}>
+                  {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.conductor}
                 </p>
               </div>
               <div className="data-item">
                 <h3 className="data-item__label">Ruta Asignada</h3>
-                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.5 : 1 }}>
-                  {cargandoDatos ? "Buscando..." : datosOperativos.ruta}
+                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center' }}>
+                  {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.ruta}
                 </p>
               </div>
             </div>

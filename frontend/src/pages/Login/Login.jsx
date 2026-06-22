@@ -8,6 +8,7 @@ import './Login.css';
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -23,9 +24,10 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch('http://127.0.0.1:8000/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,6 +47,7 @@ export default function Login() {
           title: 'Error de autenticación',
           text: data.message || 'Credenciales incorrectas'
         });
+        setIsSubmitting(false);
         return;
       }
 
@@ -62,6 +65,7 @@ export default function Login() {
         title: 'Error de conexión',
         text: 'No se pudo conectar con el servidor'
       });
+      setIsSubmitting(false);
     }
   };
 
@@ -87,6 +91,7 @@ export default function Login() {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Ingrese su usuario"
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -99,11 +104,18 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Ingrese su contraseña"
                 required
+                disabled={isSubmitting}
               />
             </div>
 
-            <button type="submit" className="login__submit-btn">
-              Ingresar
+            <button type="submit" className="login__submit-btn" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <span className="spinner"></span> Ingresando...
+                </>
+              ) : (
+                'Ingresar'
+              )}
             </button>
           </form>
         </div>
