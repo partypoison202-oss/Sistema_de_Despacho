@@ -21,6 +21,7 @@ export default function Usuarios() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+const [togglingUserId, setTogglingUserId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -104,40 +105,39 @@ export default function Usuarios() {
   };
 
   const handleToggleActive = async (user) => {
-    // Prevent toggling active state for admin users
-    if (user.role?.nombre?.toLowerCase() === 'admin') {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Acción no permitida',
-        text: 'El usuario administrador no puede ser desactivado.',
-        confirmButtonColor: '#c5a059'
-      });
-      return;
+  // Prevent toggling active state for Administrador role
+  if (user.role?.nombre?.toLowerCase() === 'administrador') {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Acción no permitida',
+      text: 'El usuario administrador no puede ser desactivado.',
+      confirmButtonColor: '#c5a059'
+    });
+    return;
+  }
+
+  try {
+    const res = await fetch(`http://127.0.0.1:8000/api/users/${user.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ activo: !user.activo })
+    });
+
+    if (res.ok) {
+      // Refresh data from server to reflect the new state
+      await fetchData();
+    } else {
+      const err = await res.json();
+      Swal.fire('Error', err.message || 'No se pudo cambiar el estado', 'error');
     }
-    const previousActive = user.activo;
-    try {
-      const res = await fetch(`http://127.0.0.1:8000/api/users/${user.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ activo: !user.activo })
-      });
-      if (res.ok) {
-        // Optimistically update UI
-        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, activo: !previousActive } : u));
-        // Refresh data from server to ensure consistency
-        fetchData();
-      } else {
-        const err = await res.json();
-        Swal.fire('Error', err.message || 'No se pudo cambiar el estado', 'error');
-      }
-    } catch (error) {
-      Swal.fire('Error', 'No se pudo cambiar el estado', 'error');
-    }
-  };
+  } catch (error) {
+    Swal.fire('Error', 'No se pudo cambiar el estado', 'error');
+  }
+};
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
@@ -203,11 +203,18 @@ export default function Usuarios() {
                     <td>{user.usuario}</td>
                     <td><span className="role-badge">{user.role?.nombre}</span></td>
                     <td>
-                      <button 
-                        className={`status-badge ${user.activo ? 'active' : 'inactive'}`}
-                        onClick={() => handleToggleActive(user)}
+                      <button                    className={`status-badge ${user.activo ? 'active' : 'inactive'}`}
+                    disabled={togglingUserId === user.id}
+                    onClick={() => {
+                      setTogglingUserId(user.id);
+                      handleToggleActive(user).finally(() => setTogglingUserId(null));
+                    }}
                       >
-                        {user.activo ? 'Activo' : 'Inactivo'}
+                      {togglingUserId === user.id ? (
+                        <><span className="spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px' }}></span> Cambiando...</>
+                      ) : (
+                        user.activo ? 'Activo' : 'Inactivo'
+                      )}
                       </button>
                     </td>
                     <td className="actions-cell">

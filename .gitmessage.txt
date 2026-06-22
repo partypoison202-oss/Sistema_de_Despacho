@@ -1,0 +1,10 @@
+## Mensajes de commit en español
+# Ejemplo:
+#   Añadir spinner al botón de activo/inactivo
+#   Mejorar diseño de tabla de usuarios
+#   Corregir lógica de desactivación de admin
+# Instrucciones:
+# - Usa imperativo en tercera persona.
+# - Sé conciso y describe qué cambió.
+# - Limita la línea de asunto a 50 caracteres.
+# - Opcionalmente agrega una línea en blanco y una descripción más detallada.
