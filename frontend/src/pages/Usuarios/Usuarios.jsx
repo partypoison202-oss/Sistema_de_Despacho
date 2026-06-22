@@ -104,6 +104,17 @@ export default function Usuarios() {
   };
 
   const handleToggleActive = async (user) => {
+    // Prevent toggling active state for admin users
+    if (user.role?.nombre?.toLowerCase() === 'admin') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acción no permitida',
+        text: 'El usuario administrador no puede ser desactivado.',
+        confirmButtonColor: '#c5a059'
+      });
+      return;
+    }
+    const previousActive = user.activo;
     try {
       const res = await fetch(`http://127.0.0.1:8000/api/users/${user.id}`, {
         method: 'PUT',
@@ -114,9 +125,14 @@ export default function Usuarios() {
         },
         body: JSON.stringify({ activo: !user.activo })
       });
-
       if (res.ok) {
+        // Optimistically update UI
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, activo: !previousActive } : u));
+        // Refresh data from server to ensure consistency
         fetchData();
+      } else {
+        const err = await res.json();
+        Swal.fire('Error', err.message || 'No se pudo cambiar el estado', 'error');
       }
     } catch (error) {
       Swal.fire('Error', 'No se pudo cambiar el estado', 'error');

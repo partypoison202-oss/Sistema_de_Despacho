@@ -6,6 +6,7 @@ import { transportModules } from '../../config/transportModules';
 import './Dashboard.css';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import Swal from 'sweetalert2';
 import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
 
 export default function Dashboard() {
@@ -13,12 +14,14 @@ export default function Dashboard() {
   const [cargando, setCargando] = useState(true);
   const [reporteData, setReporteData] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerarReporte = async () => {
+    setIsGenerating(true);
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('http://localhost:8000/api/despacho/reporte-general', {
+      const response = await fetch('http://127.0.0.1:8000/api/despacho/reporte-general', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -51,17 +54,36 @@ export default function Dashboard() {
           pdf.addImage(imgData, 'PNG', 0, 0, 297, 210);
           pdf.save(`Reporte_STM_${new Date().toISOString().slice(0, 10)}.pdf`);
 
+          Swal.fire({
+            icon: 'success',
+            title: '¡Reporte Generado!',
+            text: 'El reporte general se ha generado y descargado exitosamente.',
+            confirmButtonColor: '#c5a059'
+          });
+
         } catch (err) {
           console.error('Error al generar PDF:', err);
-          alert('Ocurrió un error al generar el PDF.');
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al generar el PDF.',
+            confirmButtonColor: '#601a2a'
+          });
         } finally {
           setMostrarReporte(false);
+          setIsGenerating(false);
         }
       }, 600);
 
     } catch (error) {
       console.error('Error:', error);
-      alert('No se pudo generar el reporte.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo generar el reporte.',
+        confirmButtonColor: '#601a2a'
+      });
+      setIsGenerating(false);
     }
   };
 
@@ -120,8 +142,12 @@ export default function Dashboard() {
           </div>
 
           <div className="dashboard__actions">
-            <button className="btn-reporte" onClick={handleGenerarReporte}>
-              Reporte General
+            <button className="btn-reporte" onClick={handleGenerarReporte} disabled={isGenerating}>
+              {isGenerating ? (
+                <><span className="spinner"></span> Generando PDF...</>
+              ) : (
+                'Reporte General'
+              )}
             </button>
           </div>
         </main>

@@ -5,58 +5,104 @@
 }
 
 .table-wrapper {
-  overflow: auto;          /* Scroll horizontal y vertical */
-  max-height: 400px;       /* Limita la altura para no ocupar toda la pantalla */
-  border: 1px solid #ccc;
+  overflow: auto;
+  max-height: 400px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+/* Custom Scrollbar for table */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 8px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .excel-preview-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.excel-preview-table th,
+.excel-preview-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
 }
 
 .excel-preview-table th {
-  background-color: #f3f3f3;
-  padding: 10px;
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
   position: sticky;
-  top: 0;                  /* Encabezado fijo al hacer scroll */
+  top: 0;
+  z-index: 10;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e5e7eb;
 }
 
-.excel-preview-table td {
-  border: 1px solid #eee;
-  padding: 8px;
-  text-align: left;
+.excel-preview-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.excel-preview-table tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+.excel-preview-table tbody tr:nth-child(even) td {
+  background-color: #fafaf9;
+}
+
+.excel-preview-table tbody tr:hover:nth-child(even) td {
+  background-color: #f8fafc;
 }
 
 .excel-actions-bottom {
-  margin-top: 20px;
-  text-align: right;
-  padding: 10px;
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-/* Asegura que los inputs no se solapen con el borde de la celda */
 .edit-input {
   width: 100%;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
-  padding: 5px;
-  font-size: 14px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
   outline: none;
-  /* Esto evita que el texto se rompa de forma extraña */
+  transition: all 0.2s;
   white-space: nowrap; 
   display: block;
+  color: #1f2937;
 }
 
-/* Mejora la celda para que contenga bien el input */
-.excel-preview-table td {
-  border: 1px solid #eee;
-  padding: 0; /* Padding a 0 para que el input ocupe todo el espacio */
-  text-align: left;
-  vertical-align: middle;
+.edit-input:hover {
+  background: rgba(0,0,0,0.02);
 }
 
-/* Opcional: Estilo al hacer foco */
 .edit-input:focus {
-  background: #fffdf0;
-  border: 1px solid #65002d;
+  background: #fff;
+  border: 1px solid var(--color-gold, #cba052);
+  box-shadow: 0 0 0 3px rgba(203, 160, 82, 0.15);
+}
+
+.excel-preview-table td {
+  padding: 0.25rem 0.5rem;
 }

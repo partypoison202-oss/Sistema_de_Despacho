@@ -109,7 +109,7 @@
   overflow: hidden;
 }
 
-table {
+.reporte table {
   width: 85%;           /* tabla más pequeña, no ocupa todo el ancho */
   height: 100%;
   border-collapse: collapse;
@@ -117,7 +117,7 @@ table {
   margin: 0 auto;       /* centrada */
 }
 
-th, td {
+.reporte th, .reporte td {
   border: 1px solid #555;
   text-align: center;
   vertical-align: middle;

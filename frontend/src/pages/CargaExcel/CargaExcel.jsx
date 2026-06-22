@@ -73,9 +73,19 @@ export default function CargaExcel() {
       if (!response.ok) throw new Error(result.message || 'Error al guardar');
 
       setHasChanges(false);
-      Swal.fire('¡Guardado!', 'Los cambios se han aplicado correctamente.', 'success');
+      Swal.fire({
+        icon: 'success',
+        title: '¡Guardado!',
+        text: 'Los cambios se han aplicado correctamente.',
+        confirmButtonColor: '#c5a059'
+      });
     } catch (error) {
-      Swal.fire('Error', error.message, 'error');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message,
+        confirmButtonColor: '#601a2a'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -150,12 +160,22 @@ export default function CargaExcel() {
           setPreviewData(unidadesProcesadas);
           localStorage.setItem(STORAGE_PREVIEW_KEY, JSON.stringify(unidadesProcesadas));
           setHasChanges(false);
-          Swal.fire('¡Listo!', 'Archivo sincronizado.', 'success');
+          Swal.fire({
+            icon: 'success',
+            title: '¡Listo!',
+            text: 'Archivo sincronizado.',
+            confirmButtonColor: '#c5a059'
+          });
         } else {
           throw new Error(resultado.message || 'Error al importar.');
         }
       } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.message,
+          confirmButtonColor: '#601a2a'
+        });
       } finally {
         setCargando(false);
       }
