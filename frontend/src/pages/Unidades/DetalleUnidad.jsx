@@ -25,9 +25,10 @@ export default function DetalleUnidad() {
   const [unidadesList, setUnidadesList] = useState([]);
   const [cargandoUnidades, setCargandoUnidades] = useState(true);
 
-  // Obtener el token del localStorage (función auxiliar)
+  // Obtener el token del localStorage
   const getToken = () => localStorage.getItem('token');
 
+  // Cargar lista de unidades al montar el componente
   useEffect(() => {
     const fetchUnidades = async () => {
       const token = getToken();
@@ -79,6 +80,7 @@ export default function DetalleUnidad() {
     setIsOpen(false);
     setCargandoDatos(true);
 
+    // Extraer el número ECO (ej: "ECO042" → "042")
     const matchNumeros = unidad.match(/\d+/);
     const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
@@ -104,16 +106,10 @@ export default function DetalleUnidad() {
       console.log("Respuesta completa:", resultado);
 
       if (respuesta.ok && resultado.status === 'success') {
-        const conductorMostrar = resultado.conductor && resultado.conductor !== 'Sin conductor'
-          ? resultado.conductor
-          : 'No reportado hoy';
-        const rutaMostrar = resultado.ruta && resultado.ruta !== 'Sin ruta asignada'
-          ? resultado.ruta
-          : 'Sin ruta';
-
+        // Si la unidad tiene registro, mostrar los datos
         setDatosOperativos({
-          conductor: conductorMostrar,
-          ruta: rutaMostrar
+          conductor: resultado.conductor || 'No reportado hoy',
+          ruta: resultado.ruta || 'Sin ruta'
         });
       } else {
         console.warn("Respuesta con error o status no exitoso:", resultado);
