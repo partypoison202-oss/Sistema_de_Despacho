@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { generarPDFProfesional } from '../../utils/pdfGenerator';
 import { limpiarTexto } from '../../utils/limpiarTexto';
+import Header from '../../components/Header/Header';
 import './FormularioReporte.css';
 
 export default function FormularioReporte() {
@@ -102,20 +103,11 @@ export default function FormularioReporte() {
   // ... el resto del JSX es idéntico, solo cambia la importación y la llamada
   return (
     <div className="report-layout">
-      <header className="report-header">
-        <div className="report-header__left">
-          <button type="button" onClick={() => navigate(`/transporte/${tipoTransporte}`)} className="report-back-btn" aria-label="Volver">
-            <svg className="report-back-btn__icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <div>
-            <p className="report-header__eyebrow">{transporteFormateado} / {unidadEco} / REPORTE</p>
-            <h1 className="report-header__title">Check List — {zonaFormateada}</h1>
-          </div>
-        </div>
-        <div className="report-header__badge">{unidadEco}</div>
-      </header>
+      <Header 
+        title={`Check List — ${zonaFormateada}`} 
+        eyebrow={`${transporteFormateado} / ${unidadEco} / REPORTE`} 
+        hideLogos={true} 
+      />
 
       <main className="report-container">
         <form onSubmit={handleEnviar}>

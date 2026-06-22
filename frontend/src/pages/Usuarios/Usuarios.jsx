@@ -148,12 +148,11 @@ export default function Usuarios() {
 
   return (
     <div className="usuarios-page">
-      <Header />
+      <Header title="Gestión de Usuarios" eyebrow="Administración del Sistema" hideLogos={true} />
       
       <main className="usuarios-container">
-        <div className="usuarios-header">
-          <h1>Gestión de Usuarios</h1>
-          <button className="btn-primary" onClick={() => handleOpenModal()}>
+        <div className="usuarios-actions">
+          <button className="btn-primary" onClick={() => handleOpenModal()} style={{ backgroundColor: '#c29b53', color: '#fff' }}>
             + Nuevo Usuario
           </button>
         </div>

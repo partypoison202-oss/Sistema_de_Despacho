@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
 import { AuthContext } from '../../context/AuthContext';
@@ -8,8 +8,18 @@ import './Login.css';
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useContext(AuthContext);
+  const { login, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && user) {
+      if (user.role.codigo === 'CAPTURISTA') {
+        navigate('/cargar-excel');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, loading, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

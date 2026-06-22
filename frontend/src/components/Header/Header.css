@@ -6,19 +6,79 @@
 .app-header__inner {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0.5rem 2rem;
-  height: 80px; 
+  padding: 0 2rem;
+  height: 80px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+}
+
+.app-header__left {
+  display: flex;
+  align-items: center;
+}
+
+.app-header__back-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  transition: background-color 0.2s;
+}
+
+.app-header__back-btn svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.app-header__back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 1;
 }
 
 .app-header__brand {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  height: 100%; /* El contenedor del link ocupa toda la altura */
   cursor: default;
   text-decoration: none;
+}
+
+.app-header__text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.app-header__eyebrow {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #d1d5db;
+  margin: 0 0 0.125rem 0;
+  font-weight: 600;
+}
+
+.app-header__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff;
+}
+
+.app-header__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
 }
 
 /* Clases específicas para cada logo */
@@ -31,20 +91,30 @@
 
 /* El logo 1 (400x400) */
 .app-header__brand-logo-1 {
-  height: 135px; /* Altura ideal para un header de 80px */
+  height: 130px;
+  /* Ajustado para que visualmente empate con el logo 2 */
   width: auto;
 }
 
 /* El logo 2 (872x312) - Ajustamos para que la altura visual coincida con el anterior */
 .app-header__brand-logo-2 {
-  height: 50px; /* Un poco menos de altura para compensar que es muy ancho */
+  height: 50px;
+  /* Un poco menos de altura para compensar que es muy ancho */
   width: auto;
 }
 
 @media (max-width: 640px) {
-  .app-header__inner { padding: 0.5rem 1.25rem; }
-  .app-header__brand-logo-1 { height: 40px; }
-  .app-header__brand-logo-2 { height: 30px; }
+  .app-header__inner {
+    padding: 0 1.25rem;
+  }
+
+  .app-header__brand-logo-1 {
+    height: 40px;
+  }
+
+  .app-header__brand-logo-2 {
+    height: 30px;
+  }
 }
 
 /* Profile Dropdown Styles */
@@ -87,7 +157,7 @@
   background-color: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 250px;
   z-index: 1000;
   overflow: hidden;
