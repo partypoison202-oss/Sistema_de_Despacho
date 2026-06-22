@@ -180,7 +180,7 @@ class DespachoController extends Controller
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]) // ← CAMBIO AQUÍ
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select('unidades.numero_eco')
             ->distinct()
@@ -218,6 +218,8 @@ class DespachoController extends Controller
      * Obtiene el detalle de una unidad específica por tipo y número ECO
      * Normaliza mayúsculas/minúsculas usando LOWER.
      */
+    // app/Http/Controllers/API/DespachoController.php
+
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
         $tipoNormalizado = strtolower(trim($tipo));
@@ -226,7 +228,7 @@ class DespachoController extends Controller
         $info = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
-            ->whereRaw('LOWER(unidades.tipo) = ?', [$tipoNormalizado])
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])  // ← CAMBIO AQUÍ
             ->whereDate('informacion_operativa.fecha_registro', Carbon::today()->toDateString())
             ->select('informacion_operativa.ruta', 'informacion_operativa.nombre_conductor', 'unidades.numero_eco')
             ->first();

@@ -33,3 +33,30 @@
   text-align: right;
   padding: 10px;
 }
+
+/* Asegura que los inputs no se solapen con el borde de la celda */
+.edit-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 5px;
+  font-size: 14px;
+  outline: none;
+  /* Esto evita que el texto se rompa de forma extraña */
+  white-space: nowrap; 
+  display: block;
+}
+
+/* Mejora la celda para que contenga bien el input */
+.excel-preview-table td {
+  border: 1px solid #eee;
+  padding: 0; /* Padding a 0 para que el input ocupe todo el espacio */
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Opcional: Estilo al hacer foco */
+.edit-input:focus {
+  background: #fffdf0;
+  border: 1px solid #65002d;
+}

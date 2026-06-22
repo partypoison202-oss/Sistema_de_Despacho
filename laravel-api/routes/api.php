@@ -4,9 +4,13 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\DespachoController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\ReporteController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+
+Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
+// routes/api.php
 
 // Todas las rutas dentro de este grupo requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -30,4 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/unidades/detalle/{tipo}/{numeroEco}', [DespachoController::class, 'obtenerDetalleUnidad']);
     Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']); // <-- Esta es la que necesitas
     Route::get('/unidades/{tipo}', [DespachoController::class, 'obtenerPorTipo']);
+
+    //rutas de reportes
+    Route::get('/despacho/reporte-general', [ReporteController::class, 'generarReporteGeneralData']);
 });

@@ -1,0 +1,246 @@
+@page {
+  size: A4 landscape;
+  margin: 0;
+}
+
+* { box-sizing: border-box; }
+
+/* ── PÁGINA ── */
+.reporte {
+  width: 297mm;
+  height: 210mm;
+  background: #f5f5f5;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── HEADER ── */
+.header {
+  height: 78px;
+  background: #65002d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.header img { height: 150px; }
+
+.header h1 {
+  color: white;
+  font-size: 25px;
+  font-weight: 900;
+  text-align: right;
+  margin: 0;
+  line-height: 1.15;
+}
+
+/* ── FECHA ── */
+.fecha {
+  text-align: right;
+  font-size: 20px;
+  color: #65002d;
+  font-weight: 700;
+  margin: 8px 32px 6px;
+}
+
+/* ── CUERPO ── */
+.contenido {
+  display: flex;
+  gap: 10px;
+  padding: 0 14px;
+  height: calc(210mm - 78px - 40px - 16px);
+}
+
+/* ── IMÁGENES ── */
+/* ── IMÁGENES ── */
+.imagenes {
+  width: 250px;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 50px;
+  padding: 100px 0 4px;
+}
+
+/* Urbanus — más grande */
+.img-box-urbanus {
+  background: #d8c5aa;
+  border-radius: 14px;
+  height: 90px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Alimentadora — más pequeña */
+.img-box-alimentadora {
+  background: #d8c5aa;
+  border-radius: 14px;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.img-box-urbanus img{
+  max-width: 88%;
+  max-height: 88%;
+  object-fit: contain;
+}
+
+.img-box-alimentadora img {
+  max-width: 88%;
+  max-height: 88%;
+  object-fit: contain;
+}
+
+/* ── TABLA ── */
+.tabla-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+table {
+  width: 85%;           /* tabla más pequeña, no ocupa todo el ancho */
+  height: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 0 auto;       /* centrada */
+}
+
+th, td {
+  border: 1px solid #555;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* ── ENCABEZADOS ── */
+.th-rutas {
+  background: #65002d;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
+  width: 100px;
+  padding: 5px 6px;
+}
+
+.th-count { font-size: 11px; font-weight: 900; }
+
+/* Encabezado "N° UNIDADES" — texto más grande */
+.th-nunidades {
+  background: #65002d;
+  color: white;
+  font-size: 20px;
+  font-weight: 900;
+  padding: 7px;
+  letter-spacing: 0.5px;
+}
+
+/* Sub-encabezados EN OPERACIÓN / PATIO / TOTAL — más grandes que antes */
+.th-sub {
+  background: #65002d;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 6px;
+  line-height: 1.3;
+}
+
+/* ── NOMBRE DE RUTA ── */
+.td-ruta {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 1px 6px;
+  width: 75px;
+}
+
+/* ── COLUMNA EN OPERACIÓN ── */
+.td-operacion-group {
+  padding: 0;
+  width: 140px;
+}
+
+.operacion-col {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+
+/* Números individuales por ruta */
+.operacion-individual {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  flex: 1;
+  padding: 4px 0;
+  border-right: 1px solid #555;
+}
+
+.ind-num {
+  font-size: 12px;
+  font-weight: 600;
+  color: #65002d;
+  line-height: 1;
+}
+
+/* Total del grupo — más pequeño que antes */
+.td-big-vino {
+  font-size: 30px;
+  font-weight: 900;
+  color: #65002d;
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── MANTENIMIENTO ── */
+.td-mantenimiento {
+  width: 110px;
+  padding: 4px;
+}
+
+/* Número de mantenimiento — más pequeño */
+.mant-num {
+  display: block;
+  font-size: 30px;
+  font-weight: 900;
+  color: #65002d;
+  line-height: 1;
+}
+
+.td-mantenimiento p {
+  margin: 2px 0 0;
+  font-size: 8px;
+  line-height: 1.3;
+  color: #222;
+}
+
+/* ── TOTAL — más pequeño ── */
+.td-big-negro {
+  font-size: 34px;
+  font-weight: 900;
+  color: #111;
+  width: 65px;
+}
+
+/* ── FOOTER ── */
+.footer-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  background: #65002d;
+}
