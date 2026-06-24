@@ -14,9 +14,12 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role.codigo)) {
-    // Si es un capturista, regresarlo a cargar-excel, si no, al dashboard general
+    // Redirigir según el rol del usuario
     if (user.role.codigo === 'CAPTURISTA') {
-        return <Navigate to="/cargar-excel" replace />;
+      return <Navigate to="/cargar-excel" replace />;
+    }
+    if (user.role.codigo === 'ENCIERRO') {
+      return <Navigate to="/encierro/dashboard" replace />;
     }
     return <Navigate to="/dashboard" replace />;
   }

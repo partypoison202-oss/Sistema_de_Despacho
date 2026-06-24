@@ -7,6 +7,9 @@ import DetalleUnidad from './pages/Unidades/DetalleUnidad';
 import FormularioReporte from './pages/Unidades/FormularioReporte';
 import CargaExcel from './pages/CargaExcel/CargaExcel';
 import Usuarios from './pages/Usuarios/Usuarios';
+import DashboardEncierro from './pages/Encierro/DashboardEncierro';
+import DetalleUnidadEncierro from './pages/Encierro/DetalleUnidadEncierro';
+import FormularioEncierro from './pages/Encierro/FormularioEncierro';
 
 function App() {
   return (
@@ -46,6 +49,25 @@ function App() {
           <Route path="/usuarios" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
               <Usuarios />
+            </ProtectedRoute>
+          } />
+
+          {/* ── Rutas protegidas para ENCIERRO ── */}
+          <Route path="/encierro/dashboard" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO']}>
+              <DashboardEncierro />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/encierro/transporte/:tipoTransporte" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO']}>
+              <DetalleUnidadEncierro />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/encierro/transporte/:tipoTransporte/:unidadEco/reporte/:zona" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO']}>
+              <FormularioEncierro />
             </ProtectedRoute>
           } />
 

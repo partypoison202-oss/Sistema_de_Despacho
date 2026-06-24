@@ -16,6 +16,8 @@ export default function Login() {
     if (!loading && user) {
       if (user.role.codigo === 'CAPTURISTA') {
         navigate('/cargar-excel');
+      } else if (user.role.codigo === 'ENCIERRO') {
+        navigate('/encierro/dashboard');
       } else {
         navigate('/dashboard');
       }
@@ -55,6 +57,8 @@ export default function Login() {
       
       if (data.user.role.codigo === 'CAPTURISTA') {
         navigate('/cargar-excel');
+      } else if (data.user.role.codigo === 'ENCIERRO') {
+        navigate('/encierro/dashboard');
       } else {
         navigate('/dashboard');
       }
