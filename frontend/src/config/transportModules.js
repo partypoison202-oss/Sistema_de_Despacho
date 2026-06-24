@@ -42,5 +42,19 @@ export const transportModules = [
       frente: '/images/zafiro delante.png',
       trasera: '/images/zafiro detras.png'
     }
+  },
+  {
+    id: 'orion',
+    title: 'Orion',
+    subtitle: 'Unidades tipo Orion',
+    image: '/images/orionlateral.PNG', // Asegúrate de tener esta imagen en tu carpeta public/images/
+    route: '/transporte/orion',
+    totalUnidades: 0, // O el valor inicial que desees
+    prefijoEco: 'ORI',
+    imagenesZonas: {
+      lateral: '/images/orionlateral.PNG',
+      frente: '/images/orionfrente.PNG',
+      trasera: '/images/oriondetras.png'
+    }
   }
 ];

@@ -38,4 +38,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //rutas de reportes
     Route::get('/despacho/reporte-general', [ReporteController::class, 'generarReporteGeneralData']);
+    Route::get('/despacho/reporte-unidades', [ReporteController::class, 'generarReporteUnidades']);
 });

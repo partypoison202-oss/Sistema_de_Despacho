@@ -1,0 +1,13 @@
+.reporte-unidades-container { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+.header { text-align: center; border-bottom: 2px solid #5d1033; margin-bottom: 20px; }
+.fecha-box { background: #f4eada; padding: 10px; text-align: center; font-weight: bold; border: 1px solid #ccc; margin-bottom: 20px; }
+
+.unidad-card { display: flex; align-items: center; border: 1px solid #ddd; margin-bottom: 15px; border-radius: 8px; overflow: hidden; }
+.img-placeholder { width: 150px; height: 100px; background: #e0d5c1; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+.stats-box { display: flex; flex: 1; justify-content: space-around; }
+.stat { text-align: center; padding: 10px; }
+.stat strong { font-size: 2em; color: #5d1033; display: block; }
+
+.footer-totales { display: flex; justify-content: space-around; margin-top: 30px; border-top: 2px solid #5d1033; padding-top: 20px; }
+.total-box { text-align: center; }
+.total-box strong { font-size: 2.5em; color: #5d1033; display: block; }

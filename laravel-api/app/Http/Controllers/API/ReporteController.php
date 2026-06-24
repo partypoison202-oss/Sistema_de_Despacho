@@ -12,24 +12,11 @@ class ReporteController extends Controller
     {
         $fechaHoy = Carbon::today()->toDateString();
 
-        // 1. Mapeo único: Cada clave es única para evitar que PHP sobrescriba valores
         $mapeoRutas = [
-            'T-01'  => 'T01', 
-            'T-02'  => 'T02', 
-            'T-04'  => 'T04', 
-            'T-05'  => 'T05',
-            'RA 2A' => '2A', 
-            'RA 2B' => '2B', 
-            '20B'   => '20B', // Definimos 20B como una categoría propia temporalmente
-            'RA 2D' => '2D', 
-            'RA 3'  => '03', 
-            'RA 4'  => '04', 
-            'RA 6'  => '06', 
-            'RA 8'  => '08', 
-            'RA 11' => '11', 
-            'RA 14' => '14', 
-            'RA 15A'=> '15A', 
-            'RA 15B'=> '15B'
+            'T-01'  => 'T01', 'T-02'  => 'T02', 'T-04'  => 'T04', 'T-05'  => 'T05',
+            'RA 2A' => '2A',  'RA 2B' => '2B',  '20B'   => '20B', 'RA 2D' => '2D', 
+            'RA 3'  => '03',  'RA 4'  => '04',  'RA 6'  => '06',  'RA 8'  => '08', 
+            'RA 11' => '11',  'RA 14' => '14',  'RA 15A'=> '15A', 'RA 15B'=> '15B',
         ];
         
         $data = [];
@@ -46,7 +33,6 @@ class ReporteController extends Controller
             $rutaExcel = trim(strtoupper($reg->ruta)); 
 
             foreach ($mapeoRutas as $nombreReporte => $prefijoExcel) {
-                // Usamos strpos con '=== 0' para asegurar que la ruta EMPIEZA con el prefijo
                 if (strpos($rutaExcel, $prefijoExcel) === 0) {
                     if ($estatus === 'OPERACION') {
                         $data[$nombreReporte]['en_operacion']++;
@@ -58,16 +44,12 @@ class ReporteController extends Controller
             }
         }
 
-        // 2. Lógica de Suma: Sumar 20B dentro de RA 2B
         if (isset($data['20B']) && isset($data['RA 2B'])) {
             $data['RA 2B']['en_operacion'] += $data['20B']['en_operacion'];
             $data['RA 2B']['en_mantenimiento'] += $data['20B']['en_mantenimiento'];
-            
-            // Eliminamos 20B del reporte final para que no aparezca como fila duplicada
             unset($data['20B']);
         }
 
-        // 3. Formatear resultados
         $resultado = [];
         foreach ($data as $ruta => $valores) {
             $resultado[] = [
@@ -79,5 +61,60 @@ class ReporteController extends Controller
         }
 
         return response()->json($resultado);
+    }
+
+    // Endpoint para reporte de unidades por tipo
+    
+        public function generarReporteUnidades()
+    {
+        try {
+            $fechaHoy = Carbon::today()->toDateString();
+            $tipos = ['URBANUS', 'ZAFIRO', 'ORION', 'VAGONETA'];
+            $resultado = [];
+
+            foreach ($tipos as $tipo) {
+                // Total programadas
+                $programadas = DB::selectOne("
+                    SELECT COUNT(*) as total
+                    FROM informacion_operativa io
+                    INNER JOIN unidades u ON io.unidad_id = u.id
+                    INNER JOIN transporte t ON u.transporte_id = t.id
+                    WHERE DATE(io.fecha_registro) = ?
+                    AND t.tipo = ?
+                ", [$fechaHoy, $tipo]);
+
+                // En servicio
+                $en_servicio = DB::selectOne("
+                    SELECT COUNT(*) as total
+                    FROM informacion_operativa io
+                    INNER JOIN unidades u ON io.unidad_id = u.id
+                    INNER JOIN transporte t ON u.transporte_id = t.id
+                    WHERE DATE(io.fecha_registro) = ?
+                    AND t.tipo = ?
+                    AND io.estatus = 'OPERACION'
+                ", [$fechaHoy, $tipo]);
+
+                $resultado[] = [
+                    'tipo' => $tipo,
+                    'programadas' => $programadas->total ?? 0,
+                    'en_servicio' => $en_servicio->total ?? 0,
+                ];
+            }
+
+            $totales = [
+                'programadas' => array_sum(array_column($resultado, 'programadas')),
+                'en_servicio' => array_sum(array_column($resultado, 'en_servicio')),
+            ];
+
+            return response()->json(['tipos' => $resultado, 'totales' => $totales]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en generarReporteUnidades: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
     }
 }
