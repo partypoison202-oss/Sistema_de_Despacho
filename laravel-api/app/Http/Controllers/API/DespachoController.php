@@ -254,94 +254,58 @@ class DespachoController extends Controller
      * a partir de los datos enviados desde la vista previa.
      * Espera un array 'unidades' con los mismos campos que en la importación.
      */
-    public function actualizar(Request $request)
+        public function actualizar(Request $request)
     {
-        $request->validate([
-            'unidades' => 'required|array',
-        ]);
-
+        $request->validate(['unidades' => 'required|array']);
         $unidadesExcel = $request->input('unidades');
         $fechaHoy = Carbon::today()->toDateString();
-
-        // Pre-cargar las unidades para mapear numero_eco -> id
-        $unidadesMap = DB::table('unidades')
-            ->select('id', 'numero_eco')
-            ->get()
-            ->keyBy('numero_eco');
-
+        
+        // Obtenemos el mapa de unidades fuera del bucle para mejor rendimiento
+        $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
+        
         $actualizados = 0;
         $errores = [];
 
-        DB::beginTransaction();
-
-        try {
-            foreach ($unidadesExcel as $fila) {
-                // Normalizar ECO (eliminar ceros a la izquierda)
-                $numeroEcoRaw = trim((string) ($fila['ECONOMICO'] ?? ''));
-                $numeroEco = ltrim($numeroEcoRaw, '0');
-                if ($numeroEco === '' || !is_numeric($numeroEco)) {
-                    $errores[] = "ECO inválido: {$numeroEcoRaw}";
-                    continue;
-                }
-                $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
-
-                $unidad = $unidadesMap->get($numeroEcoClean);
-                if (!$unidad) {
-                    $errores[] = "Unidad no encontrada: {$numeroEcoClean}";
-                    continue;
-                }
-
-                $registro = DB::table('informacion_operativa')
-                    ->where('unidad_id', $unidad->id)
-                    ->whereDate('fecha_registro', $fechaHoy)
-                    ->first();
-
-                if (!$registro) {
-                    $errores[] = "Registro de hoy no encontrado para ECO: {$numeroEcoClean}";
-                    continue;
-                }
-
-                $updateData = [];
-                if (array_key_exists('RUTA', $fila)) {
-                    $updateData['ruta'] = trim((string) $fila['RUTA']);
-                }
-                if (array_key_exists('TARJETON', $fila)) {
-                    $updateData['numero_tarjeton'] = trim((string) $fila['TARJETON']);
-                }
-                if (array_key_exists('NOMBRE_CONDUCTOR', $fila)) {
-                    $updateData['nombre_conductor'] = trim((string) $fila['NOMBRE_CONDUCTOR']);
-                }
-
-                if (!empty($updateData)) {
-                    DB::table('informacion_operativa')
-                        ->where('id', $registro->id)
-                        ->update($updateData);
-                    $actualizados++;
-                } else {
-                    $errores[] = "Sin datos para actualizar en ECO: {$numeroEcoClean}";
-                }
+        foreach ($unidadesExcel as $fila) {
+            $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
+            $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
+            
+            $unidad = $unidadesMap->get($numeroEcoClean);
+            if (!$unidad) {
+                $errores[] = "ECO no encontrado: {$numeroEcoClean}";
+                continue;
             }
 
-            DB::commit();
+            $registro = DB::table('informacion_operativa')
+                ->where('unidad_id', $unidad->id)
+                ->whereDate('fecha_registro', $fechaHoy)
+                ->first();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => "Se actualizaron {$actualizados} registros.",
-                'errores' => $errores,
-                'actualizados' => $actualizados,
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al actualizar registros', [
-                'mensaje' => $e->getMessage(),
-                'archivo' => $e->getFile(),
-                'linea' => $e->getLine(),
-            ]);
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Error al actualizar: ' . $e->getMessage(),
-            ], 500);
+            if ($registro) {
+                try {
+                    // Actualización individual con su propio contexto
+                    // Forzamos el cast a (string) para que PostgreSQL reciba comillas
+                    DB::table('informacion_operativa')
+                        ->where('id', $registro->id)
+                        ->update([
+                            'ruta'             => (string) ($fila['RUTA'] ?? ''),
+                            'numero_tarjeton'  => (string) ($fila['TARJETON'] ?? ''),
+                            'nombre_conductor' => (string) ($fila['NOMBRE_CONDUCTOR'] ?? '')
+                        ]);
+                    
+                    $actualizados++;
+                } catch (\Exception $e) {
+                    // Si esta fila falla, se registra y se continúa con la siguiente
+                    \Log::error("Fallo individual en ID {$registro->id}: " . $e->getMessage());
+                    $errores[] = "Error al actualizar ECO {$numeroEcoClean}: " . $e->getMessage();
+                }
+            }
         }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Proceso finalizado. Total actualizados: {$actualizados}",
+            'errores' => $errores
+        ], 200);
     }
 }
