@@ -308,4 +308,42 @@ class DespachoController extends Controller
             'errores' => $errores
         ], 200);
     }
+
+    /**
+     * Obtiene todos los registros de información operativa del día actual, 
+     * formateados para la tabla de vista previa del Capturista.
+     */
+    public function obtenerDatosHoy()
+    {
+        $fechaHoy = Carbon::today()->toDateString();
+
+        $registros = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->select(
+                'unidades.numero_eco',
+                'informacion_operativa.tipo',
+                'informacion_operativa.ruta',
+                'informacion_operativa.numero_tarjeton',
+                'informacion_operativa.nombre_conductor',
+                'informacion_operativa.estatus'
+            )
+            ->orderBy('informacion_operativa.tipo')
+            ->orderBy('unidades.numero_eco')
+            ->get();
+
+        // Mapear al formato que espera el frontend (Excel preview)
+        $formateados = $registros->map(function ($reg) {
+            return [
+                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'RUTA' => $reg->ruta,
+                'ECONOMICO' => $reg->numero_eco,
+                'TARJETON' => $reg->numero_tarjeton,
+                'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
+                'ESTATUS' => $reg->estatus
+            ];
+        });
+
+        return response()->json($formateados, 200);
+    }
 }

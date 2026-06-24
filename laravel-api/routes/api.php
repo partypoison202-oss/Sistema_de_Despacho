@@ -26,6 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     
     // Gestión de Despacho
+    Route::get('/despacho/hoy', [DespachoController::class, 'obtenerDatosHoy']);
     Route::post('/despacho/importar', [DespachoController::class, 'importar']);
     Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
