@@ -1,13 +1,239 @@
-.reporte-unidades-container { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
-.header { text-align: center; border-bottom: 2px solid #5d1033; margin-bottom: 20px; }
-.fecha-box { background: #f4eada; padding: 10px; text-align: center; font-weight: bold; border: 1px solid #ccc; margin-bottom: 20px; }
+/* ─────────────────────────────────────────────────────────────
+   PlantillaReporteUnidades.css – VERTICAL (retrato A4)
+   Paleta: vino #5d1033 · crema #f4eada · crema oscuro #e8d9bf · dorado #c5a059
+───────────────────────────────────────────────────────────── */
 
-.unidad-card { display: flex; align-items: center; border: 1px solid #ddd; margin-bottom: 15px; border-radius: 8px; overflow: hidden; }
-.img-placeholder { width: 150px; height: 100px; background: #e0d5c1; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-.stats-box { display: flex; flex: 1; justify-content: space-around; }
-.stat { text-align: center; padding: 10px; }
-.stat strong { font-size: 2em; color: #5d1033; display: block; }
+/* ROOT – A4 portrait (794px x 1123px aprox) */
+.rpu-root {
+  font-family: Arial, Helvetica, sans-serif;
+  width: 794px;
+  background-color: #f0ece4;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
 
-.footer-totales { display: flex; justify-content: space-around; margin-top: 30px; border-top: 2px solid #5d1033; padding-top: 20px; }
-.total-box { text-align: center; }
-.total-box strong { font-size: 2.5em; color: #5d1033; display: block; }
+/* ── HEADER ──────────────────────────────────────────────── */
+.rpu-header {
+  background-color: #5d1033;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 30px;
+}
+
+.rpu-header-title p {
+  color: white;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1.3;
+  margin: 0;
+  text-align: right;
+}
+
+/* ── LOGO ────────────────────────────────────────────────── */
+.rpu-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rpu-logo-svg {
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.rpu-logo-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.rpu-logo-small {
+  font-size: 13px;
+  font-weight: 400;
+  color: white;
+}
+
+.rpu-logo-big {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+/* ── FECHA ───────────────────────────────────────────────── */
+.rpu-fecha-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20px 30px 10px;
+}
+
+.rpu-fecha-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 3px solid #c5a059;
+  border-radius: 10px;
+  padding: 10px 30px;
+  background-color: white;
+}
+
+.rpu-fecha-text {
+  font-size: 26px;
+  font-weight: 900;
+  color: #5d1033;
+  letter-spacing: 0.5px;
+}
+
+/* ── CUERPO (filas verticales) ───────────────────────────── */
+.rpu-body {
+  padding: 10px 30px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Cada fila (unidad) */
+.rpu-row {
+  display: flex;
+  align-items: center;
+  background-color: #f4eada;
+  border-radius: 10px;
+  overflow: hidden;
+  min-height: 100px;
+}
+
+/* Imagen */
+.rpu-row-img {
+  background-color: #e8d9bf;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  min-width: 220px;
+}
+
+.rpu-vehicle-img {
+  width: 180px;
+  height: 80px;
+  object-fit: contain;
+  display: block;
+}
+
+.rpu-vehicle-placeholder {
+  width: 180px;
+  height: 80px;
+  background: linear-gradient(135deg, #5d1033 55%, #c5a059 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+/* Stats (dos columnas) */
+.rpu-row-stats {
+  display: flex;
+  flex: 1;
+  justify-content: space-around;
+}
+
+.rpu-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 6px;
+  flex: 1;
+}
+
+.rpu-stat:first-child {
+  border-right: 1px solid #e8d9bf;
+}
+
+.rpu-stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5d1033;
+  background-color: #e8d9bf;
+  padding: 4px 14px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.rpu-stat-num {
+  font-size: 44px;
+  font-weight: 900;
+  color: #5d1033;
+  line-height: 1;
+}
+
+/* ── FOOTER TOTALES ──────────────────────────────────────── */
+.rpu-footer {
+  background-color: #f4eada;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 20px 30px;
+  margin: 10px 30px 30px;
+  border-radius: 10px;
+}
+
+.rpu-total-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rpu-icon-box {
+  background-color: #5d1033;
+  border-radius: 10px;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rpu-total-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5d1033;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.5;
+}
+
+.rpu-total-num {
+  font-size: 44px;
+  font-weight: 900;
+  color: #5d1033;
+  line-height: 1;
+}
+
+.rpu-divider {
+  width: 2px;
+  height: 70px;
+  background-color: #e8d9bf;
+}
+
+.rpu-logo-img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  flex-shrink: 0;
+}

@@ -17,6 +17,10 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        host: '0.0.0.0', // Escucha en todas las interfaces de red
+        hmr: {
+            host: '192.168.1.70', // La IP local de tu PC para que el navegador sepa a dónde conectar
+        },
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

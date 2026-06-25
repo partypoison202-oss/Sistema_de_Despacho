@@ -1,5 +1,5 @@
 // src/pages/Dashboard/Dashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
@@ -18,11 +18,16 @@ export default function Dashboard() {
   const [mostrarReporte, setMostrarReporte] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Función auxiliar para generar un PDF a partir de un elemento DOM
-  const generarPDF = (element, nombreArchivo) => {
+  // Referencias para los elementos a capturar
+  const reporteRutasRef = useRef(null);
+  const reporteUnidadesRef = useRef(null);
+
+  // Función para generar PDF a partir de una referencia
+  const generarPDF = (elementRef, nombreArchivo) => {
     return new Promise((resolve, reject) => {
+      const element = elementRef.current;
       if (!element) {
-        reject(new Error('Elemento no encontrado'));
+        reject(new Error(`Elemento ${nombreArchivo} no encontrado`));
         return;
       }
       html2canvas(element, {
@@ -48,7 +53,7 @@ export default function Dashboard() {
     const token = localStorage.getItem('token');
 
     try {
-      // Obtener ambos reportes en paralelo
+      // Obtener ambos reportes
       const [respRutas, respUnidades] = await Promise.all([
         fetch('http://127.0.0.1:8000/api/despacho/reporte-general', {
           method: 'GET',
@@ -69,7 +74,16 @@ export default function Dashboard() {
       ]);
 
       if (!respRutas.ok || !respUnidades.ok) {
-        throw new Error('Error al obtener los datos');
+        // Intentar obtener mensaje de error del servidor
+        let errorMsg = 'Error al obtener los datos';
+        if (!respRutas.ok) {
+          const errData = await respRutas.json().catch(() => ({}));
+          errorMsg = errData.error || errorMsg;
+        } else {
+          const errData = await respUnidades.json().catch(() => ({}));
+          errorMsg = errData.error || errorMsg;
+        }
+        throw new Error(errorMsg);
       }
 
       const dataRutas = await respRutas.json();
@@ -79,18 +93,15 @@ export default function Dashboard() {
       setReporteDataUnidades(dataUnidades);
       setMostrarReporte(true);
 
-      // Esperar a que React renderice las plantillas ocultas
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      // Esperar a que React renderice los componentes ocultos
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
       // Generar PDF de rutas
-      const elRutas = document.getElementById('reporte-rutas');
-      await generarPDF(elRutas, 'Reporte_Rutas');
+      await generarPDF(reporteRutasRef, 'Reporte_Rutas');
 
       // Generar PDF de unidades
-      const elUnidades = document.getElementById('reporte-unidades');
-      await generarPDF(elUnidades, 'Reporte_Unidades');
+      await generarPDF(reporteUnidadesRef, 'Reporte_Unidades');
 
-      // Todo exitoso
       Swal.fire({
         icon: 'success',
         title: '¡Reportes Generados!',
@@ -103,7 +114,7 @@ export default function Dashboard() {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Ocurrió un error al generar los reportes.',
+        text: error.message || 'Ocurrió un error al generar los reportes.',
         confirmButtonColor: '#601a2a',
       });
     } finally {
@@ -188,6 +199,7 @@ export default function Dashboard() {
               left: '-9999px',
               zIndex: -1,
             }}
+            ref={reporteRutasRef}
           >
             <PlantillaReporteGeneral data={reporteDataRutas} />
           </div>
@@ -198,6 +210,7 @@ export default function Dashboard() {
               left: '-9999px',
               zIndex: -1,
             }}
+            ref={reporteUnidadesRef}
           >
             <PlantillaReporteUnidades data={reporteDataUnidades} />
           </div>

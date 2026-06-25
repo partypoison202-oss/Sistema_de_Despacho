@@ -69,35 +69,35 @@ class ReporteController extends Controller
     {
         try {
             $fechaHoy = Carbon::today()->toDateString();
+            // Definimos el mapa de imágenes
+            $mapeoImagenes = [
+                'URBANUS'   => 'urbanu.png',
+                'ZAFIRO'    => 'zafiro.png',
+                'ORION'     => 'orionlateral.PNG',
+                'VAGONETA'  => 'vagoneta lateral.png'
+            ];
+            
             $tipos = ['URBANUS', 'ZAFIRO', 'ORION', 'VAGONETA'];
             $resultado = [];
 
             foreach ($tipos as $tipo) {
-                // Total programadas
-                $programadas = DB::selectOne("
-                    SELECT COUNT(*) as total
-                    FROM informacion_operativa io
-                    INNER JOIN unidades u ON io.unidad_id = u.id
-                    INNER JOIN transporte t ON u.transporte_id = t.id
-                    WHERE DATE(io.fecha_registro) = ?
-                    AND t.tipo = ?
-                ", [$fechaHoy, $tipo]);
+                $programadas = DB::table('informacion_operativa')
+                    ->whereDate('fecha_registro', $fechaHoy)
+                    ->where('tipo', $tipo)
+                    ->count();
 
-                // En servicio
-                $en_servicio = DB::selectOne("
-                    SELECT COUNT(*) as total
-                    FROM informacion_operativa io
-                    INNER JOIN unidades u ON io.unidad_id = u.id
-                    INNER JOIN transporte t ON u.transporte_id = t.id
-                    WHERE DATE(io.fecha_registro) = ?
-                    AND t.tipo = ?
-                    AND io.estatus = 'OPERACION'
-                ", [$fechaHoy, $tipo]);
+                $en_servicio = DB::table('informacion_operativa')
+                    ->whereDate('fecha_registro', $fechaHoy)
+                    ->where('tipo', $tipo)
+                    ->where('estatus', 'OPERACION')
+                    ->count();
 
+                // Agregamos la imagen al array de resultado
                 $resultado[] = [
                     'tipo' => $tipo,
-                    'programadas' => $programadas->total ?? 0,
-                    'en_servicio' => $en_servicio->total ?? 0,
+                    'programadas' => $programadas,
+                    'en_servicio' => $en_servicio,
+                    'imagen' => $mapeoImagenes[$tipo] ?? 'default.png'
                 ];
             }
 
@@ -109,12 +109,8 @@ class ReporteController extends Controller
             return response()->json(['tipos' => $resultado, 'totales' => $totales]);
 
         } catch (\Exception $e) {
-            \Log::error('Error en generarReporteUnidades: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
-            return response()->json([
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
+            \Log::error('Error en generarReporteUnidades: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 }
