@@ -40,7 +40,7 @@ export default function DetalleUnidad() {
 
       try {
         const respuesta = await fetch(
-          `http://127.0.0.1:8000/api/unidades/listar/${tipoTransporte}`,
+          `http://192.168.1.174:8000/api/unidades/listar/${tipoTransporte}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -92,7 +92,7 @@ export default function DetalleUnidad() {
         return;
       }
 
-      const url = `http://127.0.0.1:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
+      const url = `http://192.168.1.174:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
       console.log("Consultando URL:", url);
 
       const respuesta = await fetch(url, {

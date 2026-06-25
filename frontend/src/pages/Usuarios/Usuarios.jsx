@@ -30,8 +30,8 @@ const [togglingUserId, setTogglingUserId] = useState(null);
   const fetchData = async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([
-        fetch('http://127.0.0.1:8000/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://127.0.0.1:8000/api/users/roles', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch('http://192.168.1.174:8000/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('http://192.168.1.174:8000/api/users/roles', { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       const usersData = await usersRes.json();
@@ -71,8 +71,8 @@ const [togglingUserId, setTogglingUserId] = useState(null);
     e.preventDefault();
     setIsSubmitting(true);
     const url = formData.id 
-      ? `http://127.0.0.1:8000/api/users/${formData.id}` 
-      : 'http://127.0.0.1:8000/api/users';
+      ? `http://192.168.1.174:8000/api/users/${formData.id}` 
+      : 'http://192.168.1.174:8000/api/users';
     const method = formData.id ? 'PUT' : 'POST';
 
     try {
@@ -117,7 +117,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
   }
 
   try {
-    const res = await fetch(`http://127.0.0.1:8000/api/users/${user.id}`, {
+    const res = await fetch(`http://192.168.1.174:8000/api/users/${user.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/users/${id}`, {
+        const res = await fetch(`http://192.168.1.174:8000/api/users/${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });

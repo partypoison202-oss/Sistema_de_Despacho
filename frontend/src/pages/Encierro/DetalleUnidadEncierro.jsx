@@ -42,7 +42,7 @@ export default function DetalleUnidadEncierro() {
 
       try {
         const respuesta = await fetch(
-          `http://127.0.0.1:8000/api/unidades/listar/${tipoTransporte}`,
+          `http://192.168.1.174:8000/api/unidades/listar/${tipoTransporte}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -87,7 +87,7 @@ export default function DetalleUnidadEncierro() {
       const token = getToken();
       if (!token) { navigate('/'); return; }
 
-      const url = `http://127.0.0.1:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
+      const url = `http://192.168.1.174:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
       const respuesta = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -144,7 +144,7 @@ export default function DetalleUnidadEncierro() {
           }
         ]
       };
-      const response = await fetch(`http://127.0.0.1:8000/api/despacho/actualizar`, {
+      const response = await fetch(`http://192.168.1.174:8000/api/despacho/actualizar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

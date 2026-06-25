@@ -28,7 +28,7 @@ export default function CargaExcel() {
 
   const fetchDatosHoy = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/despacho/hoy', {
+      const response = await fetch('http://192.168.1.174:8000/api/despacho/hoy', {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -77,7 +77,7 @@ export default function CargaExcel() {
     setIsSaving(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/despacho/actualizar', {
+      const response = await fetch('http://192.168.1.174:8000/api/despacho/actualizar', {
         method: 'POST',
         headers: getAuthHeaders(), // Token aplicado
         body: JSON.stringify({ unidades: previewData })
@@ -160,7 +160,7 @@ export default function CargaExcel() {
         }
 
         // Petición al backend con Token
-        const respuesta = await fetch('http://127.0.0.1:8000/api/despacho/importar', {
+        const respuesta = await fetch('http://192.168.1.174:8000/api/despacho/importar', {
           method: 'POST',
           headers: getAuthHeaders(), // Token aplicado
           body: JSON.stringify({ unidades: unidadesProcesadas })

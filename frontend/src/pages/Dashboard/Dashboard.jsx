@@ -55,7 +55,7 @@ export default function Dashboard() {
     try {
       // Obtener ambos reportes
       const [respRutas, respUnidades] = await Promise.all([
-        fetch('http://127.0.0.1:8000/api/despacho/reporte-general', {
+        fetch('http://192.168.1.174:8000/api/despacho/reporte-general', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -63,7 +63,7 @@ export default function Dashboard() {
             'Content-Type': 'application/json',
           },
         }),
-        fetch('http://127.0.0.1:8000/api/despacho/reporte-unidades', {
+        fetch('http://192.168.1.174:8000/api/despacho/reporte-unidades', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -127,7 +127,7 @@ export default function Dashboard() {
     const fetchConteos = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await fetch('http://127.0.0.1:8000/api/despacho/conteo-unidades', {
+        const response = await fetch('http://192.168.1.174:8000/api/despacho/conteo-unidades', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

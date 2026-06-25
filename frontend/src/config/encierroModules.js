@@ -42,5 +42,19 @@ export const encierroModules = [
       frente: '/images/zafiro delante.png',
       trasera: '/images/zafiro detras.png'
     }
+  },
+  {
+    id: 'orion',
+    title: 'Orion',
+    subtitle: 'Unidades tipo Orion',
+    image: '/images/orionlateral.PNG',
+    route: '/encierro/transporte/orion',
+    totalUnidades: 0,
+    prefijoEco: 'ORI',
+    imagenesZonas: {
+      lateral: '/images/orionlateral.PNG',
+      frente: '/images/orionfrente.PNG',
+      trasera: '/images/oriondetras.png'
+    }
   }
 ];
