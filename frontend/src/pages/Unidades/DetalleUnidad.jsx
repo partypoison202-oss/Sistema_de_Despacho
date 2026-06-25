@@ -166,7 +166,7 @@ export default function DetalleUnidad() {
                       Cargando unidades...
                     </div>
                   ) : unidadesList.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">No hay unidades con registro hoy</div>
+                    <div className="p-4 text-center text-gray-500">No hay unidades disponibles</div>
                   ) : (
                     unidadesList.map((unidad) => (
                       <button

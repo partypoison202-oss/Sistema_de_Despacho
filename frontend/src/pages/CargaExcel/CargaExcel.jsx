@@ -26,19 +26,33 @@ export default function CargaExcel() {
     };
   };
 
+  const fetchDatosHoy = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/despacho/hoy', {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        const datos = await response.json();
+        if (datos && datos.length > 0) {
+          setPreviewData(datos);
+        } else {
+          // Si no hay datos en BD, limpiar la tabla
+          setPreviewData(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error al obtener datos de hoy:', error);
+    }
+  };
+
   useEffect(() => {
     const guardado = localStorage.getItem(STORAGE_KEY);
     if (guardado) setArchivoProcesado(JSON.parse(guardado));
 
-    const previewGuardado = localStorage.getItem(STORAGE_PREVIEW_KEY);
-    if (previewGuardado) {
-      try {
-        const datos = JSON.parse(previewGuardado);
-        setPreviewData(datos);
-      } catch (e) {
-        console.error('Error al restaurar previewData', e);
-      }
-    }
+    // En lugar de leer localstorage, siempre consultamos la BD 
+    // para traer los cambios más recientes hechos por Encierro/Admin.
+    fetchDatosHoy();
   }, []);
 
   const handleFileChange = (e) => {
@@ -157,8 +171,8 @@ export default function CargaExcel() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify({ nombre: archivo.name }));
           setArchivoProcesado({ nombre: archivo.name });
           setArchivo(null);
-          setPreviewData(unidadesProcesadas);
-          localStorage.setItem(STORAGE_PREVIEW_KEY, JSON.stringify(unidadesProcesadas));
+          // Obtenemos los datos frescos de la BD
+          await fetchDatosHoy();
           setHasChanges(false);
           Swal.fire({
             icon: 'success',

@@ -4,7 +4,7 @@ import { headerConfig } from '../../config/header';
 import { AuthContext } from '../../context/AuthContext';
 import './Header.css';
 
-export default function Header({ title, eyebrow, hideLogos }) {
+export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
   const { user, logout } = useContext(AuthContext);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export default function Header({ title, eyebrow, hideLogos }) {
   }, [profileRef]);
 
   // Determine if we should show the back button
-  const showBackButton = user && !['/', '/dashboard', '/cargar-excel'].includes(location.pathname);
+  const showBackButton = !hideBackButton && user && !['/', '/dashboard', '/encierro/dashboard', '/cargar-excel'].includes(location.pathname);
 
   return (
     <header className="app-header">

@@ -52,3 +52,38 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.page-loader-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+}
+
+.page-loader-spinner {
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 4px solid rgba(197, 160, 89, 0.3);
+  border-top-color: #fff;
+  border-right-color: var(--color-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+.page-loader-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}

@@ -6,7 +6,12 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, token, loading } = useContext(AuthContext);
 
   if (loading) {
-    return <div>Cargando...</div>;
+    return (
+      <div className="page-loader-container">
+        <div className="page-loader-spinner"></div>
+        <div className="page-loader-text">Cargando...</div>
+      </div>
+    );
   }
 
   if (!token || !user) {

@@ -10,6 +10,7 @@ import Usuarios from './pages/Usuarios/Usuarios';
 import DashboardEncierro from './pages/Encierro/DashboardEncierro';
 import DetalleUnidadEncierro from './pages/Encierro/DetalleUnidadEncierro';
 import FormularioEncierro from './pages/Encierro/FormularioEncierro';
+import ResumenDespacho from './pages/Reportes/ResumenDespacho';
 
 function App() {
   return (
@@ -49,6 +50,13 @@ function App() {
           <Route path="/usuarios" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
               <Usuarios />
+            </ProtectedRoute>
+          } />
+
+          {/* Ruta temporal para Resumen Despacho */}
+          <Route path="/resumen-despacho" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
+              <ResumenDespacho />
             </ProtectedRoute>
           } />
 

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { encierroModules } from '../../config/encierroModules';
 import Header from '../../components/Header/Header';
+import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 
 export default function DetalleUnidadEncierro() {
@@ -16,6 +17,10 @@ export default function DetalleUnidadEncierro() {
     ruta: 'Seleccione una unidad...'
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
+  const [editandoConductor, setEditandoConductor] = useState(false);
+  const [editandoRuta, setEditandoRuta] = useState(false);
+  const [formEditar, setFormEditar] = useState({ conductor: '', ruta: '' });
+  const [guardando, setGuardando] = useState(false);
 
   const configActual = encierroModules.find(m => m.id === tipoTransporte);
   if (!configActual) {
@@ -97,11 +102,16 @@ export default function DetalleUnidadEncierro() {
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta'
         });
+        setFormEditar({
+          conductor: resultado.conductor || '',
+          ruta: resultado.ruta || ''
+        });
       } else {
         setDatosOperativos({
           conductor: 'No reportado hoy',
           ruta: 'Sin ruta'
         });
+        setFormEditar({ conductor: '', ruta: '' });
       }
     } catch (error) {
       console.error('Error en la petición:', error);
@@ -109,8 +119,52 @@ export default function DetalleUnidadEncierro() {
         conductor: 'Error de conexión',
         ruta: 'No se pudo obtener'
       });
+      setFormEditar({ conductor: '', ruta: '' });
     } finally {
       setCargandoDatos(false);
+    }
+  };
+
+  const handleGuardarEdicion = async (campo) => {
+    if (!formEditar.conductor.trim() || !formEditar.ruta.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Campos vacíos', text: 'El conductor y la ruta no pueden estar vacíos', confirmButtonColor: '#601a2a' });
+      return;
+    }
+    setGuardando(true);
+    try {
+      const token = getToken();
+      const matchNumeros = selectedOption.match(/\d+/);
+      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+      const payload = {
+        unidades: [
+          {
+            ECONOMICO: numeroLimpio,
+            RUTA: formEditar.ruta.trim(),
+            NOMBRE_CONDUCTOR: formEditar.conductor.trim()
+          }
+        ]
+      };
+      const response = await fetch(`http://127.0.0.1:8000/api/despacho/actualizar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (response.ok && result.status === 'success') {
+        Swal.fire({ icon: 'success', title: 'Éxito', text: 'Datos actualizados correctamente', confirmButtonColor: '#c5a059' });
+        setDatosOperativos({ ruta: formEditar.ruta.trim(), conductor: formEditar.conductor.trim() });
+        if (campo === 'conductor') setEditandoConductor(false);
+        if (campo === 'ruta') setEditandoRuta(false);
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: result.errores?.[0] || 'Hubo un error al actualizar', confirmButtonColor: '#601a2a' });
+      }
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor', confirmButtonColor: '#601a2a' });
+    } finally {
+      setGuardando(false);
     }
   };
 
@@ -169,28 +223,84 @@ export default function DetalleUnidadEncierro() {
           </div>
 
           {selectedOption ? (
-            <div className="data-grid">
-              <div className="data-item">
-                <h3 className="data-item__label">Tipo de Transporte</h3>
-                <p className="data-item__value">{configActual.title}</p>
+            <>
+              <div className="data-grid">
+                <div className="data-item">
+                  <h3 className="data-item__label">Tipo de Transporte</h3>
+                  <p className="data-item__value">{configActual.title}</p>
+                </div>
+                <div className="data-item">
+                  <h3 className="data-item__label">Número ECO</h3>
+                  <p className="data-item__value">{selectedOption}</p>
+                </div>
+                <div className="data-item">
+                  <h3 className="data-item__label">Conductor Asignado</h3>
+                  {editandoConductor ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                      <input 
+                        type="text" 
+                        className="input-group__field" 
+                        style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0 }}
+                        value={formEditar.conductor} 
+                        onChange={e => setFormEditar({...formEditar, conductor: e.target.value})} 
+                      />
+                      <button onClick={() => handleGuardarEdicion('conductor')} disabled={guardando} title="Guardar" style={{ background: 'transparent', color: '#16a34a', border: 'none', cursor: guardando ? 'wait' : 'pointer', padding: 0, display: 'flex' }}>
+                        {guardando ? (
+                          <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', margin: 0, borderColor: 'rgba(22, 163, 74, 0.2)', borderTopColor: '#16a34a' }}></span>
+                        ) : (
+                          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        )}
+                      </button>
+                      <button onClick={() => { setEditandoConductor(false); setFormEditar({...formEditar, conductor: datosOperativos.conductor}); }} disabled={guardando} title="Cancelar" style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center', margin: 0 }}>
+                        {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.conductor}
+                      </p>
+                      <button onClick={() => setEditandoConductor(true)} title="Editar Conductor" style={{ background: 'transparent', color: '#9ca3af', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="data-item">
+                  <h3 className="data-item__label">Ruta Asignada</h3>
+                  {editandoRuta ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                      <input 
+                        type="text" 
+                        className="input-group__field" 
+                        style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0 }}
+                        value={formEditar.ruta} 
+                        onChange={e => setFormEditar({...formEditar, ruta: e.target.value})} 
+                      />
+                      <button onClick={() => handleGuardarEdicion('ruta')} disabled={guardando} title="Guardar" style={{ background: 'transparent', color: '#16a34a', border: 'none', cursor: guardando ? 'wait' : 'pointer', padding: 0, display: 'flex' }}>
+                        {guardando ? (
+                          <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', margin: 0, borderColor: 'rgba(22, 163, 74, 0.2)', borderTopColor: '#16a34a' }}></span>
+                        ) : (
+                          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        )}
+                      </button>
+                      <button onClick={() => { setEditandoRuta(false); setFormEditar({...formEditar, ruta: datosOperativos.ruta}); }} disabled={guardando} title="Cancelar" style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center', margin: 0 }}>
+                        {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.ruta}
+                      </p>
+                      <button onClick={() => setEditandoRuta(true)} title="Editar Ruta" style={{ background: 'transparent', color: '#9ca3af', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="data-item">
-                <h3 className="data-item__label">Número ECO</h3>
-                <p className="data-item__value">{selectedOption}</p>
-              </div>
-              <div className="data-item">
-                <h3 className="data-item__label">Conductor Asignado</h3>
-                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center' }}>
-                  {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.conductor}
-                </p>
-              </div>
-              <div className="data-item">
-                <h3 className="data-item__label">Ruta Asignada</h3>
-                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center' }}>
-                  {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.ruta}
-                </p>
-              </div>
-            </div>
+            </>
           ) : (
             <div className="info-panel__placeholder">
               <p>Despliega el botón "Opción" para seleccionar una unidad y comenzar el registro de encierro.</p>
