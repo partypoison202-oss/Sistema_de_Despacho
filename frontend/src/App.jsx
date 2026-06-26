@@ -11,6 +11,7 @@ import DashboardEncierro from './pages/Encierro/DashboardEncierro';
 import DetalleUnidadEncierro from './pages/Encierro/DetalleUnidadEncierro';
 import FormularioEncierro from './pages/Encierro/FormularioEncierro';
 import ResumenDespacho from './pages/Reportes/ResumenDespacho';
+import Menu from './pages/Menu/Menu';
 
 function App() {
   return (
@@ -26,7 +27,13 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           } />
-          
+
+          {/* ruta para ingresar al menu de admin */}
+          <Route path="/menu" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL', 'TITAN']}>
+              <Menu />
+            </ProtectedRoute>
+          } />
           <Route path="/transporte/:tipoTransporte" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL', 'TITAN']}>
               <DetalleUnidad />

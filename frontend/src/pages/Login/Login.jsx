@@ -12,15 +12,10 @@ export default function Login() {
   const { login, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // Redirección automática si ya hay sesión
   useEffect(() => {
     if (!loading && user) {
-      if (user.role.codigo === 'CAPTURISTA') {
-        navigate('/cargar-excel');
-      } else if (user.role.codigo === 'ENCIERRO') {
-        navigate('/encierro/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      redirigirPorRol(user, navigate);
     }
   }, [user, loading, navigate]);
 
@@ -29,7 +24,7 @@ export default function Login() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('http://192.168.1.174:8000/api/login', {
+      const response = await fetch('http://192.168.1.70:8000/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,15 +48,11 @@ export default function Login() {
         return;
       }
 
+      // Guardar sesión
       login(data.user, data.access_token);
       
-      if (data.user.role.codigo === 'CAPTURISTA') {
-        navigate('/cargar-excel');
-      } else if (data.user.role.codigo === 'ENCIERRO') {
-        navigate('/encierro/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      // Redirigir según rol
+      redirigirPorRol(data.user, navigate);
       
     } catch (error) {
       Swal.fire({
@@ -70,6 +61,20 @@ export default function Login() {
         text: 'No se pudo conectar con el servidor'
       });
       setIsSubmitting(false);
+    }
+  };
+
+  // Función auxiliar para centralizar la redirección por rol
+  const redirigirPorRol = (user, navigate) => {
+    const rol = user.role?.codigo;
+    if (rol === 'ADMINISTRADOR') {
+      navigate('/menu');
+    } else if (rol === 'CAPTURISTA') {
+      navigate('/cargar-excel');
+    } else if (rol === 'ENCIERRO') {
+      navigate('/encierro/dashboard');
+    } else {
+      navigate('/dashboard');
     }
   };
 

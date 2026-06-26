@@ -1,0 +1,193 @@
+/* ── Variables del sistema ── */
+:root {
+  --color-maroon: #65002d;
+  --color-gold: #c9a84c;
+}
+
+/* ════════════════════════════════
+   PÁGINA
+════════════════════════════════ */
+.dashboard-page {
+  min-height: 100vh;
+  background-color: #f5f4f0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ════════════════════════════════
+   MAIN
+════════════════════════════════ */
+.dashboard-main {
+  flex: 1;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+}
+
+/* ── Encabezado de bienvenida ── */
+.dashboard-welcome {
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1.5px solid #ddd;
+}
+
+.dashboard-heading {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-maroon);
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.3px;
+}
+
+.dashboard-subheading {
+  font-size: 1rem;
+  color: #777;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ════════════════════════════════
+   GRID DE TARJETAS
+════════════════════════════════ */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+/* ════════════════════════════════
+   TARJETA DE MENÚ
+════════════════════════════════ */
+.dashboard-card {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 1.4rem 1.25rem;
+  background: #ffffff;
+  border: 1.5px solid #e5e3de;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Línea de acento izquierda */
+.dashboard-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 14px 0 0 14px;
+  transition: width 0.18s ease;
+}
+
+.dashboard-card:hover {
+  border-color: transparent;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.dashboard-card:hover::before {
+  width: 5px;
+}
+
+.dashboard-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Colores por sección ── */
+.dashboard-card--maroon::before { background: var(--color-maroon); }
+.dashboard-card--maroon .dashboard-card__icon { color: var(--color-maroon); background: #f7eaef; }
+.dashboard-card--maroon:hover { border-color: #e0c0cc; }
+
+.dashboard-card--gold::before { background: var(--color-gold); }
+.dashboard-card--gold .dashboard-card__icon { color: #8a6a1a; background: #fdf4e0; }
+.dashboard-card--gold:hover { border-color: #f0dfaa; }
+
+.dashboard-card--green::before { background: #3b7a3b; }
+.dashboard-card--green .dashboard-card__icon { color: #2e6b2e; background: #eaf4ea; }
+.dashboard-card--green:hover { border-color: #b2d9b2; }
+
+.dashboard-card--blue::before { background: #1a5fa8; }
+.dashboard-card--blue .dashboard-card__icon { color: #1a5fa8; background: #e6f0fb; }
+.dashboard-card--blue:hover { border-color: #aac8ee; }
+
+/* ── Ícono ── */
+.dashboard-card__icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s ease;
+}
+
+.dashboard-card__icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* ── Texto ── */
+.dashboard-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dashboard-card__label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.dashboard-card__desc {
+  font-size: 0.82rem;
+  color: #888;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+/* ── Flecha ── */
+.dashboard-card__arrow {
+  color: #ccc;
+  transition: color 0.18s ease, transform 0.18s ease;
+  flex-shrink: 0;
+}
+
+.dashboard-card__arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dashboard-card:hover .dashboard-card__arrow {
+  color: #999;
+  transform: translateX(3px);
+}
+
+/* ════════════════════════════════
+   RESPONSIVE
+════════════════════════════════ */
+@media (max-width: 640px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-main {
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  .dashboard-heading {
+    font-size: 1.3rem;
+  }
+}

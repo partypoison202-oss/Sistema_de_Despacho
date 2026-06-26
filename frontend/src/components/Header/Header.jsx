@@ -28,8 +28,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     };
   }, [profileRef]);
 
-  // Determine if we should show the back button
-  const showBackButton = !hideBackButton && user && !['/', '/dashboard', '/encierro/dashboard', '/cargar-excel'].includes(location.pathname);
+  // ✅ Solo muestra la flecha si es ADMINISTRADOR
+  const showBackButton = !hideBackButton && user && user.role?.codigo === 'ADMINISTRADOR' && location.pathname !== '/';
 
   return (
     <header className="app-header">

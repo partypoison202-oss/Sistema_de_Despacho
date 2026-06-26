@@ -37,7 +37,7 @@ export default function ResumenDespacho() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://192.168.1.174:8000/api/despacho/hoy', {
+        const res = await fetch('http://localhost:8000/api/despacho/hoy', {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
