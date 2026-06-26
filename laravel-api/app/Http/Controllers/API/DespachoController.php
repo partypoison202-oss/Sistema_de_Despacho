@@ -230,7 +230,7 @@ class DespachoController extends Controller
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])  // ← CAMBIO AQUÍ
             ->whereDate('informacion_operativa.fecha_registro', Carbon::today()->toDateString())
-            ->select('informacion_operativa.ruta', 'informacion_operativa.nombre_conductor', 'unidades.numero_eco')
+            ->select('informacion_operativa.ruta', 'informacion_operativa.nombre_conductor', 'unidades.numero_eco', 'informacion_operativa.falla', 'informacion_operativa.corridas', 'informacion_operativa.ciclo', 'informacion_operativa.motivo')
             ->first();
 
         return response()->json(
@@ -238,12 +238,20 @@ class DespachoController extends Controller
                 'status'    => 'success',
                 'asignado'  => true,
                 'ruta'      => $info->ruta,
-                'conductor' => $info->nombre_conductor
+                'conductor' => $info->nombre_conductor,
+                'falla'     => $info->falla,
+                'corridas'  => $info->corridas,
+                'ciclo'     => $info->ciclo,
+                'motivo'    => $info->motivo
             ] : [
                 'status'    => 'success',
                 'asignado'  => false,
                 'ruta'      => 'Sin ruta asignada',
-                'conductor' => 'Sin conductor'
+                'conductor' => 'Sin conductor',
+                'falla'     => null,
+                'corridas'  => null,
+                'ciclo'     => null,
+                'motivo'    => null
             ],
             200
         );
@@ -310,6 +318,48 @@ class DespachoController extends Controller
     }
 
     /**
+     * Actualiza la información adicional (falla, corridas, ciclo, motivo) de una unidad específica
+     */
+    public function actualizarAdicionales(Request $request)
+    {
+        $request->validate([
+            'tipo' => 'required|string',
+            'numero_eco' => 'required|string',
+            'falla' => 'nullable|string|max:50',
+            'corridas' => 'nullable|integer',
+            'ciclo' => 'nullable|string|max:10',
+            'motivo' => 'nullable|string|max:50'
+        ]);
+
+        $tipoNormalizado = strtolower(trim($request->tipo));
+        $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
+        $fechaHoy = Carbon::today()->toDateString();
+
+        $unidad = DB::table('unidades')->where('numero_eco', $numeroEcoClean)->first();
+
+        if (!$unidad) {
+            return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada'], 404);
+        }
+
+        $actualizado = DB::table('informacion_operativa')
+            ->where('unidad_id', $unidad->id)
+            ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
+            ->whereDate('fecha_registro', $fechaHoy)
+            ->update([
+                'falla' => $request->falla,
+                'corridas' => $request->corridas,
+                'ciclo' => $request->ciclo,
+                'motivo' => $request->motivo
+            ]);
+
+        if ($actualizado !== false) { // Could be 0 if nothing changed, which is success
+            return response()->json(['status' => 'success', 'message' => 'Datos adicionales guardados'], 200);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'No se pudo actualizar'], 500);
+    }
+
+    /**
      * Obtiene todos los registros de información operativa del día actual, 
      * formateados para la tabla de vista previa del Capturista.
      */
@@ -326,7 +376,11 @@ class DespachoController extends Controller
                 'informacion_operativa.ruta',
                 'informacion_operativa.numero_tarjeton',
                 'informacion_operativa.nombre_conductor',
-                'informacion_operativa.estatus'
+                'informacion_operativa.estatus',
+                'informacion_operativa.falla',
+                'informacion_operativa.corridas',
+                'informacion_operativa.ciclo',
+                'informacion_operativa.motivo'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
@@ -340,7 +394,11 @@ class DespachoController extends Controller
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->numero_tarjeton,
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
-                'ESTATUS' => $reg->estatus
+                'ESTATUS' => $reg->estatus,
+                'FALLA' => $reg->falla,
+                'CORRIDAS' => $reg->corridas,
+                'CICLO' => $reg->ciclo,
+                'MOTIVO' => $reg->motivo
             ];
         });
 

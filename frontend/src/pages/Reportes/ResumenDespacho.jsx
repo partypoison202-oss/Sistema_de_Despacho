@@ -30,6 +30,7 @@ const COLORS = ['#601a2a', '#c5a059', '#78350f', '#eab308']; // Colores de la do
 
 export default function ResumenDespacho() {
   const [modelData, setModelData] = useState([]);
+  const [rawData, setRawData] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
@@ -56,15 +57,34 @@ export default function ResumenDespacho() {
             return status.includes('MANTENIMIENTO');
           }).length;
           const efi = prog > 0 ? Math.round((oper / prog) * 100) : 0;
+          
+          const fallasPorTipo = {};
+          units.forEach(u => {
+            if (u.FALLA && u.FALLA.trim() !== '') {
+              const fallaLimpia = u.FALLA.trim();
+              if (!fallasPorTipo[fallaLimpia]) {
+                fallasPorTipo[fallaLimpia] = [];
+              }
+              const ecoNum = u.ECONOMICO ? String(u.ECONOMICO).padStart(3, '0') : '';
+              if (ecoNum) fallasPorTipo[fallaLimpia].push(ecoNum);
+            }
+          });
+          
+          const fallasFormatted = Object.entries(fallasPorTipo)
+            .map(([falla, ecos]) => `${ecos.join(', ')} (${falla})`)
+            .join('\n');
+
           return {
             ...mc,
             programadas: prog,
             operacion: oper,
             mantenimiento: mant,
-            eficiencia: efi
+            eficiencia: efi,
+            fallasText: fallasFormatted
           };
         });
         setModelData(aggregated);
+        setRawData(apiData);
       } catch (err) {
         console.error("Error al cargar datos:", err);
       }
@@ -202,7 +222,7 @@ export default function ResumenDespacho() {
                     <td>{row.operacion}</td>
                     <td>{row.eficiencia}%</td>
                     <td>{row.mantenimiento}</td>
-                    <td>{/* Vacio por requerimiento */}</td>
+                    <td style={{ whiteSpace: 'pre-wrap', textAlign: 'left', fontSize: '10px' }}>{row.fallasText}</td>
                   </tr>
                 ))}
                 <tr className="totales-row">
@@ -274,17 +294,24 @@ export default function ResumenDespacho() {
                 </tr>
               </thead>
               <tbody>
-                {/* 7 Filas en blanco */}
-                {[...Array(7)].map((_, i) => (
-                  <tr key={i} style={{ height: '30px' }}>
-                    <td>{i + 1}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                {rawData.filter(d => d.CORRIDAS !== null && d.CORRIDAS !== undefined && d.CORRIDAS !== '').map((item, index) => {
+                  let cicloFormatted = item.CICLO || '';
+                  return (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{item.ECONOMICO ? String(item.ECONOMICO).padStart(3, '0') : ''}</td>
+                      <td>{item.RUTA}</td>
+                      <td>{item.CORRIDAS}</td>
+                      <td>{cicloFormatted}</td>
+                      <td>{item.MOTIVO}</td>
+                    </tr>
+                  );
+                })}
+                {rawData.filter(d => d.CORRIDAS !== null && d.CORRIDAS !== undefined && d.CORRIDAS !== '').length === 0 && (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', color: '#6b7280' }}>Sin registros</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
