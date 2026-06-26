@@ -14,7 +14,8 @@ export default function DetalleUnidadEncierro() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
-    ruta: 'Seleccione una unidad...'
+    ruta: 'Seleccione una unidad...',
+    tarjeton: 'Seleccione una unidad...'   // NUEVO CAMPO
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [editandoConductor, setEditandoConductor] = useState(false);
@@ -100,7 +101,8 @@ export default function DetalleUnidadEncierro() {
       if (respuesta.ok && resultado.status === 'success') {
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
-          ruta: resultado.ruta || 'Sin ruta'
+          ruta: resultado.ruta || 'Sin ruta',
+          tarjeton: resultado.tarjeton || 'No disponible'   // NUEVO CAMPO
         });
         setFormEditar({
           conductor: resultado.conductor || '',
@@ -109,7 +111,8 @@ export default function DetalleUnidadEncierro() {
       } else {
         setDatosOperativos({
           conductor: 'No reportado hoy',
-          ruta: 'Sin ruta'
+          ruta: 'Sin ruta',
+          tarjeton: 'No disponible'
         });
         setFormEditar({ conductor: '', ruta: '' });
       }
@@ -117,7 +120,8 @@ export default function DetalleUnidadEncierro() {
       console.error('Error en la petición:', error);
       setDatosOperativos({
         conductor: 'Error de conexión',
-        ruta: 'No se pudo obtener'
+        ruta: 'No se pudo obtener',
+        tarjeton: 'No disponible'
       });
       setFormEditar({ conductor: '', ruta: '' });
     } finally {
@@ -155,7 +159,11 @@ export default function DetalleUnidadEncierro() {
       const result = await response.json();
       if (response.ok && result.status === 'success') {
         Swal.fire({ icon: 'success', title: 'Éxito', text: 'Datos actualizados correctamente', confirmButtonColor: '#c5a059' });
-        setDatosOperativos({ ruta: formEditar.ruta.trim(), conductor: formEditar.conductor.trim() });
+        setDatosOperativos(prev => ({
+          ...prev,
+          ruta: formEditar.ruta.trim(),
+          conductor: formEditar.conductor.trim()
+        }));
         if (campo === 'conductor') setEditandoConductor(false);
         if (campo === 'ruta') setEditandoRuta(false);
       } else {
@@ -298,6 +306,13 @@ export default function DetalleUnidadEncierro() {
                       </button>
                     </div>
                   )}
+                </div>
+                {/* NUEVO BLOQUE: Número de Tarjetón */}
+                <div className="data-item">
+                  <h3 className="data-item__label">Número de Tarjetón</h3>
+                  <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center', margin: 0 }}>
+                    {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.tarjeton}
+                  </p>
                 </div>
               </div>
             </>

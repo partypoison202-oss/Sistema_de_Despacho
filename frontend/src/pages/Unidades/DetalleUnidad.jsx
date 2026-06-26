@@ -9,42 +9,86 @@ const CustomDropdown = ({ options, value, onChange, placeholder, disabled, width
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div 
-      style={{ position: 'relative', width: width, opacity: disabled ? 0.6 : 1, pointerEvents: disabled ? 'none' : 'auto' }}
+    <div
+      style={{
+        position: 'relative',
+        width: width,
+        opacity: disabled ? 0.6 : 1,
+        pointerEvents: disabled ? 'none' : 'auto',
+      }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) {
           setIsOpen(false);
         }
       }}
     >
-      <div 
-        className="input-group__field" 
+      <div
+        className="input-group__field"
         onClick={() => setIsOpen(!isOpen)}
         tabIndex={0}
-        style={{ padding: '0.25rem 0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', margin: 0, height: '32px', border: '1px solid #d1d5db', borderRadius: '0.375rem', backgroundColor: '#fff' }}
+        style={{
+          padding: '0.25rem 0.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          margin: 0,
+          height: '32px',
+          border: '1px solid #d1d5db',
+          borderRadius: '0.375rem',
+          backgroundColor: '#fff',
+        }}
       >
-        <span style={{ color: value ? '#000' : '#6b7280', fontSize: '0.875rem' }}>{value || placeholder}</span>
-        <svg className="arrow-icon" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem', color: '#6b1d33' }} fill="currentColor" viewBox="0 0 24 24">
+        <span style={{ color: value ? '#000' : '#6b7280', fontSize: '0.875rem' }}>
+          {value || placeholder}
+        </span>
+        <svg
+          className="arrow-icon"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s',
+            width: '0.75rem',
+            height: '0.75rem',
+            color: '#6b1d33',
+          }}
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
         </svg>
       </div>
-      
+
       {isOpen && (
-        <div className="dropdown-menu" style={{ width: '100%', left: 0, top: '100%', marginTop: '0.25rem', zIndex: 60 }}>
+        <div
+          className="dropdown-menu"
+          style={{
+            width: '100%',
+            left: 0,
+            top: '100%',
+            marginTop: '0.25rem',
+            zIndex: 60,
+          }}
+        >
           <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem' }}>
-            <button 
+            <button
               type="button"
-              className="dropdown-menu__item" 
-              onClick={() => { onChange(''); setIsOpen(false); }}
+              className="dropdown-menu__item"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+              }}
             >
               {placeholder}
             </button>
             {options.map((opt, i) => (
-              <button 
+              <button
                 type="button"
-                key={i} 
-                className="dropdown-menu__item" 
-                onClick={() => { onChange(opt); setIsOpen(false); }}
+                key={i}
+                className="dropdown-menu__item"
+                onClick={() => {
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
               >
                 {opt}
               </button>
@@ -64,13 +108,18 @@ export default function DetalleUnidad() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
-    ruta: 'Seleccione una unidad...'
+    ruta: 'Seleccione una unidad...',
+    tarjeton: '', // ← Nuevo campo
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
 
-  const configActual = transportModules.find(m => m.id === tipoTransporte);
+  const configActual = transportModules.find((m) => m.id === tipoTransporte);
   if (!configActual) {
-    return <div className="p-8">Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button></div>;
+    return (
+      <div className="p-8">
+        Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button>
+      </div>
+    );
   }
 
   const [unidadesList, setUnidadesList] = useState([]);
@@ -96,7 +145,7 @@ export default function DetalleUnidad() {
         navigate('/login');
         return;
       }
-      
+
       const matchNumeros = selectedOption.match(/\d+/);
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
@@ -106,16 +155,16 @@ export default function DetalleUnidad() {
         falla: fallaTexto || null,
         corridas: corridasSeleccionadas || null,
         ciclo: cicloSeleccionado || null,
-        motivo: motivoTexto || null
+        motivo: motivoTexto || null,
       };
 
       const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       const resultado = await respuesta.json();
@@ -127,7 +176,7 @@ export default function DetalleUnidad() {
             title: '¡Información guardada!',
             text: 'Los datos se han guardado correctamente.',
             confirmButtonColor: '#c29b53',
-            timer: 2000
+            timer: 2000,
           });
         });
       } else {
@@ -136,7 +185,7 @@ export default function DetalleUnidad() {
             icon: 'error',
             title: 'Error',
             text: resultado.message || 'Error al guardar los datos',
-            confirmButtonColor: '#601a2a'
+            confirmButtonColor: '#601a2a',
           });
         });
       }
@@ -147,7 +196,7 @@ export default function DetalleUnidad() {
           icon: 'error',
           title: 'Error',
           text: 'Error de conexión',
-          confirmButtonColor: '#601a2a'
+          confirmButtonColor: '#601a2a',
         });
       });
     }
@@ -171,16 +220,15 @@ export default function DetalleUnidad() {
           `http://localhost:8000/api/unidades/listar/${tipoTransporte}`,
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           }
         );
 
         if (respuesta.ok) {
           const datos = await respuesta.json();
-          // datos es un arreglo de objetos con { numero_eco: ... }
-          const unidadesFormateadas = datos.map(u =>
+          const unidadesFormateadas = datos.map((u) =>
             `ECO${String(u.numero_eco).padStart(3, '0')}`
           );
           setUnidadesList(unidadesFormateadas);
@@ -221,36 +269,36 @@ export default function DetalleUnidad() {
       }
 
       const url = `http://localhost:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
-      console.log("Consultando URL:", url);
+      console.log('Consultando URL:', url);
 
       const respuesta = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       const resultado = await respuesta.json();
-      console.log("Respuesta completa:", resultado);
+      console.log('Respuesta completa:', resultado);
 
       if (respuesta.ok && resultado.status === 'success') {
-        // Si la unidad tiene registro, mostrar los datos
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
-          ruta: resultado.ruta || 'Sin ruta'
+          ruta: resultado.ruta || 'Sin ruta',
+          tarjeton: resultado.tarjeton || '', // ← Cargar tarjetón
         });
-        
+
         // Cargar información adicional
         setFallaTexto(resultado.falla || '');
         setCorridasSeleccionadas(resultado.corridas || '');
         setCicloSeleccionado(resultado.ciclo || '');
         setMotivoTexto(resultado.motivo || '');
-
       } else {
-        console.warn("Respuesta con error o status no exitoso:", resultado);
+        console.warn('Respuesta con error o status no exitoso:', resultado);
         setDatosOperativos({
           conductor: 'No reportado hoy',
-          ruta: 'Sin ruta'
+          ruta: 'Sin ruta',
+          tarjeton: '',
         });
         setFallaTexto('');
         setCorridasSeleccionadas('');
@@ -258,10 +306,11 @@ export default function DetalleUnidad() {
         setMotivoTexto('');
       }
     } catch (error) {
-      console.error("Error en la petición:", error);
+      console.error('Error en la petición:', error);
       setDatosOperativos({
         conductor: 'Error de conexión',
-        ruta: 'No se pudo obtener'
+        ruta: 'No se pudo obtener',
+        tarjeton: '',
       });
     } finally {
       setCargandoDatos(false);
@@ -274,10 +323,10 @@ export default function DetalleUnidad() {
 
   return (
     <div className="layout-container">
-      <Header 
-        title={selectedOption || "Seleccione Unidad"} 
-        eyebrow={`${configActual.title} / Detalle de Unidad`} 
-        hideLogos={true} 
+      <Header
+        title={selectedOption || 'Seleccione Unidad'}
+        eyebrow={`${configActual.title} / Detalle de Unidad`}
+        hideLogos={true}
       />
 
       <main className="main-content">
@@ -287,7 +336,7 @@ export default function DetalleUnidad() {
               <div className="dropdown-trigger__icon-container">
                 <img src={configActual.image} alt={configActual.title} className="dropdown-trigger__icon" />
               </div>
-              <span className="dropdown-trigger__value">{selectedOption || "Opción"}</span>
+              <span className="dropdown-trigger__value">{selectedOption || 'Opción'}</span>
               <span className="dropdown-trigger__label">{configActual.title}</span>
               <div className={`dropdown-trigger__arrow ${isOpen ? 'dropdown-trigger__arrow--open' : ''}`}>
                 <svg className="arrow-icon" fill="currentColor" viewBox="0 0 24 24">
@@ -300,8 +349,23 @@ export default function DetalleUnidad() {
               <div className="dropdown-menu">
                 <div className="dropdown-menu__scroll">
                   {cargandoUnidades ? (
-                    <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                      <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)' }}></span>
+                    <div
+                      className="p-4 text-center"
+                      style={{
+                        color: '#6b7280',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <span
+                        className="spinner"
+                        style={{
+                          borderColor: 'rgba(96, 26, 42, 0.2)',
+                          borderTopColor: 'var(--color-maroon)',
+                        }}
+                      ></span>
                       Cargando unidades...
                     </div>
                   ) : unidadesList.length === 0 ? (
@@ -334,14 +398,87 @@ export default function DetalleUnidad() {
               </div>
               <div className="data-item">
                 <h3 className="data-item__label">Conductor Asignado</h3>
-                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center' }}>
-                  {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.conductor}
+                <p
+                  className="data-item__value"
+                  style={{
+                    opacity: cargandoDatos ? 0.8 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {cargandoDatos ? (
+                    <>
+                      <span
+                        className="spinner"
+                        style={{
+                          borderColor: 'rgba(96, 26, 42, 0.2)',
+                          borderTopColor: 'var(--color-maroon)',
+                          width: '0.875rem',
+                          height: '0.875rem',
+                        }}
+                      ></span>{' '}
+                      Buscando...
+                    </>
+                  ) : (
+                    datosOperativos.conductor
+                  )}
                 </p>
               </div>
               <div className="data-item">
                 <h3 className="data-item__label">Ruta Asignada</h3>
-                <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center' }}>
-                  {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.ruta}
+                <p
+                  className="data-item__value"
+                  style={{
+                    opacity: cargandoDatos ? 0.8 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {cargandoDatos ? (
+                    <>
+                      <span
+                        className="spinner"
+                        style={{
+                          borderColor: 'rgba(96, 26, 42, 0.2)',
+                          borderTopColor: 'var(--color-maroon)',
+                          width: '0.875rem',
+                          height: '0.875rem',
+                        }}
+                      ></span>{' '}
+                      Buscando...
+                    </>
+                  ) : (
+                    datosOperativos.ruta
+                  )}
+                </p>
+              </div>
+              {/* Nuevo campo: Tarjetón */}
+              <div className="data-item">
+                <h3 className="data-item__label">Número de Tarjetón</h3>
+                <p
+                  className="data-item__value"
+                  style={{
+                    opacity: cargandoDatos ? 0.8 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {cargandoDatos ? (
+                    <>
+                      <span
+                        className="spinner"
+                        style={{
+                          borderColor: 'rgba(96, 26, 42, 0.2)',
+                          borderTopColor: 'var(--color-maroon)',
+                          width: '0.875rem',
+                          height: '0.875rem',
+                        }}
+                      ></span>{' '}
+                      Buscando...
+                    </>
+                  ) : (
+                    datosOperativos.tarjeton || 'No asignado'
+                  )}
                 </p>
               </div>
 
@@ -361,11 +498,37 @@ export default function DetalleUnidad() {
                     />
                     {fallaTexto !== '' && (
                       <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        <button onClick={handleSaveAdicional} title="Guardar" style={{ background: 'transparent', color: '#16a34a', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                           <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        <button
+                          onClick={handleSaveAdicional}
+                          title="Guardar"
+                          style={{
+                            background: 'transparent',
+                            color: '#16a34a',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                            display: 'flex',
+                          }}
+                        >
+                          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
                         </button>
-                        <button onClick={handleCancelAdicional} title="Cancelar" style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                           <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        <button
+                          onClick={handleCancelAdicional}
+                          title="Cancelar"
+                          style={{
+                            background: 'transparent',
+                            color: '#ef4444',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                            display: 'flex',
+                          }}
+                        >
+                          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
                     )}
@@ -410,39 +573,57 @@ export default function DetalleUnidad() {
                 </div>
               )}
 
-              {/* Motivo if Corridas is active */}
+              {/* Motivo si Corridas está activo */}
               {corridasSeleccionadas !== '' && (
                 <div className="data-item">
                   <h3 className="data-item__label">Motivo *</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                      <input
-                        type="text"
-                        className="input-group__field"
-                        maxLength="25"
-                        placeholder="Obligatorio..."
-                        value={motivoTexto}
-                        onChange={(e) => setMotivoTexto(e.target.value)}
-                        style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0, height: '32px' }}
-                      />
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        <button 
-                          onClick={handleSaveAdicional} 
-                          disabled={!motivoTexto.trim()}
-                          title="Guardar" 
-                          style={{ background: 'transparent', color: !motivoTexto.trim() ? '#9ca3af' : '#16a34a', border: 'none', cursor: !motivoTexto.trim() ? 'not-allowed' : 'pointer', padding: 0, display: 'flex' }}
-                        >
-                           <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        </button>
-                        <button 
-                          onClick={handleCancelAdicional} 
-                          title="Cancelar" 
-                          style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                        >
-                           <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    <input
+                      type="text"
+                      className="input-group__field"
+                      maxLength="25"
+                      placeholder="Obligatorio..."
+                      value={motivoTexto}
+                      onChange={(e) => setMotivoTexto(e.target.value)}
+                      style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0, height: '32px' }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button
+                        onClick={handleSaveAdicional}
+                        disabled={!motivoTexto.trim()}
+                        title="Guardar"
+                        style={{
+                          background: 'transparent',
+                          color: !motivoTexto.trim() ? '#9ca3af' : '#16a34a',
+                          border: 'none',
+                          cursor: !motivoTexto.trim() ? 'not-allowed' : 'pointer',
+                          padding: 0,
+                          display: 'flex',
+                        }}
+                      >
+                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={handleCancelAdicional}
+                        title="Cancelar"
+                        style={{
+                          background: 'transparent',
+                          color: '#ef4444',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex',
+                        }}
+                      >
+                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
+                </div>
               )}
             </div>
           ) : (
@@ -466,17 +647,25 @@ export default function DetalleUnidad() {
                   <img src={configActual.imagenesZonas.lateral} alt="Costado Izquierdo" className="zone-card__image" />
                 </div>
                 <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">←</span> Costado Izquierdo</div>
+                  <div className="zone-card__title">
+                    <span className="zone-card__arrow">←</span> Costado Izquierdo
+                  </div>
                   <p className="zone-card__description">Vista lateral izquierda del vehículo</p>
                 </div>
               </button>
 
               <button onClick={() => handleZoneClick('Costado Derecho')} className="zone-card">
                 <div className="zone-card__image-container">
-                  <img src={configActual.imagenesZonas.lateral} alt="Costado Derecho" className="zone-card__image zone-card__image--flipped" />
+                  <img
+                    src={configActual.imagenesZonas.lateral}
+                    alt="Costado Derecho"
+                    className="zone-card__image zone-card__image--flipped"
+                  />
                 </div>
                 <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">→</span> Costado Derecho</div>
+                  <div className="zone-card__title">
+                    <span className="zone-card__arrow">→</span> Costado Derecho
+                  </div>
                   <p className="zone-card__description">Vista lateral derecha del vehículo</p>
                 </div>
               </button>
@@ -486,7 +675,9 @@ export default function DetalleUnidad() {
                   <img src={configActual.imagenesZonas.frente} alt="Frente" className="zone-card__image" />
                 </div>
                 <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">↑</span> Frente</div>
+                  <div className="zone-card__title">
+                    <span className="zone-card__arrow">↑</span> Frente
+                  </div>
                   <p className="zone-card__description">Vista frontal del vehículo</p>
                 </div>
               </button>
@@ -496,7 +687,9 @@ export default function DetalleUnidad() {
                   <img src={configActual.imagenesZonas.trasera} alt="Parte Trasera" className="zone-card__image" />
                 </div>
                 <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">↓</span> Parte Trasera</div>
+                  <div className="zone-card__title">
+                    <span className="zone-card__arrow">↓</span> Parte Trasera
+                  </div>
                   <p className="zone-card__description">Vista trasera del vehículo</p>
                 </div>
               </button>

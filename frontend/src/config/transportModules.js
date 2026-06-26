@@ -2,7 +2,7 @@
 export const transportModules = [
   {
     id: 'urbanus',
-    title: 'Urbanus',
+    title: 'Urbanuss',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.png',
     route: '/transporte/urbanus',

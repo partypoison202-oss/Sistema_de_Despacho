@@ -36,13 +36,12 @@ class DespachoController extends Controller
         $registrosParaInsertar = [];
         $filasIgnoradas = 0;
         $unidadesNoEncontradas = [];
-        // Esto te dirá exactamente cómo se llaman las claves que el Excel está enviando
         \Log::info('Cabeceras del Excel detectadas:', array_keys($unidadesExcel[0]));
 
         foreach ($unidadesExcel as $fila) {
             // Normalizar ECO: eliminar ceros a la izquierda y espacios
             $numeroEcoRaw = trim((string) ($fila['ECONOMICO'] ?? ''));
-            $numeroEco = ltrim($numeroEcoRaw, '0'); // quita ceros a la izquierda
+            $numeroEco = ltrim($numeroEcoRaw, '0');
             if ($numeroEco === '' || !is_numeric($numeroEco)) {
                 $filasIgnoradas++;
                 \Log::info('Fila ignorada: ECO no válido', ['eco' => $numeroEcoRaw]);
@@ -135,16 +134,12 @@ class DespachoController extends Controller
     /**
      * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
      */
-/**
-     * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
-     */
     public function conteoUnidadesPorTipo()
     {
         $fechaHoy = Carbon::today()->toDateString();
 
         \Log::info('conteoUnidadesPorTipo - fechaHoy', ['fecha' => $fechaHoy]);
 
-        // Corregido: apuntamos a informacion_operativa.tipo
         $conteos = DB::table('informacion_operativa')
             ->whereDate('fecha_registro', $fechaHoy)
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
@@ -153,10 +148,8 @@ class DespachoController extends Controller
 
         \Log::info('conteoUnidadesPorTipo - resultados crudos', $conteos->toArray());
 
-        // Normalizar claves a minúsculas
         $resultado = [];
         foreach ($conteos as $item) {
-            // Validamos que el tipo no sea null antes de procesar
             if (!empty($item->tipo)) {
                 $tipo = strtolower(trim($item->tipo));
                 $resultado[$tipo] = (int)$item->total;
@@ -171,7 +164,6 @@ class DespachoController extends Controller
     /**
      * Obtiene el listado de unidades que tienen registro operativo para hoy
      * y pertenecen al tipo de transporte solicitado.
-     * Normaliza mayúsculas/minúsculas usando LOWER.
      */
     public function listarUnidadesPorTipo($tipo)
     {
@@ -180,7 +172,7 @@ class DespachoController extends Controller
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]) // ← CAMBIO AQUÍ
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select('unidades.numero_eco')
             ->distinct()
@@ -189,48 +181,55 @@ class DespachoController extends Controller
 
         return response()->json($unidades, 200);
     }
+
     /**
      * Obtiene información operativa filtrada por tipo de unidad
-     * Normaliza mayúsculas/minúsculas usando LOWER.
      */
     public function obtenerPorTipo($tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
         $fechaHoy = Carbon::today()->toDateString();
 
-        return response()->json(
-            DB::table('informacion_operativa')
-                ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-                ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
-                ->whereRaw('LOWER(unidades.tipo) = ?', [$tipoNormalizado])
-                ->select(
-                    'unidades.numero_eco as economico',
-                    'informacion_operativa.ruta',
-                    'informacion_operativa.numero_tarjeton as tarjeton',
-                    'informacion_operativa.nombre_conductor as conductor_nombre'
-                )
-                ->get(),
-            200
-        );
+        // 🔥 CORREGIDO: usar informacion_operativa.tipo
+        $data = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->select(
+                'unidades.numero_eco as economico',
+                'informacion_operativa.ruta',
+                'informacion_operativa.numero_tarjeton as tarjeton',
+                'informacion_operativa.nombre_conductor as conductor_nombre'
+            )
+            ->get();
+
+        return response()->json($data, 200);
     }
 
     /**
      * Obtiene el detalle de una unidad específica por tipo y número ECO
-     * Normaliza mayúsculas/minúsculas usando LOWER.
      */
-    // app/Http/Controllers/API/DespachoController.php
-
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
         $tipoNormalizado = strtolower(trim($tipo));
         $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
 
+        // 🔥 CORREGIDO: agregar numero_tarjeton al select
         $info = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])  // ← CAMBIO AQUÍ
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->whereDate('informacion_operativa.fecha_registro', Carbon::today()->toDateString())
-            ->select('informacion_operativa.ruta', 'informacion_operativa.nombre_conductor', 'unidades.numero_eco', 'informacion_operativa.falla', 'informacion_operativa.corridas', 'informacion_operativa.ciclo', 'informacion_operativa.motivo')
+            ->select(
+                'informacion_operativa.ruta',
+                'informacion_operativa.nombre_conductor',
+                'informacion_operativa.numero_tarjeton',  // ✅ ahora seleccionado
+                'unidades.numero_eco',
+                'informacion_operativa.falla',
+                'informacion_operativa.corridas',
+                'informacion_operativa.ciclo',
+                'informacion_operativa.motivo'
+            )
             ->first();
 
         return response()->json(
@@ -239,6 +238,7 @@ class DespachoController extends Controller
                 'asignado'  => true,
                 'ruta'      => $info->ruta,
                 'conductor' => $info->nombre_conductor,
+                'tarjeton'  => $info->numero_tarjeton ?? '',  // ✅ ahora llega
                 'falla'     => $info->falla,
                 'corridas'  => $info->corridas,
                 'ciclo'     => $info->ciclo,
@@ -248,6 +248,7 @@ class DespachoController extends Controller
                 'asignado'  => false,
                 'ruta'      => 'Sin ruta asignada',
                 'conductor' => 'Sin conductor',
+                'tarjeton'  => '',
                 'falla'     => null,
                 'corridas'  => null,
                 'ciclo'     => null,
@@ -260,24 +261,22 @@ class DespachoController extends Controller
     /**
      * Actualiza los registros de informacion_operativa para el día actual
      * a partir de los datos enviados desde la vista previa.
-     * Espera un array 'unidades' con los mismos campos que en la importación.
      */
-        public function actualizar(Request $request)
+    public function actualizar(Request $request)
     {
         $request->validate(['unidades' => 'required|array']);
         $unidadesExcel = $request->input('unidades');
         $fechaHoy = Carbon::today()->toDateString();
-        
-        // Obtenemos el mapa de unidades fuera del bucle para mejor rendimiento
+
         $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
-        
+
         $actualizados = 0;
         $errores = [];
 
         foreach ($unidadesExcel as $fila) {
             $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
             $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
-            
+
             $unidad = $unidadesMap->get($numeroEcoClean);
             if (!$unidad) {
                 $errores[] = "ECO no encontrado: {$numeroEcoClean}";
@@ -291,8 +290,6 @@ class DespachoController extends Controller
 
             if ($registro) {
                 try {
-                    // Actualización individual con su propio contexto
-                    // Forzamos el cast a (string) para que PostgreSQL reciba comillas
                     DB::table('informacion_operativa')
                         ->where('id', $registro->id)
                         ->update([
@@ -300,10 +297,9 @@ class DespachoController extends Controller
                             'numero_tarjeton'  => (string) ($fila['TARJETON'] ?? ''),
                             'nombre_conductor' => (string) ($fila['NOMBRE_CONDUCTOR'] ?? '')
                         ]);
-                    
+
                     $actualizados++;
                 } catch (\Exception $e) {
-                    // Si esta fila falla, se registra y se continúa con la siguiente
                     \Log::error("Fallo individual en ID {$registro->id}: " . $e->getMessage());
                     $errores[] = "Error al actualizar ECO {$numeroEcoClean}: " . $e->getMessage();
                 }
@@ -364,7 +360,7 @@ class DespachoController extends Controller
     }
 
     /**
-     * Obtiene todos los registros de información operativa del día actual, 
+     * Obtiene todos los registros de información operativa del día actual,
      * formateados para la tabla de vista previa del Capturista.
      */
     public function obtenerDatosHoy()
@@ -378,7 +374,7 @@ class DespachoController extends Controller
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.ruta',
-                'informacion_operativa.numero_tarjeton',
+                'informacion_operativa.numero_tarjeton',   // ✅ agregado
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.estatus',
                 'informacion_operativa.falla',
@@ -390,7 +386,6 @@ class DespachoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        // Mapear al formato que espera el frontend (Excel preview)
         $formateados = $registros->map(function ($reg) {
             return [
                 'TIPO_DE_UNIDAD' => $reg->tipo,

@@ -3,7 +3,7 @@
 export const encierroModules = [
   {
     id: 'urbanus',
-    title: 'Urbanus',
+    title: 'Urbanuss',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.png',
     route: '/encierro/transporte/urbanus',
