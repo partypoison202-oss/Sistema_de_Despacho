@@ -335,16 +335,20 @@ class DespachoController extends Controller
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $fechaHoy = Carbon::today()->toDateString();
 
-        $unidad = DB::table('unidades')->where('numero_eco', $numeroEcoClean)->first();
+        $registro = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->where('unidades.numero_eco', $numeroEcoClean)
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->select('informacion_operativa.id')
+            ->first();
 
-        if (!$unidad) {
-            return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada'], 404);
+        if (!$registro) {
+            return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada en la operación de hoy'], 404);
         }
 
         $actualizado = DB::table('informacion_operativa')
-            ->where('unidad_id', $unidad->id)
-            ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
-            ->whereDate('fecha_registro', $fechaHoy)
+            ->where('id', $registro->id)
             ->update([
                 'falla' => $request->falla,
                 'corridas' => $request->corridas,
@@ -352,7 +356,7 @@ class DespachoController extends Controller
                 'motivo' => $request->motivo
             ]);
 
-        if ($actualizado !== false) { // Could be 0 if nothing changed, which is success
+        if ($actualizado !== false) {
             return response()->json(['status' => 'success', 'message' => 'Datos adicionales guardados'], 200);
         }
 
