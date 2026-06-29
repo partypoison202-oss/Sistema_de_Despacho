@@ -15,9 +15,11 @@ export default function DetalleUnidadEncierro() {
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
     ruta: 'Seleccione una unidad...',
-    tarjeton: 'Seleccione una unidad...'   // NUEVO CAMPO
+    tarjeton: 'Seleccione una unidad...'  
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
+  const [tarjetonBusqueda, setTarjetonBusqueda] = useState('');
+  const [mensajeBusqueda, setMensajeBusqueda] = useState('');
   const [editandoConductor, setEditandoConductor] = useState(false);
   const [editandoRuta, setEditandoRuta] = useState(false);
   const [formEditar, setFormEditar] = useState({ conductor: '', ruta: '' });
@@ -54,10 +56,12 @@ export default function DetalleUnidadEncierro() {
 
         if (respuesta.ok) {
           const datos = await respuesta.json();
-          const unidadesFormateadas = datos.map(u =>
-            `ECO${String(u.numero_eco).padStart(3, '0')}`
-          );
-          setUnidadesList(unidadesFormateadas);
+          const unidadesCatalogo = (Array.isArray(datos) ? datos : []).map((u) => ({
+            eco: String(u.numero_eco ?? '').padStart(3, '0'),
+            tarjeton: String(u.tarjeton ?? '').trim(),
+            display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
+          }));
+          setUnidadesList(unidadesCatalogo);
         } else if (respuesta.status === 401) {
           navigate('/');
         } else {
@@ -76,13 +80,92 @@ export default function DetalleUnidadEncierro() {
 
   const toggleDropdown = () => setIsOpen(!isOpen);
 
+  const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
+
+  const extraerNumeroEco = (valor) => {
+    const texto = String(valor ?? '');
+    const matchNumeros = texto.match(/\d+/);
+    return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+  };
+
+  const buscarUnidadPorInput = async () => {
+    const valor = String(tarjetonBusqueda ?? '').trim();
+    setMensajeBusqueda('');
+
+    if (!valor) {
+      setMensajeBusqueda('Escribe un número de tarjetón para buscar.');
+      return;
+    }
+
+    const unidadEncontrada = unidadesList.find((unidad) => String(unidad.tarjeton ?? '').trim() === valor);
+
+    if (unidadEncontrada) {
+      setTarjetonBusqueda(unidadEncontrada.tarjeton || valor);
+      await handleSelectUnit(unidadEncontrada);
+      return;
+    }
+
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const respuesta = await fetch(
+        `http://localhost:8000/api/unidades/buscar-tarjeton/${tipoTransporte}/${encodeURIComponent(valor)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const resultado = await respuesta.json();
+
+      if (respuesta.ok && resultado?.status === 'success' && resultado?.unidad) {
+        const unidadRemota = {
+          eco: resultado.unidad.numero_eco,
+          tarjeton: resultado.unidad.tarjeton,
+          display: formatearEco(resultado.unidad.numero_eco),
+        };
+
+        setUnidadesList((prev) =>
+          prev.some((item) => String(item.eco ?? '').padStart(3, '0') === String(unidadRemota.eco).padStart(3, '0'))
+            ? prev
+            : [...prev, unidadRemota]
+        );
+        setTarjetonBusqueda(unidadRemota.tarjeton || valor);
+        await handleSelectUnit(unidadRemota);
+      } else {
+        setMensajeBusqueda('No se encontró una unidad con ese número de tarjetón.');
+      }
+    } catch (error) {
+      console.error('Error al buscar por tarjetón:', error);
+      setMensajeBusqueda('No se pudo completar la búsqueda en este momento.');
+    }
+  };
+
   const handleSelectUnit = async (unidad) => {
-    setSelectedOption(unidad);
+    const unidadSeleccionada =
+      typeof unidad === 'object' && unidad !== null
+        ? unidad
+        : unidadesList.find((item) => item.display === unidad || item.eco === unidad || String(item.tarjeton ?? '').trim() === String(unidad ?? '').trim()) || null;
+
+    const ecoSeleccionado = unidadSeleccionada
+      ? formatearEco(unidadSeleccionada.eco)
+      : formatearEco(extraerNumeroEco(unidad));
+
+    setSelectedOption(ecoSeleccionado);
+    setTarjetonBusqueda(unidadSeleccionada?.tarjeton || (typeof unidad === 'string' ? unidad : ''));
     setIsOpen(false);
     setCargandoDatos(true);
+    setMensajeBusqueda('');
 
-    const matchNumeros = unidad.match(/\d+/);
-    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+    const numeroLimpio = unidadSeleccionada
+      ? String(unidadSeleccionada.eco).padStart(3, '0')
+      : extraerNumeroEco(ecoSeleccionado);
 
     try {
       const token = getToken();
@@ -217,11 +300,11 @@ export default function DetalleUnidadEncierro() {
                   ) : (
                     unidadesList.map((unidad) => (
                       <button
-                        key={unidad}
+                        key={unidad.display}
                         onClick={() => handleSelectUnit(unidad)}
                         className="dropdown-menu__item"
                       >
-                        {unidad}
+                        {unidad.display}
                       </button>
                     ))
                   )}
@@ -307,11 +390,59 @@ export default function DetalleUnidadEncierro() {
                     </div>
                   )}
                 </div>
-                {/* NUEVO BLOQUE: Número de Tarjetón */}
+                {/* BUSCADOR POR TARJETÓN */}
                 <div className="data-item">
                   <h3 className="data-item__label">Número de Tarjetón</h3>
-                  <p className="data-item__value" style={{ opacity: cargandoDatos ? 0.8 : 1, display: 'flex', alignItems: 'center', margin: 0 }}>
-                    {cargandoDatos ? <><span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '0.875rem', height: '0.875rem' }}></span> Buscando...</> : datosOperativos.tarjeton}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                    <input
+                      type="text"
+                      className="input-group__field"
+                      value={tarjetonBusqueda}
+                      onChange={(e) => {
+                        setTarjetonBusqueda(e.target.value);
+                        if (mensajeBusqueda) setMensajeBusqueda('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          buscarUnidadPorInput();
+                        }
+                      }}
+                      placeholder="Escribe el número de tarjetón"
+                      style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0, height: '32px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={buscarUnidadPorInput}
+                      style={{
+                        backgroundColor: '#6b1d33',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '0.375rem',
+                        padding: '0.35rem 0.75rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Buscar
+                    </button>
+                  </div>
+                  <p
+                    style={{
+                      marginTop: '0.35rem',
+                      fontSize: '0.8rem',
+                      color: mensajeBusqueda ? '#6b1d33' : '#6b7280',
+                      opacity: cargandoDatos ? 0.8 : 1,
+                    }}
+                  >
+                    {mensajeBusqueda ? (
+                      mensajeBusqueda
+                    ) : cargandoDatos ? (
+                      'Buscando unidad...'
+                    ) : (
+                      datosOperativos.tarjeton ? `Tarjetón actual: ${datosOperativos.tarjeton}` : 'No asignado'
+                    )}
                   </p>
                 </div>
               </div>

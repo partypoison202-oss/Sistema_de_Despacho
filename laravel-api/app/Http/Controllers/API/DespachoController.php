@@ -174,12 +174,41 @@ class DespachoController extends Controller
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
-            ->select('unidades.numero_eco')
+            ->select('unidades.numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton')
             ->distinct()
             ->orderBy('unidades.numero_eco')
             ->get();
 
         return response()->json($unidades, 200);
+    }
+
+    /**
+     * Busca una unidad por número de tarjetón para el tipo indicado.
+     */
+    public function buscarUnidadPorTarjeton($tipo, $tarjeton)
+    {
+        $tipoNormalizado = strtolower(trim($tipo));
+        $tarjetonLimpio = trim($tarjeton);
+        $fechaHoy = Carbon::today()->toDateString();
+
+        if ($tarjetonLimpio === '') {
+            return response()->json(['status' => 'success', 'unidad' => null], 200);
+        }
+
+        $unidad = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->where('informacion_operativa.numero_tarjeton', $tarjetonLimpio)
+            ->select('unidades.numero_eco as numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton')
+            ->first();
+
+        return response()->json(
+            $unidad
+                ? ['status' => 'success', 'unidad' => ['numero_eco' => $unidad->numero_eco, 'tarjeton' => $unidad->tarjeton]]
+                : ['status' => 'success', 'unidad' => null],
+            200
+        );
     }
 
     /**
