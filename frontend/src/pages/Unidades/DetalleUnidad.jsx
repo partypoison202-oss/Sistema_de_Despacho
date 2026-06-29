@@ -535,7 +535,7 @@ export default function DetalleUnidad() {
                 </p>
               </div>
               {/* Campo de búsqueda de unidad */}
-              <div className="data-item">
+              <div className="data-item data-item--compact">
                 <h3 className="data-item__label">Número de Tarjetón</h3>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
                   <input
@@ -553,7 +553,7 @@ export default function DetalleUnidad() {
                       }
                     }}
                     placeholder="Escribe el número de tarjetón"
-                    style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0, height: '32px' }}
+                    style={{ padding: '0.25rem 0.5rem', flex: 1, margin: 0, height: '32px', width: '55%' }}
                   />
                   <button
                     type="button"
@@ -646,7 +646,7 @@ export default function DetalleUnidad() {
 
               {/* Nuevos campos - Corridas y Ciclos en un solo contenedor */}
               {fallaTexto === '' && (
-                <div className="data-item" style={{ display: 'flex', gap: '1rem' }}>
+                <div className="data-item data-item--compact" style={{ display: 'flex', gap: '1rem' }}>
                   <div style={{ flex: 1 }}>
                     <h3 className="data-item__label">Corridas</h3>
                     <div style={{ marginTop: '0.25rem' }}>

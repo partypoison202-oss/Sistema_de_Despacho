@@ -232,13 +232,11 @@
 .data-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
   width: 100%;
+  align-items: start;
 }
-
-@media (min-width: 640px) { .data-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .data-grid { grid-template-columns: repeat(3, 1fr); } }
 
 .data-item__label {
   color: #c29b53;
@@ -255,6 +253,13 @@
   font-size: 1rem;
   text-transform: uppercase;
   margin: 0;
+}
+
+.data-item--compact {
+  width: 100%;
+  max-width: 100%;
+  justify-self: stretch;
+  min-width: 0;
 }
 
 /* Estado Vacío (Cuando no hay unidad seleccionada) */

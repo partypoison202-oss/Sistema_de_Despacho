@@ -391,7 +391,7 @@ export default function DetalleUnidadEncierro() {
                   )}
                 </div>
                 {/* BUSCADOR POR TARJETÓN */}
-                <div className="data-item">
+                <div className="data-item data-item--compact">
                   <h3 className="data-item__label">Número de Tarjetón</h3>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
                     <input
