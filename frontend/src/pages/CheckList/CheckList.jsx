@@ -589,16 +589,7 @@ export default function ChecklistForm() {
 
     const handleStartCamera = (puntoId) => {
         setActivePuntoId(puntoId);
-
-        // Si el navegador no soporta getUserMedia, usamos el file picker directamente (fallback)
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-                fileInputRef.current.click();
-            }
-        } else {
-            setShowCamera(true);
-        }
+        setShowCamera(true);
     };
 
 
