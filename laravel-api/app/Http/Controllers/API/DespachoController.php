@@ -174,10 +174,21 @@ class DespachoController extends Controller
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
-            ->select('unidades.numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton')
+            ->select('unidades.numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton', 'informacion_operativa.estatus')
             ->distinct()
             ->orderBy('unidades.numero_eco')
-            ->get();
+            ->get()
+            ->map(function ($unidad) {
+                $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
+                if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+                    $estatus = 'operacion';
+                }
+                return [
+                    'numero_eco' => $unidad->numero_eco,
+                    'tarjeton' => $unidad->tarjeton,
+                    'estatus' => $estatus,
+                ];
+            });
 
         return response()->json($unidades, 200);
     }
@@ -200,12 +211,19 @@ class DespachoController extends Controller
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->where('informacion_operativa.numero_tarjeton', $tarjetonLimpio)
-            ->select('unidades.numero_eco as numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton')
+            ->select('unidades.numero_eco as numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton', 'informacion_operativa.estatus')
             ->first();
+
+        if ($unidad) {
+            $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
+            if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+                $estatus = 'operacion';
+            }
+        }
 
         return response()->json(
             $unidad
-                ? ['status' => 'success', 'unidad' => ['numero_eco' => $unidad->numero_eco, 'tarjeton' => $unidad->tarjeton]]
+                ? ['status' => 'success', 'unidad' => ['numero_eco' => $unidad->numero_eco, 'tarjeton' => $unidad->tarjeton, 'estatus' => $estatus]]
                 : ['status' => 'success', 'unidad' => null],
             200
         );
@@ -253,6 +271,7 @@ class DespachoController extends Controller
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.numero_tarjeton',  // ✅ ahora seleccionado
+                'informacion_operativa.estatus',
                 'unidades.numero_eco',
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
@@ -261,6 +280,13 @@ class DespachoController extends Controller
             )
             ->first();
 
+        if ($info) {
+            $estatus = strtolower(trim($info->estatus ?? 'operacion'));
+            if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+                $estatus = 'operacion';
+            }
+        }
+
         return response()->json(
             $info ? [
                 'status'    => 'success',
@@ -268,6 +294,7 @@ class DespachoController extends Controller
                 'ruta'      => $info->ruta,
                 'conductor' => $info->nombre_conductor,
                 'tarjeton'  => $info->numero_tarjeton ?? '',  // ✅ ahora llega
+                'estatus'   => $estatus,
                 'falla'     => $info->falla,
                 'corridas'  => $info->corridas,
                 'ciclo'     => $info->ciclo,
@@ -278,6 +305,7 @@ class DespachoController extends Controller
                 'ruta'      => 'Sin ruta asignada',
                 'conductor' => 'Sin conductor',
                 'tarjeton'  => '',
+                'estatus'   => 'operacion',
                 'falla'     => null,
                 'corridas'  => null,
                 'ciclo'     => null,
