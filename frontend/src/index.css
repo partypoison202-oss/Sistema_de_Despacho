@@ -3,6 +3,12 @@
 /* Esto le dice a Tailwind v4 que escanee explícitamente tus componentes de React */
 @source "./src/**/*.{js,jsx,ts,tsx}";
 
+@theme {
+  --color-guinda-500: #8b2b41;
+  --color-guinda-700: var(--color-maroon);
+  --color-guinda-800: #420f1b;
+}
+
 :root {
   --color-maroon: #601a2a;
   --color-gold: #c5a059;

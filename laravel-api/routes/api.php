@@ -5,6 +5,7 @@ use App\Http\Controllers\API\DespachoController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReporteController;
+use App\Http\Controllers\ChecklistController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -40,4 +41,8 @@ Route::middleware('auth:sanctum')->group(function () {
     //rutas de reportes
     Route::get('/despacho/reporte-general', [ReporteController::class, 'generarReporteGeneralData']);
     Route::get('/despacho/reporte-unidades', [ReporteController::class, 'generarReporteUnidades']);
+    
+    // Checklist
+    Route::post('/checklist', [ChecklistController::class, 'store']);
+    Route::get('/checklists', [ChecklistController::class, 'index']);
 });
