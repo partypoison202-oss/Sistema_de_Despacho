@@ -154,7 +154,7 @@ export default function HistorialCheckList() {
             const margin = 15;
             let y = margin;
 
-            const dateFormatted = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(checklist.created_at));
+            const dateFormatted = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(checklist.fecha_hora || checklist.created_at || new Date()));
 
             // Encabezado
             doc.setFontSize(18);
@@ -578,6 +578,15 @@ export default function HistorialCheckList() {
                                                                 onClick={() => setLightboxImage(pd.foto)}
                                                             />
                                                         )}
+                                                        {pd.fotos && pd.fotos.map((fotoUrl, fIdx) => (
+                                                            <img 
+                                                                key={fIdx}
+                                                                src={fotoUrl} 
+                                                                alt={`Evidencia ${fIdx + 1} de ${punto.label}`} 
+                                                                className="h-16 w-16 rounded-lg object-cover border border-gray-200 cursor-zoom-in hover:scale-105 transition-all shadow-sm"
+                                                                onClick={() => setLightboxImage(fotoUrl)}
+                                                            />
+                                                        ))}
                                                     </div>
                                                 )}
                                             </div>
