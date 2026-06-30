@@ -20,7 +20,10 @@ export default function UnitSelector({
   return (
     <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
       <div style={{ position: 'relative', display: 'inline-block' }}>
-        <button onClick={toggleDropdown} className="dropdown-trigger">
+        <button 
+          onClick={toggleDropdown} 
+          className={`dropdown-trigger ${selectedEstado === estado ? 'dropdown-trigger--active' : ''} ${isOpen ? 'dropdown-trigger--open' : ''}`}
+        >
           <div className="dropdown-trigger__icon-container">
             <img src={configActual.image} alt={configActual.title} className="dropdown-trigger__icon" />
           </div>
@@ -32,6 +35,7 @@ export default function UnitSelector({
             </svg>
           </div>
         </button>
+
 
         {/* Burbuja siempre visible (con 0 si no hay unidades) */}
         {!cargandoUnidades && (

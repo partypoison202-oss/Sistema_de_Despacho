@@ -21,10 +21,8 @@ export default function DetalleUnidad() {
     );
   }
 
-  // Estados para los tres selectores
-  const [isOpenOp, setIsOpenOp] = useState(false);
-  const [isOpenMant, setIsOpenMant] = useState(false);
-  const [isOpenRes, setIsOpenRes] = useState(false);
+  // Estado para controlar qué selector de estado está abierto (operacion, mantenimiento, reserva o null)
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   // Estado global de la unidad seleccionada
   const [selectedOption, setSelectedOption] = useState(null);
@@ -115,9 +113,7 @@ export default function DetalleUnidad() {
     setMensajeBusqueda('');
 
     // Cerrar todos los dropdowns
-    setIsOpenOp(false);
-    setIsOpenMant(false);
-    setIsOpenRes(false);
+    setOpenDropdown(null);
 
     const numeroLimpio = String(unidadSeleccionada.eco).padStart(3, '0');
 
@@ -342,8 +338,8 @@ export default function DetalleUnidad() {
         <div className="unit-control-panel">
           <div className="unit-control-panel__selectors">
             <UnitSelector
-              isOpen={isOpenOp}
-              setIsOpen={setIsOpenOp}
+              isOpen={openDropdown === 'operacion'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'operacion' : null)}
               selectedOption={selectedOption}
               selectedEstado={selectedEstado}
               estado="operacion"
@@ -354,8 +350,8 @@ export default function DetalleUnidad() {
               onSelectUnit={handleSelectUnit}
             />
             <UnitSelector
-              isOpen={isOpenMant}
-              setIsOpen={setIsOpenMant}
+              isOpen={openDropdown === 'mantenimiento'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'mantenimiento' : null)}
               selectedOption={selectedOption}
               selectedEstado={selectedEstado}
               estado="mantenimiento"
@@ -366,8 +362,8 @@ export default function DetalleUnidad() {
               onSelectUnit={handleSelectUnit}
             />
             <UnitSelector
-              isOpen={isOpenRes}
-              setIsOpen={setIsOpenRes}
+              isOpen={openDropdown === 'reserva'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'reserva' : null)}
               selectedOption={selectedOption}
               selectedEstado={selectedEstado}
               estado="reserva"
