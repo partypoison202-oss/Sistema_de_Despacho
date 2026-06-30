@@ -8,6 +8,7 @@ import './CargaExcel.css';
 const STORAGE_KEY = 'cargaExcel_archivoProcesado';
 const STORAGE_PREVIEW_KEY = 'cargaExcel_previewData';
 
+
 export default function CargaExcel() {
   const fileInputRef = useRef(null);
   const [archivo, setArchivo] = useState(null);
@@ -214,8 +215,16 @@ export default function CargaExcel() {
 
         const resultado = await respuesta.json();
         if (respuesta.ok) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ nombre: archivo.name }));
-          setArchivoProcesado({ nombre: archivo.name });
+          const fechaActual = new Date().toLocaleString('es-MX', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          const infoArchivo = { nombre: archivo.name, fecha: fechaActual };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(infoArchivo));
+          setArchivoProcesado(infoArchivo);
           setArchivo(null);
           // Obtenemos los datos frescos de la BD
           await fetchDatosHoy();
@@ -247,47 +256,67 @@ export default function CargaExcel() {
     <div className="excel-layout">
       <Header />
       <main className="excel-main-content">
-
-        <header className="excel-header">
-          <h1>Importar Datos de Despacho</h1>
-        </header>
-
-        {archivoProcesado && (
-          <div className="excel-card excel-card-procesado">
-            <h3>Último archivo procesado</h3>
-            <span className="archivo-procesado-nombre">📄 {archivoProcesado.nombre}</span>
+        <div className="excel-top-bar">
+          <div className="excel-title-section">
+            <h1>Importar Datos de Despacho</h1>
+            <p className="excel-subtitle">Carga y edita la programación de hoy de forma rápida</p>
+            {archivoProcesado ? (
+              <div className="archivo-badge">
+                <span className="badge-icon">📄</span>
+                <span className="badge-text">
+                  Último archivo: <strong>{archivoProcesado.nombre}</strong>
+                  {archivoProcesado.fecha && <span className="badge-date"> • Subido el {archivoProcesado.fecha}</span>}
+                </span>
+              </div>
+            ) : (
+              <div className="archivo-badge empty">
+                <span className="badge-icon">📅</span>
+                <span className="badge-text">Sin importaciones hoy</span>
+              </div>
+            )}
           </div>
-        )}
 
-        <div className="excel-card">
-          <form onSubmit={handleProcesarExcel}>
-            <div className="upload-zone" onClick={() => fileInputRef.current.click()}>
-              <span className="upload-label">
-                {archivo ? archivo.name : "Seleccionar archivo (.xlsx)"}
-              </span>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-                accept=".xlsx,.xls"
-              />
-            </div>
+          <div className="excel-control-section">
+            <form onSubmit={handleProcesarExcel} className="inline-upload-form">
+              <div 
+                className={`inline-upload-zone ${archivo ? 'has-file' : ''}`}
+                onClick={() => fileInputRef.current.click()}
+              >
+                <svg className="upload-svg-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                </svg>
+                <span className="inline-upload-label">
+                  {archivo ? archivo.name : "Seleccionar Excel (.xlsx)"}
+                </span>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  accept=".xlsx,.xls"
+                />
+              </div>
 
-            <div className="excel-actions">
               <button
                 type="submit"
-                className="btn-excel-procesar"
+                className="btn-excel-sincronizar"
                 disabled={!archivo || cargando}
               >
-                {cargando ? "Procesando..." : "Sincronizar Datos"}
+                {cargando ? (
+                  <>
+                    <span className="spinner-mini"></span>
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <span>Sincronizar</span>
+                )}
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
 
         {cargandoTabla ? (
-          <div className="excel-card preview-container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <div className="excel-card-table-loading" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
             <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '3rem', height: '3rem', marginBottom: '1rem', display: 'inline-block' }}></span>
             <h3 style={{ color: '#4b5563', margin: 0 }}>Cargando tabla de operaciones...</h3>
             <p style={{ color: '#9ca3af', marginTop: '0.5rem' }}>Obteniendo los registros más recientes</p>
@@ -301,7 +330,7 @@ export default function CargaExcel() {
             isSaving={isSaving}
           />
         ) : (
-          <div className="excel-card preview-container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <div className="excel-card-table-empty" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
             <div style={{ color: '#d1d5db', marginBottom: '1rem' }}>
               <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: 'inline-block' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
