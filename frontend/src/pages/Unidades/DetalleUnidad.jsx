@@ -1,3 +1,4 @@
+// src/pages/Unidades/DetalleUnidad.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
@@ -12,6 +13,13 @@ export default function DetalleUnidad() {
   const navigate = useNavigate();
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
+  if (!configActual) {
+    return (
+      <div className="p-8">
+        Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button>
+      </div>
+    );
+  }
 
   // Estados para los tres selectores
   const [isOpenOp, setIsOpenOp] = useState(false);
@@ -25,6 +33,8 @@ export default function DetalleUnidad() {
     conductor: 'Seleccione una unidad...',
     ruta: 'Seleccione una unidad...',
     tarjeton: '',
+    corrida: '',
+    horaSalida: '',
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [tarjetonBusqueda, setTarjetonBusqueda] = useState('');
@@ -32,11 +42,8 @@ export default function DetalleUnidad() {
   const [unidadesList, setUnidadesList] = useState([]);
   const [cargandoUnidades, setCargandoUnidades] = useState(true);
 
-  // Estados para información adicional
+  // Estado para fallas (el único campo adicional que se mantiene)
   const [fallaTexto, setFallaTexto] = useState('');
-  const [corridasSeleccionadas, setCorridasSeleccionadas] = useState('');
-  const [cicloSeleccionado, setCicloSeleccionado] = useState('');
-  const [motivoTexto, setMotivoTexto] = useState('');
 
   // Utilidades
   const getToken = () => localStorage.getItem('token');
@@ -130,22 +137,30 @@ export default function DetalleUnidad() {
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
           tarjeton: resultado.tarjeton || '',
+          corrida: resultado.corrida || '',
+          horaSalida: resultado.hora_salida || '',
         });
         setFallaTexto(resultado.falla || '');
-        setCorridasSeleccionadas(resultado.corridas || '');
-        setCicloSeleccionado(resultado.ciclo || '');
-        setMotivoTexto(resultado.motivo || '');
         setSelectedEstado(resultado.estatus || unidadSeleccionada.estado || 'operacion');
       } else {
-        setDatosOperativos({ conductor: 'No reportado hoy', ruta: 'Sin ruta', tarjeton: '' });
+        setDatosOperativos({
+          conductor: 'No reportado hoy',
+          ruta: 'Sin ruta',
+          tarjeton: '',
+          corrida: '',
+          horaSalida: '',
+        });
         setFallaTexto('');
-        setCorridasSeleccionadas('');
-        setCicloSeleccionado('');
-        setMotivoTexto('');
       }
     } catch (error) {
       console.error('Error en la petición:', error);
-      setDatosOperativos({ conductor: 'Error de conexión', ruta: 'No se pudo obtener', tarjeton: '' });
+      setDatosOperativos({
+        conductor: 'Error de conexión',
+        ruta: 'No se pudo obtener',
+        tarjeton: '',
+        corrida: '',
+        horaSalida: '',
+      });
     } finally {
       setCargandoDatos(false);
     }
@@ -200,8 +215,8 @@ export default function DetalleUnidad() {
     }
   };
 
-  // Guardar datos adicionales
-  const handleSaveAdicional = async () => {
+  // Guardar falla (solo el campo de fallas)
+  const handleSaveFalla = async () => {
     try {
       const token = getToken();
       if (!token) {
@@ -214,11 +229,8 @@ export default function DetalleUnidad() {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
         falla: fallaTexto || null,
-        corridas: corridasSeleccionadas || null,
-        ciclo: cicloSeleccionado || null,
-        motivo: motivoTexto || null,
       };
-      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
+      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-falla', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -228,8 +240,8 @@ export default function DetalleUnidad() {
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({
           icon: 'success',
-          title: '¡Información guardada!',
-          text: 'Los datos se han guardado correctamente.',
+          title: '¡Falla registrada!',
+          text: 'El tipo de falla se ha guardado correctamente.',
           confirmButtonColor: '#c29b53',
           timer: 2000,
         });
@@ -238,12 +250,12 @@ export default function DetalleUnidad() {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: resultado.message || 'Error al guardar los datos',
+          text: resultado.message || 'Error al guardar la falla',
           confirmButtonColor: '#601a2a',
         });
       }
     } catch (error) {
-      console.error('Error al guardar datos adicionales:', error);
+      console.error('Error al guardar falla:', error);
       const Swal = (await import('sweetalert2')).default;
       Swal.fire({
         icon: 'error',
@@ -254,11 +266,8 @@ export default function DetalleUnidad() {
     }
   };
 
-  const handleCancelAdicional = () => {
+  const handleCancelFalla = () => {
     setFallaTexto('');
-    setCorridasSeleccionadas('');
-    setCicloSeleccionado('');
-    setMotivoTexto('');
   };
 
   const handleZoneClick = (zonaLimpia) => {
@@ -327,14 +336,8 @@ export default function DetalleUnidad() {
                 buscarUnidadPorInput={buscarUnidadPorInput}
                 fallaTexto={fallaTexto}
                 setFallaTexto={setFallaTexto}
-                corridasSeleccionadas={corridasSeleccionadas}
-                setCorridasSeleccionadas={setCorridasSeleccionadas}
-                cicloSeleccionado={cicloSeleccionado}
-                setCicloSeleccionado={setCicloSeleccionado}
-                motivoTexto={motivoTexto}
-                setMotivoTexto={setMotivoTexto}
-                handleSaveAdicional={handleSaveAdicional}
-                handleCancelAdicional={handleCancelAdicional}
+                handleSaveFalla={handleSaveFalla}
+                handleCancelFalla={handleCancelFalla}
               />
             ) : (
               <div className="info-panel__placeholder">
