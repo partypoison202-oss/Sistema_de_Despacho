@@ -28,8 +28,13 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     };
   }, [profileRef]);
 
-  // ✅ Solo muestra la flecha si es ADMINISTRADOR
-  const showBackButton = !hideBackButton && user && user.role?.codigo === 'ADMINISTRADOR' && location.pathname !== '/';
+  // Muestra la flecha de regresar en páginas internas (rutas que no son de inicio/dashboard)
+  const isDashboard = location.pathname === '/' || 
+                      location.pathname === '/dashboard' || 
+                      location.pathname === '/encierro/dashboard' || 
+                      location.pathname === '/centro-control/dashboard';
+                      
+  const showBackButton = !hideBackButton && user && !isDashboard;
 
   return (
     <header className="app-header">
@@ -40,15 +45,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
           {showBackButton && (
             <button 
               className="app-header__back-btn" 
-              onClick={() => {
-                if (document.startViewTransition) {
-                  document.startViewTransition(() => {
-                    navigate(-1);
-                  });
-                } else {
-                  navigate(-1);
-                }
-              }}
+              onClick={() => navigate(-1)}
               title="Regresar"
             >
               <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
