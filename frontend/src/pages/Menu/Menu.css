@@ -118,6 +118,10 @@
 .dashboard-card--blue .dashboard-card__icon { color: #1a5fa8; background: #e6f0fb; }
 .dashboard-card--blue:hover { border-color: #aac8ee; }
 
+.dashboard-card--orange::before { background: #d97706; }
+.dashboard-card--orange .dashboard-card__icon { color: #b45309; background: #fef3c7; }
+.dashboard-card--orange:hover { border-color: #fcd34d; }
+
 /* ── Ícono ── */
 .dashboard-card__icon {
   width: 52px;

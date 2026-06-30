@@ -55,7 +55,7 @@ export default function Dashboard() {
     try {
       // Obtener ambos reportes
       const [respRutas, respUnidades] = await Promise.all([
-        fetch('http://localhost:5174/api/despacho/reporte-general', {
+        fetch('http://localhost:8000/api/despacho/reporte-general', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -63,7 +63,7 @@ export default function Dashboard() {
             'Content-Type': 'application/json',
           },
         }),
-        fetch('http://localhost:5174/api/despacho/reporte-unidades', {
+        fetch('http://localhost:8000/api/despacho/reporte-unidades', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

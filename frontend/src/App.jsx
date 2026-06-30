@@ -12,6 +12,9 @@ import DetalleUnidadEncierro from './pages/Encierro/DetalleUnidadEncierro';
 import FormularioEncierro from './pages/Encierro/FormularioEncierro';
 import ResumenDespacho from './pages/Reportes/ResumenDespacho';
 import Menu from './pages/Menu/Menu';
+import MenuCheckList from './pages/Menu/MenuCheckList';
+import CheckList from './pages/CheckList/CheckList';
+import HistorialCheckList from './pages/CheckList/HistorialCheckList';
 
 function App() {
   return (
@@ -64,6 +67,25 @@ function App() {
           <Route path="/resumen-despacho" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
               <ResumenDespacho />
+            </ProtectedRoute>
+          } />
+
+          {/* Ruta para el nuevo Checklist Menu */}
+          <Route path="/checklist/menu" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN', 'ENCIERRO']}>
+              <MenuCheckList />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/checklist" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN', 'ENCIERRO']}>
+              <CheckList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/checklist/historial" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN', 'ENCIERRO']}>
+              <HistorialCheckList />
             </ProtectedRoute>
           } />
 
