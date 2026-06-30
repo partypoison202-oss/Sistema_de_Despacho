@@ -13,6 +13,9 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 // routes/api.php
 
+Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
+// routes/api.php
+
 // Todas las rutas dentro de este grupo requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
     // Auth

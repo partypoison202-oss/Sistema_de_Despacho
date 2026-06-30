@@ -189,7 +189,7 @@ class DespachoController extends Controller
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]) // ← CAMBIO AQUÍ
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select('unidades.numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton', 'informacion_operativa.estatus')
             ->distinct()
@@ -273,6 +273,8 @@ class DespachoController extends Controller
     /**
      * Obtiene el detalle de una unidad específica por tipo y número ECO
      */
+    // app/Http/Controllers/API/DespachoController.php
+
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
         $tipoNormalizado = strtolower(trim($tipo));
