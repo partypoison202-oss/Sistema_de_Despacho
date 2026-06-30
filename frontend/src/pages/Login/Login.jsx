@@ -73,7 +73,9 @@ export default function Login() {
       navigate('/cargar-excel');
     } else if (rol === 'ENCIERRO') {
       navigate('/encierro/dashboard');
-    } else {
+    } else if (rol === 'CENTRO_CONTROL') {
+      navigate('/centro-control');
+    } else if (rol === 'DESPACHO') {
       navigate('/dashboard');
     }
   };
