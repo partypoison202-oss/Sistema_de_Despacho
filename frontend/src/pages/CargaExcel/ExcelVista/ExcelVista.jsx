@@ -29,7 +29,7 @@ export default function ExcelPreview({
                   <td key={h}>
                     <input
                       type="text"
-                      value={fila[h]}
+                      value={fila[h] ?? ''}
                       onChange={(e) => onUpdate(i, h, e.target.value)}
                       className="edit-input"
                     />

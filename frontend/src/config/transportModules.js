@@ -2,7 +2,7 @@
 export const transportModules = [
   {
     id: 'urbanus',
-    title: 'Urbanuss',
+    title: 'URBANUSS',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.png',
     route: '/transporte/urbanus',
@@ -11,13 +11,13 @@ export const transportModules = [
     // Aquí mapeamos las imágenes específicas de este vehículo
     imagenesZonas: {
       lateral: '/images/urbanu-lateral.png',
-      frente: '/images/urbanu-frente.png',
+      frente: '/images/urbanu-freznte.png',
       trasera: '/images/urbanu-detras.png'
     }
   },
   {
     id: 'vagoneta',
-    title: 'Vagoneta',
+    title: 'VAGONETA',
     subtitle: 'Unidades tipo van',
     image: '/images/vagoneta.png',
     route: '/transporte/vagoneta',
@@ -31,7 +31,7 @@ export const transportModules = [
   },
   {
     id: 'zafiro',
-    title: 'Zafiro',
+    title: 'ZAFIRO',
     subtitle: 'Unidades tipo microbús',
     image: '/images/zafiro.png',
     route: '/transporte/zafiro',
@@ -45,8 +45,8 @@ export const transportModules = [
   },
   {
     id: 'orion',
-    title: 'Orion',
-    subtitle: 'Unidades tipo Orion',
+    title: 'ORION',
+    subtitle: 'Unidades tipo ORION',
     image: '/images/orionlateral.PNG', // Asegúrate de tener esta imagen en tu carpeta public/images/
     route: '/transporte/orion',
     totalUnidades: 0, // O el valor inicial que desees

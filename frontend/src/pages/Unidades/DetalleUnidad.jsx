@@ -5,7 +5,7 @@ import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
 import UnitSelector from './componentsdetalleunidad/UnitSelector';
 import UnitInfoPanel from './componentsdetalleunidad/UnitInfoPanel';
-import ZoneSelector from './componentsdetalleunidad/ZoneSelector';
+
 import './DetalleUnidad.css';
 
 export default function DetalleUnidad() {
@@ -137,7 +137,7 @@ export default function DetalleUnidad() {
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
           tarjeton: resultado.tarjeton || '',
-          corrida: resultado.corrida || '',
+          corrida: resultado.corridas || '',
           horaSalida: resultado.hora_salida || '',
         });
         setFallaTexto(resultado.falla || '');
@@ -230,7 +230,7 @@ export default function DetalleUnidad() {
         numero_eco: numeroLimpio,
         falla: fallaTexto || null,
       };
-      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-falla', {
+      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -266,13 +266,69 @@ export default function DetalleUnidad() {
     }
   };
 
+  // Guardar tarjetón y asignar conductor automáticamente
+  const handleSaveTarjeton = async (nuevoTarjeton) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      const matchNumeros = selectedOption.match(/\d+/);
+      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+      const payload = {
+        tipo: tipoTransporte,
+        numero_eco: numeroLimpio,
+        tarjeton: nuevoTarjeton,
+      };
+      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-tarjeton', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const resultado = await respuesta.json();
+      if (respuesta.ok && resultado.status === 'success') {
+        setDatosOperativos((prev) => ({
+          ...prev,
+          tarjeton: resultado.tarjeton,
+          conductor: resultado.conductor,
+        }));
+        setTarjetonBusqueda(resultado.tarjeton);
+        
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          icon: 'success',
+          title: '¡Tarjetón Asignado!',
+          text: `Se asignó al conductor: ${resultado.conductor}`,
+          confirmButtonColor: '#cbd5e1',
+          timer: 2000,
+        });
+      } else {
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de Asignación',
+          text: resultado.message || 'Error al actualizar el tarjetón',
+          confirmButtonColor: '#601a2a',
+        });
+      }
+    } catch (error) {
+      console.error('Error al guardar tarjetón:', error);
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor',
+        confirmButtonColor: '#601a2a',
+      });
+    }
+  };
+
   const handleCancelFalla = () => {
     setFallaTexto('');
   };
 
-  const handleZoneClick = (zonaLimpia) => {
-    navigate(`/transporte/${tipoTransporte}/${selectedOption}/reporte/${zonaLimpia.replace(' ', '-')}`);
-  };
+
 
   return (
     <div className="layout-container">
@@ -338,6 +394,7 @@ export default function DetalleUnidad() {
                 setFallaTexto={setFallaTexto}
                 handleSaveFalla={handleSaveFalla}
                 handleCancelFalla={handleCancelFalla}
+                handleSaveTarjeton={handleSaveTarjeton}
               />
             ) : (
               <div className="info-panel__placeholder">
@@ -347,9 +404,7 @@ export default function DetalleUnidad() {
           </div>
         </div>
 
-        {selectedOption && (
-          <ZoneSelector configActual={configActual} onZoneClick={handleZoneClick} />
-        )}
+
       </main>
     </div>
   );

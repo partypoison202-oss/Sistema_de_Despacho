@@ -67,13 +67,30 @@ class DespachoController extends Controller
                 continue;
             }
 
+            $tarjetonLimpio = trim((string) ($fila['TARJETON'] ?? ''));
+            if ($tarjetonLimpio !== '' && $nombreConductor !== '') {
+                try {
+                    DB::table('conductores')->updateOrInsert(
+                        ['tarjeton' => $tarjetonLimpio],
+                        [
+                            'nombre' => $nombreConductor,
+                            'updated_at' => now()
+                        ]
+                    );
+                } catch (\Exception $e) {
+                    \Log::error('Error al auto-alimentar conductores en importación: ' . $e->getMessage());
+                }
+            }
+
             $registrosParaInsertar[] = [
                 'unidad_id' => $unidad->id,
                 'ruta' => trim((string) ($fila['RUTA'] ?? '')),
-                'numero_tarjeton' => trim((string) ($fila['TARJETON'] ?? '')),
+                'numero_tarjeton' => $tarjetonLimpio,
                 'nombre_conductor' => $nombreConductor,
                 'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'Sin estatus')),
+                'corridas' => trim((string) ($fila['CORRIDA'] ?? '')) === '' ? null : (int) trim((string) ($fila['CORRIDA'] ?? '')),
+                'hora_salida' => trim((string) ($fila['HORA_SALIDA'] ?? '')) === '' ? null : trim((string) ($fila['HORA_SALIDA'] ?? '')),
                 'fecha_registro' => now(),
             ];
         }
@@ -276,7 +293,8 @@ class DespachoController extends Controller
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
-                'informacion_operativa.motivo'
+                'informacion_operativa.motivo',
+                'informacion_operativa.hora_salida'
             )
             ->first();
 
@@ -298,7 +316,8 @@ class DespachoController extends Controller
                 'falla'     => $info->falla,
                 'corridas'  => $info->corridas,
                 'ciclo'     => $info->ciclo,
-                'motivo'    => $info->motivo
+                'motivo'    => $info->motivo,
+                'hora_salida' => $info->hora_salida
             ] : [
                 'status'    => 'success',
                 'asignado'  => false,
@@ -347,12 +366,17 @@ class DespachoController extends Controller
 
             if ($registro) {
                 try {
+                    $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
+                    $horaSalidaVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
+
                     DB::table('informacion_operativa')
                         ->where('id', $registro->id)
                         ->update([
                             'ruta'             => (string) ($fila['RUTA'] ?? ''),
                             'numero_tarjeton'  => (string) ($fila['TARJETON'] ?? ''),
-                            'nombre_conductor' => (string) ($fila['NOMBRE_CONDUCTOR'] ?? '')
+                            'nombre_conductor' => (string) ($fila['NOMBRE_CONDUCTOR'] ?? ''),
+                            'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
+                            'hora_salida'      => $horaSalidaVal === '' ? null : $horaSalidaVal,
                         ]);
 
                     $actualizados++;
@@ -400,20 +424,84 @@ class DespachoController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada en la operación de hoy'], 404);
         }
 
-        $actualizado = DB::table('informacion_operativa')
-            ->where('id', $registro->id)
-            ->update([
-                'falla' => $request->falla,
-                'corridas' => $request->corridas,
-                'ciclo' => $request->ciclo,
-                'motivo' => $request->motivo
-            ]);
+        $updateData = [];
+        if ($request->has('falla')) $updateData['falla'] = $request->falla;
+        if ($request->has('corridas')) $updateData['corridas'] = $request->corridas;
+        if ($request->has('ciclo')) $updateData['ciclo'] = $request->ciclo;
+        if ($request->has('motivo')) $updateData['motivo'] = $request->motivo;
+
+        $actualizado = false;
+        if (!empty($updateData)) {
+            $actualizado = DB::table('informacion_operativa')
+                ->where('id', $registro->id)
+                ->update($updateData);
+        }
 
         if ($actualizado !== false) {
             return response()->json(['status' => 'success', 'message' => 'Datos adicionales guardados'], 200);
         }
 
         return response()->json(['status' => 'error', 'message' => 'No se pudo actualizar'], 500);
+    }
+
+    /**
+     * Actualiza el tarjetón de una unidad y asigna automáticamente al conductor del catálogo
+     */
+    public function actualizarTarjeton(Request $request)
+    {
+        $request->validate([
+            'tipo' => 'required|string',
+            'numero_eco' => 'required|string',
+            'tarjeton' => 'required|string'
+        ]);
+
+        $tipoNormalizado = strtolower(trim($request->tipo));
+        $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
+        $tarjetonLimpio = trim($request->tarjeton);
+        $fechaHoy = Carbon::today()->toDateString();
+
+        // 1. buscar conductor por tarjeton en catalogo
+        $conductor = DB::table('conductores')
+            ->where('tarjeton', $tarjetonLimpio)
+            ->first();
+
+        if (!$conductor) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "El tarjetón {$tarjetonLimpio} no está registrado en el catálogo de conductores."
+            ], 422);
+        }
+
+        // 2. buscar registro de informacion_operativa de hoy para la unidad
+        $registro = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->where('unidades.numero_eco', $numeroEcoClean)
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->select('informacion_operativa.id')
+            ->first();
+
+        if (!$registro) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unidad no encontrada en la operación de hoy.'
+            ], 404);
+        }
+
+        // 3. actualizar en informacion_operativa
+        DB::table('informacion_operativa')
+            ->where('id', $registro->id)
+            ->update([
+                'numero_tarjeton' => $tarjetonLimpio,
+                'nombre_conductor' => $conductor->nombre
+            ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tarjetón y conductor asignados correctamente.',
+            'tarjeton' => $tarjetonLimpio,
+            'conductor' => $conductor->nombre
+        ], 200);
     }
 
     /**
@@ -437,7 +525,8 @@ class DespachoController extends Controller
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
-                'informacion_operativa.motivo'
+                'informacion_operativa.motivo',
+                'informacion_operativa.hora_salida'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
@@ -454,7 +543,8 @@ class DespachoController extends Controller
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,
                 'CICLO' => $reg->ciclo,
-                'MOTIVO' => $reg->motivo
+                'MOTIVO' => $reg->motivo,
+                'HORA_SALIDA' => $reg->hora_salida
             ];
         });
 

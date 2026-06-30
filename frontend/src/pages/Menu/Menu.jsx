@@ -6,7 +6,7 @@ import './Menu.css';
 
 const menuItems = [
   {
-    id: 'titan',
+    id: 'despacho',
     redirectTo: '/dashboard',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -17,7 +17,7 @@ const menuItems = [
         <polyline points="10 9 9 9 8 9" />
       </svg>
     ),
-    label: 'TITAN DASHBOARD',
+    label: 'DESPACHO DASHBOARD',
     color: 'maroon',
   },
   {

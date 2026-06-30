@@ -60,6 +60,7 @@ export default function DetalleUnidadEncierro() {
             eco: String(u.numero_eco ?? '').padStart(3, '0'),
             tarjeton: String(u.tarjeton ?? '').trim(),
             display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
+            estatus: String(u.estatus ?? '').toUpperCase(),
           }));
           setUnidadesList(unidadesCatalogo);
         } else if (respuesta.status === 401) {
@@ -259,9 +260,7 @@ export default function DetalleUnidadEncierro() {
     }
   };
 
-  const handleZoneClick = (zonaLimpia) => {
-    navigate(`/encierro/transporte/${tipoTransporte}/${selectedOption}/reporte/${zonaLimpia.replace(' ', '-')}`);
-  };
+
 
   return (
     <div className="layout-container">
@@ -303,6 +302,7 @@ export default function DetalleUnidadEncierro() {
                         key={unidad.display}
                         onClick={() => handleSelectUnit(unidad)}
                         className="dropdown-menu__item"
+                        style={{ color: String(unidad.estatus || '').includes('MANTENIMIENTO') ? 'red' : 'inherit', fontWeight: String(unidad.estatus || '').includes('MANTENIMIENTO') ? 'bold' : 'normal' }}
                       >
                         {unidad.display}
                       </button>
@@ -454,57 +454,7 @@ export default function DetalleUnidadEncierro() {
           )}
         </div>
 
-        {selectedOption && (
-          <div className="zones-section">
-            <div className="zones-section__header">
-              <h2 className="zones-section__eyebrow">Áreas de Inspección — Encierro</h2>
-              <h1 className="zones-section__title">Seleccione la zona a reportar</h1>
-              <p className="zones-section__subtitle">Toque una imagen para abrir el formulario de encierro de esa zona del vehículo</p>
-            </div>
 
-            <div className="zones-grid">
-              <button onClick={() => handleZoneClick('Costado Izquierdo')} className="zone-card">
-                <div className="zone-card__image-container">
-                  <img src={configActual.imagenesZonas.lateral} alt="Costado Izquierdo" className="zone-card__image" />
-                </div>
-                <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">←</span> Costado Izquierdo</div>
-                  <p className="zone-card__description">Vista lateral izquierda del vehículo</p>
-                </div>
-              </button>
-
-              <button onClick={() => handleZoneClick('Costado Derecho')} className="zone-card">
-                <div className="zone-card__image-container">
-                  <img src={configActual.imagenesZonas.lateral} alt="Costado Derecho" className="zone-card__image zone-card__image--flipped" />
-                </div>
-                <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">→</span> Costado Derecho</div>
-                  <p className="zone-card__description">Vista lateral derecha del vehículo</p>
-                </div>
-              </button>
-
-              <button onClick={() => handleZoneClick('Frente')} className="zone-card">
-                <div className="zone-card__image-container">
-                  <img src={configActual.imagenesZonas.frente} alt="Frente" className="zone-card__image" />
-                </div>
-                <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">↑</span> Frente</div>
-                  <p className="zone-card__description">Vista frontal del vehículo</p>
-                </div>
-              </button>
-
-              <button onClick={() => handleZoneClick('Parte Trasera')} className="zone-card">
-                <div className="zone-card__image-container">
-                  <img src={configActual.imagenesZonas.trasera} alt="Parte Trasera" className="zone-card__image" />
-                </div>
-                <div className="zone-card__footer">
-                  <div className="zone-card__title"><span className="zone-card__arrow">↓</span> Parte Trasera</div>
-                  <p className="zone-card__description">Vista trasera del vehículo</p>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

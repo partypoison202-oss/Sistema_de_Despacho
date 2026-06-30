@@ -16,6 +16,7 @@ export default function CargaExcel() {
   const [previewData, setPreviewData] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [cargandoTabla, setCargandoTabla] = useState(true);
 
   // Helper para obtener el token
   const getAuthHeaders = () => {
@@ -27,6 +28,7 @@ export default function CargaExcel() {
   };
 
   const fetchDatosHoy = async () => {
+    setCargandoTabla(true);
     try {
       const response = await fetch('http://localhost:8000/api/despacho/hoy', {
         method: 'GET',
@@ -43,6 +45,8 @@ export default function CargaExcel() {
       }
     } catch (error) {
       console.error('Error al obtener datos de hoy:', error);
+    } finally {
+      setCargandoTabla(false);
     }
   };
 
@@ -111,6 +115,44 @@ export default function CargaExcel() {
     return t === 'URBANUSS' ? 'URBANUS' : t;
   };
 
+  const formatExcelTime = (val) => {
+    if (val === undefined || val === null || String(val).trim() === '') return '';
+    
+    if (val instanceof Date) {
+      const hours = val.getHours();
+      const minutes = val.getMinutes();
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (trimmed.includes(':')) {
+        const parts = trimmed.split(':');
+        if (parts.length >= 2) {
+          return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+        }
+      }
+      if (!isNaN(trimmed) && trimmed !== '') {
+        val = parseFloat(trimmed);
+      } else {
+        return trimmed;
+      }
+    }
+
+    if (typeof val === 'number') {
+      const timeFraction = val - Math.floor(val);
+      if (timeFraction === 0 && val > 1) {
+        return '';
+      }
+      let totalSeconds = Math.round(timeFraction * 24 * 60 * 60);
+      let hours = Math.floor(totalSeconds / 3600);
+      let minutes = Math.floor((totalSeconds % 3600) / 60);
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+
+    return String(val);
+  };
+
   const handleProcesarExcel = (e) => {
     e.preventDefault();
     if (!archivo) return;
@@ -130,7 +172,7 @@ export default function CargaExcel() {
         if (indiceEncabezado === -1) throw new Error("Encabezado 'TIPO DE UNIDAD' no encontrado.");
 
         const headerRow = dataRaw[indiceEncabezado];
-        const colIndex = { tipo: -1, ruta: -1, economico: -1, tarjeton: -1, conductor: -1, estatus: -1 };
+        const colIndex = { tipo: -1, ruta: -1, economico: -1, tarjeton: -1, conductor: -1, estatus: -1, corrida: -1, hora_salida: -1 };
 
         headerRow.forEach((cell, idx) => {
           const str = String(cell).toUpperCase().trim();
@@ -138,8 +180,10 @@ export default function CargaExcel() {
           else if (str === 'RUTA') colIndex.ruta = idx;
           else if (str === 'ECONOMICO') colIndex.economico = idx;
           else if (str.includes('TARJETON')) colIndex.tarjeton = idx;
-          else if (str.includes('NOMBRE_CONDUCTOR') || str.includes('NOMBRE')) colIndex.conductor = idx;
+          else if (str.includes('NOMBRE_CONDUCTOR') || str === 'NOMBRE' || str === 'NOMBRE ') colIndex.conductor = idx;
           else if (str === 'ESTATUS' || str.includes('ESTATUS')) colIndex.estatus = idx;
+          else if (str === 'CORRIDA' || str === 'CORRIDAS' || str === 'N° CORRIDA' || str === 'NO. CORRIDA' || str === 'NO CORRIDA') colIndex.corrida = idx;
+          else if (str === 'HORA SALIDA' || str === 'HORA_SALIDA' || str === 'SALIDA' || str.includes('HORA SALIDA')) colIndex.hora_salida = idx;
         });
 
         if (colIndex.economico === -1) throw new Error("No se encontró la columna 'ECONOMICO'.");
@@ -155,7 +199,9 @@ export default function CargaExcel() {
             ECONOMICO: fila[colIndex.economico],
             TARJETON: fila[colIndex.tarjeton] || '',
             NOMBRE_CONDUCTOR: fila[colIndex.conductor] || '',
-            ESTATUS: colIndex.estatus >= 0 ? (fila[colIndex.estatus] || '') : ''
+            ESTATUS: colIndex.estatus >= 0 ? (fila[colIndex.estatus] || '') : '',
+            CORRIDA: colIndex.corrida >= 0 ? (fila[colIndex.corrida] || '') : '',
+            HORA_SALIDA: colIndex.hora_salida >= 0 ? formatExcelTime(fila[colIndex.hora_salida]) : ''
           });
         }
 
@@ -240,7 +286,13 @@ export default function CargaExcel() {
           </form>
         </div>
 
-        {previewData && (
+        {cargandoTabla ? (
+          <div className="excel-card preview-container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '3rem', height: '3rem', marginBottom: '1rem', display: 'inline-block' }}></span>
+            <h3 style={{ color: '#4b5563', margin: 0 }}>Cargando tabla de operaciones...</h3>
+            <p style={{ color: '#9ca3af', marginTop: '0.5rem' }}>Obteniendo los registros más recientes</p>
+          </div>
+        ) : previewData ? (
           <ExcelPreview
             data={previewData}
             onUpdate={handleUpdateRecord}
@@ -248,6 +300,16 @@ export default function CargaExcel() {
             hasChanges={hasChanges}
             isSaving={isSaving}
           />
+        ) : (
+          <div className="excel-card preview-container" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <div style={{ color: '#d1d5db', marginBottom: '1rem' }}>
+              <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ display: 'inline-block' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+            </div>
+            <h3 style={{ color: '#6b7280', margin: 0 }}>No hay datos para hoy</h3>
+            <p style={{ color: '#9ca3af', marginTop: '0.5rem' }}>Sincroniza un archivo Excel para ver la tabla de registros operativos.</p>
+          </div>
         )}
       </main>
     </div>
