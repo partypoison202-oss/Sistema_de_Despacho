@@ -40,7 +40,15 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
           {showBackButton && (
             <button 
               className="app-header__back-btn" 
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (document.startViewTransition) {
+                  document.startViewTransition(() => {
+                    navigate(-1);
+                  });
+                } else {
+                  navigate(-1);
+                }
+              }}
               title="Regresar"
             >
               <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
