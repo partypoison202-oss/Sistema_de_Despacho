@@ -1,6 +1,6 @@
 // src/pages/Unidades/ExcelVista/ExcelVista.jsx
 import React from 'react';
-import './ExcelVista.css';
+import './ExcelVIsta.css';
 
 export default function ExcelPreview({ 
   data, 

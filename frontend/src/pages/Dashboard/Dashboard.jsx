@@ -106,7 +106,11 @@ export default function Dashboard() {
         icon: 'success',
         title: '¡Reportes Generados!',
         text: 'Se han descargado los dos reportes correctamente.',
-        confirmButtonColor: '#c5a059',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
       });
 
     } catch (error) {

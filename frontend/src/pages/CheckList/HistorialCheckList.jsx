@@ -125,7 +125,27 @@ export default function HistorialCheckList() {
         }, 300);
     };
 
-    const generarPDF = (id, accion = 'download') => {
+    const loadImage = (src) => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = () => {
+                if (src !== '/images/hero.png') {
+                    const fallbackImg = new Image();
+                    fallbackImg.crossOrigin = 'Anonymous';
+                    fallbackImg.onload = () => resolve(fallbackImg);
+                    fallbackImg.onerror = () => resolve(null);
+                    fallbackImg.src = '/images/hero.png';
+                } else {
+                    resolve(null);
+                }
+            };
+            img.src = src;
+        });
+    };
+
+    const generarPDF = async (id, accion = 'download') => {
         const checklist = checklists?.find(c => c.id === id);
         if (!checklist) return;
 
@@ -199,6 +219,42 @@ export default function HistorialCheckList() {
                 },
             });
 
+            // Dibujo de observaciones (si existe)
+            if (checklist.dibujo) {
+                const blueprintUrl = `/images/${(checklist.tipo_unidad || 'hero').toLowerCase()}.png`;
+                const [blueprintImg, drawingImg] = await Promise.all([
+                    loadImage(blueprintUrl),
+                    loadImage(checklist.dibujo)
+                ]);
+
+                let finalY = doc.lastAutoTable.finalY || y;
+                const pageHeight = doc.internal.pageSize.height;
+                const neededHeight = 75; // 60mm image + 15mm text and padding
+
+                if (pageHeight - finalY - margin < neededHeight) {
+                    doc.addPage();
+                    finalY = margin;
+                } else {
+                    finalY += 10;
+                }
+
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Referencia Visual (Marcas de Fallas)', margin, finalY);
+                finalY += 6;
+
+                const imgWidth = 100;
+                const imgHeight = 60; // 5:3 Aspect ratio
+                const imgX = margin + (doc.internal.pageSize.width - margin * 2 - imgWidth) / 2;
+
+                if (blueprintImg) {
+                    doc.addImage(blueprintImg, 'PNG', imgX, finalY, imgWidth, imgHeight);
+                }
+                if (drawingImg) {
+                    doc.addImage(drawingImg, 'PNG', imgX, finalY, imgWidth, imgHeight);
+                }
+            }
+
             // Pie de página
             const pageCount = doc.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
@@ -236,12 +292,12 @@ export default function HistorialCheckList() {
     const periodLabel = PERIODS.find(p => p.key === period)?.label || 'Diario';
 
     return (
-        <div className="menu-page bg-gray-50 min-h-screen pb-10">
+        <div className={`menu-page bg-gray-50 min-h-screen pb-10 ${previewChecklist ? 'has-preview' : ''}`}>
             <Header hideBackButton={false} />
             
             <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
                 
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 hide-on-preview-print">
                     <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
                         <IconReport />
                         Historial de Check List
@@ -249,7 +305,7 @@ export default function HistorialCheckList() {
                 </div>
 
                 {/* ── Tabs de periodo ──────────────────────────────────── */}
-                <div className="mb-6 flex flex-wrap items-center gap-2">
+                <div className="mb-6 flex flex-wrap items-center gap-2 hide-on-preview-print">
                     {PERIODS.map(p => (
                         <button
                             key={p.key}
@@ -278,14 +334,14 @@ export default function HistorialCheckList() {
                 </div>
 
                 {/* ── Rango de fechas ──────────────────────────────────── */}
-                <div className="mb-6 rounded-xl border border-dorado-600/20 bg-dorado-600/5 px-5 py-3">
+                <div className="mb-6 rounded-xl border border-dorado-600/20 bg-dorado-600/5 px-5 py-3 hide-on-preview-print">
                     <p className="text-xs font-semibold text-dorado-700">
                         Periodo: <span className="font-bold">{dateFrom || '...'}</span> al <span className="font-bold">{dateTo || '...'}</span>
                     </p>
                 </div>
 
                 {/* ── Tarjetas de estadísticas ─────────────────────────── */}
-                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3 hide-on-preview-print">
                     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Total Checklists</p>
                         <p className="mt-1 text-3xl font-extrabold text-guinda-700">{cargando ? '-' : totalChecklists}</p>
@@ -301,7 +357,7 @@ export default function HistorialCheckList() {
                 </div>
 
                 {/* ── Tabla de checklists ──────────────────────────────── */}
-                <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+                <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden hide-on-preview-print">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 px-5 py-4 gap-4">
                         <div>
                             <h3 className="text-sm font-bold text-gray-800">Checklists del periodo</h3>
@@ -326,7 +382,7 @@ export default function HistorialCheckList() {
                             <table className="w-full text-left text-sm">
                                 <thead>
                                     <tr className="border-b border-gray-100 bg-gray-50/80">
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">#</th>
+                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 hide-on-print">#</th>
                                         <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Fecha / Hora</th>
                                         <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Inspector</th>
                                         <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Tipo Unidad</th>
@@ -334,7 +390,7 @@ export default function HistorialCheckList() {
                                         <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Servicio / Ruta</th>
                                         <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">Bien</th>
                                         <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">Mal</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">Acciones</th>
+                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center hide-on-print">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -344,7 +400,7 @@ export default function HistorialCheckList() {
                                         const fmtHora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
                                         return (
                                             <tr key={c.id} className="border-b border-gray-50 transition hover:bg-gray-50/50">
-                                                <td className="px-5 py-3 text-xs font-medium text-gray-400">{c.id}</td>
+                                                <td className="px-5 py-3 text-xs font-medium text-gray-400 hide-on-print">{c.id}</td>
                                                 <td className="px-5 py-3">
                                                     <p className="text-sm font-medium text-gray-800">{fmtFecha}</p>
                                                     <p className="text-[11px] text-gray-400">{fmtHora}</p>
@@ -367,7 +423,7 @@ export default function HistorialCheckList() {
                                                         {c.total_mal}
                                                     </span>
                                                 </td>
-                                                <td className="px-5 py-3 text-center">
+                                                <td className="px-5 py-3 text-center hide-on-print">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
                                                             onClick={() => setPreviewId(c.id)}
@@ -537,10 +593,11 @@ export default function HistorialCheckList() {
                                 <h5 className="mb-3 text-sm font-bold text-gray-800">Referencia Visual (Marcas)</h5>
                                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-2 max-w-2xl mx-auto overflow-hidden shadow-sm relative">
                                     <img
-                                        src="/images/bus-blueprint.svg"
+                                        src={`/images/${(previewChecklist.tipo_unidad || 'hero').toLowerCase()}.png`}
                                         alt="Blueprint"
                                         className="w-full object-contain opacity-60"
                                         style={{ aspectRatio: '5/3' }}
+                                        onError={(e) => { e.target.src = '/images/hero.png'; }}
                                     />
                                     <img 
                                         src={previewChecklist.dibujo} 
@@ -583,9 +640,14 @@ export default function HistorialCheckList() {
                 @media print {
                     .hide-on-print { display: none !important; }
                     .menu-page { background: white !important; padding: 0 !important; }
-                    header, .dashboard-grid, .bg-gray-50 { background: white !important; }
+                    header, .dashboard-grid, .bg-gray-50 { display: none !important; }
                     .printable-section { border: none !important; box-shadow: none !important; }
                     .page-break-before { page-break-before: always; }
+                    
+                    /* Ocultar tabla y estadísticas cuando se imprime el detalle de un checklist */
+                    .has-preview .hide-on-preview-print {
+                        display: none !important;
+                    }
                 }
             `}</style>
         </div>

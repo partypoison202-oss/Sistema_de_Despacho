@@ -153,10 +153,13 @@ export default function FormularioEncierro() {
       icon: 'success',
       title: '¡Reporte de Encierro Generado!',
       text: 'El PDF se ha generado y descargado exitosamente.',
-      confirmButtonColor: '#c5a059'
-    }).then(() => {
-      navigate(`/encierro/transporte/${tipoTransporte}`);
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
     });
+    navigate(`/encierro/transporte/${tipoTransporte}`);
   };
 
   return (

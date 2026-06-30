@@ -106,10 +106,13 @@ export default function FormularioReporte() {
       icon: 'success',
       title: '¡Reporte Generado!',
       text: 'El PDF se ha generado y descargado exitosamente.',
-      confirmButtonColor: '#c5a059'
-    }).then(() => {
-      navigate(`/transporte/${tipoTransporte}`);
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
     });
+    navigate(`/transporte/${tipoTransporte}`);
   };
 
   // ... el resto del JSX es idéntico, solo cambia la importación y la llamada
