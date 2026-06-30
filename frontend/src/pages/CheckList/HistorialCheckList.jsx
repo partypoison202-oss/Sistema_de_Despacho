@@ -199,6 +199,133 @@ export default function HistorialCheckList() {
                 },
             });
 
+<<<<<<< Updated upstream
+=======
+            let currentY = doc.lastAutoTable.finalY || y;
+
+            // Dibujo de observaciones (si existe)
+            if (checklist.dibujo) {
+                const blueprintUrl = `/images/${(checklist.tipo_unidad || 'hero').toLowerCase()}.png`;
+                const [blueprintImg, drawingImg] = await Promise.all([
+                    loadImage(blueprintUrl),
+                    loadImage(checklist.dibujo)
+                ]);
+
+                const pageHeight = doc.internal.pageSize.height;
+                const neededHeight = 75; // 60mm image + 15mm text and padding
+
+                if (pageHeight - currentY - margin < neededHeight) {
+                    doc.addPage();
+                    currentY = margin;
+                } else {
+                    currentY += 10;
+                }
+
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Referencia Visual (Marcas de Fallas)', margin, currentY);
+                currentY += 6;
+
+                const imgWidth = 100;
+                const imgHeight = 60; // 5:3 Aspect ratio
+                const imgX = margin + (doc.internal.pageSize.width - margin * 2 - imgWidth) / 2;
+
+                if (blueprintImg) {
+                    doc.addImage(blueprintImg, 'PNG', imgX, currentY, imgWidth, imgHeight);
+                }
+                if (drawingImg) {
+                    doc.addImage(drawingImg, 'PNG', imgX, currentY, imgWidth, imgHeight);
+                }
+                currentY += imgHeight + 10;
+            }
+
+            // Evidencias fotográficas (si existen)
+            const fotosEvidencia = [];
+            PUNTOS.forEach(punto => {
+                const pd = checklist.puntos?.[punto.id];
+                if (pd) {
+                    if (pd.foto) {
+                        fotosEvidencia.push({ label: punto.label, url: pd.foto });
+                    }
+                    if (pd.fotos && pd.fotos.length > 0) {
+                        pd.fotos.forEach(f => {
+                            fotosEvidencia.push({ label: punto.label, url: f });
+                        });
+                    }
+                }
+            });
+
+            if (fotosEvidencia.length > 0) {
+                const loadedPhotos = await Promise.all(
+                    fotosEvidencia.map(async (foto) => {
+                        const img = await loadImage(foto.url);
+                        return { label: foto.label, img };
+                    })
+                );
+                const validPhotos = loadedPhotos.filter(p => p.img !== null);
+
+                if (validPhotos.length > 0) {
+                    const neededHeight = 55; // 38mm image + 17mm text and spacing
+                    const pageHeight = doc.internal.pageSize.height;
+
+                    if (pageHeight - currentY - margin < neededHeight) {
+                        doc.addPage();
+                        currentY = margin;
+                    } else {
+                        currentY += 10;
+                    }
+
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Evidencias Fotográficas', margin, currentY);
+                    currentY += 8;
+
+                    const colWidth = 50;
+                    const rowHeight = 38;
+                    const colGap = 10;
+                    const rowGap = 10;
+                    const startX = 20; // Centrar de forma aproximada: (210 - (3 * 50 + 2 * 10)) / 2 = 20mm
+                    
+                    let currentCol = 0;
+
+                    for (let idx = 0; idx < validPhotos.length; idx++) {
+                        const photo = validPhotos[idx];
+
+                        // Si excede el espacio de la página para la fila actual, agregamos página nueva
+                        if (currentY + rowHeight > pageHeight - margin) {
+                            doc.addPage();
+                            currentY = margin + 10; // Dejar espacio arriba
+                        }
+
+                        const posX = startX + currentCol * (colWidth + colGap);
+                        
+                        // Dibujar la foto
+                        try {
+                            doc.addImage(photo.img, 'JPEG', posX, currentY, colWidth, rowHeight);
+                        } catch (e) {
+                            console.error("Error al añadir imagen al PDF:", e);
+                        }
+
+                        // Dibujar etiqueta debajo de la foto
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(photo.label, posX + colWidth / 2, currentY + rowHeight + 4, { align: 'center' });
+
+                        currentCol++;
+                        if (currentCol >= 3) {
+                            currentCol = 0;
+                            currentY += rowHeight + rowGap + 5; // Aumentar Y para la siguiente fila
+                        }
+                    }
+                    
+                    // Si la última fila no se completó (es decir, currentCol > 0), incrementamos Y
+                    if (currentCol > 0) {
+                        currentY += rowHeight + rowGap + 5;
+                    }
+                }
+            }
+
+>>>>>>> Stashed changes
             // Pie de página
             const pageCount = doc.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
