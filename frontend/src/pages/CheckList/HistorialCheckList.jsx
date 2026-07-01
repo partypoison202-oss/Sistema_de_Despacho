@@ -139,7 +139,7 @@ export default function HistorialCheckList() {
         }, 300);
     };
 
-    const generarPDF = (id, accion = 'download') => {
+    const generarPDF = async (id, accion = 'download') => {
         const checklist = checklists?.find(c => c.id === id);
         if (!checklist) return;
 
@@ -212,9 +212,6 @@ export default function HistorialCheckList() {
                     }
                 },
             });
-
-<<<<<<< Updated upstream
-=======
             let currentY = doc.lastAutoTable.finalY || y;
 
             // Dibujo de observaciones (si existe)
@@ -339,7 +336,6 @@ export default function HistorialCheckList() {
                 }
             }
 
->>>>>>> Stashed changes
             // Pie de página
             const pageCount = doc.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
