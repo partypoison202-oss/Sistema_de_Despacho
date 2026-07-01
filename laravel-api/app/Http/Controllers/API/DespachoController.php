@@ -552,4 +552,57 @@ class DespachoController extends Controller
 
         return response()->json($formateados, 200);
     }
+
+    /**
+     * Cambia el estatus operativo de una unidad (para el rol Encierro).
+     */
+    public function cambiarEstatus(Request $request)
+    {
+        $request->validate([
+            'numero_eco' => 'required',
+            'tipo' => 'required',
+            'estatus' => 'required|in:operacion,mantenimiento,reserva',
+        ]);
+
+        $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
+        $tipoNormalizado = strtolower(trim($request->tipo));
+        $nuevoEstatus = strtolower(trim($request->estatus));
+        $fechaHoy = Carbon::today()->toDateString();
+
+        $unidad = DB::table('unidades')
+            ->where('numero_eco', $numeroEco)
+            ->first();
+
+        if (!$unidad) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unidad no encontrada en el catálogo.'
+            ], 404);
+        }
+
+        $registroOperativo = DB::table('informacion_operativa')
+            ->where('unidad_id', $unidad->id)
+            ->whereDate('fecha_registro', $fechaHoy)
+            ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
+            ->first();
+
+        if (!$registroOperativo) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Esta unidad no tiene registro operativo para el día de hoy.'
+            ], 404);
+        }
+
+        DB::table('informacion_operativa')
+            ->where('id', $registroOperativo->id)
+            ->update([
+                'estatus' => $nuevoEstatus,
+            ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Estatus actualizado correctamente.',
+            'estatus' => $nuevoEstatus
+        ], 200);
+    }
 }

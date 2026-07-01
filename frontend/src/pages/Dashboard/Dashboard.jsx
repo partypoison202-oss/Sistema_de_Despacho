@@ -170,9 +170,9 @@ export default function Dashboard() {
                 title={modulo.title}
                 subtitle={modulo.subtitle}
                 image={modulo.image}
-                path={`/transporte/${modulo.id}`}
-                count={conteos[modulo.id] || 0}
-                loading={cargando}
+                route={`/transporte/${modulo.id}`}
+                cantidad={conteos[modulo.id] || 0}
+                cargando={cargando}
               />
             ))}
           </div>

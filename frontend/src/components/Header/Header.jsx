@@ -28,13 +28,18 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     };
   }, [profileRef]);
 
-  // Muestra la flecha de regresar en páginas internas (rutas que no son de inicio/dashboard)
-  const isDashboard = location.pathname === '/' || 
-                      location.pathname === '/dashboard' || 
-                      location.pathname === '/encierro/dashboard' || 
-                      location.pathname === '/centro-control/dashboard';
-                      
-  const showBackButton = !hideBackButton && user && !isDashboard;
+  let showBackButton = false;
+  if (!hideBackButton && user && location.pathname !== '/') {
+    if (user.role?.codigo === 'ADMINISTRADOR') {
+      showBackButton = location.pathname !== '/menu';
+    } else {
+      const isDashboard = location.pathname === '/dashboard' || 
+                          location.pathname === '/encierro/dashboard' || 
+                          location.pathname === '/centro-control/dashboard' ||
+                          location.pathname === '/cargar-excel';
+      showBackButton = !isDashboard;
+    }
+  }
 
   return (
     <header className="app-header">

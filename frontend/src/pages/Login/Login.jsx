@@ -122,7 +122,7 @@ export default function Login() {
             <button type="submit" className="login__submit-btn" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <span className="spinner"></span> Ingresando...
+                  <span className="login__spinner"></span> Ingresando...
                 </>
               ) : (
                 'Ingresar'
