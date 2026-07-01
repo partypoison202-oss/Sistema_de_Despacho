@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '../../components/Header/Header';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CameraModal from '../../components/CameraModal';
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
@@ -265,21 +265,21 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
 
             {/* Modal para previsualizar la foto en grande */}
             {lightboxImage && (
-                <div
+                <div 
                     className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-opacity"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="relative max-w-full max-h-full flex items-center justify-center animate-in fade-in zoom-in duration-200">
-                        <button
+                        <button 
                             className="absolute -top-10 right-0 text-white hover:text-gray-300 font-bold text-sm bg-black/50 px-3 py-1 rounded-full backdrop-blur-md"
                             onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
                         >
                             Cerrar ✕
                         </button>
-                        <img
-                            src={lightboxImage}
-                            alt="Vista ampliada"
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        <img 
+                            src={lightboxImage} 
+                            alt="Vista ampliada" 
+                            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
                         />
                     </div>
                 </div>
@@ -565,6 +565,7 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function ChecklistForm() {
     const navigate = useNavigate();
+    const location = useLocation();
     // ── Paso 1: selección de unidad ───────────────────────────────────────────
     const [tipoUnidad, setTipoUnidad] = useState('');
     const [ecosList, setEcosList] = useState([]);
@@ -589,9 +590,40 @@ export default function ChecklistForm() {
 
     const handleStartCamera = (puntoId) => {
         setActivePuntoId(puntoId);
-        setShowCamera(true);
+        
+        // En iOS Safari / Chrome, getUserMedia no funciona sobre HTTP (solo HTTPS o localhost).
+        // Si no estamos en un contexto seguro, usamos el file picker directamente (fallback)
+        if (window.isSecureContext === false || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+                fileInputRef.current.click();
+            }
+        } else {
+            setShowCamera(true);
+        }
     };
 
+    // Auto-cargar unidad si viene en la URL
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const qEco = queryParams.get('numero_eco');
+        const qTipoRaw = queryParams.get('tipoTransporte');
+
+        if (qTipoRaw) {
+            let normalizedTipo = qTipoRaw.toUpperCase();
+            if (normalizedTipo === 'URBANUS') normalizedTipo = 'URBANUSS';
+
+            // Se ejecuta de manera asíncrona para que no bloquee el renderizado principal
+            const loadUrlUnit = async () => {
+                await handleTipoUnidad(normalizedTipo, true);
+                if (qEco) {
+                    setEconomico(qEco);
+                }
+            };
+            loadUrlUnit();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.search]);
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
@@ -643,8 +675,8 @@ export default function ChecklistForm() {
     const unidadSeleccionada = tipoUnidad !== '';
 
     // Al seleccionar Tipo de Unidad
-    const handleTipoUnidad = async (tipo) => {
-        if (tipoUnidad !== tipo) {
+    const handleTipoUnidad = async (tipo, forceLoad = false) => {
+        if (tipoUnidad !== tipo || forceLoad) {
             setTipoUnidad(tipo);
             setEconomico('');
             setEcosList([]);
@@ -652,7 +684,7 @@ export default function ChecklistForm() {
             setConductorTarjeton('');
             setConductorNombre('');
             setServicio('');
-
+            
             if (!tipo) return;
 
             setLoadingEcos(true);
@@ -663,12 +695,12 @@ export default function ChecklistForm() {
                 });
                 if (res.ok) {
                     let data = await res.json();
-
+                    
                     // Fallback para URBANUSS si no hay datos en backend
                     if ((!data || data.length === 0) && tipo === 'URBANUSS') {
                         data = Array.from({ length: 42 }, (_, i) => ({ numero_eco: String(i + 1) }));
                     }
-
+                    
                     setEcosList(data || []);
                 } else {
                     let fallback = [];
@@ -750,19 +782,19 @@ export default function ChecklistForm() {
                 fecha_hora: fechaHoraRef.current.toISOString(),
             })
         })
-            .then(async res => {
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    const msg = errData.message || JSON.stringify(errData.errors || 'Error al guardar');
-                    throw new Error(msg);
-                }
-                setEnviado(true);
-                window.scrollTo(0, 0);
-            })
-            .catch(err => {
-                console.error('Error al guardar checklist:', err);
-                alert('❌ No se pudo guardar el checklist:\n' + err.message);
-            });
+        .then(async res => {
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                const msg = errData.message || JSON.stringify(errData.errors || 'Error al guardar');
+                throw new Error(msg);
+            }
+            setEnviado(true);
+            window.scrollTo(0, 0);
+        })
+        .catch(err => {
+            console.error('Error al guardar checklist:', err);
+            alert('❌ No se pudo guardar el checklist:\n' + err.message);
+        });
     };
 
 
@@ -776,46 +808,46 @@ export default function ChecklistForm() {
             <div className="menu-page">
                 <Header hideBackButton={false} />
                 <main className="dashboard-main max-w-2xl mx-auto px-4 py-6">
-                    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16">
-                        <div className="w-full max-w-sm rounded-2xl border border-emerald-100 bg-white p-8 text-center shadow-lg">
-                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-                                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
-                                </svg>
-                            </div>
-                            <h3 className="mb-1 text-xl font-bold text-gray-900">¡Checklist guardado!</h3>
-                            <p className="text-sm text-gray-500">
-                                <span className="font-semibold text-guinda-700">{tipoUnidad}</span>
-                                {conductorId && <> · ID Conductor: {conductorId}</>}
-                            </p>
-                            <p className="mb-1 text-sm text-gray-500">
-                                {tipoUnidad === 'URBANUSS' ? 'Servicio:' : 'RA (Ruta):'}{' '}
-                                <span className="font-semibold text-guinda-700">
-                                    {tipoUnidad === 'URBANUSS'
-                                        ? (SERVICIOS.find((s) => s.value === servicio)?.label ?? servicio)
-                                        : (RUTAS_RA.find((s) => s.value === servicio)?.label ?? servicio)}
-                                </span>
-                            </p>
-                            <p className="mb-2 text-xs text-gray-400">{fmtFecha} — {fmtHora}</p>
-                            <p className="mb-6 text-sm text-gray-400">{totalBien} bien · {totalMal} con fallas</p>
-                            <div className="flex flex-col gap-3">
-                                <button
-                                    type="button"
-                                    onClick={handleReset}
-                                    className="w-full rounded-xl bg-guinda-700 py-3 text-sm font-bold text-white transition hover:bg-guinda-800 active:scale-95 focus:outline-none"
-                                >
-                                    Nuevo Checklist
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/checklist/historial')}
-                                    className="w-full rounded-xl border border-guinda-700 py-3 text-sm font-bold text-guinda-700 transition hover:bg-guinda-50 active:scale-95 focus:outline-none"
-                                >
-                                    Revisar Check List
-                                </button>
-                            </div>
+                <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16">
+                    <div className="w-full max-w-sm rounded-2xl border border-emerald-100 bg-white p-8 text-center shadow-lg">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
+                                <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <h3 className="mb-1 text-xl font-bold text-gray-900">¡Checklist guardado!</h3>
+                        <p className="text-sm text-gray-500">
+                            <span className="font-semibold text-guinda-700">{tipoUnidad}</span>
+                            {conductorId && <> · ID Conductor: {conductorId}</>}
+                        </p>
+                        <p className="mb-1 text-sm text-gray-500">
+                            {tipoUnidad === 'URBANUSS' ? 'Servicio:' : 'RA (Ruta):'}{' '}
+                            <span className="font-semibold text-guinda-700">
+                                {tipoUnidad === 'URBANUSS'
+                                    ? (SERVICIOS.find((s) => s.value === servicio)?.label ?? servicio)
+                                    : (RUTAS_RA.find((s) => s.value === servicio)?.label ?? servicio)}
+                            </span>
+                        </p>
+                        <p className="mb-2 text-xs text-gray-400">{fmtFecha} — {fmtHora}</p>
+                        <p className="mb-6 text-sm text-gray-400">{totalBien} bien · {totalMal} con fallas</p>
+                        <div className="flex flex-col gap-3">
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                className="w-full rounded-xl bg-guinda-700 py-3 text-sm font-bold text-white transition hover:bg-guinda-800 active:scale-95 focus:outline-none"
+                            >
+                                Nuevo Checklist
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/checklist/historial')}
+                                className="w-full rounded-xl border border-guinda-700 py-3 text-sm font-bold text-guinda-700 transition hover:bg-guinda-50 active:scale-95 focus:outline-none"
+                            >
+                                Revisar Check List
+                            </button>
                         </div>
                     </div>
+                </div>
                 </main>
             </div>
         );
@@ -826,304 +858,285 @@ export default function ChecklistForm() {
         <div className="menu-page">
             <Header hideBackButton={false} />
             <main className="dashboard-main max-w-2xl mx-auto px-4 py-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
-                        <IconClipboard />
-                        Checklist de Unidades
-                    </h2>
-                    {/* Reloj en esquina superior derecha del header */}
-                    <RelojFecha />
-                </div>
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700 uppercase">
+                    <IconClipboard />
+                    Checklist de Unidades {tipoUnidad}
+                </h2>
+                {/* Reloj en esquina superior derecha del header */}
+                <RelojFecha />
+            </div>
 
-                <div className="mx-auto max-w-2xl px-4 py-6">
-                    <form onSubmit={handleSubmit} noValidate>
+            <div className="mx-auto max-w-2xl px-4 py-6">
+                <form onSubmit={handleSubmit} noValidate>
 
-                        {/* ══ PASO 1 — Tipo de Unidad y Económico ══════════════════════════════ */}
-                        <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                1 · Tipo de Unidad
-                            </p>
-                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 mb-4">
-                                {TIPOS_UNIDAD.map((t) => (
+                    {/* ══ PASO 1 — Económico ══════════════════════════════ */}
+                    <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                        {tipoUnidad && (
+                            <>
+                                <div className="flex items-center justify-between mb-3 mt-2">
+                                    <label htmlFor="economico" className="block text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                        1 · Económico (Eco)
+                                    </label>
                                     <button
-                                        key={t.value}
                                         type="button"
-                                        onClick={() => handleTipoUnidad(t.value)}
-                                        className={`rounded-xl border py-3 text-sm font-bold transition-all duration-150 ${tipoUnidad === t.value
-                                            ? 'border-guinda-700 bg-guinda-700 text-white shadow-md'
-                                            : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-guinda-700/30'
-                                            }`}
+                                        onClick={() => {
+                                            setIsManualEco(!isManualEco);
+                                            setEconomico('');
+                                            setConductorNombre('');
+                                            setConductorTarjeton('');
+                                            setServicio('');
+                                            setConductorId('');
+                                        }}
+                                        className="text-[10px] font-bold uppercase tracking-wider text-blue-600 underline hover:text-blue-800"
                                     >
-                                        {t.label}
+                                        {isManualEco ? 'Seleccionar de lista' : 'Ingresar manual'}
                                     </button>
-                                ))}
-                            </div>
+                                </div>
 
-                            {tipoUnidad && (
-                                <>
-                                    <div className="flex items-center justify-between mb-3 mt-6">
-                                        <label htmlFor="economico" className="block text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                            2 · Económico (Eco)
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setIsManualEco(!isManualEco);
-                                                setEconomico('');
-                                                setConductorNombre('');
-                                                setConductorTarjeton('');
-                                                setServicio('');
-                                                setConductorId('');
-                                            }}
-                                            className="text-[10px] font-bold uppercase tracking-wider text-blue-600 underline hover:text-blue-800"
-                                        >
-                                            {isManualEco ? 'Seleccionar de lista' : 'Ingresar manual'}
-                                        </button>
-                                    </div>
-
-                                    {isManualEco ? (
-                                        <input
+                                {isManualEco ? (
+                                    <input
+                                        id="economico"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        maxLength={4}
+                                        value={economico}
+                                        onChange={(e) => handleEconomicoChange(e.target.value)}
+                                        placeholder="Ej. 11"
+                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20"
+                                    />
+                                ) : (
+                                    <div className="relative">
+                                        <select
                                             id="economico"
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            maxLength={4}
                                             value={economico}
                                             onChange={(e) => handleEconomicoChange(e.target.value)}
-                                            placeholder="Ej. 11"
-                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20"
-                                        />
-                                    ) : (
-                                        <div className="relative">
-                                            <select
-                                                id="economico"
-                                                value={economico}
-                                                onChange={(e) => handleEconomicoChange(e.target.value)}
-                                                disabled={loadingEcos}
-                                                className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 pr-10 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:opacity-50"
-                                            >
-                                                <option value="" disabled>
-                                                    {loadingEcos ? 'Cargando unidades...' : '— Selecciona un ECO —'}
-                                                </option>
-                                                {ecosList.map((ecoItem) => {
-                                                    const formattedNum = String(ecoItem.numero_eco).padStart(3, '0');
-                                                    return (
-                                                        <option key={ecoItem.numero_eco} value={ecoItem.numero_eco}>
-                                                            {`ECO${formattedNum}`}
-                                                        </option>
-                                                    );
-                                                })}
-                                            </select>
-                                            <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-guinda-700">
-                                                <Chevron />
-                                            </span>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                            {!unidadSeleccionada && !tipoUnidad && (
-                                <p className="mt-3 text-center text-xs text-gray-400">
-                                    Selecciona el tipo de unidad para continuar
-                                </p>
+                                            disabled={loadingEcos}
+                                            className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 pr-10 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:opacity-50"
+                                        >
+                                            <option value="" disabled>
+                                                {loadingEcos ? 'Cargando unidades...' : '— Selecciona un ECO —'}
+                                            </option>
+                                            {ecosList.map((ecoItem) => {
+                                                const formattedNum = String(ecoItem.numero_eco).padStart(3, '0');
+                                                return (
+                                                    <option key={ecoItem.numero_eco} value={ecoItem.numero_eco}>
+                                                        {`ECO${formattedNum}`}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-guinda-700">
+                                            <Chevron />
+                                        </span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        {!tipoUnidad && (
+                            <p className="text-center text-xs text-gray-400">
+                                Cargando tipo de unidad...
+                            </p>
+                        )}
+                    </section>
+
+                    {/* ══ PASO 2 — Datos de la unidad (bloqueado hasta elegir tipo) ══ */}
+                    <div className={`transition-all duration-300 ${unidadSeleccionada ? 'opacity-100' : 'pointer-events-none opacity-30'}`}>
+
+                        {/* Datos de identificación */}
+                        <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                2 · Identificación del Conductor
+                                {tipoUnidad && (
+                                    <span className="ml-2 rounded-full bg-guinda-700/10 px-2 py-0.5 text-guinda-700">
+                                        {tipoUnidad}
+                                    </span>
+                                )}
+                            </p>
+
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
+                                {/* ID Conductor — solo números, manual */}
+                                <div className="sm:col-span-3">
+                                    <label htmlFor="conductor-id" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                        ID Conductor
+                                    </label>
+                                    <input
+                                        id="conductor-id"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        maxLength={10}
+                                        value={conductorId}
+                                        onChange={handleConductorId}
+                                        placeholder="Ej. 104"
+                                        disabled={!unidadSeleccionada}
+                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                </div>
+
+                                {/* Tipo de Tarjetón */}
+                                <div className="sm:col-span-3">
+                                    <label htmlFor="tarjeton" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                        Tarjetón
+                                    </label>
+                                    <input
+                                        id="tarjeton"
+                                        type="text"
+                                        value={conductorTarjeton}
+                                        onChange={(e) => setConductorTarjeton(e.target.value)}
+                                        placeholder="Ej. 12345"
+                                        disabled={!unidadSeleccionada}
+                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                </div>
+
+                                {/* Nombre del Conductor */}
+                                <div className="sm:col-span-6 relative">
+                                    <label htmlFor="nombre-conductor" className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-guinda-700 h-4">
+                                        Conductor Asignado
+                                        {conductorId && !CONDUCTORES.find((c) => c.id === Number(conductorId)) && (
+                                            <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 absolute -top-1 right-0">No encontrado</span>
+                                        )}
+                                    </label>
+                                    <input
+                                        id="nombre-conductor"
+                                        type="text"
+                                        value={conductorNombre}
+                                        onChange={(e) => setConductorNombre(e.target.value)}
+                                        placeholder="Ej. Juan Pérez"
+                                        disabled={!unidadSeleccionada}
+                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                </div>
+
+                            </div>
+                        </section>
+
+                        {/* Servicio / RA */}
+                        <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                3 · {tipoUnidad === 'URBANUSS' ? 'Servicio' : 'RA (Ruta)'}
+                            </p>
+                            {tipoUnidad === 'URBANUSS' ? (
+                                <SelectField
+                                    id="servicio"
+                                    label=""
+                                    value={servicio}
+                                    onChange={setServicio}
+                                    disabled={!unidadSeleccionada}
+                                    required
+                                    options={SERVICIOS.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
+                                />
+                            ) : (
+                                <SelectField
+                                    id="servicio"
+                                    label=""
+                                    value={servicio}
+                                    onChange={setServicio}
+                                    disabled={!unidadSeleccionada}
+                                    required
+                                    options={RUTAS_RA.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
+                                />
                             )}
                         </section>
 
-                        {/* ══ PASO 2 — Datos de la unidad (bloqueado hasta elegir tipo) ══ */}
-                        <div className={`transition-all duration-300 ${unidadSeleccionada ? 'opacity-100' : 'pointer-events-none opacity-30'}`}>
-
-                            {/* Datos de identificación */}
-                            <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                    2 · Identificación del Conductor
-                                    {tipoUnidad && (
-                                        <span className="ml-2 rounded-full bg-guinda-700/10 px-2 py-0.5 text-guinda-700">
-                                            {tipoUnidad}
-                                        </span>
-                                    )}
-                                </p>
-
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
-                                    {/* ID Conductor — solo números, manual */}
-                                    <div className="sm:col-span-3">
-                                        <label htmlFor="conductor-id" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                            ID Conductor
-                                        </label>
-                                        <input
-                                            id="conductor-id"
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            maxLength={10}
-                                            value={conductorId}
-                                            onChange={handleConductorId}
-                                            placeholder="Ej. 104"
-                                            disabled={!unidadSeleccionada}
-                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                        />
-                                    </div>
-
-                                    {/* Tipo de Tarjetón */}
-                                    <div className="sm:col-span-3">
-                                        <label htmlFor="tarjeton" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                            Tarjetón
-                                        </label>
-                                        <input
-                                            id="tarjeton"
-                                            type="text"
-                                            value={conductorTarjeton}
-                                            onChange={(e) => setConductorTarjeton(e.target.value)}
-                                            placeholder="Ej. 12345"
-                                            disabled={!unidadSeleccionada}
-                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                        />
-                                    </div>
-
-                                    {/* Nombre del Conductor */}
-                                    <div className="sm:col-span-6 relative">
-                                        <label htmlFor="nombre-conductor" className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-guinda-700 h-4">
-                                            Conductor Asignado
-                                            {conductorId && !CONDUCTORES.find((c) => c.id === Number(conductorId)) && (
-                                                <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 absolute -top-1 right-0">No encontrado</span>
-                                            )}
-                                        </label>
-                                        <input
-                                            id="nombre-conductor"
-                                            type="text"
-                                            value={conductorNombre}
-                                            onChange={(e) => setConductorNombre(e.target.value)}
-                                            placeholder="Ej. Juan Pérez"
-                                            disabled={!unidadSeleccionada}
-                                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                        />
-                                    </div>
-
-                                </div>
-                            </section>
-
-                            {/* Servicio / RA */}
-                            <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                    3 · {tipoUnidad === 'URBANUSS' ? 'Servicio' : 'RA (Ruta)'}
-                                </p>
-                                {tipoUnidad === 'URBANUSS' ? (
-                                    <SelectField
-                                        id="servicio"
-                                        label=""
-                                        value={servicio}
-                                        onChange={setServicio}
-                                        disabled={!unidadSeleccionada}
-                                        required
-                                        options={SERVICIOS.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
-                                    />
-                                ) : (
-                                    <SelectField
-                                        id="servicio"
-                                        label=""
-                                        value={servicio}
-                                        onChange={setServicio}
-                                        disabled={!unidadSeleccionada}
-                                        required
-                                        options={RUTAS_RA.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
-                                    />
-                                )}
-                            </section>
-
-                            {/* Contadores */}
-                            <div className="mb-4 grid grid-cols-2 gap-3 text-center">
-                                <div className="rounded-xl bg-emerald-50 py-3">
-                                    <p className="text-2xl font-extrabold text-emerald-600">{totalBien}</p>
-                                    <p className="text-xs font-semibold text-emerald-700">Bien</p>
-                                </div>
-                                <div className="rounded-xl bg-red-50 py-3">
-                                    <p className="text-2xl font-extrabold text-red-500">{totalMal}</p>
-                                    <p className="text-xs font-semibold text-red-700">Mal</p>
-                                </div>
+                        {/* Contadores */}
+                        <div className="mb-4 grid grid-cols-2 gap-3 text-center">
+                            <div className="rounded-xl bg-emerald-50 py-3">
+                                <p className="text-2xl font-extrabold text-emerald-600">{totalBien}</p>
+                                <p className="text-xs font-semibold text-emerald-700">Bien</p>
                             </div>
-
-                            {/* Barra de progreso */}
-                            <div className="mb-5 flex items-center gap-3">
-                                <div className="flex-1 overflow-hidden rounded-full bg-gray-100" style={{ height: '6px' }}>
-                                    <div
-                                        className="h-full rounded-full bg-guinda-700 transition-all duration-500"
-                                        style={{ width: `${progreso}%` }}
-                                    />
-                                </div>
-                                <span className="text-xs font-bold text-guinda-700">{progreso}%</span>
-                            </div>
-
-                            {/* ── 16 Puntos de revisión ────────────────────────── */}
-                            <section className="mb-6">
-                                <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
-                                    4 · Puntos de Revisión Técnica — {PUNTOS.length} ítems
-                                </h3>
-                                <ul className="space-y-3">
-                                    {PUNTOS.map((punto, idx) => (
-                                        <FilaPunto
-                                            key={punto.id}
-                                            punto={punto}
-                                            datos={puntos[punto.id]}
-                                            onChange={handleCambioPunto}
-                                            numero={idx + 1}
-                                            onStartCamera={handleStartCamera}
-                                        />
-                                    ))}
-                                </ul>
-                            </section>
-
-                            {/* ── 5 · Referencia visual ─────────────────────────── */}
-                            <section className="mb-6">
-                                <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
-                                    5 · Referencia visual — Marca los detalles
-                                </h3>
-                                <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm">
-                                    <DrawingCanvas
-                                        onSave={setDibujo}
-                                        tipoUnidad={tipoUnidad}
-                                    />
-                                </div>
-                            </section>
-
-                            {/* Botón de envío */}
-                            <div className="pb-10">
-                                <button
-                                    type="submit"
-                                    disabled={!unidadSeleccionada || !servicio}
-                                    className="w-full rounded-xl bg-guinda-700 py-4 text-base font-bold text-white shadow-lg shadow-guinda-700/25 transition hover:bg-guinda-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-guinda-700/40 focus:ring-offset-2"
-                                >
-                                    Guardar Checklist
-                                </button>
-                                {(!unidadSeleccionada || !servicio) && (
-                                    <p className="mt-2 text-center text-xs text-gray-400">
-                                        {!unidadSeleccionada
-                                            ? 'Selecciona el tipo de unidad para continuar'
-                                            : 'Selecciona un servicio para guardar'}
-                                    </p>
-                                )}
+                            <div className="rounded-xl bg-red-50 py-3">
+                                <p className="text-2xl font-extrabold text-red-500">{totalMal}</p>
+                                <p className="text-xs font-semibold text-red-700">Mal</p>
                             </div>
                         </div>
-                    </form>
-                </div>
 
-                {/* Input oculto para cámara nativa o selector de archivos */}
-                <input
-                    id="camera-input-fallback"
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={(e) => {
-                        handleFileChange(e);
-                        setShowCamera(false);
-                    }}
-                />
+                        {/* Barra de progreso */}
+                        <div className="mb-5 flex items-center gap-3">
+                            <div className="flex-1 overflow-hidden rounded-full bg-gray-100" style={{ height: '6px' }}>
+                                <div
+                                    className="h-full rounded-full bg-guinda-700 transition-all duration-500"
+                                    style={{ width: `${progreso}%` }}
+                                />
+                            </div>
+                            <span className="text-xs font-bold text-guinda-700">{progreso}%</span>
+                        </div>
 
-                {/* Modal de Cámara WebRTC */}
-                <CameraModal
-                    isOpen={showCamera}
-                    onClose={() => setShowCamera(false)}
-                    onCapture={handleCaptureCamera} fallbackTrigger={() => fileInputRef.current?.click()}
-                />
+                        {/* ── 16 Puntos de revisión ────────────────────────── */}
+                        <section className="mb-6">
+                            <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
+                                4 · Puntos de Revisión Técnica — {PUNTOS.length} ítems
+                            </h3>
+                            <ul className="space-y-3">
+                                {PUNTOS.map((punto, idx) => (
+                                    <FilaPunto
+                                        key={punto.id}
+                                        punto={punto}
+                                        datos={puntos[punto.id]}
+                                        onChange={handleCambioPunto}
+                                        numero={idx + 1}
+                                        onStartCamera={handleStartCamera}
+                                    />
+                                ))}
+                            </ul>
+                        </section>
+
+                        {/* ── 5 · Referencia visual ─────────────────────────── */}
+                        <section className="mb-6">
+                            <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
+                                5 · Referencia visual — Marca los detalles
+                            </h3>
+                            <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm">
+                                <DrawingCanvas 
+                                    onSave={setDibujo} 
+                                    tipoUnidad={tipoUnidad}
+                                />
+                            </div>
+                        </section>
+
+                        {/* Botón de envío */}
+                        <div className="pb-10">
+                            <button
+                                type="submit"
+                                disabled={!unidadSeleccionada || !servicio}
+                                className="w-full rounded-xl bg-guinda-700 py-4 text-base font-bold text-white shadow-lg shadow-guinda-700/25 transition hover:bg-guinda-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-guinda-700/40 focus:ring-offset-2"
+                            >
+                                Guardar Checklist
+                            </button>
+                            {(!unidadSeleccionada || !servicio) && (
+                                <p className="mt-2 text-center text-xs text-gray-400">
+                                    {!unidadSeleccionada
+                                        ? 'Selecciona el tipo de unidad para continuar'
+                                        : 'Selecciona un servicio para guardar'}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            {/* Input oculto para cámara nativa o selector de archivos */}
+            <input
+                id="camera-input-fallback"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={(e) => {
+                    handleFileChange(e);
+                    setShowCamera(false);
+                }}
+            />
+
+            {/* Modal de Cámara WebRTC */}
+            <CameraModal
+                isOpen={showCamera}
+                onClose={() => setShowCamera(false)}
+                onCapture={handleCaptureCamera} fallbackTrigger={() => fileInputRef.current?.click()}
+            />
             </main>
         </div>
     );

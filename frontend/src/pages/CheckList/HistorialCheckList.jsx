@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Header from '../../components/Header/Header';
@@ -70,6 +70,10 @@ const PUNTOS = [
 
 export default function HistorialCheckList() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const filterTipo = queryParams.get('tipoTransporte');
+
     const [period, setPeriod] = useState('daily');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [checklists, setChecklists] = useState([]);
@@ -92,7 +96,16 @@ export default function HistorialCheckList() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setChecklists(data.checklists || []);
+                let fetchedChecklists = data.checklists || [];
+                
+                // Si venimos de la selección de flota, filtramos localmente por tipo de transporte
+                if (filterTipo) {
+                    let normalizedTipo = filterTipo.toUpperCase();
+                    if (normalizedTipo === 'URBANUS') normalizedTipo = 'URBANUSS';
+                    fetchedChecklists = fetchedChecklists.filter(c => String(c.tipo_unidad) === String(normalizedTipo));
+                }
+
+                setChecklists(fetchedChecklists);
                 setDateFrom(data.dateFrom);
                 setDateTo(data.dateTo);
             }
@@ -105,7 +118,8 @@ export default function HistorialCheckList() {
 
     useEffect(() => {
         fetchChecklists();
-    }, [period, selectedDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [period, selectedDate, location.search]);
 
     // Buscar checklist para preview
     const previewChecklist = checklists?.find(c => c.id === previewId);
