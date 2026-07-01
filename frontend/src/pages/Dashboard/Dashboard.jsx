@@ -53,7 +53,7 @@ export default function Dashboard() {
     const token = localStorage.getItem('token');
 
     try {
-      // Obtener ambos reportes
+      // Obtener ambos reportes en paralelo
       const [respRutas, respUnidades] = await Promise.all([
         fetch('http://localhost:8000/api/despacho/reporte-general', {
           method: 'GET',
@@ -74,7 +74,6 @@ export default function Dashboard() {
       ]);
 
       if (!respRutas.ok || !respUnidades.ok) {
-        // Intentar obtener mensaje de error del servidor
         let errorMsg = 'Error al obtener los datos';
         if (!respRutas.ok) {
           const errData = await respRutas.json().catch(() => ({}));
@@ -106,7 +105,11 @@ export default function Dashboard() {
         icon: 'success',
         title: '¡Reportes Generados!',
         text: 'Se han descargado los dos reportes correctamente.',
-        confirmButtonColor: '#c5a059',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
       });
 
     } catch (error) {
@@ -161,61 +164,52 @@ export default function Dashboard() {
           </p>
 
           <div className="dashboard__grid">
-            {transportModules.map((module) => {
-              const cantidad = conteos[module.id] || 0;
-              return (
-                <TransportCard
-                  key={module.id}
-                  title={module.title}
-                  subtitle={module.subtitle}
-                  image={module.image}
-                  route={module.route}
-                  cantidad={cantidad}
-                  cargando={cargando}
-                />
-              );
-            })}
+            {transportModules.map((modulo) => (
+              <TransportCard
+                key={modulo.id}
+                title={modulo.title}
+                subtitle={modulo.subtitle}
+                image={modulo.image}
+                route={`/transporte/${modulo.id}`}
+                cantidad={conteos[modulo.id] || 0}
+                cargando={cargando}
+              />
+            ))}
           </div>
 
-          <div className="dashboard__actions">
-            <button className="btn-reporte" onClick={handleGenerarReporte} disabled={isGenerating}>
-              {isGenerating ? (
-                <><span className="spinner"></span> Generando PDFs...</>
-              ) : (
-                'Reporte General'
-              )}
+          {/* Botón para generar reportes */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+            <button
+              onClick={handleGenerarReporte}
+              disabled={isGenerating}
+              style={{
+                padding: '0.75rem 2rem',
+                backgroundColor: '#6b1d33',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontSize: '1rem',
+                cursor: isGenerating ? 'not-allowed' : 'pointer',
+                opacity: isGenerating ? 0.7 : 1,
+              }}
+            >
+              {isGenerating ? 'Generando reportes...' : 'Generar Reportes PDF'}
             </button>
           </div>
+
+          {/* Componentes ocultos para generar PDF (fuera de pantalla) */}
+          {mostrarReporte && reporteDataRutas && (
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+              <PlantillaReporteGeneral data={reporteDataRutas} ref={reporteRutasRef} />
+            </div>
+          )}
+          {mostrarReporte && reporteDataUnidades && (
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+              <PlantillaReporteUnidades data={reporteDataUnidades} ref={reporteUnidadesRef} />
+            </div>
+          )}
         </main>
       </div>
-
-      {/* Plantillas ocultas para capturar con html2canvas */}
-      {mostrarReporte && reporteDataRutas && reporteDataUnidades && (
-        <>
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: '-9999px',
-              zIndex: -1,
-            }}
-            ref={reporteRutasRef}
-          >
-            <PlantillaReporteGeneral data={reporteDataRutas} />
-          </div>
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: '-9999px',
-              zIndex: -1,
-            }}
-            ref={reporteUnidadesRef}
-          >
-            <PlantillaReporteUnidades data={reporteDataUnidades} />
-          </div>
-        </>
-      )}
     </>
   );
 }

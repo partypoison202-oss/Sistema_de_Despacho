@@ -13,6 +13,9 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 // routes/api.php
 
+Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
+// routes/api.php
+
 // Todas las rutas dentro de este grupo requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
@@ -31,9 +34,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/despacho/importar', [DespachoController::class, 'importar']);
     Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
     Route::post('/despacho/actualizar-adicionales', [DespachoController::class, 'actualizarAdicionales']);
+    Route::post('/despacho/actualizar-tarjeton', [DespachoController::class, 'actualizarTarjeton']);
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
 
     // Rutas de Unidades (orden específico para evitar conflictos)
+    Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);
+    Route::get('/unidades/buscar-tarjeton/{tipo}/{tarjeton}', [DespachoController::class, 'buscarUnidadPorTarjeton']);
     Route::get('/unidades/detalle/{tipo}/{numeroEco}', [DespachoController::class, 'obtenerDetalleUnidad']);
     Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']); // <-- Esta es la que necesitas
     Route::get('/unidades/{tipo}', [DespachoController::class, 'obtenerPorTipo']);

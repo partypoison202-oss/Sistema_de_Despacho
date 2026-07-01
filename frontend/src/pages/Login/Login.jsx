@@ -73,7 +73,9 @@ export default function Login() {
       navigate('/cargar-excel');
     } else if (rol === 'ENCIERRO') {
       navigate('/encierro/dashboard');
-    } else {
+    } else if (rol === 'CENTRO_CONTROL') {
+      navigate('/centro-control');
+    } else if (rol === 'DESPACHO') {
       navigate('/dashboard');
     }
   };
@@ -120,7 +122,7 @@ export default function Login() {
             <button type="submit" className="login__submit-btn" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <span className="spinner"></span> Ingresando...
+                  <span className="login__spinner"></span> Ingresando...
                 </>
               ) : (
                 'Ingresar'

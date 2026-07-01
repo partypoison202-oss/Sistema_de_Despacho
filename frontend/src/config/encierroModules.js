@@ -1,9 +1,9 @@
 // src/config/encierroModules.js
-// Mismos módulos de transporte que TITAN pero con prefijo de ruta /encierro/
+// Mismos módulos de transporte que DESPACHO pero con prefijo de ruta /encierro/
 export const encierroModules = [
   {
     id: 'urbanus',
-    title: 'Urbanuss',
+    title: 'URBANUSS',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.png',
     route: '/encierro/transporte/urbanus',
@@ -17,7 +17,7 @@ export const encierroModules = [
   },
   {
     id: 'vagoneta',
-    title: 'Vagoneta',
+    title: 'VAGONETA',
     subtitle: 'Unidades tipo van',
     image: '/images/vagoneta.png',
     route: '/encierro/transporte/vagoneta',
@@ -31,7 +31,7 @@ export const encierroModules = [
   },
   {
     id: 'zafiro',
-    title: 'Zafiro',
+    title: 'ZAFIRO',
     subtitle: 'Unidades tipo microbús',
     image: '/images/zafiro.png',
     route: '/encierro/transporte/zafiro',
@@ -45,8 +45,8 @@ export const encierroModules = [
   },
   {
     id: 'orion',
-    title: 'Orion',
-    subtitle: 'Unidades tipo Orion',
+    title: 'ORION',
+    subtitle: 'Unidades tipo ORION',
     image: '/images/orionlateral.PNG',
     route: '/encierro/transporte/orion',
     totalUnidades: 0,

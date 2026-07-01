@@ -28,8 +28,18 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     };
   }, [profileRef]);
 
-  // ✅ Solo muestra la flecha si es ADMINISTRADOR
-  const showBackButton = !hideBackButton && user && user.role?.codigo === 'ADMINISTRADOR' && location.pathname !== '/';
+  let showBackButton = false;
+  if (!hideBackButton && user && location.pathname !== '/') {
+    if (user.role?.codigo === 'ADMINISTRADOR') {
+      showBackButton = location.pathname !== '/menu';
+    } else {
+      const isDashboard = location.pathname === '/dashboard' || 
+                          location.pathname === '/encierro/dashboard' || 
+                          location.pathname === '/centro-control/dashboard' ||
+                          location.pathname === '/cargar-excel';
+      showBackButton = !isDashboard;
+    }
+  }
 
   return (
     <header className="app-header">

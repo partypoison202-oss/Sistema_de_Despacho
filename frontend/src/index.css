@@ -45,14 +45,15 @@ body {
 
 .spinner {
   display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-left-color: #fff;
+  border-right-color: var(--color-gold);
   border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
-  margin-right: 0.5rem;
-  vertical-align: middle;
+  animation: spin 1s linear infinite;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 @keyframes spin {

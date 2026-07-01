@@ -6,7 +6,7 @@ import './Menu.css';
 
 const menuItems = [
   {
-    id: 'titan',
+    id: 'despacho',
     redirectTo: '/dashboard',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -17,7 +17,7 @@ const menuItems = [
         <polyline points="10 9 9 9 8 9" />
       </svg>
     ),
-    label: 'TITAN DASHBOARD',
+    label: 'DESPACHO DASHBOARD',
     color: 'maroon',
   },
   {
@@ -49,7 +49,7 @@ const menuItems = [
   },
   {
     id: 'centro',
-    redirectTo: null, 
+    redirectTo: '/centro-control',  // <--- CAMBIO AQUÍ
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -92,8 +92,8 @@ export default function Menu() {
     if (item.redirectTo) {
       navigate(item.redirectTo);
     } else {
-      // Para CENTRO DE CONTROL: muestra un mensaje o no hace nada
-      alert('Próximamente disponible');
+      // Si no tiene redirectTo, mostrar un mensaje o no hacer nada
+      console.warn('Ítem sin redirección:', item.label);
     }
   };
 

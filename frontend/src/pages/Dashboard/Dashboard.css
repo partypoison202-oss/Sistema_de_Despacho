@@ -39,11 +39,17 @@
 }
 
 .dashboard__grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 2rem 3rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem 1.5rem;
+  justify-items: center;
+}
+
+@media (max-width: 1024px) {
+  .dashboard__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3rem 2rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -52,8 +58,7 @@
   }
 
   .dashboard__grid {
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: 1fr;
     gap: 2rem;
   }
 }

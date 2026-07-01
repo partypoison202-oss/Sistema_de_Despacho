@@ -1,0 +1,360 @@
+// src/pages/CentroControl/CentroControl.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import Swal from 'sweetalert2';
+import Header from '../../components/Header/Header';
+import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
+import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
+import './CentroControl.css';
+
+// Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
+const modelsConfig = [
+  { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.png', color: 'maroon' },
+  { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafirofrenterealista.png', color: 'gold' },
+  { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.png', color: 'green' },
+  { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.PNG', color: 'blue' },
+];
+
+export default function CentroControl() {
+  const navigate = useNavigate();
+
+  const [modelData, setModelData] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Estado para la generación de los PDFs (igual que en Dashboard.jsx)
+  const [reporteDataRutas, setReporteDataRutas] = useState(null);
+  const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
+  const [mostrarReporte, setMostrarReporte] = useState(false);
+
+  const reporteRutasRef = useRef(null);
+  const reporteUnidadesRef = useRef(null);
+
+  // ---- Carga y desglose de unidades por tipo y estatus ----
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch('http://localhost:8000/api/despacho/hoy', {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const apiData = await res.json();
+
+        const aggregated = modelsConfig.map((mc) => {
+          const units = apiData.filter((d) =>
+            d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id)
+          );
+          const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
+
+          const programadas = units.length;
+          const operacion = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
+          const mantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO')).length;
+          const reserva = units.filter((d) => getEstatus(d).includes('RESERVA')).length;
+          const otros = Math.max(programadas - operacion - mantenimiento - reserva, 0);
+
+          return { ...mc, programadas, operacion, reserva, mantenimiento, otros };
+        });
+
+        setModelData(aggregated);
+      } catch (error) {
+        console.error('Error de conexión:', error);
+      } finally {
+        setCargando(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const totales = modelData.reduce(
+    (acc, m) => ({
+      programadas: acc.programadas + m.programadas,
+      operacion: acc.operacion + m.operacion,
+      reserva: acc.reserva + m.reserva,
+      mantenimiento: acc.mantenimiento + m.mantenimiento,
+    }),
+    { programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0 }
+  );
+
+  // ---- Generación de PDF (misma lógica que Dashboard.jsx) ----
+  const generarPDF = (elementRef, nombreArchivo) => {
+    return new Promise((resolve, reject) => {
+      const element = elementRef.current;
+      if (!element) {
+        reject(new Error(`Elemento ${nombreArchivo} no encontrado`));
+        return;
+      }
+      html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#f5f5f5',
+        windowWidth: 1123,
+        windowHeight: 795,
+      })
+        .then((canvas) => {
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+          pdf.addImage(imgData, 'PNG', 0, 0, 297, 210);
+          pdf.save(`${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
+          resolve();
+        })
+        .catch(reject);
+    });
+  };
+
+  const handleGenerarReporte = async () => {
+    setIsGenerating(true);
+    const token = localStorage.getItem('token');
+
+    try {
+      const [respRutas, respUnidades] = await Promise.all([
+        fetch('http://localhost:8000/api/despacho/reporte-general', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        }),
+        fetch('http://localhost:8000/api/despacho/reporte-unidades', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        }),
+      ]);
+
+      if (!respRutas.ok || !respUnidades.ok) {
+        let errorMsg = 'Error al obtener los datos';
+        if (!respRutas.ok) {
+          const errData = await respRutas.json().catch(() => ({}));
+          errorMsg = errData.error || errorMsg;
+        } else {
+          const errData = await respUnidades.json().catch(() => ({}));
+          errorMsg = errData.error || errorMsg;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const dataRutas = await respRutas.json();
+      const dataUnidades = await respUnidades.json();
+
+      setReporteDataRutas(dataRutas);
+      setReporteDataUnidades(dataUnidades);
+      setMostrarReporte(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      await generarPDF(reporteRutasRef, 'Reporte_Rutas');
+      await generarPDF(reporteUnidadesRef, 'Reporte_Unidades');
+
+      Swal.fire({
+        icon: 'success',
+        title: '¡Reportes Generados!',
+        text: 'Se han descargado los dos reportes correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'Ocurrió un error al generar los reportes.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setMostrarReporte(false);
+      setIsGenerating(false);
+    }
+  };
+
+  // Helper para % de cada segmento de la barra apilada
+  const pct = (value, total) => (total > 0 ? (value / total) * 100 : 0);
+
+  return (
+    <>
+      <div className="centro-page">
+        <Header title="Centro de Control" eyebrow="Panel administrativo" />
+
+        <main className="centro-main">
+          <div className="centro-welcome">
+            <p className="centro-eyebrow">Visión general de la flota</p>
+            <h1 className="centro-title">Centro de Control</h1>
+            <p className="centro-subtitle">
+              Consulta el total de unidades programadas, su estatus operativo
+              y genera reportes generales del despacho.
+            </p>
+          </div>
+
+          {/* ---------- KPIs globales ---------- */}
+          <section className="centro-kpis">
+            <div className="centro-kpi centro-kpi--total">
+              <div className="centro-kpi__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="3" width="15" height="13" rx="2" />
+                  <path d="M16 8h4l3 5v3h-7V8z" />
+                  <circle cx="5.5" cy="18.5" r="2.5" />
+                  <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+              </div>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.programadas}</span>
+              <span className="centro-kpi__label">Total Programadas</span>
+            </div>
+
+            <div className="centro-kpi centro-kpi--operacion">
+              <div className="centro-kpi__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.operacion}</span>
+              <span className="centro-kpi__label">En Operación</span>
+            </div>
+
+            <div className="centro-kpi centro-kpi--reserva">
+              <div className="centro-kpi__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.reserva}</span>
+              <span className="centro-kpi__label">En Reserva</span>
+            </div>
+
+            <div className="centro-kpi centro-kpi--mantenimiento">
+              <div className="centro-kpi__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.7 6.3a4 4 0 1 1-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 1 1 5.4-5.4z" />
+                </svg>
+              </div>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.mantenimiento}</span>
+              <span className="centro-kpi__label">En Mantenimiento</span>
+            </div>
+          </section>
+
+          {/* ---------- Desglose por tipo de unidad ---------- */}
+          <section className="centro-section-header">
+            <h2>Desglose por tipo de unidad</h2>
+          </section>
+
+          <section className="centro-type-grid">
+            {modelsConfig.map((mc) => {
+              const m = modelData.find((x) => x.id === mc.id) || {
+                programadas: 0,
+                operacion: 0,
+                reserva: 0,
+                mantenimiento: 0,
+              };
+              return (
+                <div className={`centro-type-card centro-type-card--${mc.color}`} key={mc.id}>
+                  <div className="centro-type-card__header">
+                    <img src={mc.image} alt={mc.label} className="centro-type-card__image" />
+                    <div className="centro-type-card__heading">
+                      <span className="centro-type-card__label">{mc.label}</span>
+                      <span className="centro-type-card__total">
+                        {cargando ? '—' : m.programadas} unidades
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Barra apilada de proporción */}
+                  <div className="centro-bar" role="img" aria-label={`Distribución de estatus ${mc.label}`}>
+                    <span
+                      className="centro-bar__seg centro-bar__seg--operacion"
+                      style={{ width: `${pct(m.operacion, m.programadas)}%` }}
+                    />
+                    <span
+                      className="centro-bar__seg centro-bar__seg--reserva"
+                      style={{ width: `${pct(m.reserva, m.programadas)}%` }}
+                    />
+                    <span
+                      className="centro-bar__seg centro-bar__seg--mantenimiento"
+                      style={{ width: `${pct(m.mantenimiento, m.programadas)}%` }}
+                    />
+                  </div>
+
+                  {/* Detalle por estatus */}
+                  <div className="centro-status-list">
+                    <div className="centro-status-row">
+                      <span className="centro-status-dot centro-status-dot--operacion" />
+                      <span className="centro-status-label">Operación</span>
+                      <span className="centro-status-percent centro-status-percent--operacion">
+                        {cargando ? '—' : `${Math.round(pct(m.operacion, m.programadas))}%`}
+                      </span>
+                      <span className="centro-status-value">{cargando ? '—' : m.operacion}</span>
+                    </div>
+                    <div className="centro-status-row">
+                      <span className="centro-status-dot centro-status-dot--reserva" />
+                      <span className="centro-status-label">Reserva</span>
+                      <span className="centro-status-percent centro-status-percent--reserva">
+                        {cargando ? '—' : `${Math.round(pct(m.reserva, m.programadas))}%`}
+                      </span>
+                      <span className="centro-status-value">{cargando ? '—' : m.reserva}</span>
+                    </div>
+                    <div className="centro-status-row">
+                      <span className="centro-status-dot centro-status-dot--mantenimiento" />
+                      <span className="centro-status-label">Mantenimiento</span>
+                      <span className="centro-status-percent centro-status-percent--mantenimiento">
+                        {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.programadas))}%`}
+                      </span>
+                      <span className="centro-status-value">{cargando ? '—' : m.mantenimiento}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* ---------- Acciones ---------- */}
+          <section className="centro-actions">
+            <button
+              className="centro-btn centro-btn--primary"
+              onClick={handleGenerarReporte}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <span className="centro-spinner"></span> Generando PDFs...
+                </>
+              ) : (
+                'Reporte General'
+              )}
+            </button>
+
+            <button
+              className="centro-btn centro-btn--secondary"
+              onClick={() => navigate('/resumen-despacho')}
+            >
+              Ver Resumen de Despacho
+            </button>
+          </section>
+        </main>
+      </div>
+
+      {/* Plantillas ocultas para capturar con html2canvas */}
+      {mostrarReporte && reporteDataRutas && reporteDataUnidades && (
+        <>
+          <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1 }} ref={reporteRutasRef}>
+            <PlantillaReporteGeneral data={reporteDataRutas} />
+          </div>
+          <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1 }} ref={reporteUnidadesRef}>
+            <PlantillaReporteUnidades data={reporteDataUnidades} />
+          </div>
+        </>
+      )}
+    </>
+  );
+}

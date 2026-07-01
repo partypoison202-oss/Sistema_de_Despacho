@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('unidades', function (Blueprint $table) {
-            $table->string('tipo')->nullable(); // Agregar la columna
-        });
+        if (! Schema::hasColumn('unidades', 'tipo')) {
+            Schema::table('unidades', function (Blueprint $table) {
+                $table->string('tipo')->nullable();
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('unidades', function (Blueprint $table) {
-            $table->dropColumn('tipo');
-        });
+        if (Schema::hasColumn('unidades', 'tipo')) {
+            Schema::table('unidades', function (Blueprint $table) {
+                $table->dropColumn('tipo');
+            });
+        }
     }
 };

@@ -15,12 +15,28 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
         async function initCamera() {
             setLoading(true);
             setError(null);
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setError('not_supported');
+                setLoading(false);
+                return;
+            }
+
             try {
-                // Solicitar permiso de video
-                const initialStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false
-                });
+                // Solicitar permiso de video (intentar environment primero, si no, cualquier video)
+                let initialStream;
+                try {
+                    initialStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' },
+                        audio: false
+                    });
+                } catch (firstErr) {
+                    console.warn("Could not start environment camera, trying generic video stream:", firstErr);
+                    initialStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                }
 
                 // Enumerar dispositivos de video
                 const allDevices = await navigator.mediaDevices.enumerateDevices();
@@ -29,6 +45,10 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
 
                 // Detener el stream inicial para no dejar la cámara activa
                 initialStream.getTracks().forEach(t => t.stop());
+
+                if (videoDevices.length === 0) {
+                    throw new Error("No video input devices found.");
+                }
 
                 // Buscar una cámara trasera como predeterminada
                 const backCam = videoDevices.find(d =>
@@ -42,11 +62,20 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                 setActiveDeviceId(targetDeviceId);
 
                 // Iniciar stream con el dispositivo seleccionado
-                const constraints = targetDeviceId
-                    ? { video: { deviceId: { exact: targetDeviceId } }, audio: false }
-                    : { video: { facingMode: 'environment' }, audio: false };
+                let constraints;
+                if (targetDeviceId) {
+                    constraints = { video: { deviceId: { exact: targetDeviceId } }, audio: false };
+                } else {
+                    constraints = { video: true, audio: false };
+                }
 
-                const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                let mediaStream;
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (streamErr) {
+                    console.warn("Could not start stream with target device, trying generic video:", streamErr);
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
 
                 activeStream = mediaStream;
                 setStream(mediaStream);
@@ -77,10 +106,19 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
         setLoading(true);
         setError(null);
         try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { deviceId: { exact: deviceId } },
-                audio: false
-            });
+            let mediaStream;
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: { exact: deviceId } },
+                    audio: false
+                });
+            } catch (firstErr) {
+                console.warn("Error using exact deviceId constraint, trying non-exact:", firstErr);
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: deviceId },
+                    audio: false
+                });
+            }
             setStream(mediaStream);
             setActiveDeviceId(deviceId);
             if (videoRef.current) {
@@ -91,6 +129,16 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
             setError('generic_error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const toggleCamera = () => {
+        if (devices.length <= 1) return;
+        const currentIndex = devices.findIndex(d => d.deviceId === activeDeviceId);
+        const nextIndex = (currentIndex + 1) % devices.length;
+        const nextDevice = devices[nextIndex];
+        if (nextDevice) {
+            handleDeviceChange(nextDevice.deviceId);
         }
     };
 
@@ -159,28 +207,50 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                             <h4 className="text-base font-bold">
-                                {error === 'permission_denied' ? 'Permiso Denegado' : 'Error al Iniciar Cámara'}
+                                {error === 'permission_denied' 
+                                    ? 'Permiso Denegado' 
+                                    : error === 'not_supported'
+                                    ? 'Cámara No Soportada'
+                                    : 'Error al Iniciar Cámara'}
                             </h4>
                             <p className="mt-1.5 text-xs text-gray-400 max-w-xs">
                                 {error === 'permission_denied'
                                     ? 'No se otorgaron permisos para acceder a la cámara. Puedes tomar la foto usando la cámara nativa del dispositivo.'
+                                    : error === 'not_supported'
+                                    ? 'La API de cámara no está disponible en este navegador o protocolo. Por favor, usa HTTPS o la cámara nativa.'
                                     : 'No se pudo activar el flujo de video en vivo. Por favor, usa la cámara nativa de tu dispositivo.'}
                             </p>
-                            <label
-                                htmlFor="camera-input-fallback"
+                            <button
+                                type="button"
+                                onClick={handleUseFallback}
                                 className="mt-4 cursor-pointer rounded-xl bg-guinda-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-guinda-800 transition"
                             >
                                 Usar Cámara Nativa
-                            </label>
+                            </button>
                         </div>
                     ) : (
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            className="h-full w-full object-cover"
-                        />
+                        <>
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="h-full w-full object-cover"
+                            />
+                            {/* Botón flotante para voltear cámara */}
+                            {!loading && devices.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={toggleCamera}
+                                    className="absolute bottom-4 right-4 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-all hover:bg-black/85 active:scale-90"
+                                    title="Voltear Cámara"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-6 w-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                    </svg>
+                                </button>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -225,12 +295,13 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                                 <span className="h-11 w-11 rounded-full border border-gray-300 bg-white" />
                             </button>
 
-                            <label
-                                htmlFor="camera-input-fallback"
-                                className="cursor-pointer rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-bold text-gray-400 hover:text-white hover:border-gray-700 transition"
+                            <button
+                                type="button"
+                                onClick={handleUseFallback}
+                                className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-bold text-gray-400 hover:text-white hover:border-gray-700 transition"
                             >
                                 Cámara Nativa
-                            </label>
+                            </button>
                         </div>
                     </div>
                 )}

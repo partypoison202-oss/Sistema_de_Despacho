@@ -1,108 +1,260 @@
-/* src/pages/Unidades/ExcelVista/ExcelVista.css */
+/* src/pages/CargaExcel/ExcelVista/ExcelVista.css */
 
-.preview-container {
-  margin-top: 20px;
+.excel-table-card {
+  background: var(--color-card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  padding: 1.75rem;
+  border: 1px solid #e9e7e2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.excel-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0edf6;
+  padding-bottom: 1rem;
+}
+
+.excel-table-header-left h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.25rem 0;
+}
+
+.excel-table-subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+.registro-count-badge {
+  background-color: rgba(107, 29, 51, 0.08);
+  color: var(--color-primary);
+  border: 1px solid rgba(107, 29, 51, 0.15);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.excel-table-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--color-text-light);
+  pointer-events: none;
+}
+
+.search-input {
+  padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  width: 200px;
+  outline: none;
+  background-color: #f9fafb;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.search-input:focus {
+  background-color: #ffffff;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
+  width: 250px;
 }
 
 .table-wrapper {
   overflow: auto;
-  max-height: 400px;
+  max-height: 520px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
   border: 1px solid #e5e7eb;
+  position: relative;
 }
 
-/* Custom Scrollbar for table */
+/* Custom Scrollbar */
 .table-wrapper::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .table-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 8px;
+  background: #f9f9fb;
+  border-radius: 4px;
 }
 .table-wrapper::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 8px;
+  background: #d1d5db;
+  border-radius: 4px;
 }
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #9ca3af;
 }
 
 .excel-preview-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-}
-
-.excel-preview-table th,
-.excel-preview-table td {
-  padding: 0.85rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.2s;
+  font-size: 0.9rem;
 }
 
 .excel-preview-table th {
-  background-color: #f9fafb;
+  background-color: var(--color-primary);
+  color: white;
   font-weight: 600;
-  color: #374151;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1rem;
+  text-align: left;
   position: sticky;
   top: 0;
   z-index: 10;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid #551728;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+}
+
+/* Header alignments */
+.excel-preview-table th.col-economico,
+.excel-preview-table th.col-tarjeton,
+.excel-preview-table th.col-corridas,
+.excel-preview-table th.col-hora_salida,
+.excel-preview-table th.col-ruta {
+  text-align: center;
+}
+
+.excel-preview-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+  background-color: #ffffff;
+  transition: background-color 0.15s ease;
 }
 
 .excel-preview-table tbody tr {
-  transition: background-color 0.2s;
+  transition: all 0.15s ease;
 }
 
 .excel-preview-table tbody tr:hover td {
-  background-color: #f8fafc;
+  background-color: #fcfbf7 !important;
 }
 
 .excel-preview-table tbody tr:nth-child(even) td {
-  background-color: #fafaf9;
+  background-color: #fdfdfd;
 }
 
-.excel-preview-table tbody tr:hover:nth-child(even) td {
-  background-color: #f8fafc;
-}
-
-.excel-actions-bottom {
-  margin-top: 24px;
-  display: flex;
-  justify-content: flex-end;
-}
-
+/* Edit Inputs */
 .edit-input {
   width: 100%;
   border: 1px solid transparent;
   background: transparent;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.875rem;
+  border-radius: 4px;
   outline: none;
-  transition: all 0.2s;
-  white-space: nowrap; 
-  display: block;
-  color: #1f2937;
+  transition: all 0.15s ease;
+  color: #374151;
+  box-sizing: border-box;
 }
 
 .edit-input:hover {
-  background: rgba(0,0,0,0.02);
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
 }
 
 .edit-input:focus {
-  background: #fff;
-  border: 1px solid var(--color-gold, #cba052);
-  box-shadow: 0 0 0 3px rgba(203, 160, 82, 0.15);
+  background-color: #ffffff;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
+  color: #000000;
+  font-weight: 500;
 }
 
-.excel-preview-table td {
-  padding: 0.25rem 0.5rem;
+/* Cell alignments */
+.cell-economico .edit-input,
+.cell-tarjeton .edit-input,
+.cell-corridas .edit-input,
+.cell-hora_salida .edit-input,
+.cell-ruta .edit-input {
+  text-align: center;
+}
+
+/* Unsaved Changes Banner at bottom */
+.excel-actions-bottom {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fffbef;
+  border: 1px solid #fef08a;
+  padding: 0.85rem 1.25rem;
+  border-radius: 8px;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.cambios-advertencia {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #854d0e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pulsing-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #eab308;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+}
+
+.save-changes-btn {
+  background-color: #854d0e;
+  border: none;
+  font-size: 0.9rem;
+  padding: 0.5rem 1.25rem;
+  height: 38px;
+}
+
+.save-changes-btn:hover:not(:disabled) {
+  background-color: #713f12;
+  box-shadow: 0 4px 6px rgba(113, 63, 18, 0.15);
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

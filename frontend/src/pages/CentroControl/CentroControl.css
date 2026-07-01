@@ -1,0 +1,409 @@
+/* src/pages/CentroControl/CentroControl.css */
+
+:root {
+  --cc-maroon: #601a2a;
+  --cc-maroon-dark: #4a1320;
+  --cc-gold: #c5a059;
+  --cc-gold-light: #eab308;
+  --cc-green: #2f6b3a;
+  --cc-blue: #1d4ed8;
+
+  /* Colores semánticos de estatus (consistentes en todas las tarjetas) */
+  --cc-operacion: #16a34a;
+  --cc-operacion-bg: #ecfdf3;
+  --cc-reserva: #d4a017;
+  --cc-reserva-bg: #fef9ec;
+  --cc-mantenimiento: #dc2626;
+  --cc-mantenimiento-bg: #fef2f2;
+
+  --cc-bg: #f5f5f5;
+  --cc-card-bg: #ffffff;
+  --cc-text: #1f2937;
+  --cc-text-muted: #6b7280;
+  --cc-border: #e9e5e0;
+  --cc-radius: 16px;
+  --cc-shadow: 0 4px 16px rgba(96, 26, 42, 0.08);
+  --cc-font: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.centro-page {
+  min-height: 100vh;
+  background: var(--cc-bg);
+  font-family: var(--cc-font);
+  color: var(--cc-text);
+}
+
+.centro-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* ---------- Encabezado de bienvenida ---------- */
+.centro-welcome {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.centro-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cc-gold);
+  margin: 0 0 6px;
+}
+
+.centro-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--cc-maroon);
+  margin: 0 0 10px;
+}
+
+.centro-subtitle {
+  font-size: 0.95rem;
+  color: var(--cc-text-muted);
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* ---------- KPIs globales ---------- */
+.centro-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+@media (max-width: 900px) {
+  .centro-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .centro-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+.centro-kpi {
+  background: var(--cc-card-bg);
+  border-radius: var(--cc-radius);
+  box-shadow: var(--cc-shadow);
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border-left: 5px solid transparent;
+  transition: transform 0.15s ease;
+}
+
+.centro-kpi:hover {
+  transform: translateY(-3px);
+}
+
+.centro-kpi__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.centro-kpi__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.centro-kpi__value {
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.centro-kpi__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cc-text-muted);
+}
+
+.centro-kpi--total {
+  border-left-color: var(--cc-maroon);
+}
+.centro-kpi--total .centro-kpi__icon {
+  background: rgba(96, 26, 42, 0.1);
+  color: var(--cc-maroon);
+}
+.centro-kpi--total .centro-kpi__value {
+  color: var(--cc-maroon);
+}
+
+.centro-kpi--operacion {
+  border-left-color: var(--cc-operacion);
+}
+.centro-kpi--operacion .centro-kpi__icon {
+  background: var(--cc-operacion-bg);
+  color: var(--cc-operacion);
+}
+.centro-kpi--operacion .centro-kpi__value {
+  color: var(--cc-operacion);
+}
+
+.centro-kpi--reserva {
+  border-left-color: var(--cc-reserva);
+}
+.centro-kpi--reserva .centro-kpi__icon {
+  background: var(--cc-reserva-bg);
+  color: var(--cc-reserva);
+}
+.centro-kpi--reserva .centro-kpi__value {
+  color: var(--cc-reserva);
+}
+
+.centro-kpi--mantenimiento {
+  border-left-color: var(--cc-mantenimiento);
+}
+.centro-kpi--mantenimiento .centro-kpi__icon {
+  background: var(--cc-mantenimiento-bg);
+  color: var(--cc-mantenimiento);
+}
+.centro-kpi--mantenimiento .centro-kpi__value {
+  color: var(--cc-mantenimiento);
+}
+
+/* ---------- Encabezado de sección ---------- */
+.centro-section-header {
+  margin: 8px 0 16px;
+}
+
+.centro-section-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--cc-maroon);
+  margin: 0;
+  padding-left: 12px;
+  border-left: 4px solid var(--cc-gold);
+}
+
+/* ---------- Tarjetas por tipo de unidad ---------- */
+.centro-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-bottom: 36px;
+}
+
+@media (max-width: 760px) {
+  .centro-type-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.centro-type-card {
+  background: var(--cc-card-bg);
+  border-radius: var(--cc-radius);
+  border: 1px solid var(--cc-border);
+  box-shadow: var(--cc-shadow);
+  padding: 20px;
+  border-top: 4px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.centro-type-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(96, 26, 42, 0.14);
+}
+
+.centro-type-card--maroon { border-top-color: var(--cc-maroon); }
+.centro-type-card--gold   { border-top-color: var(--cc-gold); }
+.centro-type-card--green  { border-top-color: var(--cc-green); }
+.centro-type-card--blue   { border-top-color: var(--cc-blue); }
+
+.centro-type-card__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.centro-type-card__image {
+  width: 64px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.centro-type-card__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.centro-type-card__label {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--cc-text);
+}
+
+.centro-type-card__total {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cc-text-muted);
+}
+
+/* Barra apilada de proporción */
+.centro-bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #f1f0ee;
+  margin-bottom: 16px;
+}
+
+.centro-bar__seg {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.centro-bar__seg--operacion { background: var(--cc-operacion); }
+.centro-bar__seg--reserva { background: var(--cc-reserva); }
+.centro-bar__seg--mantenimiento { background: var(--cc-mantenimiento); }
+
+/* Lista de estatus */
+.centro-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.centro-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-radius: 8px;
+}
+
+.centro-status-row:hover {
+  background: #faf9f7;
+}
+
+.centro-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.centro-status-dot--operacion { background: var(--cc-operacion); }
+.centro-status-dot--reserva { background: var(--cc-reserva); }
+.centro-status-dot--mantenimiento { background: var(--cc-mantenimiento); }
+
+.centro-status-label {
+  font-size: 0.85rem;
+  color: var(--cc-text-muted);
+  flex: 1;
+}
+
+.centro-status-percent {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  min-width: 42px;
+  text-align: center;
+}
+
+.centro-status-percent--operacion {
+  color: var(--cc-operacion);
+  background: var(--cc-operacion-bg);
+}
+
+.centro-status-percent--reserva {
+  color: var(--cc-reserva);
+  background: var(--cc-reserva-bg);
+}
+
+.centro-status-percent--mantenimiento {
+  color: var(--cc-mantenimiento);
+  background: var(--cc-mantenimiento-bg);
+}
+
+.centro-status-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cc-text);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* ---------- Acciones ---------- */
+.centro-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.centro-btn {
+  font-family: var(--cc-font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 13px 26px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.centro-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.centro-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.centro-btn--primary {
+  background: var(--cc-maroon);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(96, 26, 42, 0.25);
+}
+
+.centro-btn--secondary {
+  background: #fff;
+  color: var(--cc-maroon);
+  border: 1.5px solid var(--cc-maroon);
+}
+
+/* Spinner del botón de reporte */
+.centro-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: centro-spin 0.7s linear infinite;
+}
+
+@keyframes centro-spin {
+  to { transform: rotate(360deg); }
+}

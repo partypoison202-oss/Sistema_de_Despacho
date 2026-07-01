@@ -36,7 +36,7 @@ CREATE TABLE seccion_componente (
 
     componente_id INTEGER NOT NULL,
 
-    tipo_formulario VARCHAR(20) NOT NULL DEFAULT 'TITAN',
+    tipo_formulario VARCHAR(20) NOT NULL DEFAULT 'DESPACHO',
 
     CONSTRAINT fk_sc_seccion
     FOREIGN KEY (seccion_id)
@@ -123,6 +123,12 @@ CREATE TABLE informacion_operativa (
     tipo VARCHAR(50),  
     estatus VARCHAR(20),
 
+    corridas INTEGER,
+    falla VARCHAR(50),
+    ciclo VARCHAR(10),
+    motivo VARCHAR(50),
+    hora_salida VARCHAR(20),
+
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_info_operativa_unidad
@@ -169,7 +175,7 @@ VALUES
 ('Costado Izquierdo'),
 ('Costado Derecho');
 
--- Componentes generales (usados por TITAN y/o ENCIERRO)
+-- Componentes generales (usados por DESPACHO y/o ENCIERRO)
 INSERT INTO componentes (nombre)
 VALUES
 ('Carrocería exterior'),
@@ -213,8 +219,16 @@ VALUES
 ('ADMINISTRADOR', 'Administrador', 'Control total del sistema'),
 ('CAPTURISTA', 'Capturista', 'Carga y edición de Excel'),
 ('CENTRO_CONTROL', 'Centro de Control', 'Monitoreo y dashboard'),
-('TITAN', 'Titan', 'Reportes e inspecciones'),
+('DESPACHO', 'Despacho', 'Reportes e inspecciones'),
 ('ENCIERRO', 'Encierro', 'Reportes e inspecciones');
+
+CREATE TABLE conductores (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(200) NOT NULL,
+    tarjeton VARCHAR(50) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE usuarios (
     id BIGSERIAL PRIMARY KEY,
@@ -243,63 +257,63 @@ CREATE TABLE usuarios (
 -- Referencia de IDs de componentes (ENCIERRO):
 --   13=Mobitec | 14=Torreta | 15=Pintura y vinil | 16=Tecnología | 17=Alerta en tablero
 
--- *** TITAN: Frente ***
+-- *** DESPACHO: Frente ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
-(1, 1,  'TITAN'),  -- Carrocería exterior
-(1, 2,  'TITAN'),  -- Pintura y gráfica
-(1, 3,  'TITAN'),  -- Parabrisas y cristales
-(1, 4,  'TITAN'),  -- Luces exteriores
-(1, 5,  'TITAN'),  -- Puertas
-(1, 6,  'TITAN'),  -- Llantas
-(1, 7,  'TITAN'),  -- Rines
-(1, 8,  'TITAN'),  -- Retrovisores
-(1, 9,  'TITAN'),  -- Interior y limpieza
-(1, 10, 'TITAN'),  -- Asientos
-(1, 11, 'TITAN'),  -- Extintor y seguridad
-(1, 12, 'TITAN');  -- Documentación
+(1, 1,  'DESPACHO'),  -- Carrocería exterior
+(1, 2,  'DESPACHO'),  -- Pintura y gráfica
+(1, 3,  'DESPACHO'),  -- Parabrisas y cristales
+(1, 4,  'DESPACHO'),  -- Luces exteriores
+(1, 5,  'DESPACHO'),  -- Puertas
+(1, 6,  'DESPACHO'),  -- Llantas
+(1, 7,  'DESPACHO'),  -- Rines
+(1, 8,  'DESPACHO'),  -- Retrovisores
+(1, 9,  'DESPACHO'),  -- Interior y limpieza
+(1, 10, 'DESPACHO'),  -- Asientos
+(1, 11, 'DESPACHO'),  -- Extintor y seguridad
+(1, 12, 'DESPACHO');  -- Documentación
 
--- *** TITAN: Trasera ***
+-- *** DESPACHO: Trasera ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
-(2, 1,  'TITAN'),  -- Carrocería exterior
-(2, 2,  'TITAN'),  -- Pintura y gráfica
-(2, 3,  'TITAN'),  -- Parabrisas y cristales
-(2, 4,  'TITAN'),  -- Luces exteriores
-(2, 5,  'TITAN'),  -- Puertas
-(2, 6,  'TITAN'),  -- Llantas
-(2, 7,  'TITAN'),  -- Rines
-(2, 9,  'TITAN'),  -- Interior y limpieza
-(2, 10, 'TITAN'),  -- Asientos
-(2, 11, 'TITAN'),  -- Extintor y seguridad
-(2, 12, 'TITAN');  -- Documentación
+(2, 1,  'DESPACHO'),  -- Carrocería exterior
+(2, 2,  'DESPACHO'),  -- Pintura y gráfica
+(2, 3,  'DESPACHO'),  -- Parabrisas y cristales
+(2, 4,  'DESPACHO'),  -- Luces exteriores
+(2, 5,  'DESPACHO'),  -- Puertas
+(2, 6,  'DESPACHO'),  -- Llantas
+(2, 7,  'DESPACHO'),  -- Rines
+(2, 9,  'DESPACHO'),  -- Interior y limpieza
+(2, 10, 'DESPACHO'),  -- Asientos
+(2, 11, 'DESPACHO'),  -- Extintor y seguridad
+(2, 12, 'DESPACHO');  -- Documentación
 
--- *** TITAN: Costado Izquierdo ***
+-- *** DESPACHO: Costado Izquierdo ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
-(3, 1,  'TITAN'),  -- Carrocería exterior
-(3, 2,  'TITAN'),  -- Pintura y gráfica
-(3, 3,  'TITAN'),  -- Parabrisas y cristales
-(3, 4,  'TITAN'),  -- Luces exteriores
-(3, 5,  'TITAN'),  -- Puertas
-(3, 6,  'TITAN'),  -- Llantas
-(3, 7,  'TITAN'),  -- Rines
-(3, 8,  'TITAN'),  -- Retrovisores
-(3, 9,  'TITAN'),  -- Interior y limpieza
-(3, 10, 'TITAN'),  -- Asientos
-(3, 11, 'TITAN'),  -- Extintor y seguridad
-(3, 12, 'TITAN');  -- Documentación
+(3, 1,  'DESPACHO'),  -- Carrocería exterior
+(3, 2,  'DESPACHO'),  -- Pintura y gráfica
+(3, 3,  'DESPACHO'),  -- Parabrisas y cristales
+(3, 4,  'DESPACHO'),  -- Luces exteriores
+(3, 5,  'DESPACHO'),  -- Puertas
+(3, 6,  'DESPACHO'),  -- Llantas
+(3, 7,  'DESPACHO'),  -- Rines
+(3, 8,  'DESPACHO'),  -- Retrovisores
+(3, 9,  'DESPACHO'),  -- Interior y limpieza
+(3, 10, 'DESPACHO'),  -- Asientos
+(3, 11, 'DESPACHO'),  -- Extintor y seguridad
+(3, 12, 'DESPACHO');  -- Documentación
 
--- *** TITAN: Costado Derecho ***
+-- *** DESPACHO: Costado Derecho ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
-(4, 1,  'TITAN'),  -- Carrocería exterior
-(4, 2,  'TITAN'),  -- Pintura y gráfica
-(4, 3,  'TITAN'),  -- Parabrisas y cristales
-(4, 4,  'TITAN'),  -- Luces exteriores
-(4, 5,  'TITAN'),  -- Puertas
-(4, 6,  'TITAN'),  -- Llantas
-(4, 7,  'TITAN'),  -- Rines
-(4, 9,  'TITAN'),  -- Interior y limpieza
-(4, 10, 'TITAN'),  -- Asientos
-(4, 11, 'TITAN'),  -- Extintor y seguridad
-(4, 12, 'TITAN');  -- Documentación
+(4, 1,  'DESPACHO'),  -- Carrocería exterior
+(4, 2,  'DESPACHO'),  -- Pintura y gráfica
+(4, 3,  'DESPACHO'),  -- Parabrisas y cristales
+(4, 4,  'DESPACHO'),  -- Luces exteriores
+(4, 5,  'DESPACHO'),  -- Puertas
+(4, 6,  'DESPACHO'),  -- Llantas
+(4, 7,  'DESPACHO'),  -- Rines
+(4, 9,  'DESPACHO'),  -- Interior y limpieza
+(4, 10, 'DESPACHO'),  -- Asientos
+(4, 11, 'DESPACHO'),  -- Extintor y seguridad
+(4, 12, 'DESPACHO');  -- Documentación
 
 -- *** ENCIERRO: Frente (todos los 16 componentes) ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
