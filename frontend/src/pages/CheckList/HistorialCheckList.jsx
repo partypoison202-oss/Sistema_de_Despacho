@@ -139,7 +139,7 @@ export default function HistorialCheckList() {
         }, 300);
     };
 
-    const generarPDF = (id, accion = 'download') => {
+    const generarPDF = async (id, accion = 'download') => {
         const checklist = checklists?.find(c => c.id === id);
         if (!checklist) return;
 
@@ -333,7 +333,6 @@ export default function HistorialCheckList() {
                     if (currentCol > 0) {
                         currentY += rowHeight + rowGap + 5;
                     }
-                }
                 }
             }
 
