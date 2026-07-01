@@ -587,20 +587,11 @@ export default function ChecklistForm() {
     const [activePuntoId, setActivePuntoId] = useState(null);
     const [showCamera, setShowCamera] = useState(false);
     const fileInputRef = useRef(null);
+    const galleryInputRef = useRef(null);
 
     const handleStartCamera = (puntoId) => {
         setActivePuntoId(puntoId);
-        
-        // En iOS Safari / Chrome, getUserMedia no funciona sobre HTTP (solo HTTPS o localhost).
-        // Si no estamos en un contexto seguro, usamos el file picker directamente (fallback)
-        if (window.isSecureContext === false || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-                fileInputRef.current.click();
-            }
-        } else {
-            setShowCamera(true);
-        }
+        setShowCamera(true);
     };
 
     // Auto-cargar unidad si viene en la URL
@@ -1131,11 +1122,26 @@ export default function ChecklistForm() {
                 }}
             />
 
+            {/* Input oculto para galería / seleccionar de dispositivo */}
+            <input
+                id="gallery-input"
+                type="file"
+                accept="image/*"
+                ref={galleryInputRef}
+                className="hidden"
+                onChange={(e) => {
+                    handleFileChange(e);
+                    setShowCamera(false);
+                }}
+            />
+
             {/* Modal de Cámara WebRTC */}
             <CameraModal
                 isOpen={showCamera}
                 onClose={() => setShowCamera(false)}
-                onCapture={handleCaptureCamera} fallbackTrigger={() => fileInputRef.current?.click()}
+                onCapture={handleCaptureCamera}
+                fallbackTrigger={() => fileInputRef.current?.click()}
+                galleryTrigger={() => galleryInputRef.current?.click()}
             />
             </main>
         </div>

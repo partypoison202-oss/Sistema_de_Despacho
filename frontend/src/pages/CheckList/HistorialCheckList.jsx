@@ -68,6 +68,37 @@ const PUNTOS = [
     { id: 'alerta_tablero', label: 'Alerta en tablero' },
 ];
 
+const loadImage = (url) => {
+    return new Promise((resolve) => {
+        if (!url || typeof url !== 'string') {
+            resolve(null);
+            return;
+        }
+
+        const img = new Image();
+        
+        // Timeout de seguridad de 5 segundos para evitar que la promesa quede colgada
+        const timer = setTimeout(() => {
+            console.warn("loadImage timeout for URL:", url.substring(0, 100));
+            resolve(null);
+        }, 5000);
+
+        if (url.startsWith('http') || url.startsWith('//')) {
+            img.crossOrigin = 'anonymous';
+        }
+
+        img.onload = () => {
+            clearTimeout(timer);
+            resolve(img);
+        };
+        img.onerror = () => {
+            clearTimeout(timer);
+            resolve(null);
+        };
+        img.src = url;
+    });
+};
+
 export default function HistorialCheckList() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -148,7 +179,7 @@ export default function HistorialCheckList() {
             const margin = 15;
             let y = margin;
 
-            const dateFormatted = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(checklist.created_at));
+            const dateFormatted = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(checklist.fecha_hora || checklist.created_at || new Date()));
 
             // Encabezado
             doc.setFontSize(18);
@@ -659,6 +690,15 @@ export default function HistorialCheckList() {
                                                                 onClick={() => setLightboxImage(pd.foto)}
                                                             />
                                                         )}
+                                                        {pd.fotos && pd.fotos.map((f, fIdx) => (
+                                                            <img 
+                                                                key={fIdx}
+                                                                src={f} 
+                                                                alt={`Evidencia ${fIdx + 1} de ${punto.label}`} 
+                                                                className="h-16 w-16 rounded-lg object-cover border border-gray-200 cursor-zoom-in hover:scale-105 transition-all shadow-sm"
+                                                                onClick={() => setLightboxImage(f)}
+                                                            />
+                                                        ))}
                                                     </div>
                                                 )}
                                             </div>
@@ -668,16 +708,56 @@ export default function HistorialCheckList() {
                             </ul>
                         </div>
 
+                        {/* Evidencias fotográficas dedicadas */}
+                        {(() => {
+                            const fotosEvidencia = [];
+                            PUNTOS.forEach(punto => {
+                                const pd = previewChecklist.puntos?.[punto.id];
+                                if (pd) {
+                                    if (pd.foto) {
+                                        fotosEvidencia.push({ label: punto.label, url: pd.foto });
+                                    }
+                                    if (pd.fotos && pd.fotos.length > 0) {
+                                        pd.fotos.forEach(f => {
+                                            fotosEvidencia.push({ label: punto.label, url: f });
+                                        });
+                                    }
+                                }
+                            });
+
+                            if (fotosEvidencia.length === 0) return null;
+
+                            return (
+                                <div className="mb-6 page-break-before">
+                                    <h5 className="mb-4 text-sm font-bold text-gray-800 border-b border-gray-150 pb-2">Evidencias Fotográficas</h5>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                        {fotosEvidencia.map((foto, idx) => (
+                                            <div key={idx} className="flex flex-col items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+                                                <img 
+                                                    src={foto.url} 
+                                                    alt={`Evidencia de ${foto.label}`} 
+                                                    className="w-full h-32 rounded-lg object-cover cursor-zoom-in hover:scale-[1.02] transition-all shadow-sm mb-2"
+                                                    onClick={() => setLightboxImage(foto.url)}
+                                                />
+                                                <span className="text-xs font-semibold text-guinda-700 text-center">{foto.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* Dibujo de observaciones */}
                         {previewChecklist.dibujo && (
                             <div className="mb-6 page-break-before">
                                 <h5 className="mb-3 text-sm font-bold text-gray-800">Referencia Visual (Marcas)</h5>
                                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-2 max-w-2xl mx-auto overflow-hidden shadow-sm relative">
                                     <img
-                                        src="/images/bus-blueprint.svg"
+                                        src={`/images/${(previewChecklist.tipo_unidad || 'hero').toLowerCase()}.png`}
                                         alt="Blueprint"
                                         className="w-full object-contain opacity-60"
                                         style={{ aspectRatio: '5/3' }}
+                                        onError={(e) => { e.target.src = '/images/hero.png'; }}
                                     />
                                     <img 
                                         src={previewChecklist.dibujo} 
