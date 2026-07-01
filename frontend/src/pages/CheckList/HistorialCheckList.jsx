@@ -212,9 +212,6 @@ export default function HistorialCheckList() {
                     }
                 },
             });
-
-<<<<<<< Updated upstream
-=======
             let currentY = doc.lastAutoTable.finalY || y;
 
             // Dibujo de observaciones (si existe)
@@ -337,9 +334,9 @@ export default function HistorialCheckList() {
                         currentY += rowHeight + rowGap + 5;
                     }
                 }
+                }
             }
 
->>>>>>> Stashed changes
             // Pie de página
             const pageCount = doc.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
