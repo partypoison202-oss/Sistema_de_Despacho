@@ -8,8 +8,3 @@
 [33m[nodemon] watching extensions: js,mjs,cjs,json[39m
 [32m[nodemon] starting `node src/server.js`[39m
 Servidor corriendo en puerto 4000
-[32m[nodemon] restarting child process[39m
-[32m[nodemon] restarting child process[39m
-[32m[nodemon] starting `node src/server.js`[39m
-Servidor corriendo en pServidor corriendo en puerto 4000
-[32m[nodemon] clean exit - waiting for changes before restart[39m

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '../../components/Header/Header';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CameraModal from '../../components/CameraModal';
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
@@ -565,6 +565,7 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function ChecklistForm() {
     const navigate = useNavigate();
+    const location = useLocation();
     // ── Paso 1: selección de unidad ───────────────────────────────────────────
     const [tipoUnidad, setTipoUnidad] = useState('');
     const [ecosList, setEcosList] = useState([]);
@@ -602,6 +603,27 @@ export default function ChecklistForm() {
         }
     };
 
+    // Auto-cargar unidad si viene en la URL
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const qEco = queryParams.get('numero_eco');
+        const qTipoRaw = queryParams.get('tipoTransporte');
+
+        if (qTipoRaw) {
+            let normalizedTipo = qTipoRaw.toUpperCase();
+            if (normalizedTipo === 'URBANUS') normalizedTipo = 'URBANUSS';
+
+            // Se ejecuta de manera asíncrona para que no bloquee el renderizado principal
+            const loadUrlUnit = async () => {
+                await handleTipoUnidad(normalizedTipo, true);
+                if (qEco) {
+                    setEconomico(qEco);
+                }
+            };
+            loadUrlUnit();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.search]);
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
@@ -653,8 +675,8 @@ export default function ChecklistForm() {
     const unidadSeleccionada = tipoUnidad !== '';
 
     // Al seleccionar Tipo de Unidad
-    const handleTipoUnidad = async (tipo) => {
-        if (tipoUnidad !== tipo) {
+    const handleTipoUnidad = async (tipo, forceLoad = false) => {
+        if (tipoUnidad !== tipo || forceLoad) {
             setTipoUnidad(tipo);
             setEconomico('');
             setEcosList([]);
@@ -837,9 +859,9 @@ export default function ChecklistForm() {
             <Header hideBackButton={false} />
             <main className="dashboard-main max-w-2xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
+                <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700 uppercase">
                     <IconClipboard />
-                    Checklist de Unidades
+                    Checklist de Unidades {tipoUnidad}
                 </h2>
                 {/* Reloj en esquina superior derecha del header */}
                 <RelojFecha />
@@ -848,32 +870,13 @@ export default function ChecklistForm() {
             <div className="mx-auto max-w-2xl px-4 py-6">
                 <form onSubmit={handleSubmit} noValidate>
 
-                    {/* ══ PASO 1 — Tipo de Unidad y Económico ══════════════════════════════ */}
+                    {/* ══ PASO 1 — Económico ══════════════════════════════ */}
                     <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-guinda-700">
-                            1 · Tipo de Unidad
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 mb-4">
-                            {TIPOS_UNIDAD.map((t) => (
-                                <button
-                                    key={t.value}
-                                    type="button"
-                                    onClick={() => handleTipoUnidad(t.value)}
-                                    className={`rounded-xl border py-3 text-sm font-bold transition-all duration-150 ${tipoUnidad === t.value
-                                        ? 'border-guinda-700 bg-guinda-700 text-white shadow-md'
-                                        : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-guinda-700/30'
-                                        }`}
-                                >
-                                    {t.label}
-                                </button>
-                            ))}
-                        </div>
-
                         {tipoUnidad && (
                             <>
-                                <div className="flex items-center justify-between mb-3 mt-6">
+                                <div className="flex items-center justify-between mb-3 mt-2">
                                     <label htmlFor="economico" className="block text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                        2 · Económico (Eco)
+                                        1 · Económico (Eco)
                                     </label>
                                     <button
                                         type="button"
@@ -931,9 +934,9 @@ export default function ChecklistForm() {
                                 )}
                             </>
                         )}
-                        {!unidadSeleccionada && !tipoUnidad && (
-                            <p className="mt-3 text-center text-xs text-gray-400">
-                                Selecciona el tipo de unidad para continuar
+                        {!tipoUnidad && (
+                            <p className="text-center text-xs text-gray-400">
+                                Cargando tipo de unidad...
                             </p>
                         )}
                     </section>

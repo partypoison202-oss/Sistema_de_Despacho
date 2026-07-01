@@ -13,6 +13,7 @@ import Menu from './pages/Menu/Menu';
 import MenuCheckList from './pages/Menu/MenuCheckList';
 import CheckList from './pages/CheckList/CheckList';
 import HistorialCheckList from './pages/CheckList/HistorialCheckList';
+import FleetSelection from './components/Checklist/FleetSelection';
 import CentroControl from './pages/CentroControl/CentroControl';
 
 function App() {
@@ -66,6 +67,12 @@ function App() {
           <Route path="/checklist/menu" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
               <MenuCheckList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/checklist/seleccionar-flota" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+              <FleetSelection />
             </ProtectedRoute>
           } />
           
