@@ -68,11 +68,43 @@ const PUNTOS = [
     { id: 'alerta_tablero', label: 'Alerta en tablero' },
 ];
 
+const loadImage = (url) => {
+    return new Promise((resolve) => {
+        if (!url || typeof url !== 'string') {
+            resolve(null);
+            return;
+        }
+
+        const img = new Image();
+        
+        // Timeout de seguridad de 5 segundos para evitar que la promesa quede colgada
+        const timer = setTimeout(() => {
+            console.warn("loadImage timeout for URL:", url.substring(0, 100));
+            resolve(null);
+        }, 5000);
+
+        if (url.startsWith('http') || url.startsWith('//')) {
+            img.crossOrigin = 'anonymous';
+        }
+
+        img.onload = () => {
+            clearTimeout(timer);
+            resolve(img);
+        };
+        img.onerror = () => {
+            clearTimeout(timer);
+            resolve(null);
+        };
+        img.src = url;
+    });
+};
+
 export default function HistorialCheckList() {
     const navigate = useNavigate();
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const filterTipo = queryParams.get('tipoTransporte');
+    const filterEconomico = queryParams.get('economico');
 
     const [period, setPeriod] = useState('daily');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -88,7 +120,11 @@ export default function HistorialCheckList() {
         setCargando(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE}/api/checklists?period=${period}&date=${selectedDate}`, {
+            let url = `${API_BASE}/api/checklists?period=${period}&date=${selectedDate}`;
+            if (filterEconomico) {
+                url += `&economico=${filterEconomico}`;
+            }
+            const res = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
@@ -148,7 +184,7 @@ export default function HistorialCheckList() {
             const margin = 15;
             let y = margin;
 
-            const dateFormatted = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(checklist.created_at));
+            const dateFormatted = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(checklist.fecha_hora || checklist.created_at || new Date()));
 
             // Encabezado
             doc.setFontSize(18);
@@ -379,10 +415,17 @@ export default function HistorialCheckList() {
             <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
                 
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
-                        <IconReport />
-                        Historial de Check List
-                    </h2>
+                    <div>
+                        <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
+                            <IconReport />
+                            Historial de Check List
+                        </h2>
+                        {filterEconomico && (
+                            <span className="mt-2 inline-block rounded-full bg-guinda-100 px-3 py-1 text-xs font-bold text-guinda-800">
+                                Filtrando por Unidad: ECO {filterEconomico}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* ── Tabs de periodo ──────────────────────────────────── */}
@@ -481,6 +524,12 @@ export default function HistorialCheckList() {
                                         const fmtHora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
                                         return (
                                             <tr key={c.id} className="border-b border-gray-50 transition hover:bg-gray-50/50">
+                                                {(() => {
+                                                    const cond = CONDUCTORES.find(cd => cd.id === Number(c.conductor_id));
+                                                    const condNombre = cond ? cond.nombre : (c.conductor_id || '—');
+                                                    const condTarjeton = cond ? cond.tarjeton : '—';
+                                                    return (
+                                                        <>
                                                 <td className="px-5 py-3 text-xs font-medium text-gray-400">{c.id}</td>
                                                 <td className="px-5 py-3">
                                                     <p className="text-sm font-medium text-gray-800">{fmtFecha}</p>
@@ -492,7 +541,10 @@ export default function HistorialCheckList() {
                                                         {c.tipo_unidad}
                                                     </span>
                                                 </td>
-                                                <td className="px-5 py-3 text-sm text-gray-600">{c.conductor_id ?? '—'}</td>
+                                                <td className="px-5 py-3">
+                                                    <p className="text-sm font-medium text-gray-800">{condNombre}</p>
+                                                    {cond && <p className="text-[11px] text-gray-400">Tarjetón: {condTarjeton}</p>}
+                                                </td>
                                                 <td className="px-5 py-3 text-sm font-medium text-gray-700">{c.servicio}</td>
                                                 <td className="px-5 py-3 text-center">
                                                     <span className="inline-flex items-center justify-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">
@@ -529,6 +581,9 @@ export default function HistorialCheckList() {
                                                         </button>
                                                     </div>
                                                 </td>
+                                                        </>
+                                                    );
+                                                })()}
                                             </tr>
                                         );
                                     })}
@@ -659,6 +714,15 @@ export default function HistorialCheckList() {
                                                                 onClick={() => setLightboxImage(pd.foto)}
                                                             />
                                                         )}
+                                                        {pd.fotos && pd.fotos.map((f, fIdx) => (
+                                                            <img 
+                                                                key={fIdx}
+                                                                src={f} 
+                                                                alt={`Evidencia ${fIdx + 1} de ${punto.label}`} 
+                                                                className="h-16 w-16 rounded-lg object-cover border border-gray-200 cursor-zoom-in hover:scale-105 transition-all shadow-sm"
+                                                                onClick={() => setLightboxImage(f)}
+                                                            />
+                                                        ))}
                                                     </div>
                                                 )}
                                             </div>
@@ -668,16 +732,56 @@ export default function HistorialCheckList() {
                             </ul>
                         </div>
 
+                        {/* Evidencias fotográficas dedicadas */}
+                        {(() => {
+                            const fotosEvidencia = [];
+                            PUNTOS.forEach(punto => {
+                                const pd = previewChecklist.puntos?.[punto.id];
+                                if (pd) {
+                                    if (pd.foto) {
+                                        fotosEvidencia.push({ label: punto.label, url: pd.foto });
+                                    }
+                                    if (pd.fotos && pd.fotos.length > 0) {
+                                        pd.fotos.forEach(f => {
+                                            fotosEvidencia.push({ label: punto.label, url: f });
+                                        });
+                                    }
+                                }
+                            });
+
+                            if (fotosEvidencia.length === 0) return null;
+
+                            return (
+                                <div className="mb-6 page-break-before">
+                                    <h5 className="mb-4 text-sm font-bold text-gray-800 border-b border-gray-150 pb-2">Evidencias Fotográficas</h5>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                        {fotosEvidencia.map((foto, idx) => (
+                                            <div key={idx} className="flex flex-col items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+                                                <img 
+                                                    src={foto.url} 
+                                                    alt={`Evidencia de ${foto.label}`} 
+                                                    className="w-full h-32 rounded-lg object-cover cursor-zoom-in hover:scale-[1.02] transition-all shadow-sm mb-2"
+                                                    onClick={() => setLightboxImage(foto.url)}
+                                                />
+                                                <span className="text-xs font-semibold text-guinda-700 text-center">{foto.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* Dibujo de observaciones */}
                         {previewChecklist.dibujo && (
                             <div className="mb-6 page-break-before">
                                 <h5 className="mb-3 text-sm font-bold text-gray-800">Referencia Visual (Marcas)</h5>
                                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-2 max-w-2xl mx-auto overflow-hidden shadow-sm relative">
                                     <img
-                                        src="/images/bus-blueprint.svg"
+                                        src={`/images/${(previewChecklist.tipo_unidad || 'hero').toLowerCase()}.png`}
                                         alt="Blueprint"
                                         className="w-full object-contain opacity-60"
                                         style={{ aspectRatio: '5/3' }}
+                                        onError={(e) => { e.target.src = '/images/hero.png'; }}
                                     />
                                     <img 
                                         src={previewChecklist.dibujo} 

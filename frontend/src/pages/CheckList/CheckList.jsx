@@ -563,7 +563,7 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
 };
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function ChecklistForm() {
+export default function ChecklistForm({ inline = false, prefillData = null, onClose = null, onComplete = null }) {
     const navigate = useNavigate();
     const location = useLocation();
     // ── Paso 1: selección de unidad ───────────────────────────────────────────
@@ -582,32 +582,34 @@ export default function ChecklistForm() {
     const [enviado, setEnviado] = useState(false);
     const [dibujo, setDibujo] = useState(null);     // data URL del canvas
     const fechaHoraRef = useRef(new Date()); // se fija al enviar
+    const hideTop = inline || (new URLSearchParams(location.search).get('hide_top') === 'true');
 
     // ── Cámara y Evidencias ───────────────────────────────────────────────────
     const [activePuntoId, setActivePuntoId] = useState(null);
     const [showCamera, setShowCamera] = useState(false);
     const fileInputRef = useRef(null);
+    const galleryInputRef = useRef(null);
 
     const handleStartCamera = (puntoId) => {
         setActivePuntoId(puntoId);
-        
-        // En iOS Safari / Chrome, getUserMedia no funciona sobre HTTP (solo HTTPS o localhost).
-        // Si no estamos en un contexto seguro, usamos el file picker directamente (fallback)
-        if (window.isSecureContext === false || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-                fileInputRef.current.click();
-            }
-        } else {
-            setShowCamera(true);
-        }
+        setShowCamera(true);
     };
 
-    // Auto-cargar unidad si viene en la URL
+    // Auto-cargar unidad si viene en la URL o prefillData
     useEffect(() => {
-        const queryParams = new URLSearchParams(location.search);
-        const qEco = queryParams.get('numero_eco');
-        const qTipoRaw = queryParams.get('tipoTransporte');
+        let qEco, qTipoRaw, qServicio, qConductorNombre;
+
+        if (inline && prefillData) {
+            qEco = prefillData.numero_eco;
+            qTipoRaw = prefillData.tipoTransporte;
+            qServicio = prefillData.servicio;
+            qConductorNombre = prefillData.conductorNombre;
+        } else {
+            const queryParams = new URLSearchParams(location.search);
+            qEco = queryParams.get('numero_eco');
+            qTipoRaw = queryParams.get('tipoTransporte');
+            qServicio = queryParams.get('servicio');
+        }
 
         if (qTipoRaw) {
             let normalizedTipo = qTipoRaw.toUpperCase();
@@ -619,11 +621,28 @@ export default function ChecklistForm() {
                 if (qEco) {
                     setEconomico(qEco);
                 }
+                if (qServicio) {
+                    setServicio(decodeURIComponent(qServicio));
+                }
+                if (qConductorNombre) {
+                    const esNumero = !isNaN(qConductorNombre) && String(qConductorNombre).trim() !== '';
+                    const conductorEncontrado = esNumero
+                        ? CONDUCTORES.find(c => c.id === Number(qConductorNombre))
+                        : CONDUCTORES.find(c => c.nombre.trim().toUpperCase() === String(qConductorNombre).trim().toUpperCase());
+                        
+                    if (conductorEncontrado) {
+                        setConductorNombre(conductorEncontrado.nombre);
+                        setConductorId(String(conductorEncontrado.id));
+                        setConductorTarjeton(conductorEncontrado.tarjeton);
+                    } else {
+                        setConductorNombre(qConductorNombre);
+                    }
+                }
             };
             loadUrlUnit();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [location.search]);
+    }, [location.search, inline, prefillData]);
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
@@ -789,7 +808,9 @@ export default function ChecklistForm() {
                 throw new Error(msg);
             }
             setEnviado(true);
-            window.scrollTo(0, 0);
+            if (!inline) {
+                window.scrollTo(0, 0);
+            }
         })
         .catch(err => {
             console.error('Error al guardar checklist:', err);
@@ -805,9 +826,9 @@ export default function ChecklistForm() {
         // eslint-disable-next-line react-hooks/refs
         const fmtHora = fechaHoraRef.current.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
         return (
-            <div className="menu-page">
-                <Header hideBackButton={false} />
-                <main className="dashboard-main max-w-2xl mx-auto px-4 py-6">
+            <div className={inline ? "w-full" : "menu-page"}>
+                {!hideTop && <Header hideBackButton={false} />}
+                <main className={inline ? "w-full py-4" : "dashboard-main max-w-2xl mx-auto px-4 py-6"}>
                 <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16">
                     <div className="w-full max-w-sm rounded-2xl border border-emerald-100 bg-white p-8 text-center shadow-lg">
                         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -831,20 +852,42 @@ export default function ChecklistForm() {
                         <p className="mb-2 text-xs text-gray-400">{fmtFecha} — {fmtHora}</p>
                         <p className="mb-6 text-sm text-gray-400">{totalBien} bien · {totalMal} con fallas</p>
                         <div className="flex flex-col gap-3">
-                            <button
-                                type="button"
-                                onClick={handleReset}
-                                className="w-full rounded-xl bg-guinda-700 py-3 text-sm font-bold text-white transition hover:bg-guinda-800 active:scale-95 focus:outline-none"
-                            >
-                                Nuevo Checklist
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => navigate('/checklist/historial')}
-                                className="w-full rounded-xl border border-guinda-700 py-3 text-sm font-bold text-guinda-700 transition hover:bg-guinda-50 active:scale-95 focus:outline-none"
-                            >
-                                Revisar Check List
-                            </button>
+                            {inline ? (
+                                <button
+                                    type="button"
+                                    onClick={() => onComplete ? onComplete() : (onClose && onClose())}
+                                    className="w-full rounded-xl border-none text-white shadow-lg transition-transform duration-100"
+                                    style={{
+                                        backgroundColor: '#c29b53',
+                                        fontSize: '1.25rem',
+                                        fontWeight: '800',
+                                        padding: '1rem'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#a88344'}
+                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#c29b53'}
+                                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                >
+                                    Cerrar Check List
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={handleReset}
+                                        className="w-full rounded-xl bg-guinda-700 py-3 text-sm font-bold text-white transition hover:bg-guinda-800 active:scale-95 focus:outline-none"
+                                    >
+                                        Nuevo Checklist
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/checklist/historial')}
+                                        className="w-full rounded-xl border border-guinda-700 py-3 text-sm font-bold text-guinda-700 transition hover:bg-guinda-50 active:scale-95 focus:outline-none"
+                                    >
+                                        Revisar Check List
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -855,9 +898,10 @@ export default function ChecklistForm() {
 
     // ── Formulario ────────────────────────────────────────────────────────────
     return (
-        <div className="menu-page">
-            <Header hideBackButton={false} />
-            <main className="dashboard-main max-w-2xl mx-auto px-4 py-6">
+        <div className={inline ? "inline-checklist" : "menu-page"}>
+            {!hideTop && <Header hideBackButton={false} />}
+            <main className={inline ? "py-2" : "dashboard-main max-w-2xl mx-auto px-4 py-6"}>
+            {!hideTop && (
             <div className="flex items-center justify-between mb-6">
                 <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700 uppercase">
                     <IconClipboard />
@@ -866,11 +910,13 @@ export default function ChecklistForm() {
                 {/* Reloj en esquina superior derecha del header */}
                 <RelojFecha />
             </div>
+            )}
 
-            <div className="mx-auto max-w-2xl px-4 py-6">
+            <div className={inline ? "w-full" : "mx-auto max-w-2xl px-4 py-6"}>
                 <form onSubmit={handleSubmit} noValidate>
 
                     {/* ══ PASO 1 — Económico ══════════════════════════════ */}
+                    {!hideTop && (
                     <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                         {tipoUnidad && (
                             <>
@@ -940,10 +986,13 @@ export default function ChecklistForm() {
                             </p>
                         )}
                     </section>
+                    )}
 
                     {/* ══ PASO 2 — Datos de la unidad (bloqueado hasta elegir tipo) ══ */}
                     <div className={`transition-all duration-300 ${unidadSeleccionada ? 'opacity-100' : 'pointer-events-none opacity-30'}`}>
 
+                        {!hideTop && (
+                        <>
                         {/* Datos de identificación */}
                         <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                             <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
@@ -1024,7 +1073,7 @@ export default function ChecklistForm() {
                                     label=""
                                     value={servicio}
                                     onChange={setServicio}
-                                    disabled={!unidadSeleccionada}
+                                    disabled={!unidadSeleccionada || (!!servicio && hideTop)}
                                     required
                                     options={SERVICIOS.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
                                 />
@@ -1034,12 +1083,14 @@ export default function ChecklistForm() {
                                     label=""
                                     value={servicio}
                                     onChange={setServicio}
-                                    disabled={!unidadSeleccionada}
+                                    disabled={!unidadSeleccionada || (!!servicio && hideTop)}
                                     required
                                     options={RUTAS_RA.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
                                 />
                             )}
                         </section>
+                        </>
+                        )}
 
                         {/* Contadores */}
                         <div className="mb-4 grid grid-cols-2 gap-3 text-center">
@@ -1066,8 +1117,8 @@ export default function ChecklistForm() {
 
                         {/* ── 16 Puntos de revisión ────────────────────────── */}
                         <section className="mb-6">
-                            <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
-                                4 · Puntos de Revisión Técnica — {PUNTOS.length} ítems
+                            <h3 className="mb-4 text-lg font-extrabold text-[#6b1d33]">
+                                {!hideTop && '4 · '}Puntos de Revisión Técnica — {PUNTOS.length} ítems
                             </h3>
                             <ul className="space-y-3">
                                 {PUNTOS.map((punto, idx) => (
@@ -1085,8 +1136,8 @@ export default function ChecklistForm() {
 
                         {/* ── 5 · Referencia visual ─────────────────────────── */}
                         <section className="mb-6">
-                            <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-400">
-                                5 · Referencia visual — Marca los detalles
+                            <h3 className="mb-4 text-lg font-extrabold text-[#6b1d33]">
+                                {!hideTop && '5 · '}Referencia visual — Marca los detalles
                             </h3>
                             <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm">
                                 <DrawingCanvas 
@@ -1100,12 +1151,22 @@ export default function ChecklistForm() {
                         <div className="pb-10">
                             <button
                                 type="submit"
-                                disabled={!unidadSeleccionada || !servicio}
-                                className="w-full rounded-xl bg-guinda-700 py-4 text-base font-bold text-white shadow-lg shadow-guinda-700/25 transition hover:bg-guinda-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-guinda-700/40 focus:ring-offset-2"
+                                disabled={!unidadSeleccionada || (!hideTop && !servicio)}
+                                className="w-full rounded-xl border-none text-white shadow-lg transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                style={{
+                                    backgroundColor: '#6b1d33',
+                                    fontSize: '1.25rem',
+                                    fontWeight: '800',
+                                    padding: '1rem'
+                                }}
+                                onMouseOver={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#4a1020')}
+                                onMouseOut={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#6b1d33')}
+                                onMouseDown={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(0.98)')}
+                                onMouseUp={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(1)')}
                             >
                                 Guardar Checklist
                             </button>
-                            {(!unidadSeleccionada || !servicio) && (
+                            {(!unidadSeleccionada || (!hideTop && !servicio)) && (
                                 <p className="mt-2 text-center text-xs text-gray-400">
                                     {!unidadSeleccionada
                                         ? 'Selecciona el tipo de unidad para continuar'
@@ -1131,11 +1192,26 @@ export default function ChecklistForm() {
                 }}
             />
 
+            {/* Input oculto para galería / seleccionar de dispositivo */}
+            <input
+                id="gallery-input"
+                type="file"
+                accept="image/*"
+                ref={galleryInputRef}
+                className="hidden"
+                onChange={(e) => {
+                    handleFileChange(e);
+                    setShowCamera(false);
+                }}
+            />
+
             {/* Modal de Cámara WebRTC */}
             <CameraModal
                 isOpen={showCamera}
                 onClose={() => setShowCamera(false)}
-                onCapture={handleCaptureCamera} fallbackTrigger={() => fileInputRef.current?.click()}
+                onCapture={handleCaptureCamera}
+                fallbackTrigger={() => fileInputRef.current?.click()}
+                galleryTrigger={() => galleryInputRef.current?.click()}
             />
             </main>
         </div>

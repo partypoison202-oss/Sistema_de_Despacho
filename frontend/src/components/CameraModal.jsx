@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigger }) {
+import { createPortal } from "react-dom";
+
+export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigger, galleryTrigger }) {
     const videoRef = useRef(null);
     const [stream, setStream] = useState(null);
     const [devices, setDevices] = useState([]);
@@ -169,14 +171,21 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
     };
 
     const handleUseFallback = () => {
-        handleClose();
         fallbackTrigger();
+        handleClose();
+    };
+
+    const handleUseGallery = () => {
+        if (galleryTrigger) {
+            galleryTrigger();
+        }
+        handleClose();
     };
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
             <div className="relative flex h-full max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-gray-900 shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-800 bg-gray-950 px-4 py-3 text-white">
@@ -186,7 +195,7 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                         onClick={handleClose}
                         className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-850 hover:text-white transition"
                     >
-                        <svg xmlns="http://www.w3.org/2500/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
                             <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
                         </svg>
                     </button>
@@ -215,18 +224,27 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                             </h4>
                             <p className="mt-1.5 text-xs text-gray-400 max-w-xs">
                                 {error === 'permission_denied'
-                                    ? 'No se otorgaron permisos para acceder a la cámara. Puedes tomar la foto usando la cámara nativa del dispositivo.'
+                                    ? 'No se otorgaron permisos para acceder a la cámara. Puedes tomar la foto usando la cámara nativa del dispositivo o subir una imagen.'
                                     : error === 'not_supported'
-                                    ? 'La API de cámara no está disponible en este navegador o protocolo. Por favor, usa HTTPS o la cámara nativa.'
-                                    : 'No se pudo activar el flujo de video en vivo. Por favor, usa la cámara nativa de tu dispositivo.'}
+                                    ? 'La API de cámara no está disponible en este navegador o protocolo. Por favor, usa HTTPS o sube una imagen desde tu dispositivo.'
+                                    : 'No se pudo activar el flujo de video en vivo. Por favor, usa la cámara nativa o sube una imagen.'}
                             </p>
-                            <button
-                                type="button"
-                                onClick={handleUseFallback}
-                                className="mt-4 cursor-pointer rounded-xl bg-guinda-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-guinda-800 transition"
-                            >
-                                Usar Cámara Nativa
-                            </button>
+                            <div className="mt-4 flex flex-wrap justify-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleUseFallback}
+                                    className="cursor-pointer rounded-xl bg-guinda-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-guinda-800 transition"
+                                >
+                                    Usar Cámara Nativa
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleUseGallery}
+                                    className="cursor-pointer rounded-xl border border-gray-700 bg-gray-800 px-4 py-2.5 text-xs font-bold text-gray-300 hover:text-white transition"
+                                >
+                                    Subir Imagen (Galería)
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <>
@@ -276,20 +294,23 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                         )}
 
                         {/* Controles principales */}
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-4">
                             <button
                                 type="button"
-                                onClick={handleClose}
-                                className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-bold text-gray-400 hover:text-white hover:border-gray-700 transition"
+                                onClick={handleUseGallery}
+                                className="flex flex-1 flex-col items-center justify-center rounded-xl border border-gray-850 bg-gray-900/60 py-2 text-xs font-bold text-gray-400 hover:text-white hover:border-gray-700 transition"
                             >
-                                Cancelar
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 mb-1 text-gray-300">
+                                    <path fillRule="evenodd" d="M1 5.25A2.25 2.25 0 0 1 3.25 3h13.5A2.25 2.25 0 0 1 19 5.25v9.5A2.25 2.25 0 0 1 16.75 17H3.25A2.25 2.25 0 0 1 1 14.75v-9.5Zm3.72 6.72a.75.75 0 0 1 1.06 0L8 14.25l2.22-2.22a.75.75 0 0 1 1.06 0L14.25 15h2.5a.75.75 0 0 0 .75-.75V5.25a.75.75 0 0 0-.75-.75H3.25a.75.75 0 0 0-.75.75v9c0 .414.336.75.75.75h1l1.47-1.47ZM12 8a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
+                                </svg>
+                                Subir Imagen
                             </button>
 
                             <button
                                 type="button"
                                 onClick={capturePhoto}
                                 disabled={loading}
-                                className="relative flex h-14 w-14 items-center justify-center rounded-full bg-white transition hover:scale-105 active:scale-95 disabled:opacity-50"
+                                className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-white transition hover:scale-105 active:scale-95 disabled:opacity-50 shadow-lg"
                                 title="Capturar Foto"
                             >
                                 <span className="h-11 w-11 rounded-full border border-gray-300 bg-white" />
@@ -298,14 +319,18 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                             <button
                                 type="button"
                                 onClick={handleUseFallback}
-                                className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-xs font-bold text-gray-400 hover:text-white hover:border-gray-700 transition"
+                                className="flex flex-1 flex-col items-center justify-center rounded-xl border border-gray-850 bg-gray-900/60 py-2 text-xs font-bold text-gray-400 hover:text-white hover:border-gray-700 transition"
                             >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 mb-1 text-gray-300">
+                                    <path fillRule="evenodd" d="M1 8a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 8.07 3h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 16.07 6H17a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8Zm13.5 3a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM10 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+                                </svg>
                                 Cámara Nativa
                             </button>
                         </div>
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

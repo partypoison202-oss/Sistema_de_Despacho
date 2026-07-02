@@ -30,9 +30,14 @@ class ChecklistController extends Controller
             
             [$from, $to] = $this->dateRange($period, $date);
 
-            $checklists = Checklist::with('user')
-                ->whereBetween('fecha_hora', [$from, $to])
-                ->orderByDesc('fecha_hora')
+            $query = Checklist::with('user')
+                ->whereBetween('fecha_hora', [$from, $to]);
+                
+            if ($request->has('economico')) {
+                $query->where('economico', $request->query('economico'));
+            }
+
+            $checklists = $query->orderByDesc('fecha_hora')
                 ->get()
                 ->map(function (Checklist $c) {
                     $puntos = is_array($c->puntos) ? $c->puntos : [];
