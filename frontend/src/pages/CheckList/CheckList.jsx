@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Header from '../../components/Header/Header';
+import '../Unidades/DetalleUnidad.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CameraModal from '../../components/CameraModal';
 import CONDUCTORES from '../../data/conductores';
@@ -175,7 +177,7 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
     ].join(' ');
 
     return (
-        <li className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+        <li id={`punto-${punto.id}`} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -264,14 +266,14 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
             </div>
 
             {/* Modal para previsualizar la foto en grande */}
-            {lightboxImage && (
+            {lightboxImage && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-opacity"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 transition-opacity"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="relative max-w-full max-h-full flex items-center justify-center animate-in fade-in zoom-in duration-200">
                         <button 
-                            className="absolute -top-10 right-0 text-white hover:text-gray-300 font-bold text-sm bg-black/50 px-3 py-1 rounded-full backdrop-blur-md"
+                            className="absolute -top-12 right-0 text-white hover:text-gray-300 font-bold text-base bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
                             onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
                         >
                             Cerrar ✕
@@ -279,10 +281,11 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
                         <img 
                             src={lightboxImage} 
                             alt="Vista ampliada" 
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" 
                         />
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </li>
     );
@@ -580,6 +583,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
     const [servicio, setServicio] = useState('');
     const [puntos, setPuntos] = useState(buildEstadoInicial);
     const [enviado, setEnviado] = useState(false);
+    const [savedChecklist, setSavedChecklist] = useState(null);
     const [dibujo, setDibujo] = useState(null);     // data URL del canvas
     const fechaHoraRef = useRef(new Date()); // se fija al enviar
     const hideTop = inline || (new URLSearchParams(location.search).get('hide_top') === 'true');
@@ -664,6 +668,9 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                         if (currentFotos.length >= 10) return prev;
                         return { ...prev, [activePuntoId]: { ...prev[activePuntoId], fotos: [...currentFotos, event.target.result] } };
                     });
+                    setTimeout(() => {
+                        document.getElementById(`punto-${activePuntoId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
                 }
             };
             reader.readAsDataURL(file);
@@ -679,6 +686,9 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                     if (currentFotos.length >= 10) return prev;
                     return { ...prev, [activePuntoId]: { ...prev[activePuntoId], fotos: [...currentFotos, compressed] } };
                 });
+                setTimeout(() => {
+                    document.getElementById(`punto-${activePuntoId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
             } catch (err) {
                 console.error("Error al comprimir foto capturada:", err);
                 setPuntos(prev => {
@@ -795,7 +805,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                 tipo_unidad: tipoUnidad,
                 conductor_id: conductorId,
                 economico,
-                servicio,
+                servicio: servicio || 'No especificado',
                 puntos,
                 dibujo,
                 fecha_hora: fechaHoraRef.current.toISOString(),
@@ -807,6 +817,8 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                 const msg = errData.message || JSON.stringify(errData.errors || 'Error al guardar');
                 throw new Error(msg);
             }
+            const data = await res.json();
+            setSavedChecklist(data.checklist);
             setEnviado(true);
             if (!inline) {
                 window.scrollTo(0, 0);
@@ -855,7 +867,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                             {inline ? (
                                 <button
                                     type="button"
-                                    onClick={() => onComplete ? onComplete() : (onClose && onClose())}
+                                    onClick={() => onComplete ? onComplete(savedChecklist) : (onClose && onClose())}
                                     className="w-full rounded-xl border-none text-white shadow-lg transition-transform duration-100"
                                     style={{
                                         backgroundColor: '#c29b53',
@@ -898,9 +910,9 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
 
     // ── Formulario ────────────────────────────────────────────────────────────
     return (
-        <div className={inline ? "inline-checklist" : "menu-page"}>
+        <div className={inline ? "inline-checklist" : "layout-container"}>
             {!hideTop && <Header hideBackButton={false} />}
-            <main className={inline ? "py-2" : "dashboard-main max-w-2xl mx-auto px-4 py-6"}>
+            <main className={inline ? "py-2" : "main-content relative"}>
             {!hideTop && (
             <div className="flex items-center justify-between mb-6">
                 <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700 uppercase">
@@ -912,7 +924,19 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
             </div>
             )}
 
-            <div className={inline ? "w-full" : "mx-auto max-w-2xl px-4 py-6"}>
+            <div className={inline ? "w-full" : "w-full"}>
+                {inline && (
+                    <div className="flex justify-end mb-4">
+                        <button
+                            type="button"
+                            onClick={() => onClose && onClose()}
+                            className="group flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-2 text-sm font-bold text-gray-600 shadow-sm transition-all hover:border-guinda-200 hover:bg-guinda-50 hover:text-guinda-700 active:scale-95"
+                        >
+                            <svg className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                            Contraer Check List
+                        </button>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit} noValidate>
 
                     {/* ══ PASO 1 — Económico ══════════════════════════════ */}
@@ -1149,23 +1173,41 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
 
                         {/* Botón de envío */}
                         <div className="pb-10">
-                            <button
-                                type="submit"
-                                disabled={!unidadSeleccionada || (!hideTop && !servicio)}
-                                className="w-full rounded-xl border-none text-white shadow-lg transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                style={{
-                                    backgroundColor: '#6b1d33',
-                                    fontSize: '1.25rem',
-                                    fontWeight: '800',
-                                    padding: '1rem'
-                                }}
-                                onMouseOver={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#4a1020')}
-                                onMouseOut={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#6b1d33')}
-                                onMouseDown={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(0.98)')}
-                                onMouseUp={(e) => !e.currentTarget.disabled && (e.currentTarget.style.transform = 'scale(1)')}
-                            >
-                                Guardar Checklist
-                            </button>
+                            <div className={`flex flex-col-reverse sm:flex-row gap-4 ${!inline ? 'justify-end' : ''}`}>
+                                {inline && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setDibujo(null);
+                                            setPuntos(buildEstadoInicial());
+                                        }}
+                                        className="group w-full sm:w-1/3 flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white text-gray-600 shadow-sm transition-all duration-100 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-800 active:scale-95"
+                                        style={{
+                                            fontSize: '1.1rem',
+                                            fontWeight: '700',
+                                            padding: '1rem'
+                                        }}
+                                    >
+                                        <svg className="w-5 h-5 transition-transform group-hover:-rotate-12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Limpiar
+                                    </button>
+                                )}
+                                <button
+                                    type="submit"
+                                    disabled={!unidadSeleccionada || (!hideTop && !servicio)}
+                                    className={`w-full ${inline ? 'sm:w-2/3' : ''} rounded-xl border-none text-white shadow-lg transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-110 active:scale-95`}
+                                    style={{
+                                        backgroundColor: '#6b1d33',
+                                        fontSize: '1.25rem',
+                                        fontWeight: '800',
+                                        padding: '1rem'
+                                    }}
+                                >
+                                    Guardar Checklist
+                                </button>
+                            </div>
                             {(!unidadSeleccionada || (!hideTop && !servicio)) && (
                                 <p className="mt-2 text-center text-xs text-gray-400">
                                     {!unidadSeleccionada
