@@ -24,8 +24,6 @@ export default function CentroControl() {
   const [cargando, setCargando] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-
-
   // Estado para la generación de los PDFs (igual que en Dashboard.jsx)
   const [reporteDataRutas, setReporteDataRutas] = useState(null);
   const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
@@ -285,13 +283,14 @@ export default function CentroControl() {
               };
               return (
                 <div
-                  className={`centro-type-card centro-type-card--${mc.color} centro-type-card--clickable`}
+                  className={`centro-type-card centro-type-card--${mc.color} ${!cargando ? 'centro-type-card--clickable' : ''}`}
+                  style={cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}}
                   key={mc.id}
-                  onClick={() => navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } })}
+                  onClick={() => !cargando && navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } })}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={cargando ? -1 : 0}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (!cargando && (e.key === 'Enter' || e.key === ' ')) {
                       navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } });
                     }
                   }}
