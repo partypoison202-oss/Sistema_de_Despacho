@@ -1,5 +1,8 @@
 // src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ChecklistForm from '../../CheckList/CheckList';
+import CONDUCTORES from '../../../data/conductores';
 
 export default function UnitInfoPanel({
   selectedOption,
@@ -19,6 +22,34 @@ export default function UnitInfoPanel({
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
+  const navigate = useNavigate();
+
+  const handleHacerCheckList = () => {
+    setShowChecklist(true);
+  };
+
+  const getConductorDisplay = () => {
+    const val = datosOperativos.conductor;
+    if (!val || val === 'Sin conductor') return 'No asignado';
+    
+    const isNum = !isNaN(val) && String(val).trim() !== '';
+    if (isNum) {
+      const found = CONDUCTORES.find(c => c.id === Number(val));
+      if (found) return found.nombre;
+    }
+    return val;
+  };
+
+  const handleRevisarCheckList = () => {
+    const numeroEco = selectedOption ? selectedOption.replace(/\D/g, '') : '';
+    if (numeroEco) {
+      navigate(`/checklist/historial?economico=${numeroEco}`);
+    } else {
+      navigate('/checklist/historial');
+    }
+  };
 
   useEffect(() => {
     setFormTarjeton(datosOperativos.tarjeton || '');
@@ -81,7 +112,7 @@ export default function UnitInfoPanel({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                  {cargandoDatos ? 'Buscando...' : (datosOperativos.conductor || 'No asignado')}
+                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
                 </p>
               </div>
             </div>
@@ -203,48 +234,104 @@ export default function UnitInfoPanel({
           </div>
         </div>
 
-        {/* CARD 3: CONTROL Y CAPTURA */}
-        <div className="info-card info-card--double">
+        {/* CARD 3: CHECKLIST */}
+        <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="info-card__header">
             <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="info-card__title">Registro de Fallas</h3>
+            <h3 className="info-card__title">Check List</h3>
           </div>
-          <div className="info-card__body edit-module-container" style={{ display: 'block' }}>
-            {/* CONTROL DE FALLAS */}
-            <div className="interactive-field">
-              <label className="info-card__label">Fallas detectadas en la unidad (Tipo)</label>
-              <div className="search-field-wrapper" style={{ marginTop: '0.5rem' }}>
-                <input
-                  type="text"
-                  className="interactive-input interactive-input--warning"
-                  maxLength="50"
-                  placeholder="Describa tipo de falla si aplica..."
-                  value={fallaTexto}
-                  onChange={(e) => setFallaTexto(e.target.value)}
-                  style={{ paddingRight: fallaTexto !== '' ? '4.5rem' : '1rem' }}
-                />
-                {fallaTexto !== '' && (
-                  <div className="falla-action-buttons">
-                    <button onClick={handleSaveFalla} className="btn-falla btn-falla--save" title="Guardar Falla">
-                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </button>
-                    <button onClick={handleCancelFalla} className="btn-falla btn-falla--cancel" title="Limpiar">
-                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-              <p style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
-                {datosOperativos.falla ? `Falla reportada: ${datosOperativos.falla}` : 'Sin reporte de falla hoy'}
-              </p>
+          <div className="info-card__body" style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem', flex: 1, paddingBottom: '0.5rem', alignItems: 'stretch' }}>
+            <button
+              onClick={handleHacerCheckList}
+              disabled={hasCompletedChecklist}
+              className="interactive-input"
+              style={{
+                flex: 1,
+                borderRadius: '0.75rem',
+                border: 'none',
+                backgroundColor: hasCompletedChecklist ? '#9ca3af' : '#6b1d33',
+                color: 'white',
+                fontSize: '1.25rem',
+                fontWeight: '800',
+                cursor: hasCompletedChecklist ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 10px -2px rgba(107, 29, 51, 0.4)',
+                transition: 'transform 0.1s, background-color 0.2s',
+                padding: '1rem',
+                opacity: hasCompletedChecklist ? 0.6 : 1
+              }}
+              onMouseOver={(e) => !hasCompletedChecklist && (e.currentTarget.style.backgroundColor = '#4a1020')}
+              onMouseOut={(e) => !hasCompletedChecklist && (e.currentTarget.style.backgroundColor = '#6b1d33')}
+              onMouseDown={(e) => !hasCompletedChecklist && (e.currentTarget.style.transform = 'scale(0.98)')}
+              onMouseUp={(e) => !hasCompletedChecklist && (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              Hacer Check list
+            </button>
+            <button
+              onClick={handleRevisarCheckList}
+              disabled={showChecklist && !hasCompletedChecklist}
+              className="interactive-input"
+              style={{
+                flex: 1,
+                borderRadius: '0.75rem',
+                border: 'none',
+                backgroundColor: (showChecklist && !hasCompletedChecklist) ? '#9ca3af' : '#c29b53',
+                color: 'white',
+                fontSize: '1.25rem',
+                fontWeight: '800',
+                cursor: (showChecklist && !hasCompletedChecklist) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 10px -2px rgba(194, 155, 83, 0.4)',
+                transition: 'transform 0.1s, background-color 0.2s',
+                padding: '1rem',
+                opacity: (showChecklist && !hasCompletedChecklist) ? 0.6 : 1
+              }}
+              onMouseOver={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
+              onMouseOut={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
+              onMouseDown={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
+              onMouseUp={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              Revisar check list
+            </button>
+          </div>
+          {showChecklist && !hasCompletedChecklist && (
+            <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+              <ChecklistForm 
+                inline={true} 
+                prefillData={{
+                  numero_eco: selectedOption ? selectedOption.replace(/\D/g, '') : '',
+                  tipoTransporte: configActual.id,
+                  conductorNombre: getConductorDisplay() !== 'No asignado' ? getConductorDisplay() : '',
+                  servicio: (() => {
+                    let r = datosOperativos.ruta || '';
+                    if (r === 'Sin ruta') r = '';
+                    if (configActual.id === 'URBANUSS') {
+                      if (r.includes('T-01')) return 'T01';
+                      if (r.includes('T-02')) return 'T02';
+                      if (r.includes('T-04')) return 'T04';
+                      if (r.includes('T-05')) return 'T05';
+                      if (r.includes('ESPECIAL')) return 'SE';
+                      if (r.includes('METROPOLITANO')) return 'TM';
+                      if (r.includes('POTENCIA')) return 'HP';
+                      if (r.includes('MOVILIDAD')) return 'TLM';
+                    }
+                    return r;
+                  })()
+                }}
+                onClose={() => setShowChecklist(false)}
+                onComplete={() => {
+                  setHasCompletedChecklist(true);
+                  setShowChecklist(false);
+                }}
+              />
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

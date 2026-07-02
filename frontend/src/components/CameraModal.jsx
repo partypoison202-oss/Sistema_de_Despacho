@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigger, galleryTrigger }) {
     const videoRef = useRef(null);
@@ -183,8 +184,8 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
             <div className="relative flex h-full max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-gray-900 shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-800 bg-gray-950 px-4 py-3 text-white">
@@ -329,6 +330,7 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

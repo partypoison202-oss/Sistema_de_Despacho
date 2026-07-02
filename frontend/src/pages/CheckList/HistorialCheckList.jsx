@@ -104,6 +104,7 @@ export default function HistorialCheckList() {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const filterTipo = queryParams.get('tipoTransporte');
+    const filterEconomico = queryParams.get('economico');
 
     const [period, setPeriod] = useState('daily');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -119,7 +120,11 @@ export default function HistorialCheckList() {
         setCargando(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE}/api/checklists?period=${period}&date=${selectedDate}`, {
+            let url = `${API_BASE}/api/checklists?period=${period}&date=${selectedDate}`;
+            if (filterEconomico) {
+                url += `&economico=${filterEconomico}`;
+            }
+            const res = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
@@ -410,10 +415,17 @@ export default function HistorialCheckList() {
             <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
                 
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
-                        <IconReport />
-                        Historial de Check List
-                    </h2>
+                    <div>
+                        <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
+                            <IconReport />
+                            Historial de Check List
+                        </h2>
+                        {filterEconomico && (
+                            <span className="mt-2 inline-block rounded-full bg-guinda-100 px-3 py-1 text-xs font-bold text-guinda-800">
+                                Filtrando por Unidad: ECO {filterEconomico}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* ── Tabs de periodo ──────────────────────────────────── */}
@@ -512,6 +524,12 @@ export default function HistorialCheckList() {
                                         const fmtHora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
                                         return (
                                             <tr key={c.id} className="border-b border-gray-50 transition hover:bg-gray-50/50">
+                                                {(() => {
+                                                    const cond = CONDUCTORES.find(cd => cd.id === Number(c.conductor_id));
+                                                    const condNombre = cond ? cond.nombre : (c.conductor_id || '—');
+                                                    const condTarjeton = cond ? cond.tarjeton : '—';
+                                                    return (
+                                                        <>
                                                 <td className="px-5 py-3 text-xs font-medium text-gray-400">{c.id}</td>
                                                 <td className="px-5 py-3">
                                                     <p className="text-sm font-medium text-gray-800">{fmtFecha}</p>
@@ -523,7 +541,10 @@ export default function HistorialCheckList() {
                                                         {c.tipo_unidad}
                                                     </span>
                                                 </td>
-                                                <td className="px-5 py-3 text-sm text-gray-600">{c.conductor_id ?? '—'}</td>
+                                                <td className="px-5 py-3">
+                                                    <p className="text-sm font-medium text-gray-800">{condNombre}</p>
+                                                    {cond && <p className="text-[11px] text-gray-400">Tarjetón: {condTarjeton}</p>}
+                                                </td>
                                                 <td className="px-5 py-3 text-sm font-medium text-gray-700">{c.servicio}</td>
                                                 <td className="px-5 py-3 text-center">
                                                     <span className="inline-flex items-center justify-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">
@@ -560,6 +581,9 @@ export default function HistorialCheckList() {
                                                         </button>
                                                     </div>
                                                 </td>
+                                                        </>
+                                                    );
+                                                })()}
                                             </tr>
                                         );
                                     })}

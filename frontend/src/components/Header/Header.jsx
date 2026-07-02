@@ -16,6 +16,25 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     navigate('/');
   };
 
+  const handleHomeClick = () => {
+    if (!user) {
+      navigate('/');
+      return;
+    }
+    const role = user.role?.codigo;
+    if (role === 'ADMINISTRADOR') {
+      navigate('/menu');
+    } else if (role === 'SISTEMAS') {
+      navigate('/cargar-excel');
+    } else if (role === 'ENCIERRO') {
+      navigate('/encierro/dashboard');
+    } else if (role === 'CENTRO_CONTROL') {
+      navigate('/centro-control');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
@@ -64,7 +83,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
               {title && <h1 className="app-header__title">{title}</h1>}
             </div>
           ) : (
-            <div className="app-header__brand">
+            <div className="app-header__brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
               <img 
                 src={headerConfig.image} 
                 alt={headerConfig.alt} 
@@ -77,7 +96,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
         {/* Center Section: Logo 2 */}
         {!hideLogos && (
           <div className="app-header__center">
-            <div className="app-header__brand">
+            <div className="app-header__brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
               <img 
                 src="/images/sitmah_logo.png" 
                 alt="Logo SITMAH" 
