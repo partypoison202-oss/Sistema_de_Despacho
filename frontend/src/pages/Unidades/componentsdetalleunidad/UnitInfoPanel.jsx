@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChecklistForm from '../../CheckList/CheckList';
 import CONDUCTORES from '../../../data/conductores';
+import { generarPDFChecklist } from '../../../utils/generarPDFChecklist';
 
 export default function UnitInfoPanel({
   selectedOption,
@@ -24,6 +25,7 @@ export default function UnitInfoPanel({
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
+  const [recentChecklist, setRecentChecklist] = useState(null);
   const navigate = useNavigate();
 
   const handleHacerCheckList = () => {
@@ -43,13 +45,40 @@ export default function UnitInfoPanel({
   };
 
   const handleRevisarCheckList = () => {
-    const numeroEco = selectedOption ? selectedOption.replace(/\D/g, '') : '';
-    if (numeroEco) {
-      navigate(`/checklist/historial?economico=${numeroEco}`);
-    } else {
-      navigate('/checklist/historial');
+    if (recentChecklist) {
+      generarPDFChecklist(recentChecklist, 'print');
     }
   };
+
+  const checkHistory = async (ecoNumber) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const today = new Date().toISOString().split('T')[0];
+      const res = await fetch(`http://localhost:8000/api/checklists?period=daily&date=${today}&economico=${ecoNumber}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHasCompletedChecklist(data.length > 0);
+      }
+    } catch (e) {
+      console.error("Error al revisar historial", e);
+    }
+  };
+
+  useEffect(() => {
+    setRecentChecklist(null);
+    setHasCompletedChecklist(false);
+    setShowChecklist(false);
+    
+    if (selectedOption) {
+      const ecoNum = selectedOption.replace(/\D/g, '');
+      if (ecoNum) {
+        checkHistory(ecoNum);
+      }
+    }
+  }, [selectedOption]);
 
   useEffect(() => {
     setFormTarjeton(datosOperativos.tarjeton || '');
@@ -273,29 +302,29 @@ export default function UnitInfoPanel({
             </button>
             <button
               onClick={handleRevisarCheckList}
-              disabled={showChecklist && !hasCompletedChecklist}
+              disabled={!recentChecklist}
               className="interactive-input"
               style={{
                 flex: 1,
                 borderRadius: '0.75rem',
                 border: 'none',
-                backgroundColor: (showChecklist && !hasCompletedChecklist) ? '#9ca3af' : '#c29b53',
+                backgroundColor: (!recentChecklist) ? '#9ca3af' : '#c29b53',
                 color: 'white',
                 fontSize: '1.25rem',
                 fontWeight: '800',
-                cursor: (showChecklist && !hasCompletedChecklist) ? 'not-allowed' : 'pointer',
+                cursor: (!recentChecklist) ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: '0 4px 10px -2px rgba(194, 155, 83, 0.4)',
                 transition: 'transform 0.1s, background-color 0.2s',
                 padding: '1rem',
-                opacity: (showChecklist && !hasCompletedChecklist) ? 0.6 : 1
+                opacity: (!recentChecklist) ? 0.6 : 1
               }}
-              onMouseOver={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
-              onMouseOut={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
-              onMouseDown={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
-              onMouseUp={(e) => !(showChecklist && !hasCompletedChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
+              onMouseOver={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
+              onMouseOut={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
+              onMouseDown={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
+              onMouseUp={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
             >
               Revisar check list
             </button>
@@ -325,9 +354,10 @@ export default function UnitInfoPanel({
                   })()
                 }}
                 onClose={() => setShowChecklist(false)}
-                onComplete={() => {
+                onComplete={(checklist) => {
                   setHasCompletedChecklist(true);
                   setShowChecklist(false);
+                  setRecentChecklist(checklist);
                 }}
               />
             </div>

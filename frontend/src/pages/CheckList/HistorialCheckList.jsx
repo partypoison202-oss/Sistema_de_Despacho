@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import '../Unidades/DetalleUnidad.css';
 import Header from '../../components/Header/Header';
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
@@ -409,10 +411,10 @@ export default function HistorialCheckList() {
     const periodLabel = PERIODS.find(p => p.key === period)?.label || 'Diario';
 
     return (
-        <div className="menu-page bg-gray-50 min-h-screen pb-10">
+        <div className="layout-container">
             <Header hideBackButton={false} />
             
-            <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+            <main className="main-content">
                 
                 <div className="flex items-center justify-between mb-6">
                     <div>
@@ -794,18 +796,17 @@ export default function HistorialCheckList() {
                     </div>
                     );
                 })()}
-
-            </div>
+                </main>
 
             {/* Modal para visualizar imágenes en grande */}
-            {lightboxImage && (
+            {lightboxImage && createPortal(
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-opacity hide-on-print"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 transition-opacity hide-on-print"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="relative max-w-full max-h-full flex items-center justify-center animate-in fade-in zoom-in duration-200">
                         <button 
-                            className="absolute -top-10 right-0 text-white hover:text-gray-300 font-bold text-sm bg-black/50 px-3 py-1 rounded-full backdrop-blur-md"
+                            className="absolute -top-12 right-0 text-white hover:text-gray-300 font-bold text-base bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
                             onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
                         >
                             Cerrar ✕
@@ -813,10 +814,11 @@ export default function HistorialCheckList() {
                         <img 
                             src={lightboxImage} 
                             alt="Vista ampliada" 
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" 
                         />
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             
             {/* Estilos para impresión */}
