@@ -3,9 +3,19 @@
 > vite
 
 
-  VITE v8.0.16  ready in 178 ms
+  VITE v8.0.16  ready in 239 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: http://192.168.3.100:5173/
-  ➜  Network: http://192.168.3.108:5173/
-2:31:07 p.m. [vite] (client) hmr update /src/pages/CheckList/HistorialCheckList.jsx, /src/index.css
+  ➜  Network: http://192.168.1.223:5173/
+12:37:12 PM [vite] (client) hmr update /src/App.jsx, /src/index.css
+12:42:49 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
+12:42:51 PM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
+12:45:06 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
+12:45:08 PM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
+12:49:43 PM [vite] (client) hmr update /src/pages/CargaExcel/CargaExcel.jsx, /src/index.css
+12:49:52 PM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVista.jsx
+12:50:00 PM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVIsta.css
+12:50:08 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
+12:50:16 PM [vite] (client) hmr update /src/pages/Unidades/DetalleUnidad.jsx, /src/index.css
+12:50:37 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
+12:50:39 PM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx

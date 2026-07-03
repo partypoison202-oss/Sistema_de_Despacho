@@ -137,7 +137,7 @@
 .excel-preview-table th.col-economico,
 .excel-preview-table th.col-tarjeton,
 .excel-preview-table th.col-corridas,
-.excel-preview-table th.col-hora_salida,
+.excel-preview-table th.col-hora_programada,
 .excel-preview-table th.col-ruta {
   text-align: center;
 }
@@ -193,7 +193,7 @@
 .cell-economico .edit-input,
 .cell-tarjeton .edit-input,
 .cell-corridas .edit-input,
-.cell-hora_salida .edit-input,
+.cell-hora_programada .edit-input,
 .cell-ruta .edit-input {
   text-align: center;
 }

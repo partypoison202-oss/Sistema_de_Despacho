@@ -90,7 +90,7 @@ class DespachoController extends Controller
                 'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'Sin estatus')),
                 'corridas' => trim((string) ($fila['CORRIDA'] ?? '')) === '' ? null : (int) trim((string) ($fila['CORRIDA'] ?? '')),
-                'hora_salida' => trim((string) ($fila['HORA_SALIDA'] ?? '')) === '' ? null : trim((string) ($fila['HORA_SALIDA'] ?? '')),
+                'hora_programada' => trim((string) ($fila['HORA_PROGRAMADA'] ?? '')) === '' ? null : trim((string) ($fila['HORA_PROGRAMADA'] ?? '')),
                 'fecha_registro' => now(),
             ];
         }
@@ -296,7 +296,7 @@ class DespachoController extends Controller
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.hora_programada'
             )
             ->first();
 
@@ -319,7 +319,7 @@ class DespachoController extends Controller
                 'corridas'  => $info->corridas,
                 'ciclo'     => $info->ciclo,
                 'motivo'    => $info->motivo,
-                'hora_salida' => $info->hora_salida
+                'hora_programada' => $info->hora_programada
             ] : [
                 'status'    => 'success',
                 'asignado'  => false,
@@ -369,7 +369,7 @@ class DespachoController extends Controller
             if ($registro) {
                 try {
                     $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-                    $horaSalidaVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
+                    $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? ''));
 
                     DB::table('informacion_operativa')
                         ->where('id', $registro->id)
@@ -378,7 +378,7 @@ class DespachoController extends Controller
                             'numero_tarjeton'  => (string) ($fila['TARJETON'] ?? ''),
                             'nombre_conductor' => (string) ($fila['NOMBRE_CONDUCTOR'] ?? ''),
                             'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
-                            'hora_salida'      => $horaSalidaVal === '' ? null : $horaSalidaVal,
+                            'hora_programada'      => $horaSalidaVal === '' ? null : $horaSalidaVal,
                         ]);
 
                     $actualizados++;
@@ -528,7 +528,7 @@ class DespachoController extends Controller
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.hora_programada'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
@@ -546,7 +546,7 @@ class DespachoController extends Controller
                 'CORRIDAS' => $reg->corridas,
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
-                'HORA_SALIDA' => $reg->hora_salida
+                'HORA_PROGRAMADA' => $reg->hora_programada
             ];
         });
 

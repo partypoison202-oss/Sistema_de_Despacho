@@ -173,7 +173,7 @@ export default function CargaExcel() {
         if (indiceEncabezado === -1) throw new Error("Encabezado 'TIPO DE UNIDAD' no encontrado.");
 
         const headerRow = dataRaw[indiceEncabezado];
-        const colIndex = { tipo: -1, ruta: -1, economico: -1, tarjeton: -1, conductor: -1, estatus: -1, corrida: -1, hora_salida: -1 };
+        const colIndex = { tipo: -1, ruta: -1, economico: -1, tarjeton: -1, conductor: -1, estatus: -1, corrida: -1, hora_programada: -1 };
 
         headerRow.forEach((cell, idx) => {
           const str = String(cell).toUpperCase().trim();
@@ -184,7 +184,7 @@ export default function CargaExcel() {
           else if (str.includes('NOMBRE_CONDUCTOR') || str === 'NOMBRE' || str === 'NOMBRE ') colIndex.conductor = idx;
           else if (str === 'ESTATUS' || str.includes('ESTATUS')) colIndex.estatus = idx;
           else if (str === 'CORRIDA' || str === 'CORRIDAS' || str === 'N° CORRIDA' || str === 'NO. CORRIDA' || str === 'NO CORRIDA') colIndex.corrida = idx;
-          else if (str === 'HORA SALIDA' || str === 'HORA_SALIDA' || str === 'SALIDA' || str.includes('HORA SALIDA')) colIndex.hora_salida = idx;
+          else if (str === 'HORA PROGRAMADA' || str === 'HORA_PROGRAMADA' || str.includes('HORA PROGRAMADA')) colIndex.hora_programada = idx;
         });
 
         if (colIndex.economico === -1) throw new Error("No se encontró la columna 'ECONOMICO'.");
@@ -202,7 +202,7 @@ export default function CargaExcel() {
             NOMBRE_CONDUCTOR: fila[colIndex.conductor] || '',
             ESTATUS: colIndex.estatus >= 0 ? (fila[colIndex.estatus] || '') : '',
             CORRIDA: colIndex.corrida >= 0 ? (fila[colIndex.corrida] || '') : '',
-            HORA_SALIDA: colIndex.hora_salida >= 0 ? formatExcelTime(fila[colIndex.hora_salida]) : ''
+            HORA_PROGRAMADA: colIndex.hora_programada >= 0 ? formatExcelTime(fila[colIndex.hora_programada]) : ''
           });
         }
 

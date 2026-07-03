@@ -271,7 +271,7 @@ export default function UnitInfoPanel({
             </svg>
             <h3 className="info-card__title">Despacho Operativo</h3>
           </div>
-          <div className="info-card__body spec-badges">
+          <div className="info-card__body spec-badges" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="info-card__item">
               <span className="info-card__label">Corrida</span>
               <div className="badge-display badge-display--maroon">
@@ -283,14 +283,26 @@ export default function UnitInfoPanel({
                 </span>
               </div>
             </div>
-            <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
-              <span className="info-card__label">Hora de Salida</span>
+
+            <div className="info-card__item">
+              <span className="info-card__label">Hora Programada</span>
               <div className="badge-display badge-display--gold">
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="badge-display__text">
-                  {cargandoDatos ? '...' : (datosOperativos.horaSalida || 'No asignada')}
+                  {cargandoDatos ? '...' : (datosOperativos.horaProgramada || 'No asignada')}
+                </span>
+              </div>
+            </div>
+            <div className="info-card__item">
+              <span className="info-card__label">Hora de Acople</span>
+              <div className="badge-display badge-display--maroon">
+                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="badge-display__text">
+                  {cargandoDatos ? '...' : 'No asignada'}
                 </span>
               </div>
             </div>
