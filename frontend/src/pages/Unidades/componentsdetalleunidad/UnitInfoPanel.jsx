@@ -326,6 +326,7 @@ export default function UnitInfoPanel({
                     <button
                       type="button"
                       className="dropdown-menu__item"
+                      style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
                       onClick={() => {
                         setPerdidaCorrida('');
                         setPerdidaCiclos('');
@@ -340,7 +341,7 @@ export default function UnitInfoPanel({
                         key={i + 1}
                         type="button"
                         className="dropdown-menu__item"
-                        style={{ fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
+                        style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
                         onClick={() => {
                           setPerdidaCorrida(String(i + 1));
                           setDropdownCorridaOpen(false);
@@ -387,6 +388,7 @@ export default function UnitInfoPanel({
                         <button
                           type="button"
                           className="dropdown-menu__item"
+                          style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
                           onClick={() => {
                             setPerdidaCiclos('');
                             setDropdownCiclosOpen(false);
@@ -399,7 +401,7 @@ export default function UnitInfoPanel({
                             key={opt.value}
                             type="button"
                             className="dropdown-menu__item"
-                            style={{ fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
+                            style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
                             onClick={() => {
                               setPerdidaCiclos(opt.value);
                               setDropdownCiclosOpen(false);
