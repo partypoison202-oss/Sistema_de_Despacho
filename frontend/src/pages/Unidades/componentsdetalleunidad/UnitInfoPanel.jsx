@@ -1,5 +1,6 @@
 // src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import ChecklistForm from '../../CheckList/CheckList';
 import CONDUCTORES from '../../../data/conductores';
@@ -28,6 +29,7 @@ export default function UnitInfoPanel({
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
   const [viewingChecklist, setViewingChecklist] = useState(false);
+  const [lightboxDibujo, setLightboxDibujo] = useState(null);
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
@@ -651,7 +653,7 @@ export default function UnitInfoPanel({
                 </div>
 
                 {/* Counters */}
-                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                <div className="grid grid-cols-2 gap-2 mb-4 text-center">
                   <div className="bg-emerald-50 border border-emerald-100 py-2 rounded-xl">
                     <span className="block text-lg font-extrabold text-emerald-600 leading-none">{totalBien}</span>
                     <span className="text-[9px] font-bold uppercase text-emerald-700 tracking-wider">Bien</span>
@@ -659,10 +661,6 @@ export default function UnitInfoPanel({
                   <div className="bg-rose-50 border border-rose-100 py-2 rounded-xl">
                     <span className="block text-lg font-extrabold text-rose-600 leading-none">{totalMal}</span>
                     <span className="text-[9px] font-bold uppercase text-rose-700 tracking-wider">Mal</span>
-                  </div>
-                  <div className="bg-slate-100 border border-slate-200 py-2 rounded-xl">
-                    <span className="block text-lg font-extrabold text-slate-600 leading-none">{totalPendiente}</span>
-                    <span className="text-[9px] font-bold uppercase text-slate-700 tracking-wider">Pendientes</span>
                   </div>
                 </div>
 
@@ -730,9 +728,38 @@ export default function UnitInfoPanel({
                   <div className="mb-4">
                     <p className="text-xs font-bold text-slate-700 mb-2">Referencia Visual de Fallas</p>
                     <div className="flex justify-center p-2 border border-slate-100 rounded-xl bg-slate-50/50">
-                      <img src={recentChecklist.dibujo} alt="Evidencia de fallas" className="max-h-48 rounded-lg object-contain border border-slate-200" />
+                      <img 
+                        src={recentChecklist.dibujo} 
+                        alt="Evidencia de fallas" 
+                        className="max-h-48 rounded-lg object-contain border border-slate-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => setLightboxDibujo(recentChecklist.dibujo)}
+                        title="Clic para ampliar"
+                      />
                     </div>
                   </div>
+                )}
+
+                {lightboxDibujo && createPortal(
+                  <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                    onClick={() => setLightboxDibujo(null)}
+                  >
+                    <button
+                      className="absolute top-4 right-4 text-white/70 hover:text-white transition"
+                      onClick={() => setLightboxDibujo(null)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-8 w-8">
+                        <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                      </svg>
+                    </button>
+                    <img
+                      src={lightboxDibujo}
+                      alt="Vista ampliada"
+                      className="max-w-[92vw] max-h-[90vh] rounded-xl shadow-2xl object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>,
+                  document.body
                 )}
 
                 <button 

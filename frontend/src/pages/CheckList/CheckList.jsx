@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import Header from '../../components/Header/Header';
 import '../Unidades/DetalleUnidad.css';
@@ -292,7 +292,7 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
 }
 
 // ─── Componentes: Pizarra de Dibujo ─────────────────────────────────────────────
-function DrawingCanvas({ onSave, tipoUnidad }) {
+const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, ref) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const isDrawing = useRef(false);
@@ -400,8 +400,29 @@ function DrawingCanvas({ onSave, tipoUnidad }) {
         isDrawing.current = false;
         const ctx = canvasRef.current.getContext('2d');
         ctx.closePath();
-        // Notificar al padre
-        if (onSave) onSave(canvasRef.current.toDataURL('image/png'));
+        // Componer canvas con imagen de fondo antes de guardar
+        if (onSave) {
+            const canvas = canvasRef.current;
+            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}.png`;
+            const composite = document.createElement('canvas');
+            composite.width = canvas.width;
+            composite.height = canvas.height;
+            const compCtx = composite.getContext('2d');
+            const bgImg = new Image();
+            bgImg.onload = () => {
+                compCtx.globalAlpha = 0.6;
+                compCtx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                compCtx.globalAlpha = 1.0;
+                compCtx.drawImage(canvas, 0, 0);
+                onSave(composite.toDataURL('image/png'));
+            };
+            bgImg.onerror = () => {
+                // Fallback: sin imagen de fondo
+                compCtx.drawImage(canvas, 0, 0);
+                onSave(composite.toDataURL('image/png'));
+            };
+            bgImg.src = blueprintUrl;
+        }
     };
 
     const handleUndo = () => {
@@ -423,11 +444,26 @@ function DrawingCanvas({ onSave, tipoUnidad }) {
         setCanUndo(historyRef.current.length > 0);
     };
 
+    // Exponer el método clear() para que el componente padre pueda limpiar el canvas
+    useImperativeHandle(ref, () => ({
+        clear: () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.restore();
+            historyRef.current = [];
+            setCanUndo(false);
+            if (onSave) onSave(null);
+        }
+    }));
+
     const handleClear = () => {
         saveSnapshot();
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -528,7 +564,7 @@ function DrawingCanvas({ onSave, tipoUnidad }) {
             </p>
         </div>
     );
-}
+});
 
 // Comprimir y redimensionar imagen en Base64 para optimizar almacenamiento
 const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
@@ -587,6 +623,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
     const [savedChecklist, setSavedChecklist] = useState(null);
     const [dibujo, setDibujo] = useState(null);     // data URL del canvas
     const fechaHoraRef = useRef(new Date()); // se fija al enviar
+    const drawingCanvasRef = useRef(null);   // ref para limpiar el canvas de dibujo
     const hideTop = inline || (new URLSearchParams(location.search).get('hide_top') === 'true');
 
     // ── Cámara y Evidencias ───────────────────────────────────────────────────
@@ -1169,8 +1206,9 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                             </h3>
                             <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm">
                                 <DrawingCanvas 
-                                    onSave={setDibujo} 
+                                    onSave={setDibujo}
                                     tipoUnidad={tipoUnidad}
+                                    ref={drawingCanvasRef}
                                 />
                             </div>
                         </section>
@@ -1184,6 +1222,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                                         onClick={() => {
                                             setDibujo(null);
                                             setPuntos(buildEstadoInicial());
+                                            drawingCanvasRef.current?.clear();
                                         }}
                                         className="group w-full sm:w-1/3 flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white text-gray-600 shadow-sm transition-all duration-100 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-800 active:scale-95"
                                         style={{
