@@ -324,6 +324,77 @@ export default function DetalleUnidad() {
     setFallaTexto('');
   };
 
+  const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
+
+  const handleCambiarEstatus = async (nuevoEstatus) => {
+    if (!selectedOption) return;
+    
+    if (datosOperativos.estatus === nuevoEstatus) return;
+
+    const Swal = (await import('sweetalert2')).default;
+    const confirmacion = await Swal.fire({
+      title: '¿Cambiar Estatus?',
+      text: `¿Seguro que deseas mover la unidad ${selectedOption} a ${nuevoEstatus.toUpperCase()}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6b1d33',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirmacion.isConfirmed) return;
+
+    setCambiandoEstatus(true);
+    try {
+      const token = getToken();
+      const matchNumeros = selectedOption.match(/\d+/);
+      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+
+      const response = await fetch(`http://localhost:8000/api/unidades/cambiar-estatus`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          numero_eco: numeroLimpio,
+          tipo: tipoTransporte,
+          estatus: nuevoEstatus
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.status === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Estatus Actualizado',
+          text: `La unidad ${selectedOption} ahora está en ${nuevoEstatus.toUpperCase()}`,
+          confirmButtonColor: '#c5a059',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        setDatosOperativos(prev => ({ ...prev, estatus: nuevoEstatus }));
+        setSelectedEstado(nuevoEstatus);
+        
+        // Actualizar la lista en memoria para mantener colores sincronizados y cambiar de lista
+        setUnidadesList(prev => prev.map(u => {
+          if (String(u.eco).padStart(3, '0') === numeroLimpio) {
+            return { ...u, estado: nuevoEstatus.toLowerCase() };
+          }
+          return u;
+        }));
+      } else {
+        Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'No se pudo cambiar el estatus', confirmButtonColor: '#601a2a' });
+      }
+    } catch (error) {
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Problema de conexión al servidor', confirmButtonColor: '#601a2a' });
+    } finally {
+      setCambiandoEstatus(false);
+    }
+  };
+
 
 
   return (
@@ -391,6 +462,8 @@ export default function DetalleUnidad() {
                 handleSaveFalla={handleSaveFalla}
                 handleCancelFalla={handleCancelFalla}
                 handleSaveTarjeton={handleSaveTarjeton}
+                handleCambiarEstatus={handleCambiarEstatus}
+                cambiandoEstatus={cambiandoEstatus}
               />
             ) : (
               <div className="info-panel__placeholder">

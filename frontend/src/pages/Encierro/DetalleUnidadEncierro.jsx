@@ -38,6 +38,7 @@ export default function DetalleUnidadEncierro() {
   // Check List states
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
+  const [viewingChecklist, setViewingChecklist] = useState(false);
   const [recentChecklist, setRecentChecklist] = useState(null);
 
   const [perdidaCorrida, setPerdidaCorrida] = useState('');
@@ -164,6 +165,9 @@ export default function DetalleUnidadEncierro() {
       if (res.ok) {
         const data = await res.json();
         setHasCompletedChecklist(data.length > 0);
+        if (data.length > 0) {
+          setRecentChecklist(data[0]);
+        }
       }
     } catch (e) {
       console.error("Error al revisar historial", e);
@@ -174,6 +178,7 @@ export default function DetalleUnidadEncierro() {
     setRecentChecklist(null);
     setHasCompletedChecklist(false);
     setShowChecklist(false);
+    setViewingChecklist(false);
 
     if (selectedOption) {
       const ecoNum = selectedOption.replace(/\D/g, '');
@@ -187,7 +192,7 @@ export default function DetalleUnidadEncierro() {
 
   const handleRevisarCheckList = () => {
     if (recentChecklist) {
-      generarPDFChecklist(recentChecklist, 'print');
+      setViewingChecklist(true);
     }
   };
 
@@ -916,6 +921,70 @@ export default function DetalleUnidadEncierro() {
                             });
                           }}
                         />
+                      </div>
+                    )}
+                    {viewingChecklist && recentChecklist && (
+                      <div className="animate-fade-in-up" style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <h4 style={{ fontWeight: 'bold', color: '#6b1d33', margin: 0 }}>Detalles del Checklist</h4>
+                          <button 
+                            onClick={() => generarPDFChecklist(recentChecklist, 'download')}
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b1d33', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Descargar PDF"
+                          >
+                            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          </button>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.85rem', marginBottom: '1rem', color: '#4a5568' }}>
+                          <div><strong>Fecha:</strong> {new Date(recentChecklist.fecha_hora || recentChecklist.created_at).toLocaleString('es-MX')}</div>
+                          <div><strong>Unidad:</strong> {recentChecklist.economico}</div>
+                          <div><strong>Servicio:</strong> {recentChecklist.servicio}</div>
+                          <div><strong>Conductor:</strong> {recentChecklist.conductor?.nombre || recentChecklist.conductor_nombre || 'No asignado'}</div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem', background: '#f8fafc' }}>
+                          {(() => {
+                            const pts = typeof recentChecklist.puntos === 'string'
+                              ? JSON.parse(recentChecklist.puntos)
+                              : recentChecklist.puntos;
+                            
+                            if (!pts) return <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>No hay puntos registrados.</span>;
+                            
+                            const entries = Object.entries(pts);
+                            if (entries.length === 0) return <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>No hay puntos registrados.</span>;
+                            
+                            const formatKey = (key) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            
+                            return entries.map(([key, val], idx) => {
+                              const estadoVal = val?.estado || 'N/A';
+                              return (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>
+                                  <span style={{ fontSize: '0.8rem', color: '#475569' }}>{formatKey(key)}</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: estadoVal === 'bien' ? '#16a34a' : '#ef4444' }}>
+                                    {estadoVal.toUpperCase()}
+                                  </span>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                        
+                        {recentChecklist.dibujo && (
+                           <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                              <p style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#4a5568' }}>Evidencia / Dibujo:</p>
+                              <img src={recentChecklist.dibujo} alt="Evidencia" style={{ maxWidth: '100%', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} />
+                           </div>
+                        )}
+
+                        <button 
+                          onClick={() => setViewingChecklist(false)}
+                          style={{ marginTop: '1rem', width: '100%', padding: '0.75rem', background: '#e2e8f0', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 'bold', color: '#475569', transition: 'background 0.2s' }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#cbd5e1'}
+                          onMouseOut={(e) => e.currentTarget.style.background = '#e2e8f0'}
+                        >
+                          Cerrar Detalles
+                        </button>
                       </div>
                     )}
                   </div>

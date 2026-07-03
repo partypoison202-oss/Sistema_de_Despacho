@@ -583,6 +583,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
     const [servicio, setServicio] = useState('');
     const [puntos, setPuntos] = useState(buildEstadoInicial);
     const [enviado, setEnviado] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [savedChecklist, setSavedChecklist] = useState(null);
     const [dibujo, setDibujo] = useState(null);     // data URL del canvas
     const fechaHoraRef = useRef(new Date()); // se fija al enviar
@@ -793,9 +794,9 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
         fechaHoraRef.current = new Date();
         fetch(`${API_BASE}/api/checklist`, {
-
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -827,6 +828,9 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
         .catch(err => {
             console.error('Error al guardar checklist:', err);
             alert('❌ No se pudo guardar el checklist:\n' + err.message);
+        })
+        .finally(() => {
+            setIsSubmitting(false);
         });
     };
 
@@ -1196,8 +1200,8 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                                 )}
                                 <button
                                     type="submit"
-                                    disabled={!unidadSeleccionada || (!hideTop && !servicio)}
-                                    className={`w-full ${inline ? 'sm:w-2/3' : ''} rounded-xl border-none text-white shadow-lg transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-110 active:scale-95`}
+                                    disabled={!unidadSeleccionada || (!hideTop && !servicio) || isSubmitting}
+                                    className={`w-full ${inline ? 'sm:w-2/3' : ''} rounded-xl border-none text-white shadow-lg transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2`}
                                     style={{
                                         backgroundColor: '#6b1d33',
                                         fontSize: '1.25rem',
@@ -1205,7 +1209,10 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                                         padding: '1rem'
                                     }}
                                 >
-                                    Guardar Checklist
+                                    {isSubmitting && (
+                                        <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                                    )}
+                                    {isSubmitting ? 'Guardando...' : 'Guardar Checklist'}
                                 </button>
                             </div>
                             {(!unidadSeleccionada || (!hideTop && !servicio)) && (

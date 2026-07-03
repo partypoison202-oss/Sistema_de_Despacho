@@ -19,12 +19,15 @@ export default function UnitInfoPanel({
   handleSaveFalla,
   handleCancelFalla,
   handleSaveTarjeton,
+  handleCambiarEstatus,
+  cambiandoEstatus,
 }) {
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
+  const [viewingChecklist, setViewingChecklist] = useState(false);
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
@@ -86,7 +89,7 @@ export default function UnitInfoPanel({
 
   const handleRevisarCheckList = () => {
     if (recentChecklist) {
-      generarPDFChecklist(recentChecklist, 'print');
+      setViewingChecklist(true);
     }
   };
 
@@ -101,6 +104,9 @@ export default function UnitInfoPanel({
       if (res.ok) {
         const data = await res.json();
         setHasCompletedChecklist(data.length > 0);
+        if (data.length > 0) {
+          setRecentChecklist(data[0]);
+        }
       }
     } catch (e) {
       console.error("Error al revisar historial", e);
@@ -111,6 +117,7 @@ export default function UnitInfoPanel({
     setRecentChecklist(null);
     setHasCompletedChecklist(false);
     setShowChecklist(false);
+    setViewingChecklist(false);
     
     if (selectedOption) {
       const ecoNum = selectedOption.replace(/\D/g, '');
@@ -314,41 +321,46 @@ export default function UnitInfoPanel({
             </div>
 
             {/* Toggle: ¿Hubo corridas perdidas? */}
-            <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
+            <div className="info-card__item">
               <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+              <div style={{ 
+                display: 'flex', 
+                width: '100%', 
+                marginTop: '0.25rem', 
+                height: '2.3rem', 
+                borderRadius: '0.5rem', 
+                overflow: 'hidden', 
+                border: '1px solid #e5e7eb' 
+              }}>
                 <button
                   type="button"
-                  className="interactive-input"
                   onClick={() => handleToggleCorridasPerdidas(true)}
                   style={{
                     flex: 1,
-                    height: '2.3rem',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
                     border: 'none',
-                    cursor: 'pointer',
+                    background: huboCorridasPerdidas ? '#6b1d33' : '#f3f4f6',
                     color: huboCorridasPerdidas ? '#ffffff' : '#4a5568',
-                    background: huboCorridasPerdidas ? '#6b1d33' : '#e5e7eb',
-                    transition: 'background-color 0.2s, color 0.2s',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
                   }}
                 >
                   Sí
                 </button>
                 <button
                   type="button"
-                  className="interactive-input"
                   onClick={() => handleToggleCorridasPerdidas(false)}
                   style={{
                     flex: 1,
-                    height: '2.3rem',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
                     border: 'none',
-                    cursor: 'pointer',
+                    borderLeft: '1px solid #e5e7eb',
+                    background: !huboCorridasPerdidas ? '#6b1d33' : '#f3f4f6',
                     color: !huboCorridasPerdidas ? '#ffffff' : '#4a5568',
-                    background: !huboCorridasPerdidas ? '#6b1d33' : '#e5e7eb',
-                    transition: 'background-color 0.2s, color 0.2s',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
                   }}
                 >
                   No
@@ -358,8 +370,8 @@ export default function UnitInfoPanel({
 
             {/* Ciclos Perdidos + Motivo: sólo se muestran si el botón "Sí" está activo */}
             {huboCorridasPerdidas && (
-              <div className="animate-fade-in-up">
-                <div ref={ciclosRef} className="info-card__item" style={{ marginTop: '1rem', position: 'relative' }}>
+              <div className="animate-fade-in-up" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div ref={ciclosRef} className="info-card__item" style={{ position: 'relative' }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
                   <button
                     type="button"
@@ -416,7 +428,7 @@ export default function UnitInfoPanel({
                     </div>
                   )}
                 </div>
-                <div className="info-card__item" style={{ marginTop: '1rem' }}>
+                <div className="info-card__item">
                   <span className="info-card__label">Motivo (Obligatorio)</span>
                   <input
                     type="text"
@@ -433,6 +445,53 @@ export default function UnitInfoPanel({
           </div>
         </div>
 
+        {/* CARD 3: MOVILIDAD Y ESTATUS */}
+        <div className="info-card info-card--double">
+          <div className="info-card__header">
+            <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            <h3 className="info-card__title">Movilidad y Estatus</h3>
+          </div>
+          <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginTop: '0.5rem' }}>
+              {[
+                { id: 'operacion', label: 'OPERACIÓN', color: '#16a34a', bgActive: '#f0fdf4' },
+                { id: 'reserva', label: 'RESERVA', color: '#d97706', bgActive: '#fffbeb' },
+                { id: 'mantenimiento', label: 'MANTENIMIENTO', color: '#dc2626', bgActive: '#fef2f2' }
+              ].map(st => {
+                const isActive = datosOperativos.estatus === st.id;
+                return (
+                  <button
+                    key={st.id}
+                    onClick={() => handleCambiarEstatus && handleCambiarEstatus(st.id)}
+                    disabled={cambiandoEstatus}
+                    style={{
+                      padding: '1rem 0.5rem',
+                      borderRadius: '0.75rem',
+                      border: `2px solid ${isActive ? st.color : '#e2e8f0'}`,
+                      backgroundColor: isActive ? st.bgActive : '#f8fafc',
+                      color: isActive ? st.color : '#94a3b8',
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: '0.85rem',
+                      cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      opacity: (cambiandoEstatus && !isActive) ? 0.5 : 1
+                    }}
+                  >
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? st.color : '#cbd5e1' }}></div>
+                    {st.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         {/* CARD 4: CHECKLIST */}
         <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="info-card__header">
@@ -442,62 +501,63 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Check List</h3>
           </div>
           <div className="info-card__body" style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem', flex: 1, paddingBottom: '0.5rem', alignItems: 'stretch' }}>
-            <button
-              onClick={handleHacerCheckList}
-              disabled={hasCompletedChecklist}
-              className="interactive-input"
-              style={{
-                flex: 1,
-                borderRadius: '0.75rem',
-                border: 'none',
-                backgroundColor: hasCompletedChecklist ? '#9ca3af' : '#6b1d33',
-                color: 'white',
-                fontSize: '1.25rem',
-                fontWeight: '800',
-                cursor: hasCompletedChecklist ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 10px -2px rgba(107, 29, 51, 0.4)',
-                transition: 'transform 0.1s, background-color 0.2s',
-                padding: '1rem',
-                opacity: hasCompletedChecklist ? 0.6 : 1
-              }}
-              onMouseOver={(e) => !hasCompletedChecklist && (e.currentTarget.style.backgroundColor = '#4a1020')}
-              onMouseOut={(e) => !hasCompletedChecklist && (e.currentTarget.style.backgroundColor = '#6b1d33')}
-              onMouseDown={(e) => !hasCompletedChecklist && (e.currentTarget.style.transform = 'scale(0.98)')}
-              onMouseUp={(e) => !hasCompletedChecklist && (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Hacer Check list
-            </button>
-            <button
-              onClick={handleRevisarCheckList}
-              disabled={!recentChecklist}
-              className="interactive-input"
-              style={{
-                flex: 1,
-                borderRadius: '0.75rem',
-                border: 'none',
-                backgroundColor: (!recentChecklist) ? '#9ca3af' : '#c29b53',
-                color: 'white',
-                fontSize: '1.25rem',
-                fontWeight: '800',
-                cursor: (!recentChecklist) ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 10px -2px rgba(194, 155, 83, 0.4)',
-                transition: 'transform 0.1s, background-color 0.2s',
-                padding: '1rem',
-                opacity: (!recentChecklist) ? 0.6 : 1
-              }}
-              onMouseOver={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
-              onMouseOut={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
-              onMouseDown={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
-              onMouseUp={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              Revisar check list
-            </button>
+            {!hasCompletedChecklist ? (
+              <button
+                onClick={handleHacerCheckList}
+                className="interactive-input"
+                style={{
+                  flex: 1,
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  backgroundColor: '#6b1d33',
+                  color: 'white',
+                  fontSize: '1.25rem',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 10px -2px rgba(107, 29, 51, 0.4)',
+                  transition: 'transform 0.1s, background-color 0.2s',
+                  padding: '1rem',
+                  opacity: 1
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4a1020'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#6b1d33'}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Hacer Check list
+              </button>
+            ) : (
+              <button
+                onClick={handleRevisarCheckList}
+                className="interactive-input"
+                style={{
+                  flex: 1,
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  backgroundColor: '#c29b53',
+                  color: 'white',
+                  fontSize: '1.25rem',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 10px -2px rgba(194, 155, 83, 0.4)',
+                  transition: 'transform 0.1s, background-color 0.2s',
+                  padding: '1rem',
+                  opacity: 1
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#a88344'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#c29b53'}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Revisar check list
+              </button>
+            )}
           </div>
           {showChecklist && !hasCompletedChecklist && (
             <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
@@ -530,6 +590,70 @@ export default function UnitInfoPanel({
                   setRecentChecklist(checklist);
                 }}
               />
+            </div>
+          )}
+          {viewingChecklist && recentChecklist && (
+            <div className="animate-fade-in-up" style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ fontWeight: 'bold', color: '#6b1d33', margin: 0 }}>Detalles del Checklist</h4>
+                <button 
+                  onClick={() => generarPDFChecklist(recentChecklist, 'download')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b1d33', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Descargar PDF"
+                >
+                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </button>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.85rem', marginBottom: '1rem', color: '#4a5568' }}>
+                <div><strong>Fecha:</strong> {new Date(recentChecklist.fecha_hora || recentChecklist.created_at).toLocaleString('es-MX')}</div>
+                <div><strong>Unidad:</strong> {recentChecklist.economico}</div>
+                <div><strong>Servicio:</strong> {recentChecklist.servicio}</div>
+                <div><strong>Conductor:</strong> {recentChecklist.conductor?.nombre || recentChecklist.conductor_nombre || 'No asignado'}</div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem', background: '#f8fafc' }}>
+                {(() => {
+                  const pts = typeof recentChecklist.puntos === 'string'
+                    ? JSON.parse(recentChecklist.puntos)
+                    : recentChecklist.puntos;
+                  
+                  if (!pts) return <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>No hay puntos registrados.</span>;
+                  
+                  const entries = Object.entries(pts);
+                  if (entries.length === 0) return <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>No hay puntos registrados.</span>;
+                  
+                  const formatKey = (key) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                  
+                  return entries.map(([key, val], idx) => {
+                    const estadoVal = val?.estado || 'N/A';
+                    return (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#475569' }}>{formatKey(key)}</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: estadoVal === 'bien' ? '#16a34a' : '#ef4444' }}>
+                          {estadoVal.toUpperCase()}
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+              
+              {recentChecklist.dibujo && (
+                 <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#4a5568' }}>Evidencia / Dibujo:</p>
+                    <img src={recentChecklist.dibujo} alt="Evidencia" style={{ maxWidth: '100%', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} />
+                 </div>
+              )}
+
+              <button 
+                onClick={() => setViewingChecklist(false)}
+                style={{ marginTop: '1rem', width: '100%', padding: '0.75rem', background: '#e2e8f0', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 'bold', color: '#475569', transition: 'background 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#cbd5e1'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#e2e8f0'}
+              >
+                Cerrar Detalles
+              </button>
             </div>
           )}
         </div>
