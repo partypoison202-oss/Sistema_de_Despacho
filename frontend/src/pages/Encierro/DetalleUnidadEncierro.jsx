@@ -635,7 +635,7 @@ export default function DetalleUnidadEncierro() {
                           }}
                           onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
                         >
-                          <span>{perdidaCorrida ? `Corrida ${perdidaCorrida}` : '— Seleccionar —'}</span>
+                          <span>{perdidaCorrida ? `Corrida ${perdidaCorrida}` : 'Seleccionar'}</span>
                           <svg className={`arrow-icon ${dropdownCorridaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCorridaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                           </svg>
@@ -655,7 +655,7 @@ export default function DetalleUnidadEncierro() {
                                   setDropdownCorridaOpen(false);
                                 }}
                               >
-                                — Seleccionar —
+                                Seleccionar
                               </button>
                               {[...Array(14)].map((_, i) => (
                                 <button
@@ -697,7 +697,7 @@ export default function DetalleUnidadEncierro() {
                               }}
                               onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                             >
-                              <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' ciclo' + (perdidaCiclos !== '1' && perdidaCiclos !== '0.5' ? 's' : '') : '— Seleccionar —'}</span>
+                              <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' ciclo' + (perdidaCiclos !== '1' && perdidaCiclos !== '0.5' ? 's' : '') : 'Seleccionar'}</span>
                               <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                               </svg>
@@ -715,7 +715,7 @@ export default function DetalleUnidadEncierro() {
                                       setDropdownCiclosOpen(false);
                                     }}
                                   >
-                                    — Seleccionar —
+                                    Seleccionar
                                   </button>
                                   {ciclosOptions.map(opt => (
                                     <button
