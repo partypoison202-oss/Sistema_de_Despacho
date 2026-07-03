@@ -1,5 +1,5 @@
 // src/pages/Encierro/DetalleUnidadEncierro.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { encierroModules } from '../../config/encierroModules';
 import Header from '../../components/Header/Header';
@@ -39,6 +39,41 @@ export default function DetalleUnidadEncierro() {
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
   const [recentChecklist, setRecentChecklist] = useState(null);
+
+  const [perdidaCorrida, setPerdidaCorrida] = useState('');
+  const [perdidaCiclos, setPerdidaCiclos] = useState('');
+  const [perdidaMotivo, setPerdidaMotivo] = useState('');
+  const [dropdownCorridaOpen, setDropdownCorridaOpen] = useState(false);
+  const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
+
+  const corridaRef = useRef(null);
+  const ciclosRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (corridaRef.current && !corridaRef.current.contains(e.target)) {
+        setDropdownCorridaOpen(false);
+      }
+      if (ciclosRef.current && !ciclosRef.current.contains(e.target)) {
+        setDropdownCiclosOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const ciclosOptions = [
+    { value: '0.5', label: '1/2' },
+    { value: '1', label: '1' },
+    { value: '1.5', label: '1 1/2' },
+    { value: '2', label: '2' },
+    { value: '2.5', label: '2 1/2' },
+    { value: '3', label: '3' },
+    { value: '3.5', label: '3 1/2' },
+    { value: '4', label: '4' },
+    { value: '4.5', label: '4 1/2' },
+    { value: '5', label: '5' },
+  ];
 
   const configActual = encierroModules.find(m => m.id === tipoTransporte);
   if (!configActual) {
@@ -592,6 +627,141 @@ export default function DetalleUnidadEncierro() {
                           </span>
                         </div>
                       </div>
+
+                      <div ref={corridaRef} className="info-card__item" style={{ marginTop: '1.25rem', position: 'relative' }}>
+                        <span className="info-card__label">Corridas Perdidas</span>
+                        <button
+                          type="button"
+                          className="interactive-input"
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between', 
+                            padding: '0 0.85rem', 
+                            marginTop: '0.25rem',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            background: '#ffffff',
+                            height: '2.3rem',
+                            fontSize: '0.85rem'
+                          }}
+                          onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
+                        >
+                          <span>{perdidaCorrida ? `Corrida ${perdidaCorrida}` : 'Seleccionar'}</span>
+                          <svg className={`arrow-icon ${dropdownCorridaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCorridaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
+                        </button>
+
+                        {dropdownCorridaOpen && (
+                          <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: '#ffffff', opacity: 1, zIndex: 999 }}>
+                            <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                              <button
+                                type="button"
+                                className="dropdown-menu__item"
+                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568' }}
+                                onClick={() => {
+                                  setPerdidaCorrida('');
+                                  setPerdidaCiclos('');
+                                  setPerdidaMotivo('');
+                                  setDropdownCorridaOpen(false);
+                                }}
+                              >
+                                Seleccionar
+                              </button>
+                              {[...Array(14)].map((_, i) => (
+                                <button
+                                  key={i + 1}
+                                  type="button"
+                                  className="dropdown-menu__item"
+                                  style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568', fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
+                                  onClick={() => {
+                                    setPerdidaCorrida(String(i + 1));
+                                    setDropdownCorridaOpen(false);
+                                  }}
+                                >
+                                  Corrida {i + 1}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {perdidaCorrida && (
+                        <div className="animate-fade-in-up">
+                          <div ref={ciclosRef} className="info-card__item" style={{ marginTop: '1rem', position: 'relative' }}>
+                            <span className="info-card__label">Ciclos Perdidos</span>
+                            <button
+                              type="button"
+                              className="interactive-input"
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between', 
+                                padding: '0 0.85rem', 
+                                marginTop: '0.25rem',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                background: '#ffffff',
+                                height: '2.3rem',
+                                fontSize: '0.85rem'
+                              }}
+                              onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
+                            >
+                              <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' ciclo' + (perdidaCiclos !== '1' && perdidaCiclos !== '0.5' ? 's' : '') : 'Seleccionar'}</span>
+                              <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                              </svg>
+                            </button>
+
+                            {dropdownCiclosOpen && (
+                              <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: '#ffffff', opacity: 1, zIndex: 999 }}>
+                                <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                                  <button
+                                    type="button"
+                                    className="dropdown-menu__item"
+                                    style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568' }}
+                                    onClick={() => {
+                                      setPerdidaCiclos('');
+                                      setDropdownCiclosOpen(false);
+                                    }}
+                                  >
+                                    Seleccionar
+                                  </button>
+                                  {ciclosOptions.map(opt => (
+                                    <button
+                                      key={opt.value}
+                                      type="button"
+                                      className="dropdown-menu__item"
+                                      style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
+                                      onClick={() => {
+                                        setPerdidaCiclos(opt.value);
+                                        setDropdownCiclosOpen(false);
+                                      }}
+                                    >
+                                      {opt.label} ciclo{opt.value !== '1' && opt.value !== '0.5' ? 's' : ''}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="info-card__item" style={{ marginTop: '1rem' }}>
+                            <span className="info-card__label">Motivo (Obligatorio)</span>
+                            <input
+                              type="text"
+                              className="interactive-input"
+                              style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.3rem', fontSize: '0.85rem' }}
+                              maxLength={40}
+                              value={perdidaMotivo}
+                              onChange={(e) => setPerdidaMotivo(e.target.value)}
+                              placeholder="Escribe el motivo de la pérdida..."
+                            />
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </div>
 

@@ -51,13 +51,36 @@ export default function CentroControl() {
           );
           const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
+          const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+          const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
+          const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
+
           const programadas = units.length;
-          const operacion = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
-          const mantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO')).length;
-          const reserva = units.filter((d) => getEstatus(d).includes('RESERVA')).length;
+          const operacion = unidadesOperacion.length;
+          const mantenimiento = unidadesMantenimiento.length;
+          const reserva = unidadesReserva.length;
           const otros = Math.max(programadas - operacion - mantenimiento - reserva, 0);
 
-          return { ...mc, programadas, operacion, reserva, mantenimiento, otros };
+          const idsConEstatus = new Set([
+            ...unidadesOperacion,
+            ...unidadesMantenimiento,
+            ...unidadesReserva,
+          ]);
+          const unidadesOtros = units.filter((d) => !idsConEstatus.has(d));
+
+          return {
+            ...mc,
+            programadas,
+            operacion,
+            reserva,
+            mantenimiento,
+            otros,
+            unidadesOperacion,
+            unidadesReserva,
+            unidadesMantenimiento,
+            unidadesOtros,
+            units,
+          };
         });
 
         setModelData(aggregated);
@@ -259,7 +282,19 @@ export default function CentroControl() {
                 mantenimiento: 0,
               };
               return (
-                <div className={`centro-type-card centro-type-card--${mc.color}`} key={mc.id}>
+                <div
+                  className={`centro-type-card centro-type-card--${mc.color} ${!cargando ? 'centro-type-card--clickable' : ''}`}
+                  style={cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}}
+                  key={mc.id}
+                  onClick={() => !cargando && navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } })}
+                  role="button"
+                  tabIndex={cargando ? -1 : 0}
+                  onKeyDown={(e) => {
+                    if (!cargando && (e.key === 'Enter' || e.key === ' ')) {
+                      navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } });
+                    }
+                  }}
+                >
                   <div className="centro-type-card__header">
                     <img src={mc.image} alt={mc.label} className="centro-type-card__image" />
                     <div className="centro-type-card__heading">

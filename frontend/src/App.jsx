@@ -16,6 +16,7 @@ import HistorialCheckList from './pages/CheckList/HistorialCheckList';
 import FleetSelection from './components/Checklist/FleetSelection';
 import CentroControl from './pages/CentroControl/CentroControl';
 import GlobalClock from './components/GlobalClock/GlobalClock';
+import DetalleUnidades from './pages/CentroControl/Detalle/DetalleUnidades';
 
 function App() {
   return (
@@ -107,6 +108,13 @@ function App() {
           <Route path="/centro-control" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
               <CentroControl />
+            </ProtectedRoute>
+          } />
+
+          {/* Ruta protegida para el detalle de unidades por tipo (solo ADMIN y CENTRO_CONTROL) */}
+          <Route path="/centro-control/detalle/:tipo" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+              <DetalleUnidades />
             </ProtectedRoute>
           } />
 
