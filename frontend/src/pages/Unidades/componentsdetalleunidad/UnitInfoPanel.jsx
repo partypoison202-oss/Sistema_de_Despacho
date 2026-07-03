@@ -281,7 +281,7 @@ export default function UnitInfoPanel({
               <span className="info-card__label">Corridas Perdidas</span>
               <select
                 className="interactive-input"
-                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+                style={{ padding: '0 0.85rem', marginTop: '0.25rem' }}
                 value={perdidaCorrida}
                 onChange={(e) => {
                   setPerdidaCorrida(e.target.value);
@@ -293,37 +293,37 @@ export default function UnitInfoPanel({
               >
                 <option value="">— Seleccionar —</option>
                 {[...Array(14)].map((_, i) => (
-                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                  <option key={i + 1} value={i + 1}>Corrida {i + 1}</option>
                 ))}
               </select>
             </div>
 
             {perdidaCorrida && (
               <div className="animate-fade-in-up">
-                <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                <div className="info-card__item" style={{ marginTop: '1rem' }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
                   <select
                     className="interactive-input"
-                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+                    style={{ padding: '0 0.85rem', marginTop: '0.25rem' }}
                     value={perdidaCiclos}
                     onChange={(e) => setPerdidaCiclos(e.target.value)}
                   >
                     <option value="">— Seleccionar —</option>
                     {ciclosOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>{opt.label} ciclo{opt.value !== '1' && opt.value !== '0.5' ? 's' : ''}</option>
                     ))}
                   </select>
                 </div>
-                <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                  <span className="info-card__label">Motivo</span>
+                <div className="info-card__item" style={{ marginTop: '1rem' }}>
+                  <span className="info-card__label">Motivo (Obligatorio)</span>
                   <input
                     type="text"
                     className="interactive-input"
-                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+                    style={{ padding: '0 0.85rem', marginTop: '0.25rem' }}
                     maxLength={40}
                     value={perdidaMotivo}
                     onChange={(e) => setPerdidaMotivo(e.target.value)}
-                    placeholder="Máximo 40 caracteres..."
+                    placeholder="Escribe el motivo de la pérdida..."
                   />
                 </div>
               </div>
