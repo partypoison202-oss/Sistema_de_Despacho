@@ -26,21 +26,16 @@ export default function UnitInfoPanel({
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
   const [recentChecklist, setRecentChecklist] = useState(null);
-  const [perdidaCorrida, setPerdidaCorrida] = useState('');
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
-  const [dropdownCorridaOpen, setDropdownCorridaOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
+  const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
   const navigate = useNavigate();
 
-  const corridaRef = useRef(null);
   const ciclosRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (corridaRef.current && !corridaRef.current.contains(e.target)) {
-        setDropdownCorridaOpen(false);
-      }
       if (ciclosRef.current && !ciclosRef.current.contains(e.target)) {
         setDropdownCiclosOpen(false);
       }
@@ -61,6 +56,17 @@ export default function UnitInfoPanel({
     { value: '4.5', label: '4 1/2' },
     { value: '5', label: '5' },
   ];
+
+  // Maneja el toggle Sí/No de "¿Hubo corridas perdidas?"
+  const handleToggleCorridasPerdidas = (valor) => {
+    setHuboCorridasPerdidas(valor);
+    if (!valor) {
+      // Si se selecciona "No", limpiamos los campos dependientes
+      setPerdidaCiclos('');
+      setPerdidaMotivo('');
+      setDropdownCiclosOpen(false);
+    }
+  };
 
   const handleHacerCheckList = () => {
     setShowChecklist(true);
@@ -307,67 +313,51 @@ export default function UnitInfoPanel({
               </div>
             </div>
 
-            <div ref={corridaRef} className="info-card__item" style={{ marginTop: '1.25rem', position: 'relative' }}>
-              <span className="info-card__label">Corridas Perdidas</span>
-              <button
-                type="button"
-                className="interactive-input"
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  padding: '0 0.85rem', 
-                  marginTop: '0.25rem',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  background: '#ffffff',
-                  height: '2.3rem',
-                  fontSize: '0.85rem'
-                }}
-                onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
-              >
-                <span>{perdidaCorrida ? `Corrida ${perdidaCorrida}` : 'Seleccionar'}</span>
-                <svg className={`arrow-icon ${dropdownCorridaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCorridaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                </svg>
-              </button>
-
-              {dropdownCorridaOpen && (
-                <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: '#ffffff', opacity: 1, zIndex: 999 }}>
-                  <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                    <button
-                      type="button"
-                      className="dropdown-menu__item"
-                      style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568' }}
-                      onClick={() => {
-                        setPerdidaCorrida('');
-                        setPerdidaCiclos('');
-                        setPerdidaMotivo('');
-                        setDropdownCorridaOpen(false);
-                      }}
-                    >
-                      Seleccionar
-                    </button>
-                    {[...Array(14)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        type="button"
-                        className="dropdown-menu__item"
-                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568', fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
-                        onClick={() => {
-                          setPerdidaCorrida(String(i + 1));
-                          setDropdownCorridaOpen(false);
-                        }}
-                      >
-                        Corrida {i + 1}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {/* Toggle: ¿Hubo corridas perdidas? */}
+            <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
+              <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                <button
+                  type="button"
+                  className="interactive-input"
+                  onClick={() => handleToggleCorridasPerdidas(true)}
+                  style={{
+                    flex: 1,
+                    height: '2.3rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: huboCorridasPerdidas ? '#ffffff' : '#4a5568',
+                    background: huboCorridasPerdidas ? '#6b1d33' : '#e5e7eb',
+                    transition: 'background-color 0.2s, color 0.2s',
+                  }}
+                >
+                  Sí
+                </button>
+                <button
+                  type="button"
+                  className="interactive-input"
+                  onClick={() => handleToggleCorridasPerdidas(false)}
+                  style={{
+                    flex: 1,
+                    height: '2.3rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: !huboCorridasPerdidas ? '#ffffff' : '#4a5568',
+                    background: !huboCorridasPerdidas ? '#6b1d33' : '#e5e7eb',
+                    transition: 'background-color 0.2s, color 0.2s',
+                  }}
+                >
+                  No
+                </button>
+              </div>
             </div>
 
-            {perdidaCorrida && (
+            {/* Ciclos Perdidos + Motivo: sólo se muestran si el botón "Sí" está activo */}
+            {huboCorridasPerdidas && (
               <div className="animate-fade-in-up">
                 <div ref={ciclosRef} className="info-card__item" style={{ marginTop: '1rem', position: 'relative' }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
