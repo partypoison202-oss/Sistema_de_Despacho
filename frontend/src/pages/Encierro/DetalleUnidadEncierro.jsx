@@ -613,7 +613,9 @@ export default function DetalleUnidadEncierro() {
                             marginTop: '0.25rem',
                             cursor: 'pointer',
                             textAlign: 'left',
-                            background: '#ffffff'
+                            background: '#ffffff',
+                            height: '2.1rem',
+                            fontSize: '0.85rem'
                           }}
                           onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
                         >
@@ -672,7 +674,9 @@ export default function DetalleUnidadEncierro() {
                                 marginTop: '0.25rem',
                                 cursor: 'pointer',
                                 textAlign: 'left',
-                                background: '#ffffff'
+                                background: '#ffffff',
+                                height: '2.1rem',
+                                fontSize: '0.85rem'
                               }}
                               onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                             >
@@ -718,7 +722,7 @@ export default function DetalleUnidadEncierro() {
                             <input
                               type="text"
                               className="interactive-input"
-                              style={{ padding: '0 0.85rem', marginTop: '0.25rem' }}
+                              style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.1rem', fontSize: '0.85rem' }}
                               maxLength={40}
                               value={perdidaMotivo}
                               onChange={(e) => setPerdidaMotivo(e.target.value)}
