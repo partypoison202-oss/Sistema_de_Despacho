@@ -26,7 +26,23 @@ export default function UnitInfoPanel({
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
   const [recentChecklist, setRecentChecklist] = useState(null);
+  const [perdidaCorrida, setPerdidaCorrida] = useState('');
+  const [perdidaCiclos, setPerdidaCiclos] = useState('');
+  const [perdidaMotivo, setPerdidaMotivo] = useState('');
   const navigate = useNavigate();
+
+  const ciclosOptions = [
+    { value: '0.5', label: '1/2' },
+    { value: '1', label: '1' },
+    { value: '1.5', label: '1 1/2' },
+    { value: '2', label: '2' },
+    { value: '2.5', label: '2 1/2' },
+    { value: '3', label: '3' },
+    { value: '3.5', label: '3 1/2' },
+    { value: '4', label: '4' },
+    { value: '4.5', label: '4 1/2' },
+    { value: '5', label: '5' },
+  ];
 
   const handleHacerCheckList = () => {
     setShowChecklist(true);
@@ -260,10 +276,62 @@ export default function UnitInfoPanel({
                 </span>
               </div>
             </div>
+
+            <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
+              <span className="info-card__label">Corridas Perdidas</span>
+              <select
+                className="interactive-input"
+                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+                value={perdidaCorrida}
+                onChange={(e) => {
+                  setPerdidaCorrida(e.target.value);
+                  if (!e.target.value) {
+                    setPerdidaCiclos('');
+                    setPerdidaMotivo('');
+                  }
+                }}
+              >
+                <option value="">— Seleccionar —</option>
+                {[...Array(14)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                ))}
+              </select>
+            </div>
+
+            {perdidaCorrida && (
+              <div className="animate-fade-in-up">
+                <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                  <span className="info-card__label">Ciclos Perdidos</span>
+                  <select
+                    className="interactive-input"
+                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+                    value={perdidaCiclos}
+                    onChange={(e) => setPerdidaCiclos(e.target.value)}
+                  >
+                    <option value="">— Seleccionar —</option>
+                    {ciclosOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                  <span className="info-card__label">Motivo</span>
+                  <input
+                    type="text"
+                    className="interactive-input"
+                    style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', fontSize: '0.9rem' }}
+                    maxLength={40}
+                    value={perdidaMotivo}
+                    onChange={(e) => setPerdidaMotivo(e.target.value)}
+                    placeholder="Máximo 40 caracteres..."
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* CARD 3: CHECKLIST */}
+        {/* CARD 4: CHECKLIST */}
         <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column' }}>
           <div className="info-card__header">
             <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
