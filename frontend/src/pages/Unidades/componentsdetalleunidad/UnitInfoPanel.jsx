@@ -592,70 +592,158 @@ export default function UnitInfoPanel({
               />
             </div>
           )}
-          {viewingChecklist && recentChecklist && (
-            <div className="animate-fade-in-up" style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ fontWeight: 'bold', color: '#6b1d33', margin: 0 }}>Detalles del Checklist</h4>
+          {viewingChecklist && recentChecklist && (() => {
+            const pts = typeof recentChecklist.puntos === 'string'
+              ? JSON.parse(recentChecklist.puntos)
+              : recentChecklist.puntos;
+            
+            const entries = pts ? Object.entries(pts) : [];
+            const totalPuntos = entries.length;
+            const totalBien = entries.filter(([_, val]) => val?.estado === 'bien').length;
+            const totalMal = entries.filter(([_, val]) => val?.estado === 'mal').length;
+            const totalPendiente = totalPuntos - totalBien - totalMal;
+            
+            const PUNTOS_LABEL = {
+              carroceria_exterior: 'Carrocería exterior',
+              mobitec: 'Mobitec',
+              torreta: 'Torreta',
+              pintura_vinil: 'Pintura y vinil',
+              parabrisas_cristales: 'Parabrisas y cristales',
+              luces_exteriores: 'Luces exteriores',
+              puertas: 'Puertas',
+              llantas: 'Llantas',
+              rines: 'Rines',
+              retrovisores: 'Retrovisores',
+              limpieza: 'Limpieza',
+              asientos: 'Asientos',
+              extintor_seguridad: 'Extintor y seguridad',
+              documentacion: 'Documentación',
+              tecnologia: 'Tecnología',
+              alerta_tablero: 'Alerta en tablero'
+            };
+
+            const getConductorNombre = () => {
+              if (recentChecklist.conductor?.nombre) return recentChecklist.conductor.nombre;
+              if (recentChecklist.conductor_nombre) return recentChecklist.conductor_nombre;
+              if (recentChecklist.conductor_id) {
+                const found = CONDUCTORES.find(c => c.id === Number(recentChecklist.conductor_id));
+                if (found) return found.nombre;
+              }
+              return 'No asignado';
+            };
+
+            return (
+              <div className="animate-fade-in-up mt-6 rounded-2xl border border-rose-900/10 bg-white p-5 shadow-md">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                  <h4 className="text-base font-extrabold text-rose-950">
+                    Puntos Evaluados
+                  </h4>
+                  <button 
+                    onClick={() => generarPDFChecklist(recentChecklist, 'download')}
+                    className="text-rose-900 hover:text-rose-950 transition-colors p-1.5 rounded-lg hover:bg-rose-50"
+                    title="Descargar PDF"
+                  >
+                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Counters */}
+                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                  <div className="bg-emerald-50 border border-emerald-100 py-2 rounded-xl">
+                    <span className="block text-lg font-extrabold text-emerald-600 leading-none">{totalBien}</span>
+                    <span className="text-[9px] font-bold uppercase text-emerald-700 tracking-wider">Bien</span>
+                  </div>
+                  <div className="bg-rose-50 border border-rose-100 py-2 rounded-xl">
+                    <span className="block text-lg font-extrabold text-rose-600 leading-none">{totalMal}</span>
+                    <span className="text-[9px] font-bold uppercase text-rose-700 tracking-wider">Mal</span>
+                  </div>
+                  <div className="bg-slate-100 border border-slate-200 py-2 rounded-xl">
+                    <span className="block text-lg font-extrabold text-slate-600 leading-none">{totalPendiente}</span>
+                    <span className="text-[9px] font-bold uppercase text-slate-700 tracking-wider">Pendientes</span>
+                  </div>
+                </div>
+
+                {/* Points List */}
+                <div className="mb-4">
+                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1 border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+                    {entries.length > 0 ? (
+                      entries.map(([key, val], idx) => {
+                        const isBien = val?.estado === 'bien';
+                        return (
+                          <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-start gap-2.5">
+                            <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${isBien ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                              {isBien ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                                </svg>
+                              ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+                                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-bold text-slate-800 leading-tight">{PUNTOS_LABEL[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                              {val?.observaciones ? (
+                                <p className="mt-1 text-[10px] text-slate-500 break-words">
+                                  <span className="font-semibold text-slate-400">Obs:</span> {val.observaciones}
+                                </p>
+                              ) : (
+                                <p className="mt-0.5 text-[9px] italic text-slate-400">Sin observaciones</p>
+                              )}
+                              
+                              {/* Foto de evidencia */}
+                              {(val?.foto || (val?.fotos && val.fotos.length > 0)) && (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {val.foto && (
+                                    <img 
+                                      src={val.foto} 
+                                      alt={`Evidencia`} 
+                                      className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm"
+                                    />
+                                  )}
+                                  {val.fotos && val.fotos.map((imgUrl, fIdx) => (
+                                    <img 
+                                      key={fIdx}
+                                      src={imgUrl} 
+                                      alt={`Evidencia ${fIdx + 1}`} 
+                                      className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm"
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <span className="text-xs text-slate-400 italic text-center py-4">No hay puntos evaluados.</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Draw Evidence */}
+                {recentChecklist.dibujo && (
+                  <div className="mb-4">
+                    <p className="text-xs font-bold text-slate-700 mb-2">Referencia Visual de Fallas</p>
+                    <div className="flex justify-center p-2 border border-slate-100 rounded-xl bg-slate-50/50">
+                      <img src={recentChecklist.dibujo} alt="Evidencia de fallas" className="max-h-48 rounded-lg object-contain border border-slate-200" />
+                    </div>
+                  </div>
+                )}
+
                 <button 
-                  onClick={() => generarPDFChecklist(recentChecklist, 'download')}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#6b1d33', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Descargar PDF"
+                  onClick={() => setViewingChecklist(false)}
+                  className="w-full py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >
-                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Cerrar Detalles
                 </button>
               </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.85rem', marginBottom: '1rem', color: '#4a5568' }}>
-                <div><strong>Fecha:</strong> {new Date(recentChecklist.fecha_hora || recentChecklist.created_at).toLocaleString('es-MX')}</div>
-                <div><strong>Unidad:</strong> {recentChecklist.economico}</div>
-                <div><strong>Servicio:</strong> {recentChecklist.servicio}</div>
-                <div><strong>Conductor:</strong> {recentChecklist.conductor?.nombre || recentChecklist.conductor_nombre || 'No asignado'}</div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem', background: '#f8fafc' }}>
-                {(() => {
-                  const pts = typeof recentChecklist.puntos === 'string'
-                    ? JSON.parse(recentChecklist.puntos)
-                    : recentChecklist.puntos;
-                  
-                  if (!pts) return <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>No hay puntos registrados.</span>;
-                  
-                  const entries = Object.entries(pts);
-                  if (entries.length === 0) return <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>No hay puntos registrados.</span>;
-                  
-                  const formatKey = (key) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                  
-                  return entries.map(([key, val], idx) => {
-                    const estadoVal = val?.estado || 'N/A';
-                    return (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#475569' }}>{formatKey(key)}</span>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: estadoVal === 'bien' ? '#16a34a' : '#ef4444' }}>
-                          {estadoVal.toUpperCase()}
-                        </span>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-              
-              {recentChecklist.dibujo && (
-                 <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#4a5568' }}>Evidencia / Dibujo:</p>
-                    <img src={recentChecklist.dibujo} alt="Evidencia" style={{ maxWidth: '100%', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }} />
-                 </div>
-              )}
-
-              <button 
-                onClick={() => setViewingChecklist(false)}
-                style={{ marginTop: '1rem', width: '100%', padding: '0.75rem', background: '#e2e8f0', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 'bold', color: '#475569', transition: 'background 0.2s' }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#cbd5e1'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#e2e8f0'}
-              >
-                Cerrar Detalles
-              </button>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>
