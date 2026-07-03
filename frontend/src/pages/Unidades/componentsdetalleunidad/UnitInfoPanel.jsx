@@ -1,5 +1,5 @@
 // src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ChecklistForm from '../../CheckList/CheckList';
 import CONDUCTORES from '../../../data/conductores';
@@ -32,6 +32,22 @@ export default function UnitInfoPanel({
   const [dropdownCorridaOpen, setDropdownCorridaOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const navigate = useNavigate();
+
+  const corridaRef = useRef(null);
+  const ciclosRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (corridaRef.current && !corridaRef.current.contains(e.target)) {
+        setDropdownCorridaOpen(false);
+      }
+      if (ciclosRef.current && !ciclosRef.current.contains(e.target)) {
+        setDropdownCiclosOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const ciclosOptions = [
     { value: '0.5', label: '1/2' },
@@ -279,7 +295,7 @@ export default function UnitInfoPanel({
               </div>
             </div>
 
-            <div className="info-card__item" style={{ marginTop: '1.25rem', position: 'relative' }}>
+            <div ref={corridaRef} className="info-card__item" style={{ marginTop: '1.25rem', position: 'relative' }}>
               <span className="info-card__label">Corridas Perdidas</span>
               <button
                 type="button"
@@ -293,8 +309,8 @@ export default function UnitInfoPanel({
                   cursor: 'pointer',
                   textAlign: 'left',
                   background: '#ffffff',
-                  height: '2.1rem',
-                  fontSize: '0.85rem'
+                  height: '1.8rem',
+                  fontSize: '0.8rem'
                 }}
                 onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
               >
@@ -305,7 +321,7 @@ export default function UnitInfoPanel({
               </button>
 
               {dropdownCorridaOpen && (
-                <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%' }}>
+                <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: '#ffffff', opacity: 1, zIndex: 999 }}>
                   <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
                     <button
                       type="button"
@@ -340,7 +356,7 @@ export default function UnitInfoPanel({
 
             {perdidaCorrida && (
               <div className="animate-fade-in-up">
-                <div className="info-card__item" style={{ marginTop: '1rem', position: 'relative' }}>
+                <div ref={ciclosRef} className="info-card__item" style={{ marginTop: '1rem', position: 'relative' }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
                   <button
                     type="button"
@@ -354,8 +370,8 @@ export default function UnitInfoPanel({
                       cursor: 'pointer',
                       textAlign: 'left',
                       background: '#ffffff',
-                      height: '2.1rem',
-                      fontSize: '0.85rem'
+                      height: '1.8rem',
+                      fontSize: '0.8rem'
                     }}
                     onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                   >
@@ -366,7 +382,7 @@ export default function UnitInfoPanel({
                   </button>
 
                   {dropdownCiclosOpen && (
-                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%' }}>
+                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: '#ffffff', opacity: 1, zIndex: 999 }}>
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
                         <button
                           type="button"
@@ -401,7 +417,7 @@ export default function UnitInfoPanel({
                   <input
                     type="text"
                     className="interactive-input"
-                    style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.1rem', fontSize: '0.85rem' }}
+                    style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '1.8rem', fontSize: '0.8rem' }}
                     maxLength={40}
                     value={perdidaMotivo}
                     onChange={(e) => setPerdidaMotivo(e.target.value)}
