@@ -630,8 +630,8 @@ export default function DetalleUnidadEncierro() {
                             cursor: 'pointer',
                             textAlign: 'left',
                             background: '#ffffff',
-                            height: '1.8rem',
-                            fontSize: '0.8rem'
+                            height: '2.3rem',
+                            fontSize: '0.85rem'
                           }}
                           onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
                         >
@@ -647,7 +647,7 @@ export default function DetalleUnidadEncierro() {
                               <button
                                 type="button"
                                 className="dropdown-menu__item"
-                                style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568' }}
                                 onClick={() => {
                                   setPerdidaCorrida('');
                                   setPerdidaCiclos('');
@@ -662,7 +662,7 @@ export default function DetalleUnidadEncierro() {
                                   key={i + 1}
                                   type="button"
                                   className="dropdown-menu__item"
-                                  style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
+                                  style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568', fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
                                   onClick={() => {
                                     setPerdidaCorrida(String(i + 1));
                                     setDropdownCorridaOpen(false);
@@ -692,8 +692,8 @@ export default function DetalleUnidadEncierro() {
                                 cursor: 'pointer',
                                 textAlign: 'left',
                                 background: '#ffffff',
-                                height: '1.8rem',
-                                fontSize: '0.8rem'
+                                height: '2.3rem',
+                                fontSize: '0.85rem'
                               }}
                               onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                             >
@@ -709,7 +709,7 @@ export default function DetalleUnidadEncierro() {
                                   <button
                                     type="button"
                                     className="dropdown-menu__item"
-                                    style={{ padding: '0.4rem 1rem', fontSize: '0.8rem' }}
+                                    style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568' }}
                                     onClick={() => {
                                       setPerdidaCiclos('');
                                       setDropdownCiclosOpen(false);
@@ -722,7 +722,7 @@ export default function DetalleUnidadEncierro() {
                                       key={opt.value}
                                       type="button"
                                       className="dropdown-menu__item"
-                                      style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
+                                      style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
                                       onClick={() => {
                                         setPerdidaCiclos(opt.value);
                                         setDropdownCiclosOpen(false);
@@ -740,7 +740,7 @@ export default function DetalleUnidadEncierro() {
                             <input
                               type="text"
                               className="interactive-input"
-                              style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '1.8rem', fontSize: '0.8rem' }}
+                              style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.3rem', fontSize: '0.85rem' }}
                               maxLength={40}
                               value={perdidaMotivo}
                               onChange={(e) => setPerdidaMotivo(e.target.value)}
