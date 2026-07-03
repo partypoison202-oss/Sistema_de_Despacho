@@ -15,10 +15,12 @@ import CheckList from './pages/CheckList/CheckList';
 import HistorialCheckList from './pages/CheckList/HistorialCheckList';
 import FleetSelection from './components/Checklist/FleetSelection';
 import CentroControl from './pages/CentroControl/CentroControl';
+import GlobalClock from './components/GlobalClock/GlobalClock';
 
 function App() {
   return (
     <AuthProvider>
+      <GlobalClock />
       <BrowserRouter>
         <Routes>
           {/* Pantalla de Inicio de Sesión */}

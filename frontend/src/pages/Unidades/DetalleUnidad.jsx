@@ -32,7 +32,7 @@ export default function DetalleUnidad() {
     ruta: 'Seleccione una unidad...',
     tarjeton: '',
     corrida: '',
-    horaSalida: '',
+    horaProgramada: '',
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [tarjetonBusqueda, setTarjetonBusqueda] = useState('');
@@ -134,7 +134,7 @@ export default function DetalleUnidad() {
           ruta: resultado.ruta || 'Sin ruta',
           tarjeton: resultado.tarjeton || '',
           corrida: resultado.corridas || '',
-          horaSalida: resultado.hora_salida || '',
+          horaProgramada: resultado.hora_programada || '',
         });
         setFallaTexto(resultado.falla || '');
         setSelectedEstado(resultado.estatus || unidadSeleccionada.estado || 'operacion');
@@ -144,7 +144,7 @@ export default function DetalleUnidad() {
           ruta: 'Sin ruta',
           tarjeton: '',
           corrida: '',
-          horaSalida: '',
+          horaProgramada: '',
         });
         setFallaTexto('');
       }
@@ -155,7 +155,7 @@ export default function DetalleUnidad() {
         ruta: 'No se pudo obtener',
         tarjeton: '',
         corrida: '',
-        horaSalida: '',
+        horaProgramada: '',
       });
     } finally {
       setCargandoDatos(false);
