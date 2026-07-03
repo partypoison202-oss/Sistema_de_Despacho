@@ -43,6 +43,8 @@ export default function DetalleUnidadEncierro() {
   const [perdidaCorrida, setPerdidaCorrida] = useState('');
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
+  const [dropdownCorridaOpen, setDropdownCorridaOpen] = useState(false);
+  const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
 
   const ciclosOptions = [
     { value: '0.5', label: '1/2' },
@@ -598,42 +600,118 @@ export default function DetalleUnidadEncierro() {
                         </div>
                       </div>
 
-                      <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
+                      <div className="info-card__item" style={{ marginTop: '1.25rem', position: 'relative' }}>
                         <span className="info-card__label">Corridas Perdidas</span>
-                        <select
+                        <button
+                          type="button"
                           className="interactive-input"
-                          style={{ padding: '0 0.85rem', marginTop: '0.25rem' }}
-                          value={perdidaCorrida}
-                          onChange={(e) => {
-                            setPerdidaCorrida(e.target.value);
-                            if (!e.target.value) {
-                              setPerdidaCiclos('');
-                              setPerdidaMotivo('');
-                            }
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between', 
+                            padding: '0 0.85rem', 
+                            marginTop: '0.25rem',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            background: '#ffffff'
                           }}
+                          onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
                         >
-                          <option value="">— Seleccionar —</option>
-                          {[...Array(14)].map((_, i) => (
-                            <option key={i + 1} value={i + 1}>Corrida {i + 1}</option>
-                          ))}
-                        </select>
+                          <span>{perdidaCorrida ? `Corrida ${perdidaCorrida}` : '— Seleccionar —'}</span>
+                          <svg className={`arrow-icon ${dropdownCorridaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCorridaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
+                        </button>
+
+                        {dropdownCorridaOpen && (
+                          <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%' }}>
+                            <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                              <button
+                                type="button"
+                                className="dropdown-menu__item"
+                                onClick={() => {
+                                  setPerdidaCorrida('');
+                                  setPerdidaCiclos('');
+                                  setPerdidaMotivo('');
+                                  setDropdownCorridaOpen(false);
+                                }}
+                              >
+                                — Seleccionar —
+                              </button>
+                              {[...Array(14)].map((_, i) => (
+                                <button
+                                  key={i + 1}
+                                  type="button"
+                                  className="dropdown-menu__item"
+                                  style={{ fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
+                                  onClick={() => {
+                                    setPerdidaCorrida(String(i + 1));
+                                    setDropdownCorridaOpen(false);
+                                  }}
+                                >
+                                  Corrida {i + 1}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {perdidaCorrida && (
                         <div className="animate-fade-in-up">
-                          <div className="info-card__item" style={{ marginTop: '1rem' }}>
+                          <div className="info-card__item" style={{ marginTop: '1rem', position: 'relative' }}>
                             <span className="info-card__label">Ciclos Perdidos</span>
-                            <select
+                            <button
+                              type="button"
                               className="interactive-input"
-                              style={{ padding: '0 0.85rem', marginTop: '0.25rem' }}
-                              value={perdidaCiclos}
-                              onChange={(e) => setPerdidaCiclos(e.target.value)}
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between', 
+                                padding: '0 0.85rem', 
+                                marginTop: '0.25rem',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                background: '#ffffff'
+                              }}
+                              onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                             >
-                              <option value="">— Seleccionar —</option>
-                              {ciclosOptions.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label} ciclo{opt.value !== '1' && opt.value !== '0.5' ? 's' : ''}</option>
-                              ))}
-                            </select>
+                              <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' ciclo' + (perdidaCiclos !== '1' && perdidaCiclos !== '0.5' ? 's' : '') : '— Seleccionar —'}</span>
+                              <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                              </svg>
+                            </button>
+
+                            {dropdownCiclosOpen && (
+                              <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%' }}>
+                                <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                                  <button
+                                    type="button"
+                                    className="dropdown-menu__item"
+                                    onClick={() => {
+                                      setPerdidaCiclos('');
+                                      setDropdownCiclosOpen(false);
+                                    }}
+                                  >
+                                    — Seleccionar —
+                                  </button>
+                                  {ciclosOptions.map(opt => (
+                                    <button
+                                      key={opt.value}
+                                      type="button"
+                                      className="dropdown-menu__item"
+                                      style={{ fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
+                                      onClick={() => {
+                                        setPerdidaCiclos(opt.value);
+                                        setDropdownCiclosOpen(false);
+                                      }}
+                                    >
+                                      {opt.label} ciclo{opt.value !== '1' && opt.value !== '0.5' ? 's' : ''}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <div className="info-card__item" style={{ marginTop: '1rem' }}>
                             <span className="info-card__label">Motivo (Obligatorio)</span>
