@@ -2,6 +2,7 @@ import { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
 import { AuthContext } from '../../context/AuthContext';
+import GlobalClock from '../GlobalClock/GlobalClock';
 import './Header.css';
 
 export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
@@ -107,7 +108,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
         )}
 
         {/* Right Section: Profile Dropdown */}
-        <div className="app-header__right">
+        <div className="app-header__right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <GlobalClock className="hidden lg:flex" />
           {user && (
             <div className="app-header__profile" ref={profileRef}>
               <button 

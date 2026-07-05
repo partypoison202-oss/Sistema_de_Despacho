@@ -34,7 +34,7 @@ const PageLoader = () => (
 function App() {
   return (
     <AuthProvider>
-      <GlobalClock />
+      <GlobalClock className="fixed bottom-6 right-4 lg:hidden z-[9999]" />
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>

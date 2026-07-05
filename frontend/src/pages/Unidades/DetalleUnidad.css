@@ -233,20 +233,14 @@
   justify-content: center;
   padding: 3rem 1.5rem;
   text-align: center;
-  border: 2px dashed rgba(203, 213, 225, 0.7);
+  border: 2px dashed var(--tw-color-gray-300);
   border-radius: 1rem;
-  background-color: rgba(248, 250, 252, 0.5);
-  animation: pulseBg 3s infinite ease-in-out;
-}
-
-@keyframes pulseBg {
-  0%, 100% { background-color: rgba(248, 250, 252, 0.5); }
-  50% { background-color: rgba(241, 245, 249, 0.8); }
+  background-color: var(--tw-color-gray-100);
 }
 
 .info-panel__placeholder p {
   font-size: 0.95rem;
-  color: var(--tw-color-gray-500);
+  color: var(--tw-color-gray-600);
   font-weight: 500;
   max-width: 26rem;
   line-height: 1.5;
