@@ -10,6 +10,9 @@ import API_BASE from '../../config/api';
 
 const MAX_OBS = 250; // límite de caracteres para observaciones
 
+// Caché local para evitar recargar unidades del backend en cada selección
+const ecosCache = {};
+
 // ─── Tipos de unidad ──────────────────────────────────────────────────────────
 const TIPOS_UNIDAD = [
     { value: 'URBANUSS', label: 'URBANUSS' },
@@ -403,7 +406,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         // Componer canvas con imagen de fondo antes de guardar
         if (onSave) {
             const canvas = canvasRef.current;
-            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}.png`;
+            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}.webp`;
             const composite = document.createElement('canvas');
             composite.width = canvas.width;
             composite.height = canvas.height;
@@ -537,11 +540,11 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             >
                 {/* Imagen de referencia como fondo según tipo de unidad */}
                 <img
-                    src={`/images/${(tipoUnidad || 'hero').toLowerCase()}.png`}
+                    src={`/images/${(tipoUnidad || 'hero').toLowerCase()}.webp`}
                     alt={`Blueprint de ${tipoUnidad}`}
                     className="absolute inset-0 h-full w-full object-contain pointer-events-none select-none opacity-60"
                     draggable={false}
-                    onError={(e) => { e.target.src = '/images/hero.png'; }} // fallback
+                    onError={(e) => { e.target.src = '/images/hero.webp'; }} // fallback
                 />
                 {/* Canvas de dibujo superpuesto */}
 
@@ -754,6 +757,11 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
             
             if (!tipo) return;
 
+            if (ecosCache[tipo] && !forceLoad) {
+                setEcosList(ecosCache[tipo]);
+                return;
+            }
+
             setLoadingEcos(true);
             try {
                 const token = localStorage.getItem('token');
@@ -768,10 +776,12 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                         data = Array.from({ length: 42 }, (_, i) => ({ numero_eco: String(i + 1) }));
                     }
                     
-                    setEcosList(data || []);
+                    ecosCache[tipo] = data || [];
+                    setEcosList(ecosCache[tipo]);
                 } else {
                     let fallback = [];
                     if (tipo === 'URBANUSS') fallback = Array.from({ length: 42 }, (_, i) => ({ numero_eco: String(i + 1) }));
+                    ecosCache[tipo] = fallback;
                     setEcosList(fallback);
                 }
             } catch (err) {

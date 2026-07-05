@@ -22,7 +22,7 @@
 .app-header__back-btn {
   background: transparent;
   border: none;
-  color: white;
+  color: #ffffff;
   padding: 0.5rem;
   border-radius: 50%;
   cursor: pointer;
@@ -139,7 +139,7 @@
   width: 40px;
   height: 40px;
   background-color: var(--color-gold);
-  color: #fff;
+  color: #ffffff;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -158,8 +158,8 @@
   position: absolute;
   top: 60px;
   right: 0;
-  background-color: #fff;
-  border: 1px solid #ddd;
+  background-color: var(--tw-color-white);
+  border: 1px solid var(--tw-color-gray-200);
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 250px;
@@ -175,18 +175,18 @@
 
 .profile-name {
   font-weight: bold;
-  color: #333;
+  color: var(--tw-color-gray-900);
 }
 
 .profile-username {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--tw-color-gray-500);
 }
 
 .profile-role {
   font-size: 0.75rem;
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: var(--tw-color-gray-50);
+  color: var(--tw-color-gray-700);
   padding: 2px 6px;
   border-radius: 4px;
   align-self: flex-start;
@@ -207,18 +207,18 @@
   border: none;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #333;
+  color: var(--tw-color-gray-900);
   transition: background-color 0.2s ease;
 }
 
 .profile-menu-btn:hover {
-  background-color: #f9fafb;
+  background-color: var(--tw-color-gray-50);
 }
 
 .logout-btn {
-  color: #dc2626;
+  color: var(--state-red-text);
 }
 
 .logout-btn:hover {
-  background-color: #fef2f2;
+  background-color: var(--state-red-light);
 }

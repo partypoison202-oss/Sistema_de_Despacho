@@ -1,6 +1,6 @@
 .usuarios-page {
   min-height: 100vh;
-  background-color: #f3f4f6;
+  background-color: var(--tw-color-gray-50);
 }
 
 .usuarios-container {
@@ -16,8 +16,8 @@
 }
 
 .btn-primary {
-  background-color: var(--color-maroon, #8b0000);
-  color: white;
+  background-color: var(--brand-maroon-bg);
+  color: var(--tw-color-white);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
@@ -31,7 +31,7 @@
 }
 
 .table-responsive {
-  background: white;
+  background: var(--tw-color-white);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   overflow-x: auto;
@@ -50,14 +50,14 @@
 }
 
 .usuarios-table th {
-  background-color: #f9fafb;
+  background-color: var(--tw-color-gray-50);
   font-weight: 600;
-  color: #4b5563;
+  color: var(--tw-color-gray-700);
 }
 
 .role-badge {
-  background-color: #e0e7ff;
-  color: #3730a3;
+  background-color: var(--state-blue-light);
+  color: var(--state-blue-text);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.875rem;
@@ -73,13 +73,13 @@
 }
 
 .status-badge.active {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--state-green-light);
+  color: var(--state-green-text);
 }
 
 .status-badge.inactive {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--state-red-light);
+  color: var(--brand-maroon-text);
 }
 
 .actions-cell {
@@ -96,18 +96,18 @@
 }
 
 .btn-edit {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: var(--tw-color-gray-50);
+  color: var(--tw-color-gray-700);
 }
 
-.btn-edit:hover { background-color: #e5e7eb; }
+.btn-edit:hover { background-color: var(--tw-color-gray-200); }
 
 .btn-delete {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: var(--state-red-light);
+  color: var(--state-red-text);
 }
 
-.btn-delete:hover { background-color: #fecaca; }
+.btn-delete:hover { background-color: var(--state-red-light); }
 
 /* Modal Styles */
 .modal-overlay {
@@ -124,7 +124,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--tw-color-white);
   padding: 2rem;
   border-radius: 8px;
   width: 100%;
@@ -135,7 +135,7 @@
 .modal-content h2 {
   margin-top: 0;
   margin-bottom: 1.5rem;
-  color: #1f2937;
+  color: var(--tw-color-gray-900);
 }
 
 .form-group {
@@ -145,7 +145,7 @@
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #4b5563;
+  color: var(--tw-color-gray-700);
   font-size: 0.875rem;
 }
 
@@ -153,7 +153,7 @@
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--tw-color-gray-300);
   border-radius: 4px;
   font-size: 1rem;
 }
@@ -166,19 +166,19 @@
 }
 
 .btn-cancel {
-  background-color: white;
-  border: 1px solid #d1d5db;
-  color: #374151;
+  background-color: var(--tw-color-white);
+  border: 1px solid var(--tw-color-gray-300);
+  color: var(--tw-color-gray-700);
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   cursor: pointer;
 }
 
-.btn-cancel:hover { background-color: #f9fafb; }
+.btn-cancel:hover { background-color: var(--tw-color-gray-50); }
 
 .btn-save {
-  background-color: var(--color-gold, #cba052);
-  color: white;
+  background-color: var(--brand-gold-bg);
+  color: var(--tw-color-white);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
@@ -194,7 +194,7 @@
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
-  background: white;
+  background: var(--tw-color-white);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }

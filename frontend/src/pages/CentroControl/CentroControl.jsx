@@ -11,10 +11,10 @@ import './CentroControl.css';
 
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
 const modelsConfig = [
-  { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.png', color: 'maroon' },
-  { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafirofrenterealista.png', color: 'gold' },
-  { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.png', color: 'green' },
-  { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.PNG', color: 'blue' },
+  { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.webp', color: 'maroon' },
+  { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafirofrenterealista.webp', color: 'gold' },
+  { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.webp', color: 'green' },
+  { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.webp', color: 'blue' },
 ];
 
 export default function CentroControl() {

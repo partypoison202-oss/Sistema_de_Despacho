@@ -41,7 +41,7 @@ const IconBus = () => (
 /* ── Logo STM (Actualizado con imagen) ─────────────────────── */
 const LogoSTM = () => (
   <div className="rpu-logo-wrap">
-    <img src="/images/sistema de tm.png" alt="Logo STM" className="rpu-logo-img" />
+    <img src="/images/sistema de tm.webp" alt="Logo STM" className="rpu-logo-img" />
     <div className="rpu-logo-label">
       <span className="rpu-logo-small">Sistema de</span>
       <span className="rpu-logo-big">Transporte</span>

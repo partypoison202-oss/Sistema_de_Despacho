@@ -2,7 +2,7 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--tw-color-white);
 }
 
 .dashboard__main {
@@ -69,8 +69,8 @@
 }
 
 .btn-reporte {
-  background-color: #601a2a;
-  color: #ffffff;
+  background-color: var(--brand-maroon-text);
+  color: var(--tw-color-white);
   padding: 0.75rem 2rem;
   border: none;
   border-radius: 8px;
@@ -81,5 +81,5 @@
 }
 
 .btn-reporte:hover {
-  background-color: #4a1420; /* Un tono un poco más oscuro al pasar el mouse */
+  background-color: var(--brand-maroon-text); /* Un tono un poco más oscuro al pasar el mouse */
 }

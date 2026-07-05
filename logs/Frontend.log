@@ -3,19 +3,226 @@
 > vite
 
 
-  VITE v8.0.16  ready in 239 ms
+  VITE v8.0.16  ready in 290 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: http://192.168.1.223:5173/
-12:37:12 PM [vite] (client) hmr update /src/App.jsx, /src/index.css
-12:42:49 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
-12:42:51 PM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
-12:45:06 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
-12:45:08 PM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
-12:49:43 PM [vite] (client) hmr update /src/pages/CargaExcel/CargaExcel.jsx, /src/index.css
-12:49:52 PM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVista.jsx
-12:50:00 PM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVIsta.css
-12:50:08 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
-12:50:16 PM [vite] (client) hmr update /src/pages/Unidades/DetalleUnidad.jsx, /src/index.css
-12:50:37 PM [vite] (client) hmr update /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/index.css
-12:50:39 PM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
+  ➜  Network: http://192.168.1.72:5173/
+11:54:07 PM [vite] (client) hmr update /src/index.css
+11:54:31 PM [vite] (client) hmr update /src/components/GlobalClock/GlobalClock.jsx, /src/index.css
+11:57:37 PM [vite] (client) hmr update /src/index.css
+11:58:06 PM [vite] (client) hmr update /src/components/GlobalClock/GlobalClock.jsx, /src/index.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteGeneral.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteUnidades.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/components/TransportCard.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/CargaExcel.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVIsta.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/CentroControl.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/Detalle/DetalleUnidades.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/Menu/Menu.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/Reportes/ResumenDespacho.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/DetalleUnidad.css
+12:02:22 AM [vite] (client) hmr update /src/index.css, /src/pages/Usuarios/Usuarios.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteGeneral.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteUnidades.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/components/TransportCard.css
+12:02:40 AM [vite] (client) hmr update /src/index.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/CargaExcel.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVIsta.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/CentroControl.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/Detalle/DetalleUnidades.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/Menu/Menu.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/Reportes/ResumenDespacho.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/DetalleUnidad.css
+12:02:40 AM [vite] (client) hmr update /src/index.css, /src/pages/Usuarios/Usuarios.css
+12:03:08 AM [vite] (client) hmr update /src/index.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteGeneral.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteUnidades.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/components/TransportCard.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/CargaExcel.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVIsta.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/CentroControl.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/Detalle/DetalleUnidades.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Menu/Menu.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Reportes/ResumenDespacho.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/DetalleUnidad.css
+12:03:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Usuarios/Usuarios.css
+12:04:19 AM [vite] (client) hmr update /src/index.css, /src/pages/Menu/Menu.css
+12:08:21 AM [vite] (client) hmr update /src/index.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteGeneral.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteUnidades.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/pages/Menu/Menu.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/pages/Reportes/ResumenDespacho.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/DetalleUnidad.css
+12:08:52 AM [vite] (client) hmr update /src/index.css, /src/pages/Usuarios/Usuarios.css
+12:09:14 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/CentroControl.css
+12:12:32 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css
+12:12:32 AM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/DetalleUnidad.css
+12:12:50 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css
+12:21:15 AM [vite] (client) hmr update /src/index.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteGeneral.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteUnidades.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/components/TransportCard.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/CargaExcel.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVIsta.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/Detalle/DetalleUnidades.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/pages/Reportes/ResumenDespacho.css
+12:21:49 AM [vite] (client) hmr update /src/index.css, /src/pages/Usuarios/Usuarios.css
+12:22:11 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/CargaExcel.css
+12:22:25 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/CargaExcel.css
+12:22:35 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/CargaExcel.css
+12:28:06 AM [vite] (client) hmr update /src/index.css
+12:33:51 AM [vite] (client) hmr update /src/index.css, /src/components/TransportCard.css
+12:33:51 AM [vite] (client) hmr update /src/index.css, /src/pages/Usuarios/Usuarios.css
+12:33:51 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/Detalle/DetalleUnidades.css
+12:49:03 AM [vite] (client) page reload src/assets/urbanus.PNG
+12:49:03 AM [vite] (client) page reload src/assets/alimentadora.PNG
+12:49:03 AM [vite] (client) hmr update /src/components/Reportes/PlantillaReporteGeneral.jsx
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] Internal server error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+      at TransformPluginContext._formatLog (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30602:39)
+      at TransformPluginContext.error (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30599:14)
+      at normalizeUrl (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27842:18)
+      at async file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27905:30
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27873:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30387:14)
+      at async loadAndTransform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:24646:26)
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] Internal server error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+      at TransformPluginContext._formatLog (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30602:39)
+      at TransformPluginContext.error (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30599:14)
+      at normalizeUrl (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27842:18)
+      at async file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27905:30
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27873:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30387:14)
+      at async loadAndTransform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:24646:26)
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] Internal server error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+      at TransformPluginContext._formatLog (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30602:39)
+      at TransformPluginContext.error (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30599:14)
+      at normalizeUrl (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27842:18)
+      at async file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27905:30
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27873:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30387:14)
+      at async loadAndTransform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:24646:26)
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.jsx, /src/pages/Encierro/DashboardEncierro.jsx, /src/pages/CentroControl/CentroControl.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteUnidades.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Encierro/DashboardEncierro.jsx, /src/pages/Encierro/DetalleUnidadEncierro.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.jsx, /src/components/Header/Header.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.jsx, /src/pages/Unidades/DetalleUnidad.jsx, /src/components/Checklist/FleetSelection.jsx
+12:49:16 AM [vite] (client) hmr update /src/pages/CentroControl/CentroControl.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/pages/CheckList/CheckList.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/pages/CheckList/HistorialCheckList.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/pages/Reportes/ResumenDespacho.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
+12:49:36 AM [vite] (client) hmr update /src/App.jsx, /src/index.css
+12:50:03 AM [vite] (client) hmr update /src/pages/CheckList/CheckList.jsx, /src/index.css

@@ -22,7 +22,7 @@
 }
 
 .transport-card:focus-visible {
-  outline: 2px solid var(--color-blue, #2563eb);
+  outline: 2px solid var(--state-blue-bg);
   outline-offset: 4px;
   border-radius: 8px;
 }
@@ -48,7 +48,7 @@
   margin: 0;
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--color-text-dark, #1a1a1a);
+  color: var(--tw-color-gray-900);
   letter-spacing: -0.02em;
 }
 
@@ -58,7 +58,7 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-gold, #bc9b6a);
+  color: var(--brand-gold-text);
 }
 
 /* Responsive */
@@ -74,8 +74,8 @@
   top: 12px;
   left: 12px;
   z-index: 10;
-  background-color: #6b1d33;
-  color: white;
+  background-color: var(--brand-maroon-text);
+  color: var(--tw-color-white);
   width: 32px;
   height: 32px;
   border-radius: 50%;

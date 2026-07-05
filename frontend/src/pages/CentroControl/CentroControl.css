@@ -1,28 +1,28 @@
 /* src/pages/CentroControl/CentroControl.css */
 
 :root {
-  --cc-maroon: #601a2a;
-  --cc-maroon-dark: #4a1320;
-  --cc-gold: #c5a059;
-  --cc-gold-light: #eab308;
-  --cc-green: #2f6b3a;
-  --cc-blue: #1d4ed8;
+  --cc-maroon: var(--brand-maroon-text);
+  --cc-maroon-dark: var(--brand-maroon-bg);
+  --cc-gold: var(--brand-gold-text);
+  --cc-gold-light: var(--brand-gold-text);
+  --cc-green: var(--state-green-text);
+  --cc-blue: var(--state-blue-text);
 
   /* Colores semánticos de estatus (consistentes en todas las tarjetas) */
-  --cc-operacion: #16a34a;
-  --cc-operacion-bg: #ecfdf3;
-  --cc-reserva: #d4a017;
-  --cc-reserva-bg: #fef9ec;
-  --cc-mantenimiento: #dc2626;
-  --cc-mantenimiento-bg: #fef2f2;
-  --cc-otros: #6b7280;
-  --cc-otros-bg: #f3f4f6;
+  --cc-operacion: var(--state-green-text);
+  --cc-operacion-bg: var(--state-green-light);
+  --cc-reserva: var(--brand-gold-text);
+  --cc-reserva-bg: var(--brand-gold-light);
+  --cc-mantenimiento: var(--state-red-text);
+  --cc-mantenimiento-bg: var(--state-red-light);
+  --cc-otros: var(--state-gray-text);
+  --cc-otros-bg: var(--state-gray-light);
 
-  --cc-bg: #f5f5f5;
-  --cc-card-bg: #ffffff;
-  --cc-text: #1f2937;
-  --cc-text-muted: #6b7280;
-  --cc-border: #e9e5e0;
+  --cc-bg: var(--tw-color-gray-50);
+  --cc-card-bg: var(--tw-color-white);
+  --cc-text: var(--tw-color-gray-900);
+  --cc-text-muted: var(--tw-color-gray-500);
+  --cc-border: var(--tw-color-gray-200);
   --cc-radius: 16px;
   --cc-shadow: 0 4px 16px rgba(96, 26, 42, 0.08);
   --cc-font: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -273,7 +273,7 @@
   height: 10px;
   border-radius: 999px;
   overflow: hidden;
-  background: #f1f0ee;
+  background: var(--tw-color-gray-50);
   margin-bottom: 16px;
 }
 
@@ -302,7 +302,7 @@
 }
 
 .centro-status-row:hover {
-  background: #faf9f7;
+  background: var(--tw-color-gray-50);
 }
 
 .centro-status-dot {
@@ -390,12 +390,12 @@
 
 .centro-btn--primary {
   background: var(--cc-maroon);
-  color: #fff;
+  color: var(--tw-color-white);
   box-shadow: 0 6px 16px rgba(96, 26, 42, 0.25);
 }
 
 .centro-btn--secondary {
-  background: #fff;
+  background: var(--tw-color-white);
   color: var(--cc-maroon);
   border: 1.5px solid var(--cc-maroon);
 }
@@ -405,7 +405,7 @@
   width: 14px;
   height: 14px;
   border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
+  border-top-color: var(--tw-color-white);
   border-radius: 50%;
   display: inline-block;
   animation: centro-spin 0.7s linear infinite;
