@@ -7,7 +7,7 @@
 .rpu-root {
   font-family: Arial, Helvetica, sans-serif;
   width: 794px;
-  background-color: #f0ece4;
+  background-color: var(--tw-color-gray-50);
   border-radius: 10px;
   overflow: hidden;
   margin: 0 auto;
@@ -16,7 +16,7 @@
 
 /* ── HEADER ──────────────────────────────────────────────── */
 .rpu-header {
-  background-color: #5d1033;
+  background-color: var(--brand-maroon-text);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24,7 +24,7 @@
 }
 
 .rpu-header-title p {
-  color: white;
+  color: var(--tw-color-white);
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 0.5px;
@@ -55,13 +55,13 @@
 .rpu-logo-small {
   font-size: 13px;
   font-weight: 400;
-  color: white;
+  color: var(--tw-color-white);
 }
 
 .rpu-logo-big {
   font-size: 18px;
   font-weight: 700;
-  color: white;
+  color: var(--tw-color-white);
 }
 
 /* ── FECHA ───────────────────────────────────────────────── */
@@ -75,16 +75,16 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  border: 3px solid #c5a059;
+  border: 3px solid var(--brand-gold-text);
   border-radius: 10px;
   padding: 10px 30px;
-  background-color: white;
+  background-color: var(--tw-color-white);
 }
 
 .rpu-fecha-text {
   font-size: 26px;
   font-weight: 900;
-  color: #5d1033;
+  color: var(--brand-maroon-text);
   letter-spacing: 0.5px;
 }
 
@@ -100,7 +100,7 @@
 .rpu-row {
   display: flex;
   align-items: center;
-  background-color: #f4eada;
+  background-color: var(--tw-color-gray-50);
   border-radius: 10px;
   overflow: hidden;
   min-height: 100px;
@@ -108,7 +108,7 @@
 
 /* Imagen */
 .rpu-row-img {
-  background-color: #e8d9bf;
+  background-color: var(--tw-color-gray-50);
   padding: 12px 18px;
   display: flex;
   align-items: center;
@@ -133,7 +133,7 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: white;
+  color: var(--tw-color-white);
   font-weight: 700;
   text-align: center;
   padding: 6px;
@@ -163,8 +163,8 @@
 .rpu-stat-label {
   font-size: 12px;
   font-weight: 700;
-  color: #5d1033;
-  background-color: #e8d9bf;
+  color: var(--brand-maroon-text);
+  background-color: var(--tw-color-gray-50);
   padding: 4px 14px;
   border-radius: 4px;
   letter-spacing: 0.5px;
@@ -177,13 +177,13 @@
 .rpu-stat-num {
   font-size: 44px;
   font-weight: 900;
-  color: #5d1033;
+  color: var(--brand-maroon-text);
   line-height: 1;
 }
 
 /* ── FOOTER TOTALES ──────────────────────────────────────── */
 .rpu-footer {
-  background-color: #f4eada;
+  background-color: var(--tw-color-gray-50);
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -199,7 +199,7 @@
 }
 
 .rpu-icon-box {
-  background-color: #5d1033;
+  background-color: var(--brand-maroon-text);
   border-radius: 10px;
   width: 60px;
   height: 60px;
@@ -212,7 +212,7 @@
 .rpu-total-label {
   font-size: 13px;
   font-weight: 700;
-  color: #5d1033;
+  color: var(--brand-maroon-text);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   line-height: 1.5;
@@ -221,14 +221,14 @@
 .rpu-total-num {
   font-size: 44px;
   font-weight: 900;
-  color: #5d1033;
+  color: var(--brand-maroon-text);
   line-height: 1;
 }
 
 .rpu-divider {
   width: 2px;
   height: 70px;
-  background-color: #e8d9bf;
+  background-color: var(--tw-color-gray-50);
 }
 
 .rpu-logo-img {

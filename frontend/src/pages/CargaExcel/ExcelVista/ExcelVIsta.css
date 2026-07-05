@@ -68,17 +68,17 @@
 .search-input {
   padding: 0.5rem 0.75rem 0.5rem 2.2rem;
   font-size: 0.875rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--tw-color-gray-300);
   border-radius: 6px;
   width: 200px;
   outline: none;
-  background-color: #f9fafb;
+  background-color: var(--tw-color-gray-50);
   transition: all 0.2s ease;
   font-family: inherit;
 }
 
 .search-input:focus {
-  background-color: #ffffff;
+  background-color: var(--tw-color-white);
   border-color: var(--color-gold);
   box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
   width: 250px;
@@ -87,9 +87,9 @@
 .table-wrapper {
   overflow: auto;
   max-height: 520px;
-  background: white;
+  background: var(--tw-color-white);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--tw-color-gray-200);
   position: relative;
 }
 
@@ -99,15 +99,15 @@
   height: 8px;
 }
 .table-wrapper::-webkit-scrollbar-track {
-  background: #f9f9fb;
+  background: var(--tw-color-gray-50);
   border-radius: 4px;
 }
 .table-wrapper::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: var(--tw-color-gray-300);
   border-radius: 4px;
 }
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: var(--tw-color-gray-400);
 }
 
 .excel-preview-table {
@@ -119,7 +119,7 @@
 
 .excel-preview-table th {
   background-color: var(--color-primary);
-  color: white;
+  color: var(--tw-color-white);
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -146,7 +146,7 @@
   padding: 0.3rem 0.5rem;
   border-bottom: 1px solid #f3f4f6;
   vertical-align: middle;
-  background-color: #ffffff;
+  background-color: var(--tw-color-white);
   transition: background-color 0.15s ease;
 }
 
@@ -155,11 +155,11 @@
 }
 
 .excel-preview-table tbody tr:hover td {
-  background-color: #fcfbf7 !important;
+  background-color: var(--tw-color-gray-50) !important;
 }
 
 .excel-preview-table tbody tr:nth-child(even) td {
-  background-color: #fdfdfd;
+  background-color: var(--tw-color-gray-50);
 }
 
 /* Edit Inputs */
@@ -172,20 +172,20 @@
   border-radius: 4px;
   outline: none;
   transition: all 0.15s ease;
-  color: #374151;
+  color: var(--tw-color-gray-700);
   box-sizing: border-box;
 }
 
 .edit-input:hover {
-  background-color: #f3f4f6;
-  border-color: #e5e7eb;
+  background-color: var(--tw-color-gray-50);
+  border-color: var(--tw-color-gray-200);
 }
 
 .edit-input:focus {
-  background-color: #ffffff;
+  background-color: var(--tw-color-white);
   border-color: var(--color-gold);
   box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
-  color: #000000;
+  color: var(--tw-color-gray-900);
   font-weight: 500;
 }
 
@@ -204,7 +204,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fffbef;
+  background: var(--tw-color-gray-50);
   border: 1px solid #fef08a;
   padding: 0.85rem 1.25rem;
   border-radius: 8px;
@@ -214,7 +214,7 @@
 .cambios-advertencia {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #854d0e;
+  color: var(--brand-gold-text);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -223,14 +223,14 @@
 .pulsing-dot {
   width: 8px;
   height: 8px;
-  background-color: #eab308;
+  background-color: var(--brand-gold-text);
   border-radius: 50%;
   display: inline-block;
   animation: pulse 1.5s infinite;
 }
 
 .save-changes-btn {
-  background-color: #854d0e;
+  background-color: var(--brand-gold-text);
   border: none;
   font-size: 0.9rem;
   padding: 0.5rem 1.25rem;
@@ -238,7 +238,7 @@
 }
 
 .save-changes-btn:hover:not(:disabled) {
-  background-color: #713f12;
+  background-color: var(--brand-gold-text);
   box-shadow: 0 4px 6px rgba(113, 63, 18, 0.15);
 }
 

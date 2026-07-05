@@ -2,9 +2,9 @@
 
 .detalle-page {
   min-height: 100vh;
-  background: var(--cc-bg, #f5f5f5);
+  background: var(--tw-color-gray-50);
   font-family: var(--cc-font, 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif);
-  color: var(--cc-text, #1f2937);
+  color: var(--tw-color-gray-900);
 }
 
 .detalle-main {
@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  background: var(--cc-card-bg, #fff);
+  background: var(--tw-color-white);
   border-radius: var(--cc-radius, 16px);
   box-shadow: var(--cc-shadow, 0 4px 16px rgba(96, 26, 42, 0.08));
   padding: 24px;
@@ -35,13 +35,13 @@
 .detalle-hero__title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--cc-maroon, #601a2a);
+  color: var(--brand-maroon-text);
   margin: 0 0 4px;
 }
 
 .detalle-hero__subtitle {
   font-size: 0.9rem;
-  color: var(--cc-text-muted, #6b7280);
+  color: var(--tw-color-gray-500);
   margin: 0;
 }
 
@@ -60,7 +60,7 @@
 }
 
 .detalle-kpi {
-  background: var(--cc-card-bg, #fff);
+  background: var(--tw-color-white);
   border-radius: 14px;
   box-shadow: var(--cc-shadow, 0 4px 16px rgba(96, 26, 42, 0.08));
   padding: 16px 18px;
@@ -80,28 +80,28 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--cc-text-muted, #6b7280);
+  color: var(--tw-color-gray-500);
 }
 
 .detalle-kpi--operacion {
-  border-left-color: var(--cc-operacion, #16a34a);
+  border-left-color: var(--state-green-text);
 }
 .detalle-kpi--operacion .detalle-kpi__value {
-  color: var(--cc-operacion, #16a34a);
+  color: var(--state-green-text);
 }
 
 .detalle-kpi--reserva {
-  border-left-color: var(--cc-reserva, #d4a017);
+  border-left-color: var(--brand-gold-text);
 }
 .detalle-kpi--reserva .detalle-kpi__value {
-  color: #92720f;
+  color: var(--brand-gold-text);
 }
 
 .detalle-kpi--mantenimiento {
-  border-left-color: var(--cc-mantenimiento, #dc2626);
+  border-left-color: var(--state-red-text);
 }
 .detalle-kpi--mantenimiento .detalle-kpi__value {
-  color: var(--cc-mantenimiento, #dc2626);
+  color: var(--state-red-text);
 }
 
 /* ---------- Tabs de filtro ---------- */
@@ -118,32 +118,32 @@
   font-weight: 600;
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1.5px solid var(--cc-border, #e9e5e0);
-  background: #fff;
-  color: var(--cc-text-muted, #6b7280);
+  border: 1.5px solid var(--tw-color-gray-200);
+  background: var(--tw-color-white);
+  color: var(--tw-color-gray-500);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .detalle-tab:hover {
-  border-color: var(--cc-maroon, #601a2a);
-  color: var(--cc-maroon, #601a2a);
+  border-color: var(--brand-maroon-text);
+  color: var(--brand-maroon-text);
 }
 
 .detalle-tab.is-active {
-  background: var(--cc-maroon, #601a2a);
-  border-color: var(--cc-maroon, #601a2a);
-  color: #fff;
+  background: var(--brand-maroon-text);
+  border-color: var(--brand-maroon-text);
+  color: var(--tw-color-white);
 }
 
-.detalle-tab--operacion.is-active { background: var(--cc-operacion, #16a34a); border-color: var(--cc-operacion, #16a34a); }
-.detalle-tab--reserva.is-active { background: var(--cc-reserva, #d4a017); border-color: var(--cc-reserva, #d4a017); }
-.detalle-tab--mantenimiento.is-active { background: var(--cc-mantenimiento, #dc2626); border-color: var(--cc-mantenimiento, #dc2626); }
-.detalle-tab--otros.is-active { background: var(--cc-otros, #6b7280); border-color: var(--cc-otros, #6b7280); }
+.detalle-tab--operacion.is-active { background: var(--state-green-text); border-color: var(--state-green-text); }
+.detalle-tab--reserva.is-active { background: var(--brand-gold-text); border-color: var(--brand-gold-text); }
+.detalle-tab--mantenimiento.is-active { background: var(--state-red-text); border-color: var(--state-red-text); }
+.detalle-tab--otros.is-active { background: var(--state-gray-text); border-color: var(--state-gray-text); }
 
 /* ---------- Tabla de unidades ---------- */
 .detalle-table {
-  background: var(--cc-card-bg, #fff);
+  background: var(--tw-color-white);
   border-radius: var(--cc-radius, 16px);
   box-shadow: var(--cc-shadow, 0 4px 16px rgba(96, 26, 42, 0.08));
   overflow: hidden;
@@ -170,13 +170,13 @@
 }
 
 .detalle-table__head {
-  background: #faf9f7;
+  background: var(--tw-color-gray-50);
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--cc-text-muted, #6b7280);
-  border-bottom: 1px solid var(--cc-border, #e9e5e0);
+  color: var(--tw-color-gray-500);
+  border-bottom: 1px solid var(--tw-color-gray-200);
 }
 
 .detalle-table__body {
@@ -185,7 +185,7 @@
 }
 
 .detalle-table__row {
-  border-bottom: 1px solid var(--cc-border, #e9e5e0);
+  border-bottom: 1px solid var(--tw-color-gray-200);
   transition: background 0.15s ease;
 }
 
@@ -194,17 +194,17 @@
 }
 
 .detalle-table__row:hover {
-  background: #faf9f7;
+  background: var(--tw-color-gray-50);
 }
 
 .detalle-table__cell {
   font-size: 0.85rem;
-  color: var(--cc-text, #1f2937);
+  color: var(--tw-color-gray-900);
 }
 
 .detalle-table__cell--unidad {
   font-weight: 700;
-  color: var(--cc-maroon, #601a2a);
+  color: var(--brand-maroon-text);
 }
 
 .detalle-table__status {
@@ -216,35 +216,35 @@
 }
 
 .detalle-table__status--operacion {
-  color: var(--cc-operacion, #16a34a);
-  background: var(--cc-operacion-bg, #ecfdf3);
+  color: var(--state-green-text);
+  background: var(--state-green-light);
 }
 
 .detalle-table__status--reserva {
-  color: #92720f;
-  background: var(--cc-reserva-bg, #fef9ec);
+  color: var(--brand-gold-text);
+  background: var(--brand-gold-light);
 }
 
 .detalle-table__status--mantenimiento {
-  color: var(--cc-mantenimiento, #dc2626);
-  background: var(--cc-mantenimiento-bg, #fef2f2);
+  color: var(--state-red-text);
+  background: var(--state-red-light);
 }
 
 .detalle-table__status--otros {
-  color: var(--cc-otros, #6b7280);
-  background: var(--cc-otros-bg, #f3f4f6);
+  color: var(--state-gray-text);
+  background: var(--state-gray-light);
 }
 
 .detalle-empty {
   text-align: center;
-  color: var(--cc-text-muted, #6b7280);
+  color: var(--tw-color-gray-500);
   font-size: 0.9rem;
   padding: 40px 0;
 }
 
 /* ---------- Estado vacío (sin datos en el state) ---------- */
 .detalle-empty-state {
-  background: var(--cc-card-bg, #fff);
+  background: var(--tw-color-white);
   border-radius: var(--cc-radius, 16px);
   box-shadow: var(--cc-shadow, 0 4px 16px rgba(96, 26, 42, 0.08));
   padding: 40px 24px;
@@ -255,11 +255,11 @@
 
 .detalle-empty-state p {
   margin: 0 0 8px;
-  color: var(--cc-text, #1f2937);
+  color: var(--tw-color-gray-900);
 }
 
 .detalle-empty-state__hint {
-  color: var(--cc-text-muted, #6b7280);
+  color: var(--tw-color-gray-500);
   font-size: 0.85rem;
   margin-bottom: 20px !important;
 }
