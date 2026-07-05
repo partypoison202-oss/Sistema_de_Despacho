@@ -87,3 +87,142 @@
 12:33:51 AM [vite] (client) hmr update /src/index.css, /src/components/TransportCard.css
 12:33:51 AM [vite] (client) hmr update /src/index.css, /src/pages/Usuarios/Usuarios.css
 12:33:51 AM [vite] (client) hmr update /src/index.css, /src/pages/CentroControl/Detalle/DetalleUnidades.css
+12:49:03 AM [vite] (client) page reload src/assets/urbanus.PNG
+12:49:03 AM [vite] (client) page reload src/assets/alimentadora.PNG
+12:49:03 AM [vite] (client) hmr update /src/components/Reportes/PlantillaReporteGeneral.jsx
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] Internal server error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+      at TransformPluginContext._formatLog (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30602:39)
+      at TransformPluginContext.error (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30599:14)
+      at normalizeUrl (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27842:18)
+      at async file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27905:30
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27873:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30387:14)
+      at async loadAndTransform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:24646:26)
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] Internal server error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+      at TransformPluginContext._formatLog (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30602:39)
+      at TransformPluginContext.error (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30599:14)
+      at normalizeUrl (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27842:18)
+      at async file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27905:30
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27873:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30387:14)
+      at async loadAndTransform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:24646:26)
+12:49:04 AM [vite] (client) Pre-transform error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+12:49:04 AM [vite] Internal server error: Failed to resolve import "../../assets/logo-stm.png" from "src/components/Reportes/PlantillaReporteGeneral.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/src/components/Reportes/PlantillaReporteGeneral.jsx:4:20
+  1  |  import React from "react";
+  2  |  import "./PlantillaReporteGeneral.css";
+  3  |  import logoSTM from "../../assets/logo-stm.png";
+     |                       ^
+  4  |  import urbanusImg from "../../assets/urbanus.PNG";
+  5  |  import alimentadoraImg from "../../assets/alimentadora.PNG";
+      at TransformPluginContext._formatLog (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30602:39)
+      at TransformPluginContext.error (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30599:14)
+      at normalizeUrl (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27842:18)
+      at async file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27905:30
+      at async Promise.all (index 2)
+      at async TransformPluginContext.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:27873:4)
+      at async EnvironmentPluginContainer.transform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:30387:14)
+      at async loadAndTransform (file:///Users/EnriqueHH/Dev/projects/Sistema_de_Despacho/frontend/node_modules/vite/dist/node/chunks/node.js:24646:26)
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.jsx, /src/pages/Encierro/DashboardEncierro.jsx, /src/pages/CentroControl/CentroControl.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/components/Reportes/PlantillaReporteUnidades.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Encierro/DashboardEncierro.jsx, /src/pages/Encierro/DetalleUnidadEncierro.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.jsx, /src/components/Header/Header.jsx
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.jsx, /src/pages/Unidades/DetalleUnidad.jsx, /src/components/Checklist/FleetSelection.jsx
+12:49:16 AM [vite] (client) hmr update /src/pages/CentroControl/CentroControl.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/pages/CheckList/CheckList.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/pages/CheckList/HistorialCheckList.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/pages/Reportes/ResumenDespacho.jsx, /src/index.css
+12:49:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Encierro/DetalleUnidadEncierro.jsx, /src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
+12:49:36 AM [vite] (client) hmr update /src/App.jsx, /src/index.css
+12:50:03 AM [vite] (client) hmr update /src/pages/CheckList/CheckList.jsx, /src/index.css

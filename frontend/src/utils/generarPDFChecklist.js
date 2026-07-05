@@ -107,7 +107,7 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
 
         // Dibujo de observaciones (si existe)
         if (checklist.dibujo) {
-            const blueprintUrl = `/images/${(checklist.tipo_unidad || 'hero').toLowerCase()}.png`;
+            const blueprintUrl = `/images/${(checklist.tipo_unidad || 'hero').toLowerCase()}.webp`;
             const [blueprintImg, drawingImg] = await Promise.all([
                 loadImage(blueprintUrl),
                 loadImage(checklist.dibujo)

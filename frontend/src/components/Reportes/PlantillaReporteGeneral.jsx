@@ -1,9 +1,9 @@
 import React from 'react';
 import './PlantillaReporteGeneral.css';
 
-import logoSTM from '../../assets/logo-stm.png';
-import urbanusImg from '../../assets/urbanus.PNG';
-import alimentadoraImg from '../../assets/alimentadora.PNG';
+import logoSTM from '../../assets/logo-stm.webp';
+import urbanusImg from '../../assets/urbanus.webp';
+import alimentadoraImg from '../../assets/alimentadora.webp';
 
 const PlantillaReporteGeneral = ({ data }) => {
   if (!data || !data.length) return null;

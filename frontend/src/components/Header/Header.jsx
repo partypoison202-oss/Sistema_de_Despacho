@@ -98,7 +98,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
           <div className="app-header__center">
             <div className="app-header__brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
               <img 
-                src="/images/sitmah_logo.png" 
+                src="/images/sitmah_logo.webp" 
                 alt="Logo SITMAH" 
                 className="app-header__brand-logo-2" 
               />

@@ -254,7 +254,7 @@ export default function HistorialCheckList() {
 
             // Dibujo de observaciones (si existe)
             if (checklist.dibujo) {
-                const blueprintUrl = `/images/${(checklist.tipo_unidad || 'hero').toLowerCase()}.png`;
+                const blueprintUrl = `/images/${(checklist.tipo_unidad || 'hero').toLowerCase()}.webp`;
                 const [blueprintImg, drawingImg] = await Promise.all([
                     loadImage(blueprintUrl),
                     loadImage(checklist.dibujo)
@@ -779,11 +779,11 @@ export default function HistorialCheckList() {
                                 <h5 className="mb-3 text-sm font-bold text-gray-800">Referencia Visual (Marcas)</h5>
                                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-2 max-w-2xl mx-auto overflow-hidden shadow-sm relative">
                                     <img
-                                        src={`/images/${(previewChecklist.tipo_unidad || 'hero').toLowerCase()}.png`}
+                                        src={`/images/${(previewChecklist.tipo_unidad || 'hero').toLowerCase()}.webp`}
                                         alt="Blueprint"
                                         className="w-full object-contain opacity-60"
                                         style={{ aspectRatio: '5/3' }}
-                                        onError={(e) => { e.target.src = '/images/hero.png'; }}
+                                        onError={(e) => { e.target.src = '/images/hero.webp'; }}
                                     />
                                     <img 
                                         src={previewChecklist.dibujo} 

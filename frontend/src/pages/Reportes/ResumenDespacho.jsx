@@ -20,10 +20,10 @@ import Swal from 'sweetalert2';
 import './ResumenDespacho.css';
 
 const modelsConfig = [
-  { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanu-frente.png' },
-  { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafiro delante.png' },
-  { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.png' },
-  { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.PNG' }
+  { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanu-frente.webp' },
+  { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafiro delante.webp' },
+  { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.webp' },
+  { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.webp' }
 ];
 
 const COLORS = ['#601a2a', '#c5a059', '#78350f', '#eab308']; // Colores de la dona
@@ -185,7 +185,7 @@ export default function ResumenDespacho() {
               <h2>Sistema Integrado de Transporte Masivo de Hidalgo</h2>
             </div>
             <div className="banner-right">
-              <img src="/images/sistema de tm.png" alt="Sistema de Transporte Metropolitano" />
+              <img src="/images/sistema de tm.webp" alt="Sistema de Transporte Metropolitano" />
             </div>
           </div>
           <div className="resumen-date">
