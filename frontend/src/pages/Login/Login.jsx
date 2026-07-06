@@ -41,6 +41,8 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorUsuario, setErrorUsuario] = useState('');
+  const [errorPassword, setErrorPassword] = useState('');
   const { login, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -53,6 +55,27 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    if (!username.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Usuario requerido',
+        text: 'Por favor, debes poner tu nombre de usuario.',
+        confirmButtonColor: '#c5a059'
+      });
+      return;
+    }
+
+    if (!password.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Contraseña requerida',
+        text: 'Por favor, debes poner tu contraseña.',
+        confirmButtonColor: '#c5a059'
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -152,11 +175,15 @@ export default function Login() {
                     type="text"
                     id="username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                        setUsername(e.target.value);
+                        if (errorUsuario) setErrorUsuario('');
+                    }}
                     placeholder="Ingrese su usuario"
-                    required
                     disabled={isSubmitting}
+                    className={errorUsuario ? "border-red-500" : ""}
                   />
+                  {errorUsuario && <span className="text-red-500 text-xs font-semibold mt-1">{errorUsuario}</span>}
                 </div>
 
                 <div className="login__field">
@@ -167,11 +194,15 @@ export default function Login() {
                     type="password"
                     id="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errorPassword) setErrorPassword('');
+                    }}
                     placeholder="••••••••"
-                    required
                     disabled={isSubmitting}
+                    className={errorPassword ? "border-red-500" : ""}
                   />
+                  {errorPassword && <span className="text-red-500 text-xs font-semibold mt-1">{errorPassword}</span>}
                 </div>
 
                 <button type="submit" className="login__submit-btn" disabled={isSubmitting}>

@@ -160,9 +160,9 @@ export default function DashboardEncierro() {
       <div className="dashboard">
         <Header />
         <main className="dashboard__main">
-          <p className="dashboard__eyebrow">Seleccione el tipo de transporte</p>
-          <h1 className="dashboard__title">Flota de Unidades</h1>
-          <p className="dashboard__subtitle">
+          <p className="dashboard__eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
+          <h1 className="dashboard__title text-gray-900 dark:text-white">Flota de Unidades</h1>
+          <p className="dashboard__subtitle text-gray-500 dark:text-gray-300">
             Toque la imagen del transporte para comenzar el registro de encierro
           </p>
 

@@ -3,16 +3,10 @@
 > vite --host
 
 
-  VITE v8.0.16  ready in 260 ms
+  VITE v8.0.16  ready in 267 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.3.132:5173/
-11:07:26 AM [vite] (client) hmr update /src/App.jsx, /src/index.css
-11:07:26 AM [vite] (client) hmr update /src/pages/CargaExcel/CargaExcel.jsx, /src/index.css
-11:07:26 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVista.jsx
-11:07:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.css
-11:07:26 AM [vite] (client) hmr update /src/pages/Dashboard/Dashboard.jsx, /src/index.css
-11:07:26 AM [vite] (client) hmr update /src/pages/Unidades/DetalleUnidad.jsx, /src/index.css
-11:08:04 AM [vite] (client) hmr update /src/pages/General/DashboardGeneral.jsx, /src/index.css
-11:08:18 AM [vite] (client) hmr update /src/pages/General/DetalleUnidad.jsx, /src/index.css
-11:08:26 AM [vite] (client) hmr update /src/pages/Dashboard/Dashboard.jsx, /src/index.css
+2:32:51 PM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css
+2:34:01 PM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.jsx
+2:34:09 PM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.css

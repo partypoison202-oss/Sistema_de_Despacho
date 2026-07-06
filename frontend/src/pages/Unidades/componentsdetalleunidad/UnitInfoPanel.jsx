@@ -6,6 +6,7 @@ import ChecklistForm from '../../CheckList/CheckList';
 import CONDUCTORES from '../../../data/conductores';
 import { generarPDFChecklist } from '../../../utils/generarPDFChecklist';
 import API_BASE from '../../../config/api';
+import Swal from 'sweetalert2';
 
 
 export default function UnitInfoPanel({
@@ -82,7 +83,7 @@ export default function UnitInfoPanel({
   const getConductorDisplay = () => {
     const val = datosOperativos.conductor;
     if (!val || val === 'Sin conductor') return 'No asignado';
-    
+
     const isNum = !isNaN(val) && String(val).trim() !== '';
     if (isNum) {
       const found = CONDUCTORES.find(c => c.id === Number(val));
@@ -122,7 +123,7 @@ export default function UnitInfoPanel({
     setHasCompletedChecklist(false);
     setShowChecklist(false);
     setViewingChecklist(false);
-    
+
     if (selectedOption) {
       const ecoNum = selectedOption.replace(/\D/g, '');
       if (ecoNum) {
@@ -236,10 +237,10 @@ export default function UnitInfoPanel({
                       onClick={handleConfirmTarjeton}
                       disabled={guardandoTarjeton}
                       title="Guardar"
-                      style={{ background: 'transparent', color: '#16a34a', border: 'none', cursor: guardandoTarjeton ? 'wait' : 'pointer', padding: '0.2rem', display: 'flex' }}
+                      style={{ background: 'transparent', color: 'var(--state-green-text)', border: 'none', cursor: guardandoTarjeton ? 'wait' : 'pointer', padding: '0.2rem', display: 'flex' }}
                     >
                       {guardandoTarjeton ? (
-                        <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', margin: 0, borderColor: 'rgba(22, 163, 74, 0.2)', borderTopColor: '#16a34a', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                        <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', margin: 0, borderColor: 'rgba(22, 163, 74, 0.2)', borderTopColor: 'var(--state-green-text)', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
                       ) : (
                         <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                       )}
@@ -268,7 +269,7 @@ export default function UnitInfoPanel({
                   <button
                     onClick={() => setEditandoTarjeton(true)}
                     title="Asignar Conductor por Tarjetón"
-                    style={{ background: 'transparent', color: '#94a3b8', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
+                    style={{ background: 'transparent', color: 'var(--tw-color-gray-400)', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
                   >
                     <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -288,7 +289,7 @@ export default function UnitInfoPanel({
             </svg>
             <h3 className="info-card__title">Despacho Operativo</h3>
           </div>
-          <div className="info-card__body spec-badges" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="info-card__body spec-badges" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
             <div className="info-card__item">
               <span className="info-card__label">Corrida</span>
               <div className="badge-display badge-display--maroon">
@@ -327,14 +328,14 @@ export default function UnitInfoPanel({
             {/* Toggle: ¿Hubo corridas perdidas? */}
             <div className="info-card__item">
               <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
-              <div style={{ 
-                display: 'flex', 
-                width: '100%', 
-                marginTop: '0.25rem', 
-                height: '2.3rem', 
-                borderRadius: '0.5rem', 
-                overflow: 'hidden', 
-                border: '1px solid #e5e7eb' 
+              <div style={{
+                display: 'flex',
+                width: '100%',
+                marginTop: '0.25rem',
+                height: '2.3rem',
+                borderRadius: '0.5rem',
+                overflow: 'hidden',
+                border: '1px solid #e5e7eb'
               }}>
                 <button
                   type="button"
@@ -342,8 +343,8 @@ export default function UnitInfoPanel({
                   style={{
                     flex: 1,
                     border: 'none',
-                    background: huboCorridasPerdidas ? '#6b1d33' : '#f3f4f6',
-                    color: huboCorridasPerdidas ? '#ffffff' : '#4a5568',
+                    background: huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
+                    color: huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
                     fontWeight: 700,
                     fontSize: '0.85rem',
                     cursor: 'pointer',
@@ -359,8 +360,8 @@ export default function UnitInfoPanel({
                     flex: 1,
                     border: 'none',
                     borderLeft: '1px solid #e5e7eb',
-                    background: !huboCorridasPerdidas ? '#6b1d33' : '#f3f4f6',
-                    color: !huboCorridasPerdidas ? '#ffffff' : '#4a5568',
+                    background: !huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
+                    color: !huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
                     fontWeight: 700,
                     fontSize: '0.85rem',
                     cursor: 'pointer',
@@ -374,21 +375,21 @@ export default function UnitInfoPanel({
 
             {/* Ciclos Perdidos + Motivo: sólo se muestran si el botón "Sí" está activo */}
             {huboCorridasPerdidas && (
-              <div className="animate-fade-in-up" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="animate-fade-in-up" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
                 <div ref={ciclosRef} className="info-card__item" style={{ position: 'relative' }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
                   <button
                     type="button"
                     className="interactive-input"
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between', 
-                      padding: '0 0.85rem', 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0 0.85rem',
                       marginTop: '0.25rem',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      background: '#ffffff',
+                      background: 'var(--tw-color-white)',
                       height: '2.3rem',
                       fontSize: '0.85rem'
                     }}
@@ -401,12 +402,12 @@ export default function UnitInfoPanel({
                   </button>
 
                   {dropdownCiclosOpen && (
-                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: '#ffffff', opacity: 1, zIndex: 999 }}>
+                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
                         <button
                           type="button"
                           className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568' }}
+                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
                           onClick={() => {
                             setPerdidaCiclos('');
                             setDropdownCiclosOpen(false);
@@ -419,7 +420,7 @@ export default function UnitInfoPanel({
                             key={opt.value}
                             type="button"
                             className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', color: '#4a5568', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
+                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
                             onClick={() => {
                               setPerdidaCiclos(opt.value);
                               setDropdownCiclosOpen(false);
@@ -460,9 +461,9 @@ export default function UnitInfoPanel({
           <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginTop: '0.5rem' }}>
               {[
-                { id: 'operacion', label: 'OPERACIÓN', color: '#16a34a', bgActive: '#f0fdf4' },
-                { id: 'reserva', label: 'RESERVA', color: '#d97706', bgActive: '#fffbeb' },
-                { id: 'mantenimiento', label: 'MANTENIMIENTO', color: '#dc2626', bgActive: '#fef2f2' }
+                { id: 'operacion', label: 'OPERACIÓN', color: 'var(--state-green-text)', bgActive: '#f0fdf4' },
+                { id: 'reserva', label: 'RESERVA', color: 'var(--state-orange-text)', bgActive: 'var(--state-orange-light)' },
+                { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--state-red-text)', bgActive: 'var(--state-red-light)' }
               ].map(st => {
                 const isActive = datosOperativos.estatus === st.id;
                 return (
@@ -473,9 +474,9 @@ export default function UnitInfoPanel({
                     style={{
                       padding: '1rem 0.5rem',
                       borderRadius: '0.75rem',
-                      border: `2px solid ${isActive ? st.color : '#e2e8f0'}`,
-                      backgroundColor: isActive ? st.bgActive : '#f8fafc',
-                      color: isActive ? st.color : '#94a3b8',
+                      border: `2px solid ${isActive ? st.color : 'var(--tw-color-gray-200)'}`,
+                      backgroundColor: isActive ? st.bgActive : 'var(--tw-color-gray-50)',
+                      color: isActive ? st.color : 'var(--tw-color-gray-400)',
                       fontWeight: isActive ? 700 : 500,
                       fontSize: '0.85rem',
                       cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
@@ -487,7 +488,7 @@ export default function UnitInfoPanel({
                       opacity: (cambiandoEstatus && !isActive) ? 0.5 : 1
                     }}
                   >
-                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? st.color : '#cbd5e1' }}></div>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? st.color : 'var(--tw-color-gray-300)' }}></div>
                     {st.label}
                   </button>
                 );
@@ -498,11 +499,19 @@ export default function UnitInfoPanel({
 
         {/* CARD 4: CHECKLIST */}
         <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="info-card__header">
-            <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="info-card__title">Check List</h3>
+          <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="info-card__title">Check List</h3>
+            </div>
+            {hasCompletedChecklist && (
+              <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--state-green-light)', color: 'var(--state-green-text)', padding: '0.35rem 0.75rem', borderRadius: '9999px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                Realizado
+              </span>
+            )}
           </div>
           <div className="info-card__body" style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem', flex: 1, paddingBottom: '0.5rem', alignItems: 'stretch' }}>
             {!hasCompletedChecklist ? (
@@ -565,8 +574,8 @@ export default function UnitInfoPanel({
           </div>
           {showChecklist && !hasCompletedChecklist && (
             <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
-              <ChecklistForm 
-                inline={true} 
+              <ChecklistForm
+                inline={true}
                 prefillData={{
                   numero_eco: selectedOption ? selectedOption.replace(/\D/g, '') : '',
                   tipoTransporte: configActual.id,
@@ -592,6 +601,12 @@ export default function UnitInfoPanel({
                   setHasCompletedChecklist(true);
                   setShowChecklist(false);
                   setRecentChecklist(checklist);
+                  Swal.fire({
+                    icon: 'success',
+                    title: '¡Check list completado!',
+                    text: 'El check list ha sido guardado correctamente.',
+                    confirmButtonColor: '#6b1d33'
+                  });
                 }}
               />
             </div>
@@ -600,13 +615,13 @@ export default function UnitInfoPanel({
             const pts = typeof recentChecklist.puntos === 'string'
               ? JSON.parse(recentChecklist.puntos)
               : recentChecklist.puntos;
-            
+
             const entries = pts ? Object.entries(pts) : [];
             const totalPuntos = entries.length;
             const totalBien = entries.filter(([_, val]) => val?.estado === 'bien').length;
             const totalMal = entries.filter(([_, val]) => val?.estado === 'mal').length;
             const totalPendiente = totalPuntos - totalBien - totalMal;
-            
+
             const PUNTOS_LABEL = {
               carroceria_exterior: 'Carrocería exterior',
               mobitec: 'Mobitec',
@@ -643,14 +658,15 @@ export default function UnitInfoPanel({
                   <h4 className="text-base font-extrabold text-rose-950">
                     Puntos Evaluados
                   </h4>
-                  <button 
+                  <button
                     onClick={() => generarPDFChecklist(recentChecklist, 'download')}
-                    className="text-rose-900 hover:text-rose-950 transition-colors p-1.5 rounded-lg hover:bg-rose-50"
+                    className="flex items-center gap-2 bg-rose-50 text-rose-900 hover:bg-rose-100 transition-colors px-3 py-1.5 rounded-xl font-bold shadow-sm"
                     title="Descargar PDF"
                   >
-                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
+                    Descargar
                   </button>
                 </div>
 
@@ -694,22 +710,22 @@ export default function UnitInfoPanel({
                               ) : (
                                 <p className="mt-0.5 text-[9px] italic text-slate-400">Sin observaciones</p>
                               )}
-                              
+
                               {/* Foto de evidencia */}
                               {(val?.foto || (val?.fotos && val.fotos.length > 0)) && (
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                   {val.foto && (
-                                    <img 
-                                      src={val.foto} 
-                                      alt={`Evidencia`} 
+                                    <img
+                                      src={val.foto}
+                                      alt={`Evidencia`}
                                       className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm"
                                     />
                                   )}
                                   {val.fotos && val.fotos.map((imgUrl, fIdx) => (
-                                    <img 
+                                    <img
                                       key={fIdx}
-                                      src={imgUrl} 
-                                      alt={`Evidencia ${fIdx + 1}`} 
+                                      src={imgUrl}
+                                      alt={`Evidencia ${fIdx + 1}`}
                                       className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm"
                                     />
                                   ))}
@@ -730,9 +746,9 @@ export default function UnitInfoPanel({
                   <div className="mb-4">
                     <p className="text-xs font-bold text-slate-700 mb-2">Referencia Visual de Fallas</p>
                     <div className="flex justify-center p-2 border border-slate-100 rounded-xl bg-slate-50/50">
-                      <img 
-                        src={recentChecklist.dibujo} 
-                        alt="Evidencia de fallas" 
+                      <img
+                        src={recentChecklist.dibujo}
+                        alt="Evidencia de fallas"
                         className="max-h-48 rounded-lg object-contain border border-slate-200 cursor-zoom-in hover:opacity-90 transition-opacity"
                         onClick={() => setLightboxDibujo(recentChecklist.dibujo)}
                         title="Clic para ampliar"
@@ -764,7 +780,7 @@ export default function UnitInfoPanel({
                   document.body
                 )}
 
-                <button 
+                <button
                   onClick={() => setViewingChecklist(false)}
                   className="w-full py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                 >

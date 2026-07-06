@@ -25,10 +25,6 @@ export default function Usuarios() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 const [togglingUserId, setTogglingUserId] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([
@@ -41,12 +37,17 @@ const [togglingUserId, setTogglingUserId] = useState(null);
 
       setUsers(usersData);
       setRoles(rolesData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (_err) {
+      console.error('Error fetching data:', _err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+   
+  }, []);
 
   const handleOpenModal = (user = null) => {
     if (user) {
@@ -99,7 +100,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
       Swal.fire('Éxito', 'Usuario guardado correctamente', 'success');
       setIsModalOpen(false);
       fetchData();
-    } catch (error) {
+    } catch (_err) {
       Swal.fire('Error', 'Error de conexión', 'error');
     } finally {
       setIsSubmitting(false);
@@ -136,7 +137,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
       const err = await res.json();
       Swal.fire('Error', err.message || 'No se pudo cambiar el estado', 'error');
     }
-  } catch (error) {
+  } catch (_err) {
     Swal.fire('Error', 'No se pudo cambiar el estado', 'error');
   }
 };
@@ -164,7 +165,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
           Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
           fetchData();
         }
-      } catch (error) {
+      } catch (_err) {
         Swal.fire('Error', 'No se pudo eliminar el usuario', 'error');
       }
     }

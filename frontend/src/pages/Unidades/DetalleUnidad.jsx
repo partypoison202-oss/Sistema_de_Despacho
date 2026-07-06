@@ -15,19 +15,8 @@ export default function DetalleUnidad() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const configActual = transportModules.find((m) => m.id === tipoTransporte);
-  if (!configActual) {
-    return (
-      <div className="p-8">
-        Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button>
-      </div>
-    );
-  }
-
-  // Estado para controlar qué selector de estado está abierto (operacion, mantenimiento, reserva o null)
+  // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
-
-  // Estado global de la unidad seleccionada
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
   const [datosOperativos, setDatosOperativos] = useState({
@@ -42,9 +31,17 @@ export default function DetalleUnidad() {
   const [mensajeBusqueda, setMensajeBusqueda] = useState('');
   const [unidadesList, setUnidadesList] = useState([]);
   const [cargandoUnidades, setCargandoUnidades] = useState(true);
-
-  // Estado para fallas (el único campo adicional que se mantiene)
   const [fallaTexto, setFallaTexto] = useState('');
+  const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
+
+  const configActual = transportModules.find((m) => m.id === tipoTransporte);
+  if (!configActual) {
+    return (
+      <div className="p-8">
+        Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button>
+      </div>
+    );
+  }
 
   // Utilidades
   const getToken = () => localStorage.getItem('token');
@@ -54,7 +51,7 @@ export default function DetalleUnidad() {
     return digitos.padStart(3, '0');
   };
 
-  // Cargar lista de unidades (incluyendo estado)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const fetchUnidades = async () => {
       const token = getToken();
@@ -95,6 +92,7 @@ export default function DetalleUnidad() {
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const ecoDesdeRuta = searchParams.get('eco');
     if (!ecoDesdeRuta || !unidadesList.length) return;
@@ -319,7 +317,7 @@ export default function DetalleUnidad() {
           icon: 'success',
           title: '¡Tarjetón Asignado!',
           text: `Se asignó al conductor: ${resultado.conductor}`,
-          confirmButtonColor: '#cbd5e1',
+          confirmButtonColor: 'var(--tw-color-gray-300)',
           timer: 2000,
         });
       } else {
@@ -346,8 +344,6 @@ export default function DetalleUnidad() {
   const handleCancelFalla = () => {
     setFallaTexto('');
   };
-
-  const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
 
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;

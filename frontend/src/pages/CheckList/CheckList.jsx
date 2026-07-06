@@ -65,12 +65,12 @@ const RUTAS_RA = [
 
 // ─── Puntos de revisión técnica ───────────────────────────────────────────────
 const PUNTOS = [
-    { id: 'carroceria_exterior', label: 'Carrocería exterior', desc: 'Revisar estado general de la carrocería (golpes y abolladuras).' },
+    { id: 'carroceria_exterior', label: 'Carrocería', desc: 'Revisar estado general de la carrocería (golpes y abolladuras).' },
     { id: 'mobitec', label: 'Mobitec', desc: 'Verificar que prenda, funcione correctamente y no esté dañado.' },
     { id: 'torreta', label: 'Torreta', desc: 'Verificar que prenda, funcione correctamente y no esté dañado.' },
     { id: 'pintura_vinil', label: 'Pintura y vinil', desc: 'Verificar estado de pintura y vinil (desgaste, rayones, desprendimiento).' },
-    { id: 'parabrisas_cristales', label: 'Parabrisas y cristales', desc: 'Revisar limpieza, fisuras o daños en parabrisas y ventanas.' },
-    { id: 'luces_exteriores', label: 'Luces exteriores', desc: 'Verificar funcionamiento de faros, direccionales, luces traseras y de frenos.' },
+    { id: 'parabrisas_cristales', label: 'Parabrisas y cristales', desc: 'Revisar limpiaparabrisas, fisuras o daños en parabrisas y ventanas.' },
+    { id: 'luces_exteriores', label: 'Luces', desc: 'Verificar funcionamiento de faros, direccionales, luces traseras y de frenos.' },
     { id: 'puertas', label: 'Puertas', desc: 'Revisar apertura, cierre y funcionamiento correcto.' },
     { id: 'llantas', label: 'Llantas', desc: 'Verificar presión, desgaste y estado general de las llantas.' },
     { id: 'rines', label: 'Rines', desc: 'Revisar estado de rines (golpes, fisuras, corrosión).' },
@@ -184,12 +184,12 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-guinda-700/10 text-xs font-bold text-guinda-700">
+                        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-guinda-700/10 text-base font-bold text-guinda-700">
                             {numero}
                         </span>
-                        <span className="text-sm font-semibold text-gray-800">{punto.label}</span>
+                        <span className="checklist-item-label text-lg font-bold text-gray-900 dark:text-white">{punto.label}</span>
                     </div>
-                    <p className="mt-1 pl-8 text-xs text-gray-400">{punto.desc}</p>
+                    <p className="checklist-item-desc mt-1 pl-10 text-base text-gray-600 dark:text-gray-300">{punto.desc}</p>
                 </div>
                 <div className="flex gap-2 items-center">
                     <button type="button" onClick={() => handleEstado('bien')} className={btnBien} aria-pressed={estado === 'bien'}>
@@ -270,21 +270,21 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
 
             {/* Modal para previsualizar la foto en grande */}
             {lightboxImage && createPortal(
-                <div 
+                <div
                     className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 transition-opacity"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="relative max-w-full max-h-full flex items-center justify-center animate-in fade-in zoom-in duration-200">
-                        <button 
+                        <button
                             className="absolute -top-12 right-0 text-white hover:text-gray-300 font-bold text-base bg-black/50 px-4 py-2 rounded-full backdrop-blur-md"
                             onClick={(e) => { e.stopPropagation(); setLightboxImage(null); }}
                         >
                             Cerrar ✕
                         </button>
-                        <img 
-                            src={lightboxImage} 
-                            alt="Vista ampliada" 
-                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+                        <img
+                            src={lightboxImage}
+                            alt="Vista ampliada"
+                            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
                         />
                     </div>
                 </div>,
@@ -674,7 +674,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                     const conductorEncontrado = esNumero
                         ? CONDUCTORES.find(c => c.id === Number(qConductorNombre))
                         : CONDUCTORES.find(c => c.nombre.trim().toUpperCase() === String(qConductorNombre).trim().toUpperCase());
-                        
+
                     if (conductorEncontrado) {
                         setConductorNombre(conductorEncontrado.nombre);
                         setConductorId(String(conductorEncontrado.id));
@@ -686,7 +686,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
             };
             loadUrlUnit();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [location.search, inline, prefillData]);
 
     const handleFileChange = async (e) => {
@@ -754,7 +754,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
             setConductorTarjeton('');
             setConductorNombre('');
             setServicio('');
-            
+
             if (!tipo) return;
 
             if (ecosCache[tipo] && !forceLoad) {
@@ -770,12 +770,12 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                 });
                 if (res.ok) {
                     let data = await res.json();
-                    
+
                     // Fallback para URBANUSS si no hay datos en backend
                     if ((!data || data.length === 0) && tipo === 'URBANUSS') {
                         data = Array.from({ length: 42 }, (_, i) => ({ numero_eco: String(i + 1) }));
                     }
-                    
+
                     ecosCache[tipo] = data || [];
                     setEcosList(ecosCache[tipo]);
                 } else {
@@ -859,26 +859,30 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                 fecha_hora: fechaHoraRef.current.toISOString(),
             })
         })
-        .then(async res => {
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                const msg = errData.message || JSON.stringify(errData.errors || 'Error al guardar');
-                throw new Error(msg);
-            }
-            const data = await res.json();
-            setSavedChecklist(data.checklist);
-            setEnviado(true);
-            if (!inline) {
-                window.scrollTo(0, 0);
-            }
-        })
-        .catch(err => {
-            console.error('Error al guardar checklist:', err);
-            alert('❌ No se pudo guardar el checklist:\n' + err.message);
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-        });
+            .then(async res => {
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    const msg = errData.message || JSON.stringify(errData.errors || 'Error al guardar');
+                    throw new Error(msg);
+                }
+                return res.json();
+            })
+            .then(data => {
+                setSavedChecklist(data.checklist);
+                if (inline && onComplete) {
+                    onComplete(data.checklist);
+                } else {
+                    setEnviado(true);
+                    window.scrollTo(0, 0);
+                }
+            })
+            .catch(err => {
+                console.error('Error al guardar checklist:', err);
+                alert('❌ No se pudo guardar el checklist:\n' + err.message);
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+            });
     };
 
 
@@ -892,68 +896,68 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
             <div className={inline ? "w-full" : "menu-page"}>
                 {!hideTop && <Header hideBackButton={false} />}
                 <main className={inline ? "w-full py-4" : "dashboard-main max-w-2xl mx-auto px-4 py-6"}>
-                <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16">
-                    <div className="w-full max-w-sm rounded-2xl border border-emerald-100 bg-white p-8 text-center shadow-lg">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-                                <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <h3 className="mb-1 text-xl font-bold text-gray-900">¡Checklist guardado!</h3>
-                        <p className="text-sm text-gray-500">
-                            <span className="font-semibold text-guinda-700">{tipoUnidad}</span>
-                            {conductorId && <> · ID Conductor: {conductorId}</>}
-                        </p>
-                        <p className="mb-1 text-sm text-gray-500">
-                            {tipoUnidad === 'URBANUSS' ? 'Servicio:' : 'RA (Ruta):'}{' '}
-                            <span className="font-semibold text-guinda-700">
-                                {tipoUnidad === 'URBANUSS'
-                                    ? (SERVICIOS.find((s) => s.value === servicio)?.label ?? servicio)
-                                    : (RUTAS_RA.find((s) => s.value === servicio)?.label ?? servicio)}
-                            </span>
-                        </p>
-                        <p className="mb-2 text-xs text-gray-400">{fmtFecha} — {fmtHora}</p>
-                        <p className="mb-6 text-sm text-gray-400">{totalBien} bien · {totalMal} con fallas</p>
-                        <div className="flex flex-col gap-3">
-                            {inline ? (
-                                <button
-                                    type="button"
-                                    onClick={() => onComplete ? onComplete(savedChecklist) : (onClose && onClose())}
-                                    className="w-full rounded-xl border-none text-white shadow-lg transition-transform duration-100"
-                                    style={{
-                                        backgroundColor: '#c29b53',
-                                        fontSize: '1.25rem',
-                                        fontWeight: '800',
-                                        padding: '1rem'
-                                    }}
-                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#a88344'}
-                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#c29b53'}
-                                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-                                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                >
-                                    Cerrar Check List
-                                </button>
-                            ) : (
-                                <>
+                    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-16">
+                        <div className="w-full max-w-sm rounded-2xl border border-emerald-100 bg-white p-8 text-center shadow-lg">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
+                                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <h3 className="mb-1 text-xl font-bold text-gray-900">¡Checklist guardado!</h3>
+                            <p className="text-sm text-gray-500">
+                                <span className="font-semibold text-guinda-700">{tipoUnidad}</span>
+                                {conductorId && <> · ID Conductor: {conductorId}</>}
+                            </p>
+                            <p className="mb-1 text-sm text-gray-500">
+                                {tipoUnidad === 'URBANUSS' ? 'Servicio:' : 'RA (Ruta):'}{' '}
+                                <span className="font-semibold text-guinda-700">
+                                    {tipoUnidad === 'URBANUSS'
+                                        ? (SERVICIOS.find((s) => s.value === servicio)?.label ?? servicio)
+                                        : (RUTAS_RA.find((s) => s.value === servicio)?.label ?? servicio)}
+                                </span>
+                            </p>
+                            <p className="mb-2 text-xs text-gray-400">{fmtFecha} — {fmtHora}</p>
+                            <p className="mb-6 text-sm text-gray-400">{totalBien} bien · {totalMal} con fallas</p>
+                            <div className="flex flex-col gap-3">
+                                {inline ? (
                                     <button
                                         type="button"
-                                        onClick={handleReset}
-                                        className="w-full rounded-xl bg-guinda-700 py-3 text-sm font-bold text-white transition hover:bg-guinda-800 active:scale-95 focus:outline-none"
+                                        onClick={() => onComplete ? onComplete(savedChecklist) : (onClose && onClose())}
+                                        className="w-full rounded-xl border-none text-white shadow-lg transition-transform duration-100"
+                                        style={{
+                                            backgroundColor: '#c29b53',
+                                            fontSize: '1.25rem',
+                                            fontWeight: '800',
+                                            padding: '1rem'
+                                        }}
+                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#a88344'}
+                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#c29b53'}
+                                        onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                                        onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                     >
-                                        Nuevo Checklist
+                                        Cerrar Check List
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/checklist/historial')}
-                                        className="w-full rounded-xl border border-guinda-700 py-3 text-sm font-bold text-guinda-700 transition hover:bg-guinda-50 active:scale-95 focus:outline-none"
-                                    >
-                                        Revisar Check List
-                                    </button>
-                                </>
-                            )}
+                                ) : (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={handleReset}
+                                            className="w-full rounded-xl bg-guinda-700 py-3 text-sm font-bold text-white transition hover:bg-guinda-800 active:scale-95 focus:outline-none"
+                                        >
+                                            Nuevo Checklist
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/checklist/historial')}
+                                            className="w-full rounded-xl border border-guinda-700 py-3 text-sm font-bold text-guinda-700 transition hover:bg-guinda-50 active:scale-95 focus:outline-none"
+                                        >
+                                            Revisar Check List
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
                 </main>
             </div>
         );
@@ -964,353 +968,353 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
         <div className={inline ? "inline-checklist" : "layout-container"}>
             {!hideTop && <Header hideBackButton={false} />}
             <main className={inline ? "py-2" : "main-content relative"}>
-            {!hideTop && (
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700 uppercase">
-                    <IconClipboard />
-                    Checklist de Unidades {tipoUnidad}
-                </h2>
-                {/* Reloj en esquina superior derecha del header */}
-                <RelojFecha />
-            </div>
-            )}
-
-            <div className={inline ? "w-full" : "w-full"}>
-                {inline && (
-                    <div className="flex justify-end mb-4">
-                        <button
-                            type="button"
-                            onClick={() => onClose && onClose()}
-                            className="group flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-2 text-sm font-bold text-gray-600 shadow-sm transition-all hover:border-guinda-200 hover:bg-guinda-50 hover:text-guinda-700 active:scale-95"
-                        >
-                            <svg className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
-                            Contraer Check List
-                        </button>
+                {!hideTop && (
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700 uppercase">
+                            <IconClipboard />
+                            Checklist de Unidades {tipoUnidad}
+                        </h2>
+                        {/* Reloj en esquina superior derecha del header */}
+                        <RelojFecha />
                     </div>
                 )}
-                <form onSubmit={handleSubmit} noValidate>
 
-                    {/* ══ PASO 1 — Económico ══════════════════════════════ */}
-                    {!hideTop && (
-                    <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                        {tipoUnidad && (
-                            <>
-                                <div className="flex items-center justify-between mb-3 mt-2">
-                                    <label htmlFor="economico" className="block text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                        1 · Económico (Eco)
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsManualEco(!isManualEco);
-                                            setEconomico('');
-                                            setConductorNombre('');
-                                            setConductorTarjeton('');
-                                            setServicio('');
-                                            setConductorId('');
-                                        }}
-                                        className="text-[10px] font-bold uppercase tracking-wider text-blue-600 underline hover:text-blue-800"
-                                    >
-                                        {isManualEco ? 'Seleccionar de lista' : 'Ingresar manual'}
-                                    </button>
-                                </div>
-
-                                {isManualEco ? (
-                                    <input
-                                        id="economico"
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        maxLength={4}
-                                        value={economico}
-                                        onChange={(e) => handleEconomicoChange(e.target.value)}
-                                        placeholder="Ej. 11"
-                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20"
-                                    />
-                                ) : (
-                                    <div className="relative">
-                                        <select
-                                            id="economico"
-                                            value={economico}
-                                            onChange={(e) => handleEconomicoChange(e.target.value)}
-                                            disabled={loadingEcos}
-                                            className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 pr-10 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:opacity-50"
-                                        >
-                                            <option value="" disabled>
-                                                {loadingEcos ? 'Cargando unidades...' : '— Selecciona un ECO —'}
-                                            </option>
-                                            {ecosList.map((ecoItem) => {
-                                                const formattedNum = String(ecoItem.numero_eco).padStart(3, '0');
-                                                return (
-                                                    <option key={ecoItem.numero_eco} value={ecoItem.numero_eco}>
-                                                        {`ECO${formattedNum}`}
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-guinda-700">
-                                            <Chevron />
-                                        </span>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        {!tipoUnidad && (
-                            <p className="text-center text-xs text-gray-400">
-                                Cargando tipo de unidad...
-                            </p>
-                        )}
-                    </section>
+                <div className={inline ? "w-full" : "w-full"}>
+                    {inline && (
+                        <div className="flex justify-end mb-4">
+                            <button
+                                type="button"
+                                onClick={() => onClose && onClose()}
+                                className="group flex items-center gap-2 rounded-full border border-gray-200 bg-white px-5 py-2 text-sm font-bold text-gray-600 shadow-sm transition-all hover:border-guinda-200 hover:bg-guinda-50 hover:text-guinda-700 active:scale-95"
+                            >
+                                <svg className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                                Contraer Check List
+                            </button>
+                        </div>
                     )}
+                    <form onSubmit={handleSubmit} noValidate>
 
-                    {/* ══ PASO 2 — Datos de la unidad (bloqueado hasta elegir tipo) ══ */}
-                    <div className={`transition-all duration-300 ${unidadSeleccionada ? 'opacity-100' : 'pointer-events-none opacity-30'}`}>
-
+                        {/* ══ PASO 1 — Económico ══════════════════════════════ */}
                         {!hideTop && (
-                        <>
-                        {/* Datos de identificación */}
-                        <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                            <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                2 · Identificación del Conductor
+                            <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                                 {tipoUnidad && (
-                                    <span className="ml-2 rounded-full bg-guinda-700/10 px-2 py-0.5 text-guinda-700">
-                                        {tipoUnidad}
-                                    </span>
-                                )}
-                            </p>
+                                    <>
+                                        <div className="flex items-center justify-between mb-3 mt-2">
+                                            <label htmlFor="economico" className="block text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                                1 · Económico (Eco)
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsManualEco(!isManualEco);
+                                                    setEconomico('');
+                                                    setConductorNombre('');
+                                                    setConductorTarjeton('');
+                                                    setServicio('');
+                                                    setConductorId('');
+                                                }}
+                                                className="text-[10px] font-bold uppercase tracking-wider text-blue-600 underline hover:text-blue-800"
+                                            >
+                                                {isManualEco ? 'Seleccionar de lista' : 'Ingresar manual'}
+                                            </button>
+                                        </div>
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
-                                {/* ID Conductor — solo números, manual */}
-                                <div className="sm:col-span-3">
-                                    <label htmlFor="conductor-id" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                        ID Conductor
-                                    </label>
-                                    <input
-                                        id="conductor-id"
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
-                                        maxLength={10}
-                                        value={conductorId}
-                                        onChange={handleConductorId}
-                                        placeholder="Ej. 104"
-                                        disabled={!unidadSeleccionada}
-                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                    />
-                                </div>
-
-                                {/* Tipo de Tarjetón */}
-                                <div className="sm:col-span-3">
-                                    <label htmlFor="tarjeton" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                        Tarjetón
-                                    </label>
-                                    <input
-                                        id="tarjeton"
-                                        type="text"
-                                        value={conductorTarjeton}
-                                        onChange={(e) => setConductorTarjeton(e.target.value)}
-                                        placeholder="Ej. 12345"
-                                        disabled={!unidadSeleccionada}
-                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                    />
-                                </div>
-
-                                {/* Nombre del Conductor */}
-                                <div className="sm:col-span-6 relative">
-                                    <label htmlFor="nombre-conductor" className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-guinda-700 h-4">
-                                        Conductor Asignado
-                                        {conductorId && !CONDUCTORES.find((c) => c.id === Number(conductorId)) && (
-                                            <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 absolute -top-1 right-0">No encontrado</span>
+                                        {isManualEco ? (
+                                            <input
+                                                id="economico"
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                maxLength={4}
+                                                value={economico}
+                                                onChange={(e) => handleEconomicoChange(e.target.value)}
+                                                placeholder="Ej. 11"
+                                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20"
+                                            />
+                                        ) : (
+                                            <div className="relative">
+                                                <select
+                                                    id="economico"
+                                                    value={economico}
+                                                    onChange={(e) => handleEconomicoChange(e.target.value)}
+                                                    disabled={loadingEcos}
+                                                    className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 pr-10 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:opacity-50"
+                                                >
+                                                    <option value="" disabled>
+                                                        {loadingEcos ? 'Cargando unidades...' : '— Selecciona un ECO —'}
+                                                    </option>
+                                                    {ecosList.map((ecoItem) => {
+                                                        const formattedNum = String(ecoItem.numero_eco).padStart(3, '0');
+                                                        return (
+                                                            <option key={ecoItem.numero_eco} value={ecoItem.numero_eco}>
+                                                                {`ECO${formattedNum}`}
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-guinda-700">
+                                                    <Chevron />
+                                                </span>
+                                            </div>
                                         )}
-                                    </label>
-                                    <input
-                                        id="nombre-conductor"
-                                        type="text"
-                                        value={conductorNombre}
-                                        onChange={(e) => setConductorNombre(e.target.value)}
-                                        placeholder="Ej. Juan Pérez"
-                                        disabled={!unidadSeleccionada}
-                                        className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                    />
-                                </div>
-
-                            </div>
-                        </section>
-
-                        {/* Servicio / RA */}
-                        <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                            <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
-                                3 · {tipoUnidad === 'URBANUSS' ? 'Servicio' : 'RA (Ruta)'}
-                            </p>
-                            {tipoUnidad === 'URBANUSS' ? (
-                                <SelectField
-                                    id="servicio"
-                                    label=""
-                                    value={servicio}
-                                    onChange={setServicio}
-                                    disabled={!unidadSeleccionada || (!!servicio && hideTop)}
-                                    required
-                                    options={SERVICIOS.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
-                                />
-                            ) : (
-                                <SelectField
-                                    id="servicio"
-                                    label=""
-                                    value={servicio}
-                                    onChange={setServicio}
-                                    disabled={!unidadSeleccionada || (!!servicio && hideTop)}
-                                    required
-                                    options={RUTAS_RA.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
-                                />
-                            )}
-                        </section>
-                        </>
+                                    </>
+                                )}
+                                {!tipoUnidad && (
+                                    <p className="text-center text-xs text-gray-400">
+                                        Cargando tipo de unidad...
+                                    </p>
+                                )}
+                            </section>
                         )}
 
-                        {/* Contadores */}
-                        <div className="mb-4 grid grid-cols-2 gap-3 text-center">
-                            <div className="rounded-xl bg-emerald-50 py-3">
-                                <p className="text-2xl font-extrabold text-emerald-600">{totalBien}</p>
-                                <p className="text-xs font-semibold text-emerald-700">Bien</p>
-                            </div>
-                            <div className="rounded-xl bg-red-50 py-3">
-                                <p className="text-2xl font-extrabold text-red-500">{totalMal}</p>
-                                <p className="text-xs font-semibold text-red-700">Mal</p>
-                            </div>
-                        </div>
+                        {/* ══ PASO 2 — Datos de la unidad (bloqueado hasta elegir tipo) ══ */}
+                        <div className={`transition-all duration-300 ${unidadSeleccionada ? 'opacity-100' : 'pointer-events-none opacity-30'}`}>
 
-                        {/* Barra de progreso */}
-                        <div className="mb-5 flex items-center gap-3">
-                            <div className="flex-1 overflow-hidden rounded-full bg-gray-100" style={{ height: '6px' }}>
-                                <div
-                                    className="h-full rounded-full bg-guinda-700 transition-all duration-500"
-                                    style={{ width: `${progreso}%` }}
-                                />
-                            </div>
-                            <span className="text-xs font-bold text-guinda-700">{progreso}%</span>
-                        </div>
+                            {!hideTop && (
+                                <>
+                                    {/* Datos de identificación */}
+                                    <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                                        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                            2 · Identificación del Conductor
+                                            {tipoUnidad && (
+                                                <span className="ml-2 rounded-full bg-guinda-700/10 px-2 py-0.5 text-guinda-700">
+                                                    {tipoUnidad}
+                                                </span>
+                                            )}
+                                        </p>
 
-                        {/* ── 16 Puntos de revisión ────────────────────────── */}
-                        <section className="mb-6">
-                            <h3 className="mb-4 text-lg font-extrabold text-[#6b1d33]">
-                                {!hideTop && '4 · '}Puntos de Revisión Técnica — {PUNTOS.length} ítems
-                            </h3>
-                            <ul className="space-y-3">
-                                {PUNTOS.map((punto, idx) => (
-                                    <FilaPunto
-                                        key={punto.id}
-                                        punto={punto}
-                                        datos={puntos[punto.id]}
-                                        onChange={handleCambioPunto}
-                                        numero={idx + 1}
-                                        onStartCamera={handleStartCamera}
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
+                                            {/* ID Conductor — solo números, manual */}
+                                            <div className="sm:col-span-3">
+                                                <label htmlFor="conductor-id" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                                    ID Conductor
+                                                </label>
+                                                <input
+                                                    id="conductor-id"
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    pattern="[0-9]*"
+                                                    maxLength={10}
+                                                    value={conductorId}
+                                                    onChange={handleConductorId}
+                                                    placeholder="Ej. 104"
+                                                    disabled={!unidadSeleccionada}
+                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 placeholder-gray-400 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                />
+                                            </div>
+
+                                            {/* Tipo de Tarjetón */}
+                                            <div className="sm:col-span-3">
+                                                <label htmlFor="tarjeton" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                                    Tarjetón
+                                                </label>
+                                                <input
+                                                    id="tarjeton"
+                                                    type="text"
+                                                    value={conductorTarjeton}
+                                                    onChange={(e) => setConductorTarjeton(e.target.value)}
+                                                    placeholder="Ej. 12345"
+                                                    disabled={!unidadSeleccionada}
+                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                />
+                                            </div>
+
+                                            {/* Nombre del Conductor */}
+                                            <div className="sm:col-span-6 relative">
+                                                <label htmlFor="nombre-conductor" className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-guinda-700 h-4">
+                                                    Conductor Asignado
+                                                    {conductorId && !CONDUCTORES.find((c) => c.id === Number(conductorId)) && (
+                                                        <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 absolute -top-1 right-0">No encontrado</span>
+                                                    )}
+                                                </label>
+                                                <input
+                                                    id="nombre-conductor"
+                                                    type="text"
+                                                    value={conductorNombre}
+                                                    onChange={(e) => setConductorNombre(e.target.value)}
+                                                    placeholder="Ej. Juan Pérez"
+                                                    disabled={!unidadSeleccionada}
+                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                />
+                                            </div>
+
+                                        </div>
+                                    </section>
+
+                                    {/* Servicio / RA */}
+                                    <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                                        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
+                                            3 · {tipoUnidad === 'URBANUSS' ? 'Servicio' : 'RA (Ruta)'}
+                                        </p>
+                                        {tipoUnidad === 'URBANUSS' ? (
+                                            <SelectField
+                                                id="servicio"
+                                                label=""
+                                                value={servicio}
+                                                onChange={setServicio}
+                                                disabled={!unidadSeleccionada || (!!servicio && hideTop)}
+                                                required
+                                                options={SERVICIOS.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
+                                            />
+                                        ) : (
+                                            <SelectField
+                                                id="servicio"
+                                                label=""
+                                                value={servicio}
+                                                onChange={setServicio}
+                                                disabled={!unidadSeleccionada || (!!servicio && hideTop)}
+                                                required
+                                                options={RUTAS_RA.map((s) => ({ value: s.value, label: s.label, disabled: s.value === '' }))}
+                                            />
+                                        )}
+                                    </section>
+                                </>
+                            )}
+
+                            {/* Contadores */}
+                            <div className="mb-4 grid grid-cols-2 gap-3 text-center">
+                                <div className="rounded-xl bg-emerald-50 py-3">
+                                    <p className="text-2xl font-extrabold text-emerald-600">{totalBien}</p>
+                                    <p className="text-xs font-semibold text-emerald-700">Bien</p>
+                                </div>
+                                <div className="rounded-xl bg-red-50 py-3">
+                                    <p className="text-2xl font-extrabold text-red-500">{totalMal}</p>
+                                    <p className="text-xs font-semibold text-red-700">Mal</p>
+                                </div>
+                            </div>
+
+                            {/* Barra de progreso */}
+                            <div className="mb-5 flex items-center gap-3">
+                                <div className="flex-1 overflow-hidden rounded-full bg-gray-100" style={{ height: '6px' }}>
+                                    <div
+                                        className="h-full rounded-full bg-guinda-700 transition-all duration-500"
+                                        style={{ width: `${progreso}%` }}
                                     />
-                                ))}
-                            </ul>
-                        </section>
-
-                        {/* ── 5 · Referencia visual ─────────────────────────── */}
-                        <section className="mb-6">
-                            <h3 className="mb-4 text-lg font-extrabold text-[#6b1d33]">
-                                {!hideTop && '5 · '}Referencia visual — Marca los detalles
-                            </h3>
-                            <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm">
-                                <DrawingCanvas 
-                                    onSave={setDibujo}
-                                    tipoUnidad={tipoUnidad}
-                                    ref={drawingCanvasRef}
-                                />
+                                </div>
+                                <span className="text-xs font-bold text-guinda-700">{progreso}%</span>
                             </div>
-                        </section>
 
-                        {/* Botón de envío */}
-                        <div className="pb-10">
-                            <div className={`flex flex-col-reverse sm:flex-row gap-4 ${!inline ? 'justify-end' : ''}`}>
-                                {inline && (
+                            {/* ── 16 Puntos de revisión ────────────────────────── */}
+                            <section className="mb-6">
+                                <h3 className="mb-4 text-lg font-extrabold text-guinda-700 dark:text-red-400">
+                                    {!hideTop && '4 · '}Puntos de Revisión Técnica — {PUNTOS.length} ítems
+                                </h3>
+                                <ul className="space-y-3">
+                                    {PUNTOS.map((punto, idx) => (
+                                        <FilaPunto
+                                            key={punto.id}
+                                            punto={punto}
+                                            datos={puntos[punto.id]}
+                                            onChange={handleCambioPunto}
+                                            numero={idx + 1}
+                                            onStartCamera={handleStartCamera}
+                                        />
+                                    ))}
+                                </ul>
+                            </section>
+
+                            {/* ── 5 · Referencia visual ─────────────────────────── */}
+                            <section className="mb-6">
+                                <h3 className="mb-4 text-lg font-extrabold text-[#6b1d33]">
+                                    {!hideTop && '5 · '}Referencia visual — Marca los detalles
+                                </h3>
+                                <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm">
+                                    <DrawingCanvas
+                                        onSave={setDibujo}
+                                        tipoUnidad={tipoUnidad}
+                                        ref={drawingCanvasRef}
+                                    />
+                                </div>
+                            </section>
+
+                            {/* Botón de envío */}
+                            <div className="pb-10">
+                                <div className={`flex flex-col-reverse sm:flex-row gap-4 ${!inline ? 'justify-end' : ''}`}>
+                                    {inline && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setDibujo(null);
+                                                setPuntos(buildEstadoInicial());
+                                                drawingCanvasRef.current?.clear();
+                                            }}
+                                            className="group w-full sm:w-1/3 flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white text-gray-600 shadow-sm transition-all duration-100 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-800 active:scale-95"
+                                            style={{
+                                                fontSize: '1.1rem',
+                                                fontWeight: '700',
+                                                padding: '1rem'
+                                            }}
+                                        >
+                                            <svg className="w-5 h-5 transition-transform group-hover:-rotate-12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Limpiar
+                                        </button>
+                                    )}
                                     <button
-                                        type="button"
-                                        onClick={() => {
-                                            setDibujo(null);
-                                            setPuntos(buildEstadoInicial());
-                                            drawingCanvasRef.current?.clear();
-                                        }}
-                                        className="group w-full sm:w-1/3 flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white text-gray-600 shadow-sm transition-all duration-100 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-800 active:scale-95"
+                                        type="submit"
+                                        disabled={!unidadSeleccionada || (!hideTop && !servicio) || isSubmitting}
+                                        className={`w-full ${inline ? 'sm:w-2/3' : ''} rounded-xl border-none text-white shadow-lg transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2`}
                                         style={{
-                                            fontSize: '1.1rem',
-                                            fontWeight: '700',
+                                            backgroundColor: '#6b1d33',
+                                            fontSize: '1.25rem',
+                                            fontWeight: '800',
                                             padding: '1rem'
                                         }}
                                     >
-                                        <svg className="w-5 h-5 transition-transform group-hover:-rotate-12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Limpiar
+                                        {isSubmitting && (
+                                            <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'var(--tw-color-white)', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                                        )}
+                                        {isSubmitting ? 'Guardando...' : 'Guardar Checklist'}
                                     </button>
+                                </div>
+                                {(!unidadSeleccionada || (!hideTop && !servicio)) && (
+                                    <p className="mt-2 text-center text-xs text-gray-400">
+                                        {!unidadSeleccionada
+                                            ? 'Selecciona el tipo de unidad para continuar'
+                                            : 'Selecciona un servicio para guardar'}
+                                    </p>
                                 )}
-                                <button
-                                    type="submit"
-                                    disabled={!unidadSeleccionada || (!hideTop && !servicio) || isSubmitting}
-                                    className={`w-full ${inline ? 'sm:w-2/3' : ''} rounded-xl border-none text-white shadow-lg transition-transform duration-100 disabled:cursor-not-allowed disabled:opacity-50 hover:brightness-110 active:scale-95 flex items-center justify-center gap-2`}
-                                    style={{
-                                        backgroundColor: '#6b1d33',
-                                        fontSize: '1.25rem',
-                                        fontWeight: '800',
-                                        padding: '1rem'
-                                    }}
-                                >
-                                    {isSubmitting && (
-                                        <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
-                                    )}
-                                    {isSubmitting ? 'Guardando...' : 'Guardar Checklist'}
-                                </button>
                             </div>
-                            {(!unidadSeleccionada || (!hideTop && !servicio)) && (
-                                <p className="mt-2 text-center text-xs text-gray-400">
-                                    {!unidadSeleccionada
-                                        ? 'Selecciona el tipo de unidad para continuar'
-                                        : 'Selecciona un servicio para guardar'}
-                                </p>
-                            )}
                         </div>
-                    </div>
-                </form>
-            </div>
+                    </form>
+                </div>
 
-            {/* Input oculto para cámara nativa o selector de archivos */}
-            <input
-                id="camera-input-fallback"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={(e) => {
-                    handleFileChange(e);
-                    setShowCamera(false);
-                }}
-            />
+                {/* Input oculto para cámara nativa o selector de archivos */}
+                <input
+                    id="camera-input-fallback"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={(e) => {
+                        handleFileChange(e);
+                        setShowCamera(false);
+                    }}
+                />
 
-            {/* Input oculto para galería / seleccionar de dispositivo */}
-            <input
-                id="gallery-input"
-                type="file"
-                accept="image/*"
-                ref={galleryInputRef}
-                className="hidden"
-                onChange={(e) => {
-                    handleFileChange(e);
-                    setShowCamera(false);
-                }}
-            />
+                {/* Input oculto para galería / seleccionar de dispositivo */}
+                <input
+                    id="gallery-input"
+                    type="file"
+                    accept="image/*"
+                    ref={galleryInputRef}
+                    className="hidden"
+                    onChange={(e) => {
+                        handleFileChange(e);
+                        setShowCamera(false);
+                    }}
+                />
 
-            {/* Modal de Cámara WebRTC */}
-            <CameraModal
-                isOpen={showCamera}
-                onClose={() => setShowCamera(false)}
-                onCapture={handleCaptureCamera}
-                fallbackTrigger={() => fileInputRef.current?.click()}
-                galleryTrigger={() => galleryInputRef.current?.click()}
-            />
+                {/* Modal de Cámara WebRTC */}
+                <CameraModal
+                    isOpen={showCamera}
+                    onClose={() => setShowCamera(false)}
+                    onCapture={handleCaptureCamera}
+                    fallbackTrigger={() => fileInputRef.current?.click()}
+                    galleryTrigger={() => galleryInputRef.current?.click()}
+                />
             </main>
         </div>
     );

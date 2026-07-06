@@ -237,9 +237,9 @@ export default function Dashboard() {
       <div className="dashboard">
         <Header />
         <main className="dashboard__main">
-          <p className="dashboard__eyebrow">Seleccione el tipo de transporte</p>
-          <h1 className="dashboard__title">Flota de Unidades</h1>
-          <p className="dashboard__subtitle">
+          <p className="dashboard__eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
+          <h1 className="dashboard__title text-gray-900 dark:text-white">Flota de Unidades</h1>
+          <p className="dashboard__subtitle text-gray-500 dark:text-gray-300">
             Toque la imagen del transporte para comenzar el registro
           </p>
 
@@ -249,7 +249,7 @@ export default function Dashboard() {
               value={busquedaEco}
               onChange={(event) => setBusquedaEco(event.target.value)}
               placeholder="Buscar por número económico"
-              className="dashboard__search-input"
+              className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <button type="submit" className="dashboard__search-button" disabled={buscandoUnidad}>
               {buscandoUnidad ? 'Buscando...' : 'Buscar'}
@@ -278,7 +278,7 @@ export default function Dashboard() {
               style={{
                 padding: '0.75rem 2rem',
                 backgroundColor: '#6b1d33',
-                color: '#fff',
+                color: 'var(--tw-color-white)',
                 border: 'none',
                 borderRadius: '0.5rem',
                 fontSize: '1rem',
