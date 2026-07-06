@@ -35,9 +35,16 @@ export default function UnitInfoPanel({
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
+  const [guardandoPerdida, setGuardandoPerdida] = useState(false);
   const navigate = useNavigate();
 
   const ciclosRef = useRef(null);
+
+  useEffect(() => {
+    setPerdidaCiclos(datosOperativos.ciclo || '');
+    setPerdidaMotivo(datosOperativos.motivo || '');
+    setHuboCorridasPerdidas(!!datosOperativos.ciclo);
+  }, [datosOperativos]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -63,14 +70,68 @@ export default function UnitInfoPanel({
   ];
 
   // Maneja el toggle Sí/No de "¿Hubo corridas perdidas?"
-  const handleToggleCorridasPerdidas = (valor) => {
+  const handleToggleCorridasPerdidas = async (valor) => {
     setHuboCorridasPerdidas(valor);
     if (!valor) {
       // Si se selecciona "No", limpiamos los campos dependientes
       setPerdidaCiclos('');
       setPerdidaMotivo('');
       setDropdownCiclosOpen(false);
+      await handleSavePerdida(null, null);
     }
+  };
+
+  const handleSavePerdida = async (cicloVal, motivoVal) => {
+    setGuardandoPerdida(true);
+    try {
+      const token = localStorage.getItem('token');
+      const ecoNum = selectedOption.replace(/\D/g, '');
+      const response = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          tipo: configActual.id,
+          numero_eco: ecoNum,
+          ciclo: cicloVal || null,
+          motivo: motivoVal || null
+        })
+      });
+      const result = await response.json();
+      if (response.ok && result.status === 'success') {
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          icon: 'success',
+          title: 'Registro Actualizado',
+          text: cicloVal ? 'Corrida perdida guardada correctamente.' : 'Se eliminó el registro de corrida perdida.',
+          confirmButtonColor: '#c29b53',
+          timer: 2000
+        });
+        // Sync local object reference
+        datosOperativos.ciclo = cicloVal || '';
+        datosOperativos.motivo = motivoVal || '';
+      } else {
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: result.message || 'No se pudo guardar la corrida perdida.',
+          confirmButtonColor: '#6b1d33'
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setGuardandoPerdida(false);
+    }
+  };
+
+  const handleMotivoChange = (e) => {
+    const val = e.target.value;
+    const filteredVal = val.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase();
+    setPerdidaMotivo(filteredVal);
   };
 
   const handleHacerCheckList = () => {
@@ -105,9 +166,16 @@ export default function UnitInfoPanel({
       });
       if (res.ok) {
         const data = await res.json();
-        setHasCompletedChecklist(data.length > 0);
-        if (data.length > 0) {
-          setRecentChecklist(data[0]);
+        if (data.checklists && data.checklists.length > 0) {
+          const latest = data.checklists[0];
+          const pts = typeof latest.puntos === 'string' ? JSON.parse(latest.puntos) : latest.puntos;
+          const hasFallas = Object.values(pts || {}).some(p => p?.estado === 'mal');
+          
+          setHasCompletedChecklist(hasFallas);
+          setRecentChecklist(hasFallas ? latest : null);
+        } else {
+          setHasCompletedChecklist(false);
+          setRecentChecklist(null);
         }
       }
     } catch (e) {
@@ -348,7 +416,7 @@ export default function UnitInfoPanel({
                     transition: 'all 0.2s'
                   }}
                 >
-                  Sí
+                  SÍ
                 </button>
                 <button
                   type="button"
@@ -365,15 +433,15 @@ export default function UnitInfoPanel({
                     transition: 'all 0.2s'
                   }}
                 >
-                  No
+                  NO
                 </button>
               </div>
             </div>
 
-            {/* Ciclos Perdidos + Motivo: sólo se muestran si el botón "Sí" está activo */}
+            {/* Ciclos Perdidos y Motivo: se muestran en la fila 3 (lado a lado) si es "SÍ" */}
             {huboCorridasPerdidas && (
-              <div className="animate-fade-in-up" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div ref={ciclosRef} className="info-card__item" style={{ position: 'relative' }}>
+              <>
+                <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative' }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
                   <button
                     type="button"
@@ -392,7 +460,7 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                   >
-                    <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' ciclo' + (perdidaCiclos !== '1' && perdidaCiclos !== '0.5' ? 's' : '') : 'Seleccionar'}</span>
+                    <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' CICLOS' : 'SELECCIONAR'}</span>
                     <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                     </svg>
@@ -410,7 +478,7 @@ export default function UnitInfoPanel({
                             setDropdownCiclosOpen(false);
                           }}
                         >
-                          Seleccionar
+                          SELECCIONAR
                         </button>
                         {ciclosOptions.map(opt => (
                           <button
@@ -423,14 +491,15 @@ export default function UnitInfoPanel({
                               setDropdownCiclosOpen(false);
                             }}
                           >
-                            {opt.label} ciclo{opt.value !== '1' && opt.value !== '0.5' ? 's' : ''}
+                            {opt.label} CICLOS
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="info-card__item">
+
+                <div className="info-card__item animate-fade-in-up">
                   <span className="info-card__label">Motivo (Obligatorio)</span>
                   <input
                     type="text"
@@ -438,10 +507,43 @@ export default function UnitInfoPanel({
                     style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.3rem', fontSize: '0.85rem' }}
                     maxLength={40}
                     value={perdidaMotivo}
-                    onChange={(e) => setPerdidaMotivo(e.target.value)}
-                    placeholder="Escribe el motivo de la pérdida..."
+                    onChange={handleMotivoChange}
+                    placeholder="ESCRIBE EL MOTIVO DE LA PÉRDIDA..."
                   />
                 </div>
+              </>
+            )}
+
+            {/* Botón Guardar: solo aparece si hay cambios reales */}
+            {huboCorridasPerdidas && (perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
+              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'end', marginTop: '0.5rem' }} className="animate-fade-in-up">
+                <button
+                  type="button"
+                  disabled={!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida}
+                  onClick={() => handleSavePerdida(perdidaCiclos, perdidaMotivo.trim())}
+                  className="interactive-input"
+                  style={{
+                    width: 'auto',
+                    padding: '0 1.5rem',
+                    height: '2.3rem',
+                    background: '#6b1d33',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: (!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida) ? 'not-allowed' : 'pointer',
+                    opacity: (!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida) ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  {guardandoPerdida && (
+                    <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                  )}
+                  GUARDAR
+                </button>
               </div>
             )}
           </div>
@@ -459,7 +561,7 @@ export default function UnitInfoPanel({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginTop: '0.5rem' }}>
               {[
                 { id: 'operacion', label: 'OPERACIÓN', color: '#16a34a', bgActive: '#f0fdf4' },
-                { id: 'reserva', label: 'RESERVA', color: '#d97706', bgActive: '#fffbeb' },
+                { id: 'reserva', label: 'RESERVA', color: '#64748b', bgActive: '#f1f5f9' },
                 { id: 'mantenimiento', label: 'MANTENIMIENTO', color: '#dc2626', bgActive: '#fef2f2' }
               ].map(st => {
                 const isActive = datosOperativos.estatus === st.id;
@@ -472,8 +574,8 @@ export default function UnitInfoPanel({
                       padding: '1rem 0.5rem',
                       borderRadius: '0.75rem',
                       border: `2px solid ${isActive ? st.color : '#e2e8f0'}`,
-                      backgroundColor: isActive ? st.bgActive : '#f8fafc',
-                      color: isActive ? st.color : '#94a3b8',
+                      backgroundColor: isActive ? st.color : '#f8fafc',
+                      color: isActive ? '#ffffff' : '#94a3b8',
                       fontWeight: isActive ? 700 : 500,
                       fontSize: '0.85rem',
                       cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
@@ -485,7 +587,7 @@ export default function UnitInfoPanel({
                       opacity: (cambiandoEstatus && !isActive) ? 0.5 : 1
                     }}
                   >
-                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? st.color : '#cbd5e1' }}></div>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? '#ffffff' : '#cbd5e1' }}></div>
                     {st.label}
                   </button>
                 );
@@ -561,10 +663,12 @@ export default function UnitInfoPanel({
               </button>
             )}
           </div>
-          {showChecklist && !hasCompletedChecklist && (
+          {showChecklist && (
             <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
               <ChecklistForm 
                 inline={true} 
+                editMode={hasCompletedChecklist && showChecklist}
+                checklistId={recentChecklist?.id}
                 prefillData={{
                   numero_eco: selectedOption ? selectedOption.replace(/\D/g, '') : '',
                   tipoTransporte: configActual.id,
@@ -583,18 +687,22 @@ export default function UnitInfoPanel({
                       if (r.includes('MOVILIDAD')) return 'TLM';
                     }
                     return r;
-                  })()
+                  })(),
+                  puntos: recentChecklist?.puntos,
+                  dibujo: recentChecklist?.dibujo
                 }}
                 onClose={() => setShowChecklist(false)}
                 onComplete={(checklist) => {
-                  setHasCompletedChecklist(true);
+                  const pts = typeof checklist.puntos === 'string' ? JSON.parse(checklist.puntos) : checklist.puntos;
+                  const hasFallas = Object.values(pts || {}).some(p => p?.estado === 'mal');
+                  setHasCompletedChecklist(hasFallas);
+                  setRecentChecklist(hasFallas ? checklist : null);
                   setShowChecklist(false);
-                  setRecentChecklist(checklist);
                 }}
               />
             </div>
           )}
-          {viewingChecklist && recentChecklist && (() => {
+          {viewingChecklist && recentChecklist && !showChecklist && (() => {
             const pts = typeof recentChecklist.puntos === 'string'
               ? JSON.parse(recentChecklist.puntos)
               : recentChecklist.puntos;
@@ -762,12 +870,23 @@ export default function UnitInfoPanel({
                   document.body
                 )}
 
-                <button 
-                  onClick={() => setViewingChecklist(false)}
-                  className="w-full py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                >
-                  Cerrar Detalles
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      setViewingChecklist(false);
+                      setShowChecklist(true);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-guinda-700 hover:bg-guinda-800 transition-colors shadow-sm"
+                  >
+                    Editar Check List
+                  </button>
+                  <button 
+                    onClick={() => setViewingChecklist(false)}
+                    className="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  >
+                    Cerrar Detalles
+                  </button>
+                </div>
               </div>
             );
           })()}
