@@ -10,7 +10,8 @@ const HEADER_TRANSLATIONS = {
   NOMBRE_CONDUCTOR: 'Conductor',
   ESTATUS: 'Estatus',
   CORRIDAS: 'Corridas',
-  HORA_PROGRAMADA: 'Hora Programada'
+  HORA_PROGRAMADA: 'Hora de Acople',
+  HORA_DE_ACOPLE: 'Hora de Acople',
 };
 
 const EXCLUDED_KEYS = ['FALLA', 'CICLO', 'MOTIVO'];

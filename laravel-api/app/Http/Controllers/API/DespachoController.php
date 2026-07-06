@@ -82,6 +82,8 @@ class DespachoController extends Controller
                 }
             }
 
+            $horaAcople = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
+
             $registrosParaInsertar[] = [
                 'unidad_id' => $unidad->id,
                 'ruta' => trim((string) ($fila['RUTA'] ?? '')),
@@ -90,7 +92,7 @@ class DespachoController extends Controller
                 'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'Sin estatus')),
                 'corridas' => trim((string) ($fila['CORRIDA'] ?? '')) === '' ? null : (int) trim((string) ($fila['CORRIDA'] ?? '')),
-                'hora_programada' => trim((string) ($fila['HORA_PROGRAMADA'] ?? '')) === '' ? null : trim((string) ($fila['HORA_PROGRAMADA'] ?? '')),
+                'hora_programada' => $horaAcople === '' ? null : $horaAcople,
                 'fecha_registro' => now(),
             ];
         }
@@ -369,7 +371,7 @@ class DespachoController extends Controller
             if ($registro) {
                 try {
                     $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-                    $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? ''));
+                    $horaSalidaVal = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
 
                     DB::table('informacion_operativa')
                         ->where('id', $registro->id)
@@ -378,7 +380,7 @@ class DespachoController extends Controller
                             'numero_tarjeton'  => (string) ($fila['TARJETON'] ?? ''),
                             'nombre_conductor' => (string) ($fila['NOMBRE_CONDUCTOR'] ?? ''),
                             'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
-                            'hora_programada'      => $horaSalidaVal === '' ? null : $horaSalidaVal,
+                            'hora_programada'  => $horaSalidaVal === '' ? null : $horaSalidaVal,
                         ]);
 
                     $actualizados++;
@@ -546,6 +548,7 @@ class DespachoController extends Controller
                 'CORRIDAS' => $reg->corridas,
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
+                'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada
             ];
         });
