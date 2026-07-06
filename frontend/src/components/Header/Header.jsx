@@ -13,26 +13,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
   const location = useLocation();
   const profileRef = useRef(null);
   
-  // Lógica para mostrar/ocultar el menú al hacer scroll
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      // Ocultar si bajamos más de 80px, mostrar si subimos
-      if (currentScrollY > lastScrollY && currentScrollY > 80) {
-        setIsVisible(false);
-      } else {
-        setIsVisible(true);
-      }
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -98,7 +79,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
   }
 
   return (
-    <header className={`app-header ${!isVisible ? 'app-header--hidden' : ''}`}>
+    <header className="app-header">
       <div className="app-header__inner">
         
         {/* Left Section: Back Button & Logo 1 */}
