@@ -79,7 +79,7 @@ export default function Dashboard() {
       const resultados = await Promise.all(
         transportModules.map(async (modulo) => {
           try {
-            const respuesta = await fetch(`http://localhost:8000/api/unidades/listar/${modulo.id}`, {
+            const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
               headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',

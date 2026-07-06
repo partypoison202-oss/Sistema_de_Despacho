@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
+import API_BASE from '../../config/api';
 import './DashboardGeneral.css';
 
 export default function Dashboard() {
@@ -13,7 +14,7 @@ export default function Dashboard() {
     const fetchConteos = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await fetch('http://localhost:8000/api/despacho/conteo-unidades', {
+        const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

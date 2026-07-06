@@ -1,17 +1,18 @@
 
 > frontend@0.0.0 dev
-> vite
+> vite --host
 
 
-  VITE v8.0.16  ready in 315 ms
+  VITE v8.0.16  ready in 260 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: http://192.168.1.72:5173/
-1:06:18 AM [vite] (client) hmr update /src/index.css, /src/pages/Login/Login.css
-1:11:03 AM [vite] (client) hmr update /src/components/GlobalClock/GlobalClock.jsx, /src/index.css
-1:11:16 AM [vite] (client) hmr update /src/index.css, /src/pages/Unidades/DetalleUnidad.css
-1:13:45 AM [vite] (client) hmr update /src/components/GlobalClock/GlobalClock.jsx, /src/index.css
-1:15:52 AM [vite] (client) hmr update /src/components/GlobalClock/GlobalClock.jsx, /src/index.css
-1:16:02 AM [vite] (client) hmr update /src/App.jsx, /src/index.css
-1:16:12 AM [vite] (client) hmr update /src/index.css, /src/components/Header/Header.jsx
-1:16:21 AM [vite] (client) hmr update /src/pages/Login/Login.jsx, /src/index.css
+  ➜  Network: http://192.168.3.132:5173/
+11:07:26 AM [vite] (client) hmr update /src/App.jsx, /src/index.css
+11:07:26 AM [vite] (client) hmr update /src/pages/CargaExcel/CargaExcel.jsx, /src/index.css
+11:07:26 AM [vite] (client) hmr update /src/index.css, /src/pages/CargaExcel/ExcelVista/ExcelVista.jsx
+11:07:26 AM [vite] (client) hmr update /src/index.css, /src/pages/Dashboard/Dashboard.css
+11:07:26 AM [vite] (client) hmr update /src/pages/Dashboard/Dashboard.jsx, /src/index.css
+11:07:26 AM [vite] (client) hmr update /src/pages/Unidades/DetalleUnidad.jsx, /src/index.css
+11:08:04 AM [vite] (client) hmr update /src/pages/General/DashboardGeneral.jsx, /src/index.css
+11:08:18 AM [vite] (client) hmr update /src/pages/General/DetalleUnidad.jsx, /src/index.css
+11:08:26 AM [vite] (client) hmr update /src/pages/Dashboard/Dashboard.jsx, /src/index.css
