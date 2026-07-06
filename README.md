@@ -3,7 +3,7 @@
 > **SITMAH** (Sistema de Transporte Metropolitano de Hidalgo)
 
 <p align="center">
-  <img src="frontend/public/images/sistema%20de%20tm.png" alt="Sistema de Transporte Metropolitano" height="130" style="vertical-align: middle;" />
+  <img src="frontend/public/images/sistema%20de%20tm.png" alt="Sistema de Transporte Metropolitano" height="160" style="vertical-align: middle;" />
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="frontend/public/images/sitmah_logo.png" alt="SITMAH" height="90" style="vertical-align: middle;" />
 </p>
