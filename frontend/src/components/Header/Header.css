@@ -1,6 +1,14 @@
 .app-header {
   background-color: var(--color-maroon);
   border-bottom: 2px solid var(--color-gold);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-header--hidden {
+  transform: translateY(-100%);
 }
 
 .app-header__inner {
@@ -22,7 +30,7 @@
 .app-header__back-btn {
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: var(--tw-color-white);
   padding: 0.5rem;
   border-radius: 50%;
   cursor: pointer;
@@ -73,7 +81,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
-  color: #ffffff;
+  color: var(--tw-color-white);
 }
 
 .app-header__center {
@@ -139,7 +147,7 @@
   width: 40px;
   height: 40px;
   background-color: var(--color-gold);
-  color: #ffffff;
+  color: var(--tw-color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;

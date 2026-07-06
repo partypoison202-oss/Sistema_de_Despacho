@@ -1,7 +1,7 @@
 /* src/pages/CargaExcel/ExcelVista/ExcelVista.css */
 
 .excel-table-card {
-  background: var(--color-card-bg);
+  background: var(--tw-color-white);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-md);
   padding: 1.75rem;
@@ -23,19 +23,19 @@
 .excel-table-header-left h3 {
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--tw-color-gray-900);
   margin: 0 0 0.25rem 0;
 }
 
 .excel-table-subtitle {
   font-size: 0.85rem;
-  color: var(--color-text-light);
+  color: var(--tw-color-gray-500);
   margin: 0;
 }
 
 .registro-count-badge {
   background-color: rgba(107, 29, 51, 0.08);
-  color: var(--color-primary);
+  color: var(--brand-maroon-bg);
   border: 1px solid rgba(107, 29, 51, 0.15);
   font-size: 0.8rem;
   font-weight: 600;
@@ -61,7 +61,7 @@
   left: 10px;
   width: 1.1rem;
   height: 1.1rem;
-  color: var(--color-text-light);
+  color: var(--tw-color-gray-500);
   pointer-events: none;
 }
 
@@ -118,7 +118,7 @@
 }
 
 .excel-preview-table th {
-  background-color: var(--color-primary);
+  background-color: var(--brand-maroon-bg);
   color: var(--tw-color-white);
   font-weight: 600;
   font-size: 0.75rem;

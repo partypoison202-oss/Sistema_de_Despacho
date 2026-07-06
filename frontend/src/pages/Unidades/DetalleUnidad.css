@@ -27,9 +27,9 @@
   background: var(--tw-color-white);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(229, 231, 235, 0.5);
+  border: 1px solid var(--tw-color-gray-200);
   border-radius: 1.25rem;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10px 30px -10px var(--tw-color-gray-800);
   padding: 2rem;
   display: flex;
   flex-direction: column;
@@ -183,7 +183,7 @@
   color: var(--tw-color-gray-900);
   background-color: transparent;
   border: none;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--tw-color-gray-100);
   border-radius: 0;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -233,20 +233,14 @@
   justify-content: center;
   padding: 3rem 1.5rem;
   text-align: center;
-  border: 2px dashed rgba(203, 213, 225, 0.7);
+  border: 2px dashed var(--tw-color-gray-300);
   border-radius: 1rem;
-  background-color: rgba(248, 250, 252, 0.5);
-  animation: pulseBg 3s infinite ease-in-out;
-}
-
-@keyframes pulseBg {
-  0%, 100% { background-color: rgba(248, 250, 252, 0.5); }
-  50% { background-color: rgba(241, 245, 249, 0.8); }
+  background-color: var(--tw-color-gray-100);
 }
 
 .info-panel__placeholder p {
   font-size: 0.95rem;
-  color: var(--tw-color-gray-500);
+  color: var(--tw-color-gray-600);
   font-weight: 500;
   max-width: 26rem;
   line-height: 1.5;
@@ -421,7 +415,7 @@
   align-items: center;
   gap: 0.6rem;
   padding-bottom: 0.85rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--tw-color-gray-100);
 }
 
 .info-card__header-icon {
@@ -466,7 +460,7 @@
   background-color: var(--tw-color-gray-50);
   padding: 0.6rem 0.85rem;
   border-radius: 0.5rem;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--tw-color-gray-100);
 }
 
 .info-card__item-icon {
@@ -670,4 +664,20 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .unit-control-panel {
+    padding: 1rem;
+  }
+  
+  .unit-control-panel__selectors {
+    gap: 1rem;
+    justify-content: center;
+  }
 }
