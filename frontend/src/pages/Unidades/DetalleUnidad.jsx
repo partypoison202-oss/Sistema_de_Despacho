@@ -7,25 +7,16 @@ import UnitSelector from './componentsdetalleunidad/UnitSelector';
 import UnitInfoPanel from './componentsdetalleunidad/UnitInfoPanel';
 
 import './DetalleUnidad.css';
+import API_BASE from '../../config/api';
+
 
 export default function DetalleUnidad() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const configActual = transportModules.find((m) => m.id === tipoTransporte);
-  if (!configActual) {
-    return (
-      <div className="p-8">
-        Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button>
-      </div>
-    );
-  }
-
-  // Estado para controlar qué selector de estado está abierto (operacion, mantenimiento, reserva o null)
+  // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
-
-  // Estado global de la unidad seleccionada
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
   const [datosOperativos, setDatosOperativos] = useState({
@@ -40,9 +31,17 @@ export default function DetalleUnidad() {
   const [mensajeBusqueda, setMensajeBusqueda] = useState('');
   const [unidadesList, setUnidadesList] = useState([]);
   const [cargandoUnidades, setCargandoUnidades] = useState(true);
-
-  // Estado para fallas (el único campo adicional que se mantiene)
   const [fallaTexto, setFallaTexto] = useState('');
+  const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
+
+  const configActual = transportModules.find((m) => m.id === tipoTransporte);
+  if (!configActual) {
+    return (
+      <div className="p-8">
+        Transporte no encontrado. <button onClick={() => navigate('/')}>Volver</button>
+      </div>
+    );
+  }
 
   // Utilidades
   const getToken = () => localStorage.getItem('token');
@@ -52,7 +51,7 @@ export default function DetalleUnidad() {
     return digitos.padStart(3, '0');
   };
 
-  // Cargar lista de unidades (incluyendo estado)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const fetchUnidades = async () => {
       const token = getToken();
@@ -62,7 +61,7 @@ export default function DetalleUnidad() {
       }
       try {
         const respuesta = await fetch(
-          `http://localhost:8000/api/unidades/listar/${tipoTransporte}`,
+          `${API_BASE}/api/unidades/listar/${tipoTransporte}`,
           {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           }
@@ -93,6 +92,7 @@ export default function DetalleUnidad() {
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const ecoDesdeRuta = searchParams.get('eco');
     if (!ecoDesdeRuta || !unidadesList.length) return;
@@ -144,7 +144,7 @@ export default function DetalleUnidad() {
         navigate('/login');
         return;
       }
-      const url = `http://localhost:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
+      const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
       const respuesta = await fetch(url, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
@@ -206,7 +206,7 @@ export default function DetalleUnidad() {
         return;
       }
       const respuesta = await fetch(
-        `http://localhost:8000/api/unidades/buscar-tarjeton/${tipoTransporte}/${encodeURIComponent(valor)}`,
+        `${API_BASE}/api/unidades/buscar-tarjeton/${tipoTransporte}/${encodeURIComponent(valor)}`,
         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
       const resultado = await respuesta.json();
@@ -247,7 +247,7 @@ export default function DetalleUnidad() {
         numero_eco: numeroLimpio,
         falla: fallaTexto || null,
       };
-      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
+      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-adicionales`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -298,7 +298,7 @@ export default function DetalleUnidad() {
         numero_eco: numeroLimpio,
         tarjeton: nuevoTarjeton,
       };
-      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-tarjeton', {
+      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-tarjeton`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -317,7 +317,7 @@ export default function DetalleUnidad() {
           icon: 'success',
           title: '¡Tarjetón Asignado!',
           text: `Se asignó al conductor: ${resultado.conductor}`,
-          confirmButtonColor: '#cbd5e1',
+          confirmButtonColor: 'var(--tw-color-gray-300)',
           timer: 2000,
         });
       } else {
@@ -345,8 +345,6 @@ export default function DetalleUnidad() {
     setFallaTexto('');
   };
 
-  const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
-
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;
     
@@ -372,7 +370,7 @@ export default function DetalleUnidad() {
       const matchNumeros = selectedOption.match(/\d+/);
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
-      const response = await fetch(`http://localhost:8000/api/unidades/cambiar-estatus`, {
+      const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

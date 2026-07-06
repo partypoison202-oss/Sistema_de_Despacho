@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import { transportModules } from '../../config/transportModules';
+import API_BASE from '../../config/api';
 import './DetalleUnidad.css';
 
 export default function DetalleUnidad() {
@@ -23,7 +24,7 @@ export default function DetalleUnidad() {
 
       try {
         const respuesta = await fetch(
-          `http://localhost:8000/api/despacho/detalle/${id}`,
+          `${API_BASE}/api/despacho/detalle/${id}`,
           {
             method: 'GET',
             headers: {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const GlobalClock = () => {
+const GlobalClock = ({ className = "fixed bottom-6 right-4 z-[9999]" }) => {
   const [time, setTime] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -10,9 +10,41 @@ const GlobalClock = () => {
     
     // Al inicializar, checar localStorage para persistencia de tema
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || (!savedTheme && document.documentElement.classList.contains('dark'))) {
-      document.documentElement.classList.add('dark');
-      setIsDarkMode(true);
+    
+    if (savedTheme) {
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        setIsDarkMode(true);
+      } else {
+        document.documentElement.classList.remove('dark');
+        setIsDarkMode(false);
+      }
+    } else {
+      // Auto-detectar preferencia del sistema si no hay nada guardado
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark || document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.add('dark');
+        setIsDarkMode(true);
+      }
+    }
+    
+    // Escuchar cambios de preferencia del sistema
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => {
+      if (!localStorage.getItem('theme')) {
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+          setIsDarkMode(true);
+        } else {
+          document.documentElement.classList.remove('dark');
+          setIsDarkMode(false);
+        }
+      }
+    };
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
     }
     
     return () => clearInterval(timer);
@@ -51,7 +83,7 @@ const GlobalClock = () => {
   };
 
   return (
-    <div className="fixed top-[80px] right-4 lg:top-4 z-[9999] flex items-center gap-2">
+    <div className={`flex items-center gap-2 ${className}`}>
       {/* Botón de Modo Oscuro */}
       <button 
         onClick={toggleDarkMode}
