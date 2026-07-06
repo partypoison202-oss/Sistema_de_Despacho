@@ -3,15 +3,15 @@
 > **SITMAH** (Sistema de Transporte Metropolitano de Hidalgo)
 
 <p align="center">
-  <img src="frontend/public/images/sistema%20de%20tm.png" alt="Sistema de Transporte Metropolitano" height="80" />
+  <img src="frontend/public/images/sistema%20de%20tm.png" alt="Sistema de Transporte Metropolitano" height="130" style="vertical-align: middle;" />
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="frontend/public/images/sitmah_logo.png" alt="SITMAH" height="80" />
+  <img src="frontend/public/images/sitmah_logo.png" alt="SITMAH" height="90" style="vertical-align: middle;" />
 </p>
-
 
 Este proyecto es una plataforma web integral diseñada para la gestión, inspección preoperativa (checklist), control de despacho en tiempo real y generación de reportes generales y específicos para la flota del Sistema de Transporte Metropolitano de Hidalgo.
 
 ---
+
 
 ## Tecnologías y Desarrollo
 
@@ -149,10 +149,10 @@ El sistema implementa un esquema de permisos basado en roles de usuario (rol_id)
 
 ### Tipos de Flotas Soportadas
 El sistema cuenta con flotas parametrizadas con imágenes específicas para registrar incidencias en diferentes partes de las unidades (frente, lateral y trasero):
-*   **URBANUSS** (Prefijo: ECO)
-*   **VAGONETA** (Prefijo: VAN)
-*   **ZAFIRO** (Prefijo: ZAF)
-*   **ORION** (Prefijo: ORI)
+*   **URBANUSS** 
+*   **VAGONETA** 
+*   **ZAFIRO** 
+*   **ORION** 
 
 ---
 
