@@ -70,7 +70,7 @@ const PUNTOS = [
     { id: 'torreta', label: 'Torreta', desc: 'Verificar que prenda, funcione correctamente y no esté dañado.' },
     { id: 'pintura_vinil', label: 'Pintura y vinil', desc: 'Verificar estado de pintura y vinil (desgaste, rayones, desprendimiento).' },
     { id: 'parabrisas_cristales', label: 'Parabrisas y cristales', desc: 'Revisar limpiaparabrisas, fisuras o daños en parabrisas y ventanas.' },
-    { id: 'luces_exteriores', label: 'Luces', desc: 'Verificar funcionamiento de faros, direccionales, luces traseras y de frenos.' },
+    { id: 'luces_exteriores', label: 'Luces', desc: 'Verificar funcionamiento de luces exteriores y interiores.' },
     { id: 'puertas', label: 'Puertas', desc: 'Revisar apertura, cierre y funcionamiento correcto.' },
     { id: 'llantas', label: 'Llantas', desc: 'Verificar presión, desgaste y estado general de las llantas.' },
     { id: 'rines', label: 'Rines', desc: 'Revisar estado de rines (golpes, fisuras, corrosión).' },
