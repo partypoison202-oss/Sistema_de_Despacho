@@ -18,6 +18,8 @@ import {
 import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
 import './ResumenDespacho.css';
+import API_BASE from '../../config/api';
+
 
 const modelsConfig = [
   { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanu-frente.webp' },
@@ -37,7 +39,7 @@ export default function ResumenDespacho() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:8000/api/despacho/hoy', {
+        const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`

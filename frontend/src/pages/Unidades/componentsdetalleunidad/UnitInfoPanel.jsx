@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import ChecklistForm from '../../CheckList/CheckList';
 import CONDUCTORES from '../../../data/conductores';
 import { generarPDFChecklist } from '../../../utils/generarPDFChecklist';
+import API_BASE from '../../../config/api';
+
 
 export default function UnitInfoPanel({
   selectedOption,
@@ -100,7 +102,7 @@ export default function UnitInfoPanel({
       const token = localStorage.getItem('token');
       if (!token) return;
       const today = new Date().toISOString().split('T')[0];
-      const res = await fetch(`http://localhost:8000/api/checklists?period=daily&date=${today}&economico=${ecoNumber}`, {
+      const res = await fetch(`${API_BASE}/api/checklists?period=daily&date=${today}&economico=${ecoNumber}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

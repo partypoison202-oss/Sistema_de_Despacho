@@ -9,6 +9,8 @@ import Swal from 'sweetalert2';
 import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
 import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
 import '../Dashboard/Dashboard.css';
+import API_BASE from '../../config/api';
+
 
 export default function DashboardEncierro() {
   const [conteos, setConteos] = useState({});
@@ -55,7 +57,7 @@ export default function DashboardEncierro() {
     try {
       // Obtener ambos reportes
       const [respRutas, respUnidades] = await Promise.all([
-        fetch('http://localhost:8000/api/despacho/reporte-general', {
+        fetch(`${API_BASE}/api/despacho/reporte-general`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -63,7 +65,7 @@ export default function DashboardEncierro() {
             'Content-Type': 'application/json',
           },
         }),
-        fetch('http://localhost:8000/api/despacho/reporte-unidades', {
+        fetch(`${API_BASE}/api/despacho/reporte-unidades`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -131,7 +133,7 @@ export default function DashboardEncierro() {
     const fetchConteos = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await fetch('http://localhost:8000/api/despacho/conteo-unidades', {
+        const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

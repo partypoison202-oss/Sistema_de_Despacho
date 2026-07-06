@@ -8,6 +8,8 @@ import Header from '../../components/Header/Header';
 import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
 import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
 import './CentroControl.css';
+import API_BASE from '../../config/api';
+
 
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
 const modelsConfig = [
@@ -37,7 +39,7 @@ export default function CentroControl() {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
       try {
-        const res = await fetch('http://localhost:8000/api/despacho/hoy', {
+        const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
@@ -136,7 +138,7 @@ export default function CentroControl() {
 
     try {
       const [respRutas, respUnidades] = await Promise.all([
-        fetch('http://localhost:8000/api/despacho/reporte-general', {
+        fetch(`${API_BASE}/api/despacho/reporte-general`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -144,7 +146,7 @@ export default function CentroControl() {
             'Content-Type': 'application/json',
           },
         }),
-        fetch('http://localhost:8000/api/despacho/reporte-unidades', {
+        fetch(`${API_BASE}/api/despacho/reporte-unidades`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

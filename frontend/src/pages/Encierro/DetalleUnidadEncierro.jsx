@@ -10,6 +10,8 @@ import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
 import ChecklistForm from '../CheckList/CheckList';
 import CONDUCTORES from '../../data/conductores';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
+import API_BASE from '../../config/api';
+
 
 export default function DetalleUnidadEncierro() {
   const { tipoTransporte } = useParams();
@@ -104,7 +106,7 @@ export default function DetalleUnidadEncierro() {
 
       try {
         const respuesta = await fetch(
-          `http://localhost:8000/api/unidades/listar/${tipoTransporte}`,
+          `${API_BASE}/api/unidades/listar/${tipoTransporte}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -161,7 +163,7 @@ export default function DetalleUnidadEncierro() {
       const token = getToken();
       if (!token) return;
       const today = new Date().toISOString().split('T')[0];
-      const res = await fetch(`http://localhost:8000/api/checklists?period=daily&date=${today}&economico=${ecoNumber}`, {
+      const res = await fetch(`${API_BASE}/api/checklists?period=daily&date=${today}&economico=${ecoNumber}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -221,7 +223,7 @@ export default function DetalleUnidadEncierro() {
       const token = getToken();
       if (!token) { navigate('/'); return; }
 
-      const url = `http://localhost:8000/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
+      const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
       const respuesta = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -280,7 +282,7 @@ export default function DetalleUnidadEncierro() {
         numero_eco: numeroLimpio,
         tarjeton: nuevoTarjeton,
       };
-      const respuesta = await fetch('http://localhost:8000/api/despacho/actualizar-tarjeton', {
+      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-tarjeton`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -370,7 +372,7 @@ export default function DetalleUnidadEncierro() {
       const matchNumeros = selectedOption.match(/\d+/);
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
-      const response = await fetch(`http://localhost:8000/api/unidades/cambiar-estatus`, {
+      const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

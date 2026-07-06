@@ -5,6 +5,8 @@ import { AuthContext } from '../../context/AuthContext';
 import GlobalClock from '../../components/GlobalClock/GlobalClock';
 import Swal from 'sweetalert2';
 import './Login.css';
+import API_BASE from '../../config/api';
+
 
 // ── Logo STM — T abstracta oficial (Sitmah-Flotilla) ──
 function LogoSTM({ className = '' }) {
@@ -54,7 +56,7 @@ export default function Login() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('http://localhost:8000/api/login', {
+      const response = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -3,6 +3,8 @@ import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import './Usuarios.css';
+import API_BASE from '../../config/api';
+
 
 export default function Usuarios() {
   const { token } = useContext(AuthContext);
@@ -30,8 +32,8 @@ const [togglingUserId, setTogglingUserId] = useState(null);
   const fetchData = async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([
-        fetch('http://localhost:8000/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:8000/api/users/roles', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_BASE}/api/users`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/users/roles`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       const usersData = await usersRes.json();
@@ -71,8 +73,8 @@ const [togglingUserId, setTogglingUserId] = useState(null);
     e.preventDefault();
     setIsSubmitting(true);
     const url = formData.id 
-      ? `http://localhost:8000/api/users/${formData.id}` 
-      : 'http://localhost:8000/api/users';
+      ? `${API_BASE}/api/users/${formData.id}` 
+      : `${API_BASE}/api/users`;
     const method = formData.id ? 'PUT' : 'POST';
 
     try {
@@ -117,7 +119,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
   }
 
   try {
-    const res = await fetch(`http://localhost:8000/api/users/${user.id}`, {
+    const res = await fetch(`${API_BASE}/api/users/${user.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -153,7 +155,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://localhost:8000/api/users/${id}`, {
+        const res = await fetch(`${API_BASE}/api/users/${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });

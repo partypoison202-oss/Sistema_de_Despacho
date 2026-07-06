@@ -1,4 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
+import API_BASE from '../config/api';
+
 
 export const AuthContext = createContext();
 
@@ -10,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       // Validate token and get user info
-      fetch('http://localhost:8000/api/me', {
+      fetch(`${API_BASE}/api/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -41,7 +43,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     if (token) {
-      fetch('http://localhost:8000/api/logout', {
+      fetch(`${API_BASE}/api/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

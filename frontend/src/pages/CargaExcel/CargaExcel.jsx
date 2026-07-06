@@ -4,6 +4,8 @@ import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
 import './CargaExcel.css';
+import API_BASE from '../../config/api';
+
 
 const STORAGE_KEY = 'cargaExcel_archivoProcesado';
 const STORAGE_PREVIEW_KEY = 'cargaExcel_previewData';
@@ -31,7 +33,7 @@ export default function CargaExcel() {
   const fetchDatosHoy = async () => {
     setCargandoTabla(true);
     try {
-      const response = await fetch('http://localhost:8000/api/despacho/hoy', {
+      const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -82,7 +84,7 @@ export default function CargaExcel() {
     setIsSaving(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/despacho/actualizar', {
+      const response = await fetch(`${API_BASE}/api/despacho/actualizar`, {
         method: 'POST',
         headers: getAuthHeaders(), // Token aplicado
         body: JSON.stringify({ unidades: previewData })
@@ -207,7 +209,7 @@ export default function CargaExcel() {
         }
 
         // Petición al backend con Token
-        const respuesta = await fetch('http://localhost:8000/api/despacho/importar', {
+        const respuesta = await fetch(`${API_BASE}/api/despacho/importar`, {
           method: 'POST',
           headers: getAuthHeaders(), // Token aplicado
           body: JSON.stringify({ unidades: unidadesProcesadas })
