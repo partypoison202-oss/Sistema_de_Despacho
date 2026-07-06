@@ -1,23 +1,15 @@
-# 🚍 Sistema de Despacho y Gestión de Flota - SITMAH
+# Sistema de Despacho y Gestión de Flota - SITMAH
 
 > **SITMAH** (Sistema de Transporte Metropolitano de Hidalgo)
+
+![Sistema de Transporte Metropolitano](frontend/public/images/sistema%20de%20tm.png)
+![SITMAH](frontend/public/images/sitmah_logo.png)
 
 Este proyecto es una plataforma web integral diseñada para la gestión, inspección preoperativa (checklist), control de despacho en tiempo real y generación de reportes generales y específicos para la flota del Sistema de Transporte Metropolitano de Hidalgo.
 
 ---
 
-## 🖼️ Logotipos Oficiales del Proyecto
-
-El sistema incluye e integra los siguientes logotipos dentro de su interfaz gráfica:
-
-| Sistema de Transporte Metropolitano | Logotipo SITMAH |
-|:---:|:---:|
-| ![STM Logo](frontend/public/images/sistema%20de%20tm.webp) | ![SITMAH Logo](frontend/public/images/sitmah_logo.webp) |
-| _Identidad de Transporte_ | _Identidad de Gestión_ |
-
----
-
-## 🛠️ Tecnologías y Desarrollo
+## Tecnologías y Desarrollo
 
 El sistema está construido sobre una arquitectura moderna desacoplada en tres componentes principales:
 
@@ -43,7 +35,7 @@ Servicio alternativo auxiliar ligero:
 
 ---
 
-## 📂 Estructura del Repositorio
+## Estructura del Repositorio
 
 El proyecto está organizado en las siguientes carpetas:
 
@@ -60,7 +52,7 @@ Sistema_de_Despacho/
 
 ---
 
-## ⚙️ Requisitos Previos
+## Requisitos Previos
 
 Antes de comenzar, asegúrate de tener instalado en tu sistema:
 1.  **Node.js** (v18 o superior recomendado)
@@ -70,7 +62,7 @@ Antes de comenzar, asegúrate de tener instalado en tu sistema:
 
 ---
 
-## 🚀 Instalación y Configuración
+## Instalación y Configuración
 
 Sigue estos pasos para instalar las dependencias e inicializar el entorno:
 
@@ -113,7 +105,7 @@ composer install
 
 ---
 
-## 🖥️ Levantando los Servicios
+## Levantando los Servicios
 
 Para facilitar el desarrollo, el proyecto cuenta con scripts que inician de forma automática los tres servidores en simultáneo:
 
@@ -141,9 +133,9 @@ Una vez iniciados los servicios, podrás acceder a ellos a través de las siguie
 
 ---
 
-## 📊 Módulos y Roles del Sistema
+## Módulos y Roles del Sistema
 
-El sistema implementa un esquema de permisos basado en roles de usuario (`rol_id`):
+El sistema implementa un esquema de permisos basado en roles de usuario (rol_id):
 
 *   **ADMINISTRADOR:** Acceso completo al sistema, creación y edición de usuarios, carga de datos y visualización de reportes avanzados.
 *   **DESPACHO:** Control operativo de las unidades en ruta y asignación de despachos diarios.
@@ -160,7 +152,7 @@ El sistema cuenta con flotas parametrizadas con imágenes específicas para regi
 
 ---
 
-## 📋 Monitoreo de Logs
+## Monitoreo de Logs
 
 Los logs en ejecución se almacenan en la carpeta `/logs` de la raíz del proyecto. Puedes monitorear la actividad del sistema con:
 
