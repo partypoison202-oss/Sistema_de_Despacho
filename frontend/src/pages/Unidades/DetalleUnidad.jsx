@@ -1,6 +1,6 @@
 // src/pages/Unidades/DetalleUnidad.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
 import UnitSelector from './componentsdetalleunidad/UnitSelector';
@@ -13,6 +13,7 @@ import API_BASE from '../../config/api';
 export default function DetalleUnidad() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
   if (!configActual) {
@@ -48,6 +49,10 @@ export default function DetalleUnidad() {
   // Utilidades
   const getToken = () => localStorage.getItem('token');
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
+  const normalizarNumeroEco = (valor) => {
+    const digitos = String(valor ?? '').trim().toUpperCase().match(/\d+/)?.[0] ?? '';
+    return digitos.padStart(3, '0');
+  };
 
   // Cargar lista de unidades (incluyendo estado)
   useEffect(() => {
@@ -89,6 +94,22 @@ export default function DetalleUnidad() {
 
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
+
+  useEffect(() => {
+    const ecoDesdeRuta = searchParams.get('eco');
+    if (!ecoDesdeRuta || !unidadesList.length) return;
+
+    const ecoNormalizado = normalizarNumeroEco(ecoDesdeRuta);
+    const unidadEncontrada = unidadesList.find(
+      (unidad) =>
+        unidad.eco === ecoNormalizado ||
+        unidad.display === formatearEco(ecoNormalizado)
+    );
+
+    if (unidadEncontrada) {
+      handleSelectUnit(unidadEncontrada);
+    }
+  }, [searchParams, unidadesList]);
 
   // Seleccionar unidad (desde dropdown o búsqueda)
   const handleSelectUnit = async (unidad) => {

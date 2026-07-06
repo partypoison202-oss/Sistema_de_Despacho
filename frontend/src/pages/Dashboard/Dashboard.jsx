@@ -1,5 +1,6 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
@@ -19,6 +20,9 @@ export default function Dashboard() {
   const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [busquedaEco, setBusquedaEco] = useState('');
+  const [buscandoUnidad, setBuscandoUnidad] = useState(false);
+  const navigate = useNavigate();
 
   // Referencias para los elementos a capturar
   const reporteRutasRef = useRef(null);
@@ -48,6 +52,80 @@ export default function Dashboard() {
         })
         .catch(reject);
     });
+  };
+
+  const normalizarNumeroEco = (valor) => {
+    const digitos = String(valor ?? '').trim().toUpperCase().match(/\d+/)?.[0] ?? '';
+    return digitos.padStart(3, '0');
+  };
+
+  const handleBuscarUnidad = async (event) => {
+    event?.preventDefault();
+
+    const eco = normalizarNumeroEco(busquedaEco);
+    if (!eco || eco === '000') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Ingrese un número económico',
+        text: 'Escriba el número de la unidad que desea buscar.',
+        confirmButtonColor: '#601a2a',
+      });
+      return;
+    }
+
+    setBuscandoUnidad(true);
+    try {
+      const token = localStorage.getItem('token');
+      const resultados = await Promise.all(
+        transportModules.map(async (modulo) => {
+          try {
+            const respuesta = await fetch(`http://localhost:8000/api/unidades/listar/${modulo.id}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!respuesta.ok) return null;
+
+            const datos = await respuesta.json();
+            const unidades = Array.isArray(datos) ? datos : [];
+            const unidadEncontrada = unidades.find((unidad) => {
+              const numeroEcoUnidad = normalizarNumeroEco(unidad.numero_eco ?? '');
+              return numeroEcoUnidad === eco;
+            });
+
+            return unidadEncontrada ? { modulo, unidad: unidadEncontrada } : null;
+          } catch (error) {
+            console.error(`Error al consultar ${modulo.id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      const coincidencia = resultados.find(Boolean);
+      if (coincidencia) {
+        navigate(`/transporte/${coincidencia.modulo.id}?eco=${eco}`);
+        return;
+      }
+
+      Swal.fire({
+        icon: 'info',
+        title: 'No se encontró la unidad',
+        text: `No existe una unidad con el número económico ${eco}.`,
+        confirmButtonColor: '#601a2a',
+      });
+    } catch (error) {
+      console.error('Error al buscar la unidad:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo completar la búsqueda en este momento.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setBuscandoUnidad(false);
+    }
   };
 
   const handleGenerarReporte = async () => {
@@ -164,6 +242,19 @@ export default function Dashboard() {
           <p className="dashboard__subtitle">
             Toque la imagen del transporte para comenzar el registro
           </p>
+
+          <form className="dashboard__search" onSubmit={handleBuscarUnidad}>
+            <input
+              type="text"
+              value={busquedaEco}
+              onChange={(event) => setBusquedaEco(event.target.value)}
+              placeholder="Buscar por número económico"
+              className="dashboard__search-input"
+            />
+            <button type="submit" className="dashboard__search-button" disabled={buscandoUnidad}>
+              {buscandoUnidad ? 'Buscando...' : 'Buscar'}
+            </button>
+          </form>
 
           <div className="dashboard__grid">
             {transportModules.map((modulo) => (

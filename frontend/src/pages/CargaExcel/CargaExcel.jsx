@@ -118,6 +118,15 @@ export default function CargaExcel() {
     return t === 'URBANUSS' ? 'URBANUS' : t;
   };
 
+  const normalizarCabecera = (valor) => {
+    return String(valor ?? '')
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Z0-9]+/g, '_')
+      .replace(/^_|_$/g, '');
+  };
+
   const formatExcelTime = (val) => {
     if (val === undefined || val === null || String(val).trim() === '') return '';
     
@@ -175,18 +184,18 @@ export default function CargaExcel() {
         if (indiceEncabezado === -1) throw new Error("Encabezado 'TIPO DE UNIDAD' no encontrado.");
 
         const headerRow = dataRaw[indiceEncabezado];
-        const colIndex = { tipo: -1, ruta: -1, economico: -1, tarjeton: -1, conductor: -1, estatus: -1, corrida: -1, hora_programada: -1 };
+        const colIndex = { tipo: -1, ruta: -1, economico: -1, tarjeton: -1, conductor: -1, estatus: -1, corrida: -1, hora_acople: -1 };
 
         headerRow.forEach((cell, idx) => {
-          const str = String(cell).toUpperCase().trim();
-          if (str.includes('TIPO')) colIndex.tipo = idx;
+          const str = normalizarCabecera(cell);
+          if (str.includes('TIPO') && str.includes('UNIDAD')) colIndex.tipo = idx;
           else if (str === 'RUTA') colIndex.ruta = idx;
           else if (str === 'ECONOMICO') colIndex.economico = idx;
           else if (str.includes('TARJETON')) colIndex.tarjeton = idx;
-          else if (str.includes('NOMBRE_CONDUCTOR') || str === 'NOMBRE' || str === 'NOMBRE ') colIndex.conductor = idx;
+          else if (str.includes('NOMBRE_CONDUCTOR') || str === 'NOMBRE' || str === 'NOMBRE_') colIndex.conductor = idx;
           else if (str === 'ESTATUS' || str.includes('ESTATUS')) colIndex.estatus = idx;
-          else if (str === 'CORRIDA' || str === 'CORRIDAS' || str === 'N° CORRIDA' || str === 'NO. CORRIDA' || str === 'NO CORRIDA') colIndex.corrida = idx;
-          else if (str === 'HORA PROGRAMADA' || str === 'HORA_PROGRAMADA' || str.includes('HORA PROGRAMADA')) colIndex.hora_programada = idx;
+          else if (str === 'CORRIDA' || str === 'CORRIDAS' || str === 'N_CORRIDA' || str === 'NO_CORRIDA') colIndex.corrida = idx;
+          else if (['HORA_PROGRAMADA', 'HORA_SALIDA', 'HORA_ACOPLE', 'HORA_DE_ACOPLE'].includes(str)) colIndex.hora_acople = idx;
         });
 
         if (colIndex.economico === -1) throw new Error("No se encontró la columna 'ECONOMICO'.");
@@ -196,6 +205,8 @@ export default function CargaExcel() {
           const fila = dataRaw[i];
           if (!fila || !fila[colIndex.economico]) continue;
 
+          const horaAcople = colIndex.hora_acople >= 0 ? formatExcelTime(fila[colIndex.hora_acople]) : '';
+
           unidadesProcesadas.push({
             TIPO_DE_UNIDAD: normalizarTipoUnidad(fila[colIndex.tipo]),
             RUTA: fila[colIndex.ruta] || '',
@@ -204,7 +215,8 @@ export default function CargaExcel() {
             NOMBRE_CONDUCTOR: fila[colIndex.conductor] || '',
             ESTATUS: colIndex.estatus >= 0 ? (fila[colIndex.estatus] || '') : '',
             CORRIDA: colIndex.corrida >= 0 ? (fila[colIndex.corrida] || '') : '',
-            HORA_PROGRAMADA: colIndex.hora_programada >= 0 ? formatExcelTime(fila[colIndex.hora_programada]) : ''
+            HORA_DE_ACOPLE: horaAcople,
+            HORA_PROGRAMADA: horaAcople
           });
         }
 
