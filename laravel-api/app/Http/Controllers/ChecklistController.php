@@ -111,5 +111,42 @@ class ChecklistController extends Controller
             'checklist' => $checklist
         ], 201);
     }
+
+    /**
+     * Actualiza un checklist existente.
+     */
+    public function update(Request $request, $id)
+    {
+        $checklist = Checklist::findOrFail($id);
+
+        $validated = $request->validate([
+            'tipo_unidad'               => ['required', 'in:URBANUSS,ZAFIRO,VAGONETA,ORION'],
+            'conductor_id'              => ['nullable', 'string', 'max:20'],
+            'economico'                 => ['nullable', 'string', 'max:20'],
+            'servicio'                  => ['required', 'string', 'max:50'],
+            'puntos'                    => ['required', 'array'],
+            'puntos.*.estado'           => ['nullable', 'in:bien,mal'],
+            'puntos.*.observaciones'    => ['nullable', 'string', 'max:500'],
+            'puntos.*.fotos'            => ['nullable', 'array'],
+            'puntos.*.fotos.*'          => ['nullable', 'string'],
+            'dibujo'                    => ['nullable', 'string'],
+            'fecha_hora'                => ['required', 'string'],
+        ]);
+
+        $checklist->update([
+            'tipo_unidad'  => $validated['tipo_unidad'],
+            'conductor_id' => $validated['conductor_id'] ?? null,
+            'economico'    => $validated['economico'] ?? null,
+            'servicio'     => $validated['servicio'],
+            'puntos'       => $validated['puntos'],
+            'dibujo'       => $validated['dibujo'] ?? null,
+            'fecha_hora'   => $validated['fecha_hora'],
+        ]);
+
+        return response()->json([
+            'message' => 'Checklist actualizado correctamente.',
+            'checklist' => $checklist
+        ], 200);
+    }
 }
 

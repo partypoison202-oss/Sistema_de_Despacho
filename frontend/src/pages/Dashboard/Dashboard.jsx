@@ -1,6 +1,7 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
@@ -10,6 +11,8 @@ import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
 import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
 import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
+import API_BASE from '../../config/api';
+
 
 export default function Dashboard() {
   const [conteos, setConteos] = useState({});
@@ -18,6 +21,9 @@ export default function Dashboard() {
   const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [busquedaEco, setBusquedaEco] = useState('');
+  const [buscandoUnidad, setBuscandoUnidad] = useState(false);
+  const navigate = useNavigate();
   const [busquedaEco, setBusquedaEco] = useState('');
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const navigate = useNavigate();
@@ -77,7 +83,7 @@ export default function Dashboard() {
       const resultados = await Promise.all(
         transportModules.map(async (modulo) => {
           try {
-            const respuesta = await fetch(`http://localhost:8000/api/unidades/listar/${modulo.id}`, {
+            const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
               headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -133,7 +139,7 @@ export default function Dashboard() {
     try {
       // Obtener ambos reportes en paralelo
       const [respRutas, respUnidades] = await Promise.all([
-        fetch('http://localhost:8000/api/despacho/reporte-general', {
+        fetch(`${API_BASE}/api/despacho/reporte-general`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -141,7 +147,7 @@ export default function Dashboard() {
             'Content-Type': 'application/json',
           },
         }),
-        fetch('http://localhost:8000/api/despacho/reporte-unidades', {
+        fetch(`${API_BASE}/api/despacho/reporte-unidades`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -208,7 +214,7 @@ export default function Dashboard() {
     const fetchConteos = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await fetch('http://localhost:8000/api/despacho/conteo-unidades', {
+        const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -235,9 +241,9 @@ export default function Dashboard() {
       <div className="dashboard">
         <Header />
         <main className="dashboard__main">
-          <p className="dashboard__eyebrow">Seleccione el tipo de transporte</p>
-          <h1 className="dashboard__title">Flota de Unidades</h1>
-          <p className="dashboard__subtitle">
+          <p className="dashboard__eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
+          <h1 className="dashboard__title text-gray-900 dark:text-white">Flota de Unidades</h1>
+          <p className="dashboard__subtitle text-gray-500 dark:text-gray-300">
             Toque la imagen del transporte para comenzar el registro
           </p>
 
@@ -247,7 +253,7 @@ export default function Dashboard() {
               value={busquedaEco}
               onChange={(event) => setBusquedaEco(event.target.value)}
               placeholder="Buscar por número económico"
-              className="dashboard__search-input"
+              className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <button type="submit" className="dashboard__search-button" disabled={buscandoUnidad}>
               {buscandoUnidad ? 'Buscando...' : 'Buscar'}
@@ -276,7 +282,7 @@ export default function Dashboard() {
               style={{
                 padding: '0.75rem 2rem',
                 backgroundColor: '#6b1d33',
-                color: '#fff',
+                color: 'var(--tw-color-white)',
                 border: 'none',
                 borderRadius: '0.5rem',
                 fontSize: '1rem',

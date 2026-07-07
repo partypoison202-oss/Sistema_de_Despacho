@@ -18,6 +18,8 @@ import {
 import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
 import './ResumenDespacho.css';
+import API_BASE from '../../config/api';
+
 
 const modelsConfig = [
   { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanu-frente.webp' },
@@ -37,7 +39,7 @@ export default function ResumenDespacho() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:8000/api/despacho/hoy', {
+        const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
@@ -294,7 +296,7 @@ export default function ResumenDespacho() {
                 </tr>
               </thead>
               <tbody>
-                {rawData.filter(d => d.CORRIDAS !== null && d.CORRIDAS !== undefined && d.CORRIDAS !== '').map((item, index) => {
+                {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').map((item, index) => {
                   let cicloFormatted = item.CICLO || '';
                   return (
                     <tr key={index}>
@@ -307,7 +309,7 @@ export default function ResumenDespacho() {
                     </tr>
                   );
                 })}
-                {rawData.filter(d => d.CORRIDAS !== null && d.CORRIDAS !== undefined && d.CORRIDAS !== '').length === 0 && (
+                {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').length === 0 && (
                   <tr>
                     <td colSpan="6" style={{ textAlign: 'center', color: '#6b7280' }}>Sin registros</td>
                   </tr>

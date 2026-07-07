@@ -41,7 +41,7 @@ export default function UnitSelector({
               top: '-8px',
               right: '-8px',
               backgroundColor: '#6b1d33',
-              color: '#ffffff',
+              color: 'var(--tw-color-white)',
               borderRadius: '50%',
               padding: unidades.length > 9 ? '2px 5px' : '2px 6px',
               fontSize: '0.7rem',

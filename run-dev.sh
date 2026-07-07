@@ -16,6 +16,15 @@ echo "🚀 Iniciando Sistema de Despacho..."
 echo "════════════════════════════════════════════════════════════════"
 echo ""
 
+# Intentar obtener la IP local (Wi-Fi/Ethernet) para compartir en red
+if command -v ipconfig >/dev/null 2>&1; then
+    LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "localhost")
+elif command -v hostname >/dev/null 2>&1; then
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+else
+    LOCAL_IP="localhost"
+fi
+
 # Colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -62,7 +71,7 @@ echo ""
 # Iniciar Frontend
 start_service "Frontend" \
     "$PROJECT_DIR/frontend" \
-    "npm run dev" \
+    "npm run dev -- --host" \
     "5173"
 
 sleep 2
@@ -70,7 +79,7 @@ sleep 2
 # Iniciar Laravel API
 start_service "Laravel API" \
     "$PROJECT_DIR/laravel-api" \
-    "php -d extension=pdo_pgsql -d extension=pgsql artisan serve" \
+    "php -d extension=pdo_pgsql -d extension=pgsql artisan serve --host=0.0.0.0" \
     "8000"
 
 sleep 2
@@ -78,7 +87,7 @@ sleep 2
 # Iniciar Backend Node (opcional)
 start_service "Backend Node" \
     "$PROJECT_DIR/backend" \
-    "npm run dev" \
+    "npm run dev --host" \
     "4000"
 
 echo ""
@@ -90,6 +99,14 @@ echo -e "${YELLOW}🌐 Accede a la aplicación en:${NC}"
 echo -e "${YELLOW}   Frontend:    http://localhost:5173${NC}"
 echo -e "${YELLOW}   Laravel API: http://localhost:8000${NC}"
 echo -e "${YELLOW}   Backend:     http://localhost:4000 (opcional)${NC}"
+echo ""
+if [ "$LOCAL_IP" != "localhost" ]; then
+echo -e "${BLUE}🌐 Para acceder desde otros dispositivos (CELULARES/TABLETS) en tu red Wi-Fi:${NC}"
+echo -e "${BLUE}   - Frontend:    http://$LOCAL_IP:5173${NC}"
+echo -e "${BLUE}   - Laravel API: http://$LOCAL_IP:8000${NC}"
+else
+echo -e "${BLUE}🌐 (No se pudo detectar la IP local para compartir en red)${NC}"
+fi
 echo ""
 echo -e "${YELLOW}📋 Ver logs:${NC}"
 echo -e "${YELLOW}   Frontend:    tail -f $LOGS_DIR/Frontend.log${NC}"
