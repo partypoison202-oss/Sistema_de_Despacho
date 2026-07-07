@@ -21,6 +21,20 @@ const menuItems = [
     color: 'maroon',
   },
   {
+    id: 'general',
+    redirectTo: '/general',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M7 8h10" />
+        <path d="M7 12h10" />
+        <path d="M7 16h6" />
+      </svg>
+    ),
+    label: 'GENERAL',
+    color: 'orange',
+  },
+  {
     id: 'encierro',
     redirectTo: '/encierro/dashboard', 
     icon: (
@@ -79,10 +93,10 @@ export default function Menu() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
 
-  // Redirige si no es administrador
   useEffect(() => {
-    if (!user || user.role?.codigo !== 'ADMINISTRADOR') {
-      navigate('/encierro/dashboard');
+    if (!user) return;
+    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL'].includes(user.role?.codigo)) {
+      navigate('/');
     }
   }, [user, navigate]);
 

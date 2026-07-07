@@ -6,11 +6,26 @@ import { transportModules } from '../../config/transportModules';
 import API_BASE from '../../config/api';
 import './DetalleUnidad.css';
 
+const ESTATUS_OPERACION = 'OPERACION';
+
+const normalizarTexto = (valor) => String(valor ?? '').trim().toUpperCase();
+
+// Convierte horarios decimales (5.3 => 5:30) o los deja pasar si ya vienen como texto.
+const formatoHora = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return '—';
+  if (typeof valor === 'number') {
+    const horas = Math.floor(valor);
+    const minutos = Math.round((valor - horas) * 100);
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+  }
+  return valor;
+};
+
 export default function DetalleUnidad() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [datos, setDatos] = useState(null);
+  const [unidades, setUnidades] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,23 +38,37 @@ export default function DetalleUnidad() {
       const token = localStorage.getItem('token');
 
       try {
-        const respuesta = await fetch(
-          `${API_BASE}/api/despacho/detalle/${id}`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        // Reutilizamos el mismo endpoint que alimenta el Dashboard,
+        // ya que /api/despacho/detalle/:id no existe en el backend.
+        const respuesta = await fetch(`${API_BASE}/api/despacho/hoy`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
         if (!respuesta.ok) {
           throw new Error('No se pudo obtener la información del despacho');
         }
 
-        const data = await respuesta.json();
-        setDatos(data);
+        const registros = await respuesta.json();
+        const tipoNormalizado = normalizarTexto(id);
+
+        const filtrados = (Array.isArray(registros) ? registros : [])
+          .filter((registro) => normalizarTexto(registro.TIPO_DE_UNIDAD) === tipoNormalizado)
+          .map((registro) => ({
+            eco: registro.ECONOMICO || '',
+            idUnidad: registro.TARJETON || '',
+            ruta: registro.RUTA || '',
+            estatus: normalizarTexto(registro.ESTATUS),
+            horaSalida: registro.HORA_PROGRAMADA,
+            acopleRuta: registro.HORA_DE_ACOPLE,
+            corrida: registro.CORRIDAS,
+          }))
+          .sort((a, b) => Number(a.eco) - Number(b.eco));
+
+        setUnidades(filtrados);
       } catch (err) {
         console.error('Error al obtener el detalle:', err);
         setError(err.message || 'Ocurrió un error al cargar la información');
@@ -51,42 +80,20 @@ export default function DetalleUnidad() {
     fetchDetalle();
   }, [id]);
 
-  const formatoHora = (valor) => {
-    if (valor === null || valor === undefined || valor === '') return '—';
-    // Los horarios llegan como número decimal (ej. 5.3 => 5:30)
-    if (typeof valor === 'number') {
-      const horas = Math.floor(valor);
-      const minutos = Math.round((valor - horas) * 100);
-      return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
-    }
-    return valor;
-  };
+  const programadas = unidades.length;
+  const operando = unidades.filter((u) => u.estatus === ESTATUS_OPERACION).length;
+  const faltantes = programadas - operando;
 
   return (
     <div className="detalle">
       <Header />
       <main className="detalle__main">
-        <button className="detalle__volver" onClick={() => navigate('/dashboard')}>
-          ← Volver a la flota
-        </button>
 
-        <div className="detalle__encabezado">
-          <div className="detalle__titulo-grupo">
-            <p className="detalle__eyebrow">Despacho de unidades</p>
-            <h1 className="detalle__titulo">{modulo?.title || 'Unidad'}</h1>
-          </div>
-
-          {datos?.cumplioProgramado && (
-            <span
-              className={`detalle__badge ${
-                datos.cumplioProgramado === 'SI'
-                  ? 'detalle__badge--si'
-                  : 'detalle__badge--no'
-              }`}
-            >
-              ¿Cumplió lo programado? {datos.cumplioProgramado}
-            </span>
-          )}
+        <div className="detalle__banner">
+          <span className="detalle__banner-titulo">
+            {(modulo?.title || 'UNIDAD').toUpperCase()}, ¿CUMPLIÓ LO PROGRAMADO?
+          </span>
+          <span className="detalle__banner-respuesta">SI</span>
         </div>
 
         {cargando && <p className="detalle__estado">Cargando información...</p>}
@@ -98,30 +105,22 @@ export default function DetalleUnidad() {
           </div>
         )}
 
-        {!cargando && !error && datos && (
+        {!cargando && !error && (
           <>
-            {datos.resumen && (
-              <div className="detalle__resumen">
-                <div className="detalle__resumen-card">
-                  <span className="detalle__resumen-valor">
-                    {datos.resumen.programadas ?? '—'}
-                  </span>
-                  <span className="detalle__resumen-label">Programadas</span>
-                </div>
-                <div className="detalle__resumen-card">
-                  <span className="detalle__resumen-valor">
-                    {datos.resumen.operando ?? '—'}
-                  </span>
-                  <span className="detalle__resumen-label">Operando</span>
-                </div>
-                <div className="detalle__resumen-card detalle__resumen-card--alerta">
-                  <span className="detalle__resumen-valor">
-                    {datos.resumen.faltantes ?? '—'}
-                  </span>
-                  <span className="detalle__resumen-label">Faltantes</span>
-                </div>
+            <div className="detalle__resumen">
+              <div className="detalle__resumen-card">
+                <span className="detalle__resumen-valor">{programadas}</span>
+                <span className="detalle__resumen-label">Programadas</span>
               </div>
-            )}
+              <div className="detalle__resumen-card">
+                <span className="detalle__resumen-valor">{operando}</span>
+                <span className="detalle__resumen-label">Operando</span>
+              </div>
+              <div className="detalle__resumen-card detalle__resumen-card--alerta">
+                <span className="detalle__resumen-valor">{faltantes}</span>
+                <span className="detalle__resumen-label">Faltantes</span>
+              </div>
+            </div>
 
             <div className="detalle__tabla-wrapper">
               <table className="detalle__tabla">
@@ -137,26 +136,43 @@ export default function DetalleUnidad() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(datos.unidades || []).map((unidad, index) => (
-                    <tr
-                      key={`${unidad.eco}-${index}`}
-                      className={
-                        unidad.observaciones === 'MANTENIMIENTO'
-                          ? 'detalle__fila--mantenimiento'
-                          : ''
-                      }
-                    >
-                      <td>{unidad.eco}</td>
-                      <td>{unidad.idUnidad ?? '—'}</td>
-                      <td>{unidad.ruta ?? '—'}</td>
-                      <td>{formatoHora(unidad.horaSalida)}</td>
-                      <td>{formatoHora(unidad.acopleRuta)}</td>
-                      <td>{unidad.corrida ?? '—'}</td>
-                      <td>{unidad.observaciones || '—'}</td>
-                    </tr>
-                  ))}
+                  {unidades.map((unidad, index) => {
+                    const sinAsignar = !unidad.ruta && !unidad.idUnidad;
+                    const esAlerta = unidad.estatus && unidad.estatus !== ESTATUS_OPERACION;
 
-                  {(!datos.unidades || datos.unidades.length === 0) && (
+                    if (sinAsignar && esAlerta) {
+                      // Unidad sin ruta/tarjetón asignado: se muestra como barra completa,
+                      // igual que en la hoja de referencia (ej. "MANTENIMIENTO").
+                      return (
+                        <tr key={`${unidad.eco}-${index}`}>
+                          <td className="detalle__eco">{unidad.eco}</td>
+                          <td colSpan={6} className="detalle__observacion-barra">
+                            {unidad.estatus}
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return (
+                      <tr key={`${unidad.eco}-${index}`}>
+                        <td className="detalle__eco">{unidad.eco}</td>
+                        <td>{unidad.idUnidad || '—'}</td>
+                        <td>{unidad.ruta || '—'}</td>
+                        <td>{formatoHora(unidad.horaSalida)}</td>
+                        <td>{formatoHora(unidad.acopleRuta)}</td>
+                        <td>{unidad.corrida ?? '—'}</td>
+                        <td>
+                          {esAlerta ? (
+                            <span className="detalle__observacion-badge">{unidad.estatus}</span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {unidades.length === 0 && (
                     <tr>
                       <td colSpan={7} className="detalle__sin-datos">
                         No hay unidades registradas para este módulo.

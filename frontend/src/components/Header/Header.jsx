@@ -34,6 +34,20 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     navigate('/');
   };
 
+  const handleBackClick = () => {
+    if (location.pathname === '/general') {
+      navigate(user?.role?.codigo === 'ADMINISTRADOR' ? '/menu' : '/general');
+      return;
+    }
+
+    if (location.pathname.startsWith('/despacho/')) {
+      navigate('/general');
+      return;
+    }
+
+    navigate(-1);
+  };
+
   const handleHomeClick = () => {
     if (!user) {
       navigate('/');
@@ -48,9 +62,23 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       navigate('/encierro/dashboard');
     } else if (role === 'CENTRO_CONTROL') {
       navigate('/centro-control');
+    } else if (role === 'GENERAL') {
+      navigate('/general');
     } else {
       navigate('/dashboard');
     }
+  };
+
+  const getNextTheme = () => {
+    if (theme === 'dark') return 'light';
+    if (theme === 'light') return 'system';
+    return 'dark';
+  };
+
+  const getThemeLabel = () => {
+    if (theme === 'dark') return 'Forzado';
+    if (theme === 'light') return 'Apagado';
+    return 'Automático';
   };
 
   useEffect(() => {
@@ -70,10 +98,11 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     if (user.role?.codigo === 'ADMINISTRADOR') {
       showBackButton = location.pathname !== '/menu';
     } else {
-      const isDashboard = location.pathname === '/dashboard' || 
-                          location.pathname === '/encierro/dashboard' || 
+      const isDashboard = location.pathname === '/dashboard' ||
+                          location.pathname === '/encierro/dashboard' ||
                           location.pathname === '/centro-control/dashboard' ||
-                          location.pathname === '/cargar-excel';
+                          location.pathname === '/cargar-excel' ||
+                          location.pathname === '/general';
       showBackButton = !isDashboard;
     }
   }
@@ -85,9 +114,10 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
         {/* Left Section: Back Button & Logo 1 */}
         <div className="app-header__left">
           {showBackButton && (
-            <button 
-              className="app-header__back-btn" 
-              onClick={() => navigate(-1)}
+            <button
+              type="button"
+              className="app-header__back-btn"
+              onClick={handleBackClick}
               title="Regresar"
             >
               <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -101,26 +131,38 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
               {title && <h1 className="app-header__title">{title}</h1>}
             </div>
           ) : (
-            <div className="app-header__brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
-              <img 
-                src={headerConfig.image} 
-                alt={headerConfig.alt} 
+            <button
+              type="button"
+              className="app-header__brand"
+              onClick={handleHomeClick}
+              aria-label="Ir al inicio"
+              style={{ cursor: 'pointer' }}
+            >
+              <img
+                src={headerConfig.image}
+                alt={headerConfig.alt}
                 className="app-header__brand-logo-1"
               />
-            </div>
+            </button>
           )}
         </div>
         
         {/* Center Section: Logo 2 */}
         {!hideLogos && (
           <div className="app-header__center">
-            <div className="app-header__brand" onClick={handleHomeClick} style={{ cursor: 'pointer' }}>
-              <img 
-                src="/images/sitmah_logo.webp" 
-                alt="Logo SITMAH" 
-                className="app-header__brand-logo-2" 
+            <button
+              type="button"
+              className="app-header__brand"
+              onClick={handleHomeClick}
+              aria-label="Ir al inicio"
+              style={{ cursor: 'pointer' }}
+            >
+              <img
+                src="/images/sitmah_logo.webp"
+                alt="Logo SITMAH"
+                className="app-header__brand-logo-2"
               />
-            </div>
+            </button>
           </div>
         )}
 
@@ -154,10 +196,13 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                       Gestión de Usuarios
                     </button>
                   )}
-                  <button className="profile-menu-btn" onClick={() => {
-                    setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark');
-                  }}>
-                    Modo Oscuro: {theme === 'dark' ? 'Forzado' : theme === 'light' ? 'Apagado' : 'Automático'}
+                  <button
+                    className="profile-menu-btn"
+                    onClick={() => {
+                      setTheme(getNextTheme());
+                    }}
+                  >
+                    Modo Oscuro: {getThemeLabel()}
                   </button>
                   <button className="profile-menu-btn logout-btn" onClick={handleLogout}>
                     Cerrar Sesión

@@ -26,6 +26,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     if (user.role.codigo === 'ENCIERRO') {
       return <Navigate to="/encierro/dashboard" replace />;
     }
+    if (user.role.codigo === 'GENERAL') {
+      return <Navigate to="/general" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 
