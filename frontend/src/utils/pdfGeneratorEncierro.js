@@ -22,7 +22,7 @@ export const generarPDFEncierro = ({
   });
 
   const margin = 15;
-  let y = margin;
+  let y = 36;
 
   // Limpiar textos
   const responsableLimpio   = limpiarTexto(responsable)  || 'No especificado';
@@ -45,8 +45,6 @@ export const generarPDFEncierro = ({
   doc.setFont('helvetica', 'normal');
   doc.text(`${transporteLimpio}  /  Unidad: ${unidadLimpia}  /  Zona: ${zonaLimpia}`, margin, 20);
   doc.text(`Fecha: ${fechaVisual}`, 210 - margin, 20, { align: 'right' });
-
-  y = 36;
 
   // ── Datos generales ─────────────────────────────────────────
   doc.setFillColor(245, 245, 245);
@@ -155,6 +153,7 @@ export const generarPDFEncierro = ({
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(splitText, margin + 3, y + 5);
+    // eslint-disable-next-line no-useless-assignment
     y += boxH + 8;
   }
 

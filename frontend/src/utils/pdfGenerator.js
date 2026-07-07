@@ -110,7 +110,7 @@ export const generarPDFProfesional = ({
 
   // Observaciones específicas
   const observacionesEspecificasList = Object.entries(observacionesEspecificas)
-    .filter(([_, texto]) => texto && limpiarTexto(texto) !== '');
+    .filter(([_key, texto]) => texto && limpiarTexto(texto) !== '');
   if (observacionesEspecificasList.length > 0) {
     if (y > 270) { doc.addPage(); y = margin; }
     doc.setFontSize(12);

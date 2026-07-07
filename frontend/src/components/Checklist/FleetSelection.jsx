@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
 import '../../pages/Menu/Menu.css';
+import API_BASE from '../../config/api';
+
 
 
 
@@ -25,7 +27,7 @@ export default function FleetSelection() {
         return;
       }
       try {
-        const response = await fetch('http://localhost:8000/api/despacho/conteo-unidades', {
+        const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

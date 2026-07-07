@@ -3,6 +3,8 @@ import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import './Usuarios.css';
+import API_BASE from '../../config/api';
+
 
 export default function Usuarios() {
   const { token } = useContext(AuthContext);
@@ -23,15 +25,11 @@ export default function Usuarios() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 const [togglingUserId, setTogglingUserId] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([
-        fetch('http://localhost:8000/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:8000/api/users/roles', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_BASE}/api/users`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/users/roles`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       const usersData = await usersRes.json();
@@ -39,12 +37,17 @@ const [togglingUserId, setTogglingUserId] = useState(null);
 
       setUsers(usersData);
       setRoles(rolesData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (_err) {
+      console.error('Error fetching data:', _err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+   
+  }, []);
 
   const handleOpenModal = (user = null) => {
     if (user) {
@@ -71,8 +74,8 @@ const [togglingUserId, setTogglingUserId] = useState(null);
     e.preventDefault();
     setIsSubmitting(true);
     const url = formData.id 
-      ? `http://localhost:8000/api/users/${formData.id}` 
-      : 'http://localhost:8000/api/users';
+      ? `${API_BASE}/api/users/${formData.id}` 
+      : `${API_BASE}/api/users`;
     const method = formData.id ? 'PUT' : 'POST';
 
     try {
@@ -97,7 +100,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
       Swal.fire('Éxito', 'Usuario guardado correctamente', 'success');
       setIsModalOpen(false);
       fetchData();
-    } catch (error) {
+    } catch (_err) {
       Swal.fire('Error', 'Error de conexión', 'error');
     } finally {
       setIsSubmitting(false);
@@ -117,7 +120,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
   }
 
   try {
-    const res = await fetch(`http://localhost:8000/api/users/${user.id}`, {
+    const res = await fetch(`${API_BASE}/api/users/${user.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -134,7 +137,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
       const err = await res.json();
       Swal.fire('Error', err.message || 'No se pudo cambiar el estado', 'error');
     }
-  } catch (error) {
+  } catch (_err) {
     Swal.fire('Error', 'No se pudo cambiar el estado', 'error');
   }
 };
@@ -153,7 +156,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://localhost:8000/api/users/${id}`, {
+        const res = await fetch(`${API_BASE}/api/users/${id}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -162,7 +165,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
           Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
           fetchData();
         }
-      } catch (error) {
+      } catch (_err) {
         Swal.fire('Error', 'No se pudo eliminar el usuario', 'error');
       }
     }

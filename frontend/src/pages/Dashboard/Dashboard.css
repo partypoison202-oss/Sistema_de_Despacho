@@ -28,14 +28,60 @@
   margin: 0 0 1rem;
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 700;
-  color: var(--color-text-dark);
+  color: var(--tw-color-gray-900);
   letter-spacing: -0.03em;
 }
 
 .dashboard__subtitle {
   margin: 0 0 3rem;
   font-size: 1.125rem;
-  color: var(--color-text-muted);
+  color: var(--tw-color-gray-500);
+}
+
+.dashboard__search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--tw-color-gray-200);
+  border-radius: 999px;
+  background-color: var(--tw-color-white);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard__search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1rem;
+  color: var(--tw-color-gray-900);
+}
+
+.dashboard__search-input::placeholder {
+  color: #9a7d61;
+}
+
+.dashboard__search-button {
+  border: none;
+  border-radius: 999px;
+  background: var(--tw-color-white);
+  color: var(--tw-color-white);
+  padding: 0.75rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.dashboard__search-button:hover {
+  transform: translateY(-1px);
+}
+
+.dashboard__search-button:disabled {
+  opacity: 0.75;
+  cursor: wait;
 }
 
 .dashboard__search {
@@ -142,4 +188,26 @@
 
 .btn-reporte:hover {
   background-color: var(--brand-maroon-text); /* Un tono un poco más oscuro al pasar el mouse */
+}
+/* MODO OSCURO EXPLÍCITO (Anti-fallback) */
+html.dark .dashboard__title {
+  color: #ffffff !important;
+}
+
+html.dark .dashboard__eyebrow {
+  color: #c5a059 !important;
+}
+
+html.dark .dashboard__subtitle {
+  color: #dedee4 !important;
+}
+
+html.dark .dashboard__search-input,
+html.dark .dashboard__search-input::placeholder {
+  color: #ffffff !important;
+}
+
+html.dark .dashboard__search {
+  background-color: #1d1d22 !important;
+  border-color: #3a3a44 !important;
 }

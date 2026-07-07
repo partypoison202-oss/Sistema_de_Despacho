@@ -2,14 +2,51 @@ import { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
 import { AuthContext } from '../../context/AuthContext';
+import GlobalClock from '../GlobalClock/GlobalClock';
 import './Header.css';
 
 export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
   const { user, logout } = useContext(AuthContext);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'system');
   const navigate = useNavigate();
   const location = useLocation();
   const profileRef = useRef(null);
+  
+  // Lógica para mostrar/ocultar el menú al hacer scroll
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Ocultar si bajamos más de 80px, mostrar si subimos
+      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else if (theme === 'light') {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    } else {
+      root.classList.remove('dark', 'light');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const handleLogout = () => {
     logout();
@@ -61,7 +98,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
   }
 
   return (
-    <header className="app-header">
+    <header className={`app-header ${!isVisible ? 'app-header--hidden' : ''}`}>
       <div className="app-header__inner">
         
         {/* Left Section: Back Button & Logo 1 */}
@@ -107,7 +144,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
         )}
 
         {/* Right Section: Profile Dropdown */}
-        <div className="app-header__right">
+        <div className="app-header__right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <GlobalClock className="hidden lg:flex" />
           {user && (
             <div className="app-header__profile" ref={profileRef}>
               <button 
@@ -135,6 +173,11 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                       Gestión de Usuarios
                     </button>
                   )}
+                  <button className="profile-menu-btn" onClick={() => {
+                    setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark');
+                  }}>
+                    Modo Oscuro: {theme === 'dark' ? 'Forzado' : theme === 'light' ? 'Apagado' : 'Automático'}
+                  </button>
                   <button className="profile-menu-btn logout-btn" onClick={handleLogout}>
                     Cerrar Sesión
                   </button>

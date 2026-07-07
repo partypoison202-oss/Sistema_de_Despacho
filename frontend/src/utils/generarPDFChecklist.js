@@ -21,7 +21,7 @@ const PUNTOS = [
 ];
 
 const loadImage = (src) => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         if (!src) return resolve(null);
         const img = new Image();
         img.crossOrigin = 'Anonymous';

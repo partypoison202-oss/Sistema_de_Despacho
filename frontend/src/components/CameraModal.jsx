@@ -17,7 +17,7 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
         async function initCamera() {
             setLoading(true);
             setError(null);
-            
+
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 setError('not_supported');
                 setLoading(false);
@@ -216,18 +216,18 @@ export default function CameraModal({ isOpen, onClose, onCapture, fallbackTrigge
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                             <h4 className="text-base font-bold">
-                                {error === 'permission_denied' 
-                                    ? 'Permiso Denegado' 
+                                {error === 'permission_denied'
+                                    ? 'Permiso Denegado'
                                     : error === 'not_supported'
-                                    ? 'Cámara No Soportada'
-                                    : 'Error al Iniciar Cámara'}
+                                        ? 'Cámara No Soportada'
+                                        : 'Error al Iniciar Cámara'}
                             </h4>
                             <p className="mt-1.5 text-xs text-gray-400 max-w-xs">
                                 {error === 'permission_denied'
                                     ? 'No se otorgaron permisos para acceder a la cámara. Puedes tomar la foto usando la cámara nativa del dispositivo o subir una imagen.'
                                     : error === 'not_supported'
-                                    ? 'La API de cámara no está disponible en este navegador o protocolo. Por favor, usa HTTPS o sube una imagen desde tu dispositivo.'
-                                    : 'No se pudo activar el flujo de video en vivo. Por favor, usa la cámara nativa o sube una imagen.'}
+                                        ? 'La API de cámara no está disponible en este navegador o protocolo. Por favor, usa HTTPS o sube una imagen desde tu dispositivo.'
+                                        : 'No se pudo activar el flujo de video en vivo. Por favor, usa la cámara nativa o sube una imagen.'}
                             </p>
                             <div className="mt-4 flex flex-wrap justify-center gap-3">
                                 <button
