@@ -166,7 +166,9 @@ function SelectField({ id, label, value, onChange, options, disabled = false, re
 
 // ─── Fila de revisión ─────────────────────────────────────────────────────────
 function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
-    const { estado, observaciones, fotos = [] } = datos;
+    const { estado, observaciones: rawObservaciones, fotos: rawFotos } = datos || {};
+    const observaciones = rawObservaciones || '';
+    const fotos = Array.isArray(rawFotos) ? rawFotos : [];
     const [lightboxImage, setLightboxImage] = useState(null);
     const handleEstado = (valor) => onChange(punto.id, 'estado', estado === valor ? null : valor);
     const base = 'flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-150 select-none focus:outline-none focus:ring-2 focus:ring-offset-1';
@@ -605,7 +607,7 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
 };
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function ChecklistForm({ inline = false, prefillData = null, onClose = null, onComplete = null }) {
+export default function ChecklistForm({ inline = false, prefillData = null, onClose = null, onComplete = null, editMode = false, checklistId = null }) {
     const navigate = useNavigate();
     const location = useLocation();
     // ── Paso 1: selección de unidad ───────────────────────────────────────────
@@ -649,6 +651,19 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
             qTipoRaw = prefillData.tipoTransporte;
             qServicio = prefillData.servicio;
             qConductorNombre = prefillData.conductorNombre;
+            if (editMode && prefillData.puntos) {
+                try {
+                    const parsedPuntos = typeof prefillData.puntos === 'string' ? JSON.parse(prefillData.puntos) : prefillData.puntos;
+                    if (parsedPuntos && typeof parsedPuntos === 'object') {
+                        setPuntos(parsedPuntos);
+                    }
+                } catch (e) {
+                    console.error("Error parsing puntos from prefillData:", e);
+                }
+            }
+            if (editMode && prefillData.dibujo) {
+                setDibujo(prefillData.dibujo);
+            }
         } else {
             const queryParams = new URLSearchParams(location.search);
             qEco = queryParams.get('numero_eco');
@@ -800,8 +815,8 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
         setEconomico(ecoValue);
     };
 
-    const totalBien = Object.values(puntos).filter((p) => p.estado === 'bien').length;
-    const totalMal = Object.values(puntos).filter((p) => p.estado === 'mal').length;
+    const totalBien = Object.values(puntos || {}).filter((p) => p?.estado === 'bien').length;
+    const totalMal = Object.values(puntos || {}).filter((p) => p?.estado === 'mal').length;
     const totalPendiente = PUNTOS.length - totalBien - totalMal;
     const progreso = Math.round(((totalBien + totalMal) / PUNTOS.length) * 100);
 
@@ -843,8 +858,8 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
         e.preventDefault();
         setIsSubmitting(true);
         fechaHoraRef.current = new Date();
-        fetch(`${API_BASE}/api/checklist`, {
-            method: 'POST',
+        fetch(editMode && checklistId ? `${API_BASE}/api/checklist/${checklistId}` : `${API_BASE}/api/checklist`, {
+            method: editMode && checklistId ? 'PUT' : 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -1263,9 +1278,9 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                                         }}
                                     >
                                         {isSubmitting && (
-                                            <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'var(--tw-color-white)', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                                            <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
                                         )}
-                                        {isSubmitting ? 'Guardando...' : 'Guardar Checklist'}
+                                        {isSubmitting ? 'Guardando...' : (editMode ? 'Actualizar Checklist' : 'Guardar Checklist')}
                                     </button>
                                 </div>
                                 {(!unidadSeleccionada || (!hideTop && !servicio)) && (

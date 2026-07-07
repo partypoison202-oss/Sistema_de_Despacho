@@ -296,7 +296,7 @@ export default function ResumenDespacho() {
                 </tr>
               </thead>
               <tbody>
-                {rawData.filter(d => d.CORRIDAS !== null && d.CORRIDAS !== undefined && d.CORRIDAS !== '').map((item, index) => {
+                {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').map((item, index) => {
                   let cicloFormatted = item.CICLO || '';
                   return (
                     <tr key={index}>
@@ -309,7 +309,7 @@ export default function ResumenDespacho() {
                     </tr>
                   );
                 })}
-                {rawData.filter(d => d.CORRIDAS !== null && d.CORRIDAS !== undefined && d.CORRIDAS !== '').length === 0 && (
+                {rawData.filter(d => d.CICLO !== null && d.CICLO !== undefined && d.CICLO !== '').length === 0 && (
                   <tr>
                     <td colSpan="6" style={{ textAlign: 'center', color: '#6b7280' }}>Sin registros</td>
                   </tr>

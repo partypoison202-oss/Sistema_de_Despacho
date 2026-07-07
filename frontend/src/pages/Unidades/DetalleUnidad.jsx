@@ -156,6 +156,9 @@ export default function DetalleUnidad() {
           tarjeton: resultado.tarjeton || '',
           corrida: resultado.corridas || '',
           horaSalida: resultado.hora_salida || '',
+          estatus: resultado.estatus || unidadSeleccionada.estado || 'operacion',
+          ciclo: resultado.ciclo || '',
+          motivo: resultado.motivo || '',
         });
         setFallaTexto(resultado.falla || '');
         setSelectedEstado(resultado.estatus || unidadSeleccionada.estado || 'operacion');
@@ -166,6 +169,9 @@ export default function DetalleUnidad() {
           tarjeton: '',
           corrida: '',
           horaSalida: '',
+          estatus: unidadSeleccionada.estado || 'operacion',
+          ciclo: '',
+          motivo: '',
         });
         setFallaTexto('');
       }

@@ -50,5 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Checklist
     Route::post('/checklist', [ChecklistController::class, 'store']);
+    Route::put('/checklist/{id}', [ChecklistController::class, 'update']);
     Route::get('/checklists', [ChecklistController::class, 'index']);
 });

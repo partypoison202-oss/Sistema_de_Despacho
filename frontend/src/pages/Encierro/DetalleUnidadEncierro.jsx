@@ -50,12 +50,19 @@ export default function DetalleUnidadEncierro() {
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
   const [dropdownCorridaOpen, setDropdownCorridaOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
+  const [guardandoPerdida, setGuardandoPerdida] = useState(false);
   // Moved before early return to comply with rules-of-hooks
   const [unidadesList, setUnidadesList] = useState([]);
   const [cargandoUnidades, setCargandoUnidades] = useState(true);
 
   const corridaRef = useRef(null);
   const ciclosRef = useRef(null);
+
+  useEffect(() => {
+    setPerdidaCorrida(datosOperativos.corrida || '');
+    setPerdidaCiclos(datosOperativos.ciclo || '');
+    setPerdidaMotivo(datosOperativos.motivo || '');
+  }, [datosOperativos]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -69,6 +76,59 @@ export default function DetalleUnidadEncierro() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleMotivoChange = (e) => {
+    const val = e.target.value;
+    const filteredVal = val.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase();
+    setPerdidaMotivo(filteredVal);
+  };
+
+  const handleSavePerdida = async (corridaVal, cicloVal, motivoVal) => {
+    setGuardandoPerdida(true);
+    try {
+      const token = getToken();
+      const ecoNum = selectedOption.replace(/\D/g, '');
+      const response = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          tipo: configActual.id,
+          numero_eco: ecoNum,
+          corridas: corridaVal ? parseInt(corridaVal, 10) : null,
+          ciclo: cicloVal || null,
+          motivo: motivoVal || null
+        })
+      });
+      const result = await response.json();
+      if (response.ok && result.status === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Registro Actualizado',
+          text: corridaVal ? 'Corrida perdida guardada correctamente.' : 'Se eliminó el registro de corrida perdida.',
+          confirmButtonColor: '#c29b53',
+          timer: 2000
+        });
+        // Sync local object reference
+        datosOperativos.corrida = corridaVal || '';
+        datosOperativos.ciclo = cicloVal || '';
+        datosOperativos.motivo = motivoVal || '';
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: result.message || 'No se pudo guardar la corrida perdida.',
+          confirmButtonColor: '#6b1d33'
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setGuardandoPerdida(false);
+    }
+  };
 
   const ciclosOptions = [
     { value: '0.5', label: '1/2' },
@@ -244,7 +304,9 @@ export default function DetalleUnidadEncierro() {
           tarjeton: resultado.tarjeton || '',
           corrida: resultado.corridas || '',
           horaProgramada: resultado.hora_programada || '',
-          estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion'
+          estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
+          ciclo: resultado.ciclo || '',
+          motivo: resultado.motivo || '',
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
       } else {
@@ -254,7 +316,9 @@ export default function DetalleUnidadEncierro() {
           tarjeton: '',
           corrida: '',
           horaProgramada: '',
-          estatus: 'operacion'
+          estatus: 'operacion',
+          ciclo: '',
+          motivo: '',
         });
       }
     } catch (error) {
@@ -660,7 +724,7 @@ export default function DetalleUnidadEncierro() {
                           }}
                           onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
                         >
-                          <span>{perdidaCorrida ? `Corrida ${perdidaCorrida}` : 'Seleccionar'}</span>
+                          <span>{perdidaCorrida ? `CORRIDA ${perdidaCorrida}` : 'SELECCIONAR'}</span>
                           <svg className={`arrow-icon ${dropdownCorridaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCorridaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                           </svg>
@@ -673,14 +737,15 @@ export default function DetalleUnidadEncierro() {
                                 type="button"
                                 className="dropdown-menu__item"
                                 style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                                onClick={() => {
+                                onClick={async () => {
                                   setPerdidaCorrida('');
                                   setPerdidaCiclos('');
                                   setPerdidaMotivo('');
                                   setDropdownCorridaOpen(false);
+                                  await handleSavePerdida(null, null, null);
                                 }}
                               >
-                                Seleccionar
+                                SELECCIONAR
                               </button>
                               {[...Array(14)].map((_, i) => (
                                 <button
@@ -693,7 +758,7 @@ export default function DetalleUnidadEncierro() {
                                     setDropdownCorridaOpen(false);
                                   }}
                                 >
-                                  Corrida {i + 1}
+                                  CORRIDA {i + 1}
                                 </button>
                               ))}
                             </div>
@@ -701,9 +766,13 @@ export default function DetalleUnidadEncierro() {
                         )}
                       </div>
 
+                      {/* Spacer para que el dropdown de corridas esté balanceado en la fila 2 */}
+                      <div className="info-card__item" style={{ marginTop: '1.25rem' }}></div>
+
+                      {/* Ciclos Perdidos y Motivo: se muestran en la fila 3 (lado a lado) si hay corrida seleccionada */}
                       {perdidaCorrida && (
-                        <div className="animate-fade-in-up">
-                          <div ref={ciclosRef} className="info-card__item" style={{ marginTop: '1rem', position: 'relative' }}>
+                        <>
+                          <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative' }}>
                             <span className="info-card__label">Ciclos Perdidos</span>
                             <button
                               type="button"
@@ -722,7 +791,7 @@ export default function DetalleUnidadEncierro() {
                               }}
                               onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                             >
-                              <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' ciclo' + (perdidaCiclos !== '1' && perdidaCiclos !== '0.5' ? 's' : '') : 'Seleccionar'}</span>
+                              <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' CICLOS' : 'SELECCIONAR'}</span>
                               <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                               </svg>
@@ -740,7 +809,7 @@ export default function DetalleUnidadEncierro() {
                                       setDropdownCiclosOpen(false);
                                     }}
                                   >
-                                    Seleccionar
+                                    SELECCIONAR
                                   </button>
                                   {ciclosOptions.map(opt => (
                                     <button
@@ -753,14 +822,15 @@ export default function DetalleUnidadEncierro() {
                                         setDropdownCiclosOpen(false);
                                       }}
                                     >
-                                      {opt.label} ciclo{opt.value !== '1' && opt.value !== '0.5' ? 's' : ''}
+                                      {opt.label} CICLOS
                                     </button>
                                   ))}
                                 </div>
                               </div>
                             )}
                           </div>
-                          <div className="info-card__item" style={{ marginTop: '1rem' }}>
+                          
+                          <div className="info-card__item animate-fade-in-up">
                             <span className="info-card__label">Motivo (Obligatorio)</span>
                             <input
                               type="text"
@@ -768,10 +838,43 @@ export default function DetalleUnidadEncierro() {
                               style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.3rem', fontSize: '0.85rem' }}
                               maxLength={40}
                               value={perdidaMotivo}
-                              onChange={(e) => setPerdidaMotivo(e.target.value)}
-                              placeholder="Escribe el motivo de la pérdida..."
+                              onChange={handleMotivoChange}
+                              placeholder="ESCRIBE EL MOTIVO DE LA PÉRDIDA..."
                             />
                           </div>
+                        </>
+                      )}
+
+                      {/* Botón Guardar: solo aparece si hay cambios reales */}
+                      {perdidaCorrida && (perdidaCorrida !== (datosOperativos.corrida || '') || perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
+                        <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'end', marginTop: '0.5rem' }} className="animate-fade-in-up">
+                          <button
+                            type="button"
+                            disabled={!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida}
+                            onClick={() => handleSavePerdida(perdidaCorrida, perdidaCiclos, perdidaMotivo.trim())}
+                            className="interactive-input"
+                            style={{
+                              width: 'auto',
+                              padding: '0 1.5rem',
+                              height: '2.3rem',
+                              background: '#6b1d33',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.5rem',
+                              fontWeight: 700,
+                              fontSize: '0.85rem',
+                              cursor: (!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida) ? 'not-allowed' : 'pointer',
+                              opacity: (!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida) ? 0.6 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem'
+                            }}
+                          >
+                            {guardandoPerdida && (
+                              <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                            )}
+                            GUARDAR
+                          </button>
                         </div>
                       )}
 
