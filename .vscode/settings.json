@@ -1,0 +1,9 @@
+{
+  "eslint.workingDirectories": [
+    "./frontend"
+  ],
+  "eslint.experimental.useFlatConfig": true,
+  "css.lint.unknownAtRules": "ignore",
+  "javascript.validate.enable": false,
+  "cSpell.language": "en,es"
+}

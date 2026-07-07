@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const GlobalClock = ({ className = "fixed bottom-6 right-4 z-[9999]" }) => {
+const GlobalClock = ({ className = "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[9999] transition-all" }) => {
   const [time, setTime] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
