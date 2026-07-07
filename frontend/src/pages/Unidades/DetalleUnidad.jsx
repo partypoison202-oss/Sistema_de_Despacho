@@ -1,6 +1,7 @@
 // src/pages/Unidades/DetalleUnidad.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
 import UnitSelector from './componentsdetalleunidad/UnitSelector';
@@ -46,6 +47,10 @@ export default function DetalleUnidad() {
   // Utilidades
   const getToken = () => localStorage.getItem('token');
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
+  const normalizarNumeroEco = (valor) => {
+    const digitos = String(valor ?? '').trim().toUpperCase().match(/\d+/)?.[0] ?? '';
+    return digitos.padStart(3, '0');
+  };
   const normalizarNumeroEco = (valor) => {
     const digitos = String(valor ?? '').trim().toUpperCase().match(/\d+/)?.[0] ?? '';
     return digitos.padStart(3, '0');
