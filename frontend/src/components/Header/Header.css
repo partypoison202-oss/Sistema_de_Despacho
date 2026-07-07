@@ -101,17 +101,15 @@
   transition: opacity 0.2s ease;
 }
 
-/* El logo 1 (400x400) */
+/* El logo 1 */
 .app-header__brand-logo-1 {
-  height: 130px;
-  /* Ajustado para que visualmente empate con el logo 2 */
+  height: 58px;
   width: auto;
 }
 
-/* El logo 2 (872x312) - Ajustamos para que la altura visual coincida con el anterior */
+/* El logo 2 (Logo central) */
 .app-header__brand-logo-2 {
-  height: 50px;
-  /* Un poco menos de altura para compensar que es muy ancho */
+  height: 37px;
   width: auto;
 }
 
@@ -121,11 +119,11 @@
   }
 
   .app-header__brand-logo-1 {
-    height: 40px;
+    height: 46px;
   }
 
   .app-header__brand-logo-2 {
-    height: 30px;
+    height: 23px;
   }
 }
 
