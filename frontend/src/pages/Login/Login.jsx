@@ -109,7 +109,7 @@ export default function Login() {
       // Redirigir según rol
       redirigirPorRol(data.user, navigate);
       
-    } catch (error) {
+    } catch {
       Swal.fire({
         icon: 'error',
         title: 'Error de conexión',
@@ -130,6 +130,8 @@ export default function Login() {
       navigate('/encierro/dashboard');
     } else if (rol === 'CENTRO_CONTROL') {
       navigate('/centro-control');
+    } else if (rol === 'GENERAL') {
+      navigate('/general');
     } else if (rol === 'DESPACHO') {
       navigate('/dashboard');
     }

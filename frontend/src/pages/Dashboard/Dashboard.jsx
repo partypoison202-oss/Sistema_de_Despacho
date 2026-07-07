@@ -1,7 +1,6 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
@@ -21,9 +20,6 @@ export default function Dashboard() {
   const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [busquedaEco, setBusquedaEco] = useState('');
-  const [buscandoUnidad, setBuscandoUnidad] = useState(false);
-  const navigate = useNavigate();
   const [busquedaEco, setBusquedaEco] = useState('');
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const navigate = useNavigate();

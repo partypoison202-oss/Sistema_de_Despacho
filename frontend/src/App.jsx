@@ -23,14 +23,18 @@ import DetalleUnidades from './pages/CentroControl/Detalle/DetalleUnidades';
 function App() {
   return (
     <AuthProvider>
-      <GlobalClock className="fixed bottom-6 right-4 lg:hidden z-[9999]" />
+      <GlobalClock />
       <BrowserRouter>
         <Routes>
           {/* Pantalla de Inicio de Sesión */}
           <Route path="/" element={<Login />} />
 
-          {/* Ruta pública de detalle de despacho (pantalla "General" nueva) */}
-          <Route path="/despacho/:id" element={<DetalleUnidadGeneral />} />
+          {/* Ruta protegida de detalle de despacho (pantalla "General" nueva) */}
+          <Route path="/despacho/:id" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
+              <DetalleUnidadGeneral />
+            </ProtectedRoute>
+          } />
 
           {/* Rutas protegidas para ADMIN y DESPACHO (NO para CENTRO_CONTROL) */}
           <Route path="/dashboard" element={
@@ -41,13 +45,13 @@ function App() {
 
           {/* Dashboard General (nuevo) - tarjetas que llevan a /despacho/:id */}
           <Route path="/general" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
               <DashboardGeneral />
             </ProtectedRoute>
           } />
 
           <Route path="/menu" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
               <Menu />
             </ProtectedRoute>
           } />

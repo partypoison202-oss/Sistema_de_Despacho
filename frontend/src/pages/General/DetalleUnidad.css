@@ -2,7 +2,7 @@
 
 .detalle {
   min-height: 100vh;
-  background-color: var(--tw-color-gray-50);
+  background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
 }
@@ -23,54 +23,48 @@
   font-weight: 600;
   cursor: pointer;
   padding: 0.5rem 0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .detalle__volver:hover {
   text-decoration: underline;
 }
 
-.detalle__encabezado {
+/* ===== Banner "¿Cumplió lo programado?" ===== */
+
+.detalle__banner {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  align-items: stretch;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1.75rem;
 }
 
-.detalle__eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #6b1d33;
-  margin: 0 0 0.35rem;
-}
-
-.detalle__titulo {
-  font-size: 1.85rem;
+.detalle__banner-titulo {
+  flex: 1;
+  background-color: #6b1d33;
+  color: #fff;
   font-weight: 700;
-  color: #2b2b2b;
-  margin: 0;
-}
-
-.detalle__badge {
-  padding: 0.5rem 1.1rem;
-  border-radius: 999px;
-  font-weight: 600;
   font-size: 0.9rem;
-  white-space: nowrap;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.1rem 1.5rem;
+  text-align: center;
 }
 
-.detalle__badge--si {
-  background-color: #e3f5e8;
-  color: #1e7a3d;
-}
-
-.detalle__badge--no {
-  background-color: #fbe6e9;
-  color: #b3273e;
+.detalle__banner-respuesta {
+  width: 160px;
+  flex-shrink: 0;
+  background-color: #dbc9a3;
+  color: #4a3a1f;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .detalle__estado {
@@ -94,22 +88,24 @@
   border: none;
   border-radius: 0.5rem;
   background-color: #6b1d33;
-  color: var(--tw-color-white);
+  color: #fff;
   cursor: pointer;
   font-weight: 600;
 }
+
+/* ===== Resumen ===== */
 
 .detalle__resumen {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .detalle__resumen-card {
-  background-color: var(--tw-color-white);
+  background-color: #fff;
   border-radius: 0.75rem;
-  padding: 1.25rem 1rem;
+  padding: 1.1rem 1rem;
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -120,46 +116,65 @@
 
 .detalle__resumen-valor {
   display: block;
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #6b1d33;
 }
 
 .detalle__resumen-label {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: #6b6b6b;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
+/* ===== Tabla ===== */
+
 .detalle__tabla-wrapper {
-  background-color: var(--tw-color-white);
+  background-color: #fff;
   border-radius: 0.75rem;
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 560px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .detalle__tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .detalle__tabla thead th {
-  background-color: #6b1d33;
-  color: var(--tw-color-white);
-  text-align: left;
-  padding: 0.85rem 1rem;
+  background-color: #dcdcdc;
+  color: #2b2b2b;
+  text-align: center;
+  padding: 0.75rem 0.6rem;
   white-space: nowrap;
   position: sticky;
   top: 0;
+  z-index: 1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #c7c7c7;
+}
+
+.detalle__tabla thead th:first-child {
+  border-top-left-radius: 0;
 }
 
 .detalle__tabla tbody td {
-  padding: 0.7rem 1rem;
+  padding: 0.6rem 0.6rem;
   border-bottom: 1px solid #eee;
-  color: var(--tw-color-gray-900);
+  color: #333;
   white-space: nowrap;
+  text-align: center;
+}
+
+.detalle__eco {
+  font-weight: 700;
+  color: #2b2b2b;
 }
 
 .detalle__tabla tbody tr:nth-child(even) {
@@ -170,16 +185,36 @@
   background-color: #f3e7ea;
 }
 
-.detalle__fila--mantenimiento td {
-  color: #b3273e;
-  font-style: italic;
+/* Badge de observación cuando la unidad sí tiene datos pero no está operando */
+.detalle__observacion-badge {
+  display: inline-block;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  background-color: #5b5b5b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-radius: 0.3rem;
+}
+
+/* Barra completa cuando la unidad no tiene ruta/tarjetón asignado */
+.detalle__observacion-barra {
+  background-color: #5b5b5b !important;
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-align: left;
+  padding-left: 1rem !important;
 }
 
 .detalle__sin-datos {
   text-align: center;
   padding: 2rem !important;
   color: #6b6b6b;
-  font-style: normal !important;
 }
 
 @media (max-width: 640px) {
@@ -191,7 +226,12 @@
     grid-column: span 2;
   }
 
-  .detalle__titulo {
-    font-size: 1.4rem;
+  .detalle__banner {
+    flex-direction: column;
+  }
+
+  .detalle__banner-respuesta {
+    width: 100%;
+    padding: 0.6rem;
   }
 }
