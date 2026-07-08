@@ -271,20 +271,11 @@ export default function Dashboard() {
           </div>
 
           {/* Botón para generar reportes */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+          <div className="dashboard__actions">
             <button
               onClick={handleGenerarReporte}
               disabled={isGenerating}
-              style={{
-                padding: '0.75rem 2rem',
-                backgroundColor: '#6b1d33',
-                color: 'var(--tw-color-white)',
-                border: 'none',
-                borderRadius: '0.5rem',
-                fontSize: '1rem',
-                cursor: isGenerating ? 'not-allowed' : 'pointer',
-                opacity: isGenerating ? 0.7 : 1,
-              }}
+              className="btn-reporte"
             >
               {isGenerating ? 'Generando reportes...' : 'Generar Reportes PDF'}
             </button>

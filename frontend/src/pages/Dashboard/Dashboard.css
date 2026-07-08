@@ -213,6 +213,11 @@
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+
+  .btn-reporte {
+    width: 100%;
+    text-align: center;
+  }
 }
 .dashboard__actions {
   display: flex;
