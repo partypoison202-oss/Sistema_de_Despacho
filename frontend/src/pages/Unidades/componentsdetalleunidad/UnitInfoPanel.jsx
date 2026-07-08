@@ -237,10 +237,6 @@ export default function UnitInfoPanel({
             <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
           </div>
         </div>
-        <div className="dashboard-header-card__status">
-          <span className="pulse-indicator"></span>
-          Activo en Turno
-        </div>
       </div>
 
       <div className="dashboard-grid">
@@ -355,9 +351,9 @@ export default function UnitInfoPanel({
             <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h3 className="info-card__title">Despacho Operativo</h3>
+            <h3 className="info-card__title">Despacho</h3>
           </div>
-          <div className="info-card__body spec-badges" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
+          <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             <div className="info-card__item">
               <span className="info-card__label">Corrida</span>
               <div className="badge-display badge-display--maroon">
@@ -561,7 +557,7 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Movilidad y Estatus</h3>
           </div>
           <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
               {[
                 { id: 'operacion', label: 'OPERACIÓN', color: 'var(--state-green-text)', bgActive: '#f0fdf4' },
                 { id: 'reserva', label: 'RESERVA', color: 'var(--state-orange-text)', bgActive: 'var(--state-orange-light)' },
@@ -779,7 +775,7 @@ export default function UnitInfoPanel({
                 </div>
 
                 {/* Counters */}
-                <div className="grid grid-cols-2 gap-2 mb-4 text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 text-center">
                   <div className="bg-emerald-50 border border-emerald-100 py-2 rounded-xl">
                     <span className="block text-lg font-extrabold text-emerald-600 leading-none">{totalBien}</span>
                     <span className="text-[9px] font-bold uppercase text-emerald-700 tracking-wider">Bien</span>

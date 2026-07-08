@@ -1,7 +1,7 @@
 // src/pages/Encierro/DetalleUnidadEncierro.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { encierroModules } from '../../config/encierroModules';
 import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
@@ -16,6 +16,7 @@ import API_BASE from '../../config/api';
 export default function DetalleUnidadEncierro() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -44,31 +45,23 @@ export default function DetalleUnidadEncierro() {
   const [viewingChecklist, setViewingChecklist] = useState(false);
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [lightboxDibujo, setLightboxDibujo] = useState(null);
-
-  const [perdidaCorrida, setPerdidaCorrida] = useState('');
+  const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
-  const [dropdownCorridaOpen, setDropdownCorridaOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
-  // Moved before early return to comply with rules-of-hooks
-  const [unidadesList, setUnidadesList] = useState([]);
-  const [cargandoUnidades, setCargandoUnidades] = useState(true);
 
   const corridaRef = useRef(null);
   const ciclosRef = useRef(null);
 
   useEffect(() => {
-    setPerdidaCorrida(datosOperativos.corrida || '');
+    setHuboCorridasPerdidas(!!datosOperativos.ciclo);
     setPerdidaCiclos(datosOperativos.ciclo || '');
     setPerdidaMotivo(datosOperativos.motivo || '');
   }, [datosOperativos]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (corridaRef.current && !corridaRef.current.contains(e.target)) {
-        setDropdownCorridaOpen(false);
-      }
       if (ciclosRef.current && !ciclosRef.current.contains(e.target)) {
         setDropdownCiclosOpen(false);
       }
@@ -79,16 +72,26 @@ export default function DetalleUnidadEncierro() {
 
   const handleMotivoChange = (e) => {
     const val = e.target.value;
-    const filteredVal = val.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase();
+    const filteredVal = val.replace(/[^a-zA-Z0-9ñÑáéíóúÁÉÍÓÚüÜ\s\.,\-\(\)"]/g, '').toUpperCase();
     setPerdidaMotivo(filteredVal);
   };
 
-  const handleSavePerdida = async (corridaVal, cicloVal, motivoVal) => {
+  const handleToggleCorridasPerdidas = async (valor) => {
+    setHuboCorridasPerdidas(valor);
+    if (!valor) {
+      setPerdidaCiclos('');
+      setPerdidaMotivo('');
+      setDropdownCiclosOpen(false);
+      await handleSavePerdida(null, null);
+    }
+  };
+
+  const handleSavePerdida = async (cicloVal, motivoVal) => {
     setGuardandoPerdida(true);
     try {
       const token = getToken();
       const ecoNum = selectedOption.replace(/\D/g, '');
-      const response = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
+      const response = await fetch(`${API_BASE}/api/despacho/actualizar-adicionales`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,22 +100,19 @@ export default function DetalleUnidadEncierro() {
         body: JSON.stringify({
           tipo: configActual.id,
           numero_eco: ecoNum,
-          corridas: corridaVal ? parseInt(corridaVal, 10) : null,
           ciclo: cicloVal || null,
           motivo: motivoVal || null
         })
       });
       const result = await response.json();
-      if (response.ok && result.status === 'success') {
+      if (response.ok) {
         Swal.fire({
           icon: 'success',
           title: 'Registro Actualizado',
-          text: corridaVal ? 'Corrida perdida guardada correctamente.' : 'Se eliminó el registro de corrida perdida.',
+          text: cicloVal ? 'Corrida perdida guardada correctamente.' : 'Se eliminó el registro de corrida perdida.',
           confirmButtonColor: '#c29b53',
           timer: 2000
         });
-        // Sync local object reference
-        datosOperativos.corrida = corridaVal || '';
         datosOperativos.ciclo = cicloVal || '';
         datosOperativos.motivo = motivoVal || '';
       } else {
@@ -201,14 +201,37 @@ export default function DetalleUnidadEncierro() {
     fetchUnidades();
   }, [tipoTransporte, navigate]);
 
+  const [unidadesList, setUnidadesList] = useState([]);
+  const [cargandoUnidades, setCargandoUnidades] = useState(true);
+
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    // Sync tarjeton form field when datosOperativos changes
-     
     setFormTarjeton(datosOperativos.tarjeton || '');
   }, [datosOperativos.tarjeton]);
 
   const unidadesPorEstado = (estado) => unidadesList.filter((u) => u.estado === estado);
+
+  useEffect(() => {
+    const ecoDesdeRuta = searchParams.get('eco');
+    if (!ecoDesdeRuta || !unidadesList.length) return;
+
+    const normalizarNumeroEco = (valor) => {
+      const digitos = String(valor ?? '').trim().toUpperCase().match(/\d+/)?.[0] ?? '';
+      return digitos.padStart(3, '0');
+    };
+    const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
+
+    const ecoNormalizado = normalizarNumeroEco(ecoDesdeRuta);
+    const unidadEncontrada = unidadesList.find(
+      (unidad) =>
+        unidad.eco === ecoNormalizado ||
+        unidad.display === formatearEco(ecoNormalizado)
+    );
+
+    if (unidadEncontrada && selectedOption !== unidadEncontrada.display) {
+      handleSelectUnit(unidadEncontrada);
+    }
+  }, [searchParams, unidadesList, selectedOption]);
 
   const getConductorDisplay = () => {
     const val = datosOperativos.conductor;
@@ -305,8 +328,7 @@ export default function DetalleUnidadEncierro() {
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
           tarjeton: resultado.tarjeton || '',
-          corrida: resultado.corridas || '',
-          horaProgramada: resultado.hora_programada || '',
+          hora_encierro: resultado.hora_encierro || '',
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
           ciclo: resultado.ciclo || '',
           motivo: resultado.motivo || '',
@@ -317,8 +339,7 @@ export default function DetalleUnidadEncierro() {
           conductor: 'No reportado hoy',
           ruta: 'Sin ruta',
           tarjeton: '',
-          corrida: '',
-          horaProgramada: '',
+          hora_encierro: '',
           estatus: 'operacion',
           ciclo: '',
           motivo: '',
@@ -330,8 +351,7 @@ export default function DetalleUnidadEncierro() {
         conductor: 'Error de conexión',
         ruta: 'No se pudo obtener',
         tarjeton: '',
-        corrida: '',
-        horaProgramada: '',
+        hora_encierro: '',
         estatus: 'operacion'
       });
     } finally {
@@ -374,7 +394,6 @@ export default function DetalleUnidadEncierro() {
           timer: 2000,
         });
 
-        // Actualizar tarjeton en la lista local para búsquedas futuras
         setUnidadesList(prev => prev.map(u => {
           if (String(u.eco).padStart(3, '0') === numeroLimpio) {
             return { ...u, tarjeton: String(resultado.tarjeton).trim() };
@@ -451,7 +470,7 @@ export default function DetalleUnidadEncierro() {
         counter.style.textAlign = 'right';
         counter.style.fontSize = '10px';
         counter.style.fontWeight = '500';
-        counter.style.color = '#d1d5db'; // text-gray-300 equivalent
+        counter.style.color = '#d1d5db';
         counter.style.marginTop = '4px';
         counter.style.marginRight = '4px';
         counter.innerText = '0/70';
@@ -461,7 +480,7 @@ export default function DetalleUnidadEncierro() {
         input.addEventListener('input', () => {
           const length = input.value.length;
           counter.innerText = `${length}/70`;
-          counter.style.color = length >= 70 ? '#ef4444' : '#d1d5db'; // text-red-500 or text-gray-300
+          counter.style.color = length >= 70 ? '#ef4444' : '#d1d5db';
         });
       };
       swalOptions.inputValidator = (value) => {
@@ -511,7 +530,6 @@ export default function DetalleUnidadEncierro() {
         setDatosOperativos(prev => ({ ...prev, estatus: nuevoEstatus }));
         setSelectedEstado(nuevoEstatus);
 
-        // Actualizar la lista en memoria para mantener colores sincronizados y cambiar de lista
         setUnidadesList(prev => prev.map(u => {
           if (String(u.eco).padStart(3, '0') === numeroLimpio) {
             return { ...u, estado: nuevoEstatus.toLowerCase() };
@@ -580,7 +598,6 @@ export default function DetalleUnidadEncierro() {
           <div className="info-panel">
             {selectedOption ? (
               <div className="unit-dashboard-container animate-fade-in-up">
-                {/* CABEZERA DE LA FICHA */}
                 <div className="dashboard-header-card">
                   <div className="dashboard-header-card__left">
                     <div className="dashboard-header-card__icon-box">
@@ -591,15 +608,9 @@ export default function DetalleUnidadEncierro() {
                       <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
                     </div>
                   </div>
-                  <div className="dashboard-header-card__status">
-                    <span className="pulse-indicator"></span>
-                    Activo en Turno
-                  </div>
                 </div>
 
-                {/* CUADRÍCULA DE TARJETAS */}
                 <div className="dashboard-grid">
-                  {/* CARD 1: SERVICIO ACTIVO */}
                   <div className="info-card">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -609,7 +620,6 @@ export default function DetalleUnidadEncierro() {
                     </div>
 
                     <div className="info-card__body">
-                      {/* Conductor (Solo Lectura) */}
                       <div className="info-card__item">
                         <span className="info-card__label">Conductor Asignado</span>
                         <div className="info-card__value-wrapper">
@@ -622,7 +632,6 @@ export default function DetalleUnidadEncierro() {
                         </div>
                       </div>
 
-                      {/* Ruta (Solo Lectura) */}
                       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
                         <span className="info-card__label">Ruta Asignada</span>
                         <div className="info-card__value-wrapper">
@@ -636,7 +645,6 @@ export default function DetalleUnidadEncierro() {
                         </div>
                       </div>
 
-                      {/* Tarjetón (Editable) */}
                       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
                         <span className="info-card__label">Número de Tarjetón</span>
                         {editandoTarjeton ? (
@@ -705,7 +713,6 @@ export default function DetalleUnidadEncierro() {
                     </div>
                   </div>
 
-                  {/* CARD 2: DESPACHO OPERATIVO */}
                   <div className="info-card">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -713,108 +720,66 @@ export default function DetalleUnidadEncierro() {
                       </svg>
                       <h3 className="info-card__title">Despacho Operativo</h3>
                     </div>
-                    <div className="info-card__body spec-badges" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
+                    <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       <div className="info-card__item">
-                        <span className="info-card__label">Corrida</span>
-                        <div className="badge-display badge-display--maroon">
-                          <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                          </svg>
-                          <span className="badge-display__text">
-                            {cargandoDatos ? '...' : (datosOperativos.corrida || 'No asignada')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="info-card__item">
-                        <span className="info-card__label">Hora Programada</span>
+                        <span className="info-card__label">Hora Encierro</span>
                         <div className="badge-display badge-display--gold">
                           <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="badge-display__text">
-                            {cargandoDatos ? '...' : (datosOperativos.horaProgramada || 'No asignada')}
+                            {cargandoDatos ? '...' : (datosOperativos.hora_encierro || '--:--')}
                           </span>
                         </div>
                       </div>
+
                       <div className="info-card__item">
-                        <span className="info-card__label">Hora de Acople</span>
-                        <div className="badge-display badge-display--maroon">
-                          <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="badge-display__text">
-                            {cargandoDatos ? '...' : 'No asignada'}
-                          </span>
+                        <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
+                        <div style={{
+                          display: 'flex',
+                          borderRadius: '0.5rem',
+                          overflow: 'hidden',
+                          border: '1px solid #e5e7eb',
+                          marginTop: '0.25rem',
+                          height: '2.3rem'
+                        }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCorridasPerdidas(true)}
+                            style={{
+                              flex: 1,
+                              border: 'none',
+                              background: huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
+                              color: huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
+                              fontWeight: 700,
+                              fontSize: '0.85rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            SÍ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCorridasPerdidas(false)}
+                            style={{
+                              flex: 1,
+                              border: 'none',
+                              borderLeft: '1px solid #e5e7eb',
+                              background: !huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
+                              color: !huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
+                              fontWeight: 700,
+                              fontSize: '0.85rem',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            NO
+                          </button>
                         </div>
                       </div>
 
-                      <div ref={corridaRef} className="info-card__item" style={{ marginTop: '1.25rem', position: 'relative' }}>
-                        <span className="info-card__label">Corridas Perdidas</span>
-                        <button
-                          type="button"
-                          className="interactive-input"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0 0.85rem',
-                            marginTop: '0.25rem',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            background: 'var(--tw-color-white)',
-                            height: '2.3rem',
-                            fontSize: '0.85rem'
-                          }}
-                          onClick={() => setDropdownCorridaOpen(!dropdownCorridaOpen)}
-                        >
-                          <span>{perdidaCorrida ? `CORRIDA ${perdidaCorrida}` : 'SELECCIONAR'}</span>
-                          <svg className={`arrow-icon ${dropdownCorridaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCorridaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                          </svg>
-                        </button>
-
-                        {dropdownCorridaOpen && (
-                          <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                            <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                              <button
-                                type="button"
-                                className="dropdown-menu__item"
-                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                                onClick={async () => {
-                                  setPerdidaCorrida('');
-                                  setPerdidaCiclos('');
-                                  setPerdidaMotivo('');
-                                  setDropdownCorridaOpen(false);
-                                  await handleSavePerdida(null, null, null);
-                                }}
-                              >
-                                SELECCIONAR
-                              </button>
-                              {[...Array(14)].map((_, i) => (
-                                <button
-                                  key={i + 1}
-                                  type="button"
-                                  className="dropdown-menu__item"
-                                  style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaCorrida === String(i + 1) ? 'bold' : 'normal' }}
-                                  onClick={() => {
-                                    setPerdidaCorrida(String(i + 1));
-                                    setDropdownCorridaOpen(false);
-                                  }}
-                                >
-                                  CORRIDA {i + 1}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Spacer para que el dropdown de corridas esté balanceado en la fila 2 */}
-                      <div className="info-card__item" style={{ marginTop: '1.25rem' }}></div>
-
-                      {/* Ciclos Perdidos y Motivo: se muestran en la fila 3 (lado a lado) si hay corrida seleccionada */}
-                      {perdidaCorrida && (
+                      {huboCorridasPerdidas && (
                         <>
                           <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative' }}>
                             <span className="info-card__label">Ciclos Perdidos</span>
@@ -883,19 +848,18 @@ export default function DetalleUnidadEncierro() {
                               maxLength={40}
                               value={perdidaMotivo}
                               onChange={handleMotivoChange}
-                              placeholder="ESCRIBE EL MOTIVO DE LA PÉRDIDA..."
+                              placeholder="ESCRIBE EL MOTIVO..."
                             />
                           </div>
                         </>
                       )}
 
-                      {/* Botón Guardar: solo aparece si hay cambios reales */}
-                      {perdidaCorrida && (perdidaCorrida !== (datosOperativos.corrida || '') || perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
+                      {huboCorridasPerdidas && (perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
                         <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'end', marginTop: '0.5rem' }} className="animate-fade-in-up">
                           <button
                             type="button"
                             disabled={!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida}
-                            onClick={() => handleSavePerdida(perdidaCorrida, perdidaCiclos, perdidaMotivo.trim())}
+                            onClick={() => handleSavePerdida(perdidaCiclos, perdidaMotivo.trim())}
                             className="interactive-input"
                             style={{
                               width: 'auto',
@@ -934,7 +898,7 @@ export default function DetalleUnidadEncierro() {
                       <h3 className="info-card__title">Movilidad y Estatus</h3>
                     </div>
                     <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginTop: '0.5rem' }}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                         {[
                           { id: 'operacion', label: 'OPERACIÓN', color: 'var(--state-green-text)', bgActive: '#f0fdf4' },
                           { id: 'reserva', label: 'RESERVA', color: 'var(--state-orange-text)', bgActive: 'var(--state-orange-light)' },
@@ -1148,7 +1112,7 @@ export default function DetalleUnidadEncierro() {
                         </div>
 
                         {/* Counters */}
-                        <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 text-center">
                           <div className="bg-emerald-50 border border-emerald-100 py-2 rounded-xl">
                             <span className="block text-lg font-extrabold text-emerald-600 leading-none">{totalBien}</span>
                             <span className="text-[9px] font-bold uppercase text-emerald-700 tracking-wider">Bien</span>
