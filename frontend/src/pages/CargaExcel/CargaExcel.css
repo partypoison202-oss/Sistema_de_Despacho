@@ -86,6 +86,12 @@
   border: 1px solid #ceead6;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
+  flex-wrap: wrap;
+}
+
+.badge-text {
+  word-break: break-word;
+  white-space: normal;
 }
 
 .archivo-badge.empty {
@@ -274,5 +280,21 @@
   }
   .inline-upload-zone {
     min-width: 100%;
+  }
+  .excel-main-content {
+    padding: 1rem;
+    width: 100%;
+  }
+  .archivo-badge {
+    flex-wrap: nowrap;
+    width: 100%;
+    height: auto;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    box-sizing: border-box;
+    margin-top: 1rem;
+    align-self: stretch;
   }
 }
