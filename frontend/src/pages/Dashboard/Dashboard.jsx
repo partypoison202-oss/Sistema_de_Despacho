@@ -247,7 +247,7 @@ export default function Dashboard() {
             <input
               type="text"
               value={busquedaEco}
-              onChange={(event) => setBusquedaEco(event.target.value)}
+              onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, ''))}
               placeholder="Buscar por número económico"
               className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />

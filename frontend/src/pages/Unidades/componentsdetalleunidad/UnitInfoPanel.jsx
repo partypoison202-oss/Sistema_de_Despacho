@@ -286,7 +286,7 @@ export default function UnitInfoPanel({
                     className="interactive-input"
                     style={{ padding: '0 0.5rem', height: '2.3rem', fontSize: '0.85rem', fontWeight: 'bold' }}
                     value={formTarjeton}
-                    onChange={(e) => setFormTarjeton(e.target.value)}
+                    onChange={(e) => setFormTarjeton(e.target.value.replace(/\D/g, '').substring(0, 3))}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -440,7 +440,7 @@ export default function UnitInfoPanel({
             {/* Ciclos Perdidos y Motivo: se muestran en la fila 3 (lado a lado) si es "SÍ" */}
             {huboCorridasPerdidas && (
               <>
-                <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative' }}>
+                <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownCiclosOpen ? 50 : 1 }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
                   <button
                     type="button"

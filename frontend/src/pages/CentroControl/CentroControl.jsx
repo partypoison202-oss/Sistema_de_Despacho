@@ -322,7 +322,7 @@ export default function CentroControl() {
                 type="text" 
                 placeholder="Buscar unidad en toda la flota..." 
                 value={globalSearch}
-                onChange={(e) => setGlobalSearch(e.target.value)}
+                onChange={(e) => setGlobalSearch(e.target.value.replace(/[^a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ]/g, ''))}
                 style={{
                   width: '100%',
                   padding: '8px 16px 8px 38px',
