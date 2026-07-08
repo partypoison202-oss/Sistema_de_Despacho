@@ -171,13 +171,8 @@ export default function ResumenDespacho() {
 
       <main className="resumen-container">
 
-      <div className="resumen-controls">
-        <button className="btn btn-primary" onClick={handleGeneratePDF} disabled={isGenerating}>
-          {isGenerating ? 'Generando PDF...' : 'Generar PDF'}
-        </button>
-      </div>
-
-      <div className="resumen-pdf-wrapper" id="reporte-pdf">
+      <div className="table-responsive-wrapper" style={{ width: '100%', maxWidth: '816px', overflowX: 'auto', margin: '0 auto' }}>
+        <div className="resumen-pdf-wrapper" id="reporte-pdf">
         
         {/* ENCABEZADO TIPO BANNER */}
         <div className="resumen-header-wrapper">
@@ -187,7 +182,7 @@ export default function ResumenDespacho() {
               <h2>Sistema Integrado de Transporte Masivo de Hidalgo</h2>
             </div>
             <div className="banner-right">
-              <img src="/images/sistema de tm.webp" alt="Sistema de Transporte Metropolitano" />
+              <img src="/images/sistema de tm.webp" alt="Sistema de Transporte Metropolitano" className="logo-derecha" />
             </div>
           </div>
           <div className="resumen-date">
@@ -349,7 +344,15 @@ export default function ResumenDespacho() {
           </div>
 
         </div>
+        </div>
       </div>
+      
+      <div className="resumen-controls-bottom">
+        <button className="btn btn-primary btn-large-full" onClick={handleGeneratePDF} disabled={isGenerating}>
+          {isGenerating ? 'Generando PDF...' : 'Generar PDF'}
+        </button>
+      </div>
+
       </main>
     </div>
   );
