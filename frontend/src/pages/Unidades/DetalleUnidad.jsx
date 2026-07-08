@@ -357,7 +357,10 @@ export default function DetalleUnidad() {
     if (datosOperativos.estatus === nuevoEstatus) return;
 
     const Swal = (await import('sweetalert2')).default;
-    const confirmacion = await Swal.fire({
+
+    const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
+
+    const swalOptions = {
       title: '¿Cambiar Estatus?',
       text: `¿Seguro que deseas mover la unidad ${selectedOption} a ${nuevoEstatus.toUpperCase()}?`,
       icon: 'question',
@@ -366,9 +369,45 @@ export default function DetalleUnidad() {
       cancelButtonColor: '#9ca3af',
       confirmButtonText: 'Sí, cambiar',
       cancelButtonText: 'Cancelar'
-    });
+    };
+
+    if (requiereMotivo) {
+      swalOptions.input = 'textarea';
+      swalOptions.inputPlaceholder = 'Escribe el motivo del cambio de estatus...';
+      swalOptions.inputAttributes = {
+        maxlength: '70'
+      };
+      swalOptions.didOpen = () => {
+        const input = Swal.getInput();
+        const counter = document.createElement('div');
+        counter.style.textAlign = 'right';
+        counter.style.fontSize = '10px';
+        counter.style.fontWeight = '500';
+        counter.style.color = '#d1d5db'; // text-gray-300 equivalent
+        counter.style.marginTop = '4px';
+        counter.style.marginRight = '4px';
+        counter.innerText = '0/70';
+        
+        input.parentNode.insertBefore(counter, input.nextSibling);
+
+        input.addEventListener('input', () => {
+          const length = input.value.length;
+          counter.innerText = `${length}/70`;
+          counter.style.color = length >= 70 ? '#ef4444' : '#d1d5db'; // text-red-500 or text-gray-300
+        });
+      };
+      swalOptions.inputValidator = (value) => {
+        if (!value || !value.trim()) {
+          return 'El motivo es obligatorio para este estatus.';
+        }
+      };
+    }
+
+    const confirmacion = await Swal.fire(swalOptions);
 
     if (!confirmacion.isConfirmed) return;
+
+    const motivoCapturado = requiereMotivo ? (confirmacion.value || null) : null;
 
     setCambiandoEstatus(true);
     try {
@@ -385,7 +424,8 @@ export default function DetalleUnidad() {
         body: JSON.stringify({
           numero_eco: numeroLimpio,
           tipo: tipoTransporte,
-          estatus: nuevoEstatus
+          estatus: nuevoEstatus,
+          motivo_estatus: motivoCapturado
         })
       });
 
