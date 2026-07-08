@@ -276,9 +276,17 @@ export default function DashboardEncierro() {
           </div>
 
           <div className="dashboard__actions">
-            <button className="btn-reporte" onClick={handleGenerarReporte} disabled={isGenerating}>
+            <button 
+              className="btn-reporte" 
+              onClick={handleGenerarReporte} 
+              disabled={isGenerating}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
               {isGenerating ? (
-                <><span className="spinner"></span> Generando PDF...</>
+                <>
+                  <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                  Generando PDF...
+                </>
               ) : (
                 'Reporte General'
               )}
@@ -296,12 +304,8 @@ export default function DashboardEncierro() {
             zIndex: -1,
           }}
         >
-          <div ref={reporteRutasRef}>
-            <PlantillaReporteGeneral data={reporteDataRutas} />
-          </div>
-          <div ref={reporteUnidadesRef}>
-            <PlantillaReporteUnidades data={reporteDataUnidades} />
-          </div>
+          <PlantillaReporteGeneral data={reporteDataRutas} ref={reporteRutasRef} />
+          <PlantillaReporteUnidades data={reporteDataUnidades} ref={reporteUnidadesRef} />
         </div>
       )}
     </>

@@ -348,10 +348,20 @@ export default function ResumenDespacho() {
       </div>
       
       <div className="resumen-controls-bottom">
-        <button className="btn btn-primary btn-large-full" onClick={handleGeneratePDF} disabled={isGenerating}>
-          {isGenerating ? 'Generando PDF...' : 'Generar PDF'}
-        </button>
-      </div>
+          <button 
+            className="btn btn-primary btn-large-full" 
+            onClick={handleGeneratePDF} 
+            disabled={isGenerating}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+          >
+            {isGenerating ? (
+              <>
+                <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                Generando PDF...
+              </>
+            ) : 'Generar PDF'}
+          </button>
+        </div>
 
       </main>
     </div>

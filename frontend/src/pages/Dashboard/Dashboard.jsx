@@ -272,13 +272,19 @@ export default function Dashboard() {
 
           {/* Botón para generar reportes */}
           <div className="dashboard__actions">
-            <button
-              onClick={handleGenerarReporte}
-              disabled={isGenerating}
-              className="btn-reporte"
-            >
-              {isGenerating ? 'Generando reportes...' : 'Generar Reportes PDF'}
-            </button>
+              <button
+                onClick={handleGenerarReporte}
+                disabled={isGenerating}
+                className="btn-reporte"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                {isGenerating ? (
+                  <>
+                    <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                    Generando reportes...
+                  </>
+                ) : 'Generar Reportes PDF'}
+              </button>
           </div>
 
           {/* Componentes ocultos para generar PDF (fuera de pantalla) */}
