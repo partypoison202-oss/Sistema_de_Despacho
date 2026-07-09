@@ -23,6 +23,7 @@ export default function UnitInfoPanel({
   handleSaveFalla,
   handleCancelFalla,
   handleSaveTarjeton,
+  handleSaveRuta,
   handleCambiarEstatus,
   cambiandoEstatus,
 }) {
@@ -38,10 +39,38 @@ export default function UnitInfoPanel({
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
+  const [rutasOpciones, setRutasOpciones] = useState([]);
+  const [editandoRuta, setEditandoRuta] = useState(false);
+  const [formRuta, setFormRuta] = useState('');
+  const [guardandoRuta, setGuardandoRuta] = useState(false);
+  const [dropdownRutaOpen, setDropdownRutaOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchRutas = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+           headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+           const data = await res.json();
+            if (configActual?.id === 'urbanus') {
+              setRutasOpciones(data.troncales || []);
+            } else {
+              setRutasOpciones(data.alimentadoras || []);
+            }
+        }
+      } catch (err) {
+        console.error('Error fetching rutas', err);
+      }
+    };
+    fetchRutas();
+  }, [configActual]);
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
   const navigate = useNavigate();
 
   const ciclosRef = useRef(null);
+  const rutaRef = useRef(null);
 
   useEffect(() => {
     setPerdidaCiclos(datosOperativos.ciclo || '');
@@ -53,6 +82,9 @@ export default function UnitInfoPanel({
     const handleClickOutside = (e) => {
       if (ciclosRef.current && !ciclosRef.current.contains(e.target)) {
         setDropdownCiclosOpen(false);
+      }
+      if (rutaRef.current && !rutaRef.current.contains(e.target)) {
+        setDropdownRutaOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -105,13 +137,23 @@ export default function UnitInfoPanel({
       const result = await response.json();
       if (response.ok && result.status === 'success') {
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
-          icon: 'success',
-          title: 'Registro Actualizado',
-          text: cicloVal ? 'Corrida perdida guardada correctamente.' : 'Se eliminó el registro de corrida perdida.',
-          confirmButtonColor: '#c29b53',
-          timer: 2000
-        });
+        if (cicloVal) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Registro Actualizado',
+            text: 'Corrida perdida guardada correctamente.',
+            confirmButtonColor: '#c29b53',
+            timer: 2000
+          });
+        } else if (datosOperativos.ciclo) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Registro Actualizado',
+            text: 'Se eliminó el registro de corrida perdida.',
+            confirmButtonColor: '#c29b53',
+            timer: 2000
+          });
+        }
         // Sync local object reference
         datosOperativos.ciclo = cicloVal || '';
         datosOperativos.motivo = motivoVal || '';
@@ -203,7 +245,8 @@ export default function UnitInfoPanel({
   }, [datosOperativos.tarjeton]);
 
   const handleConfirmTarjeton = async () => {
-    if (!formTarjeton.trim()) {
+    if (!formTarjeton.trim() || formTarjeton === datosOperativos.tarjeton) {
+      setEditandoTarjeton(false);
       return;
     }
     setGuardandoTarjeton(true);
@@ -220,6 +263,38 @@ export default function UnitInfoPanel({
   const handleCancelTarjetonEdit = () => {
     setFormTarjeton(datosOperativos.tarjeton || '');
     setEditandoTarjeton(false);
+  };
+
+  const handleConfirmRuta = async (nuevaRutaStr = null) => {
+    const rutaAUsar = typeof nuevaRutaStr === 'string' ? nuevaRutaStr.trim() : formRuta.trim();
+    if (!rutaAUsar || rutaAUsar === datosOperativos.ruta) {
+      setEditandoRuta(false);
+      return;
+    }
+    setGuardandoRuta(true);
+    try {
+      if (handleSaveRuta) {
+        await handleSaveRuta(rutaAUsar);
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          icon: 'success',
+          title: 'Ruta Actualizada',
+          text: `La ruta se cambió exitosamente a ${rutaAUsar}.`,
+          confirmButtonColor: '#c29b53',
+          timer: 2000
+        });
+      }
+      setEditandoRuta(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGuardandoRuta(false);
+    }
+  };
+
+  const handleCancelRutaEdit = () => {
+    setFormRuta(datosOperativos.ruta || '');
+    setEditandoRuta(false);
   };
 
   return (
@@ -263,15 +338,103 @@ export default function UnitInfoPanel({
             {/* Ruta Asignada */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Ruta Asignada</span>
-              <div className="info-card__value-wrapper">
-                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <p className="info-card__value">
-                  {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
-                </p>
-              </div>
+                {editandoRuta ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
+                    <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
+                      <button
+                        type="button"
+                        className="interactive-input"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0 0.85rem',
+                          cursor: guardandoRuta ? 'not-allowed' : 'pointer',
+                          textAlign: 'left',
+                          background: 'var(--tw-color-white)',
+                          height: '2.3rem',
+                          fontSize: '0.85rem',
+                          width: '100%',
+                          fontWeight: 'bold',
+                          opacity: guardandoRuta ? 0.7 : 1
+                        }}
+                        onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
+                      >
+                        {guardandoRuta ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
+                            <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <span>{formRuta || 'SELECCIONAR'}</span>
+                            <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                            </svg>
+                          </>
+                        )}
+                      </button>
+
+                      {dropdownRutaOpen && (
+                        <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                            <button
+                              type="button"
+                              className="dropdown-menu__item"
+                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                              onClick={() => {
+                                setFormRuta('');
+                                setDropdownRutaOpen(false);
+                                handleConfirmRuta('');
+                              }}
+                            >
+                              SELECCIONAR
+                            </button>
+                            {rutasOpciones.map((r, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                className="dropdown-menu__item"
+                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
+                                onClick={() => {
+                                  setFormRuta(r);
+                                  setDropdownRutaOpen(false);
+                                  handleConfirmRuta(r);
+                                }}
+                              >
+                                {r}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <p className="info-card__value">
+                        {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setFormRuta(datosOperativos.ruta || '');
+                        setEditandoRuta(true);
+                      }}
+                      title="Modificar Ruta"
+                      style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
+                    >
+                      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
             </div>
 
             {/* Número de Tarjetón (Editable) */}
