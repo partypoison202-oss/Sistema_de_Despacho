@@ -61,6 +61,7 @@ class ChecklistController extends Controller
                         'total_puntos' => count($puntos),
                         'puntos'       => $puntos,
                         'dibujo'       => $c->dibujo,
+                        'origen'       => $c->origen ?? 'despacho',
                     ];
                 });
 
@@ -93,6 +94,7 @@ class ChecklistController extends Controller
             'puntos.*.fotos.*'          => ['nullable', 'string'],
             'dibujo'                    => ['nullable', 'string'],
             'fecha_hora'                => ['required', 'string'],
+            'origen'                    => ['nullable', 'string', 'in:despacho,encierro'],
         ]);
 
         $checklist = Checklist::create([
@@ -104,6 +106,7 @@ class ChecklistController extends Controller
             'puntos'       => $validated['puntos'],
             'dibujo'       => $validated['dibujo'] ?? null,
             'fecha_hora'   => $validated['fecha_hora'],
+            'origen'       => $validated['origen'] ?? 'despacho',
         ]);
 
         return response()->json([
@@ -131,6 +134,7 @@ class ChecklistController extends Controller
             'puntos.*.fotos.*'          => ['nullable', 'string'],
             'dibujo'                    => ['nullable', 'string'],
             'fecha_hora'                => ['required', 'string'],
+            'origen'                    => ['nullable', 'string', 'in:despacho,encierro'],
         ]);
 
         $checklist->update([
@@ -141,6 +145,7 @@ class ChecklistController extends Controller
             'puntos'       => $validated['puntos'],
             'dibujo'       => $validated['dibujo'] ?? null,
             'fecha_hora'   => $validated['fecha_hora'],
+            'origen'       => $validated['origen'] ?? 'despacho',
         ]);
 
         return response()->json([

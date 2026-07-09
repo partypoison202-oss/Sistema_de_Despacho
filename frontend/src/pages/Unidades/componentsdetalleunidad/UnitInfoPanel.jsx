@@ -671,6 +671,7 @@ export default function UnitInfoPanel({
           {showChecklist && (
             <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
               <ChecklistForm 
+                origen="despacho"
                 inline={true} 
                 editMode={hasCompletedChecklist && showChecklist}
                 checklistId={recentChecklist?.id}

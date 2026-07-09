@@ -717,7 +717,18 @@ export default function HistorialCheckList() {
                                                     const condTarjeton = cond ? cond.tarjeton : '—';
                                                     return (
                                                         <>
-                                                <td className="px-5 py-3 text-xs font-medium text-gray-400">{c.id}</td>
+                                                <td className="px-5 py-3 text-xs font-medium text-gray-400">
+                                                    <div>#{c.id}</div>
+                                                    {c.origen && (
+                                                        <div className={`mt-1 inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                                                            c.origen === 'despacho' 
+                                                            ? 'bg-blue-50 text-blue-600' 
+                                                            : 'bg-orange-50 text-orange-600'
+                                                        }`}>
+                                                            {c.origen === 'despacho' ? '📌 Despacho' : '📌 Encierro'}
+                                                        </div>
+                                                    )}
+                                                </td>
                                                 <td className="px-5 py-3">
                                                     <p className="text-sm font-medium text-gray-800">{fmtFecha}</p>
                                                     <p className="text-[11px] text-gray-400">{fmtHora}</p>
