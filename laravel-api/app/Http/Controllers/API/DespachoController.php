@@ -608,4 +608,55 @@ class DespachoController extends Controller
             'estatus' => $nuevoEstatus
         ], 200);
     }
+
+    public function obtenerRutas()
+    {
+        $troncales = DB::table('rutas')->where('tipo', 'troncal')->pluck('ruta');
+        $alimentadoras = DB::table('rutas')->where('tipo', 'alimentadora')->pluck('ruta');
+
+        return response()->json([
+            'troncales' => $troncales,
+            'alimentadoras' => $alimentadoras
+        ], 200);
+    }
+
+    public function actualizarRuta(Request $request)
+    {
+        $request->validate([
+            'tipo' => 'required|string',
+            'numero_eco' => 'required|string',
+            'ruta' => 'required|string'
+        ]);
+
+        $tipoNormalizado = strtolower(trim($request->tipo));
+        $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
+        $rutaLimpia = trim($request->ruta);
+        $fechaHoy = Carbon::today()->toDateString();
+
+        $operacion = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->where('unidades.numero_eco', $numeroEcoClean)
+            ->where(DB::raw('LOWER(informacion_operativa.tipo)'), $tipoNormalizado)
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->select('informacion_operativa.id')
+            ->first();
+
+        if (!$operacion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No hay registro de operación para esta unidad hoy.'
+            ], 404);
+        }
+
+        DB::table('informacion_operativa')
+            ->where('id', $operacion->id)
+            ->update([
+                'ruta' => $rutaLimpia,
+            ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ruta actualizada correctamente.'
+        ], 200);
+    }
 }

@@ -145,6 +145,15 @@ export default function ResumenDespacho() {
       }
 
       pdf.save(`Resumen_Despacho_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+      Swal.fire({
+        icon: 'success',
+        title: '¡Generado!',
+        text: 'El reporte en PDF se ha generado y descargado correctamente.',
+        confirmButtonColor: '#c29b53',
+        timer: 2500
+      });
+
     } catch (error) {
       console.error('Error al generar PDF:', error);
       Swal.fire({
