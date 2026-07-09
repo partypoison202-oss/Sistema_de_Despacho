@@ -259,8 +259,12 @@
   }
 }
 
-/* Responsive Layout */
+/* Responsive adjustments for Excel Table View */
 @media (max-width: 768px) {
+  .excel-table-card {
+    padding: 1rem;
+  }
+
   .excel-table-header {
     flex-direction: column;
     align-items: flex-start;
@@ -273,16 +277,21 @@
     align-items: stretch;
   }
   
-  .search-input {
-    width: 100% !important;
-  }
-  
   .search-container {
     width: 100%;
   }
   
+  .search-input {
+    width: 100% !important;
+  }
+  
+  .search-input:focus {
+    width: 100% !important;
+  }
+  
   .excel-actions-bottom {
     flex-direction: column;
+    align-items: center;
     gap: 1rem;
     text-align: center;
   }

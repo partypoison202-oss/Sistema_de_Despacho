@@ -88,7 +88,7 @@ const UnidadRow = ({ tipo, programadas, en_servicio, imagen }) => (
 );
 
 /* ── Componente principal ──────────────────────────────────── */
-const PlantillaReporteUnidades = ({ data }) => {
+const PlantillaReporteUnidades = React.forwardRef(({ data }, ref) => {
   const { tipos, totales } = data;
 
   const fecha =
@@ -102,7 +102,7 @@ const PlantillaReporteUnidades = ({ data }) => {
       .toUpperCase();
 
   return (
-    <div id="reporte-unidades" className="rpu-root">
+    <div id="reporte-unidades" className="rpu-root" ref={ref}>
 
       {/* HEADER */}
       <div className="rpu-header">
@@ -165,6 +165,6 @@ const PlantillaReporteUnidades = ({ data }) => {
 
     </div>
   );
-};
+});
 
 export default PlantillaReporteUnidades;

@@ -7,26 +7,11 @@ import './Header.css';
 export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
   const { user, logout } = useContext(AuthContext);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'system');
   const navigate = useNavigate();
   const location = useLocation();
   const profileRef = useRef(null);
   
 
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.classList.remove('light');
-    } else if (theme === 'light') {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    } else {
-      root.classList.remove('dark', 'light');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
 
   const handleLogout = () => {
     logout();
@@ -66,18 +51,6 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     } else {
       navigate('/dashboard');
     }
-  };
-
-  const getNextTheme = () => {
-    if (theme === 'dark') return 'light';
-    if (theme === 'light') return 'system';
-    return 'dark';
-  };
-
-  const getThemeLabel = () => {
-    if (theme === 'dark') return 'Forzado';
-    if (theme === 'light') return 'Apagado';
-    return 'Automático';
   };
 
   useEffect(() => {
@@ -194,14 +167,6 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                       Gestión de Usuarios
                     </button>
                   )}
-                  <button
-                    className="profile-menu-btn"
-                    onClick={() => {
-                      setTheme(getNextTheme());
-                    }}
-                  >
-                    Modo Oscuro: {getThemeLabel()}
-                  </button>
                   <button className="profile-menu-btn logout-btn" onClick={handleLogout}>
                     Cerrar Sesión
                   </button>

@@ -10,11 +10,15 @@ import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteG
 import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
 import '../Dashboard/Dashboard.css';
 import API_BASE from '../../config/api';
+import { useNavigate } from 'react-router-dom';
 
 
 export default function DashboardEncierro() {
   const [conteos, setConteos] = useState({});
   const [cargando, setCargando] = useState(true);
+  const [busquedaEco, setBusquedaEco] = useState('');
+  const [buscandoUnidad, setBuscandoUnidad] = useState(false);
+  const navigate = useNavigate();
   const [reporteDataRutas, setReporteDataRutas] = useState(null);
   const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
@@ -155,6 +159,81 @@ export default function DashboardEncierro() {
     fetchConteos();
   }, []);
 
+  const normalizarNumeroEco = (eco) => {
+    if (!eco) return '';
+    const num = parseInt(eco.replace(/\D/g, ''), 10);
+    return isNaN(num) ? '' : num.toString().padStart(3, '0');
+  };
+
+  const handleBuscarUnidad = async (event) => {
+    event?.preventDefault();
+
+    const eco = normalizarNumeroEco(busquedaEco);
+    if (!eco || eco === '000') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Ingrese un número económico',
+        text: 'Escriba el número de la unidad que desea buscar.',
+        confirmButtonColor: '#601a2a',
+      });
+      return;
+    }
+
+    setBuscandoUnidad(true);
+    try {
+      const token = localStorage.getItem('token');
+      const resultados = await Promise.all(
+        encierroModules.map(async (modulo) => {
+          try {
+            const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!respuesta.ok) return null;
+
+            const datos = await respuesta.json();
+            const unidades = Array.isArray(datos) ? datos : [];
+            const unidadEncontrada = unidades.find((unidad) => {
+              const numeroEcoUnidad = normalizarNumeroEco(unidad.numero_eco ?? '');
+              return numeroEcoUnidad === eco;
+            });
+
+            return unidadEncontrada ? { modulo, unidad: unidadEncontrada } : null;
+          } catch (error) {
+            console.error(`Error al consultar ${modulo.id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      const coincidencia = resultados.find(Boolean);
+      if (coincidencia) {
+        navigate(`/encierro/${coincidencia.modulo.id}?eco=${eco}`);
+        return;
+      }
+
+      Swal.fire({
+        icon: 'info',
+        title: 'Unidad no encontrada',
+        text: `No se encontró la unidad con económico ${eco} en ningún módulo.`,
+        confirmButtonColor: '#601a2a',
+      });
+    } catch (error) {
+      console.error('Error en búsqueda global:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de búsqueda',
+        text: 'Hubo un problema al buscar la unidad.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setBuscandoUnidad(false);
+    }
+  };
+
   return (
     <>
       <div className="dashboard">
@@ -165,6 +244,19 @@ export default function DashboardEncierro() {
           <p className="dashboard__subtitle text-gray-500 dark:text-gray-300">
             Toque la imagen del transporte para comenzar el registro de encierro
           </p>
+
+          <form className="dashboard__search" onSubmit={handleBuscarUnidad}>
+            <input
+              type="text"
+              value={busquedaEco}
+              onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, ''))}
+              placeholder="Buscar por número económico"
+              className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            />
+            <button type="submit" className="dashboard__search-button" disabled={buscandoUnidad}>
+              {buscandoUnidad ? 'Buscando...' : 'Buscar'}
+            </button>
+          </form>
 
           <div className="dashboard__grid">
             {encierroModules.map((module) => {
@@ -184,9 +276,17 @@ export default function DashboardEncierro() {
           </div>
 
           <div className="dashboard__actions">
-            <button className="btn-reporte" onClick={handleGenerarReporte} disabled={isGenerating}>
+            <button 
+              className="btn-reporte" 
+              onClick={handleGenerarReporte} 
+              disabled={isGenerating}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
               {isGenerating ? (
-                <><span className="spinner"></span> Generando PDF...</>
+                <>
+                  <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                  Generando PDF...
+                </>
               ) : (
                 'Reporte General'
               )}
@@ -204,12 +304,8 @@ export default function DashboardEncierro() {
             zIndex: -1,
           }}
         >
-          <div ref={reporteRutasRef}>
-            <PlantillaReporteGeneral data={reporteDataRutas} />
-          </div>
-          <div ref={reporteUnidadesRef}>
-            <PlantillaReporteUnidades data={reporteDataUnidades} />
-          </div>
+          <PlantillaReporteGeneral data={reporteDataRutas} ref={reporteRutasRef} />
+          <PlantillaReporteUnidades data={reporteDataUnidades} ref={reporteUnidadesRef} />
         </div>
       )}
     </>

@@ -30,6 +30,12 @@ const getConductor = (d) =>
   d.OPERADOR ??
   'Sin conductor asignado';
 
+const getTarjeton = (d) =>
+  d.TARJETON ??
+  d.TARJETON_CONDUCTOR ??
+  d.NO_TARJETON ??
+  '—';
+
 const STATUS_TABS = [
   { key: 'unidadesOperacion', label: 'Operación', color: 'operacion' },
   { key: 'unidadesReserva', label: 'Reserva', color: 'reserva' },
@@ -44,6 +50,7 @@ export default function DetalleUnidades() {
   const model = location.state?.model;
 
   const [activeTab, setActiveTab] = useState('todas');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Si se entra directo a la URL sin pasar por Centro de Control, no hay datos en el state
   if (!model) {
@@ -67,7 +74,7 @@ export default function DetalleUnidades() {
     units: model[tab.key] || [],
   })).filter((g) => g.units.length > 0 || g.key !== 'unidadesOtros');
 
-  const allUnits =
+  let allUnits =
     activeTab === 'todas'
       ? groups.flatMap((g) => g.units.map((u) => ({ ...u, __statusColor: g.color, __statusLabel: g.label })))
       : (groups.find((g) => g.key === activeTab)?.units || []).map((u) => ({
@@ -75,6 +82,18 @@ export default function DetalleUnidades() {
           __statusColor: groups.find((g) => g.key === activeTab)?.color,
           __statusLabel: groups.find((g) => g.key === activeTab)?.label,
         }));
+
+  // Aplicar filtro de buscador general
+  if (searchTerm.trim() !== '') {
+    const term = searchTerm.toLowerCase();
+    allUnits = allUnits.filter(u => 
+      getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
+      getRuta(u).toLowerCase().includes(term) ||
+      getConductor(u).toLowerCase().includes(term) ||
+      getTarjeton(u).toString().toLowerCase().includes(term) ||
+      u.__statusLabel.toLowerCase().includes(term)
+    );
+  }
 
   return (
     <div className="detalle-page">
@@ -105,23 +124,39 @@ export default function DetalleUnidades() {
           </div>
         </section>
 
-        {/* ---- Tabs de filtro por estatus ---- */}
-        <div className="detalle-tabs">
-          <button
-            className={`detalle-tab ${activeTab === 'todas' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('todas')}
-          >
-            Todas ({model.programadas})
-          </button>
-          {groups.map((g) => (
+        {/* ---- Tabs de filtro por estatus y Buscador ---- */}
+        <div className="detalle-filters-container">
+          <div className="detalle-tabs">
             <button
-              key={g.key}
-              className={`detalle-tab detalle-tab--${g.color} ${activeTab === g.key ? 'is-active' : ''}`}
-              onClick={() => setActiveTab(g.key)}
+              className={`detalle-tab ${activeTab === 'todas' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('todas')}
             >
-              {g.label} ({g.units.length})
+              Todas ({model.programadas})
             </button>
-          ))}
+            {groups.map((g) => (
+              <button
+                key={g.key}
+                className={`detalle-tab detalle-tab--${g.color} ${activeTab === g.key ? 'is-active' : ''}`}
+                onClick={() => setActiveTab(g.key)}
+              >
+                {g.label} ({g.units.length})
+              </button>
+            ))}
+          </div>
+
+          <div className="detalle-search">
+            <svg className="detalle-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Buscar unidad, ruta, tarjetón..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="detalle-search__input"
+            />
+          </div>
         </div>
 
         {/* ---- Tabla / listado de unidades ---- */}
@@ -131,6 +166,7 @@ export default function DetalleUnidades() {
               <span>Unidad</span>
               <span>Estatus</span>
               <span>Ruta</span>
+              <span>Tarjetón</span>
               <span>Conductor</span>
             </div>
             <div className="detalle-table__body">
@@ -143,6 +179,7 @@ export default function DetalleUnidades() {
                     {u.__statusLabel}
                   </span>
                   <span className="detalle-table__cell">{getRuta(u)}</span>
+                  <span className="detalle-table__cell">{getTarjeton(u)}</span>
                   <span className="detalle-table__cell">{getConductor(u)}</span>
                 </div>
               ))}

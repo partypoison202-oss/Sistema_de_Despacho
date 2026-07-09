@@ -104,12 +104,56 @@
   color: var(--state-red-text);
 }
 
-/* ---------- Tabs de filtro ---------- */
+/* ---------- Filtros y Buscador ---------- */
+.detalle-filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
 .detalle-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 18px;
+}
+
+.detalle-search {
+  flex: 1;
+  min-width: 240px;
+  max-width: 350px;
+  position: relative;
+}
+
+.detalle-search__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--tw-color-gray-400);
+  pointer-events: none;
+}
+
+.detalle-search__input {
+  width: 100%;
+  padding: 8px 16px 8px 38px;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--tw-color-gray-200);
+  background: var(--tw-color-white);
+  color: var(--tw-color-gray-900);
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.detalle-search__input:focus {
+  border-color: var(--brand-maroon-text);
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.1);
 }
 
 .detalle-tab {
@@ -152,16 +196,16 @@
 .detalle-table__head,
 .detalle-table__row {
   display: grid;
-  grid-template-columns: 100px 140px 1fr 1fr;
+  grid-template-columns: 80px 130px 1fr 100px 1.2fr;
   gap: 12px;
   align-items: center;
   padding: 12px 20px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
   .detalle-table__head,
   .detalle-table__row {
-    grid-template-columns: 80px 110px 1fr;
+    grid-template-columns: 80px 110px 1fr 90px;
   }
   .detalle-table__head span:last-child,
   .detalle-table__row .detalle-table__cell:last-child {

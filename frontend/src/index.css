@@ -94,91 +94,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  html:not(.light) {
-    /* PALETA MODO OSCURO (Invertida, estilo Material Dark suave) */
-    --tw-color-white: #1d1d22;
-    --tw-color-black: #ffffff;
-    --tw-color-gray-50: #121215;
-    --tw-color-gray-100: #16161a;
-    --tw-color-gray-200: #292930;
-    --tw-color-gray-300: #3a3a44;
-    --tw-color-gray-400: #575765;
-    --tw-color-gray-500: #888898;
-    --tw-color-gray-600: #a9a9b6;
-    --tw-color-gray-700: #c5c5d0;
-    --tw-color-gray-800: #dedee4;
-    --tw-color-gray-900: #f2f2f5;
 
-    /* COLORES SEMÁNTICOS (Noche / Muteados y suaves) */
-    --brand-maroon-text: #c17c8d;
-    --brand-maroon-bg: #4a1c26;
-    --brand-maroon-light: #241115;
-    --brand-gold-text: #bda783;
-    --brand-gold-bg: #615033;
-    --brand-gold-light: #241d13;
-    --state-green-text: #749882;
-    --state-green-bg: #21402e;
-    --state-green-light: #121d17;
-    --state-blue-text: #768a9e;
-    --state-blue-bg: #23374c;
-    --state-blue-light: #131b24;
-    --state-orange-text: #b58d5c;
-    --state-orange-bg: #5a4124;
-    --state-orange-light: #221810;
-    --state-red-text: #b67676;
-    --state-red-bg: #522626;
-    --state-red-light: #211313;
-    --state-gray-text: #888898;
-    --state-gray-bg: #292930;
-    --state-gray-light: #1d1d22;
-
-    color: var(--tw-color-gray-800);
-    background-color: var(--tw-color-gray-50);
-  }
-}
-
-html.dark {
-  /* PALETA MODO OSCURO (Invertida, estilo Material Dark suave) */
-  --tw-color-white: #1d1d22;
-  --tw-color-black: #ffffff;
-  --tw-color-gray-50: #121215;
-  --tw-color-gray-100: #16161a;
-  --tw-color-gray-200: #292930;
-  --tw-color-gray-300: #3a3a44;
-  --tw-color-gray-400: #575765;
-  --tw-color-gray-500: #888898;
-  --tw-color-gray-600: #a9a9b6;
-  --tw-color-gray-700: #c5c5d0;
-  --tw-color-gray-800: #dedee4;
-  --tw-color-gray-900: #f2f2f5;
-
-  /* COLORES SEMÁNTICOS (Noche / Muteados y suaves) */
-  --brand-maroon-text: #c17c8d;
-  --brand-maroon-bg: #4a1c26;
-  --brand-maroon-light: #241115;
-  --brand-gold-text: #bda783;
-  --brand-gold-bg: #615033;
-  --brand-gold-light: #241d13;
-  --state-green-text: #749882;
-  --state-green-bg: #21402e;
-  --state-green-light: #121d17;
-  --state-blue-text: #768a9e;
-  --state-blue-bg: #23374c;
-  --state-blue-light: #131b24;
-  --state-orange-text: #b58d5c;
-  --state-orange-bg: #5a4124;
-  --state-orange-light: #221810;
-  --state-red-text: #b67676;
-  --state-red-bg: #522626;
-  --state-red-light: #211313;
-  --state-gray-text: #888898;
-  --state-gray-bg: #292930;
-  --state-gray-light: #1d1d22;
-
-  color: var(--tw-color-gray-800);
-  background-color: var(--tw-color-gray-50);
-}
 
 *,
 *::before,
@@ -257,16 +173,4 @@ body {
 body {
   overflow-x: hidden;
   width: 100%;
-}
-
-/* ── MODO OSCURO: Checklist reactivos ── */
-/* Forzar que los títulos y descripciones de los reactivos sean visibles en modo noche */
-html.dark .checklist-item-label,
-html.dark span.checklist-item-label {
-  color: #ffffff !important;
-}
-
-html.dark .checklist-item-desc {
-  color: #d1d5db !important;
-  /* gray-300 */
 }

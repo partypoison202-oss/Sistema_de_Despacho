@@ -30,6 +30,7 @@ export default function CentroControl() {
   const [reporteDataRutas, setReporteDataRutas] = useState(null);
   const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState('');
 
   const reporteRutasRef = useRef(null);
   const reporteUnidadesRef = useRef(null);
@@ -207,6 +208,45 @@ export default function CentroControl() {
   // Helper para % de cada segmento de la barra apilada
   const pct = (value, total) => (total > 0 ? (value / total) * 100 : 0);
 
+  // Helpers para la búsqueda global
+  const getNumeroEconomico = (d) =>
+    d.NUMERO_ECONOMICO ?? d.NO_ECONOMICO ?? d.NUM_ECONOMICO ?? d.ECONOMICO ?? d.UNIDAD ?? d.NO_UNIDAD ?? 'S/N';
+  const getRuta = (d) =>
+    d.RUTA ?? d.NOMBRE_RUTA ?? d.NO_RUTA ?? d.RUTA_ASIGNADA ?? 'Sin ruta asignada';
+  const getConductor = (d) =>
+    d.CONDUCTOR ?? d.NOMBRE_CONDUCTOR ?? d.CHOFER ?? d.NOMBRE_CHOFER ?? d.OPERADOR ?? 'Sin conductor asignado';
+  const getTarjeton = (d) =>
+    d.TARJETON ?? d.TARJETON_CONDUCTOR ?? d.NO_TARJETON ?? '—';
+  const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
+
+  // Filtrado de todas las unidades si hay búsqueda
+  let allUnitsFiltered = [];
+  if (globalSearch.trim() !== '') {
+    const term = globalSearch.toLowerCase();
+    const allUnits = modelData.flatMap((m) =>
+      (m.units || []).map((u) => {
+        const estatus = getEstatus(u);
+        let colorClass = 'otros';
+        let labelStatus = 'Otro estatus';
+
+        if (estatus.includes('OPERACI')) { colorClass = 'operacion'; labelStatus = 'Operación'; }
+        else if (estatus.includes('MANTENIMIENTO')) { colorClass = 'mantenimiento'; labelStatus = 'Mantenimiento'; }
+        else if (estatus.includes('RESERVA')) { colorClass = 'reserva'; labelStatus = 'Reserva'; }
+
+        return { ...u, __modelInfo: m, __statusColor: colorClass, __statusLabel: labelStatus };
+      })
+    );
+
+    allUnitsFiltered = allUnits.filter((u) =>
+      getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
+      getRuta(u).toLowerCase().includes(term) ||
+      getConductor(u).toLowerCase().includes(term) ||
+      getTarjeton(u).toString().toLowerCase().includes(term) ||
+      u.__statusLabel.toLowerCase().includes(term) ||
+      u.__modelInfo.label.toLowerCase().includes(term)
+    );
+  }
+
   return (
     <>
       <div className="centro-page">
@@ -271,11 +311,77 @@ export default function CentroControl() {
           </section>
 
           {/* ---------- Desglose por tipo de unidad ---------- */}
-          <section className="centro-section-header">
+          <section className="centro-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <h2>Desglose por tipo de unidad</h2>
+            <div className="centro-search-wrapper" style={{ position: 'relative', flex: '1', minWidth: '240px', maxWidth: '350px' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#9ca3af', pointerEvents: 'none' }}>
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Buscar unidad en toda la flota..." 
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value.replace(/[^a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ]/g, ''))}
+                style={{
+                  width: '100%',
+                  padding: '8px 16px 8px 38px',
+                  borderRadius: '999px',
+                  border: '1.5px solid #e5e7eb',
+                  outline: 'none',
+                  fontSize: '0.85rem',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: '#ffffff',
+                  color: '#111827'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#601a2a';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(96, 26, 42, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
           </section>
 
-          <section className="centro-type-grid">
+          {globalSearch.trim() !== '' ? (
+            <section className="centro-global-results" style={{ backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 16px rgba(96, 26, 42, 0.08)', overflow: 'hidden', marginBottom: '32px' }}>
+              {allUnitsFiltered.length > 0 ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', background: '#f9fafb', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>
+                    <span>Unidad</span>
+                    <span>Modelo</span>
+                    <span>Estatus</span>
+                    <span>Ruta</span>
+                    <span>Tarjetón</span>
+                    <span>Conductor</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {allUnitsFiltered.map((u, i) => (
+                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
+                        <span style={{ fontWeight: '700', color: '#601a2a' }}>{getNumeroEconomico(u)}</span>
+                        <span style={{ fontWeight: '600' }}>{u.__modelInfo.label}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6' }}>
+                          {u.__statusLabel}
+                        </span>
+                        <span>{getRuta(u)}</span>
+                        <span>{getTarjeton(u)}</span>
+                        <span>{getConductor(u)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.9rem', padding: '40px 0', margin: 0 }}>
+                  No se encontraron unidades con ese término de búsqueda.
+                </p>
+              )}
+            </section>
+          ) : (
+            <section className="centro-type-grid">
             {modelsConfig.map((mc) => {
               const m = modelData.find((x) => x.id === mc.id) || {
                 programadas: 0,
@@ -354,6 +460,7 @@ export default function CentroControl() {
               );
             })}
           </section>
+          )}
 
           {/* ---------- Acciones ---------- */}
           <section className="centro-actions">

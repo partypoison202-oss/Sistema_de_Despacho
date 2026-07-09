@@ -276,7 +276,6 @@ export default function CargaExcel() {
             <p className="excel-subtitle">Carga y edita la programación de hoy de forma rápida</p>
             {archivoProcesado ? (
               <div className="archivo-badge">
-                <span className="badge-icon">📄</span>
                 <span className="badge-text">
                   Último archivo: <strong>{archivoProcesado.nombre}</strong>
                   {archivoProcesado.fecha && <span className="badge-date"> • Subido el {archivoProcesado.fecha}</span>}
@@ -284,7 +283,6 @@ export default function CargaExcel() {
               </div>
             ) : (
               <div className="archivo-badge empty">
-                <span className="badge-icon">📅</span>
                 <span className="badge-text">Sin importaciones hoy</span>
               </div>
             )}

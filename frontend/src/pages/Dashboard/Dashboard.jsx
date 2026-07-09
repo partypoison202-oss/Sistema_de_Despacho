@@ -247,7 +247,7 @@ export default function Dashboard() {
             <input
               type="text"
               value={busquedaEco}
-              onChange={(event) => setBusquedaEco(event.target.value)}
+              onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, ''))}
               placeholder="Buscar por número económico"
               className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
@@ -272,13 +272,19 @@ export default function Dashboard() {
 
           {/* Botón para generar reportes */}
           <div className="dashboard__actions">
-            <button
-              onClick={handleGenerarReporte}
-              disabled={isGenerating}
-              className="btn-reporte"
-            >
-              {isGenerating ? 'Generando reportes...' : 'Generar Reportes PDF'}
-            </button>
+              <button
+                onClick={handleGenerarReporte}
+                disabled={isGenerating}
+                className="btn-reporte"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                {isGenerating ? (
+                  <>
+                    <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                    Generando reportes...
+                  </>
+                ) : 'Generar Reportes PDF'}
+              </button>
           </div>
 
           {/* Componentes ocultos para generar PDF (fuera de pantalla) */}

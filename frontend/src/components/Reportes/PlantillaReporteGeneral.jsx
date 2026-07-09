@@ -5,7 +5,7 @@ import logoSTM from '../../assets/logo-stm.webp';
 import urbanusImg from '../../assets/urbanus.webp';
 import alimentadoraImg from '../../assets/alimentadora.webp';
 
-const PlantillaReporteGeneral = ({ data }) => {
+const PlantillaReporteGeneral = React.forwardRef(({ data }, ref) => {
   if (!data || !data.length) return null;
 
   // 1. Definición estricta de Troncales
@@ -33,7 +33,7 @@ const PlantillaReporteGeneral = ({ data }) => {
   }).toUpperCase();
 
   return (
-    <div id="reporte-pdf" className="reporte">
+    <div id="reporte-pdf" className="reporte" ref={ref}>
       <div className="header">
         <img src={logoSTM} alt="STM" />
         <h1>REPORTE DE OPERACIONES</h1>
@@ -128,6 +128,6 @@ const PlantillaReporteGeneral = ({ data }) => {
       <div className="footer-bar" />
     </div>
   );
-};
+});
 
 export default PlantillaReporteGeneral;
