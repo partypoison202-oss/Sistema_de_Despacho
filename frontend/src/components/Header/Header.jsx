@@ -97,7 +97,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
               </svg>
             </button>
           )}
-          {location.pathname === '/menu' && (
+          {!hideLogos && (
             <button
               type="button"
               className="app-header__brand"
