@@ -54,4 +54,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/checklist', [ChecklistController::class, 'store']);
     Route::put('/checklist/{id}', [ChecklistController::class, 'update']);
     Route::get('/checklists', [ChecklistController::class, 'index']);
+
+    // Historial Operativo
+    Route::get('/historial-operativo/fechas', [App\Http\Controllers\API\HistorialOperativoController::class, 'getFechas']);
+    Route::get('/historial-operativo/despacho/{fecha}', [App\Http\Controllers\API\HistorialOperativoController::class, 'getHistorialDespacho']);
+    Route::get('/historial-operativo/encierro/{fecha}', [App\Http\Controllers\API\HistorialOperativoController::class, 'getHistorialEncierro']);
 });

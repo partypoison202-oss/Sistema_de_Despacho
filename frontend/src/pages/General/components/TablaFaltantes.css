@@ -145,13 +145,19 @@
 }
 
 .tabla-faltantes__motivo {
+  color: var(--ti-texto-principal);
+  white-space: normal;
+  min-width: 160px;
+  line-height: 1.35;
+  vertical-align: middle;
+  text-transform: capitalize;
+}
+
+/* Wrapper for the dot and text */
+.tabla-faltantes__motivo-content {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  color: var(--ti-texto-principal);
-  white-space: normal;
-  min-width: 180px;
-  line-height: 1.35;
 }
 
 .tabla-faltantes__estado-punto {
@@ -203,6 +209,6 @@
   }
 
   .tabla-faltantes__motivo {
-    justify-content: flex-start;
+    text-align: left;
   }
 }

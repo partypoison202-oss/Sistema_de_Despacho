@@ -117,13 +117,17 @@ const construirResumen = (registros, tipo) => {
 const construirFaltantes = (registros) =>
   registros
     .filter((registro) => normalizarEstatus(registro.estatus) === 'FUERA')
-    .map((registro) => ({
-      eco: registro.economico ? String(registro.economico) : '',
-      ruta: normalizarRuta(registro.ruta),
-      corrida: registro.corridas ? String(registro.corridas) : '',
-      ciclo: registro.ciclo ? String(registro.ciclo) : '',
-      motivo: registro.motivo ? String(registro.motivo) : '',
-    }))
+    .map((registro) => {
+      const ciclosFaltantes = parseFloat(registro.ciclo) || 0;
+      const corridasFaltantes = ciclosFaltantes * 2;
+      return {
+        eco: registro.economico ? String(registro.economico) : '',
+        ruta: normalizarRuta(registro.ruta),
+        corrida: ciclosFaltantes > 0 ? String(corridasFaltantes) : '',
+        ciclo: registro.ciclo ? String(registro.ciclo) : '',
+        motivo: registro.motivo ? String(registro.motivo) : '',
+      };
+    })
     .sort((a, b) => a.ruta.localeCompare(b.ruta) || a.eco.localeCompare(b.eco));
 
 export default function Dashboard() {

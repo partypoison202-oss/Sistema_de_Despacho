@@ -76,15 +76,15 @@ const menuItems = [
     color: 'blue',
   },
   {
-    id: 'checklist',
-    redirectTo: '/checklist/historial', 
+    id: 'historial',
+    redirectTo: '/historial', 
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-        <circle cx="12" cy="12" r="3" />
+        <path d="M3 3v18h18" />
+        <path d="m19 9-5 5-4-4-3 3" />
       </svg>
     ),
-    label: 'REVISAR CHECK LIST',
+    label: 'HISTORIAL',
     color: 'orange',
   },
 ];

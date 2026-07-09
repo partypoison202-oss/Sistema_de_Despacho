@@ -38,8 +38,8 @@ export default function TablaFaltantes({ titulo, filas = [] }) {
               <tr>
                 <th className="col-eco">Económico</th>
                 <th className="col-ruta">Ruta</th>
-                <th className="col-corrida">Corrida</th>
-                <th className="col-ciclo">Ciclo</th>
+                <th className="col-corrida">Corridas Faltantes</th>
+                <th className="col-ciclo">Ciclos Faltantes</th>
                 <th className="col-motivo">Motivo</th>
               </tr>
             </thead>
@@ -59,8 +59,10 @@ export default function TablaFaltantes({ titulo, filas = [] }) {
                   <td data-th="Corrida">{fila.corrida || '—'}</td>
                   <td data-th="Ciclo">{fila.ciclo || '—'}</td>
                   <td data-th="Motivo" className="tabla-faltantes__motivo">
-                    <span className="tabla-faltantes__estado-punto" aria-hidden="true" />
-                    {fila.motivo || 'Sin motivo registrado'}
+                    <div className="tabla-faltantes__motivo-content">
+                      <span className="tabla-faltantes__estado-punto" aria-hidden="true" />
+                      {fila.motivo || 'Sin motivo registrado'}
+                    </div>
                   </td>
                 </tr>
               ))}

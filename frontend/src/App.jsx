@@ -15,6 +15,9 @@ import Menu from './pages/Menu/Menu';
 import MenuCheckList from './pages/Menu/MenuCheckList';
 import CheckList from './pages/CheckList/CheckList';
 import HistorialCheckList from './pages/CheckList/HistorialCheckList';
+import MenuHistorial from './pages/Historial/MenuHistorial';
+import HistorialDespacho from './pages/Historial/HistorialDespacho';
+import HistorialEncierro from './pages/Historial/HistorialEncierro';
 import FleetSelection from './components/Checklist/FleetSelection';
 import CentroControl from './pages/CentroControl/CentroControl';
 import GlobalClock from './components/GlobalClock/GlobalClock';
@@ -81,6 +84,25 @@ function App() {
           <Route path="/resumen-despacho" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
               <ResumenDespacho />
+            </ProtectedRoute>
+          } />
+
+          {/* Rutas para Historial General (ADMIN, DESPACHO, ENCIERRO, GENERAL) */}
+          <Route path="/historial" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+              <MenuHistorial />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/historial/despacho" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+              <HistorialDespacho />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/historial/encierro" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'GENERAL']}>
+              <HistorialEncierro />
             </ProtectedRoute>
           } />
 

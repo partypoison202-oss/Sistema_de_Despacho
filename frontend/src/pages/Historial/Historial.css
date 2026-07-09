@@ -1,0 +1,138 @@
+﻿/* src/pages/Historial/Historial.css */
+
+.historial-page {
+  min-height: 100vh;
+  background-color: var(--tw-color-gray-50);
+}
+
+.historial-content {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.historial-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.historial-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+.historial-filter {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.historial-filter label {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.historial-filter select {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  background-color: #f9fafb;
+  cursor: pointer;
+  outline: none;
+}
+
+.historial-filter select:focus {
+  border-color: var(--ti-burdeos);
+  box-shadow: 0 0 0 2px rgba(107, 29, 51, 0.2);
+}
+
+.table-responsive {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 10px 28px rgba(107, 29, 51, 0.08);
+  overflow: hidden;
+}
+
+.historial-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.historial-table th {
+  background: var(--ti-burdeos);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+  text-align: left;
+}
+
+.historial-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--ti-borde);
+  color: var(--ti-texto-principal);
+  font-size: 0.9rem;
+}
+
+.historial-table tbody tr:hover {
+  background-color: var(--tw-color-gray-50);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.25rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.estatus-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.estatus-operaci\0000f3n, .estatus-operacion {
+  background-color: var(--status-green-light);
+  color: var(--status-green-text);
+}
+
+.estatus-reserva {
+  background-color: var(--status-blue-light);
+  color: var(--status-blue-text);
+}
+
+.estatus-mantenimiento {
+  background-color: var(--status-yellow-light);
+  color: var(--status-yellow-text);
+}
+
+@media (max-width: 768px) {
+  .historial-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}

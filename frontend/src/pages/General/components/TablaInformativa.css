@@ -244,13 +244,12 @@
 }
 
 .tabla-informativa__motivo {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
   color: var(--ti-texto-secundario);
   white-space: normal;
   min-width: 160px;
   line-height: 1.35;
+  vertical-align: middle;
+  text-transform: capitalize; /* Para que no se vea todo en mayúsculas gritando */
 }
 
 .tabla-informativa__fila--total .tabla-informativa__motivo {
@@ -318,7 +317,7 @@
   }
 
   .tabla-informativa__motivo {
-    justify-content: flex-start;
+    text-align: left;
   }
 }
 
