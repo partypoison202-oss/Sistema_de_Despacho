@@ -9,12 +9,12 @@
   --cc-blue: var(--state-blue-text);
 
   /* Colores semánticos de estatus (consistentes en todas las tarjetas) */
-  --cc-operacion: var(--state-green-text);
-  --cc-operacion-bg: var(--state-green-light);
-  --cc-reserva: var(--brand-gold-text);
-  --cc-reserva-bg: var(--brand-gold-light);
-  --cc-mantenimiento: var(--state-red-text);
-  --cc-mantenimiento-bg: var(--state-red-light);
+  --cc-operacion: var(--status-green-text);
+  --cc-operacion-bg: var(--status-green-light);
+  --cc-reserva: var(--status-blue-text);
+  --cc-reserva-bg: var(--status-blue-light);
+  --cc-mantenimiento: var(--status-yellow-text);
+  --cc-mantenimiento-bg: var(--status-yellow-light);
   --cc-otros: var(--state-gray-text);
   --cc-otros-bg: var(--state-gray-light);
 

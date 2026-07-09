@@ -1095,9 +1095,9 @@ export default function DetalleUnidadEncierro() {
                     <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
                         {[
-                          { id: 'operacion', label: 'OPERACIÓN', color: 'var(--state-green-text)', bgActive: '#f0fdf4' },
-                          { id: 'reserva', label: 'RESERVA', color: 'var(--state-orange-text)', bgActive: 'var(--state-orange-light)' },
-                          { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--state-red-text)', bgActive: 'var(--state-red-light)' }
+                          { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
+                          { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
+                          { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' }
                         ].map(st => {
                           const isActive = datosOperativos.estatus === st.id;
                           return (
@@ -1108,9 +1108,9 @@ export default function DetalleUnidadEncierro() {
                               style={{
                                 padding: '1rem 0.5rem',
                                 borderRadius: '0.75rem',
-                                border: `2px solid ${isActive ? st.color : 'var(--tw-color-gray-200)'}`,
-                                backgroundColor: isActive ? st.bgActive : 'var(--tw-color-gray-50)',
-                                color: isActive ? st.color : 'var(--tw-color-gray-400)',
+                                border: `2px solid ${isActive ? st.color : 'transparent'}`,
+                                backgroundColor: isActive ? st.bgActive : 'var(--tw-color-gray-100)',
+                                color: isActive ? st.color : 'var(--tw-color-gray-500)',
                                 fontWeight: isActive ? 700 : 500,
                                 fontSize: '0.85rem',
                                 cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
