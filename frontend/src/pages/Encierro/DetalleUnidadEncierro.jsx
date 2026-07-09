@@ -657,7 +657,6 @@ export default function DetalleUnidadEncierro() {
       <Header
         title={selectedOption || "Seleccione Unidad"}
         eyebrow={`${configActual.title} / Encierro — Detalle de Unidad`}
-        hideLogos={true}
       />
 
       <main className="main-content">
