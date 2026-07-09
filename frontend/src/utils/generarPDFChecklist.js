@@ -41,6 +41,23 @@ const loadImage = (src) => {
     });
 };
 
+/**
+ * Compone una imagen con fondo transparente sobre un color sólido.
+ * Devuelve un data URL PNG listo para jsPDF sin cuadro negro.
+ */
+const compositeLogoOnColor = (imgEl, bgRGB) => {
+    const canvas = document.createElement('canvas');
+    canvas.width  = imgEl.naturalWidth  || imgEl.width;
+    canvas.height = imgEl.naturalHeight || imgEl.height;
+    const ctx = canvas.getContext('2d');
+    // Fondo del color deseado
+    ctx.fillStyle = `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Imagen encima
+    ctx.drawImage(imgEl, 0, 0);
+    return canvas.toDataURL('image/png');
+};
+
 const HEADER_H = 30; // altura de la banda membretada
 
 /**
@@ -58,8 +75,9 @@ const drawHeader = (doc, logoImg, pageWidth) => {
     // Logo "T" institucional a la izquierda
     if (logoImg) {
         const logoH = 22;
-        const logoW = logoH * (logoImg.width / logoImg.height);
-        doc.addImage(logoImg, 'WEBP', 7, (HEADER_H - logoH) / 2, logoW, logoH);
+        const props = doc.getImageProperties(logoImg);
+        const logoW = logoH * (props.width / props.height);
+        doc.addImage(logoImg, 'PNG', 7, (HEADER_H - logoH) / 2, logoW, logoH);
     }
 
     // Subtítulo (institución)
@@ -105,7 +123,9 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
         let   y        = HEADER_H + 9;
 
         // ── Cargar logo ──────────────────────────────────────────────────────
-        const logoImg = await loadImage('/images/sistema de tm.webp');
+        // Cargar logo y compositar sobre fondo guinda para eliminar cuadro negro
+        const logoRaw  = await loadImage('/images/sistema de tm.webp');
+        const logoImg  = logoRaw ? compositeLogoOnColor(logoRaw, COLOR_GUINDA) : null;
 
         // ── Encabezado primera página ────────────────────────────────────────
         drawHeader(doc, logoImg, pageW);

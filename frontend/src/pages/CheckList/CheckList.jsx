@@ -607,14 +607,14 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
 };
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function ChecklistForm({ 
-    inline = false, 
-    prefillData = null, 
+export default function ChecklistForm({
+    inline = false,
+    prefillData = null,
     checklistId = null,
     onComplete = null,
     onClose = null,
     origen = 'despacho',
-    editMode = false 
+    editMode = false
 }) {
     const navigate = useNavigate();
     const location = useLocation();
