@@ -43,12 +43,31 @@ const IconReport = () => (
     </svg>
 );
 
+const IconDaily = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+      <path fillRule="evenodd" d="M11.986 3H12a2 2 0 0 1 2 2v6a2 2 0 0 1-1.5 1.937V7A2.5 2.5 0 0 0 10 4.5H4.063A2 2 0 0 1 6 3h.014A2.25 2.25 0 0 1 8.25 1h3.5a2.25 2.25 0 0 1 2.236 2ZM10.5 4v-.75a.75.75 0 0 0-.75-.75h-3.5a.75.75 0 0 0-.75.75V4h5Z" clipRule="evenodd" />
+      <path fillRule="evenodd" d="M3 6a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H3Zm6 8.75a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1 0-1.5h4.5a.75.75 0 0 1 .75.75Zm2.75-4a.75.75 0 0 0-.75-.75h-6.5a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 .75-.75Zm-2.75-4a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1 0-1.5h4.5a.75.75 0 0 1 .75.75Z" clipRule="evenodd" />
+    </svg>
+);
+
+const IconWeekly = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+      <path fillRule="evenodd" d="M3 3a.75.75 0 0 1 .75.75v11.5h11.5a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1-.75-.75V3.75A.75.75 0 0 1 3 3ZM7 9a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 7 14.5V9Zm4-5a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V4Z" clipRule="evenodd" />
+    </svg>
+);
+
+const IconMonthly = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+      <path fillRule="evenodd" d="M12.577 4.878a.75.75 0 0 1 .919-.53l4.78 1.281a.75.75 0 0 1 .531.919l-1.281 4.78a.75.75 0 0 1-1.448-.387l.81-3.022a19.407 19.407 0 0 0-5.594 5.203.75.75 0 0 1-1.139.093L7 10.06l-4.72 4.72a.75.75 0 0 1-1.06-1.061l5.25-5.25a.75.75 0 0 1 1.058-.005l3.111 3.11 4.542-4.542-3.023.81a.75.75 0 0 1-.58-.964Z" clipRule="evenodd" />
+    </svg>
+);
+
 // ── Tabs de periodo ───────────────────────────────────────────────────────────
 const PERIODS = [
-    { key: 'daily',   label: 'Diario',   emoji: '📋' },
-    { key: 'weekly',  label: 'Semanal',  emoji: '📊' },
-    { key: 'monthly', label: 'Mensual',  emoji: '📈' },
-    { key: 'yearly',  label: 'Anual',    emoji: '📅' },
+    { key: 'daily',   label: 'Diario',   icon: <IconDaily /> },
+    { key: 'weekly',  label: 'Semanal',  icon: <IconWeekly /> },
+    { key: 'monthly', label: 'Mensual',  icon: <IconMonthly /> },
+    { key: 'yearly',  label: 'Anual',    icon: <IconCalendar /> },
 ];
 
 const PUNTOS = [
@@ -632,7 +651,7 @@ export default function HistorialCheckList() {
                                     : 'border border-gray-200 bg-white text-gray-600 hover:border-guinda-700/30 hover:bg-guinda-700/5'
                             }`}
                         >
-                            <span>{p.emoji}</span>
+                            <span>{p.icon}</span>
                             {p.label}
                         </button>
                     ))}
