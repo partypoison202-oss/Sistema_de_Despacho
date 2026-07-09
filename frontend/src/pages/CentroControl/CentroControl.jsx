@@ -10,7 +10,6 @@ import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporte
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 
-
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
 const modelsConfig = [
   { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.webp', color: 'maroon' },
@@ -260,6 +259,22 @@ export default function CentroControl() {
               Consulta el total de unidades programadas, su estatus operativo
               y genera reportes generales del despacho.
             </p>
+          </div>
+
+          {/* ---------- Acceso al Plano de Patio ---------- */}
+          <div className="centro-kpis-actions">
+            <button
+              type="button"
+              className="centro-btn-plano"
+              onClick={() => navigate('/plano-patio')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6z" />
+                <path d="M9 3v15" />
+                <path d="M15 6v15" />
+              </svg>
+              Ver Plano de Patio
+            </button>
           </div>
 
           {/* ---------- KPIs globales ---------- */}

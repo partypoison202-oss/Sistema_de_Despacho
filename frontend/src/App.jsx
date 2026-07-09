@@ -136,9 +136,9 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* Ruta protegida para el dashboard de Patio (solo ADMIN y DESPACHO) */}
-                  <Route path="/plano-patio" element={
-                <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
+          {/* Ruta protegida para el dashboard de Patio (solo ADMIN y CENTRO_CONTROL) */}
+          <Route path="/plano-patio" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
               <PatioDashboard />
             </ProtectedRoute>
           } />

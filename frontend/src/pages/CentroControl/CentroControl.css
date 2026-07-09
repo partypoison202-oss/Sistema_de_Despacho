@@ -9,12 +9,12 @@
   --cc-blue: var(--state-blue-text);
 
   /* Colores semánticos de estatus (consistentes en todas las tarjetas) */
-  --cc-operacion: var(--status-green-text);
-  --cc-operacion-bg: var(--status-green-light);
-  --cc-reserva: var(--status-blue-text);
-  --cc-reserva-bg: var(--status-blue-light);
-  --cc-mantenimiento: var(--status-yellow-text);
-  --cc-mantenimiento-bg: var(--status-yellow-light);
+  --cc-operacion: var(--state-green-text);
+  --cc-operacion-bg: var(--state-green-light);
+  --cc-reserva: var(--brand-gold-text);
+  --cc-reserva-bg: var(--brand-gold-light);
+  --cc-mantenimiento: var(--state-red-text);
+  --cc-mantenimiento-bg: var(--state-red-light);
   --cc-otros: var(--state-gray-text);
   --cc-otros-bg: var(--state-gray-light);
 
@@ -413,4 +413,39 @@
 
 @keyframes centro-spin {
   to { transform: rotate(360deg); }
+}
+
+.centro-kpis-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.centro-btn-plano {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: #ffffff;
+  border: 1.5px solid #601a2a;
+  border-radius: 40px;
+  color: #601a2a;
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(96, 26, 42, 0.08);
+}
+
+.centro-btn-plano svg {
+  width: 20px;
+  height: 20px;
+}
+
+.centro-btn-plano:hover {
+  background: #601a2a;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(96, 26, 42, 0.25);
+  transform: translateY(-2px);
 }
