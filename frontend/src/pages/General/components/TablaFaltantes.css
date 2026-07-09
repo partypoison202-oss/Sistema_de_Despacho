@@ -1,0 +1,208 @@
+/* src/pages/Dashboard/components/TablaFaltantes.css */
+
+.tabla-faltantes {
+  background: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid var(--ti-borde);
+  box-shadow: 0 10px 28px rgba(107, 29, 51, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== Encabezado ===== */
+
+.tabla-faltantes__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--ti-burdeos);
+  padding: 0.95rem 1.25rem;
+}
+
+.tabla-faltantes__titulo-icono {
+  font-size: 0.95rem;
+}
+
+.tabla-faltantes__resumen {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--ti-borde);
+}
+
+.tabla-faltantes__resumen-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ti-texto-secundario);
+}
+
+.tabla-faltantes__resumen-valor {
+  min-width: 46px;
+  text-align: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla-faltantes__resumen-valor--beige {
+  background: var(--ti-beige);
+  color: var(--ti-beige-texto);
+}
+
+.tabla-faltantes__resumen-valor--rojo {
+  background: var(--ti-rojo-bg);
+  color: var(--ti-rojo-texto);
+}
+
+/* ===== Estado vacío ===== */
+
+.tabla-faltantes__vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1.25rem;
+  color: var(--ti-texto-secundario);
+  text-align: center;
+}
+
+.tabla-faltantes__vacio-icono {
+  font-size: 1.6rem;
+}
+
+.tabla-faltantes__vacio p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* ===== Tabla ===== */
+
+.tabla-faltantes__scroll {
+  overflow: auto;
+  max-height: 420px;
+}
+
+.tabla-faltantes__tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.tabla-faltantes__tabla th,
+.tabla-faltantes__tabla td {
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--ti-borde);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tabla-faltantes__tabla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fbf8f6;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ti-texto-secundario);
+  border-bottom: 1px solid var(--ti-borde);
+}
+
+.tabla-faltantes__tabla tbody tr:hover {
+  background: var(--ti-burdeos-tinte);
+}
+
+.tabla-faltantes__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabla-faltantes__chip--eco {
+  background: var(--ti-burdeos-tinte);
+  color: var(--ti-burdeos);
+}
+
+.tabla-faltantes__chip--ruta {
+  background: var(--ti-beige);
+  color: var(--ti-beige-texto);
+}
+
+.tabla-faltantes__motivo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: var(--ti-texto-principal);
+  white-space: normal;
+  min-width: 180px;
+  line-height: 1.35;
+}
+
+.tabla-faltantes__estado-punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: var(--ti-rojo-texto);
+}
+
+/* ===== Responsivo: tabla -> tarjetas en pantallas pequeñas ===== */
+
+@media (max-width: 640px) {
+  .tabla-faltantes__tabla thead {
+    display: none;
+  }
+
+  .tabla-faltantes__tabla,
+  .tabla-faltantes__tabla tbody,
+  .tabla-faltantes__tabla tr,
+  .tabla-faltantes__tabla td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla-faltantes__tabla tr {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--ti-borde);
+  }
+
+  .tabla-faltantes__tabla td {
+    border-bottom: none;
+    padding: 0.3rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .tabla-faltantes__tabla td::before {
+    content: attr(data-th);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ti-texto-secundario);
+    flex: none;
+  }
+
+  .tabla-faltantes__motivo {
+    justify-content: flex-start;
+  }
+}

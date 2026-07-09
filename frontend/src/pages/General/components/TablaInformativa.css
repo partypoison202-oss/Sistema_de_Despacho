@@ -7,6 +7,8 @@
   --ti-oro: #c5a059;
   --ti-beige: #f2e1b8;
   --ti-beige-texto: #8b6a1f;
+  --ti-verde-bg: #e9f7ee;
+  --ti-verde-texto: #227a4a;
   --ti-rojo-bg: #fdecec;
   --ti-rojo-texto: #a4222f;
   --ti-borde: #eae3dd;
@@ -28,6 +30,9 @@
 /* ===== Encabezado ===== */
 
 .tabla-informativa__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.8rem;
   font-weight: 700;
   color: #ffffff;
@@ -37,13 +42,23 @@
   padding: 0.95rem 1.25rem;
 }
 
+.tabla-informativa__titulo-icono {
+  font-size: 0.95rem;
+}
+
 .tabla-informativa__resumen {
   display: flex;
-  gap: 0.6rem;
+  gap: 1.5rem;
   align-items: center;
   flex-wrap: wrap;
   padding: 1rem 1.25rem 0.85rem;
   border-bottom: 1px solid var(--ti-borde);
+}
+
+.tabla-informativa__resumen-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .tabla-informativa__resumen-label {
@@ -55,7 +70,7 @@
 }
 
 .tabla-informativa__resumen-valor {
-  min-width: 46px;
+  min-width: 40px;
   text-align: center;
   padding: 0.3rem 0.65rem;
   border-radius: 999px;
@@ -77,6 +92,36 @@
 .tabla-informativa__resumen-valor--rojo {
   background: var(--ti-rojo-bg);
   color: var(--ti-rojo-texto);
+}
+
+.tabla-informativa__ayuda {
+  margin: 0;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.78rem;
+  color: var(--ti-texto-secundario);
+  background: #fbf8f6;
+  border-bottom: 1px solid var(--ti-borde);
+}
+
+/* ===== Estado vacío ===== */
+
+.tabla-informativa__vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1.25rem;
+  color: var(--ti-texto-secundario);
+  text-align: center;
+}
+
+.tabla-informativa__vacio-icono {
+  font-size: 1.6rem;
+}
+
+.tabla-informativa__vacio p {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 /* ===== Tabla ===== */
@@ -135,9 +180,42 @@
 .tabla-informativa__servicio {
   font-weight: 700;
   color: var(--ti-texto-principal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
 }
 
 .tabla-informativa__fila--total .tabla-informativa__servicio {
+  color: #ffffff;
+}
+
+.tabla-informativa__flecha {
+  color: var(--ti-oro);
+  font-weight: 700;
+  font-size: 1rem;
+  flex: none;
+}
+
+/* Chip "operando" — refuerza que ese número es algo positivo */
+.tabla-informativa__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla-informativa__chip--operando {
+  background: var(--ti-verde-bg);
+  color: var(--ti-verde-texto);
+}
+
+.tabla-informativa__fila--total .tabla-informativa__chip--operando {
+  background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
 }
 
@@ -166,8 +244,26 @@
 }
 
 .tabla-informativa__motivo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
   color: var(--ti-texto-secundario);
   white-space: normal;
+  min-width: 160px;
+  line-height: 1.35;
+}
+
+.tabla-informativa__fila--total .tabla-informativa__motivo {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tabla-informativa__estado-punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: var(--ti-rojo-texto);
 }
 
 .tabla-informativa__sin-datos {
@@ -175,6 +271,55 @@
   color: var(--ti-texto-secundario);
   padding: 2rem 0;
   font-size: 0.85rem;
+}
+
+/* ===== Responsivo: tabla -> tarjetas en pantallas pequeñas ===== */
+
+@media (max-width: 640px) {
+  .tabla-informativa__tabla thead {
+    display: none;
+  }
+
+  .tabla-informativa__tabla,
+  .tabla-informativa__tabla tbody,
+  .tabla-informativa__tabla tr,
+  .tabla-informativa__tabla td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla-informativa__tabla tr {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--ti-borde);
+  }
+
+  .tabla-informativa__tabla td {
+    border-bottom: none;
+    padding: 0.3rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    white-space: normal;
+  }
+
+  .tabla-informativa__tabla td::before {
+    content: attr(data-th);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ti-texto-secundario);
+    flex: none;
+  }
+
+  .tabla-informativa__fila--total td::before {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .tabla-informativa__motivo {
+    justify-content: flex-start;
+  }
 }
 
 /* ===== Modal de detalle ===== */

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import TablaInformativa from './components/TablaInformativa';
+import TablaFaltantes from './components/TablaFaltantes';
 import { transportModules } from '../../config/transportModules';
 import API_BASE from '../../config/api';
 import './DashboardGeneral.css';
@@ -111,16 +112,32 @@ const construirResumen = (registros, tipo) => {
   };
 };
 
+// Construye la lista plana de unidades con estatus "FUERA" para la
+// tabla de unidades faltantes (ECO, RUTA, CORRIDA, CICLO, MOTIVO).
+const construirFaltantes = (registros) =>
+  registros
+    .filter((registro) => normalizarEstatus(registro.estatus) === 'FUERA')
+    .map((registro) => ({
+      eco: registro.economico ? String(registro.economico) : '',
+      ruta: normalizarRuta(registro.ruta),
+      corrida: registro.corridas ? String(registro.corridas) : '',
+      ciclo: registro.ciclo ? String(registro.ciclo) : '',
+      motivo: registro.motivo ? String(registro.motivo) : '',
+    }))
+    .sort((a, b) => a.ruta.localeCompare(b.ruta) || a.eco.localeCompare(b.eco));
+
 export default function Dashboard() {
   const [conteos, setConteos] = useState({});
   const [tablas, setTablas] = useState({
     troncal: { programadas: 0, operando: 0, faltantes: 0, filas: [] },
     alimentador: { programadas: 0, operando: 0, faltantes: 0, filas: [] },
   });
+  const [faltantesUnidades, setFaltantesUnidades] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   const [mostrarTroncal, setMostrarTroncal] = useState(false);
   const [mostrarAlimentador, setMostrarAlimentador] = useState(false);
+  const [mostrarFaltantes, setMostrarFaltantes] = useState(false);
 
   useEffect(() => {
     const fetchDatos = async () => {
@@ -160,6 +177,7 @@ export default function Dashboard() {
                 estatus: registro.ESTATUS || registro.estatus || '',
                 corridas: registro.CORRIDAS || registro.corridas || '',
                 motivo: registro.MOTIVO || registro.motivo || '',
+                ciclo: registro.CICLO || registro.ciclo || '',
               }))
             : [];
 
@@ -167,6 +185,7 @@ export default function Dashboard() {
             troncal: construirResumen(registrosNormalizados, 'troncal'),
             alimentador: construirResumen(registrosNormalizados, 'alimentador'),
           });
+          setFaltantesUnidades(construirFaltantes(registrosNormalizados));
         }
       } catch (error) {
         console.error('Error de conexión:', error);
@@ -253,6 +272,27 @@ export default function Dashboard() {
               faltantes={tablas.alimentador.faltantes}
               filas={tablas.alimentador.filas}
               ordenColumnas="corrida-motivo"
+            />
+          )}
+
+          <button
+            className="dashboard__etiqueta"
+            onClick={() => setMostrarFaltantes((prev) => !prev)}
+          >
+            <span>Tabla de unidades faltantes</span>
+            <span
+              className={`dashboard__etiqueta-flecha ${
+                mostrarFaltantes ? 'dashboard__etiqueta-flecha--abierta' : ''
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+
+          {mostrarFaltantes && (
+            <TablaFaltantes
+              titulo="Unidades faltantes"
+              filas={faltantesUnidades}
             />
           )}
         </div>

@@ -6,7 +6,9 @@ import { transportModules } from '../../config/transportModules';
 import API_BASE from '../../config/api';
 import './DetalleUnidad.css';
 
-const ESTATUS_OPERACION = 'OPERACION';
+// Solo se usa para comparar internamente (conteos, resaltado de alerta).
+// El texto que se MUESTRA en la tabla siempre es el valor original de la BD.
+const esOperacion = (valor) => String(valor ?? '').trim().toUpperCase() === 'OPERACION';
 
 const normalizarTexto = (valor) => String(valor ?? '').trim().toUpperCase();
 
@@ -61,7 +63,10 @@ export default function DetalleUnidad() {
             eco: registro.ECONOMICO || '',
             idUnidad: registro.TARJETON || '',
             ruta: registro.RUTA || '',
-            estatus: normalizarTexto(registro.ESTATUS),
+            // Texto EXACTO tal cual está en la base de datos, sin transformar.
+            estatus: registro.ESTATUS !== null && registro.ESTATUS !== undefined
+              ? String(registro.ESTATUS).trim()
+              : '',
             horaSalida: registro.HORA_PROGRAMADA,
             acopleRuta: registro.HORA_DE_ACOPLE,
             corrida: registro.CORRIDAS,
@@ -81,7 +86,7 @@ export default function DetalleUnidad() {
   }, [id]);
 
   const programadas = unidades.length;
-  const operando = unidades.filter((u) => u.estatus === ESTATUS_OPERACION).length;
+  const operando = unidades.filter((u) => esOperacion(u.estatus)).length;
   const faltantes = programadas - operando;
 
   return (
@@ -138,16 +143,16 @@ export default function DetalleUnidad() {
                 <tbody>
                   {unidades.map((unidad, index) => {
                     const sinAsignar = !unidad.ruta && !unidad.idUnidad;
-                    const esAlerta = unidad.estatus && unidad.estatus !== ESTATUS_OPERACION;
+                    const esAlerta = unidad.estatus !== '' && !esOperacion(unidad.estatus);
+                    const textoEstatus = unidad.estatus || '—';
 
                     if (sinAsignar && esAlerta) {
-                      // Unidad sin ruta/tarjetón asignado: se muestra como barra completa,
-                      // igual que en la hoja de referencia (ej. "MANTENIMIENTO").
+                      // Unidad sin ruta/tarjetón asignado: se muestra como barra completa.
                       return (
                         <tr key={`${unidad.eco}-${index}`}>
                           <td className="detalle__eco">{unidad.eco}</td>
                           <td colSpan={6} className="detalle__observacion-barra">
-                            {unidad.estatus}
+                            {textoEstatus}
                           </td>
                         </tr>
                       );
@@ -163,9 +168,9 @@ export default function DetalleUnidad() {
                         <td>{unidad.corrida ?? '—'}</td>
                         <td>
                           {esAlerta ? (
-                            <span className="detalle__observacion-badge">{unidad.estatus}</span>
+                            <span className="detalle__observacion-badge">{textoEstatus}</span>
                           ) : (
-                            '—'
+                            textoEstatus
                           )}
                         </td>
                       </tr>

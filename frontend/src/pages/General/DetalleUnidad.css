@@ -160,10 +160,6 @@
   border-bottom: 1px solid #c7c7c7;
 }
 
-.detalle__tabla thead th:first-child {
-  border-top-left-radius: 0;
-}
-
 .detalle__tabla tbody td {
   padding: 0.6rem 0.6rem;
   border-bottom: 1px solid #eee;
@@ -183,32 +179,6 @@
 
 .detalle__tabla tbody tr:hover {
   background-color: #f3e7ea;
-}
-
-/* Badge de observación cuando la unidad sí tiene datos pero no está operando */
-.detalle__observacion-badge {
-  display: inline-block;
-  width: 100%;
-  padding: 0.35rem 0.5rem;
-  background-color: #5b5b5b;
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  border-radius: 0.3rem;
-}
-
-/* Barra completa cuando la unidad no tiene ruta/tarjetón asignado */
-.detalle__observacion-barra {
-  background-color: #5b5b5b !important;
-  color: #fff !important;
-  font-weight: 700;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  text-align: left;
-  padding-left: 1rem !important;
 }
 
 .detalle__sin-datos {

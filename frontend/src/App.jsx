@@ -19,6 +19,7 @@ import FleetSelection from './components/Checklist/FleetSelection';
 import CentroControl from './pages/CentroControl/CentroControl';
 import GlobalClock from './components/GlobalClock/GlobalClock';
 import DetalleUnidades from './pages/CentroControl/Detalle/DetalleUnidades';
+import PatioDashboard from './pages/Patio/PatioDashboard';
 
 function App() {
   return (
@@ -132,6 +133,13 @@ function App() {
           <Route path="/centro-control/detalle/:tipo" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
               <DetalleUnidades />
+            </ProtectedRoute>
+          } />
+
+          {/* Ruta protegida para el dashboard de Patio (solo ADMIN y DESPACHO) */}
+                  <Route path="/plano-patio" element={
+                <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
+              <PatioDashboard />
             </ProtectedRoute>
           } />
 
