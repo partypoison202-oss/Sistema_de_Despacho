@@ -269,8 +269,10 @@ const ChecklistPreviewInline = ({ previewChecklist, setPreviewId, setLightboxIma
                         <img 
                             src={previewChecklist.dibujo} 
                             alt="Marcas visuales" 
-                            className="w-full object-contain"
+                            className="w-full object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
                             style={{ aspectRatio: '5/3' }}
+                            onClick={() => setLightboxImage(previewChecklist.dibujo)}
+                            title="Clic para ampliar"
                         />
                     </div>
                 </div>
