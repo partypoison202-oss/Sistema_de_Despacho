@@ -565,11 +565,13 @@ class DespachoController extends Controller
             'numero_eco' => 'required',
             'tipo' => 'required',
             'estatus' => 'required|in:operacion,mantenimiento,reserva',
+            'motivo_estatus' => 'nullable|string'
         ]);
 
         $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
         $tipoNormalizado = strtolower(trim($request->tipo));
         $nuevoEstatus = strtolower(trim($request->estatus));
+        $motivoEstatus = $request->motivo_estatus;
         $fechaHoy = Carbon::today()->toDateString();
 
         $unidad = DB::table('unidades')
@@ -600,6 +602,7 @@ class DespachoController extends Controller
             ->where('id', $registroOperativo->id)
             ->update([
                 'estatus' => $nuevoEstatus,
+                'motivo_estatus' => $motivoEstatus
             ]);
 
         return response()->json([

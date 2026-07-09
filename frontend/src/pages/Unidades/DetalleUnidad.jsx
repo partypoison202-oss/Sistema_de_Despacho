@@ -501,7 +501,6 @@ export default function DetalleUnidad() {
       <Header
         title={selectedOption || 'Seleccione Unidad'}
         eyebrow={`${configActual.title} / Detalle de Unidad`}
-        hideLogos={true}
       />
       <main className="main-content">
         {/* Selectores de estado + ficha de información agrupados en un solo panel */}

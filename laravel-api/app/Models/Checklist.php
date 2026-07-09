@@ -16,6 +16,7 @@ class Checklist extends Model
         'puntos',
         'dibujo',
         'fecha_hora',
+        'origen',
     ];
 
     protected $casts = [

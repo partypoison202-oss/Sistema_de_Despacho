@@ -101,7 +101,7 @@ echo -e "${YELLOW}   Laravel API: http://localhost:8000${NC}"
 echo -e "${YELLOW}   Backend:     http://localhost:4000 (opcional)${NC}"
 echo ""
 if [ "$LOCAL_IP" != "localhost" ]; then
-echo -e "${BLUE}🌐 Para acceder desde otros dispositivos (CELULARES/TABLETS) en tu red Wi-Fi:${NC}"
+echo -e "${BLUE}🌐 Acceso desde otros dispositivos la red Wi-Fi:${NC}"
 echo -e "${BLUE}   - Frontend:    http://$LOCAL_IP:5173${NC}"
 echo -e "${BLUE}   - Laravel API: http://$LOCAL_IP:8000${NC}"
 else

@@ -657,7 +657,6 @@ export default function DetalleUnidadEncierro() {
       <Header
         title={selectedOption || "Seleccione Unidad"}
         eyebrow={`${configActual.title} / Encierro — Detalle de Unidad`}
-        hideLogos={true}
       />
 
       <main className="main-content">
@@ -1211,6 +1210,7 @@ export default function DetalleUnidadEncierro() {
                   {showChecklist && !hasCompletedChecklist && (
                     <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
                       <ChecklistForm
+                        origen="encierro"
                         inline={true}
                         prefillData={{
                           numero_eco: selectedOption ? selectedOption.replace(/\D/g, '') : '',

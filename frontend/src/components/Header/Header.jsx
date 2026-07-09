@@ -83,7 +83,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     <header className="app-header">
       <div className="app-header__inner">
         
-        {/* Left Section: Back Button & Logo 1 */}
+        {/* Left Section: Back Button */}
         <div className="app-header__left">
           {showBackButton && (
             <button
@@ -97,12 +97,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
               </svg>
             </button>
           )}
-          {hideLogos ? (
-            <div className="app-header__text">
-              {eyebrow && <p className="app-header__eyebrow">{eyebrow}</p>}
-              {title && <h1 className="app-header__title">{title}</h1>}
-            </div>
-          ) : (
+          {location.pathname === '/menu' && (
             <button
               type="button"
               className="app-header__brand"
@@ -119,24 +114,22 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
           )}
         </div>
         
-        {/* Center Section: Logo 2 */}
-        {!hideLogos && (
-          <div className="app-header__center">
-            <button
-              type="button"
-              className="app-header__brand"
-              onClick={handleHomeClick}
-              aria-label="Ir al inicio"
-              style={{ cursor: 'pointer' }}
-            >
-              <img
-                src="/images/sitmah_logo.webp"
-                alt="Logo SITMAH"
-                className="app-header__brand-logo-2"
-              />
-            </button>
-          </div>
-        )}
+        {/* Center Section: Logo SITMAH */}
+        <div className="app-header__center">
+          <button
+            type="button"
+            className="app-header__brand"
+            onClick={handleHomeClick}
+            aria-label="Ir al inicio"
+            style={{ cursor: 'pointer' }}
+          >
+            <img
+              src="/images/sitmah_logo.webp"
+              alt="Logo SITMAH"
+              className="app-header__brand-logo-2"
+            />
+          </button>
+        </div>
 
         {/* Right Section: Profile Dropdown */}
         <div className="app-header__right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

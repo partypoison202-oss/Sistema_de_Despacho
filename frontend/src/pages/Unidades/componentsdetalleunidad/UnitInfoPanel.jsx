@@ -213,11 +213,9 @@ export default function UnitInfoPanel({
         const data = await res.json();
         if (data.checklists && data.checklists.length > 0) {
           const latest = data.checklists[0];
-          const pts = typeof latest.puntos === 'string' ? JSON.parse(latest.puntos) : latest.puntos;
-          const hasFallas = Object.values(pts || {}).some(p => p?.estado === 'mal');
           
-          setHasCompletedChecklist(hasFallas);
-          setRecentChecklist(hasFallas ? latest : null);
+          setHasCompletedChecklist(true);
+          setRecentChecklist(latest);
         } else {
           setHasCompletedChecklist(false);
           setRecentChecklist(null);
@@ -836,6 +834,7 @@ export default function UnitInfoPanel({
           {showChecklist && (
             <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
               <ChecklistForm 
+                origen="despacho"
                 inline={true} 
                 editMode={hasCompletedChecklist && showChecklist}
                 checklistId={recentChecklist?.id}
@@ -863,10 +862,8 @@ export default function UnitInfoPanel({
                 }}
                 onClose={() => setShowChecklist(false)}
                 onComplete={(checklist) => {
-                  const pts = typeof checklist.puntos === 'string' ? JSON.parse(checklist.puntos) : checklist.puntos;
-                  const hasFallas = Object.values(pts || {}).some(p => p?.estado === 'mal');
-                  setHasCompletedChecklist(hasFallas);
-                  setRecentChecklist(hasFallas ? checklist : null);
+                  setHasCompletedChecklist(true);
+                  setRecentChecklist(checklist);
                   setShowChecklist(false);
                   Swal.fire({
                     icon: 'success',

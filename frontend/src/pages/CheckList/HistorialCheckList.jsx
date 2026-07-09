@@ -301,6 +301,7 @@ export default function HistorialCheckList() {
     const [lightboxImage, setLightboxImage] = useState(null);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [filterOrigen, setFilterOrigen] = useState('todos');
 
     const fetchChecklists = async () => {
         setCargando(true);
@@ -346,8 +347,18 @@ export default function HistorialCheckList() {
     // Buscar checklist para preview
     const previewChecklist = checklists?.find(c => c.id === previewId);
 
+    // Filtrado local por origen
+    const displayedChecklists = checklists.filter(c => {
+        if (filterOrigen === 'todos') return true;
+        return c.origen === filterOrigen;
+    });
+
     const handleDateChange = (e) => {
         setSelectedDate(e.target.value);
+        // Quitar el foco (deseleccionar) inmediatamente después de elegir la fecha
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
     };
 
     const handlePeriodChange = (newPeriod) => {
@@ -366,7 +377,8 @@ export default function HistorialCheckList() {
         if (!checklist) return;
 
         try {
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            // Habilitar compresión en jsPDF para reducir peso del documento
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
             const margin = 15;
             let y = margin;
 
@@ -464,10 +476,10 @@ export default function HistorialCheckList() {
                 const imgX = margin + (doc.internal.pageSize.width - margin * 2 - imgWidth) / 2;
 
                 if (blueprintImg) {
-                    doc.addImage(blueprintImg, 'PNG', imgX, currentY, imgWidth, imgHeight);
+                    doc.addImage(blueprintImg, 'PNG', imgX, currentY, imgWidth, imgHeight, undefined, 'FAST');
                 }
                 if (drawingImg) {
-                    doc.addImage(drawingImg, 'PNG', imgX, currentY, imgWidth, imgHeight);
+                    doc.addImage(drawingImg, 'PNG', imgX, currentY, imgWidth, imgHeight, undefined, 'FAST');
                 }
                 currentY += imgHeight + 10;
             }
@@ -532,9 +544,9 @@ export default function HistorialCheckList() {
 
                         const posX = startX + currentCol * (colWidth + colGap);
                         
-                        // Dibujar la foto
+                        // Dibujar la foto con compresión 'FAST' para reducir peso del PDF
                         try {
-                            doc.addImage(photo.img, 'JPEG', posX, currentY, colWidth, rowHeight);
+                            doc.addImage(photo.img, 'JPEG', posX, currentY, colWidth, rowHeight, undefined, 'FAST');
                         } catch (e) {
                             console.error("Error al añadir imagen al PDF:", e);
                         }
@@ -632,22 +644,46 @@ export default function HistorialCheckList() {
                     ))}
 
                     {/* Selector de fecha */}
-                    <div className="ml-auto flex items-center gap-2">
-                        <IconCalendar />
+                    <div className="relative ml-auto flex items-center group">
+                        <div 
+                            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition group-hover:bg-gray-50"
+                        >
+                            <IconCalendar className="text-guinda-700" />
+                            {/* Ajuste de zona horaria manual para que se renderice bien localmente */}
+                            {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
                         <input
                             type="date"
                             value={selectedDate}
                             onChange={handleDateChange}
-                            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition focus:border-guinda-700 focus:outline-none focus:ring-2 focus:ring-guinda-700/20"
+                            className="absolute inset-0 h-full w-full opacity-0 cursor-pointer"
                         />
                     </div>
                 </div>
-
-                {/* ── Rango de fechas ──────────────────────────────────── */}
-                <div className="mb-6 rounded-xl border border-dorado-600/20 bg-dorado-600/5 px-5 py-3">
-                    <p className="text-xs font-semibold text-dorado-700">
-                        Periodo: <span className="font-bold">{dateFrom || '...'}</span> al <span className="font-bold">{dateTo || '...'}</span>
-                    </p>
+                
+                {/* ── Filtro por Origen ────────────────────────────────── */}
+                <div className="mb-6 flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-600">Mostrar origen:</span>
+                    <div className="flex bg-gray-100/80 p-1 rounded-xl border border-gray-200">
+                        <button
+                            onClick={() => setFilterOrigen('todos')}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${filterOrigen === 'todos' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setFilterOrigen('despacho')}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${filterOrigen === 'despacho' ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Despacho
+                        </button>
+                        <button
+                            onClick={() => setFilterOrigen('encierro')}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${filterOrigen === 'encierro' ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Encierro
+                        </button>
+                    </div>
                 </div>
 
                 {/* ── Tarjetas de estadísticas ─────────────────────────── */}
@@ -671,12 +707,12 @@ export default function HistorialCheckList() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 px-5 py-4 gap-4">
                         <div>
                             <h3 className="text-sm font-bold text-gray-800">Checklists del periodo</h3>
-                            <p className="text-xs text-gray-400 mt-0.5">{totalChecklists} registro{totalChecklists !== 1 ? 's' : ''} encontrado{totalChecklists !== 1 ? 's' : ''}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{displayedChecklists.length} registro{displayedChecklists.length !== 1 ? 's' : ''} mostrado{displayedChecklists.length !== 1 ? 's' : ''}</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handlePrintTable}
-                                disabled={totalChecklists === 0}
+                                disabled={displayedChecklists.length === 0}
                                 className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 <IconPrint />
@@ -704,7 +740,7 @@ export default function HistorialCheckList() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {checklists.map((c, i) => {
+                                    {displayedChecklists.map((c, i) => {
                                         const fecha = new Date(c.fecha_hora);
                                         const fmtFecha = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
                                         const fmtHora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -717,7 +753,18 @@ export default function HistorialCheckList() {
                                                     const condTarjeton = cond ? cond.tarjeton : '—';
                                                     return (
                                                         <>
-                                                <td className="px-5 py-3 text-xs font-medium text-gray-400">{c.id}</td>
+                                                <td className="px-5 py-3 text-xs font-medium text-gray-400">
+                                                    <div>#{c.id}</div>
+                                                    {c.origen && (
+                                                        <div className={`mt-1 inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                                                            c.origen === 'despacho' 
+                                                            ? 'bg-red-50 text-red-600' 
+                                                            : 'bg-yellow-50 text-yellow-700'
+                                                        }`}>
+                                                            {c.origen === 'despacho' ? 'Despacho' : 'Encierro'}
+                                                        </div>
+                                                    )}
+                                                </td>
                                                 <td className="px-5 py-3">
                                                     <p className="text-sm font-medium text-gray-800">{fmtFecha}</p>
                                                     <p className="text-[11px] text-gray-400">{fmtHora}</p>
@@ -792,14 +839,12 @@ export default function HistorialCheckList() {
                             </table>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-300">
-                                <IconReport />
+                        <div className="flex flex-col items-center justify-center px-5 py-16 text-center animate-in fade-in zoom-in duration-300">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 mb-4">
+                                <svg className="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
                             </div>
-                            <h4 className="text-base font-bold text-gray-500">Sin registros</h4>
-                            <p className="mt-1 text-sm text-gray-400">
-                                No se encontraron checklists en este periodo.
-                            </p>
                             <p className="mt-0.5 text-xs text-gray-300">
                                 Intenta seleccionar otra fecha o periodo.
                             </p>

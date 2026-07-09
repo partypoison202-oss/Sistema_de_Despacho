@@ -608,7 +608,15 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
 };
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function ChecklistForm({ inline = false, prefillData = null, onClose = null, onComplete = null, editMode = false, checklistId = null }) {
+export default function ChecklistForm({ 
+    inline = false, 
+    prefillData = null, 
+    checklistId = null,
+    onComplete = null,
+    onClose = null,
+    origen = 'despacho',
+    editMode = false 
+}) {
     const navigate = useNavigate();
     const location = useLocation();
     // ── Paso 1: selección de unidad ───────────────────────────────────────────
@@ -873,6 +881,7 @@ export default function ChecklistForm({ inline = false, prefillData = null, onCl
                 puntos,
                 dibujo,
                 fecha_hora: fechaHoraRef.current.toISOString(),
+                origen
             })
         })
             .then(async res => {
