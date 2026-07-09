@@ -406,28 +406,10 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         isDrawing.current = false;
         const ctx = canvasRef.current.getContext('2d');
         ctx.closePath();
-        // Componer canvas con imagen de fondo antes de guardar
+        // Guardar solo el trazo del canvas con fondo transparente
         if (onSave) {
             const canvas = canvasRef.current;
-            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}.webp`;
-            const composite = document.createElement('canvas');
-            composite.width = canvas.width;
-            composite.height = canvas.height;
-            const compCtx = composite.getContext('2d');
-            const bgImg = new Image();
-            bgImg.onload = () => {
-                compCtx.globalAlpha = 0.6;
-                compCtx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-                compCtx.globalAlpha = 1.0;
-                compCtx.drawImage(canvas, 0, 0);
-                onSave(composite.toDataURL('image/png'));
-            };
-            bgImg.onerror = () => {
-                // Fallback: sin imagen de fondo
-                compCtx.drawImage(canvas, 0, 0);
-                onSave(composite.toDataURL('image/png'));
-            };
-            bgImg.src = blueprintUrl;
+            onSave(canvas.toDataURL('image/png'));
         }
     };
 
