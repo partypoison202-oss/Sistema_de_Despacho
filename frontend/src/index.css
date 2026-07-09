@@ -82,6 +82,16 @@
   --state-gray-bg: #6b7280;
   --state-gray-light: #f3f4f6;
 
+  /* COLORES VIVOS PARA ESTATUS (Más amigables y brillantes) */
+  --status-green-text: #22c55e;
+  --status-green-light: #dcfce7;
+
+  --status-blue-text: #0ea5e9;
+  --status-blue-light: #e0f2fe;
+
+  --status-yellow-text: #eab308;
+  --status-yellow-light: #fef9c3;
+
   font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;

@@ -84,24 +84,24 @@
 }
 
 .detalle-kpi--operacion {
-  border-left-color: var(--state-green-text);
+  border-left-color: var(--status-green-text);
 }
 .detalle-kpi--operacion .detalle-kpi__value {
-  color: var(--state-green-text);
+  color: var(--status-green-text);
 }
 
 .detalle-kpi--reserva {
-  border-left-color: var(--brand-gold-text);
+  border-left-color: var(--status-blue-text);
 }
 .detalle-kpi--reserva .detalle-kpi__value {
-  color: var(--brand-gold-text);
+  color: var(--status-blue-text);
 }
 
 .detalle-kpi--mantenimiento {
-  border-left-color: var(--state-red-text);
+  border-left-color: var(--status-yellow-text);
 }
 .detalle-kpi--mantenimiento .detalle-kpi__value {
-  color: var(--state-red-text);
+  color: var(--status-yellow-text);
 }
 
 /* ---------- Filtros y Buscador ---------- */
@@ -180,9 +180,9 @@
   color: var(--tw-color-white);
 }
 
-.detalle-tab--operacion.is-active { background: var(--state-green-text); border-color: var(--state-green-text); }
-.detalle-tab--reserva.is-active { background: var(--brand-gold-text); border-color: var(--brand-gold-text); }
-.detalle-tab--mantenimiento.is-active { background: var(--state-red-text); border-color: var(--state-red-text); }
+.detalle-tab--operacion.is-active { background: var(--status-green-text); border-color: var(--status-green-text); }
+.detalle-tab--reserva.is-active { background: var(--status-blue-text); border-color: var(--status-blue-text); }
+.detalle-tab--mantenimiento.is-active { background: var(--status-yellow-text); border-color: var(--status-yellow-text); }
 .detalle-tab--otros.is-active { background: var(--state-gray-text); border-color: var(--state-gray-text); }
 
 /* ---------- Tabla de unidades ---------- */
@@ -260,18 +260,18 @@
 }
 
 .detalle-table__status--operacion {
-  color: var(--state-green-text);
-  background: var(--state-green-light);
+  color: var(--status-green-text);
+  background: var(--status-green-light);
 }
 
 .detalle-table__status--reserva {
-  color: var(--brand-gold-text);
-  background: var(--brand-gold-light);
+  color: var(--status-blue-text);
+  background: var(--status-blue-light);
 }
 
 .detalle-table__status--mantenimiento {
-  color: var(--state-red-text);
-  background: var(--state-red-light);
+  color: var(--status-yellow-text);
+  background: var(--status-yellow-light);
 }
 
 .detalle-table__status--otros {
