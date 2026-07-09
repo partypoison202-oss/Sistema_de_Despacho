@@ -1358,7 +1358,9 @@ export default function DetalleUnidadEncierro() {
                                             <img
                                               src={val.foto}
                                               alt={`Evidencia`}
-                                              className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm"
+                                              className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-90 transition-opacity"
+                                              onClick={() => setLightboxDibujo(val.foto)}
+                                              title="Clic para ampliar"
                                             />
                                           )}
                                           {val.fotos && val.fotos.map((imgUrl, fIdx) => (
@@ -1366,7 +1368,9 @@ export default function DetalleUnidadEncierro() {
                                               key={fIdx}
                                               src={imgUrl}
                                               alt={`Evidencia ${fIdx + 1}`}
-                                              className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm"
+                                              className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-90 transition-opacity"
+                                              onClick={() => setLightboxDibujo(imgUrl)}
+                                              title="Clic para ampliar"
                                             />
                                           ))}
                                         </div>
@@ -1389,7 +1393,8 @@ export default function DetalleUnidadEncierro() {
                               <img
                                 src={recentChecklist.dibujo}
                                 alt="Evidencia de fallas"
-                                className="max-h-48 rounded-lg object-contain border border-slate-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                                className="w-full rounded-lg object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
+                                style={{ aspectRatio: '5/3' }}
                                 onClick={() => setLightboxDibujo(recentChecklist.dibujo)}
                                 title="Clic para ampliar"
                               />
