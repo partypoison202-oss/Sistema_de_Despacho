@@ -265,18 +265,12 @@ const ChecklistPreviewInline = ({ previewChecklist, setPreviewId, setLightboxIma
             {previewChecklist.dibujo && (
                 <div className="mb-6 page-break-before">
                     <h5 className="mb-3 text-sm font-bold text-gray-800">Referencia Visual (Marcas)</h5>
-                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-2 max-w-2xl mx-auto overflow-hidden shadow-sm relative">
-                        <img
-                            src={`/images/${(previewChecklist.tipo_unidad || 'hero').toLowerCase()}.webp`}
-                            alt="Blueprint"
-                            className="w-full object-contain opacity-60"
-                            style={{ aspectRatio: '5/3' }}
-                            onError={(e) => { e.target.src = '/images/hero.webp'; }}
-                        />
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-2 max-w-2xl mx-auto overflow-hidden shadow-sm">
                         <img 
                             src={previewChecklist.dibujo} 
                             alt="Marcas visuales" 
-                            className="absolute inset-0 w-full h-full object-contain mix-blend-multiply" 
+                            className="w-full object-contain"
+                            style={{ aspectRatio: '5/3' }}
                         />
                     </div>
                 </div>
