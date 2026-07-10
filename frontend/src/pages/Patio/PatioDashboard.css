@@ -306,9 +306,7 @@
   cursor: pointer;
   z-index: 30;
   transform: translate(-50%, -50%);
-  transition: top 4.0s cubic-bezier(0.25, 1, 0.5, 1),
-              left 4.0s cubic-bezier(0.25, 1, 0.5, 1),
-              opacity 4.0s cubic-bezier(0.25, 1, 0.5, 1);
+  transition-property: top, left, opacity;
 }
 
 .vehicle-shape {

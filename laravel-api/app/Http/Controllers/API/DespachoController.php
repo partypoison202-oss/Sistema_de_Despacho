@@ -193,7 +193,14 @@ class DespachoController extends Controller
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]) // ← CAMBIO AQUÍ
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
-            ->select('unidades.numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton', 'informacion_operativa.estatus')
+            ->select(
+                'unidades.numero_eco', 
+                'informacion_operativa.numero_tarjeton as tarjeton', 
+                'informacion_operativa.estatus',
+                'informacion_operativa.ruta',
+                'informacion_operativa.nombre_conductor',
+                'informacion_operativa.falla'
+            )
             ->distinct()
             ->orderBy('unidades.numero_eco')
             ->get()
@@ -206,6 +213,9 @@ class DespachoController extends Controller
                     'numero_eco' => $unidad->numero_eco,
                     'tarjeton' => $unidad->tarjeton,
                     'estatus' => $estatus,
+                    'ruta' => $unidad->ruta,
+                    'nombre_conductor' => $unidad->nombre_conductor,
+                    'falla' => $unidad->falla,
                 ];
             });
 

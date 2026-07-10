@@ -4,9 +4,11 @@ import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import './PatioDashboard.css';
 
-const WAYPOINT_CENTER = { top: '55%', left: '40%' };
-const ENTRANCE_GATE = { top: '30%', left: '22%' }; // Entrada por el cruce peatonal
-const EXIT_GATE = { top: '5%', left: '32%' }; // Salida por arriba del edificio central
+const WAYPOINT_CENTER = { top: '48%', left: '45%' };
+const ENTRANCE_GATE = { top: '22%', left: '20%' }; // Entrada por el cruce peatonal (más arriba)
+const ENTRANCE_CURVE = { top: '35%', left: '32%' }; // Curva ajustada para no salirse del pavimento
+const EXIT_GATE = { top: '15%', left: '26%' }; // Salida entre la caseta y el edificio café
+const EXIT_CURVE = { top: '28%', left: '34%' }; // Curva para enfilarse a la salida entre los edificios
 
 // --- CONFIGURACIÓN DE ZONAS (ROJA: estática, VERDE: dinámica) ---
 const buildRowSlots = (colA, colB, n, angle) => {
@@ -227,7 +229,7 @@ const PatioDashboard = () => {
   const { data: apiUnits = [], isLoading: loading, refetch: forceFetchUnits } = useQuery({
     queryKey: ['unidades-patio', selectedFleet],
     queryFn: fetchUnitsData,
-    refetchInterval: 10000,
+    refetchInterval: 3000,
     refetchOnWindowFocus: true,
   });
 
@@ -256,6 +258,25 @@ const PatioDashboard = () => {
     }, 12000);
     return () => clearInterval(interval);
   }, [isOffline, selectedFleet, queryClient]);
+
+  // Precargar detalles de unidades en caché
+  useEffect(() => {
+    if (apiUnits && apiUnits.length > 0) {
+      setUnitDetailsCache((prev) => {
+        const newCache = { ...prev };
+        apiUnits.forEach((u) => {
+          newCache[u.numero_eco] = {
+            ruta: u.ruta,
+            nombre_conductor: u.nombre_conductor,
+            numero_tarjeton: u.tarjeton,
+            estatus: u.estatus,
+            falla: u.falla,
+          };
+        });
+        return newCache;
+      });
+    }
+  }, [apiUnits]);
 
   // Lógica de transiciones
   useEffect(() => {
@@ -326,11 +347,27 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'entering-spawn'
-              ? { ...u, transitionState: 'entering-waypoint', opacity: 1, posOverride: WAYPOINT_CENTER }
+              ? { ...u, transitionState: 'entering-curve', opacity: 1, posOverride: ENTRANCE_CURVE, transitionSpeed: '2s', transitionEasing: 'linear' }
               : u
           )
         );
       }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [displayUnits]);
+
+  useEffect(() => {
+    const curving = displayUnits.filter((u) => u.transitionState === 'entering-curve');
+    if (curving.length > 0) {
+      const timer = setTimeout(() => {
+        setDisplayUnits((prev) =>
+          prev.map((u) =>
+            u.transitionState === 'entering-curve'
+              ? { ...u, transitionState: 'entering-waypoint', posOverride: WAYPOINT_CENTER, transitionSpeed: '2s', transitionEasing: 'linear' }
+              : u
+          )
+        );
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -342,11 +379,11 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'entering-waypoint'
-              ? { ...u, transitionState: 'entering-parking', posOverride: null } // null hara que vaya a su slot final
+              ? { ...u, transitionState: 'entering-parking', posOverride: null, transitionSpeed: '6s', transitionEasing: 'ease-out' } // Estacionado súper lento y fluido
               : u
           )
         );
-      }, 4000); // Lento y suave
+      }, 2000); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -362,7 +399,7 @@ const PatioDashboard = () => {
               : u
           )
         );
-      }, 4000); // Lento y suave
+      }, 6000); // 6 segundos de aparcamiento
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -375,11 +412,27 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'exiting-to-waypoint'
-              ? { ...u, transitionState: 'exiting-to-gate', posOverride: EXIT_GATE, opacity: 0 }
+              ? { ...u, transitionState: 'exiting-to-curve', posOverride: EXIT_CURVE, transitionSpeed: '3s', transitionEasing: 'linear' }
               : u
           )
         );
-      }, 4000); // Lento y suave
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [displayUnits]);
+
+  useEffect(() => {
+    const toCurve = displayUnits.filter((u) => u.transitionState === 'exiting-to-curve');
+    if (toCurve.length > 0) {
+      const timer = setTimeout(() => {
+        setDisplayUnits((prev) =>
+          prev.map((u) =>
+            u.transitionState === 'exiting-to-curve'
+              ? { ...u, transitionState: 'exiting-to-gate', posOverride: EXIT_GATE, opacity: 0, transitionSpeed: '3s', transitionEasing: 'ease-out' }
+              : u
+          )
+        );
+      }, 3000); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -389,14 +442,16 @@ const PatioDashboard = () => {
     if (toGate.length > 0) {
       const timer = setTimeout(() => {
         setDisplayUnits((prev) => prev.filter((u) => u.transitionState !== 'exiting-to-gate'));
-      }, 4000); // Lento y suave
+      }, 3000); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
 
   const handleMouseEnterUnit = async (eco, status) => {
     setHoveredUnitEco(eco);
-    if (unitDetailsCache[eco]) return;
+    if (unitDetailsCache[eco] && unitDetailsCache[eco].nombre_conductor !== 'No asignado' && unitDetailsCache[eco].nombre_conductor !== undefined) return;
+    
+    // Fallback if not loaded in cache
     const token = localStorage.getItem('token');
     try {
       const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanus';
@@ -408,15 +463,22 @@ const PatioDashboard = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setUnitDetailsCache((prev) => ({ ...prev, [eco]: data }));
+        setUnitDetailsCache((prev) => ({ ...prev, [eco]: {
+          ...prev[eco],
+          ...data,
+          nombre_conductor: data.conductor,
+          numero_tarjeton: data.tarjeton
+        }}));
       } else {
         throw new Error('API Details Error');
       }
     } catch (error) {
-      setUnitDetailsCache((prev) => ({
-        ...prev,
-        [eco]: getMockDetails(eco, status),
-      }));
+      if (!unitDetailsCache[eco]) {
+        setUnitDetailsCache((prev) => ({
+          ...prev,
+          [eco]: getMockDetails(eco, status),
+        }));
+      }
     }
   };
 
@@ -606,6 +668,8 @@ const PatioDashboard = () => {
                       top: coords.top,
                       left: coords.left,
                       opacity: u.opacity ?? 1,
+                      transitionDuration: u.transitionSpeed || '4s',
+                      transitionTimingFunction: u.transitionEasing || 'cubic-bezier(0.25, 1, 0.5, 1)',
                     }}
                     onMouseEnter={() => handleMouseEnterUnit(u.numero_eco, u.estatus)}
                     onMouseLeave={handleMouseLeaveUnit}
