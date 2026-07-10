@@ -309,6 +309,8 @@ const PatioDashboard = () => {
               transitionState: 'exiting-to-waypoint',
               opacity: 1,
               posOverride: WAYPOINT_CENTER,
+              transitionSpeed: '1.5s',
+              transitionEasing: 'linear',
             });
           } else if (!prevInBase && inBase) {
             nextDisplay.push({
@@ -379,7 +381,7 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'entering-waypoint'
-              ? { ...u, transitionState: 'entering-parking', posOverride: null, transitionSpeed: '6s', transitionEasing: 'ease-out' } // Estacionado súper lento y fluido
+              ? { ...u, transitionState: 'entering-parking', posOverride: null, transitionSpeed: '4.5s', transitionEasing: 'ease-out' }
               : u
           )
         );
@@ -399,7 +401,7 @@ const PatioDashboard = () => {
               : u
           )
         );
-      }, 6000); // 6 segundos de aparcamiento
+      }, 4500); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -412,11 +414,11 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'exiting-to-waypoint'
-              ? { ...u, transitionState: 'exiting-to-curve', posOverride: EXIT_CURVE, transitionSpeed: '3s', transitionEasing: 'linear' }
+              ? { ...u, transitionState: 'exiting-to-curve', posOverride: EXIT_CURVE, transitionSpeed: '2s', transitionEasing: 'linear' }
               : u
           )
         );
-      }, 3000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -432,7 +434,7 @@ const PatioDashboard = () => {
               : u
           )
         );
-      }, 3000); 
+      }, 2000); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
