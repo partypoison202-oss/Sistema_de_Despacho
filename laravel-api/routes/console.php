@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('historial:guardar')->dailyAt('01:00');
+Schedule::command('historial:guardar')->cron('*/20 * * * *');

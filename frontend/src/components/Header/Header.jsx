@@ -72,7 +72,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     } else {
       const isDashboard = location.pathname === '/dashboard' ||
                           location.pathname === '/encierro/dashboard' ||
-                          location.pathname === '/centro-control/dashboard' ||
+                          location.pathname === '/centro-control' ||
                           location.pathname === '/cargar-excel' ||
                           location.pathname === '/general';
       showBackButton = !isDashboard;

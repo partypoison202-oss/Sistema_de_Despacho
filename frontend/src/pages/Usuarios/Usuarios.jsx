@@ -287,7 +287,7 @@ const [togglingUserId, setTogglingUserId] = useState(null);
                 <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Cancelar</button>
                 <button type="submit" className="btn-save" disabled={isSubmitting}>
                   {isSubmitting ? (
-                    <><span className="spinner"></span> Guardando...</>
+                    <><span className="spinner" style={{ width: '1.2rem', height: '1.2rem', borderWidth: '3px' }}></span> Guardando...</>
                   ) : (
                     'Guardar'
                   )}
