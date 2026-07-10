@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -172,66 +172,47 @@ const PatioDashboard = () => {
     }
   };
 
-  const fetchSingleFleet = async (fleetId, token) => {
-    const response = await fetch(`${API_BASE}/api/unidades/listar/${fleetId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) throw new Error(`Error fetching ${fleetId}`);
-    return await response.json();
-  };
-
-  const fetchUnitsData = async () => {
+  const fetchAllUnitsData = async () => {
     const token = localStorage.getItem('token');
-    let data = [];
+    const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
+    
+    const promises = fleetIds.map(async (id) => {
+        const response = await fetch(`${API_BASE}/api/unidades/listar/${id}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        if (response.ok) {
+           const data = await response.json();
+           return data.map(u => ({ ...u, fleetId: id }));
+        }
+        return [];
+    });
+    
+    const results = await Promise.all(promises);
+    const allData = results.flat();
 
-    if (selectedFleet === 'all') {
-      const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
-      const promises = fleetIds.map((id) => fetchSingleFleet(id, token));
-      const results = await Promise.allSettled(promises);
-      const allData = [];
-      results.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
-          allData.push(...result.value);
-        }
-      });
-      if (allData.length > 0) {
-        data = allData;
-        setIsOffline(false);
-      } else {
-        data = fleetIds.flatMap((id) => mockUnitsData[id] || []);
-        setIsOffline(true);
-      }
+    if (allData.length > 0) {
+      setIsOffline(false);
+      return allData;
     } else {
-      const response = await fetch(`${API_BASE}/api/unidades/listar/${selectedFleet}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (response.ok) {
-        const json = await response.json();
-        if (json && json.length > 0) {
-          data = json;
-          setIsOffline(false);
-        } else {
-          throw new Error('Empty data');
-        }
-      } else {
-        throw new Error('API error');
-      }
+      setIsOffline(true);
+      return fleetIds.flatMap((id) => (mockUnitsData[id] || []).map(u => ({ ...u, fleetId: id })));
     }
-    return data;
   };
 
-  const { data: apiUnits = [], isLoading: loading, refetch: forceFetchUnits } = useQuery({
-    queryKey: ['unidades-patio', selectedFleet],
-    queryFn: fetchUnitsData,
+  const { data: allApiUnits = [], isLoading: loading, refetch: forceFetchUnits } = useQuery({
+    queryKey: ['unidades-patio-all'],
+    queryFn: fetchAllUnitsData,
     refetchInterval: 3000,
     refetchOnWindowFocus: true,
   });
+
+  const apiUnits = useMemo(() => {
+    if (selectedFleet === 'all') return allApiUnits;
+    return allApiUnits.filter(u => u.fleetId === selectedFleet);
+  }, [allApiUnits, selectedFleet]);
 
   // Alias para mantener la funcion si se llama en un boton
   const fetchUnits = () => forceFetchUnits();
@@ -241,7 +222,7 @@ const PatioDashboard = () => {
   useEffect(() => {
     if (!isOffline) return;
     const interval = setInterval(() => {
-      queryClient.setQueryData(['unidades-patio', selectedFleet], (prev) => {
+      queryClient.setQueryData(['unidades-patio-all'], (prev) => {
         if (!prev || prev.length === 0) return prev;
         const randomIndex = Math.floor(Math.random() * prev.length);
         return prev.map((u, i) => {
@@ -257,7 +238,7 @@ const PatioDashboard = () => {
       });
     }, 12000);
     return () => clearInterval(interval);
-  }, [isOffline, selectedFleet, queryClient]);
+  }, [isOffline, queryClient]);
 
   // Precargar detalles de unidades en caché
   useEffect(() => {
@@ -278,9 +259,21 @@ const PatioDashboard = () => {
     }
   }, [apiUnits]);
 
+  const lastFleetRef = useRef(selectedFleet);
+  const isFirstLoadRef = useRef(true);
+
   // Lógica de transiciones
   useEffect(() => {
-    if (!apiUnits) return;
+    if (!apiUnits || apiUnits.length === 0) return;
+
+    const isFleetChange = lastFleetRef.current !== selectedFleet;
+    const isInitial = isFirstLoadRef.current || isFleetChange;
+    
+    if (isInitial) {
+      isFirstLoadRef.current = false;
+      lastFleetRef.current = selectedFleet;
+    }
+
     setDisplayUnits((prevUnits) => {
       const nextDisplay = [];
       const incomingMap = new Map(apiUnits.map((u) => [u.numero_eco, u]));
@@ -292,12 +285,20 @@ const PatioDashboard = () => {
 
         if (!prev) {
           if (inBase) {
-            nextDisplay.push({
-              ...incoming,
-              transitionState: 'entering-spawn',
-              opacity: 0,
-              posOverride: ENTRANCE_GATE,
-            });
+            if (isInitial) {
+              nextDisplay.push({
+                ...incoming,
+                transitionState: 'idle',
+                opacity: 1,
+              });
+            } else {
+              nextDisplay.push({
+                ...incoming,
+                transitionState: 'entering-spawn',
+                opacity: 0,
+                posOverride: ENTRANCE_GATE,
+              });
+            }
           }
         } else {
           const prevInBase = prev.estatus === 'reserva' || prev.estatus === 'mantenimiento';

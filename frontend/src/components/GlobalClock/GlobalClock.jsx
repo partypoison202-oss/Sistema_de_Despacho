@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 
 const GlobalClock = ({ className = "fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[9999] transition-all" }) => {
   const { user } = useContext(AuthContext);
+  const { showClock } = useSettings();
   const [time, setTime] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -26,6 +28,7 @@ const GlobalClock = ({ className = "fixed bottom-4 right-4 md:bottom-6 md:right-
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
+      hour12: true
     });
   };
 
@@ -36,8 +39,8 @@ const GlobalClock = ({ className = "fixed bottom-4 right-4 md:bottom-6 md:right-
     });
   };
 
-  // No mostrar nada si no hay usuario autenticado
-  if (!user) {
+  // No mostrar nada si no hay usuario autenticado o si el reloj está desactivado
+  if (!user || !showClock) {
     return null;
   }
 

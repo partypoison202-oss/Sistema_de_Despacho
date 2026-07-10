@@ -2,16 +2,27 @@ import { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
 import { AuthContext } from '../../context/AuthContext';
+import AjustesModal from './AjustesModal';
 import './Header.css';
 
 export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
   const { user, logout } = useContext(AuthContext);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showAjustes, setShowAjustes] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const profileRef = useRef(null);
-  
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -152,6 +163,12 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                     <span className="profile-role">{user.role.nombre}</span>
                   </div>
                   <hr />
+                  <button className="profile-menu-btn" onClick={() => {
+                    setShowProfileMenu(false);
+                    setShowAjustes(true);
+                  }}>
+                    Ajustes
+                  </button>
                   {user.role.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {
                       setShowProfileMenu(false);
@@ -170,6 +187,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
         </div>
         
       </div>
+      
+      {showAjustes && <AjustesModal onClose={() => setShowAjustes(false)} />}
     </header>
   );
 }
