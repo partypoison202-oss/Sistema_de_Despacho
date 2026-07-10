@@ -308,7 +308,8 @@ class DespachoController extends Controller
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
-                'informacion_operativa.hora_programada'
+                'informacion_operativa.hora_programada',
+                'informacion_operativa.acople'
             )
             ->first();
 
@@ -331,7 +332,8 @@ class DespachoController extends Controller
                 'corridas'  => $info->corridas,
                 'ciclo'     => $info->ciclo,
                 'motivo'    => $info->motivo,
-                'hora_programada' => $info->hora_programada
+                'hora_programada' => $info->hora_programada,
+                'acople'    => $info->acople
             ] : [
                 'status'    => 'success',
                 'asignado'  => false,
@@ -342,7 +344,9 @@ class DespachoController extends Controller
                 'falla'     => null,
                 'corridas'  => null,
                 'ciclo'     => null,
-                'motivo'    => null
+                'motivo'    => null,
+                'hora_programada' => null,
+                'acople'    => null
             ],
             200
         );
@@ -516,6 +520,59 @@ class DespachoController extends Controller
             'tarjeton' => $tarjetonLimpio,
             'conductor' => $conductor->nombre
         ], 200);
+    }
+
+    /**
+     * Actualiza la hora programada y el acople de una unidad en el día actual
+     */
+    public function actualizarHoras(Request $request)
+    {
+        $request->validate([
+            'tipo' => 'required|string',
+            'numero_eco' => 'required|string',
+            'hora_programada' => 'nullable|string',
+            'acople' => 'nullable|string'
+        ]);
+
+        $tipoNormalizado = strtolower(trim($request->tipo));
+        $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
+        $fechaHoy = Carbon::today()->toDateString();
+
+        $registro = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->where('unidades.numero_eco', $numeroEcoClean)
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
+            ->select('informacion_operativa.id')
+            ->first();
+
+        if (!$registro) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unidad no encontrada en el registro de hoy'
+            ], 404);
+        }
+
+        $actualizado = DB::table('informacion_operativa')
+            ->where('id', $registro->id)
+            ->update([
+                'hora_programada' => $request->hora_programada,
+                'acople' => $request->acople
+            ]);
+
+        if ($actualizado !== false) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Horas actualizadas exitosamente',
+                'hora_programada' => $request->hora_programada,
+                'acople' => $request->acople
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Error al actualizar las horas'
+        ], 500);
     }
 
     /**

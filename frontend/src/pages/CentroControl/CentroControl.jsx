@@ -111,16 +111,37 @@ export default function CentroControl() {
         return;
       }
       html2canvas(element, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
-        backgroundColor: '#f5f5f5',
-        windowWidth: 1123,
-        windowHeight: 795,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
       })
         .then((canvas) => {
-          const imgData = canvas.toDataURL('image/png');
-          const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-          pdf.addImage(imgData, 'PNG', 0, 0, 297, 210);
+          const imgData = canvas.toDataURL('image/jpeg', 0.8);
+          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          
+          const margin = 10;
+          const imgWidth = pdfWidth - (margin * 2);
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+          let heightLeft = imgHeight;
+          let position = margin;
+
+          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+          heightLeft -= (pdfHeight - (margin * 2));
+
+          while (heightLeft > 2) {
+            position -= (pdfHeight - (margin * 2));
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+            heightLeft -= (pdfHeight - (margin * 2));
+          }
+
           pdf.save(`${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
           resolve();
         })

@@ -59,6 +59,9 @@ export default function DetalleUnidadEncierro() {
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
 
+  // Estado para capturar la hora en la que se interactuó (Hora de Encierro)
+  const [horaEncierroCapturada, setHoraEncierroCapturada] = useState('');
+
   const corridaRef = useRef(null);
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
@@ -335,6 +338,10 @@ export default function DetalleUnidadEncierro() {
     setSelectedEstado(unidadSeleccionada ? unidadSeleccionada.estado : null);
     setOpenDropdown(null);
     setCargandoDatos(true);
+    
+    // Capturar la hora de interacción
+    const now = new Date();
+    setHoraEncierroCapturada(now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
 
     const numeroLimpio = unidadSeleccionada
       ? String(unidadSeleccionada.eco).padStart(3, '0')
@@ -915,7 +922,7 @@ export default function DetalleUnidadEncierro() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="badge-display__text">
-                            {cargandoDatos ? '...' : (datosOperativos.hora_encierro || '--:--')}
+                            {cargandoDatos ? '...' : (horaEncierroCapturada || datosOperativos.hora_encierro || '--:--')}
                           </span>
                         </div>
                       </div>

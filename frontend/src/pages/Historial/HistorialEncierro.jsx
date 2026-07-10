@@ -16,7 +16,7 @@ export default function HistorialEncierro() {
 
   const fetchFechas = async () => {
     try {
-      const response = await fetch(`${API_BASE}/historial-operativo/fechas`, {
+      const response = await fetch(`${API_BASE}/api/historial-operativo/fechas`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Accept': 'application/json'

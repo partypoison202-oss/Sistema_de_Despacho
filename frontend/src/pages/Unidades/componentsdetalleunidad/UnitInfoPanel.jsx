@@ -1,5 +1,5 @@
 // src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import ChecklistForm from '../../CheckList/CheckList';
@@ -8,6 +8,7 @@ import { generarPDFChecklist } from '../../../utils/generarPDFChecklist';
 import API_BASE from '../../../config/api';
 import Swal from 'sweetalert2';
 
+import IOSTimePicker from './IOSTimePicker';
 
 export default function UnitInfoPanel({
   selectedOption,
@@ -24,6 +25,7 @@ export default function UnitInfoPanel({
   handleCancelFalla,
   handleSaveTarjeton,
   handleSaveRuta,
+  handleSaveHoras,
   handleCambiarEstatus,
   cambiandoEstatus,
 }) {
@@ -39,6 +41,16 @@ export default function UnitInfoPanel({
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
+  const [formHoraProgramada, setFormHoraProgramada] = useState('');
+  const [formAcople, setFormAcople] = useState('');
+  const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
+  const [dropdownAcopleOpen, setDropdownAcopleOpen] = useState(false);
+
+  // Sincronizar estados locales cuando cambien los datos operativos
+  useEffect(() => {
+    if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
+    if (datosOperativos.acople) setFormAcople(datosOperativos.acople);
+  }, [datosOperativos]);
   const [rutasOpciones, setRutasOpciones] = useState([]);
   const [editandoRuta, setEditandoRuta] = useState(false);
   const [formRuta, setFormRuta] = useState('');
@@ -529,24 +541,104 @@ export default function UnitInfoPanel({
 
             <div className="info-card__item">
               <span className="info-card__label">Hora Programada</span>
-              <div className="badge-display badge-display--gold">
-                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => { setDropdownHoraOpen(!dropdownHoraOpen); setDropdownAcopleOpen(false); }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'inherit',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    fontFamily: 'inherit',
+                    width: '100%',
+                    padding: '0.5rem 0.5rem 0.5rem 2.2rem',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <span>{formHoraProgramada || '--:--'}</span>
+                  <svg className={`arrow-icon ${dropdownHoraOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                  </svg>
+                </button>
+                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="badge-display__text">
-                  {cargandoDatos ? '...' : (datosOperativos.horaProgramada || 'No asignada')}
-                </span>
+                
+                {dropdownHoraOpen && (
+                  <>
+                    <div 
+                      style={{ position: 'fixed', inset: 0, zIndex: 999 }} 
+                      onClick={(e) => { e.stopPropagation(); setDropdownHoraOpen(false); }}
+                    />
+                    <IOSTimePicker 
+                      value={formHoraProgramada} 
+                      onChange={setFormHoraProgramada} 
+                      onClose={() => setDropdownHoraOpen(false)}
+                      onSave={async () => {
+                        if (handleSaveHoras) {
+                          await handleSaveHoras(formHoraProgramada, formAcople);
+                        }
+                      }}
+                    />
+                  </>
+                )}
               </div>
             </div>
             <div className="info-card__item">
               <span className="info-card__label">Hora de Acople</span>
-              <div className="badge-display badge-display--maroon">
-                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <div className="badge-display badge-display--maroon" style={{ padding: 0, overflow: 'visible', position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => { setDropdownAcopleOpen(!dropdownAcopleOpen); setDropdownHoraOpen(false); }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'inherit',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    fontFamily: 'inherit',
+                    width: '100%',
+                    padding: '0.5rem 0.5rem 0.5rem 2.2rem',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <span>{formAcople || '--:--'}</span>
+                  <svg className={`arrow-icon ${dropdownAcopleOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownAcopleOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                  </svg>
+                </button>
+                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="badge-display__text">
-                  {cargandoDatos ? '...' : 'No asignada'}
-                </span>
+
+                {dropdownAcopleOpen && (
+                  <>
+                    <div 
+                      style={{ position: 'fixed', inset: 0, zIndex: 999 }} 
+                      onClick={(e) => { e.stopPropagation(); setDropdownAcopleOpen(false); }}
+                    />
+                    <IOSTimePicker 
+                      value={formAcople} 
+                      onChange={setFormAcople} 
+                      onClose={() => setDropdownAcopleOpen(false)}
+                      onSave={async () => {
+                        if (handleSaveHoras) {
+                          await handleSaveHoras(formHoraProgramada, formAcople);
+                        }
+                      }}
+                    />
+                  </>
+                )}
               </div>
             </div>
 

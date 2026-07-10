@@ -159,6 +159,8 @@ export default function DetalleUnidad() {
           estatus: resultado.estatus || unidadSeleccionada.estado || 'operacion',
           ciclo: resultado.ciclo || '',
           motivo: resultado.motivo || '',
+          horaProgramada: resultado.hora_programada || '',
+          acople: resultado.acople || '',
         });
         setFallaTexto(resultado.falla || '');
         setSelectedEstado(resultado.estatus || unidadSeleccionada.estado || 'operacion');
@@ -169,9 +171,11 @@ export default function DetalleUnidad() {
           tarjeton: '',
           corrida: '',
           horaSalida: '',
-          estatus: unidadSeleccionada.estado || 'operacion',
+          estatus: unidadSeleccionada?.estado || 'operacion',
           ciclo: '',
           motivo: '',
+          horaProgramada: '',
+          acople: '',
         });
         setFallaTexto('');
       }
@@ -381,6 +385,45 @@ export default function DetalleUnidad() {
     }
   };
 
+  // Guardar Horas
+  const handleSaveHoras = async (horaProgramada, acople) => {
+    try {
+      const token = getToken();
+      if (!token) throw new Error('No token');
+      
+      const matchNumeros = selectedOption.match(/\d+/);
+      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+      
+      const payload = {
+        tipo: tipoTransporte,
+        numero_eco: numeroLimpio,
+        hora_programada: horaProgramada,
+        acople: acople,
+      };
+
+      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-horas`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const resultado = await respuesta.json();
+      if (respuesta.ok && resultado.status === 'success') {
+        setDatosOperativos((prev) => ({
+          ...prev,
+          horaProgramada: horaProgramada,
+          acople: acople,
+        }));
+        return { success: true };
+      } else {
+        throw new Error(resultado.message || 'Error al actualizar las horas.');
+      }
+    } catch (error) {
+      console.error('Error al guardar horas:', error);
+      throw error;
+    }
+  };
+
   const handleCancelFalla = () => {
     setFallaTexto('');
   };
@@ -561,6 +604,7 @@ export default function DetalleUnidad() {
                 handleCancelFalla={handleCancelFalla}
                 handleSaveTarjeton={handleSaveTarjeton}
                 handleSaveRuta={handleSaveRuta}
+                handleSaveHoras={handleSaveHoras}
                 handleCambiarEstatus={handleCambiarEstatus}
                 cambiandoEstatus={cambiandoEstatus}
               />

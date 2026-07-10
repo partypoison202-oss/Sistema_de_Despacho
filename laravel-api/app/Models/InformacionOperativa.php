@@ -20,7 +20,9 @@ class InformacionOperativa extends Model
         'ruta',
         'numero_tarjeton',
         'nombre_conductor',
-        'fecha_registro'
+        'fecha_registro',
+        'hora_programada',
+        'acople'
     ];
 
     /**

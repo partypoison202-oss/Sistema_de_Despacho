@@ -350,7 +350,7 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'entering-spawn'
-              ? { ...u, transitionState: 'entering-curve', opacity: 1, posOverride: ENTRANCE_CURVE, transitionSpeed: '2s', transitionEasing: 'linear' }
+              ? { ...u, transitionState: 'entering-curve', opacity: 1, posOverride: ENTRANCE_CURVE, transitionSpeed: '1.5s', transitionEasing: 'linear' }
               : u
           )
         );
@@ -366,11 +366,11 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'entering-curve'
-              ? { ...u, transitionState: 'entering-waypoint', posOverride: WAYPOINT_CENTER, transitionSpeed: '2s', transitionEasing: 'linear' }
+              ? { ...u, transitionState: 'entering-waypoint', posOverride: WAYPOINT_CENTER, transitionSpeed: '1.5s', transitionEasing: 'linear' }
               : u
           )
         );
-      }, 2000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -382,11 +382,11 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'entering-waypoint'
-              ? { ...u, transitionState: 'entering-parking', posOverride: null, transitionSpeed: '4.5s', transitionEasing: 'ease-out' }
+              ? { ...u, transitionState: 'entering-parking', posOverride: null, transitionSpeed: '1.5s', transitionEasing: 'ease-out' }
               : u
           )
         );
-      }, 2000); 
+      }, 1500); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -402,7 +402,7 @@ const PatioDashboard = () => {
               : u
           )
         );
-      }, 4500); 
+      }, 1500); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -415,11 +415,11 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'exiting-to-waypoint'
-              ? { ...u, transitionState: 'exiting-to-curve', posOverride: EXIT_CURVE, transitionSpeed: '2s', transitionEasing: 'linear' }
+              ? { ...u, transitionState: 'exiting-to-curve', posOverride: EXIT_CURVE, transitionSpeed: '1.5s', transitionEasing: 'linear' }
               : u
           )
         );
-      }, 2000);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -431,11 +431,11 @@ const PatioDashboard = () => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
             u.transitionState === 'exiting-to-curve'
-              ? { ...u, transitionState: 'exiting-to-gate', posOverride: EXIT_GATE, opacity: 0, transitionSpeed: '3s', transitionEasing: 'ease-out' }
+              ? { ...u, transitionState: 'exiting-to-gate', posOverride: EXIT_GATE, opacity: 0, transitionSpeed: '1.5s', transitionEasing: 'ease-out' }
               : u
           )
         );
-      }, 2000); 
+      }, 1500); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -445,7 +445,7 @@ const PatioDashboard = () => {
     if (toGate.length > 0) {
       const timer = setTimeout(() => {
         setDisplayUnits((prev) => prev.filter((u) => u.transitionState !== 'exiting-to-gate'));
-      }, 3000); 
+      }, 1500); 
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);

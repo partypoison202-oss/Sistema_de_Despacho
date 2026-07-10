@@ -50,12 +50,41 @@ const compositeLogoOnColor = (imgEl, bgRGB) => {
     canvas.width  = imgEl.naturalWidth  || imgEl.width;
     canvas.height = imgEl.naturalHeight || imgEl.height;
     const ctx = canvas.getContext('2d');
-    // Fondo del color deseado
     ctx.fillStyle = `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Imagen encima
     ctx.drawImage(imgEl, 0, 0);
     return canvas.toDataURL('image/png');
+};
+
+/**
+ * Comprime una imagen a una resolución máxima para reducir peso del PDF.
+ * Devuelve un data URL JPEG.
+ */
+const compressImage = (imgEl, maxDimension = 800, quality = 0.6) => {
+    const canvas = document.createElement('canvas');
+    let width = imgEl.naturalWidth || imgEl.width;
+    let height = imgEl.naturalHeight || imgEl.height;
+
+    if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+            height = (height / width) * maxDimension;
+            width = maxDimension;
+        } else {
+            width = (width / height) * maxDimension;
+            height = maxDimension;
+        }
+    }
+    
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    // Rellenar fondo blanco (por si hay transparencias)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.drawImage(imgEl, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
 };
 
 const HEADER_H = 30; // altura de la banda membretada
@@ -290,7 +319,8 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
             doc.roundedRect(imgX - 2, currentY - 2, imgW + 4, imgH + 4, 2, 2, 'FD');
 
             if (drawingImg) {
-                doc.addImage(drawingImg, 'PNG', imgX, currentY, imgW, imgH, undefined, 'FAST');
+                const compressedDrawing = compressImage(drawingImg, 800, 0.7);
+                doc.addImage(compressedDrawing, 'JPEG', imgX, currentY, imgW, imgH, undefined, 'FAST');
             }
             currentY += imgH + 12;
         }
@@ -348,12 +378,14 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
                 const maxW  = pageW - margin * 2;
                 let   pdfH  = (props.height * maxW) / props.width;
 
+                const compressedDataUrl = compressImage(img, 800, 0.6);
+
                 if (pdfH > 70) {
                     pdfH = 70;
                     const pdfW = (props.width * pdfH) / props.height;
-                    doc.addImage(img, 'JPEG', margin + (maxW - pdfW) / 2, currentY, pdfW, pdfH, undefined, 'FAST');
+                    doc.addImage(compressedDataUrl, 'JPEG', margin + (maxW - pdfW) / 2, currentY, pdfW, pdfH, undefined, 'FAST');
                 } else {
-                    doc.addImage(img, 'JPEG', margin, currentY, maxW, pdfH, undefined, 'FAST');
+                    doc.addImage(compressedDataUrl, 'JPEG', margin, currentY, maxW, pdfH, undefined, 'FAST');
                 }
                 currentY += pdfH + 8;
             }

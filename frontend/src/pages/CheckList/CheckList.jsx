@@ -710,7 +710,7 @@ export default function ChecklistForm({
             loadUrlUnit();
         }
 
-    }, [location.search, inline, prefillData]);
+    }, [location.search, inline, prefillData?.numero_eco, prefillData?.tipoTransporte]);
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
