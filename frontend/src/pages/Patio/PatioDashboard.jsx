@@ -6,7 +6,7 @@ import './PatioDashboard.css';
 
 const WAYPOINT_CENTER = { top: '55%', left: '40%' };
 const ENTRANCE_GATE = { top: '30%', left: '22%' }; // Entrada por el cruce peatonal
-const EXIT_GATE = { top: '15%', left: '25%' }; // Salida por el edificio norte
+const EXIT_GATE = { top: '5%', left: '32%' }; // Salida por arriba del edificio central
 
 // --- CONFIGURACIÓN DE ZONAS (ROJA: estática, VERDE: dinámica) ---
 const buildRowSlots = (colA, colB, n, angle) => {
@@ -346,7 +346,7 @@ const PatioDashboard = () => {
               : u
           )
         );
-      }, 2500); // Lento y suave
+      }, 4000); // Lento y suave
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -362,7 +362,7 @@ const PatioDashboard = () => {
               : u
           )
         );
-      }, 2500); // Lento y suave
+      }, 4000); // Lento y suave
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -379,7 +379,7 @@ const PatioDashboard = () => {
               : u
           )
         );
-      }, 2500); // Lento y suave
+      }, 4000); // Lento y suave
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -389,7 +389,7 @@ const PatioDashboard = () => {
     if (toGate.length > 0) {
       const timer = setTimeout(() => {
         setDisplayUnits((prev) => prev.filter((u) => u.transitionState !== 'exiting-to-gate'));
-      }, 2500); // Lento y suave
+      }, 4000); // Lento y suave
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -503,7 +503,7 @@ const PatioDashboard = () => {
               </div>
             )}
 
-            <div className={`floating-fleet-tabs ${isFullscreen && !controlsVisible ? 'hide-in-fullscreen' : ''}`}>
+            <div className="floating-fleet-tabs">
               {fleets.map((f) => (
                 <button
                   key={f.id}
@@ -515,7 +515,7 @@ const PatioDashboard = () => {
               ))}
             </div>
 
-            <div className={`floating-status-badge ${isFullscreen && !controlsVisible ? 'hide-in-fullscreen' : ''}`}>
+            <div className="floating-status-badge">
               {isOffline ? (
                 <span className="offline-badge pulse-orange-dot">Simulación (Offline)</span>
               ) : (
