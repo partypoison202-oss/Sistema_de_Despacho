@@ -1,5 +1,6 @@
 // src/pages/CentroControl/CentroControl.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -21,8 +22,6 @@ const modelsConfig = [
 export default function CentroControl() {
   const navigate = useNavigate();
 
-  const [modelData, setModelData] = useState([]);
-  const [cargando, setCargando] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Estado para la generación de los PDFs (igual que en Dashboard.jsx)
@@ -35,66 +34,63 @@ export default function CentroControl() {
   const reporteUnidadesRef = useRef(null);
 
   // ---- Carga y desglose de unidades por tipo y estatus ----
-  useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem('token');
-      try {
-        const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const apiData = await res.json();
+  const fetchDespachoHoy = async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) throw new Error('Error de conexion');
+    return res.json();
+  };
 
-        const aggregated = modelsConfig.map((mc) => {
-          const units = apiData.filter((d) =>
-            d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id)
-          );
-          const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
+  const { data: apiData = [], isLoading: cargando } = useQuery({
+    queryKey: ['despacho-hoy'],
+    queryFn: fetchDespachoHoy,
+    refetchInterval: 30000,
+  });
 
-          const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
-          const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
-          const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
+  const modelData = React.useMemo(() => {
+    return modelsConfig.map((mc) => {
+      const units = (Array.isArray(apiData) ? apiData : []).filter((d) =>
+        d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id)
+      );
+      const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
-          const programadas = units.length;
-          const operacion = unidadesOperacion.length;
-          const mantenimiento = unidadesMantenimiento.length;
-          const reserva = unidadesReserva.length;
-          const otros = Math.max(programadas - operacion - mantenimiento - reserva, 0);
+      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
+      const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
 
-          const idsConEstatus = new Set([
-            ...unidadesOperacion,
-            ...unidadesMantenimiento,
-            ...unidadesReserva,
-          ]);
-          const unidadesOtros = units.filter((d) => !idsConEstatus.has(d));
+      const programadas = units.length;
+      const operacion = unidadesOperacion.length;
+      const mantenimiento = unidadesMantenimiento.length;
+      const reserva = unidadesReserva.length;
+      const otros = Math.max(programadas - operacion - mantenimiento - reserva, 0);
 
-          return {
-            ...mc,
-            programadas,
-            operacion,
-            reserva,
-            mantenimiento,
-            otros,
-            unidadesOperacion,
-            unidadesReserva,
-            unidadesMantenimiento,
-            unidadesOtros,
-            units,
-          };
-        });
+      const idsConEstatus = new Set([
+        ...unidadesOperacion,
+        ...unidadesMantenimiento,
+        ...unidadesReserva,
+      ]);
+      const unidadesOtros = units.filter((d) => !idsConEstatus.has(d));
 
-        setModelData(aggregated);
-      } catch (error) {
-        console.error('Error de conexión:', error);
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+      return {
+        ...mc,
+        programadas,
+        operacion,
+        reserva,
+        mantenimiento,
+        otros,
+        unidadesOperacion,
+        unidadesReserva,
+        unidadesMantenimiento,
+        unidadesOtros,
+        units,
+      };
+    });
+  }, [apiData]);
 
   const totales = modelData.reduce(
     (acc, m) => ({

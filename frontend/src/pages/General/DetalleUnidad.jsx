@@ -1,5 +1,6 @@
 // src/pages/DetalleUnidad/DetalleUnidad.jsx
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import { transportModules } from '../../config/transportModules';
@@ -27,63 +28,39 @@ export default function DetalleUnidad() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [unidades, setUnidades] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
-
   const modulo = transportModules.find((m) => m.id === id);
 
-  useEffect(() => {
-    const fetchDetalle = async () => {
-      setCargando(true);
-      setError(null);
-      const token = localStorage.getItem('token');
+  const fetchDespachoHoy = async () => {
+    const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    if (!response.ok) throw new Error('Error al cargar');
+    return response.json();
+  };
 
-      try {
-        // Reutilizamos el mismo endpoint que alimenta el Dashboard,
-        // ya que /api/despacho/detalle/:id no existe en el backend.
-        const respuesta = await fetch(`${API_BASE}/api/despacho/hoy`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+  const { data: registrosHoy = [], isLoading: cargando, error } = useQuery({
+    queryKey: ['despacho-hoy'],
+    queryFn: fetchDespachoHoy,
+    refetchInterval: 30000,
+  });
 
-        if (!respuesta.ok) {
-          throw new Error('No se pudo obtener la información del despacho');
-        }
-
-        const registros = await respuesta.json();
-        const tipoNormalizado = normalizarTexto(id);
-
-        const filtrados = (Array.isArray(registros) ? registros : [])
-          .filter((registro) => normalizarTexto(registro.TIPO_DE_UNIDAD) === tipoNormalizado)
-          .map((registro) => ({
-            eco: registro.ECONOMICO || '',
-            idUnidad: registro.TARJETON || '',
-            ruta: registro.RUTA || '',
-            // Texto EXACTO tal cual está en la base de datos, sin transformar.
-            estatus: registro.ESTATUS !== null && registro.ESTATUS !== undefined
-              ? String(registro.ESTATUS).trim()
-              : '',
-            horaSalida: registro.HORA_PROGRAMADA,
-            acopleRuta: registro.HORA_DE_ACOPLE,
-            corrida: registro.CORRIDAS,
-          }))
-          .sort((a, b) => Number(a.eco) - Number(b.eco));
-
-        setUnidades(filtrados);
-      } catch (err) {
-        console.error('Error al obtener el detalle:', err);
-        setError(err.message || 'Ocurrió un error al cargar la información');
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    fetchDetalle();
-  }, [id]);
+  const unidades = React.useMemo(() => {
+    const tipoNormalizado = normalizarTexto(id);
+    return (Array.isArray(registrosHoy) ? registrosHoy : [])
+      .filter((registro) => normalizarTexto(registro.TIPO_DE_UNIDAD) === tipoNormalizado)
+      .map((registro) => ({
+        eco: registro.ECONOMICO || '',
+        idUnidad: registro.TARJETON || '',
+        ruta: registro.RUTA || '',
+        estatus: registro.ESTATUS !== null && registro.ESTATUS !== undefined
+          ? String(registro.ESTATUS).trim()
+          : '',
+        horaSalida: registro.HORA_PROGRAMADA,
+        acopleRuta: registro.HORA_DE_ACOPLE,
+        corrida: registro.CORRIDAS,
+      }))
+      .sort((a, b) => Number(a.eco) - Number(b.eco));
+  }, [registrosHoy, id]);
 
   const programadas = unidades.length;
   const operando = unidades.filter((u) => esOperacion(u.estatus)).length;

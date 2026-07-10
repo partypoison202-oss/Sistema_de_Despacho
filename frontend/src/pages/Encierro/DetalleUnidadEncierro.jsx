@@ -11,12 +11,13 @@ import ChecklistForm from '../CheckList/CheckList';
 import CONDUCTORES from '../../data/conductores';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 import API_BASE from '../../config/api';
-
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function DetalleUnidadEncierro() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
 
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -188,9 +189,6 @@ export default function DetalleUnidadEncierro() {
   ];
 
   const configActual = encierroModules.find(m => m.id === tipoTransporte);
-  if (!configActual) {
-    return <div className="p-8">Transporte no encontrado. <button onClick={() => navigate('/encierro/dashboard')}>Volver</button></div>;
-  }
 
   const getToken = () => localStorage.getItem('token');
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
@@ -200,53 +198,38 @@ export default function DetalleUnidadEncierro() {
     return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
   };
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    const fetchUnidades = async () => {
-      const token = getToken();
-      if (!token) {
-        navigate('/');
-        return;
+  const fetchUnidades = async () => {
+    const token = getToken();
+    if (!token) {
+      navigate('/');
+      return [];
+    }
+    const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${tipoTransporte}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
+    });
+    if (respuesta.status === 401) {
+      navigate('/');
+      return [];
+    }
+    if (!respuesta.ok) throw new Error('Error al obtener la lista de unidades');
+    const datos = await respuesta.json();
+    return (Array.isArray(datos) ? datos : []).map((u) => ({
+      eco: String(u.numero_eco ?? '').padStart(3, '0'),
+      tarjeton: String(u.tarjeton ?? '').trim(),
+      display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
+      estado: String(u.estatus ?? 'operacion').toLowerCase(),
+    }));
+  };
 
-      try {
-        const respuesta = await fetch(
-          `${API_BASE}/api/unidades/listar/${tipoTransporte}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (respuesta.ok) {
-          const datos = await respuesta.json();
-          const unidadesCatalogo = (Array.isArray(datos) ? datos : []).map((u) => ({
-            eco: String(u.numero_eco ?? '').padStart(3, '0'),
-            tarjeton: String(u.tarjeton ?? '').trim(),
-            display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
-            estado: String(u.estatus ?? 'operacion').toLowerCase(),
-          }));
-          setUnidadesList(unidadesCatalogo);
-        } else if (respuesta.status === 401) {
-          navigate('/');
-        } else {
-          const errorText = await respuesta.text();
-          console.error('Error al obtener la lista de unidades:', respuesta.status, errorText);
-        }
-      } catch (error) {
-        console.error('Error de conexión al obtener la lista de unidades', error);
-      } finally {
-        setCargandoUnidades(false);
-      }
-    };
-
-    fetchUnidades();
-  }, [tipoTransporte, navigate]);
-
-  const [unidadesList, setUnidadesList] = useState([]);
-  const [cargandoUnidades, setCargandoUnidades] = useState(true);
+  const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
+    queryKey: ['unidades-list-encierro', tipoTransporte],
+    queryFn: fetchUnidades,
+    staleTime: 60000,
+    refetchInterval: 30000,
+  });
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
@@ -326,6 +309,10 @@ export default function DetalleUnidadEncierro() {
     }
   }, [selectedOption]);
 
+  if (!configActual) {
+    return <div className="p-8">Transporte no encontrado. <button onClick={() => navigate('/encierro/dashboard')}>Volver</button></div>;
+  }
+
   const handleHacerCheckList = () => setShowChecklist(true);
 
   const handleRevisarCheckList = () => {
@@ -358,16 +345,22 @@ export default function DetalleUnidadEncierro() {
       if (!token) { navigate('/'); return; }
 
       const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
-      const respuesta = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const resultado = await queryClient.fetchQuery({
+        queryKey: ['unidad-detalle', tipoTransporte, numeroLimpio],
+        queryFn: async () => {
+          const res = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (!res.ok) throw new Error('Error en peticion');
+          return res.json();
+        },
+        staleTime: 60000,
       });
 
-      const resultado = await respuesta.json();
-
-      if (respuesta.ok && resultado.status === 'success') {
+      if (resultado.status === 'success') {
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
@@ -438,7 +431,7 @@ export default function DetalleUnidadEncierro() {
           timer: 2000,
         });
 
-        setUnidadesList(prev => prev.map(u => {
+        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (prev = []) => prev.map(u => {
           if (String(u.eco).padStart(3, '0') === numeroLimpio) {
             return { ...u, tarjeton: String(resultado.tarjeton).trim() };
           }
@@ -636,7 +629,7 @@ export default function DetalleUnidadEncierro() {
         setDatosOperativos(prev => ({ ...prev, estatus: nuevoEstatus }));
         setSelectedEstado(nuevoEstatus);
 
-        setUnidadesList(prev => prev.map(u => {
+        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (prev = []) => prev.map(u => {
           if (String(u.eco).padStart(3, '0') === numeroLimpio) {
             return { ...u, estado: nuevoEstatus.toLowerCase() };
           }

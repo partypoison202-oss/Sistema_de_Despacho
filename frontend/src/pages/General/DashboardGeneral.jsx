@@ -1,5 +1,6 @@
 // src/pages/Dashboard/Dashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import TablaInformativa from './components/TablaInformativa';
@@ -131,75 +132,62 @@ const construirFaltantes = (registros) =>
     .sort((a, b) => a.ruta.localeCompare(b.ruta) || a.eco.localeCompare(b.eco));
 
 export default function Dashboard() {
-  const [conteos, setConteos] = useState({});
-  const [tablas, setTablas] = useState({
-    troncal: { programadas: 0, operando: 0, faltantes: 0, filas: [] },
-    alimentador: { programadas: 0, operando: 0, faltantes: 0, filas: [] },
-  });
-  const [faltantesUnidades, setFaltantesUnidades] = useState([]);
-  const [cargando, setCargando] = useState(true);
-
   const [mostrarTroncal, setMostrarTroncal] = useState(false);
   const [mostrarAlimentador, setMostrarAlimentador] = useState(false);
   const [mostrarFaltantes, setMostrarFaltantes] = useState(false);
 
-  useEffect(() => {
-    const fetchDatos = async () => {
-      const token = localStorage.getItem('token');
-      setCargando(true);
+  const fetchConteos = async () => {
+    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    if (!response.ok) throw new Error('Error');
+    return response.json();
+  };
 
-      try {
-        const [resumenResponse, hoyResponse] = await Promise.all([
-          fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          fetch(`${API_BASE}/api/despacho/hoy`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-        ]);
+  const { data: conteos = {}, isLoading: cargandoConteos } = useQuery({
+    queryKey: ['conteo-unidades-global'],
+    queryFn: fetchConteos,
+    refetchInterval: 30000,
+  });
 
-        if (resumenResponse.ok) {
-          const data = await resumenResponse.json();
-          setConteos(data);
-        }
+  const fetchDespachoHoy = async () => {
+    const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    if (!response.ok) throw new Error('Error');
+    return response.json();
+  };
 
-        if (hoyResponse.ok) {
-          const registros = await hoyResponse.json();
-          const registrosNormalizados = Array.isArray(registros)
-            ? registros.map((registro) => ({
-                ...registro,
-                economico: registro.ECONOMICO || registro.economico || registro.numero_eco || '',
-                ruta: registro.RUTA || registro.ruta || '',
-                estatus: registro.ESTATUS || registro.estatus || '',
-                corridas: registro.CORRIDAS || registro.corridas || '',
-                motivo: registro.MOTIVO || registro.motivo || '',
-                ciclo: registro.CICLO || registro.ciclo || '',
-              }))
-            : [];
+  const { data: registrosHoy = [], isLoading: cargandoHoy } = useQuery({
+    queryKey: ['despacho-hoy'],
+    queryFn: fetchDespachoHoy,
+    refetchInterval: 30000,
+  });
 
-          setTablas({
-            troncal: construirResumen(registrosNormalizados, 'troncal'),
-            alimentador: construirResumen(registrosNormalizados, 'alimentador'),
-          });
-          setFaltantesUnidades(construirFaltantes(registrosNormalizados));
-        }
-      } catch (error) {
-        console.error('Error de conexión:', error);
-      } finally {
-        setCargando(false);
-      }
-    };
+  const registrosNormalizados = React.useMemo(() => {
+    return Array.isArray(registrosHoy)
+      ? registrosHoy.map((registro) => ({
+          ...registro,
+          economico: registro.ECONOMICO || registro.economico || registro.numero_eco || '',
+          ruta: registro.RUTA || registro.ruta || '',
+          estatus: registro.ESTATUS || registro.estatus || '',
+          corridas: registro.CORRIDAS || registro.corridas || '',
+          motivo: registro.MOTIVO || registro.motivo || '',
+          ciclo: registro.CICLO || registro.ciclo || '',
+        }))
+      : [];
+  }, [registrosHoy]);
 
-    fetchDatos();
-  }, []);
+  const tablas = React.useMemo(() => ({
+    troncal: construirResumen(registrosNormalizados, 'troncal'),
+    alimentador: construirResumen(registrosNormalizados, 'alimentador'),
+  }), [registrosNormalizados]);
+
+  const faltantesUnidades = React.useMemo(() => construirFaltantes(registrosNormalizados), [registrosNormalizados]);
+
+  const cargando = cargandoConteos || cargandoHoy;
+
+
 
   return (
     <div className="dashboard">

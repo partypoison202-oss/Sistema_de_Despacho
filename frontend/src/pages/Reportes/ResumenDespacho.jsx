@@ -112,7 +112,7 @@ export default function ResumenDespacho() {
     try {
       const el = document.getElementById('reporte-pdf');
       const canvas = await html2canvas(el, {
-        scale: 2,
+        scale: 1,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -120,7 +120,7 @@ export default function ResumenDespacho() {
         windowHeight: el.scrollHeight
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.6);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
       
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -133,14 +133,14 @@ export default function ResumenDespacho() {
       let heightLeft = imgHeight;
       let position = margin;
 
-      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= (pdfHeight - (margin * 2));
 
       // Tolerancia de 2mm para evitar páginas adicionales en blanco por errores de redondeo
       while (heightLeft > 2) {
         position -= (pdfHeight - (margin * 2));
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
         heightLeft -= (pdfHeight - (margin * 2));
       }
 

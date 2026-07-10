@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import './PatioDashboard.css';
 
-const EXIT_GATE = { top: '67%', left: '40%' };
+const WAYPOINT_CENTER = { top: '55%', left: '40%' };
+const ENTRANCE_GATE = { top: '30%', left: '22%' }; // Entrada por el cruce peatonal
+const EXIT_GATE = { top: '15%', left: '25%' }; // Salida por el edificio norte
 
 // --- CONFIGURACIÓN DE ZONAS (ROJA: estática, VERDE: dinámica) ---
 const buildRowSlots = (colA, colB, n, angle) => {
@@ -126,14 +129,38 @@ const PatioDashboard = () => {
   ];
 
   const [selectedFleet, setSelectedFleet] = useState('all');
-  const [apiUnits, setApiUnits] = useState([]);
   const [displayUnits, setDisplayUnits] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [unitDetailsCache, setUnitDetailsCache] = useState({});
   const [hoveredUnitEco, setHoveredUnitEco] = useState(null);
   const [isOffline, setIsOffline] = useState(false);
+  
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideControlsTimerRef = useRef(null);
 
   const planoRef = useRef(null);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFull = !!document.fullscreenElement;
+      setIsFullscreen(isFull);
+      if (!isFull) {
+        setControlsVisible(true);
+        if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const handleUserActivity = () => {
+    if (!isFullscreen) return;
+    setControlsVisible(true);
+    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    hideControlsTimerRef.current = setTimeout(() => {
+      setControlsVisible(false);
+    }, 2500);
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement && planoRef.current) {
@@ -154,87 +181,65 @@ const PatioDashboard = () => {
     return await response.json();
   };
 
-  const fetchUnits = async (fleetId, silent = false) => {
-    if (!silent) setLoading(true);
+  const fetchUnitsData = async () => {
     const token = localStorage.getItem('token');
+    let data = [];
 
-    try {
-      let data = [];
-
-      if (fleetId === 'all') {
-        const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
-        if (!isOffline) {
-          const promises = fleetIds.map((id) => fetchSingleFleet(id, token));
-          const results = await Promise.allSettled(promises);
-          const allData = [];
-          results.forEach((result) => {
-            if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
-              allData.push(...result.value);
-            }
-          });
-          if (allData.length > 0) {
-            data = allData;
-            setIsOffline(false);
-          } else {
-            data = fleetIds.flatMap((id) => mockUnitsData[id] || []);
-            setIsOffline(true);
-          }
+    if (selectedFleet === 'all') {
+      const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
+      const promises = fleetIds.map((id) => fetchSingleFleet(id, token));
+      const results = await Promise.allSettled(promises);
+      const allData = [];
+      results.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value && result.value.length > 0) {
+          allData.push(...result.value);
+        }
+      });
+      if (allData.length > 0) {
+        data = allData;
+        setIsOffline(false);
+      } else {
+        data = fleetIds.flatMap((id) => mockUnitsData[id] || []);
+        setIsOffline(true);
+      }
+    } else {
+      const response = await fetch(`${API_BASE}/api/unidades/listar/${selectedFleet}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const json = await response.json();
+        if (json && json.length > 0) {
+          data = json;
+          setIsOffline(false);
         } else {
-          data = fleetIds.flatMap((id) => mockUnitsData[id] || []);
-          setIsOffline(true);
+          throw new Error('Empty data');
         }
       } else {
-        const response = await fetch(`${API_BASE}/api/unidades/listar/${fleetId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        if (response.ok) {
-          const json = await response.json();
-          if (json && json.length > 0) {
-            data = json;
-            setIsOffline(false);
-          } else {
-            throw new Error('Empty data');
-          }
-        } else {
-          throw new Error('API error');
-        }
+        throw new Error('API error');
       }
-
-      setApiUnits(data);
-    } catch (error) {
-      console.warn('Error fetching units, using mock data:', error);
-      if (fleetId === 'all') {
-        const allMock = ['urbanus', 'vagoneta', 'zafiro', 'orion'].flatMap(
-          (id) => mockUnitsData[id] || []
-        );
-        setApiUnits(allMock);
-      } else {
-        setApiUnits(mockUnitsData[fleetId] || []);
-      }
-      setIsOffline(true);
-    } finally {
-      if (!silent) setLoading(false);
     }
+    return data;
   };
 
-  useEffect(() => {
-    fetchUnits(selectedFleet);
-  }, [selectedFleet]);
+  const { data: apiUnits = [], isLoading: loading, refetch: forceFetchUnits } = useQuery({
+    queryKey: ['unidades-patio', selectedFleet],
+    queryFn: fetchUnitsData,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+  });
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchUnits(selectedFleet, true);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [selectedFleet]);
+  // Alias para mantener la funcion si se llama en un boton
+  const fetchUnits = () => forceFetchUnits();
+
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isOffline) return;
     const interval = setInterval(() => {
-      setApiUnits((prev) => {
+      queryClient.setQueryData(['unidades-patio', selectedFleet], (prev) => {
         if (!prev || prev.length === 0) return prev;
         const randomIndex = Math.floor(Math.random() * prev.length);
         return prev.map((u, i) => {
@@ -250,7 +255,7 @@ const PatioDashboard = () => {
       });
     }, 12000);
     return () => clearInterval(interval);
-  }, [isOffline]);
+  }, [isOffline, selectedFleet, queryClient]);
 
   // Lógica de transiciones
   useEffect(() => {
@@ -268,9 +273,9 @@ const PatioDashboard = () => {
           if (inBase) {
             nextDisplay.push({
               ...incoming,
-              transitionState: 'entering',
+              transitionState: 'entering-spawn',
               opacity: 0,
-              posOverride: EXIT_GATE,
+              posOverride: ENTRANCE_GATE,
             });
           }
         } else {
@@ -279,31 +284,32 @@ const PatioDashboard = () => {
           if (prevInBase && !inBase) {
             nextDisplay.push({
               ...prev,
-              estatus: 'operacion',
-              transitionState: 'exiting',
-              opacity: 0,
-              posOverride: EXIT_GATE,
+              estatus: 'operacion', // Mantener visualmente en operacion mientras sale
+              transitionState: 'exiting-to-waypoint',
+              opacity: 1,
+              posOverride: WAYPOINT_CENTER,
             });
           } else if (!prevInBase && inBase) {
             nextDisplay.push({
               ...incoming,
-              transitionState: 'entering',
+              transitionState: 'entering-spawn',
               opacity: 0,
-              posOverride: EXIT_GATE,
+              posOverride: ENTRANCE_GATE,
             });
           } else if (inBase) {
+            // Mantener estado actual de animación si ya existe
             nextDisplay.push({
               ...incoming,
-              transitionState: prev.transitionState === 'entering' ? 'entering' : 'idle',
-              opacity: prev.transitionState === 'entering' ? 0 : 1,
-              posOverride: prev.transitionState === 'entering' ? EXIT_GATE : null,
+              transitionState: prev.transitionState?.startsWith('entering') ? prev.transitionState : 'idle',
+              opacity: prev.transitionState?.startsWith('entering-spawn') ? 0 : 1,
+              posOverride: prev.posOverride,
             });
           }
         }
       });
 
       prevUnits.forEach((prev) => {
-        if (prev.transitionState === 'exiting' && !incomingMap.has(prev.numero_eco)) {
+        if (prev.transitionState?.startsWith('exiting') && !incomingMap.has(prev.numero_eco)) {
           nextDisplay.push(prev);
         }
       });
@@ -312,14 +318,15 @@ const PatioDashboard = () => {
     });
   }, [apiUnits]);
 
+  // Timers para entering (Entrando al patio)
   useEffect(() => {
-    const entering = displayUnits.filter((u) => u.transitionState === 'entering');
-    if (entering.length > 0) {
+    const spawning = displayUnits.filter((u) => u.transitionState === 'entering-spawn');
+    if (spawning.length > 0) {
       const timer = setTimeout(() => {
         setDisplayUnits((prev) =>
           prev.map((u) =>
-            u.transitionState === 'entering'
-              ? { ...u, transitionState: 'idle', opacity: 1, posOverride: null }
+            u.transitionState === 'entering-spawn'
+              ? { ...u, transitionState: 'entering-waypoint', opacity: 1, posOverride: WAYPOINT_CENTER }
               : u
           )
         );
@@ -329,11 +336,60 @@ const PatioDashboard = () => {
   }, [displayUnits]);
 
   useEffect(() => {
-    const exiting = displayUnits.filter((u) => u.transitionState === 'exiting');
-    if (exiting.length > 0) {
+    const waypointing = displayUnits.filter((u) => u.transitionState === 'entering-waypoint');
+    if (waypointing.length > 0) {
       const timer = setTimeout(() => {
-        setDisplayUnits((prev) => prev.filter((u) => u.transitionState !== 'exiting'));
-      }, 1200);
+        setDisplayUnits((prev) =>
+          prev.map((u) =>
+            u.transitionState === 'entering-waypoint'
+              ? { ...u, transitionState: 'entering-parking', posOverride: null } // null hara que vaya a su slot final
+              : u
+          )
+        );
+      }, 2500); // Lento y suave
+      return () => clearTimeout(timer);
+    }
+  }, [displayUnits]);
+
+  useEffect(() => {
+    const parking = displayUnits.filter((u) => u.transitionState === 'entering-parking');
+    if (parking.length > 0) {
+      const timer = setTimeout(() => {
+        setDisplayUnits((prev) =>
+          prev.map((u) =>
+            u.transitionState === 'entering-parking'
+              ? { ...u, transitionState: 'idle' }
+              : u
+          )
+        );
+      }, 2500); // Lento y suave
+      return () => clearTimeout(timer);
+    }
+  }, [displayUnits]);
+
+  // Timers para exiting (Saliendo del patio a operacion)
+  useEffect(() => {
+    const toWaypoint = displayUnits.filter((u) => u.transitionState === 'exiting-to-waypoint');
+    if (toWaypoint.length > 0) {
+      const timer = setTimeout(() => {
+        setDisplayUnits((prev) =>
+          prev.map((u) =>
+            u.transitionState === 'exiting-to-waypoint'
+              ? { ...u, transitionState: 'exiting-to-gate', posOverride: EXIT_GATE, opacity: 0 }
+              : u
+          )
+        );
+      }, 2500); // Lento y suave
+      return () => clearTimeout(timer);
+    }
+  }, [displayUnits]);
+
+  useEffect(() => {
+    const toGate = displayUnits.filter((u) => u.transitionState === 'exiting-to-gate');
+    if (toGate.length > 0) {
+      const timer = setTimeout(() => {
+        setDisplayUnits((prev) => prev.filter((u) => u.transitionState !== 'exiting-to-gate'));
+      }, 2500); // Lento y suave
       return () => clearTimeout(timer);
     }
   }, [displayUnits]);
@@ -434,7 +490,12 @@ const PatioDashboard = () => {
         </section>
 
         <div className="patio-viewport-centered">
-          <div className="plano-map-wrapper shadow-md" ref={planoRef}>
+          <div 
+            className="plano-map-wrapper shadow-md" 
+            ref={planoRef}
+            onMouseMove={handleUserActivity}
+            onTouchStart={handleUserActivity}
+          >
             {loading && (
               <div className="map-loading-overlay">
                 <span className="light-spinner" />
@@ -442,7 +503,7 @@ const PatioDashboard = () => {
               </div>
             )}
 
-            <div className="floating-fleet-tabs">
+            <div className={`floating-fleet-tabs ${isFullscreen && !controlsVisible ? 'hide-in-fullscreen' : ''}`}>
               {fleets.map((f) => (
                 <button
                   key={f.id}
@@ -454,7 +515,7 @@ const PatioDashboard = () => {
               ))}
             </div>
 
-            <div className="floating-status-badge">
+            <div className={`floating-status-badge ${isFullscreen && !controlsVisible ? 'hide-in-fullscreen' : ''}`}>
               {isOffline ? (
                 <span className="offline-badge pulse-orange-dot">Simulación (Offline)</span>
               ) : (
@@ -483,7 +544,11 @@ const PatioDashboard = () => {
               </button>
             </div>
 
-            <button className="fullscreen-btn" onClick={toggleFullscreen} aria-label="Pantalla completa">
+            <button 
+              className={`fullscreen-btn ${isFullscreen && !controlsVisible ? 'hide-in-fullscreen' : ''}`} 
+              onClick={toggleFullscreen} 
+              aria-label="Pantalla completa"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"

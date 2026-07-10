@@ -175,6 +175,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: opacity 0.5s ease-in-out;
 }
 
 .floating-fleet-tabs .fleet-tab {
@@ -216,6 +217,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: opacity 0.5s ease-in-out;
 }
 
 .floating-status-badge .online-badge,
@@ -275,7 +277,7 @@
   cursor: pointer;
   color: var(--cc-text-muted);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
+  transition: all 0.2s, opacity 0.5s ease-in-out;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -286,6 +288,11 @@
   color: var(--cc-maroon);
   border-color: var(--cc-gold);
   box-shadow: 0 4px 12px rgba(96, 26, 42, 0.15);
+}
+
+.hide-in-fullscreen {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* ====== PINES DE UNIDADES (MODIFICADOS: VERTICALES) ====== */
@@ -299,9 +306,9 @@
   cursor: pointer;
   z-index: 30;
   transform: translate(-50%, -50%);
-  transition: top 1.2s cubic-bezier(0.25, 1, 0.5, 1),
-              left 1.2s cubic-bezier(0.25, 1, 0.5, 1),
-              opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: top 2.5s cubic-bezier(0.25, 1, 0.5, 1),
+              left 2.5s cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 2.5s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .vehicle-shape {

@@ -1,5 +1,5 @@
 // src/pages/Dashboard/Dashboard.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
@@ -11,11 +11,9 @@ import Swal from 'sweetalert2';
 import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
 import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
 import API_BASE from '../../config/api';
-
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function Dashboard() {
-  const [conteos, setConteos] = useState({});
-  const [cargando, setCargando] = useState(true);
   const [reporteDataRutas, setReporteDataRutas] = useState(null);
   const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
   const [mostrarReporte, setMostrarReporte] = useState(false);
@@ -23,6 +21,33 @@ export default function Dashboard() {
   const [busquedaEco, setBusquedaEco] = useState('');
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Precarga fantasma de las unidades de todas las flotillas
+    transportModules.forEach((modulo) => {
+      queryClient.prefetchQuery({
+        queryKey: ['unidades-list', modulo.id],
+        queryFn: async () => {
+          const token = localStorage.getItem('token');
+          if (!token) return [];
+          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          });
+          if (!respuesta.ok) return [];
+          const datos = await respuesta.json();
+          const formatearEco = (v) => `ECO${String(v ?? '').padStart(3, '0')}`;
+          return (Array.isArray(datos) ? datos : []).map((u) => ({
+            eco: String(u.numero_eco ?? '').padStart(3, '0'),
+            tarjeton: String(u.tarjeton ?? '').trim(),
+            display: formatearEco(u.numero_eco),
+            estado: u.estatus || 'operacion',
+          }));
+        },
+        staleTime: 60000,
+      });
+    });
+  }, [queryClient]);
 
   // Referencias para los elementos a capturar
   const reporteRutasRef = useRef(null);
@@ -37,16 +62,16 @@ export default function Dashboard() {
         return;
       }
       html2canvas(element, {
-        scale: 3,
+        scale: 1.0,
         useCORS: true,
         backgroundColor: '#f5f5f5',
         windowWidth: 1123,
         windowHeight: 795,
       })
         .then((canvas) => {
-          const imgData = canvas.toDataURL('image/png');
+          const imgData = canvas.toDataURL('image/jpeg', 0.6);
           const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-          pdf.addImage(imgData, 'PNG', 0, 0, 297, 210);
+          pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210, undefined, 'FAST');
           pdf.save(`${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
           resolve();
         })
@@ -206,31 +231,22 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const fetchConteos = async () => {
-      const token = localStorage.getItem('token');
-      try {
-        const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  const fetchConteos = async () => {
+    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    if (!response.ok) throw new Error('Error de conexion');
+    return response.json();
+  };
 
-        if (response.ok) {
-          const data = await response.json();
-          setConteos(data);
-        }
-      } catch (error) {
-        console.error('Error de conexión:', error);
-      } finally {
-        setCargando(false);
-      }
-    };
-
-    fetchConteos();
-  }, []);
+  const { data: conteos = {}, isLoading: cargando } = useQuery({
+    queryKey: ['conteo-unidades-global'],
+    queryFn: fetchConteos,
+    refetchInterval: 30000, // Actualiza silenciosamente cada 30 segundos
+  });
 
   return (
     <>
