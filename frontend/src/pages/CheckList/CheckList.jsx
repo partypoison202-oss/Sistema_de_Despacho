@@ -409,7 +409,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         // Componer canvas con imagen de fondo antes de guardar (imagen completa)
         if (onSave) {
             const canvas = canvasRef.current;
-            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}.webp`;
+            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}${tipoUnidad ? '_blueprint' : ''}.webp`;
             const composite = document.createElement('canvas');
             composite.width = canvas.width;
             composite.height = canvas.height;
@@ -542,7 +542,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             >
                 {/* Imagen de referencia como fondo según tipo de unidad */}
                 <img
-                    src={`/images/${(tipoUnidad || 'hero').toLowerCase()}.webp`}
+                    src={`/images/${(tipoUnidad || 'hero').toLowerCase()}${tipoUnidad ? '_blueprint' : ''}.webp`}
                     alt={`Blueprint de ${tipoUnidad}`}
                     className="absolute inset-0 h-full w-full object-contain pointer-events-none select-none opacity-60"
                     draggable={false}
