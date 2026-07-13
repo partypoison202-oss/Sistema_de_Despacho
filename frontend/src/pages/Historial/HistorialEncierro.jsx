@@ -39,7 +39,7 @@ export default function HistorialEncierro() {
     if (!fecha) return;
     setCargando(true);
     try {
-      const response = await fetch(`${API_BASE}/historial-operativo/encierro/${fecha}`, {
+      const response = await fetch(`${API_BASE}/api/historial-operativo/encierro/${fecha}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Accept': 'application/json'

@@ -39,7 +39,7 @@ export default function HistorialDespacho() {
     if (!fecha) return;
     setCargando(true);
     try {
-      const response = await fetch(`${API_BASE}/historial-operativo/despacho/${fecha}`, {
+      const response = await fetch(`${API_BASE}/api/historial-operativo/despacho/${fecha}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Accept': 'application/json'
