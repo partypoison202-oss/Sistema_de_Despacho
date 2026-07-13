@@ -28,6 +28,7 @@ export default function UnitInfoPanel({
   handleSaveHoras,
   handleCambiarEstatus,
   cambiandoEstatus,
+  conductoresDisponibles,
 }) {
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
@@ -45,6 +46,7 @@ export default function UnitInfoPanel({
   const [formAcople, setFormAcople] = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [dropdownAcopleOpen, setDropdownAcopleOpen] = useState(false);
+  const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
 
   // Sincronizar estados locales cuando cambien los datos operativos
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function UnitInfoPanel({
 
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
+  const tarjetonRef = useRef(null);
 
   useEffect(() => {
     setPerdidaCiclos(datosOperativos.ciclo || '');
@@ -97,6 +100,9 @@ export default function UnitInfoPanel({
       }
       if (rutaRef.current && !rutaRef.current.contains(e.target)) {
         setDropdownRutaOpen(false);
+      }
+      if (tarjetonRef.current && !tarjetonRef.current.contains(e.target)) {
+        setDropdownTarjetonOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -256,14 +262,15 @@ export default function UnitInfoPanel({
     setFormTarjeton(datosOperativos.tarjeton || '');
   }, [datosOperativos.tarjeton]);
 
-  const handleConfirmTarjeton = async () => {
-    if (!formTarjeton.trim() || formTarjeton === datosOperativos.tarjeton) {
+  const handleConfirmTarjeton = async (overrideValue = null) => {
+    const val = typeof overrideValue === 'string' ? overrideValue : formTarjeton;
+    if (!val.trim() || val === datosOperativos.tarjeton) {
       setEditandoTarjeton(false);
       return;
     }
     setGuardandoTarjeton(true);
     try {
-      await handleSaveTarjeton(formTarjeton.trim());
+      await handleSaveTarjeton(val.trim());
       setEditandoTarjeton(false);
     } catch (err) {
       console.error(err);
@@ -454,43 +461,103 @@ export default function UnitInfoPanel({
               <span className="info-card__label">Número de Tarjetón</span>
               {editandoTarjeton ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                  <input
-                    type="text"
-                    className="interactive-input"
-                    style={{ padding: '0 0.5rem', height: '2.3rem', fontSize: '0.85rem', fontWeight: 'bold' }}
-                    value={formTarjeton}
-                    onChange={(e) => setFormTarjeton(e.target.value.replace(/\D/g, '').substring(0, 3))}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleConfirmTarjeton();
-                      } else if (e.key === 'Escape') {
-                        handleCancelTarjetonEdit();
-                      }
-                    }}
-                  />
-                  <div style={{ display: 'flex', gap: '0.2rem' }}>
-                    <button
-                      onClick={handleConfirmTarjeton}
-                      disabled={guardandoTarjeton}
-                      title="Guardar"
-                      style={{ background: 'transparent', color: 'var(--state-green-text)', border: 'none', cursor: guardandoTarjeton ? 'wait' : 'pointer', padding: '0.2rem', display: 'flex' }}
+                  <div ref={tarjetonRef} style={{ position: 'relative', width: '100%', zIndex: dropdownTarjetonOpen ? 50 : 1 }}>
+                    <div
+                      className="interactive-input"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 0.85rem',
+                        background: 'var(--tw-color-white)',
+                        height: '2.3rem',
+                        width: '100%',
+                        fontWeight: 'bold',
+                        opacity: guardandoTarjeton ? 0.7 : 1,
+                        borderColor: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : undefined,
+                      }}
                     >
                       {guardandoTarjeton ? (
-                        <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', margin: 0, borderColor: 'rgba(22, 163, 74, 0.2)', borderTopColor: 'var(--state-green-text)', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
+                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal', fontSize: '0.85rem' }}>Guardando...</span>
+                        </div>
                       ) : (
-                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        <>
+                          <input
+                            type="text"
+                            placeholder="Buscar o escribir tarjetón..."
+                            value={formTarjeton}
+                            onChange={(e) => {
+                              setFormTarjeton(e.target.value);
+                              setDropdownTarjetonOpen(true);
+                            }}
+                            onFocus={() => setDropdownTarjetonOpen(true)}
+                            style={{
+                              border: 'none',
+                              outline: 'none',
+                              background: 'transparent',
+                              width: '100%',
+                              fontSize: '0.85rem',
+                              fontWeight: 'bold',
+                              color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit',
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleConfirmTarjeton();
+                                setDropdownTarjetonOpen(false);
+                              } else if (e.key === 'Escape') {
+                                handleCancelTarjetonEdit();
+                                setDropdownTarjetonOpen(false);
+                              }
+                            }}
+                          />
+                          <svg
+                            onClick={() => setDropdownTarjetonOpen(!dropdownTarjetonOpen)}
+                            className={`arrow-icon ${dropdownTarjetonOpen ? 'dropdown-trigger__arrow--open' : ''}`}
+                            style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit' }}
+                            fill="currentColor" viewBox="0 0 24 24"
+                          >
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
+                        </>
                       )}
-                    </button>
-
-                    <button
-                      onClick={handleCancelTarjetonEdit}
-                      disabled={guardandoTarjeton}
-                      title="Cancelar"
-                      style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', padding: '0.2rem', display: 'flex' }}
-                    >
-                      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
+                    </div>
+                    {dropdownTarjetonOpen && !guardandoTarjeton && (
+                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                          <button
+                            type="button"
+                            className="dropdown-menu__item"
+                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                            onClick={() => {
+                              handleCancelTarjetonEdit();
+                              setDropdownTarjetonOpen(false);
+                            }}
+                          >
+                            CANCELAR
+                          </button>
+                          {(conductoresDisponibles || CONDUCTORES || [])
+                            .filter(c => c.nombre.toLowerCase().includes(formTarjeton.toLowerCase()) || c.id.toString().includes(formTarjeton))
+                            .map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className="dropdown-menu__item"
+                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', textAlign: 'left', fontWeight: 'normal' }}
+                                onClick={() => {
+                                  setFormTarjeton(c.id.toString());
+                                  setDropdownTarjetonOpen(false);
+                                  handleConfirmTarjeton(c.id.toString());
+                                }}
+                              >
+                                {c.nombre} <br/><span style={{fontSize: '0.75rem', opacity: 0.7}}>Tarjetón: {c.id}</span>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

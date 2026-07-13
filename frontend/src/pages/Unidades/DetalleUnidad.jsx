@@ -9,6 +9,8 @@ import UnitInfoPanel from './componentsdetalleunidad/UnitInfoPanel';
 import './DetalleUnidad.css';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import CONDUCTORES from '../../data/conductores';
+import Swal from 'sweetalert2';
 
 export default function DetalleUnidad() {
   const { tipoTransporte } = useParams();
@@ -31,6 +33,14 @@ export default function DetalleUnidad() {
   const [mensajeBusqueda, setMensajeBusqueda] = useState('');
   const [fallaTexto, setFallaTexto] = useState('');
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
+  const [rutasOpciones, setRutasOpciones] = useState([]);
+  
+  const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
+  const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
+  const [modalEstatusConductor, setModalEstatusConductor] = useState('');
+  const [modalEstatusRuta, setModalEstatusRuta] = useState('');
+  const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
+  const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -76,6 +86,39 @@ export default function DetalleUnidad() {
 
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
+
+  const conductoresDisponibles = CONDUCTORES.filter(c => {
+    const estaAsignado = unidadesList.some(u => 
+      u.estado === 'operacion' && 
+      String(u.tarjeton) === String(c.id)
+    );
+    return !estaAsignado;
+  });
+
+  useEffect(() => {
+    const fetchRutas = async () => {
+      try {
+        const token = getToken();
+        if (!token) return;
+        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+           headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+           const data = await res.json();
+            if (configActual?.id === 'urbanus') {
+              setRutasOpciones(data.troncales || []);
+            } else {
+              setRutasOpciones(data.alimentadoras || []);
+            }
+        }
+      } catch (err) {
+        console.error('Error fetching rutas', err);
+      }
+    };
+    if (configActual) {
+      fetchRutas();
+    }
+  }, [configActual]);
 
   useEffect(() => {
     const ecoDesdeRuta = searchParams.get('eco');
@@ -485,59 +528,127 @@ export default function DetalleUnidad() {
     if (!confirmacion.isConfirmed) return;
 
     const motivoCapturado = requiereMotivo ? (confirmacion.value || null) : null;
+    const matchNumeros = selectedOption.match(/\d+/);
+    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
-    setCambiandoEstatus(true);
+    let payloadUpdate = {
+      numero_eco: numeroLimpio,
+      tipo: tipoTransporte,
+      estatus: nuevoEstatus,
+      motivo_estatus: motivoCapturado
+    };
+
+    // Si cambia a operacion
+    if (nuevoEstatus === 'operacion') {
+      setModalEstatusNuevo(nuevoEstatus);
+      setModalEstatusConductor('');
+      setModalEstatusRuta('');
+      setModalEstatusConductorDropdown(false);
+      setModalEstatusRutaDropdown(false);
+      setModalEstatusOpen(true);
+      return; // El resto se maneja en el confirm del modal
+    }
+
     try {
-      const token = getToken();
-      const matchNumeros = selectedOption.match(/\d+/);
-      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-
-      const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
+      setCambiandoEstatus(true);
+      const res = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({
-          numero_eco: numeroLimpio,
-          tipo: tipoTransporte,
-          estatus: nuevoEstatus,
-          motivo_estatus: motivoCapturado
-        })
+        body: JSON.stringify(payloadUpdate),
       });
 
-      const result = await response.json();
-      
-      if (response.ok && result.status === 'success') {
+      const data = await res.json();
+      if (res.ok && (data.success || data.status === 'success')) {
         Swal.fire({
           icon: 'success',
           title: 'Estatus Actualizado',
-          text: `La unidad ${selectedOption} ahora está en ${nuevoEstatus.toUpperCase()}`,
-          confirmButtonColor: '#c5a059',
+          text: `La unidad cambió a ${nuevoEstatus}.`,
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
-        setDatosOperativos(prev => ({ ...prev, estatus: nuevoEstatus }));
-        setSelectedEstado(nuevoEstatus);
         
-        // Actualizar la lista en memoria para mantener colores sincronizados y cambiar de lista
-        queryClient.setQueryData(['unidades-list', tipoTransporte], (prev = []) => prev.map(u => {
-          if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-            return { ...u, estado: nuevoEstatus.toLowerCase() };
-          }
-          return u;
+        setDatosOperativos((prev) => ({
+          ...prev,
+          estatus: nuevoEstatus,
+          conductor: data.conductor_asignado || prev.conductor,
+          ruta: data.ruta_asignada || prev.ruta,
+          tarjeton: data.tarjeton || prev.tarjeton,
         }));
+        setSelectedEstado(nuevoEstatus);
+        queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
       } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'No se pudo cambiar el estatus', confirmButtonColor: '#601a2a' });
+        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
     } catch (error) {
-      Swal.fire({ icon: 'error', title: 'Error', text: 'Problema de conexión al servidor', confirmButtonColor: '#601a2a' });
+      console.error(error);
+      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
     } finally {
       setCambiandoEstatus(false);
     }
   };
 
+  const confirmModalEstatus = async () => {
+    if (!modalEstatusConductor || !modalEstatusRuta) return;
 
+    setModalEstatusOpen(false);
+    setCambiandoEstatus(true);
+    const matchNumeros = selectedOption.match(/\d+/);
+    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+
+    const foundConductor = (conductoresDisponibles || CONDUCTORES || []).find(c => c.id.toString() === modalEstatusConductor);
+
+    let payloadUpdate = {
+      numero_eco: numeroLimpio,
+      tipo: tipoTransporte,
+      estatus: modalEstatusNuevo,
+      motivo_estatus: null,
+      nombre_conductor: foundConductor ? foundConductor.nombre : '',
+      numero_tarjeton: modalEstatusConductor,
+      ruta: modalEstatusRuta
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(payloadUpdate),
+      });
+
+      const data = await res.json();
+      if (res.ok && (data.success || data.status === 'success')) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Estatus Actualizado',
+          text: `La unidad cambió a operación.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        
+        setDatosOperativos((prev) => ({
+          ...prev,
+          estatus: modalEstatusNuevo,
+          conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || prev.conductor),
+          ruta: modalEstatusRuta || data.ruta_asignada || prev.ruta,
+          tarjeton: modalEstatusConductor || data.tarjeton || prev.tarjeton,
+        }));
+        setSelectedEstado(modalEstatusNuevo);
+        queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
+      } else {
+        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
+    } finally {
+      setCambiandoEstatus(false);
+    }
+  };
 
   return (
     <div className="layout-container">
@@ -546,7 +657,6 @@ export default function DetalleUnidad() {
         eyebrow={`${configActual.title} / Detalle de Unidad`}
       />
       <main className="main-content">
-        {/* Selectores de estado + ficha de información agrupados en un solo panel */}
         <div className="unit-control-panel">
           <div className="unit-control-panel__selectors">
             <UnitSelector
@@ -607,6 +717,7 @@ export default function DetalleUnidad() {
                 handleSaveHoras={handleSaveHoras}
                 handleCambiarEstatus={handleCambiarEstatus}
                 cambiandoEstatus={cambiandoEstatus}
+                conductoresDisponibles={conductoresDisponibles}
               />
             ) : (
               <div className="info-panel__placeholder">
@@ -615,9 +726,153 @@ export default function DetalleUnidad() {
             )}
           </div>
         </div>
-
-
       </main>
+
+      {modalEstatusOpen && (
+        <div className="custom-modal-overlay" onClick={() => setModalEstatusOpen(false)}>
+          <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="custom-modal-title">Asignar Conductor y Ruta</h2>
+            
+            <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
+                Conductor Disponible
+              </label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <button
+                  type="button"
+                  className="interactive-input"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
+                    border: modalEstatusConductorDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
+                    color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
+                  }}
+                  onClick={() => { setModalEstatusConductorDropdown(!modalEstatusConductorDropdown); setModalEstatusRutaDropdown(false); }}
+                >
+                  <span>
+                    {modalEstatusConductor
+                      ? (() => {
+                          const found = (conductoresDisponibles || []).find(c => c.id.toString() === modalEstatusConductor);
+                          return found ? `${found.nombre} (${found.id})` : 'Seleccione un conductor...';
+                        })()
+                      : 'Seleccione un conductor...'}
+                  </span>
+                  <svg
+                    className="arrow-icon"
+                    style={{
+                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
+                      transform: modalEstatusConductorDropdown ? 'rotate(180deg)' : 'none',
+                      color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'inherit'
+                    }}
+                    fill="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                  </svg>
+                </button>
+                {modalEstatusConductorDropdown && (
+                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
+                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                      <button
+                        type="button"
+                        className="dropdown-menu__item"
+                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                        onClick={() => { setModalEstatusConductor(''); setModalEstatusConductorDropdown(false); }}
+                      >
+                        Seleccione un conductor...
+                      </button>
+                      {(conductoresDisponibles || []).map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="dropdown-menu__item"
+                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                          onClick={() => { setModalEstatusConductor(c.id.toString()); setModalEstatusConductorDropdown(false); }}
+                        >
+                          {c.nombre} ({c.id})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
+                Ruta
+              </label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <button
+                  type="button"
+                  className="interactive-input"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
+                    border: modalEstatusRutaDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
+                    color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
+                  }}
+                  onClick={() => { setModalEstatusRutaDropdown(!modalEstatusRutaDropdown); setModalEstatusConductorDropdown(false); }}
+                >
+                  <span>{modalEstatusRuta || 'Seleccione una ruta...'}</span>
+                  <svg
+                    className="arrow-icon"
+                    style={{
+                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
+                      transform: modalEstatusRutaDropdown ? 'rotate(180deg)' : 'none',
+                      color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'inherit'
+                    }}
+                    fill="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                  </svg>
+                </button>
+                {modalEstatusRutaDropdown && (
+                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
+                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                      <button
+                        type="button"
+                        className="dropdown-menu__item"
+                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                        onClick={() => { setModalEstatusRuta(''); setModalEstatusRutaDropdown(false); }}
+                      >
+                        Seleccione una ruta...
+                      </button>
+                      {(rutasOpciones || []).map(r => (
+                        <button
+                          key={r}
+                          type="button"
+                          className="dropdown-menu__item"
+                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                          onClick={() => { setModalEstatusRuta(r); setModalEstatusRutaDropdown(false); }}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="custom-modal-actions">
+              <button
+                type="button"
+                className="custom-modal-btn-save"
+                onClick={confirmModalEstatus}
+                disabled={!modalEstatusConductor || !modalEstatusRuta}
+                style={{ opacity: (!modalEstatusConductor || !modalEstatusRuta) ? 0.5 : 1, cursor: (!modalEstatusConductor || !modalEstatusRuta) ? 'not-allowed' : 'pointer' }}
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                className="custom-modal-btn-cancel"
+                onClick={() => setModalEstatusOpen(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

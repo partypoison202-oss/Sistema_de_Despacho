@@ -665,12 +665,34 @@ class DespachoController extends Controller
             ], 404);
         }
 
+        $updateData = [
+            'estatus' => $nuevoEstatus,
+            'motivo_estatus' => $motivoEstatus
+        ];
+
+        // Liberar campos si pasa a mantenimiento o reserva
+        if (in_array($nuevoEstatus, ['mantenimiento', 'reserva'])) {
+            $updateData['nombre_conductor'] = null;
+            $updateData['numero_tarjeton'] = null;
+            $updateData['ruta'] = null;
+        }
+
+        // Si pasa a operacion, permitir actualizar conductor y ruta
+        if ($nuevoEstatus === 'operacion') {
+            if ($request->has('nombre_conductor')) {
+                $updateData['nombre_conductor'] = $request->nombre_conductor;
+            }
+            if ($request->has('numero_tarjeton')) {
+                $updateData['numero_tarjeton'] = $request->numero_tarjeton;
+            }
+            if ($request->has('ruta')) {
+                $updateData['ruta'] = $request->ruta;
+            }
+        }
+
         DB::table('informacion_operativa')
             ->where('id', $registroOperativo->id)
-            ->update([
-                'estatus' => $nuevoEstatus,
-                'motivo_estatus' => $motivoEstatus
-            ]);
+            ->update($updateData);
 
         return response()->json([
             'status' => 'success',
