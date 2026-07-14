@@ -1,16 +1,28 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ROUTES, getPositionOnRoute, getRouteEndpoints } from './config/patioRoutes';
 import './PatioDashboard.css';
 
-const WAYPOINT_CENTER = { top: '48%', left: '45%' };
-const ENTRANCE_GATE = { top: '22%', left: '20%' }; // Entrada por el cruce peatonal (más arriba)
-const ENTRANCE_CURVE = { top: '35%', left: '32%' }; // Curva ajustada para no salirse del pavimento
-const EXIT_GATE = { top: '15%', left: '26%' }; // Salida entre la caseta y el edificio café
-const EXIT_CURVE = { top: '28%', left: '34%' }; // Curva para enfilarse a la salida entre los edificios
+// --- Cálculo de rumbo entre dos puntos {top,left} en % ---------------------
+const toNum = (v) => parseFloat(v);
 
-// --- CONFIGURACIÓN DE ZONAS (ROJA: estática, VERDE: dinámica) ---
+const angleBetween = (from, to) => {
+  if (!from || !to) return null;
+  const dx = toNum(to.left) - toNum(from.left);
+  const dy = toNum(to.top) - toNum(from.top);
+  if (dx === 0 && dy === 0) return null;
+  return (Math.atan2(dx, -dy) * 180) / Math.PI;
+};
+
+// --- Interpolación lineal entre dos puntos {top, left} --------------------
+const lerpPoint = (p1, p2, t) => ({
+  top: `${toNum(p1.top) + (toNum(p2.top) - toNum(p1.top)) * t}%`,
+  left: `${toNum(p1.left) + (toNum(p2.left) - toNum(p1.left)) * t}%`,
+});
+
+// --- CONFIGURACIÓN DE ZONAS ------------------------------------------------
 const buildRowSlots = (colA, colB, n, angle) => {
   const slots = [];
   [colA, colB].forEach((c) => {
@@ -26,22 +38,22 @@ const buildRowSlots = (colA, colB, n, angle) => {
   return slots;
 };
 
-// Zonas rojas (RESERVA) — sin cambios
-const slotsZonaRoja1 = buildRowSlots(
+// Fila superior: reserva CON conductor
+const slotsReservaConConductor = buildRowSlots(
   { sTop: 20.29, sLeft: 75.76, eTop: 33.66, eLeft: 53.09 },
   { sTop: 26.11, sLeft: 77.32, eTop: 39.48, eLeft: 54.65 },
   15,
   -21.7
 );
-const slotsZonaRoja2 = buildRowSlots(
+// Fila inferior: reserva SIN conductor
+const slotsReservaSinConductor = buildRowSlots(
   { sTop: 34.06, sLeft: 79.36, eTop: 46.43, eLeft: 56.60 },
   { sTop: 39.93, sLeft: 80.82, eTop: 52.31, eLeft: 58.05 },
   15,
   -20.2
 );
 
-// --- Zona verde (MANTENIMIENTO) — fila base es la de ABAJO (verde), se llena primero;
-// las siguientes filas (roja, luego azul) se generan hacia arriba ---
+// Zona Verde (mantenimiento)
 const ZONA_VERDE_FILA_BASE = { sTop: 61.0, sLeft: 87.0, eTop: 75.5, eLeft: 62.0 };
 const ZONA_VERDE_ANGLE = -20.3;
 const ZONA_VERDE_CAJONES_POR_FILA = 10;
@@ -72,55 +84,73 @@ const buildZonaVerdeSlots = (totalUnidades) => {
   return slots;
 };
 
-// Datos mock (por tipo de flota)
-const mockUnitsData = {
-  urbanus: [
-    { numero_eco: '401', tarjeton: 'TJ-401', estatus: 'mantenimiento' },
-    { numero_eco: '404', tarjeton: 'TJ-404', estatus: 'reserva' },
-    { numero_eco: '405', tarjeton: 'TJ-405', estatus: 'mantenimiento' },
-    { numero_eco: '002', tarjeton: 'TJ-102', estatus: 'reserva' },
-    { numero_eco: '003', tarjeton: 'TJ-103', estatus: 'operacion' },
-    { numero_eco: '006', tarjeton: 'TJ-106', estatus: 'reserva' },
-    { numero_eco: '007', tarjeton: 'TJ-107', estatus: 'operacion' },
-    { numero_eco: '008', tarjeton: 'TJ-108', estatus: 'reserva' },
-    { numero_eco: '009', tarjeton: 'TJ-109', estatus: 'reserva' },
-    { numero_eco: '010', tarjeton: 'TJ-110', estatus: 'mantenimiento' },
-  ],
-  vagoneta: [
-    { numero_eco: '401', tarjeton: 'TJ-401', estatus: 'reserva' },
-    { numero_eco: '404', tarjeton: 'TJ-404', estatus: 'reserva' },
-    { numero_eco: '405', tarjeton: 'TJ-405', estatus: 'mantenimiento' },
-    { numero_eco: '102', tarjeton: 'TJ-202', estatus: 'mantenimiento' },
-    { numero_eco: '103', tarjeton: 'TJ-203', estatus: 'operacion' },
-  ],
-  zafiro: [
-    { numero_eco: '401', tarjeton: 'TJ-401', estatus: 'mantenimiento' },
-    { numero_eco: '404', tarjeton: 'TJ-404', estatus: 'reserva' },
-    { numero_eco: '405', tarjeton: 'TJ-405', estatus: 'mantenimiento' },
-    { numero_eco: '202', tarjeton: 'TJ-302', estatus: 'mantenimiento' },
-    { numero_eco: '203', tarjeton: 'TJ-303', estatus: 'operacion' },
-  ],
-  orion: [
-    { numero_eco: '401', tarjeton: 'TJ-401', estatus: 'reserva' },
-    { numero_eco: '404', tarjeton: 'TJ-404', estatus: 'reserva' },
-    { numero_eco: '405', tarjeton: 'TJ-405', estatus: 'mantenimiento' },
-    { numero_eco: '302', tarjeton: 'TJ-402', estatus: 'mantenimiento' },
-    { numero_eco: '303', tarjeton: 'TJ-403', estatus: 'operacion' },
-  ],
+// --- Señalamientos de zona (ubicados en los costados) ---
+const ZONE_LABELS = [
+  { id: 'reserva-conductor', text: 'Reserva', top: '30%', left: '50%', color: '#1a7de0' },
+  { id: 'reserva-sin-conductor', text: 'Sin conductor', top: '45%', left: '52%', color: '#d4b400' },
+  { id: 'mantenimiento', text: 'Mantenimiento', top: '68%', left: '50%', color: '#c62828' },
+];
+
+// --- Función para detectar si una unidad tiene conductor ------------------
+const unitHasConductor = (u) => {
+  const conductorValue = u.nombre_conductor ?? u.conductor ?? u.conductor_nombre ?? u.conductorNombre;
+  if (!conductorValue) return false;
+  if (typeof conductorValue === 'string') {
+    const trimmed = conductorValue.trim();
+    return trimmed.length > 0 && trimmed !== 'No asignado' && trimmed !== 'Sin asignar' && trimmed !== 'N/A';
+  }
+  if (typeof conductorValue === 'object') return true;
+  if (typeof conductorValue === 'boolean') return conductorValue;
+  if (typeof conductorValue === 'number') return conductorValue > 0;
+  return false;
 };
 
-const getMockDetails = (eco, status) => ({
-  ruta: status === 'operacion' ? 'Ruta 10 - Troncal Central' : 'Sin ruta activa',
-  nombre_conductor: `Conductor Económico ${eco}`,
-  numero_tarjeton: `TJ-${eco}`,
-  estatus: status,
-  falla: status === 'mantenimiento' ? 'Revisión técnica periódica' : null,
-  corridas: status === 'operacion' ? 6 : 0,
-  ciclo: 'Normal',
-  motivo: status === 'mantenimiento' ? 'Ajuste de Frenos / Motor' : 'Resguardo General',
-  hora_programada: '06:40 AM',
-});
+// --- Función para fusionar datos de incoming y prev, preservando campos ---
+// Se saca fuera del componente (no depende de nada del render) para poder
+// reutilizarla de forma consistente en todos los bloques de la lógica de
+// transición ANTES de decidir a qué ruta/zona va cada unidad.
+const mergeUnitData = (incoming, prev) => {
+  const merged = { ...incoming };
+  if (prev) {
+    // ⚠️ IMPORTANTE: usamos unitHasConductor (no solo ?? ) para decidir el
+    // valor del conductor, porque algunos endpoints devuelven "" (string
+    // vacío) o "Sin asignar" en vez de null/undefined cuando no traen el
+    // dato. Con ?? solo, esos valores "vacíos pero truthy-en-JS-check"
+    // ganan sobre el valor previo real y la unidad pierde el conductor.
+    //
+    // Regla: si el valor de incoming, evaluado con unitHasConductor, SÍ
+    // representa un conductor real, lo usamos. Si no, y prev sí tenía uno
+    // real, preservamos el de prev. Si ninguno tiene uno real, no hay
+    // conductor (correcto).
+    const incomingTieneConductor = unitHasConductor(incoming);
+    const prevTieneConductor = unitHasConductor(prev);
 
+    if (incomingTieneConductor) {
+      merged.nombre_conductor = incoming.nombre_conductor ?? incoming.conductor ?? incoming.conductor_nombre;
+      merged.conductor = incoming.conductor ?? merged.conductor;
+      merged.conductor_nombre = incoming.conductor_nombre ?? merged.conductor_nombre;
+    } else if (prevTieneConductor) {
+      merged.nombre_conductor = prev.nombre_conductor ?? prev.conductor ?? prev.conductor_nombre;
+      merged.conductor = prev.conductor ?? merged.conductor;
+      merged.conductor_nombre = prev.conductor_nombre ?? merged.conductor_nombre;
+    }
+    // Si ninguno tiene conductor real, dejamos lo que vino en incoming tal cual
+    // (probablemente "", null, "No asignado", etc.) para no inventar datos.
+
+    merged.tarjeton = incoming.tarjeton ?? prev.tarjeton;
+    merged.ruta = incoming.ruta ?? prev.ruta;
+    // También puede haber otros campos que la API no devuelve en listar
+    // Si el prev tiene campos adicionales, los preservamos
+    for (const key of Object.keys(prev)) {
+      if (!(key in merged) || merged[key] === undefined || merged[key] === null) {
+        merged[key] = prev[key];
+      }
+    }
+  }
+  return merged;
+};
+
+// --- Componente principal -----------------------------------------------
 const PatioDashboard = () => {
   const fleets = [
     { id: 'all', label: 'TODAS' },
@@ -132,16 +162,17 @@ const PatioDashboard = () => {
 
   const [selectedFleet, setSelectedFleet] = useState('all');
   const [displayUnits, setDisplayUnits] = useState([]);
+  const [unitSlots, setUnitSlots] = useState(new Map());
   const [unitDetailsCache, setUnitDetailsCache] = useState({});
   const [hoveredUnitEco, setHoveredUnitEco] = useState(null);
-  const [isOffline, setIsOffline] = useState(false);
-  
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const hideControlsTimerRef = useRef(null);
 
   const planoRef = useRef(null);
 
+  // --- Fullscreen handlers ---------------------------------------------
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFull = !!document.fullscreenElement;
@@ -172,34 +203,27 @@ const PatioDashboard = () => {
     }
   };
 
+  // --- Data fetching ----------------------------------------------------
   const fetchAllUnitsData = async () => {
     const token = localStorage.getItem('token');
     const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
-    
-    const promises = fleetIds.map(async (id) => {
-        const response = await fetch(`${API_BASE}/api/unidades/listar/${id}`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-        });
-        if (response.ok) {
-           const data = await response.json();
-           return data.map(u => ({ ...u, fleetId: id }));
-        }
-        return [];
-    });
-    
-    const results = await Promise.all(promises);
-    const allData = results.flat();
 
-    if (allData.length > 0) {
-      setIsOffline(false);
-      return allData;
-    } else {
-      setIsOffline(true);
-      return fleetIds.flatMap((id) => (mockUnitsData[id] || []).map(u => ({ ...u, fleetId: id })));
-    }
+    const promises = fleetIds.map(async (id) => {
+      const response = await fetch(`${API_BASE}/api/unidades/listar/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.map((u) => ({ ...u, fleetId: id }));
+      }
+      return [];
+    });
+
+    const results = await Promise.all(promises);
+    return results.flat();
   };
 
   const { data: allApiUnits = [], isLoading: loading, refetch: forceFetchUnits } = useQuery({
@@ -211,36 +235,12 @@ const PatioDashboard = () => {
 
   const apiUnits = useMemo(() => {
     if (selectedFleet === 'all') return allApiUnits;
-    return allApiUnits.filter(u => u.fleetId === selectedFleet);
+    return allApiUnits.filter((u) => u.fleetId === selectedFleet);
   }, [allApiUnits, selectedFleet]);
 
-  // Alias para mantener la funcion si se llama en un boton
   const fetchUnits = () => forceFetchUnits();
 
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!isOffline) return;
-    const interval = setInterval(() => {
-      queryClient.setQueryData(['unidades-patio-all'], (prev) => {
-        if (!prev || prev.length === 0) return prev;
-        const randomIndex = Math.floor(Math.random() * prev.length);
-        return prev.map((u, i) => {
-          if (i === randomIndex) {
-            const nextStatus =
-              u.estatus === 'operacion'
-                ? Math.random() > 0.4 ? 'reserva' : 'mantenimiento'
-                : 'operacion';
-            return { ...u, estatus: nextStatus };
-          }
-          return u;
-        });
-      });
-    }, 12000);
-    return () => clearInterval(interval);
-  }, [isOffline, queryClient]);
-
-  // Precargar detalles de unidades en caché
+  // --- Cache de detalles ----------------------------------------------
   useEffect(() => {
     if (apiUnits && apiUnits.length > 0) {
       setUnitDetailsCache((prev) => {
@@ -248,7 +248,7 @@ const PatioDashboard = () => {
         apiUnits.forEach((u) => {
           newCache[u.numero_eco] = {
             ruta: u.ruta,
-            nombre_conductor: u.nombre_conductor,
+            nombre_conductor: u.nombre_conductor || u.conductor || u.conductor_nombre,
             numero_tarjeton: u.tarjeton,
             estatus: u.estatus,
             falla: u.falla,
@@ -259,16 +259,53 @@ const PatioDashboard = () => {
     }
   }, [apiUnits]);
 
+  // --- Función para asignar slots a unidades en idle --------------------
+  const assignSlotsToUnits = (idleUnits) => {
+    const reserveCon = idleUnits.filter((u) => u.estatus === 'reserva' && unitHasConductor(u));
+    const reserveSin = idleUnits.filter((u) => u.estatus === 'reserva' && !unitHasConductor(u));
+    const mantenimiento = idleUnits.filter((u) => u.estatus === 'mantenimiento');
+
+    reserveCon.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
+    reserveSin.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
+    mantenimiento.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
+
+    const slotsVerde = buildZonaVerdeSlots(mantenimiento.length);
+    const coordsMap = new Map();
+
+    const assign = (list, slotList) => {
+      const flat = slotList.flat();
+      list.forEach((u, i) => {
+        const slot = flat[i % flat.length];
+        coordsMap.set(u.numero_eco, slot);
+      });
+    };
+
+    assign(reserveCon, [slotsReservaConConductor]);
+    assign(reserveSin, [slotsReservaSinConductor]);
+    assign(mantenimiento, [slotsVerde]);
+
+    return coordsMap;
+  };
+
+  // --- Asignar slots ANTES del paint usando useLayoutEffect -------------
+  useLayoutEffect(() => {
+    const idleUnits = displayUnits.filter(
+      (u) => u.transitionState === 'idle' && (u.estatus === 'reserva' || u.estatus === 'mantenimiento')
+    );
+    const coordsMap = assignSlotsToUnits(idleUnits);
+    setUnitSlots(coordsMap);
+  }, [displayUnits]);
+
+  // --- Lógica de transiciones (con preservación de campos) --------------
   const lastFleetRef = useRef(selectedFleet);
   const isFirstLoadRef = useRef(true);
 
-  // Lógica de transiciones
   useEffect(() => {
     if (!apiUnits || apiUnits.length === 0) return;
 
     const isFleetChange = lastFleetRef.current !== selectedFleet;
     const isInitial = isFirstLoadRef.current || isFleetChange;
-    
+
     if (isInitial) {
       isFirstLoadRef.current = false;
       lastFleetRef.current = selectedFleet;
@@ -284,19 +321,31 @@ const PatioDashboard = () => {
         const inBase = incoming.estatus === 'reserva' || incoming.estatus === 'mantenimiento';
 
         if (!prev) {
+          // Unidad nueva
           if (inBase) {
             if (isInitial) {
+              // Carga inicial: idle con datos fusionados (no hay prev, pero usamos incoming)
               nextDisplay.push({
                 ...incoming,
                 transitionState: 'idle',
                 opacity: 1,
               });
             } else {
+              // Entra a base desde operación
+              // OJO: no hay prev, así que no hay nada que fusionar; usamos incoming tal cual.
+              const tieneConductor = unitHasConductor(incoming);
+              const routeId = incoming.estatus === 'mantenimiento'
+                ? 'operacionToMantenimiento'
+                : tieneConductor
+                  ? 'operacionToReservaConductor'
+                  : 'operacionToReservaSinConductor';
               nextDisplay.push({
                 ...incoming,
-                transitionState: 'entering-spawn',
-                opacity: 0,
-                posOverride: ENTRANCE_GATE,
+                transitionState: 'entering',
+                phase: 'on-route',
+                opacity: 1,
+                routeId: routeId,
+                progress: 0,
               });
             }
           }
@@ -304,36 +353,136 @@ const PatioDashboard = () => {
           const prevInBase = prev.estatus === 'reserva' || prev.estatus === 'mantenimiento';
 
           if (prevInBase && !inBase) {
-            nextDisplay.push({
-              ...prev,
-              estatus: 'operacion', // Mantener visualmente en operacion mientras sale
-              transitionState: 'exiting-to-waypoint',
-              opacity: 1,
-              posOverride: WAYPOINT_CENTER,
-              transitionSpeed: '1.5s',
-              transitionEasing: 'linear',
-            });
+            // Sale de base hacia operación
+            let routeId;
+            if (prev.estatus === 'mantenimiento') {
+              routeId = 'mantenimientoToOperacion';
+            } else {
+              const tieneConductor = unitHasConductor(prev);
+              routeId = tieneConductor ? 'reservaConductorToOperacion' : 'reservaSinConductorToOperacion';
+            }
+            const endpoints = getRouteEndpoints(routeId);
+            if (!endpoints) return;
+            const currentSlot = unitSlots.get(prev.numero_eco);
+            // Fusionar datos: usar incoming (que tiene estatus=operacion) pero preservar campos de prev
+            const merged = mergeUnitData(incoming, prev);
+            if (currentSlot) {
+              nextDisplay.push({
+                ...merged,
+                estatus: 'operacion', // asegurar estatus de salida
+                transitionState: 'exiting',
+                phase: 'moving-to-start',
+                opacity: 1,
+                routeId: routeId,
+                progress: 0,
+                startPos: currentSlot,
+                endPos: endpoints.start,
+              });
+            } else {
+              nextDisplay.push({
+                ...merged,
+                estatus: 'operacion',
+                transitionState: 'exiting',
+                phase: 'on-route',
+                opacity: 1,
+                routeId: routeId,
+                progress: 0,
+              });
+            }
           } else if (!prevInBase && inBase) {
+            // Entra a base desde operación
+            // ✅ FIX: fusionar ANTES de decidir si tiene conductor. El endpoint
+            // "listar" puede no traer nombre_conductor en este ciclo puntual;
+            // si no fusionamos primero, unitHasConductor(incoming) da false
+            // aunque el conductor siga asignado, y la unidad se manda siempre
+            // a "reserva sin conductor".
+            const merged = mergeUnitData(incoming, prev);
+            const tieneConductor = unitHasConductor(merged);
+            const routeId = incoming.estatus === 'mantenimiento'
+              ? 'operacionToMantenimiento'
+              : tieneConductor
+                ? 'operacionToReservaConductor'
+                : 'operacionToReservaSinConductor';
             nextDisplay.push({
-              ...incoming,
-              transitionState: 'entering-spawn',
-              opacity: 0,
-              posOverride: ENTRANCE_GATE,
+              ...merged,
+              transitionState: 'entering',
+              phase: 'on-route',
+              opacity: 1,
+              routeId: routeId,
+              progress: 0,
             });
           } else if (inBase) {
-            // Mantener estado actual de animación si ya existe
-            nextDisplay.push({
-              ...incoming,
-              transitionState: prev.transitionState?.startsWith('entering') ? prev.transitionState : 'idle',
-              opacity: prev.transitionState?.startsWith('entering-spawn') ? 0 : 1,
-              posOverride: prev.posOverride,
-            });
+            // Ambos en base: verificar cambio de estatus
+            if (prev.estatus !== incoming.estatus) {
+              // Movimiento interno
+              // ✅ FIX: mismo caso — fusionar antes de leer el conductor.
+              const merged = mergeUnitData(incoming, prev);
+              const tieneConductor = unitHasConductor(merged);
+              const isMantenimiento = incoming.estatus === 'mantenimiento';
+              let routeId;
+              if (isMantenimiento) {
+                routeId = tieneConductor ? 'reservaConductorToMantenimiento' : 'reservaSinConductorToMantenimiento';
+              } else {
+                routeId = tieneConductor ? 'mantenimientoToReservaConductor' : 'mantenimientoToReservaSinConductor';
+              }
+              const endpoints = getRouteEndpoints(routeId);
+              if (!endpoints) return;
+              const currentSlot = unitSlots.get(prev.numero_eco);
+              if (currentSlot) {
+                nextDisplay.push({
+                  ...merged,
+                  transitionState: 'moving-within-base',
+                  phase: 'moving-to-start',
+                  opacity: 1,
+                  routeId: routeId,
+                  progress: 0,
+                  startPos: currentSlot,
+                  endPos: endpoints.start,
+                });
+              } else {
+                nextDisplay.push({
+                  ...merged,
+                  transitionState: 'moving-within-base',
+                  phase: 'on-route',
+                  opacity: 1,
+                  routeId: routeId,
+                  progress: 0,
+                });
+              }
+            } else {
+              // Sin cambio: mantener estado, pero si terminó movimiento, pasar a idle
+              let newState = prev.transitionState;
+              let newPhase = prev.phase;
+              let newProgress = prev.progress;
+              if (prev.transitionState === 'moving-within-base' && prev.phase === 'on-route' && prev.progress >= 1) {
+                newState = 'idle';
+                newPhase = null;
+                newProgress = undefined;
+              } else if (prev.transitionState === 'entering' && prev.phase === 'on-route' && prev.progress >= 1) {
+                newState = 'idle';
+                newPhase = null;
+                newProgress = undefined;
+              }
+              // Fusionar para preservar campos (aunque no haya cambio, puede que incoming no traiga todo)
+              const merged = mergeUnitData(incoming, prev);
+              nextDisplay.push({
+                ...merged,
+                transitionState: newState,
+                phase: newPhase,
+                opacity: 1,
+                routeId: prev.routeId,
+                progress: newProgress,
+                startPos: prev.startPos,
+                endPos: prev.endPos,
+              });
+            }
           }
         }
       });
 
+      // Unidades en salida que ya no están en API
       prevUnits.forEach((prev) => {
-        if (prev.transitionState?.startsWith('exiting') && !incomingMap.has(prev.numero_eco)) {
+        if (prev.transitionState === 'exiting' && !incomingMap.has(prev.numero_eco)) {
           nextDisplay.push(prev);
         }
       });
@@ -342,119 +491,70 @@ const PatioDashboard = () => {
     });
   }, [apiUnits]);
 
-  // Timers para entering (Entrando al patio)
+  // --- Bucle de animación ------------------------------------------------
   useEffect(() => {
-    const spawning = displayUnits.filter((u) => u.transitionState === 'entering-spawn');
-    if (spawning.length > 0) {
-      const timer = setTimeout(() => {
-        setDisplayUnits((prev) =>
-          prev.map((u) =>
-            u.transitionState === 'entering-spawn'
-              ? { ...u, transitionState: 'entering-curve', opacity: 1, posOverride: ENTRANCE_CURVE, transitionSpeed: '1.5s', transitionEasing: 'linear' }
-              : u
-          )
-        );
-      }, 50);
-      return () => clearTimeout(timer);
-    }
+    let frameId;
+    const step = () => {
+      setDisplayUnits((prev) =>
+        prev.map((u) => {
+          if (!u.phase) return u;
+          if (u.progress === undefined) return u;
+          if (u.progress >= 1) return u;
+          const newProgress = Math.min(u.progress + 0.005, 1);
+          return { ...u, progress: newProgress };
+        })
+      );
+      frameId = requestAnimationFrame(step);
+    };
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  // --- Cambios de fase al completar una etapa --------------------------
+  useEffect(() => {
+    const toProcess = displayUnits.filter((u) => u.progress >= 1 && u.phase);
+    if (toProcess.length === 0) return;
+
+    setDisplayUnits((prev) =>
+      prev.map((u) => {
+        if (u.progress < 1 || !u.phase) return u;
+
+        if (u.phase === 'moving-to-start') {
+          return {
+            ...u,
+            phase: 'on-route',
+            progress: 0,
+            startPos: null,
+            endPos: null,
+          };
+        }
+
+        if (u.phase === 'on-route') {
+          if (u.transitionState === 'exiting') {
+            return null;
+          } else if (u.transitionState === 'entering' || u.transitionState === 'moving-within-base') {
+            return {
+              ...u,
+              transitionState: 'idle',
+              phase: null,
+              progress: undefined,
+              routeId: null,
+              startPos: null,
+              endPos: null,
+            };
+          }
+        }
+
+        return u;
+      }).filter(Boolean)
+    );
   }, [displayUnits]);
 
-  useEffect(() => {
-    const curving = displayUnits.filter((u) => u.transitionState === 'entering-curve');
-    if (curving.length > 0) {
-      const timer = setTimeout(() => {
-        setDisplayUnits((prev) =>
-          prev.map((u) =>
-            u.transitionState === 'entering-curve'
-              ? { ...u, transitionState: 'entering-waypoint', posOverride: WAYPOINT_CENTER, transitionSpeed: '1.5s', transitionEasing: 'linear' }
-              : u
-          )
-        );
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [displayUnits]);
-
-  useEffect(() => {
-    const waypointing = displayUnits.filter((u) => u.transitionState === 'entering-waypoint');
-    if (waypointing.length > 0) {
-      const timer = setTimeout(() => {
-        setDisplayUnits((prev) =>
-          prev.map((u) =>
-            u.transitionState === 'entering-waypoint'
-              ? { ...u, transitionState: 'entering-parking', posOverride: null, transitionSpeed: '1.5s', transitionEasing: 'ease-out' }
-              : u
-          )
-        );
-      }, 1500); 
-      return () => clearTimeout(timer);
-    }
-  }, [displayUnits]);
-
-  useEffect(() => {
-    const parking = displayUnits.filter((u) => u.transitionState === 'entering-parking');
-    if (parking.length > 0) {
-      const timer = setTimeout(() => {
-        setDisplayUnits((prev) =>
-          prev.map((u) =>
-            u.transitionState === 'entering-parking'
-              ? { ...u, transitionState: 'idle' }
-              : u
-          )
-        );
-      }, 1500); 
-      return () => clearTimeout(timer);
-    }
-  }, [displayUnits]);
-
-  // Timers para exiting (Saliendo del patio a operacion)
-  useEffect(() => {
-    const toWaypoint = displayUnits.filter((u) => u.transitionState === 'exiting-to-waypoint');
-    if (toWaypoint.length > 0) {
-      const timer = setTimeout(() => {
-        setDisplayUnits((prev) =>
-          prev.map((u) =>
-            u.transitionState === 'exiting-to-waypoint'
-              ? { ...u, transitionState: 'exiting-to-curve', posOverride: EXIT_CURVE, transitionSpeed: '1.5s', transitionEasing: 'linear' }
-              : u
-          )
-        );
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [displayUnits]);
-
-  useEffect(() => {
-    const toCurve = displayUnits.filter((u) => u.transitionState === 'exiting-to-curve');
-    if (toCurve.length > 0) {
-      const timer = setTimeout(() => {
-        setDisplayUnits((prev) =>
-          prev.map((u) =>
-            u.transitionState === 'exiting-to-curve'
-              ? { ...u, transitionState: 'exiting-to-gate', posOverride: EXIT_GATE, opacity: 0, transitionSpeed: '1.5s', transitionEasing: 'ease-out' }
-              : u
-          )
-        );
-      }, 1500); 
-      return () => clearTimeout(timer);
-    }
-  }, [displayUnits]);
-
-  useEffect(() => {
-    const toGate = displayUnits.filter((u) => u.transitionState === 'exiting-to-gate');
-    if (toGate.length > 0) {
-      const timer = setTimeout(() => {
-        setDisplayUnits((prev) => prev.filter((u) => u.transitionState !== 'exiting-to-gate'));
-      }, 1500); 
-      return () => clearTimeout(timer);
-    }
-  }, [displayUnits]);
-
+  // --- Handlers de hover -----------------------------------------------
   const handleMouseEnterUnit = async (eco, status) => {
     setHoveredUnitEco(eco);
     if (unitDetailsCache[eco] && unitDetailsCache[eco].nombre_conductor !== 'No asignado' && unitDetailsCache[eco].nombre_conductor !== undefined) return;
-    
-    // Fallback if not loaded in cache
+
     const token = localStorage.getItem('token');
     try {
       const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanus';
@@ -466,22 +566,18 @@ const PatioDashboard = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setUnitDetailsCache((prev) => ({ ...prev, [eco]: {
-          ...prev[eco],
-          ...data,
-          nombre_conductor: data.conductor,
-          numero_tarjeton: data.tarjeton
-        }}));
-      } else {
-        throw new Error('API Details Error');
-      }
-    } catch (error) {
-      if (!unitDetailsCache[eco]) {
         setUnitDetailsCache((prev) => ({
           ...prev,
-          [eco]: getMockDetails(eco, status),
+          [eco]: {
+            ...prev[eco],
+            ...data,
+            nombre_conductor: data.conductor || data.nombre_conductor,
+            numero_tarjeton: data.tarjeton,
+          },
         }));
       }
+    } catch (error) {
+      console.warn('Error fetching unit details:', error);
     }
   };
 
@@ -489,34 +585,108 @@ const PatioDashboard = () => {
     setHoveredUnitEco(null);
   };
 
-  // --- ASIGNACIÓN DE COORDENADAS ---
-  const parkedUnits = displayUnits.filter(
-    (u) => (u.estatus === 'reserva' || u.estatus === 'mantenimiento') && u.transitionState !== 'exiting'
-  );
+  // --- Render de una unidad --------------------------------------------
+  const renderUnit = (u) => {
+    let coords = null;
+    let angle = 0;
 
-  const reserveUnits = parkedUnits.filter((u) => u.estatus === 'reserva');
-  const maintenanceUnits = parkedUnits.filter((u) => u.estatus === 'mantenimiento');
+    if (u.phase === 'moving-to-start' && u.startPos && u.endPos) {
+      const pos = lerpPoint(u.startPos, u.endPos, u.progress);
+      coords = { top: pos.top, left: pos.left };
+      const dx = toNum(u.endPos.left) - toNum(u.startPos.left);
+      const dy = toNum(u.endPos.top) - toNum(u.startPos.top);
+      angle = (Math.atan2(dx, -dy) * 180) / Math.PI;
+    } else if (u.phase === 'on-route' && u.routeId) {
+      const route = ROUTES[u.routeId];
+      if (route) {
+        const pos = getPositionOnRoute(route, u.progress);
+        if (pos) {
+          coords = { top: pos.top, left: pos.left };
+          const lookAhead = Math.min(u.progress + 0.01, 1);
+          const posAhead = getPositionOnRoute(route, lookAhead);
+          if (posAhead) {
+            const dx = toNum(posAhead.left) - toNum(pos.left);
+            const dy = toNum(posAhead.top) - toNum(pos.top);
+            angle = (Math.atan2(dx, -dy) * 180) / Math.PI;
+          }
+        }
+      }
+    } else if (u.transitionState === 'idle') {
+      const slot = unitSlots.get(u.numero_eco);
+      if (slot) {
+        coords = { top: slot.top, left: slot.left };
+        angle = slot.angle || 0;
+      }
+    }
 
-  reserveUnits.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
-  maintenanceUnits.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
+    if (!coords) return null;
 
-  // Generar slots verdes dinámicamente
-  const slotsZonaVerde = buildZonaVerdeSlots(maintenanceUnits.length);
+    const details = unitDetailsCache[u.numero_eco];
+    const isHovered = hoveredUnitEco === u.numero_eco;
 
-  const unitCoordinates = new Map();
+    return (
+      <div
+        key={u.numero_eco}
+        className={`unit-badge status-${u.estatus} state-${u.transitionState} fleet-${u.fleetId} ${isHovered ? 'hover-active' : ''}`}
+        style={{
+          top: coords.top,
+          left: coords.left,
+          opacity: u.opacity ?? 1,
+          transition: 'none',
+        }}
+        onMouseEnter={() => handleMouseEnterUnit(u.numero_eco, u.estatus)}
+        onMouseLeave={handleMouseLeaveUnit}
+      >
+        <div
+          className="vehicle-shape"
+          style={{
+            transform: `rotate(${angle}deg)`,
+            transition: 'none',
+          }}
+        />
+        <span className="eco-label-bubble shadow-sm">{u.numero_eco}</span>
 
-  const assignCoordinates = (units, zoneSlotsList) => {
-    const allSlots = zoneSlotsList.flat();
-    units.forEach((u, index) => {
-      const slot = allSlots[index % allSlots.length];
-      unitCoordinates.set(u.numero_eco, slot);
-    });
+        {isHovered && (
+          <div className="unit-hover-tooltip shadow-lg">
+            <div className="tooltip-header-row">
+              <span className="tooltip-eco-title">Eco {u.numero_eco}</span>
+              <span className={`tooltip-status-pill badge-${u.estatus}`}>
+                {u.estatus === 'reserva' ? 'En Base' : u.estatus === 'mantenimiento' ? 'Mantenimiento' : 'En Operación'}
+              </span>
+            </div>
+            <div className="tooltip-body-content">
+              {details ? (
+                <>
+                  <div className="tooltip-info-item">
+                    <span className="lbl">Conductor:</span>
+                    <span className="val">{details.nombre_conductor || 'No asignado'}</span>
+                  </div>
+                  <div className="tooltip-info-item">
+                    <span className="lbl">Ruta:</span>
+                    <span className="val">{details.ruta || 'Sin ruta'}</span>
+                  </div>
+                  <div className="tooltip-info-item">
+                    <span className="lbl">Tarjetón:</span>
+                    <span className="val">{details.numero_tarjeton || 'S/T'}</span>
+                  </div>
+                  {details.falla && (
+                    <div className="tooltip-info-item warning-text">
+                      <span className="lbl">Falla:</span>
+                      <span className="val">{details.falla}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="tooltip-loading-text">Cargando detalles...</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
-  assignCoordinates(reserveUnits, [slotsZonaRoja1, slotsZonaRoja2]);
-  assignCoordinates(maintenanceUnits, [slotsZonaVerde]);
-
-  // Estadísticas
+  // --- Estadísticas ----------------------------------------------------
   const totalFleetCount = apiUnits.length;
   const activeCount = apiUnits.filter((u) => u.estatus === 'operacion').length;
   const maintenanceCount = apiUnits.filter((u) => u.estatus === 'mantenimiento').length;
@@ -555,8 +725,8 @@ const PatioDashboard = () => {
         </section>
 
         <div className="patio-viewport-centered">
-          <div 
-            className="plano-map-wrapper shadow-md" 
+          <div
+            className="plano-map-wrapper shadow-md"
             ref={planoRef}
             onMouseMove={handleUserActivity}
             onTouchStart={handleUserActivity}
@@ -581,16 +751,8 @@ const PatioDashboard = () => {
             </div>
 
             <div className="floating-status-badge">
-              {isOffline ? (
-                <span className="offline-badge pulse-orange-dot">Simulación (Offline)</span>
-              ) : (
-                <span className="online-badge pulse-green-dot">Monitoreo en Vivo</span>
-              )}
-              <button
-                className="sync-btn-icon"
-                onClick={() => fetchUnits(selectedFleet)}
-                disabled={loading}
-              >
+              <span className="online-badge pulse-green-dot">Monitoreo en Vivo</span>
+              <button className="sync-btn-icon" onClick={() => fetchUnits(selectedFleet)} disabled={loading}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -609,9 +771,9 @@ const PatioDashboard = () => {
               </button>
             </div>
 
-            <button 
-              className={`fullscreen-btn ${isFullscreen && !controlsVisible ? 'hide-in-fullscreen' : ''}`} 
-              onClick={toggleFullscreen} 
+            <button
+              className={`fullscreen-btn ${isFullscreen && !controlsVisible ? 'hide-in-fullscreen' : ''}`}
+              onClick={toggleFullscreen}
               aria-label="Pantalla completa"
             >
               <svg
@@ -633,99 +795,48 @@ const PatioDashboard = () => {
             </button>
 
             <div className="floorplan-canvas">
-              <img
-                src="/images/BOCETO PATIO.png"
-                alt="Plano del Patio"
-                className="floorplan-image"
-              />
+              <img src="/images/BOCETO PATIO.png" alt="Plano del Patio" className="floorplan-image" />
 
-              {displayUnits.map((u) => {
-                let coords = EXIT_GATE;
-                let angle = 0;
+              {ZONE_LABELS.map((zone) => (
+                <div
+                  key={zone.id}
+                  className="zone-label"
+                  style={{ top: zone.top, left: zone.left, '--zone-color': zone.color }}
+                >
+                  {zone.text}
+                </div>
+              ))}
 
-                if (!u.posOverride) {
-                  if (u.estatus === 'reserva' || u.estatus === 'mantenimiento') {
-                    const slotCoords = unitCoordinates.get(u.numero_eco);
-                    if (slotCoords) {
-                      coords = { top: slotCoords.top, left: slotCoords.left };
-                      angle = slotCoords.angle;
-                    }
-                  }
-                } else {
-                  coords = u.posOverride;
-                  angle = 0;
+              {displayUnits.map(renderUnit)}
+
+              {/* Leyenda de colores por flota.
+                  NOTA: forzamos el posicionamiento con estilos inline cuando
+                  isFullscreen es true, en vez de confiar únicamente en el
+                  selector CSS :fullscreen. Esto evita que la leyenda quede
+                  oculta o recortada por diferencias de implementación entre
+                  navegadores (prefijos -webkit-/-moz-, orden de capas del
+                  modo fullscreen nativo, contenedores con overflow, etc). */}
+              <div
+                className="legend-box"
+                style={
+                  isFullscreen
+                    ? {
+                        position: 'fixed',
+                        bottom: '28px',
+                        right: '28px',
+                        top: 'auto',
+                        left: 'auto',
+                        zIndex: 2147483647,
+                      }
+                    : undefined
                 }
-
-                if (!coords) return null;
-
-                const details = unitDetailsCache[u.numero_eco];
-                const isHovered = hoveredUnitEco === u.numero_eco;
-
-                return (
-                  <div
-                    key={u.numero_eco}
-                    className={`unit-badge status-${u.estatus} state-${u.transitionState} ${
-                      isHovered ? 'hover-active' : ''
-                    }`}
-                    style={{
-                      top: coords.top,
-                      left: coords.left,
-                      opacity: u.opacity ?? 1,
-                      transitionDuration: u.transitionSpeed || '4s',
-                      transitionTimingFunction: u.transitionEasing || 'cubic-bezier(0.25, 1, 0.5, 1)',
-                    }}
-                    onMouseEnter={() => handleMouseEnterUnit(u.numero_eco, u.estatus)}
-                    onMouseLeave={handleMouseLeaveUnit}
-                  >
-                    <div
-                      className="vehicle-shape"
-                      style={{ transform: `rotate(${angle}deg)` }}
-                    />
-                    <span className="eco-label-bubble shadow-sm">{u.numero_eco}</span>
-
-                    {isHovered && (
-                      <div className="unit-hover-tooltip shadow-lg">
-                        <div className="tooltip-header-row">
-                          <span className="tooltip-eco-title">Eco {u.numero_eco}</span>
-                          <span className={`tooltip-status-pill badge-${u.estatus}`}>
-                            {u.estatus === 'reserva'
-                              ? 'En Base'
-                              : u.estatus === 'mantenimiento'
-                              ? 'Mantenimiento'
-                              : 'En Operación'}
-                          </span>
-                        </div>
-                        <div className="tooltip-body-content">
-                          {details ? (
-                            <>
-                              <div className="tooltip-info-item">
-                                <span className="lbl">Conductor:</span>
-                                <span className="val">{details.nombre_conductor || 'No asignado'}</span>
-                              </div>
-                              <div className="tooltip-info-item">
-                                <span className="lbl">Ruta:</span>
-                                <span className="val">{details.ruta || 'Sin ruta'}</span>
-                              </div>
-                              <div className="tooltip-info-item">
-                                <span className="lbl">Tarjetón:</span>
-                                <span className="val">{details.numero_tarjeton || 'S/T'}</span>
-                              </div>
-                              {details.falla && (
-                                <div className="tooltip-info-item warning-text">
-                                  <span className="lbl">Falla:</span>
-                                  <span className="val">{details.falla}</span>
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="tooltip-loading-text">Cargando detalles...</div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              >
+                <div className="legend-box-title">Flotas</div>
+                <div className="legend-item"><span className="legend-color fleet-urbanus"></span> Urbanuss</div>
+                <div className="legend-item"><span className="legend-color fleet-zafiro"></span> Zafiro</div>
+                <div className="legend-item"><span className="legend-color fleet-vagoneta"></span> Vagoneta</div>
+                <div className="legend-item"><span className="legend-color fleet-orion"></span> Orion</div>
+              </div>
             </div>
           </div>
         </div>
