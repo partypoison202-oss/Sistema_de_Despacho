@@ -62,13 +62,18 @@ export default function ResumenDespacho() {
           
           const fallasPorTipo = {};
           units.forEach(u => {
-            if (u.FALLA && u.FALLA.trim() !== '') {
-              const fallaLimpia = u.FALLA.trim();
-              if (!fallasPorTipo[fallaLimpia]) {
-                fallasPorTipo[fallaLimpia] = [];
+            let motivo = u.MOTIVO_ESTATUS ? u.MOTIVO_ESTATUS.trim() : '';
+            if (!motivo) {
+              motivo = u.FALLA ? u.FALLA.trim() : '';
+            }
+            if (motivo !== '') {
+              if (!fallasPorTipo[motivo]) {
+                fallasPorTipo[motivo] = [];
               }
               const ecoNum = u.ECONOMICO ? String(u.ECONOMICO).padStart(3, '0') : '';
-              if (ecoNum) fallasPorTipo[fallaLimpia].push(ecoNum);
+              if (ecoNum && !fallasPorTipo[motivo].includes(ecoNum)) {
+                fallasPorTipo[motivo].push(ecoNum);
+              }
             }
           });
           

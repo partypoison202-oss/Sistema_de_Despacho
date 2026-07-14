@@ -612,6 +612,7 @@ class DespachoController extends Controller
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
+                'informacion_operativa.motivo_estatus',
                 'informacion_operativa.hora_programada'
             )
             ->orderBy('informacion_operativa.tipo')
@@ -630,6 +631,7 @@ class DespachoController extends Controller
                 'CORRIDAS' => $reg->corridas,
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
+                'MOTIVO_ESTATUS' => $reg->motivo_estatus,
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada
             ];

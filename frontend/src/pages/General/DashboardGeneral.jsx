@@ -93,11 +93,13 @@ const construirResumen = (registros, tipo) => {
   const programadas = filas.reduce((total, fila) => total + fila.operando + fila.fuera, 0);
   const operando = filas.reduce((total, fila) => total + fila.operando, 0);
   const faltantes = programadas - operando;
+  const eficiencia = programadas > 0 ? Math.round((operando / programadas) * 100) : 0;
 
   return {
     programadas,
     operando,
     faltantes,
+    eficiencia,
     filas: [
       ...filas,
       {
@@ -236,6 +238,7 @@ export default function Dashboard() {
               programadas={tablas.troncal.programadas}
               operando={tablas.troncal.operando}
               faltantes={tablas.troncal.faltantes}
+              eficiencia={tablas.troncal.eficiencia}
               filas={tablas.troncal.filas}
               ordenColumnas="motivo-corrida"
             />
@@ -262,6 +265,7 @@ export default function Dashboard() {
               programadas={tablas.alimentador.programadas}
               operando={tablas.alimentador.operando}
               faltantes={tablas.alimentador.faltantes}
+              eficiencia={tablas.alimentador.eficiencia}
               filas={tablas.alimentador.filas}
               ordenColumnas="corrida-motivo"
             />

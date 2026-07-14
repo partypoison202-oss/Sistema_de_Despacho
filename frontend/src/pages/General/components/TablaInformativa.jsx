@@ -7,6 +7,7 @@ export default function TablaInformativa({
   programadas = 0,
   operando = 0,
   faltantes = 0,
+  eficiencia = 0,
   filas = [],
   ordenColumnas = 'motivo-corrida',
 }) {
@@ -50,6 +51,11 @@ export default function TablaInformativa({
           }`}
         >
           {faltantes}
+        </span>
+
+        <span className="tabla-informativa__resumen-label">Eficiencia</span>
+        <span className="tabla-informativa__resumen-valor tabla-informativa__resumen-valor--beige" style={{ color: '#fbbf24' }}>
+          {eficiencia}%
         </span>
       </div>
 

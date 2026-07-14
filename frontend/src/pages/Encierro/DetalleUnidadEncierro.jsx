@@ -1236,17 +1236,20 @@ export default function DetalleUnidadEncierro() {
                                   >
                                     SELECCIONAR MOTIVO
                                   </button>
-                                  <button
-                                    type="button"
-                                    className="dropdown-menu__item"
-                                    style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaMotivo === 'FALTA DE OPERADOR' ? 'bold' : 'normal' }}
-                                    onClick={() => {
-                                      setPerdidaMotivo('FALTA DE OPERADOR');
-                                      setDropdownMotivoOpen(false);
-                                    }}
-                                  >
-                                    FALTA DE OPERADOR
-                                  </button>
+                                  {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE CONBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map((motivo) => (
+                                    <button
+                                      key={motivo}
+                                      type="button"
+                                      className="dropdown-menu__item"
+                                      style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaMotivo === motivo ? 'bold' : 'normal' }}
+                                      onClick={() => {
+                                        setPerdidaMotivo(motivo);
+                                        setDropdownMotivoOpen(false);
+                                      }}
+                                    >
+                                      {motivo}
+                                    </button>
+                                  ))}
                                 </div>
                               </div>
                             )}
