@@ -40,6 +40,7 @@ export default function UnitInfoPanel({
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
+  const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
   const [formHoraProgramada, setFormHoraProgramada] = useState('');
@@ -86,6 +87,7 @@ export default function UnitInfoPanel({
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
   const tarjetonRef = useRef(null);
+  const motivoRef = useRef(null);
 
   useEffect(() => {
     setPerdidaCiclos(datosOperativos.ciclo || '');
@@ -103,6 +105,9 @@ export default function UnitInfoPanel({
       }
       if (tarjetonRef.current && !tarjetonRef.current.contains(e.target)) {
         setDropdownTarjetonOpen(false);
+      }
+      if (motivoRef.current && !motivoRef.current.contains(e.target)) {
+        setDropdownMotivoOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -444,6 +449,7 @@ export default function UnitInfoPanel({
                       onClick={() => {
                         setFormRuta(datosOperativos.ruta || '');
                         setEditandoRuta(true);
+                        setDropdownRutaOpen(true);
                       }}
                       title="Modificar Ruta"
                       style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
@@ -538,7 +544,7 @@ export default function UnitInfoPanel({
                           >
                             CANCELAR
                           </button>
-                          {(conductoresDisponibles || CONDUCTORES || [])
+                          {(conductoresDisponibles || [])
                             .filter(c => c.nombre.toLowerCase().includes(formTarjeton.toLowerCase()) || c.id.toString().includes(formTarjeton))
                             .map((c) => (
                               <button
@@ -571,7 +577,10 @@ export default function UnitInfoPanel({
                     </p>
                   </div>
                   <button
-                    onClick={() => setEditandoTarjeton(true)}
+                    onClick={() => {
+                      setEditandoTarjeton(true);
+                      setDropdownTarjetonOpen(true);
+                    }}
                     title="Asignar Conductor por Tarjetón"
                     style={{ background: 'transparent', color: 'var(--tw-color-gray-400)', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
                   >
@@ -818,17 +827,58 @@ export default function UnitInfoPanel({
                   )}
                 </div>
 
-                <div className="info-card__item animate-fade-in-up">
+                <div ref={motivoRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownMotivoOpen ? 50 : 1 }}>
                   <span className="info-card__label">Motivo (Obligatorio)</span>
-                  <input
-                    type="text"
+                  <button
+                    type="button"
                     className="interactive-input"
-                    style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.3rem', fontSize: '0.85rem' }}
-                    maxLength={40}
-                    value={perdidaMotivo}
-                    onChange={handleMotivoChange}
-                    placeholder="ESCRIBE EL MOTIVO DE LA PÉRDIDA..."
-                  />
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0 0.85rem',
+                      marginTop: '0.25rem',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      background: 'var(--tw-color-white)',
+                      height: '2.3rem',
+                      fontSize: '0.85rem'
+                    }}
+                    onClick={() => setDropdownMotivoOpen(!dropdownMotivoOpen)}
+                  >
+                    <span>{perdidaMotivo || 'SELECCIONAR MOTIVO'}</span>
+                    <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {dropdownMotivoOpen && (
+                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                        <button
+                          type="button"
+                          className="dropdown-menu__item"
+                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                          onClick={() => {
+                            setPerdidaMotivo('');
+                            setDropdownMotivoOpen(false);
+                          }}
+                        >
+                          SELECCIONAR MOTIVO
+                        </button>
+                        <button
+                          type="button"
+                          className="dropdown-menu__item"
+                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaMotivo === 'FALTA DE OPERADOR' ? 'bold' : 'normal' }}
+                          onClick={() => {
+                            setPerdidaMotivo('FALTA DE OPERADOR');
+                            setDropdownMotivoOpen(false);
+                          }}
+                        >
+                          FALTA DE OPERADOR
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}

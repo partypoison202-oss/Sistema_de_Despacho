@@ -42,6 +42,22 @@ export default function DetalleUnidad() {
   const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
   const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
 
+  const modalConductorRef = React.useRef(null);
+  const modalRutaRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modalConductorRef.current && !modalConductorRef.current.contains(e.target)) {
+        setModalEstatusConductorDropdown(false);
+      }
+      if (modalRutaRef.current && !modalRutaRef.current.contains(e.target)) {
+        setModalEstatusRutaDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const queryClient = useQueryClient();
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
@@ -84,16 +100,33 @@ export default function DetalleUnidad() {
     refetchInterval: 30000,
   });
 
+  const [dbConductores, setDbConductores] = useState([]);
+  
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch(`${API_BASE}/api/conductores`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+         if (!Array.isArray(data)) return;
+         const mapped = data.map(c => ({
+             id: Number(c.tarjeton),
+             tarjeton: 'C',
+             nombre: c.nombre,
+             estado_servicio: c.estado_servicio
+         }));
+         setDbConductores(mapped);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
-  const conductoresDisponibles = CONDUCTORES.filter(c => {
-    const estaAsignado = unidadesList.some(u => 
-      u.estado === 'operacion' && 
-      String(u.tarjeton) === String(c.id)
-    );
-    return !estaAsignado;
-  });
+  const conductoresDisponibles = dbConductores.filter(c => c.estado_servicio === 'disponible');
 
   useEffect(() => {
     const fetchRutas = async () => {
@@ -540,13 +573,22 @@ export default function DetalleUnidad() {
 
     // Si cambia a operacion
     if (nuevoEstatus === 'operacion') {
-      setModalEstatusNuevo(nuevoEstatus);
-      setModalEstatusConductor('');
-      setModalEstatusRuta('');
-      setModalEstatusConductorDropdown(false);
-      setModalEstatusRutaDropdown(false);
-      setModalEstatusOpen(true);
-      return; // El resto se maneja en el confirm del modal
+      const tieneConductor = datosOperativos.conductor && datosOperativos.conductor !== 'No asignado' && datosOperativos.tarjeton;
+      const tieneRuta = datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta';
+      
+      if (!tieneConductor || !tieneRuta) {
+        setModalEstatusNuevo(nuevoEstatus);
+        setModalEstatusConductor('');
+        setModalEstatusRuta('');
+        setModalEstatusConductorDropdown(false);
+        setModalEstatusRutaDropdown(false);
+        setModalEstatusOpen(true);
+        return; // El resto se maneja en el confirm del modal
+      } else {
+        payloadUpdate.nombre_conductor = datosOperativos.conductor;
+        payloadUpdate.numero_tarjeton = datosOperativos.tarjeton;
+        payloadUpdate.ruta = datosOperativos.ruta;
+      }
     }
 
     try {
@@ -598,7 +640,7 @@ export default function DetalleUnidad() {
     const matchNumeros = selectedOption.match(/\d+/);
     const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
-    const foundConductor = (conductoresDisponibles || CONDUCTORES || []).find(c => c.id.toString() === modalEstatusConductor);
+    const foundConductor = (conductoresDisponibles || dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
 
     let payloadUpdate = {
       numero_eco: numeroLimpio,
@@ -737,7 +779,7 @@ export default function DetalleUnidad() {
               <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
                 Conductor Disponible
               </label>
-              <div style={{ position: 'relative', width: '100%' }}>
+              <div ref={modalConductorRef} style={{ position: 'relative', width: '100%' }}>
                 <button
                   type="button"
                   className="interactive-input"
@@ -800,7 +842,7 @@ export default function DetalleUnidad() {
               <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
                 Ruta
               </label>
-              <div style={{ position: 'relative', width: '100%' }}>
+              <div ref={modalRutaRef} style={{ position: 'relative', width: '100%' }}>
                 <button
                   type="button"
                   className="interactive-input"

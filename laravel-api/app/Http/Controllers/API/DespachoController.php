@@ -25,6 +25,9 @@ class DespachoController extends Controller
         $unidadesExcel = $request->input('unidades');
         $fechaHoy = Carbon::today()->toDateString();
 
+        // Al iniciar una importación masiva, liberar todos los conductores
+        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+
         // Pre-cargar todas las unidades en memoria
         $todasLasUnidades = DB::table('unidades')
             ->select('id', 'numero_eco')
@@ -74,6 +77,7 @@ class DespachoController extends Controller
                         ['tarjeton' => $tarjetonLimpio],
                         [
                             'nombre' => $nombreConductor,
+                            'estado_servicio' => 'en_servicio',
                             'updated_at' => now()
                         ]
                     );
@@ -496,7 +500,7 @@ class DespachoController extends Controller
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
-            ->select('informacion_operativa.id')
+            ->select('informacion_operativa.id', 'informacion_operativa.numero_tarjeton')
             ->first();
 
         if (!$registro) {
@@ -513,6 +517,17 @@ class DespachoController extends Controller
                 'numero_tarjeton' => $tarjetonLimpio,
                 'nombre_conductor' => $conductor->nombre
             ]);
+
+        // 4. Actualizar disponibilidad de conductores
+        if ($registro->numero_tarjeton && $registro->numero_tarjeton !== $tarjetonLimpio) {
+            DB::table('conductores')
+                ->where('tarjeton', $registro->numero_tarjeton)
+                ->update(['estado_servicio' => 'disponible']);
+        }
+
+        DB::table('conductores')
+            ->where('tarjeton', $tarjetonLimpio)
+            ->update(['estado_servicio' => 'en_servicio']);
 
         return response()->json([
             'status' => 'success',
@@ -675,6 +690,12 @@ class DespachoController extends Controller
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;
+
+            if ($registroOperativo->numero_tarjeton) {
+                DB::table('conductores')
+                    ->where('tarjeton', $registroOperativo->numero_tarjeton)
+                    ->update(['estado_servicio' => 'disponible']);
+            }
         }
 
         // Si pasa a operacion, permitir actualizar conductor y ruta
@@ -684,6 +705,18 @@ class DespachoController extends Controller
             }
             if ($request->has('numero_tarjeton')) {
                 $updateData['numero_tarjeton'] = $request->numero_tarjeton;
+                
+                if ($registroOperativo->numero_tarjeton && $registroOperativo->numero_tarjeton !== $request->numero_tarjeton) {
+                    DB::table('conductores')
+                        ->where('tarjeton', $registroOperativo->numero_tarjeton)
+                        ->update(['estado_servicio' => 'disponible']);
+                }
+
+                if ($request->numero_tarjeton) {
+                    DB::table('conductores')
+                        ->where('tarjeton', $request->numero_tarjeton)
+                        ->update(['estado_servicio' => 'en_servicio']);
+                }
             }
             if ($request->has('ruta')) {
                 $updateData['ruta'] = $request->ruta;

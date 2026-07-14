@@ -121,7 +121,9 @@ export default function Dashboard() {
       return;
     }
 
-    setBuscandoUnidad(true);
+    const allCached = transportModules.every(m => queryClient.getQueryData(['unidades-list', m.id])?.length > 0);
+    if (!allCached) setBuscandoUnidad(true);
+
     try {
       const token = localStorage.getItem('token');
       const resultados = await Promise.all(

@@ -39,6 +39,7 @@ export default function DetalleUnidadEncierro() {
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
+  const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
 
   // Estados para Ruta (edición interactiva)
   const [rutasOpciones, setRutasOpciones] = useState([]);
@@ -56,8 +57,17 @@ export default function DetalleUnidadEncierro() {
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
+  const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
+
+  // Estados para el Modal de Cambio de Estatus a Operación
+  const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
+  const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
+  const [modalEstatusConductor, setModalEstatusConductor] = useState('');
+  const [modalEstatusRuta, setModalEstatusRuta] = useState('');
+  const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
+  const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
 
   // Estado para capturar la hora en la que se interactuó (Hora de Encierro)
   const [horaEncierroCapturada, setHoraEncierroCapturada] = useState('');
@@ -65,6 +75,10 @@ export default function DetalleUnidadEncierro() {
   const corridaRef = useRef(null);
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
+  const tarjetonRef = useRef(null);
+  const motivoRef = useRef(null);
+  const modalConductorRef = useRef(null);
+  const modalRutaRef = useRef(null);
 
   useEffect(() => {
     setHuboCorridasPerdidas(!!datosOperativos.ciclo);
@@ -102,6 +116,18 @@ export default function DetalleUnidadEncierro() {
       }
       if (rutaRef.current && !rutaRef.current.contains(e.target)) {
         setDropdownRutaOpen(false);
+      }
+      if (tarjetonRef.current && !tarjetonRef.current.contains(e.target)) {
+        setDropdownTarjetonOpen(false);
+      }
+      if (motivoRef.current && !motivoRef.current.contains(e.target)) {
+        setDropdownMotivoOpen(false);
+      }
+      if (modalConductorRef.current && !modalConductorRef.current.contains(e.target)) {
+        setModalEstatusConductorDropdown(false);
+      }
+      if (modalRutaRef.current && !modalRutaRef.current.contains(e.target)) {
+        setModalEstatusRutaDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -230,9 +256,33 @@ export default function DetalleUnidadEncierro() {
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
     queryKey: ['unidades-list-encierro', tipoTransporte],
     queryFn: fetchUnidades,
-    staleTime: 60000,
     refetchInterval: 30000,
   });
+
+  const [dbConductores, setDbConductores] = useState([]);
+  
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch(`${API_BASE}/api/conductores`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+         if (!Array.isArray(data)) return;
+         const mapped = data.map(c => ({
+             id: Number(c.tarjeton),
+             tarjeton: 'C',
+             nombre: c.nombre,
+             estado_servicio: c.estado_servicio
+         }));
+         setDbConductores(mapped);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
+  const conductoresDisponibles = dbConductores.filter(c => c.estado_servicio === 'disponible');
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
@@ -463,15 +513,16 @@ export default function DetalleUnidadEncierro() {
     }
   };
 
-  const handleConfirmTarjeton = async () => {
-    if (!formTarjeton.trim() || formTarjeton === datosOperativos.tarjeton) {
+  const handleConfirmTarjeton = async (overrideValue) => {
+    const val = typeof overrideValue === 'string' ? overrideValue : formTarjeton;
+    if (!val.trim() || val === datosOperativos.tarjeton) {
       setEditandoTarjeton(false);
       return;
     }
-    setFormTarjeton(formTarjeton.trim());
+    setFormTarjeton(val.trim());
     setGuardandoTarjeton(true);
     try {
-      await handleSaveTarjeton(formTarjeton.trim());
+      await handleSaveTarjeton(val.trim());
       setEditandoTarjeton(false);
     } catch (err) {
       console.error(err);
@@ -549,6 +600,32 @@ export default function DetalleUnidadEncierro() {
 
     if (datosOperativos.estatus === nuevoEstatus) return;
 
+    let payloadUpdate = {
+      numero_eco: null, // se asigna mas abajo
+      tipo: tipoTransporte,
+      estatus: nuevoEstatus,
+      motivo_estatus: null // se asigna mas abajo
+    };
+
+    if (nuevoEstatus === 'operacion') {
+      const tieneConductor = datosOperativos.conductor && datosOperativos.conductor !== 'No asignado' && datosOperativos.tarjeton;
+      const tieneRuta = datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta';
+      
+      if (!tieneConductor || !tieneRuta) {
+        setModalEstatusNuevo('operacion');
+        setModalEstatusConductor('');
+        setModalEstatusRuta('');
+        setModalEstatusConductorDropdown(false);
+        setModalEstatusRutaDropdown(false);
+        setModalEstatusOpen(true);
+        return;
+      } else {
+        payloadUpdate.nombre_conductor = datosOperativos.conductor;
+        payloadUpdate.numero_tarjeton = datosOperativos.tarjeton;
+        payloadUpdate.ruta = datosOperativos.ruta;
+      }
+    }
+
     const Swal = (await import('sweetalert2')).default;
 
     const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
@@ -615,9 +692,8 @@ export default function DetalleUnidadEncierro() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          ...payloadUpdate,
           numero_eco: numeroLimpio,
-          tipo: tipoTransporte,
-          estatus: nuevoEstatus,
           motivo_estatus: motivoCapturado
         })
       });
@@ -647,6 +723,66 @@ export default function DetalleUnidadEncierro() {
       }
     } catch (error) {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Problema de conexión al servidor', confirmButtonColor: '#601a2a' });
+    } finally {
+      setCambiandoEstatus(false);
+    }
+  };
+
+  const confirmModalEstatus = async () => {
+    if (!modalEstatusConductor || !modalEstatusRuta) return;
+
+    setModalEstatusOpen(false);
+    setCambiandoEstatus(true);
+    const matchNumeros = selectedOption.match(/\d+/);
+    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+
+    const foundConductor = (conductoresDisponibles || dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
+
+    let payloadUpdate = {
+      numero_eco: numeroLimpio,
+      tipo: tipoTransporte,
+      estatus: modalEstatusNuevo,
+      motivo_estatus: null,
+      nombre_conductor: foundConductor ? foundConductor.nombre : '',
+      numero_tarjeton: modalEstatusConductor,
+      ruta: modalEstatusRuta
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(payloadUpdate),
+      });
+
+      const data = await res.json();
+      if (res.ok && (data.success || data.status === 'success')) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Estatus Actualizado',
+          text: `La unidad cambió a operación.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        
+        setDatosOperativos((prev) => ({
+          ...prev,
+          estatus: modalEstatusNuevo,
+          conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || prev.conductor),
+          ruta: modalEstatusRuta || data.ruta_asignada || prev.ruta,
+          tarjeton: modalEstatusConductor || data.tarjeton || prev.tarjeton,
+        }));
+        setSelectedEstado(modalEstatusNuevo);
+        queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
+      } else {
+        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
     } finally {
       setCambiandoEstatus(false);
     }
@@ -826,6 +962,7 @@ export default function DetalleUnidadEncierro() {
                                 onClick={() => {
                                   setFormRuta(datosOperativos.ruta || '');
                                   setEditandoRuta(true);
+                                  setDropdownRutaOpen(true);
                                 }}
                                 title="Modificar Ruta"
                                 style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
@@ -842,45 +979,70 @@ export default function DetalleUnidadEncierro() {
                       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
                         <span className="info-card__label">Número de Tarjetón</span>
                         {editandoTarjeton ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                            <input
-                              type="text"
-                              className="interactive-input"
-                              style={{ padding: '0 0.5rem', height: '2.3rem', fontSize: '0.85rem', fontWeight: 'bold' }}
-                              value={formTarjeton}
-                              onChange={(e) => setFormTarjeton(e.target.value.replace(/\D/g, '').substring(0, 3))}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  handleConfirmTarjeton();
-                                } else if (e.key === 'Escape') {
-                                  handleCancelTarjetonEdit();
-                                }
-                              }}
-                            />
-                            <div style={{ display: 'flex', gap: '0.2rem' }}>
-                              <button
-                                onClick={handleConfirmTarjeton}
-                                disabled={guardandoTarjeton}
-                                title="Guardar"
-                                style={{ background: 'transparent', color: 'var(--state-green-text)', border: 'none', cursor: guardandoTarjeton ? 'wait' : 'pointer', padding: '0.2rem', display: 'flex' }}
-                              >
-                                {guardandoTarjeton ? (
-                                  <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', margin: 0, borderColor: 'rgba(22, 163, 74, 0.2)', borderTopColor: 'var(--state-green-text)', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
-                                ) : (
-                                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                )}
-                              </button>
-
-                              <button
-                                onClick={handleCancelTarjetonEdit}
-                                disabled={guardandoTarjeton}
-                                title="Cancelar"
-                                style={{ background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer', padding: '0.2rem', display: 'flex' }}
-                              >
-                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                              </button>
+                          <div ref={tarjetonRef} style={{ position: 'relative', width: '100%' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%', position: 'relative' }}>
+                              {guardandoTarjeton ? (
+                                <div style={{ display: 'flex', justifyContent: 'center', padding: '0.5rem' }}>
+                                  <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0, borderColor: 'rgba(22, 163, 74, 0.2)', borderTopColor: 'var(--state-green-text)', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                                </div>
+                              ) : (
+                                <>
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    value={formTarjeton}
+                                    placeholder="Buscar conductor..."
+                                    className="interactive-input"
+                                    onChange={(e) => {
+                                      setFormTarjeton(e.target.value);
+                                      setDropdownTarjetonOpen(true);
+                                    }}
+                                  />
+                                  <svg
+                                    onClick={() => setDropdownTarjetonOpen(!dropdownTarjetonOpen)}
+                                    className={`arrow-icon ${dropdownTarjetonOpen ? 'dropdown-trigger__arrow--open' : ''}`}
+                                    style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit', position: 'absolute', right: '0.5rem', top: '0.5rem' }}
+                                    fill="currentColor" viewBox="0 0 24 24"
+                                  >
+                                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                                  </svg>
+                                </>
+                              )}
                             </div>
+                            {dropdownTarjetonOpen && !guardandoTarjeton && (
+                              <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                                <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                                  <button
+                                    type="button"
+                                    className="dropdown-menu__item"
+                                    style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                                    onClick={() => {
+                                      handleCancelTarjetonEdit();
+                                      setDropdownTarjetonOpen(false);
+                                    }}
+                                  >
+                                    CANCELAR
+                                  </button>
+                                  {(conductoresDisponibles || [])
+                                    .filter(c => c.nombre.toLowerCase().includes(formTarjeton.toLowerCase()) || c.id.toString().includes(formTarjeton))
+                                    .map((c) => (
+                                      <button
+                                        key={c.id}
+                                        type="button"
+                                        className="dropdown-menu__item"
+                                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', textAlign: 'left', fontWeight: 'normal' }}
+                                        onClick={() => {
+                                          setFormTarjeton(c.id.toString());
+                                          setDropdownTarjetonOpen(false);
+                                          handleConfirmTarjeton(c.id.toString());
+                                        }}
+                                      >
+                                        {c.nombre} <br/><span style={{fontSize: '0.75rem', opacity: 0.7}}>Tarjetón: {c.id}</span>
+                                      </button>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between' }}>
@@ -893,7 +1055,10 @@ export default function DetalleUnidadEncierro() {
                               </p>
                             </div>
                             <button
-                              onClick={() => setEditandoTarjeton(true)}
+                              onClick={() => {
+                                setEditandoTarjeton(true);
+                                setDropdownTarjetonOpen(true);
+                              }}
                               title="Asignar Conductor por Tarjetón"
                               style={{ background: 'transparent', color: 'var(--tw-color-gray-400)', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
                             >
@@ -1033,17 +1198,58 @@ export default function DetalleUnidadEncierro() {
                             )}
                           </div>
                           
-                          <div className="info-card__item animate-fade-in-up">
+                          <div ref={motivoRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownMotivoOpen ? 50 : 1 }}>
                             <span className="info-card__label">Motivo (Obligatorio)</span>
-                            <input
-                              type="text"
+                            <button
+                              type="button"
                               className="interactive-input"
-                              style={{ padding: '0 0.85rem', marginTop: '0.25rem', height: '2.3rem', fontSize: '0.85rem' }}
-                              maxLength={40}
-                              value={perdidaMotivo}
-                              onChange={handleMotivoChange}
-                              placeholder="ESCRIBE EL MOTIVO..."
-                            />
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0 0.85rem',
+                                marginTop: '0.25rem',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                background: 'var(--tw-color-white)',
+                                height: '2.3rem',
+                                fontSize: '0.85rem'
+                              }}
+                              onClick={() => setDropdownMotivoOpen(!dropdownMotivoOpen)}
+                            >
+                              <span>{perdidaMotivo || 'SELECCIONAR MOTIVO'}</span>
+                              <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                              </svg>
+                            </button>
+                            {dropdownMotivoOpen && (
+                              <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                                <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                                  <button
+                                    type="button"
+                                    className="dropdown-menu__item"
+                                    style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                                    onClick={() => {
+                                      setPerdidaMotivo('');
+                                      setDropdownMotivoOpen(false);
+                                    }}
+                                  >
+                                    SELECCIONAR MOTIVO
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="dropdown-menu__item"
+                                    style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaMotivo === 'FALTA DE OPERADOR' ? 'bold' : 'normal' }}
+                                    onClick={() => {
+                                      setPerdidaMotivo('FALTA DE OPERADOR');
+                                      setDropdownMotivoOpen(false);
+                                    }}
+                                  >
+                                    FALTA DE OPERADOR
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </>
                       )}
@@ -1444,6 +1650,152 @@ export default function DetalleUnidadEncierro() {
           </div>
         </div>
       </main>
+
+      {modalEstatusOpen && (
+        <div className="custom-modal-overlay" onClick={() => setModalEstatusOpen(false)}>
+          <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2 className="custom-modal-title">Asignar Conductor y Ruta</h2>
+            
+            <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
+                Conductor Disponible
+              </label>
+              <div ref={modalConductorRef} style={{ position: 'relative', width: '100%' }}>
+                <button
+                  type="button"
+                  className="interactive-input"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
+                    border: modalEstatusConductorDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
+                    color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
+                  }}
+                  onClick={() => { setModalEstatusConductorDropdown(!modalEstatusConductorDropdown); setModalEstatusRutaDropdown(false); }}
+                >
+                  <span>
+                    {modalEstatusConductor
+                      ? (() => {
+                          const found = (conductoresDisponibles || []).find(c => c.id.toString() === modalEstatusConductor);
+                          return found ? `${found.nombre} (${found.id})` : 'Seleccione un conductor...';
+                        })()
+                      : 'Seleccione un conductor...'}
+                  </span>
+                  <svg
+                    className="arrow-icon"
+                    style={{
+                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
+                      transform: modalEstatusConductorDropdown ? 'rotate(180deg)' : 'none',
+                      color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'inherit'
+                    }}
+                    fill="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                  </svg>
+                </button>
+                {modalEstatusConductorDropdown && (
+                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
+                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                      <button
+                        type="button"
+                        className="dropdown-menu__item"
+                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                        onClick={() => { setModalEstatusConductor(''); setModalEstatusConductorDropdown(false); }}
+                      >
+                        Seleccione un conductor...
+                      </button>
+                      {(conductoresDisponibles || []).map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="dropdown-menu__item"
+                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                          onClick={() => { setModalEstatusConductor(c.id.toString()); setModalEstatusConductorDropdown(false); }}
+                        >
+                          {c.nombre} ({c.id})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
+                Ruta
+              </label>
+              <div ref={modalRutaRef} style={{ position: 'relative', width: '100%' }}>
+                <button
+                  type="button"
+                  className="interactive-input"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
+                    border: modalEstatusRutaDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
+                    color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
+                  }}
+                  onClick={() => { setModalEstatusRutaDropdown(!modalEstatusRutaDropdown); setModalEstatusConductorDropdown(false); }}
+                >
+                  <span>{modalEstatusRuta || 'Seleccione una ruta...'}</span>
+                  <svg
+                    className="arrow-icon"
+                    style={{
+                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
+                      transform: modalEstatusRutaDropdown ? 'rotate(180deg)' : 'none',
+                      color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'inherit'
+                    }}
+                    fill="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                  </svg>
+                </button>
+                {modalEstatusRutaDropdown && (
+                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
+                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                      <button
+                        type="button"
+                        className="dropdown-menu__item"
+                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                        onClick={() => { setModalEstatusRuta(''); setModalEstatusRutaDropdown(false); }}
+                      >
+                        Seleccione una ruta...
+                      </button>
+                      {(rutasOpciones || []).map(r => (
+                        <button
+                          key={r}
+                          type="button"
+                          className="dropdown-menu__item"
+                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                          onClick={() => { setModalEstatusRuta(r); setModalEstatusRutaDropdown(false); }}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="custom-modal-actions">
+              <button
+                type="button"
+                className="custom-modal-btn-save"
+                onClick={confirmModalEstatus}
+                disabled={!modalEstatusConductor || !modalEstatusRuta}
+                style={{ opacity: (!modalEstatusConductor || !modalEstatusRuta) ? 0.5 : 1, cursor: (!modalEstatusConductor || !modalEstatusRuta) ? 'not-allowed' : 'pointer' }}
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                className="custom-modal-btn-cancel"
+                onClick={() => setModalEstatusOpen(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

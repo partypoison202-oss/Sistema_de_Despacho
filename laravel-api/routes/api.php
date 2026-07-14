@@ -5,6 +5,7 @@ use App\Http\Controllers\API\DespachoController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReporteController;
+use App\Http\Controllers\API\ConductorController;
 use App\Http\Controllers\ChecklistController;
 
 // Autenticación pública (no requiere token)
@@ -39,6 +40,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/despacho/actualizar-tarjeton', [DespachoController::class, 'actualizarTarjeton']);
     Route::post('/despacho/actualizar-horas', [DespachoController::class, 'actualizarHoras']);
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
+
+    // Gestión de Conductores
+    Route::get('/conductores', [ConductorController::class, 'index']);
 
     // Rutas de Unidades (orden específico para evitar conflictos)
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);

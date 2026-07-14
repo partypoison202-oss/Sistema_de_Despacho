@@ -218,7 +218,9 @@ export default function DashboardEncierro() {
       return;
     }
 
-    setBuscandoUnidad(true);
+    const allCached = encierroModules.every(m => queryClient.getQueryData(['unidades-list-encierro', m.id])?.length > 0);
+    if (!allCached) setBuscandoUnidad(true);
+
     try {
       const token = localStorage.getItem('token');
       const resultados = await Promise.all(
@@ -255,7 +257,7 @@ export default function DashboardEncierro() {
 
       const coincidencia = resultados.find(Boolean);
       if (coincidencia) {
-        navigate(`/encierro/${coincidencia.modulo.id}?eco=${eco}`);
+        navigate(`/encierro/transporte/${coincidencia.modulo.id}?eco=${eco}`);
         return;
       }
 
