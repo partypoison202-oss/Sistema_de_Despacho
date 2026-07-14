@@ -101,6 +101,8 @@ export default function CentroControl() {
     }),
     { programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0 }
   );
+  
+  const eficienciaGlobal = totales.programadas > 0 ? Math.round((totales.operacion / totales.programadas) * 100) : 0;
 
   // ---- Generación de PDF (misma lógica que Dashboard.jsx) ----
   const generarPDF = (elementRef, nombreArchivo) => {
@@ -340,6 +342,17 @@ export default function CentroControl() {
               <span className="centro-kpi__value">{cargando ? '—' : totales.mantenimiento}</span>
               <span className="centro-kpi__label">En Mantenimiento</span>
             </div>
+
+            <div className="centro-kpi" style={{ borderLeft: '4px solid #d97706', background: 'linear-gradient(to right, rgba(251, 191, 36, 0.08), #ffffff)', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.1)' }}>
+              <div className="centro-kpi__icon" style={{ color: '#d97706', background: 'rgba(217, 119, 6, 0.15)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                  <polyline points="17 6 23 6 23 12" />
+                </svg>
+              </div>
+              <span className="centro-kpi__value" style={{ color: '#92400e' }}>{cargando ? '—' : `${eficienciaGlobal}%`}</span>
+              <span className="centro-kpi__label" style={{ color: '#b45309', fontWeight: 'bold' }}>Eficiencia Global</span>
+            </div>
           </section>
 
           {/* ---------- Desglose por tipo de unidad ---------- */}
@@ -486,6 +499,14 @@ export default function CentroControl() {
                         {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.programadas))}%`}
                       </span>
                       <span className="centro-status-value">{cargando ? '—' : m.mantenimiento}</span>
+                    </div>
+                    <div className="centro-status-row" style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #f3f4f6' }}>
+                      <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
+                      <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
+                      <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
+                        {cargando ? '—' : `${Math.round(pct(m.operacion, m.programadas))}%`}
+                      </span>
+                      <span className="centro-status-value"></span>
                     </div>
                   </div>
                 </div>
