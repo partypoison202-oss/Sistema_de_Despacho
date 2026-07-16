@@ -827,7 +827,6 @@ export default function DetalleUnidad() {
                     <img src={configActual.image} alt="Conductor" className="dropdown-trigger__icon" />
                   </div>
                   <span className="dropdown-trigger__value">RESERVA T6</span>
-                  <span className="dropdown-trigger__label">Conductores Disponibles</span>
                   <div className={`dropdown-trigger__arrow ${openDropdown === 'reservaT6' ? 'dropdown-trigger__arrow--open' : ''}`}>
                     <svg className="arrow-icon" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -861,8 +860,9 @@ export default function DetalleUnidad() {
                     {conductoresDisponibles.length > 0 ? (
                       conductoresDisponibles.map((c) => (
                         <div key={c.tarjeton} className="dropdown-menu__item" style={{ cursor: 'default' }}>
-                          <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold' }}>{c.nombre}</span>
-                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tarjetón: {c.tarjeton}</span>
+                          <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                            {c.nombre} - ID: ({c.tarjeton})
+                          </span>
                         </div>
                       ))
                     ) : (

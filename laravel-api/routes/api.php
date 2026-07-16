@@ -7,6 +7,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReporteController;
 use App\Http\Controllers\API\ConductorController;
 use App\Http\Controllers\ChecklistController;
+use App\Http\Controllers\API\PlataformaController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -68,6 +69,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // RUTAS PARA TITAN
     Route::get('/titan/unidades', [App\Http\Controllers\API\TitanController::class, 'getUnidadesOperacion']);
     Route::post('/titan/reporte', [App\Http\Controllers\API\TitanController::class, 'guardarReporte']);
+
+    // RUTAS PARA PLATAFORMA
+    Route::post('/plataforma/movimiento', [PlataformaController::class, 'registrarMovimiento']);
 });
 
 Route::get('/setup-titan', function() {
@@ -116,6 +120,36 @@ Route::get('/setup-titan', function() {
         }
 
         return response()->json(['message' => 'TITAN setup completed successfully']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
+Route::get('/setup-plataforma', function() {
+    try {
+        // Insert PLATAFORMA role if not exists
+        \Illuminate\Support\Facades\DB::table('roles')->updateOrInsert(
+            ['codigo' => 'PLATAFORMA'],
+            ['nombre' => 'PLATAFORMA']
+        );
+
+        // Create plataforma_movimientos table
+        if (!\Illuminate\Support\Facades\Schema::hasTable('plataforma_movimientos')) {
+            \Illuminate\Support\Facades\Schema::create('plataforma_movimientos', function (Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->foreignId('unidad_id')->constrained('unidades');
+                $table->foreignId('usuario_id')->constrained('usuarios');
+                $table->string('tipo_movimiento'); // INCORPORACION, DESINCORPORACION
+                $table->string('estatus_anterior');
+                $table->string('estatus_nuevo');
+                $table->string('conductor_asignado')->nullable();
+                $table->string('ruta_asignada')->nullable();
+                $table->text('motivo')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        return response()->json(['message' => 'PLATAFORMA setup completed successfully']);
     } catch (\Exception $e) {
         return response()->json(['error' => $e->getMessage()], 500);
     }

@@ -1,5 +1,5 @@
 // src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import ChecklistForm from '../../CheckList/CheckList';
@@ -9,6 +9,7 @@ import API_BASE from '../../../config/api';
 import Swal from 'sweetalert2';
 
 import IOSTimePicker from './IOSTimePicker';
+import { AuthContext } from '../../../context/AuthContext';
 
 export default function UnitInfoPanel({
   selectedOption,
@@ -30,6 +31,9 @@ export default function UnitInfoPanel({
   cambiandoEstatus,
   conductoresDisponibles,
 }) {
+  const { user } = useContext(AuthContext);
+  const isPlataforma = user?.role?.codigo === 'PLATAFORMA' || localStorage.getItem('dashboardMode') === 'PLATAFORMA';
+  
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
@@ -83,6 +87,17 @@ export default function UnitInfoPanel({
   }, [configActual]);
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
   const navigate = useNavigate();
+
+  // Modals de Plataforma
+  const [modalPlataformaVisible, setModalPlataformaVisible] = useState(null); // 'INCORPORACION' | 'DESINCORPORACION' | null
+  const [platMotivo, setPlatMotivo] = useState('');
+  const [platEstatus, setPlatEstatus] = useState('');
+  const [platEstatusDropdown, setPlatEstatusDropdown] = useState(false);
+  
+  const [platConductor, setPlatConductor] = useState('');
+  const [platConductorDropdown, setPlatConductorDropdown] = useState(false);
+  const [platRuta, setPlatRuta] = useState('');
+  const [platRutaDropdown, setPlatRutaDropdown] = useState(false);
 
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
@@ -200,6 +215,125 @@ export default function UnitInfoPanel({
     const val = e.target.value;
     const filteredVal = val.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase();
     setPerdidaMotivo(filteredVal);
+  };
+
+  const handlePlataformaMovimiento = (tipoMovimiento) => {
+    setModalPlataformaVisible(tipoMovimiento);
+    setPlatMotivo('');
+    setPlatEstatus('');
+    setPlatConductor('');
+    setPlatRuta('');
+  };
+
+  const handleConfirmarPlataforma = async () => {
+    if (modalPlataformaVisible === 'INCORPORACION') {
+      if (!platConductor || !platRuta) {
+        const Swal = (await import('sweetalert2')).default;
+        return Swal.fire('Error', 'Faltan datos de la incorporación.', 'error');
+      }
+      setGuardandoPerdida(true);
+      try {
+        const token = localStorage.getItem('token');
+        const ecoNum = selectedOption.replace(/\D/g, '');
+        const payload = {
+          eco: ecoNum,
+          ruta: platRuta,
+          conductorId: platConductor,
+          nuevoEstatus: 'operacion'
+        };
+        const response = await fetch(`${API_BASE}/api/despacho/incorporar-unidad`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error('Error al incorporar unidad');
+        onUpdate();
+        setModalPlataformaVisible(null);
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({ icon: 'success', title: 'Éxito', text: `Unidad ECO${ecoNum} en operación.`, confirmButtonColor: '#6b1d33' });
+      } catch (error) {
+        console.error(error);
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire('Error', 'Ocurrió un error al incorporar la unidad.', 'error');
+      } finally {
+        setGuardandoPerdida(false);
+      }
+    } else {
+      if (!platMotivo || !platEstatus) {
+        const Swal = (await import('sweetalert2')).default;
+        return Swal.fire('Error', 'Debe ingresar un motivo y seleccionar un destino.', 'error');
+      }
+      setGuardandoPerdida(true);
+      try {
+        const token = localStorage.getItem('token');
+        const ecoNum = selectedOption.replace(/\D/g, '');
+        const payload = {
+          eco: ecoNum,
+          motivo: platMotivo,
+          nuevoEstatus: platEstatus.toLowerCase()
+        };
+        const response = await fetch(`${API_BASE}/api/despacho/desincorporar-unidad`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error('Error al desincorporar unidad');
+        onUpdate();
+        setModalPlataformaVisible(null);
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({ icon: 'success', title: 'Éxito', text: `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`, confirmButtonColor: '#6b1d33' });
+      } catch (error) {
+        console.error(error);
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire('Error', 'Ocurrió un error al desincorporar la unidad.', 'error');
+      } finally {
+        setGuardandoPerdida(false);
+      }
+    }
+  };
+
+  const enviarMovimientoPlataforma = async (tipo, conductor, ruta, motivo, estatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const ecoNum = selectedOption.replace(/\D/g, '');
+      const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          numero_eco: ecoNum,
+          tipo: configActual.id,
+          tipo_movimiento: tipo,
+          conductor: conductor,
+          ruta: ruta,
+          motivo: motivo,
+          estatus_nuevo: estatus
+        })
+      });
+      
+      const result = await response.json();
+      if (response.ok) {
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          icon: 'success',
+          title: 'Movimiento Exitoso',
+          text: result.message,
+          timer: 2000,
+          showConfirmButton: false
+        }).then(() => {
+          window.location.reload();
+        });
+      } else {
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire('Error', result.error || 'Ocurrió un error', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire('Error', 'Error de conexión', 'error');
+    }
   };
 
   const handleHacerCheckList = () => {
@@ -445,19 +579,21 @@ export default function UnitInfoPanel({
                         {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
                       </p>
                     </div>
-                    <button
-                      onClick={() => {
-                        setFormRuta(datosOperativos.ruta || '');
-                        setEditandoRuta(true);
-                        setDropdownRutaOpen(true);
-                      }}
-                      title="Modificar Ruta"
-                      style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                    >
-                      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
+                    {!isPlataforma && (
+                      <button
+                        onClick={() => {
+                          setFormRuta(datosOperativos.ruta || '');
+                          setEditandoRuta(true);
+                          setDropdownRutaOpen(true);
+                        }}
+                        title="Modificar Ruta"
+                        style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
+                      >
+                        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 )}
             </div>
@@ -583,18 +719,20 @@ export default function UnitInfoPanel({
                       {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setEditandoTarjeton(true);
-                      setDropdownTarjetonOpen(true);
-                    }}
-                    title="Asignar Conductor por Tarjetón"
-                    style={{ background: 'transparent', color: 'var(--tw-color-gray-400)', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                  >
-                    <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
+                  {!isPlataforma && (
+                    <button
+                      onClick={() => {
+                        setEditandoTarjeton(true);
+                        setDropdownTarjetonOpen(true);
+                      }}
+                      title="Asignar Conductor por Tarjetón"
+                      style={{ background: 'transparent', color: 'var(--tw-color-gray-400)', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
+                    >
+                      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -726,55 +864,57 @@ export default function UnitInfoPanel({
             </div>
 
             {/* Toggle: ¿Hubo corridas perdidas? */}
-            <div className="info-card__item">
-              <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
-              <div style={{
-                display: 'flex',
-                width: '100%',
-                marginTop: '0.25rem',
-                height: '2.3rem',
-                borderRadius: '0.5rem',
-                overflow: 'hidden',
-                border: '1px solid #e5e7eb'
-              }}>
-                <button
-                  type="button"
-                  onClick={() => handleToggleCorridasPerdidas(true)}
-                  style={{
-                    flex: 1,
-                    border: 'none',
-                    background: huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
-                    color: huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  SÍ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleCorridasPerdidas(false)}
-                  style={{
-                    flex: 1,
-                    border: 'none',
-                    borderLeft: '1px solid #e5e7eb',
-                    background: !huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
-                    color: !huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  NO
-                </button>
+            {!isPlataforma && (
+              <div className="info-card__item">
+                <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
+                <div style={{
+                  display: 'flex',
+                  width: '100%',
+                  marginTop: '0.25rem',
+                  height: '2.3rem',
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCorridasPerdidas(true)}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      background: huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
+                      color: huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    SÍ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCorridasPerdidas(false)}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      borderLeft: '1px solid #e5e7eb',
+                      background: !huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
+                      color: !huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    NO
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Ciclos Perdidos y Motivo: se muestran en la fila 3 (lado a lado) si es "SÍ" */}
-            {huboCorridasPerdidas && (
+            {!isPlataforma && huboCorridasPerdidas && (
               <>
                 <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownCiclosOpen ? 50 : 1 }}>
                   <span className="info-card__label">Ciclos Perdidos</span>
@@ -894,7 +1034,7 @@ export default function UnitInfoPanel({
             )}
 
             {/* Botón Guardar: solo aparece si hay cambios reales */}
-            {huboCorridasPerdidas && (perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
+            {!isPlataforma && huboCorridasPerdidas && (perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
               <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'end', marginTop: '0.5rem' }} className="animate-fade-in-up">
                 <button
                   type="button"
@@ -925,6 +1065,55 @@ export default function UnitInfoPanel({
                 </button>
               </div>
             )}
+            
+            {/* INCORPORAR / DESINCORPORAR for PLATAFORMA */}
+            {isPlataforma && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', width: '100%' }}>
+                <span className="info-card__label">Movimientos de Plataforma</span>
+                <div style={{
+                  display: 'flex',
+                  width: '100%',
+                  height: '2.5rem',
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <button
+                    onClick={() => handlePlataformaMovimiento('INCORPORACION')}
+                    disabled={datosOperativos.estatus === 'operacion'}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      background: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-100)' : '#f8fafc',
+                      color: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-400)' : '#1d4ed8',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: datosOperativos.estatus === 'operacion' ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    INCORPORAR
+                  </button>
+                  <button
+                    onClick={() => handlePlataformaMovimiento('DESINCORPORACION')}
+                    disabled={datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento'}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      borderLeft: '1px solid #e5e7eb',
+                      background: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento') ? 'var(--tw-color-gray-100)' : '#6b1d33',
+                      color: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento') ? 'var(--tw-color-gray-400)' : 'white',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento') ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    DESINCORPORAR
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -948,7 +1137,7 @@ export default function UnitInfoPanel({
                   <button
                     key={st.id}
                     onClick={() => handleCambiarEstatus && handleCambiarEstatus(st.id)}
-                    disabled={cambiandoEstatus}
+                    disabled={cambiandoEstatus || isPlataforma}
                     style={{
                       padding: '1rem 0.5rem',
                       borderRadius: '0.75rem',
@@ -957,13 +1146,13 @@ export default function UnitInfoPanel({
                       color: isActive ? st.color : 'var(--tw-color-gray-500)',
                       fontWeight: isActive ? 700 : 500,
                       fontSize: '0.85rem',
-                      cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
+                      cursor: (cambiandoEstatus || isPlataforma) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '0.35rem',
-                      opacity: (cambiandoEstatus && !isActive) ? 0.5 : 1
+                      opacity: ((cambiandoEstatus || isPlataforma) && !isActive) ? 0.5 : 1
                     }}
                   >
                     <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? '#ffffff' : 'var(--tw-color-gray-300)' }}></div>
@@ -1290,6 +1479,174 @@ export default function UnitInfoPanel({
           })()}
         </div>
       </div>
+
+      {/* REACT MODAL PARA PLATAFORMA */}
+      {modalPlataformaVisible && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setModalPlataformaVisible(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
+              {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 'Desincorporar Unidad'}
+            </h2>
+            
+            {modalPlataformaVisible === 'INCORPORACION' && (
+              <div className="flex flex-col gap-4">
+                {/* Custom React Dropdown para Conductor */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className="interactive-input"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                    }}
+                    onClick={() => setPlatConductorDropdown(!platConductorDropdown)}
+                  >
+                    <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8' }}>
+                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
+                    </span>
+                    <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {platConductorDropdown && (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                        {conductoresDisponibles.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platConductor == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => {
+                              setPlatConductor(c.id);
+                              setPlatConductorDropdown(false);
+                            }}
+                          >
+                            {c.nombre} ({c.id})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Custom React Dropdown para Ruta */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className="interactive-input"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                    }}
+                    onClick={() => setPlatRutaDropdown(!platRutaDropdown)}
+                  >
+                    <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8' }}>
+                      {platRuta || 'Seleccione una ruta...'}
+                    </span>
+                    <svg className={`arrow-icon ${platRutaDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platRutaDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {platRutaDropdown && (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                        {(configActual?.rutas || []).map(r => (
+                          <button
+                            key={r}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platRuta == r ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => {
+                              setPlatRuta(r);
+                              setPlatRutaDropdown(false);
+                            }}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {modalPlataformaVisible === 'DESINCORPORACION' && (
+              <div className="flex flex-col gap-4">
+                <textarea 
+                  className="interactive-input"
+                  style={{ width: '100%', height: '100px', resize: 'none', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', fontSize: '0.9rem', color: '#0b162c', fontWeight: 500 }}
+                  placeholder="Escribe el motivo de la desincorporación aquí..."
+                  value={platMotivo}
+                  onChange={(e) => setPlatMotivo(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase())}
+                />
+                
+                {/* Custom React Dropdown para Destino */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className="interactive-input"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                    }}
+                    onClick={() => setPlatEstatusDropdown(!platEstatusDropdown)}
+                  >
+                    <span style={{ fontWeight: 600, color: platEstatus ? '#0b162c' : '#94a3b8' }}>
+                      {platEstatus || 'Destino de la unidad...'}
+                    </span>
+                    <svg className={`arrow-icon ${platEstatusDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platEstatusDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {platEstatusDropdown && (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                        {['RESERVA', 'MANTENIMIENTO'].map(r => (
+                          <button
+                            key={r}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platEstatus == r ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => {
+                              setPlatEstatus(r);
+                              setPlatEstatusDropdown(false);
+                            }}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', width: '100%', marginTop: '2rem', height: '3rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+              <button
+                type="button"
+                onClick={handleConfirmarPlataforma}
+                disabled={guardandoPerdida}
+                style={{
+                  flex: 1, border: 'none', background: modalPlataformaVisible === 'INCORPORACION' ? '#c29b53' : '#c29b53', color: 'white', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                {guardandoPerdida ? 'GUARDANDO...' : modalPlataformaVisible === 'INCORPORACION' ? 'INCORPORAR' : 'DESINCORPORAR'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalPlataformaVisible(null)}
+                style={{
+                  flex: 1, border: 'none', borderLeft: '1px solid #e5e7eb', background: '#6b1d33', color: 'white', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                CANCELAR
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </div>
   );
 }

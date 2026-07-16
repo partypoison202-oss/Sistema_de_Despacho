@@ -100,6 +100,19 @@ const menuItems = [
     label: 'TITAN',
     color: 'maroon',
   },
+  {
+    id: 'plataforma',
+    redirectTo: '/dashboard', 
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+        <line x1="8" y1="21" x2="16" y2="21"></line>
+        <line x1="12" y1="17" x2="12" y2="21"></line>
+      </svg>
+    ),
+    label: 'PLATAFORMA DASHBOARD',
+    color: 'blue',
+  }
 ];
 
 export default function Menu() {
@@ -108,7 +121,7 @@ export default function Menu() {
 
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN'].includes(user.role?.codigo)) {
+    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA'].includes(user.role?.codigo)) {
       navigate('/');
     }
   }, [user, navigate]);
@@ -116,6 +129,12 @@ export default function Menu() {
   if (!user) return null;
 
   const handleClick = (item) => {
+    if (item.id === 'plataforma') {
+      localStorage.setItem('dashboardMode', 'PLATAFORMA');
+    } else if (item.id === 'despacho') {
+      localStorage.setItem('dashboardMode', 'DESPACHO');
+    }
+
     if (item.redirectTo) {
       navigate(item.redirectTo);
     } else {

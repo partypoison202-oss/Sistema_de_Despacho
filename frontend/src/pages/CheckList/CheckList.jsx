@@ -505,7 +505,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
                         type="button"
                         title="Borrador"
                         onClick={() => setColor('eraser')}
-                        className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all ${color === 'eraser' ? 'border-gray-800 bg-gray-100 shadow' : 'border-transparent bg-gray-50 hover:bg-gray-200 text-gray-500'}`}
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg border-2 transition-all ${color === 'eraser' ? 'border-gray-800 bg-gray-100 shadow' : 'border-transparent bg-gray-50 hover:bg-gray-200 text-gray-500'}`}
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z" />
@@ -556,8 +556,21 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             {/* Canvas con imagen de fondo */}
             <div
                 ref={containerRef}
-                className="relative w-full cursor-crosshair"
-                style={{ aspectRatio: '5/3' }}
+                className="relative w-full"
+                style={{ 
+                    aspectRatio: '5/3',
+                    cursor: (() => {
+                        const isEraser = color === 'eraser';
+                        const scale = isEraser ? 2 : 1;
+                        const size = Math.max(brushSize * scale * 2, 12); 
+                        const radius = size / 2;
+                        const strokeColor = isEraser ? '%234b5563' : color.replace('#', '%23');
+                        const fill = isEraser ? 'rgba(255,255,255,0.4)' : 'none';
+                        const center = (size + 4) / 2;
+                        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size+4}" height="${size+4}" viewBox="0 0 ${size+4} ${size+4}"><circle cx="${center}" cy="${center}" r="${radius}" fill="${fill}" stroke="${strokeColor}" stroke-width="1.5"/></svg>`;
+                        return `url('data:image/svg+xml;utf8,${svg}') ${center} ${center}, crosshair`;
+                    })()
+                }}
             >
                 {/* Imagen de referencia como fondo según tipo de unidad */}
                 <img

@@ -132,7 +132,7 @@ const DashboardTitan = () => {
               <button 
                 type="submit" 
                 className="dashboard__search-button" 
-                disabled={!busquedaEco || buscandoUnidad}
+                disabled={!busquedaEco || buscandoUnidad || parseInt(busquedaEco, 10) === 0}
                 style={activeUnidad ? { 
                   display: 'flex', 
                   alignItems: 'center', 

@@ -295,11 +295,15 @@ export default function DashboardEncierro() {
             <input
               type="text"
               value={busquedaEco}
-              onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, ''))}
+              onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, '').substring(0, 3))}
               placeholder="Buscar por número económico"
               className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
-            <button type="submit" className="dashboard__search-button" disabled={buscandoUnidad}>
+            <button 
+              type="submit" 
+              className="dashboard__search-button" 
+              disabled={!busquedaEco || buscandoUnidad || parseInt(busquedaEco, 10) === 0}
+            >
               {buscandoUnidad ? 'Buscando...' : 'Buscar'}
             </button>
           </form>

@@ -134,7 +134,7 @@ export default function Login() {
       navigate('/titan/dashboard');
     } else if (rol === 'GENERAL') {
       navigate('/general');
-    } else if (rol === 'DESPACHO') {
+    } else if (rol === 'DESPACHO' || rol === 'PLATAFORMA') {
       navigate('/dashboard');
     }
   };

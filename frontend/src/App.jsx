@@ -65,20 +65,20 @@ function App() {
           } />
 
           <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
               <Dashboard />
             </ProtectedRoute>
           } />
 
           <Route path="/menu" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA']}>
               <Menu />
             </ProtectedRoute>
           } />
 
           {/* Ruta protegida existente de registro por unidad (tipoTransporte) */}
           <Route path="/transporte/:tipoTransporte" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
               <DetalleUnidad />
             </ProtectedRoute>
           } />
