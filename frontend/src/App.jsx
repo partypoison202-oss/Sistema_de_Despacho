@@ -56,12 +56,6 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/titan/detalle/:tipo" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN']}>
-              <DetalleUnidadTitan />
-            </ProtectedRoute>
-          } />
-
           {/* Rutas de CheckList para USUARIO_GENERAL y ADMINISTRADOR */}
           {/* Dashboard General (nuevo) - tarjetas que llevan a /despacho/:id */}
           <Route path="/general" element={

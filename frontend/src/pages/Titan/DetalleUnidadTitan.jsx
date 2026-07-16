@@ -7,12 +7,7 @@ import '../CentroControl/CentroControl.css';
 import './Titan.css'; // New CSS file for specific Titan forms
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 
-const DetalleUnidadTitan = () => {
-  const { tipo } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const model = location.state?.model;
-
+const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) => {
   const [unidades, setUnidades] = useState(model?.units || []);
   const [selectedUnidad, setSelectedUnidad] = useState(null);
   
@@ -41,13 +36,10 @@ const DetalleUnidadTitan = () => {
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    if (!model) {
-      navigate('/titan/dashboard');
-    } else if (location.state?.preselectedUnidad && !selectedUnidad) {
-      // Si venimos del buscador global del dashboard
-      handleSelectUnidad(location.state.preselectedUnidad);
+    if (preselectedUnidad && (!selectedUnidad || selectedUnidad.id !== preselectedUnidad.id)) {
+      handleSelectUnidad(preselectedUnidad);
     }
-  }, [model, navigate, location.state, selectedUnidad]);
+  }, [preselectedUnidad]);
 
   const handleSelectUnidad = (u) => {
     setSelectedUnidad(u);
@@ -184,7 +176,7 @@ const DetalleUnidadTitan = () => {
         text: 'La información se ha registrado correctamente.',
         confirmButtonColor: '#601a2a',
       }).then(() => {
-        navigate('/titan/dashboard');
+        if (onSuccess) onSuccess();
       });
 
     } catch (error) {
@@ -196,18 +188,35 @@ const DetalleUnidadTitan = () => {
   };
 
   return (
-    <div className="centro-control-container">
-      <Header title={`TITAN - Reporte ${model?.label || ''}`} />
-
-      <main className="centro-control-main" style={{ paddingBottom: '80px' }}>
-        {!selectedUnidad ? (
-          <div style={{ textAlign: 'center', marginTop: '50px' }}>
-            <h2 className="titan-subtitle">Cargando datos de la unidad...</h2>
-            <p>Si la pantalla no carga, por favor regresa al Dashboard y selecciona nuevamente.</p>
+    <div style={{ paddingBottom: '80px', width: '100%' }}>
+      {!selectedUnidad ? (
+        <div style={{ textAlign: 'center', marginTop: '50px' }}>
+          <h2 className="titan-subtitle">Cargando datos de la unidad...</h2>
+          <p>Si la pantalla no carga, por favor intenta seleccionar nuevamente.</p>
+        </div>
+      ) : (
+        <div className="titan-form-container">
+          {/* Botón cancelar fuera del recuadro gris, arriba */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+            <button 
+              onClick={onCancel}
+              style={{
+                backgroundColor: 'transparent',
+                border: '1px solid #d1d5db',
+                padding: '6px 18px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                color: '#4b5563',
+                fontSize: '0.9rem'
+              }}
+            >
+              ✕ Cancelar
+            </button>
           </div>
-        ) : (
-          <div className="titan-form-container">
-            <div className="titan-header-info">
+
+          <div className="titan-header-info">
+            <div>
               <h3>Unidad {selectedUnidad.numero_economico}</h3>
               <div className="titan-info-grid">
                 <p><strong>Ruta:</strong> {selectedUnidad.ruta || 'N/A'}</p>
@@ -215,6 +224,7 @@ const DetalleUnidadTitan = () => {
                 <p><strong>Conductor:</strong> {selectedUnidad.nombre_conductor || 'N/A'}</p>
               </div>
             </div>
+          </div>
 
             <div className="titan-section">
               <h4>Información General</h4>
@@ -372,7 +382,6 @@ const DetalleUnidadTitan = () => {
             )}
           </div>
         )}
-      </main>
     </div>
   );
 };

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
 import '../CentroControl/CentroControl.css';
 import './Titan.css';
+import DetalleUnidadTitan from './DetalleUnidadTitan';
 
 const modelsConfig = [
   { id: 'urbanus', label: 'URBANUSS', color: 'maroon', image: '/images/urbanu.webp' },
@@ -14,13 +14,16 @@ const modelsConfig = [
 ];
 
 const DashboardTitan = () => {
-  const navigate = useNavigate();
   const [modelData, setModelData] = useState([]);
   const [cargando, setCargando] = useState(!sessionStorage.getItem('titanModelData'));
   const [expandedModel, setExpandedModel] = useState(null);
-  const [selectedEco, setSelectedEco] = useState('');
+  
   const [busquedaEco, setBusquedaEco] = useState('');
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
+
+  // States for unified page
+  const [activeModel, setActiveModel] = useState(null);
+  const [activeUnidad, setActiveUnidad] = useState(null);
 
   const fetchUnidades = async (silent = false) => {
     try {
@@ -53,8 +56,6 @@ const DashboardTitan = () => {
     }
   }, []);
 
-  const totalOperacion = modelData.reduce((acc, m) => acc + (m.operacion || 0), 0);
-  
   // Aplanar todas las unidades para el buscador global
   const todasLasUnidades = modelData.reduce((acc, m) => {
     const unitsWithModelId = (m.units || []).map(u => ({ ...u, modelId: m.id }));
@@ -71,7 +72,11 @@ const DashboardTitan = () => {
     const match = todasLasUnidades.find(u => u.numero_economico === ecoFormat);
     if (match) {
       const model = modelData.find(m => m.id === match.modelId);
-      navigate(`/titan/detalle/${match.modelId}`, { state: { model: model, preselectedUnidad: match } });
+      setActiveModel(model);
+      setActiveUnidad(match);
+      setBusquedaEco('');
+      setExpandedModel(null);
+      setBuscandoUnidad(false);
     } else {
       Swal.fire({
         icon: 'info',
@@ -88,117 +93,193 @@ const DashboardTitan = () => {
       <Header title="TITAN - Unidades en Operación" />
 
       <main className="centro-control-main">
-        {/* Intro Section */}
-        <div className="centro-welcome">
-          <p className="centro-eyebrow">Visión general de la flota</p>
-          <h1 className="centro-title">TITAN</h1>
-          <p className="centro-subtitle">
-            Consulta el total de unidades en operación, su estatus operativo y genera reportes de supervisión rápidamente.
-          </p>
-        </div>
+        {!activeUnidad && (
+          <div className="centro-welcome" style={{ marginBottom: '50px' }}>
+            <p className="centro-eyebrow">Visión general de la flota</p>
+            <h1 className="centro-title">TITAN</h1>
+            <p className="centro-subtitle">
+              Consulta el total de unidades en operación, su estatus operativo y genera reportes de supervisión rápidamente.
+            </p>
+          </div>
+        )}
 
-        {/* Buscador global (Estilo Encierro) */}
-        <section style={{ maxWidth: '640px', margin: '0 auto 40px auto' }}>
-          <form className="dashboard__search" onSubmit={handleBuscarUnidad}>
-            <input
-              type="text"
-              value={busquedaEco}
-              onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, '').substring(0, 3))}
-              placeholder="Buscar por número económico"
-              className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
-            />
-            <button type="submit" className="dashboard__search-button" disabled={!busquedaEco || buscandoUnidad}>
-              {buscandoUnidad ? 'Buscando...' : 'Buscar'}
-            </button>
-          </form>
-        </section>
-
-        <section className="centro-type-grid" style={{ maxWidth: '900px', margin: '40px auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '25px', padding: '0 20px' }}>
-          {modelsConfig.map((mc) => {
-            const m = modelData.find((x) => x.id === mc.id) || { operacion: 0, units: [] };
-            return (
-              <div
-                key={mc.id}
-                className={`centro-type-card centro-type-card--${mc.color} ${!cargando ? 'centro-type-card--clickable' : ''}`}
-                style={{
-                  ...(cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}),
-                  position: 'relative',
-                  zIndex: expandedModel === mc.id ? 50 : 1
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!cargando) {
-                    const isClosing = expandedModel === mc.id;
-                    setExpandedModel(isClosing ? null : mc.id);
-                    setSelectedEco('');
-                  }
-                }}
+        <div style={{ 
+          display: activeUnidad ? 'flex' : 'block', 
+          flexDirection: activeUnidad ? 'row-reverse' : 'column',
+          gap: '20px', 
+          justifyContent: 'space-between',
+          alignItems: activeUnidad ? 'center' : 'stretch',
+          marginBottom: '30px',
+          maxWidth: activeUnidad ? '850px' : 'none',
+          margin: activeUnidad ? '30px auto 30px' : '0',
+          transition: 'all 0.3s ease-out'
+        }}>
+          {/* Buscador global */}
+          <section style={{ 
+            maxWidth: activeUnidad ? '300px' : '640px', 
+            margin: activeUnidad ? '0' : '0 auto 40px auto',
+            flexGrow: 1,
+            transition: 'all 0.3s ease-out'
+          }}>
+            <form className="dashboard__search" style={{ margin: 0, transition: 'all 0.3s ease-out' }} onSubmit={handleBuscarUnidad}>
+              <input
+                type="text"
+                value={busquedaEco}
+                onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, '').substring(0, 3))}
+                placeholder="Buscar por número económico"
+                className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              <button 
+                type="submit" 
+                className="dashboard__search-button" 
+                disabled={!busquedaEco || buscandoUnidad}
+                style={activeUnidad ? { 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  width: '44px', 
+                  height: '44px',
+                  minWidth: '44px',
+                  borderRadius: '50%', 
+                  padding: 0,
+                  flexShrink: 0
+                } : { display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                {/* Burbuja de unidades en operación */}
-                <div style={{
-                  position: 'absolute',
-                  top: '-10px',
-                  right: '-10px',
-                  backgroundColor: '#059669', // Verde para indicar operación
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '35px',
-                  height: '35px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 2,
-                  border: '3px solid white'
-                }}>
-                  {cargando ? '—' : m.operacion}
-                </div>
+                {buscandoUnidad ? (
+                  activeUnidad ? <span style={{ fontSize: '1rem' }}>…</span> : 'Buscando...'
+                ) : (
+                  activeUnidad ? (
+                    <svg style={{ width: '20px', height: '20px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  ) : 'Buscar'
+                )}
+              </button>
+            </form>
+          </section>
 
-                <div className="centro-type-card__header">
-                  <img src={mc.image} alt={mc.label} className="centro-type-card__image" style={{ width: '110px', height: '60px', objectFit: 'contain' }} />
-                  <div className="centro-type-card__heading">
-                    <span className="centro-type-card__label" style={{ fontSize: '1.4rem' }}>{mc.label}</span>
+          {/* Tarjetas de tipos de unidad */}
+          <section className="centro-type-grid" style={{ 
+            maxWidth: activeUnidad ? '530px' : '900px', 
+            margin: activeUnidad ? '0' : '40px auto', 
+            display: 'grid', 
+            gridTemplateColumns: activeUnidad ? 'repeat(4, 1fr)' : 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: activeUnidad ? '10px' : '25px', 
+            padding: activeUnidad ? '0' : '0 20px',
+            flexGrow: 2,
+            transition: 'all 0.3s ease-out'
+          }}>
+            {modelsConfig.map((mc) => {
+              const m = modelData.find((x) => x.id === mc.id) || { operacion: 0, units: [] };
+              const isSelected = activeModel?.id === mc.id;
+              
+              return (
+                <div
+                  key={mc.id}
+                  className={`centro-type-card centro-type-card--${mc.color} ${!cargando ? 'centro-type-card--clickable' : ''}`}
+                  style={{
+                    ...(cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}),
+                    position: 'relative',
+                    zIndex: expandedModel === mc.id ? 50 : 1,
+                    padding: activeUnidad ? '8px' : undefined,
+                    border: activeUnidad && isSelected ? '2px solid var(--brand-maroon-text)' : undefined,
+                    backgroundColor: activeUnidad && isSelected ? '#f9fafb' : undefined,
+                    transition: 'all 0.3s ease-out',
+                    minHeight: activeUnidad ? '45px' : undefined
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!cargando) {
+                      const isClosing = expandedModel === mc.id;
+                      setExpandedModel(isClosing ? null : mc.id);
+                    }
+                  }}
+                >
+                  {/* Burbuja de unidades en operación */}
+                  <div style={{
+                    position: 'absolute',
+                    top: activeUnidad ? '-5px' : '-10px',
+                    right: activeUnidad ? '-5px' : '-10px',
+                    backgroundColor: '#059669', // Verde para indicar operación
+                    color: 'white',
+                    borderRadius: '50%',
+                    width: activeUnidad ? '20px' : '35px',
+                    height: activeUnidad ? '20px' : '35px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: activeUnidad ? '0.75rem' : '1.1rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    zIndex: 2,
+                    border: activeUnidad ? '2px solid white' : '3px solid white',
+                    transition: 'all 0.3s ease-out'
+                  }}>
+                    {cargando ? '—' : m.operacion}
                   </div>
-                </div>
 
-                {/* Lista de unidades superpuesta que aparece al dar clic a la caja */}
-                {expandedModel === mc.id && (
-                  <div 
-                    className="titan-dropdown-menu" 
-                    style={{ position: 'absolute', top: 'calc(100% + 5px)', left: 0, width: '100%', zIndex: 9999 }} 
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <div className="titan-dropdown-menu__scroll" style={{ maxHeight: '200px' }}>
-                      {m.units.length === 0 ? (
-                        <div style={{ padding: '12px 16px', color: '#9ca3af', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'center' }}>
-                          SIN UNIDADES EN OPERACIÓN
-                        </div>
-                      ) : (
-                        m.units.map(u => (
-                          <button
-                            key={u.id}
-                            type="button"
-                            className="titan-dropdown-menu__item"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedEco(u.numero_economico);
-                              setExpandedModel(null);
-                              navigate(`/titan/detalle/${mc.id}`, { state: { model: m, preselectedUnidad: u } });
-                            }}
-                          >
-                            ECO{u.numero_economico}
-                          </button>
-                        ))
-                      )}
+                  <div className="centro-type-card__header" style={{ flexDirection: 'column', alignItems: 'center', gap: activeUnidad ? '0px' : '20px', justifyContent: 'center', transition: 'all 0.3s ease-out' }}>
+                    <img src={mc.image} alt={mc.label} className="centro-type-card__image" style={{ width: activeUnidad ? '90px' : '110px', height: activeUnidad ? '55px' : '60px', objectFit: 'contain', transition: 'all 0.3s ease-out' }} />
+                    <div className="centro-type-card__heading" style={{ textAlign: 'center', transition: 'all 0.3s ease-out', display: activeUnidad ? 'none' : 'block' }}>
+                      <span className="centro-type-card__label" style={{ fontSize: '1.4rem', transition: 'all 0.3s ease-out' }}>{mc.label}</span>
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
+
+                  {/* Lista de unidades superpuesta que aparece al dar clic a la caja */}
+                  {expandedModel === mc.id && (
+                    <div 
+                      className="titan-dropdown-menu" 
+                      style={{ position: 'absolute', top: 'calc(100% + 5px)', left: 0, width: activeUnidad ? '200%' : '100%', zIndex: 9999 }} 
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <div className="titan-dropdown-menu__scroll" style={{ maxHeight: '200px' }}>
+                        {m.units.length === 0 ? (
+                          <div style={{ padding: '12px 16px', color: '#9ca3af', fontSize: '0.9rem', fontWeight: 'bold', textAlign: 'center' }}>
+                            SIN UNIDADES EN OPERACIÓN
+                          </div>
+                        ) : (
+                          m.units.map(u => (
+                            <button
+                              key={u.id}
+                              type="button"
+                              className="titan-dropdown-menu__item"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveModel(m);
+                                setActiveUnidad(u);
+                                setExpandedModel(null);
+                              }}
+                            >
+                              ECO{u.numero_economico}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        </div>
+
+        {activeUnidad && (
+          <div style={{ animation: 'dropdownFadeIn 0.5s ease-out' }}>
+            <DetalleUnidadTitan 
+              model={activeModel}
+              preselectedUnidad={activeUnidad}
+              onCancel={() => {
+                setActiveUnidad(null);
+                setActiveModel(null);
+              }}
+              onSuccess={() => {
+                setActiveUnidad(null);
+                setActiveModel(null);
+                fetchUnidades(true);
+              }}
+            />
+          </div>
+        )}
       </main>
     </div>
   );
