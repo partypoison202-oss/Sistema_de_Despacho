@@ -130,6 +130,8 @@ export default function Login() {
       navigate('/encierro/dashboard');
     } else if (rol === 'CENTRO_CONTROL') {
       navigate('/centro-control');
+    } else if (rol === 'TITAN') {
+      navigate('/titan/dashboard');
     } else if (rol === 'GENERAL') {
       navigate('/general');
     } else if (rol === 'DESPACHO') {

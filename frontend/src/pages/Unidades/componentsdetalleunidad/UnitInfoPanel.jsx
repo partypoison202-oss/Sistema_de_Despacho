@@ -545,7 +545,14 @@ export default function UnitInfoPanel({
                             CANCELAR
                           </button>
                           {(conductoresDisponibles || [])
-                            .filter(c => c.nombre.toLowerCase().includes(formTarjeton.toLowerCase()) || c.id.toString().includes(formTarjeton))
+                            .filter(c => {
+                              const search = formTarjeton.toLowerCase().trim();
+                              const currentTarjeton = String(datosOperativos.tarjeton || '').toLowerCase().trim();
+                              if (search === currentTarjeton || search === '') {
+                                return true;
+                              }
+                              return c.nombre.toLowerCase().includes(search) || c.id.toString().includes(search);
+                            })
                             .map((c) => (
                               <button
                                 key={c.id}

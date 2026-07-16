@@ -85,7 +85,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                           location.pathname === '/encierro/dashboard' ||
                           location.pathname === '/centro-control' ||
                           location.pathname === '/cargar-excel' ||
-                          location.pathname === '/general';
+                          location.pathname === '/general' ||
+                          location.pathname === '/titan/dashboard';
       showBackButton = !isDashboard;
     }
   }

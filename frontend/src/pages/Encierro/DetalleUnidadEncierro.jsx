@@ -261,25 +261,32 @@ export default function DetalleUnidadEncierro() {
 
   const [dbConductores, setDbConductores] = useState([]);
   
-  useEffect(() => {
+  const fetchConductores = async () => {
     const token = localStorage.getItem('token');
-    fetch(`${API_BASE}/api/conductores`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/conductores`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const mapped = data.map(c => ({
+          id: c.tarjeton,
+          tarjeton: c.tarjeton,
+          nombre: c.nombre,
+          estado_servicio: c.estado_servicio
+        }));
+        setDbConductores(mapped);
       }
-    })
-      .then(res => res.json())
-      .then(data => {
-         if (!Array.isArray(data)) return;
-         const mapped = data.map(c => ({
-             id: Number(c.tarjeton),
-             tarjeton: 'C',
-             nombre: c.nombre,
-             estado_servicio: c.estado_servicio
-         }));
-         setDbConductores(mapped);
-      })
-      .catch(err => console.error(err));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchConductores();
   }, []);
 
   const conductoresDisponibles = dbConductores.filter(c => c.estado_servicio === 'disponible');
@@ -479,6 +486,9 @@ export default function DetalleUnidadEncierro() {
           tarjeton: resultado.tarjeton,
           conductor: resultado.conductor,
         }));
+        fetchConductores();
+        queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
+        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
 
         Swal.fire({
           icon: 'success',
@@ -613,8 +623,8 @@ export default function DetalleUnidadEncierro() {
       
       if (!tieneConductor || !tieneRuta) {
         setModalEstatusNuevo('operacion');
-        setModalEstatusConductor('');
-        setModalEstatusRuta('');
+        setModalEstatusConductor(tieneConductor ? String(datosOperativos.tarjeton).trim() : '');
+        setModalEstatusRuta(tieneRuta ? datosOperativos.ruta : '');
         setModalEstatusConductorDropdown(false);
         setModalEstatusRutaDropdown(false);
         setModalEstatusOpen(true);
@@ -709,15 +719,51 @@ export default function DetalleUnidadEncierro() {
           timer: 2000,
           showConfirmButton: false
         });
-        setDatosOperativos(prev => ({ ...prev, estatus: nuevoEstatus }));
+        setDatosOperativos((prev) => {
+          const isReserva = nuevoEstatus === 'reserva';
+          return {
+            ...prev,
+            estatus: nuevoEstatus,
+            conductor: isReserva ? 'No reportado hoy' : prev.conductor,
+            ruta: isReserva ? 'Sin ruta' : prev.ruta,
+            tarjeton: isReserva ? '' : prev.tarjeton,
+          };
+        });
         setSelectedEstado(nuevoEstatus);
+        fetchConductores();
 
-        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (prev = []) => prev.map(u => {
-          if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-            return { ...u, estado: nuevoEstatus.toLowerCase() };
-          }
-          return u;
-        }));
+        // Sincronizar cache de React Query para evitar condiciones de carrera (race conditions)
+        queryClient.setQueryData(['unidad-detalle', tipoTransporte, numeroLimpio], (old) => {
+          if (!old) return old;
+          const isReserva = nuevoEstatus === 'reserva';
+          return {
+            ...old,
+            estatus: nuevoEstatus,
+            conductor: isReserva ? 'No reportado hoy' : old.conductor,
+            ruta: isReserva ? 'Sin ruta' : old.ruta,
+            tarjeton: isReserva ? '' : old.tarjeton,
+            asignado: true
+          };
+        });
+
+        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (old = []) => {
+          return old.map(u => {
+            if (String(u.eco).padStart(3, '0') === numeroLimpio) {
+              const isReserva = nuevoEstatus === 'reserva';
+              return {
+                ...u,
+                estatus: nuevoEstatus,
+                nombre_conductor: isReserva ? 'No reportado hoy' : u.nombre_conductor,
+                ruta: isReserva ? 'Sin ruta' : u.ruta,
+                tarjeton: isReserva ? '' : u.tarjeton,
+              };
+            }
+            return u;
+          });
+        });
+
+        queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
+        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'No se pudo cambiar el estatus', confirmButtonColor: '#601a2a' });
       }
@@ -776,7 +822,38 @@ export default function DetalleUnidadEncierro() {
           tarjeton: modalEstatusConductor || data.tarjeton || prev.tarjeton,
         }));
         setSelectedEstado(modalEstatusNuevo);
+        fetchConductores();
+
+        // Sincronizar cache de React Query para evitar condiciones de carrera (race conditions)
+        queryClient.setQueryData(['unidad-detalle', tipoTransporte, numeroLimpio], (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            estatus: modalEstatusNuevo,
+            conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || old.conductor),
+            ruta: modalEstatusRuta || data.ruta_asignada || old.ruta,
+            tarjeton: modalEstatusConductor || data.tarjeton || old.tarjeton,
+            asignado: true
+          };
+        });
+
+        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (old = []) => {
+          return old.map(u => {
+            if (String(u.eco).padStart(3, '0') === numeroLimpio) {
+              return {
+                ...u,
+                estatus: modalEstatusNuevo,
+                nombre_conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor),
+                ruta: modalEstatusRuta || data.ruta_asignada || u.ruta,
+                tarjeton: modalEstatusConductor || data.tarjeton || u.tarjeton,
+              };
+            }
+            return u;
+          });
+        });
+
         queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
+        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
@@ -1024,7 +1101,14 @@ export default function DetalleUnidadEncierro() {
                                     CANCELAR
                                   </button>
                                   {(conductoresDisponibles || [])
-                                    .filter(c => c.nombre.toLowerCase().includes(formTarjeton.toLowerCase()) || c.id.toString().includes(formTarjeton))
+                                     .filter(c => {
+                                       const search = formTarjeton.toLowerCase().trim();
+                                       const currentTarjeton = String(datosOperativos.tarjeton || '').toLowerCase().trim();
+                                       if (search === currentTarjeton || search === '') {
+                                         return true;
+                                       }
+                                       return c.nombre.toLowerCase().includes(search) || c.id.toString().includes(search);
+                                     })
                                     .map((c) => (
                                       <button
                                         key={c.id}
@@ -1677,7 +1761,7 @@ export default function DetalleUnidadEncierro() {
                   <span>
                     {modalEstatusConductor
                       ? (() => {
-                          const found = (conductoresDisponibles || []).find(c => c.id.toString() === modalEstatusConductor);
+                          const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
                           return found ? `${found.nombre} (${found.id})` : 'Seleccione un conductor...';
                         })()
                       : 'Seleccione un conductor...'}

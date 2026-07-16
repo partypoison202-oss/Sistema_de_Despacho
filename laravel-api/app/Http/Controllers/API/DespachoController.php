@@ -510,6 +510,16 @@ class DespachoController extends Controller
             ], 404);
         }
 
+        // Si el conductor ya estaba asignado a otra unidad hoy, desasignarlo de esa otra unidad
+        DB::table('informacion_operativa')
+            ->whereDate('fecha_registro', $fechaHoy)
+            ->where('numero_tarjeton', $tarjetonLimpio)
+            ->where('id', '!=', $registro->id)
+            ->update([
+                'numero_tarjeton' => null,
+                'nombre_conductor' => null
+            ]);
+
         // 3. actualizar en informacion_operativa
         DB::table('informacion_operativa')
             ->where('id', $registro->id)
@@ -645,6 +655,8 @@ class DespachoController extends Controller
      */
     public function cambiarEstatus(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('cambiarEstatus request data', $request->all());
+
         $request->validate([
             'numero_eco' => 'required',
             'tipo' => 'required',
@@ -687,8 +699,9 @@ class DespachoController extends Controller
             'motivo_estatus' => $motivoEstatus
         ];
 
-        // Liberar campos si pasa a mantenimiento o reserva
-        if (in_array($nuevoEstatus, ['mantenimiento', 'reserva'])) {
+        $fechaHoy = Carbon::today()->toDateString();
+
+        if ($nuevoEstatus === 'reserva') {
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;
@@ -698,29 +711,39 @@ class DespachoController extends Controller
                     ->where('tarjeton', $registroOperativo->numero_tarjeton)
                     ->update(['estado_servicio' => 'disponible']);
             }
-        }
-
-        // Si pasa a operacion, permitir actualizar conductor y ruta
-        if ($nuevoEstatus === 'operacion') {
-            if ($request->has('nombre_conductor')) {
+        } else {
+            $allInputs = $request->all();
+            if (array_key_exists('nombre_conductor', $allInputs)) {
                 $updateData['nombre_conductor'] = $request->nombre_conductor;
             }
-            if ($request->has('numero_tarjeton')) {
-                $updateData['numero_tarjeton'] = $request->numero_tarjeton;
+            if (array_key_exists('numero_tarjeton', $allInputs)) {
+                $tarjetonLimpio = trim((string)$request->numero_tarjeton);
+                $updateData['numero_tarjeton'] = $tarjetonLimpio;
                 
-                if ($registroOperativo->numero_tarjeton && $registroOperativo->numero_tarjeton !== $request->numero_tarjeton) {
+                if ($tarjetonLimpio) {
+                    DB::table('informacion_operativa')
+                        ->whereDate('fecha_registro', $fechaHoy)
+                        ->where('numero_tarjeton', $tarjetonLimpio)
+                        ->where('id', '!=', $registroOperativo->id)
+                        ->update([
+                            'numero_tarjeton' => null,
+                            'nombre_conductor' => null
+                        ]);
+                }
+                
+                if ($registroOperativo->numero_tarjeton && $registroOperativo->numero_tarjeton !== $tarjetonLimpio) {
                     DB::table('conductores')
                         ->where('tarjeton', $registroOperativo->numero_tarjeton)
                         ->update(['estado_servicio' => 'disponible']);
                 }
 
-                if ($request->numero_tarjeton) {
+                if ($tarjetonLimpio) {
                     DB::table('conductores')
-                        ->where('tarjeton', $request->numero_tarjeton)
+                        ->where('tarjeton', $tarjetonLimpio)
                         ->update(['estado_servicio' => 'en_servicio']);
                 }
             }
-            if ($request->has('ruta')) {
+            if (array_key_exists('ruta', $allInputs)) {
                 $updateData['ruta'] = $request->ruta;
             }
         }

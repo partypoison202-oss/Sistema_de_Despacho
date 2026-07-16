@@ -23,6 +23,8 @@ import CentroControl from './pages/CentroControl/CentroControl';
 import GlobalClock from './components/GlobalClock/GlobalClock';
 import DetalleUnidades from './pages/CentroControl/Detalle/DetalleUnidades';
 import PatioDashboard from './pages/Patio/PatioDashboard';
+import DashboardTitan from './pages/Titan/DashboardTitan';
+import DetalleUnidadTitan from './pages/Titan/DetalleUnidadTitan';
 
 function App() {
   return (
@@ -41,16 +43,36 @@ function App() {
           } />
 
           {/* Rutas protegidas para ADMIN y DESPACHO (NO para CENTRO_CONTROL) */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
-              <Dashboard />
+          <Route path="/patio/dashboard" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PATIO']}>
+              <PatioDashboard />
             </ProtectedRoute>
           } />
 
+          {/* TITAN Module */}
+          <Route path="/titan/dashboard" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN']}>
+              <DashboardTitan />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/titan/detalle/:tipo" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN']}>
+              <DetalleUnidadTitan />
+            </ProtectedRoute>
+          } />
+
+          {/* Rutas de CheckList para USUARIO_GENERAL y ADMINISTRADOR */}
           {/* Dashboard General (nuevo) - tarjetas que llevan a /despacho/:id */}
           <Route path="/general" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
               <DashboardGeneral />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/dashboard" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO']}>
+              <Dashboard />
             </ProtectedRoute>
           } />
 

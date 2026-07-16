@@ -140,10 +140,12 @@
 .centro-kpi--total {
   border-left-color: var(--cc-maroon);
 }
+
 .centro-kpi--total .centro-kpi__icon {
   background: rgba(96, 26, 42, 0.1);
   color: var(--cc-maroon);
 }
+
 .centro-kpi--total .centro-kpi__value {
   color: var(--cc-maroon);
 }
@@ -151,10 +153,12 @@
 .centro-kpi--operacion {
   border-left-color: var(--cc-operacion);
 }
+
 .centro-kpi--operacion .centro-kpi__icon {
   background: var(--cc-operacion-bg);
   color: var(--cc-operacion);
 }
+
 .centro-kpi--operacion .centro-kpi__value {
   color: var(--cc-operacion);
 }
@@ -162,10 +166,12 @@
 .centro-kpi--reserva {
   border-left-color: var(--cc-reserva);
 }
+
 .centro-kpi--reserva .centro-kpi__icon {
   background: var(--cc-reserva-bg);
   color: var(--cc-reserva);
 }
+
 .centro-kpi--reserva .centro-kpi__value {
   color: var(--cc-reserva);
 }
@@ -173,10 +179,12 @@
 .centro-kpi--mantenimiento {
   border-left-color: var(--cc-mantenimiento);
 }
+
 .centro-kpi--mantenimiento .centro-kpi__icon {
   background: var(--cc-mantenimiento-bg);
   color: var(--cc-mantenimiento);
 }
+
 .centro-kpi--mantenimiento .centro-kpi__value {
   color: var(--cc-mantenimiento);
 }
@@ -228,10 +236,21 @@
   cursor: pointer;
 }
 
-.centro-type-card--maroon { border-top-color: var(--cc-maroon); }
-.centro-type-card--gold   { border-top-color: var(--cc-gold); }
-.centro-type-card--green  { border-top-color: var(--cc-green); }
-.centro-type-card--blue   { border-top-color: var(--cc-blue); }
+.centro-type-card--maroon {
+  border-top-color: var(--cc-maroon);
+}
+
+.centro-type-card--gold {
+  border-top-color: var(--cc-gold);
+}
+
+.centro-type-card--green {
+  border-top-color: var(--cc-green);
+}
+
+.centro-type-card--blue {
+  border-top-color: var(--cc-blue);
+}
 
 .centro-type-card__header {
   display: flex;
@@ -282,9 +301,17 @@
   transition: width 0.4s ease;
 }
 
-.centro-bar__seg--operacion { background: var(--cc-operacion); }
-.centro-bar__seg--reserva { background: var(--cc-reserva); }
-.centro-bar__seg--mantenimiento { background: var(--cc-mantenimiento); }
+.centro-bar__seg--operacion {
+  background: var(--cc-operacion);
+}
+
+.centro-bar__seg--reserva {
+  background: var(--cc-reserva);
+}
+
+.centro-bar__seg--mantenimiento {
+  background: var(--cc-mantenimiento);
+}
 
 /* Lista de estatus */
 .centro-status-list {
@@ -312,10 +339,21 @@
   flex-shrink: 0;
 }
 
-.centro-status-dot--operacion { background: var(--cc-operacion); }
-.centro-status-dot--reserva { background: var(--cc-reserva); }
-.centro-status-dot--mantenimiento { background: var(--cc-mantenimiento); }
-.centro-status-dot--otros { background: var(--cc-otros); }
+.centro-status-dot--operacion {
+  background: var(--cc-operacion);
+}
+
+.centro-status-dot--reserva {
+  background: var(--cc-reserva);
+}
+
+.centro-status-dot--mantenimiento {
+  background: var(--cc-mantenimiento);
+}
+
+.centro-status-dot--otros {
+  background: var(--cc-otros);
+}
 
 .centro-status-label {
   font-size: 0.85rem;
@@ -412,7 +450,9 @@
 }
 
 @keyframes centro-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .centro-kpis-actions {

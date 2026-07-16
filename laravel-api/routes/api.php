@@ -64,4 +64,59 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/fechas', [App\Http\Controllers\API\HistorialOperativoController::class, 'getFechas']);
     Route::get('/historial-operativo/despacho/{fecha}', [App\Http\Controllers\API\HistorialOperativoController::class, 'getHistorialDespacho']);
     Route::get('/historial-operativo/encierro/{fecha}', [App\Http\Controllers\API\HistorialOperativoController::class, 'getHistorialEncierro']);
+
+    // RUTAS PARA TITAN
+    Route::get('/titan/unidades', [App\Http\Controllers\API\TitanController::class, 'getUnidadesOperacion']);
+    Route::post('/titan/reporte', [App\Http\Controllers\API\TitanController::class, 'guardarReporte']);
+});
+
+Route::get('/setup-titan', function() {
+    try {
+        // Insert TITAN role if not exists
+        \Illuminate\Support\Facades\DB::table('roles')->updateOrInsert(
+            ['codigo' => 'TITAN'],
+            ['nombre' => 'TITAN']
+        );
+
+        // Create reportes_titan table
+        if (!\Illuminate\Support\Facades\Schema::hasTable('reportes_titan')) {
+            \Illuminate\Support\Facades\Schema::create('reportes_titan', function (Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->foreignId('unidad_id')->constrained('unidades');
+                $table->foreignId('usuario_id')->constrained('usuarios');
+                $table->string('intervalo')->nullable();
+                $table->text('observaciones')->nullable();
+                $table->string('tipo_evento'); // DESINCORPORACION, INCORPORACION, ACCIDENTE
+                
+                // Desincorporacion / Incorporacion
+                $table->string('corrida')->nullable();
+                $table->string('hora_evento')->nullable();
+                $table->string('ubicacion_gps')->nullable();
+                $table->text('motivo_desincorporacion')->nullable();
+                
+                // Accidentes
+                $table->string('accidente_dueno')->nullable();
+                $table->string('accidente_vehiculo')->nullable();
+                $table->string('accidente_placas')->nullable();
+                $table->boolean('accidente_seguro')->nullable();
+                $table->text('accidente_hechos')->nullable();
+                
+                $table->timestamps();
+            });
+        }
+
+        // Create reportes_titan_fotos table
+        if (!\Illuminate\Support\Facades\Schema::hasTable('reportes_titan_fotos')) {
+            \Illuminate\Support\Facades\Schema::create('reportes_titan_fotos', function (Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->foreignId('reporte_titan_id')->constrained('reportes_titan')->onDelete('cascade');
+                $table->string('ruta_foto');
+                $table->timestamps();
+            });
+        }
+
+        return response()->json(['message' => 'TITAN setup completed successfully']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
 });
