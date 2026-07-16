@@ -86,9 +86,9 @@ const buildZonaVerdeSlots = (totalUnidades) => {
 
 // --- Señalamientos de zona (ubicados en los costados) ---
 const ZONE_LABELS = [
-  { id: 'reserva-conductor', text: 'Reserva con conductor', top: '30%', left: '50%', color: '#e07b1a' },
-  { id: 'reserva-sin-conductor', text: 'Reserva sin conductor', top: '45%', left: '52%', color: '#d4b400' },
-  { id: 'mantenimiento', text: 'Mantenimiento', top: '68%', left: '50%', color: '#c62828' },
+  { id: 'reserva-conductor', text: 'Reserva', top: '33%', left: '51%', color: '#1a76e0' },
+  { id: 'reserva-sin-conductor', text: 'Sin conductor', top: '47%', left: '53%', color: '#d4b400' },
+  { id: 'mantenimiento', text: 'Mantenimiento', top: '72%', left: '54%', color: '#c62828' },
 ];
 
 // --- Función para detectar si una unidad tiene conductor ------------------
@@ -106,22 +106,9 @@ const unitHasConductor = (u) => {
 };
 
 // --- Función para fusionar datos de incoming y prev, preservando campos ---
-// Se saca fuera del componente (no depende de nada del render) para poder
-// reutilizarla de forma consistente en todos los bloques de la lógica de
-// transición ANTES de decidir a qué ruta/zona va cada unidad.
 const mergeUnitData = (incoming, prev) => {
   const merged = { ...incoming };
   if (prev) {
-    // ⚠️ IMPORTANTE: usamos unitHasConductor (no solo ?? ) para decidir el
-    // valor del conductor, porque algunos endpoints devuelven "" (string
-    // vacío) o "Sin asignar" en vez de null/undefined cuando no traen el
-    // dato. Con ?? solo, esos valores "vacíos pero truthy-en-JS-check"
-    // ganan sobre el valor previo real y la unidad pierde el conductor.
-    //
-    // Regla: si el valor de incoming, evaluado con unitHasConductor, SÍ
-    // representa un conductor real, lo usamos. Si no, y prev sí tenía uno
-    // real, preservamos el de prev. Si ninguno tiene uno real, no hay
-    // conductor (correcto).
     const incomingTieneConductor = unitHasConductor(incoming);
     const prevTieneConductor = unitHasConductor(prev);
 
@@ -134,13 +121,9 @@ const mergeUnitData = (incoming, prev) => {
       merged.conductor = prev.conductor ?? merged.conductor;
       merged.conductor_nombre = prev.conductor_nombre ?? merged.conductor_nombre;
     }
-    // Si ninguno tiene conductor real, dejamos lo que vino en incoming tal cual
-    // (probablemente "", null, "No asignado", etc.) para no inventar datos.
 
     merged.tarjeton = incoming.tarjeton ?? prev.tarjeton;
     merged.ruta = incoming.ruta ?? prev.ruta;
-    // También puede haber otros campos que la API no devuelve en listar
-    // Si el prev tiene campos adicionales, los preservamos
     for (const key of Object.keys(prev)) {
       if (!(key in merged) || merged[key] === undefined || merged[key] === null) {
         merged[key] = prev[key];
@@ -288,12 +271,6 @@ const PatioDashboard = () => {
   };
 
   // --- Asignar slots ANTES del paint usando useLayoutEffect -------------
-  // OJO: incluimos también 'entering' y 'moving-within-base' (no solo
-  // 'idle'), porque necesitamos saber DESDE ANTES a qué slot se dirige una
-  // unidad que está en tránsito, para poder animarla desde el final de su
-  // ruta hasta ese slot (fase 'moving-to-end'). Si solo calculáramos slots
-  // para unidades idle, una unidad en camino no tendría destino conocido
-  // hasta llegar, y por eso "aparecía de repente" en su cajón.
   useLayoutEffect(() => {
     const baseUnits = displayUnits.filter(
       (u) =>
@@ -334,15 +311,12 @@ const PatioDashboard = () => {
           // Unidad nueva
           if (inBase) {
             if (isInitial) {
-              // Carga inicial: idle con datos fusionados (no hay prev, pero usamos incoming)
               nextDisplay.push({
                 ...incoming,
                 transitionState: 'idle',
                 opacity: 1,
               });
             } else {
-              // Entra a base desde operación
-              // OJO: no hay prev, así que no hay nada que fusionar; usamos incoming tal cual.
               const tieneConductor = unitHasConductor(incoming);
               const routeId = incoming.estatus === 'mantenimiento'
                 ? 'operacionToMantenimiento'
@@ -363,7 +337,6 @@ const PatioDashboard = () => {
           const prevInBase = prev.estatus === 'reserva' || prev.estatus === 'mantenimiento';
 
           if (prevInBase && !inBase) {
-            // Sale de base hacia operación
             let routeId;
             if (prev.estatus === 'mantenimiento') {
               routeId = 'mantenimientoToOperacion';
@@ -374,12 +347,11 @@ const PatioDashboard = () => {
             const endpoints = getRouteEndpoints(routeId);
             if (!endpoints) return;
             const currentSlot = unitSlots.get(prev.numero_eco);
-            // Fusionar datos: usar incoming (que tiene estatus=operacion) pero preservar campos de prev
             const merged = mergeUnitData(incoming, prev);
             if (currentSlot) {
               nextDisplay.push({
                 ...merged,
-                estatus: 'operacion', // asegurar estatus de salida
+                estatus: 'operacion',
                 transitionState: 'exiting',
                 phase: 'moving-to-start',
                 opacity: 1,
@@ -400,12 +372,6 @@ const PatioDashboard = () => {
               });
             }
           } else if (!prevInBase && inBase) {
-            // Entra a base desde operación
-            // ✅ FIX: fusionar ANTES de decidir si tiene conductor. El endpoint
-            // "listar" puede no traer nombre_conductor en este ciclo puntual;
-            // si no fusionamos primero, unitHasConductor(incoming) da false
-            // aunque el conductor siga asignado, y la unidad se manda siempre
-            // a "reserva sin conductor".
             const merged = mergeUnitData(incoming, prev);
             const tieneConductor = unitHasConductor(merged);
             const routeId = incoming.estatus === 'mantenimiento'
@@ -422,10 +388,7 @@ const PatioDashboard = () => {
               progress: 0,
             });
           } else if (inBase) {
-            // Ambos en base: verificar cambio de estatus
             if (prev.estatus !== incoming.estatus) {
-              // Movimiento interno
-              // ✅ FIX: mismo caso — fusionar antes de leer el conductor.
               const merged = mergeUnitData(incoming, prev);
               const tieneConductor = unitHasConductor(merged);
               const isMantenimiento = incoming.estatus === 'mantenimiento';
@@ -460,7 +423,6 @@ const PatioDashboard = () => {
                 });
               }
             } else {
-              // Sin cambio: mantener estado, pero si terminó movimiento, pasar a idle
               let newState = prev.transitionState;
               let newPhase = prev.phase;
               let newProgress = prev.progress;
@@ -473,7 +435,6 @@ const PatioDashboard = () => {
                 newPhase = null;
                 newProgress = undefined;
               }
-              // Fusionar para preservar campos (aunque no haya cambio, puede que incoming no traiga todo)
               const merged = mergeUnitData(incoming, prev);
               nextDisplay.push({
                 ...merged,
@@ -490,7 +451,6 @@ const PatioDashboard = () => {
         }
       });
 
-      // Unidades en salida que ya no están en API
       prevUnits.forEach((prev) => {
         if (prev.transitionState === 'exiting' && !incomingMap.has(prev.numero_eco)) {
           nextDisplay.push(prev);
@@ -543,9 +503,6 @@ const PatioDashboard = () => {
           if (u.transitionState === 'exiting') {
             return null;
           } else if (u.transitionState === 'entering' || u.transitionState === 'moving-within-base') {
-            // ✅ En vez de saltar directo a "idle" (lo que hacía que la unidad
-            // apareciera de golpe en su cajón), animamos desde el punto final
-            // de la ruta digitalizada hasta el slot real que le fue asignado.
             const targetSlot = unitSlots.get(u.numero_eco);
             const route = ROUTES[u.routeId];
             const lastPoint = route && route.points && route.points.length > 0
@@ -562,7 +519,6 @@ const PatioDashboard = () => {
                 endPos: { top: targetSlot.top, left: targetSlot.left },
               };
             }
-            // Fallback por si no hay slot/ruta disponible todavía: ir directo a idle
             return {
               ...u,
               transitionState: 'idle',
@@ -788,7 +744,7 @@ const PatioDashboard = () => {
               {fleets.map((f) => (
                 <button
                   key={f.id}
-                  className={`fleet-tab ${selectedFleet === f.id ? 'active' : ''}`}
+                  className={`fleet-tab fleet-${f.id} ${selectedFleet === f.id ? 'active' : ''}`}
                   onClick={() => setSelectedFleet(f.id)}
                 >
                   {f.label}
@@ -797,7 +753,7 @@ const PatioDashboard = () => {
             </div>
 
             <div className="floating-status-badge">
-              <span className="online-badge pulse-green-dot">Monitoreo en Vivo</span>
+              <span className="online-badge pulse-green-dot"></span>
               <button className="sync-btn-icon" onClick={() => fetchUnits(selectedFleet)} disabled={loading}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -855,13 +811,7 @@ const PatioDashboard = () => {
 
               {displayUnits.map(renderUnit)}
 
-              {/* Leyenda de colores por flota.
-                  NOTA: forzamos el posicionamiento con estilos inline cuando
-                  isFullscreen es true, en vez de confiar únicamente en el
-                  selector CSS :fullscreen. Esto evita que la leyenda quede
-                  oculta o recortada por diferencias de implementación entre
-                  navegadores (prefijos -webkit-/-moz-, orden de capas del
-                  modo fullscreen nativo, contenedores con overflow, etc). */}
+              {/* Leyenda de colores por flota */}
               <div
                 className="legend-box"
                 style={

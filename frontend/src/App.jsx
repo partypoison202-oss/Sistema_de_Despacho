@@ -25,6 +25,10 @@ import DetalleUnidades from './pages/CentroControl/Detalle/DetalleUnidades';
 import PatioDashboard from './pages/Patio/PatioDashboard';
 import DashboardTitan from './pages/Titan/DashboardTitan';
 import DetalleUnidadTitan from './pages/Titan/DetalleUnidadTitan';
+import Mantenimiento from './pages/Mantenimiento/Mantenimiento';
+import DetalleUnidadMantenimiento from './pages/Mantenimiento/DetalleUnidadMantenimiento';
+
+
 
 function App() {
   return (
@@ -34,6 +38,8 @@ function App() {
         <Routes>
           {/* Pantalla de Inicio de Sesión */}
           <Route path="/" element={<Login />} />
+
+          
 
           {/* Ruta protegida de detalle de despacho (pantalla "General" nueva) */}
           <Route path="/despacho/:id" element={
@@ -178,6 +184,19 @@ function App() {
           <Route path="/plano-patio" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
               <PatioDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Rutas protegidas para MANTENIMIENTO (solo ADMIN y MANTENIMIENTO) */}
+          <Route path="/mantenimiento" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO']}>
+              <Mantenimiento />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/mantenimiento/:tipoTransporte" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO']}>
+              <DetalleUnidadMantenimiento />
             </ProtectedRoute>
           } />
 

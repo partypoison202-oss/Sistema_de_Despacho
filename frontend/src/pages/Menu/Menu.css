@@ -2,6 +2,8 @@
 :root {
   --color-maroon: #65002d;
   --color-gold: #c9a84c;
+  --color-brown: #7b4a24;
+  --color-brown-light: #f2e6da;
 }
 
 /* ════════════════════════════════
@@ -121,6 +123,14 @@
 .dashboard-card--orange::before { background: var(--state-orange-bg); }
 .dashboard-card--orange .dashboard-card__icon { color: var(--state-orange-text); background: var(--state-orange-light); }
 .dashboard-card--orange:hover { border-color: #fcd34d; }
+
+.dashboard-card--black::before { background: var(--state-black-bg); }
+.dashboard-card--black .dashboard-card__icon { color: var(--state-black-text); background: var(--state-orange-light); }
+.dashboard-card--black:hover { border-color: #000000; }
+
+.dashboard-card--brown::before { background: var(--color-brown); }
+.dashboard-card--brown .dashboard-card__icon { color: var(--color-brown); background: var(--color-brown-light); }
+.dashboard-card--brown:hover { border-color: #d9b997; }
 
 /* ── Ícono ── */
 .dashboard-card__icon {

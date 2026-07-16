@@ -161,7 +161,7 @@
   display: block;
 }
 
-/* Elementos flotantes */
+/* ====== PESTAÑAS DE FLOTA ====== */
 .floating-fleet-tabs {
   position: absolute;
   top: 16px;
@@ -192,17 +192,43 @@
   letter-spacing: 0.3px;
 }
 
-.floating-fleet-tabs .fleet-tab:hover {
+.floating-fleet-tabs .fleet-tab:hover:not(.active) {
   color: var(--cc-text);
   background: rgba(96, 26, 42, 0.06);
 }
 
-.floating-fleet-tabs .fleet-tab.active {
-  color: #ffffff;
+/* --- Estados activos por flota (ahora fuera del media query) --- */
+.fleet-tab.active.fleet-all {
   background: var(--cc-maroon);
+  color: #ffffff;
   box-shadow: 0 2px 8px rgba(96, 26, 42, 0.3);
 }
 
+.fleet-tab.active.fleet-urbanus {
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.fleet-tab.active.fleet-zafiro {
+  background: #22c55e;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.fleet-tab.active.fleet-vagoneta {
+  background: #4b7a3e;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(75, 122, 62, 0.3);
+}
+
+.fleet-tab.active.fleet-orion {
+  background: #166534;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(22, 101, 52, 0.3);
+}
+
+/* --- El resto de elementos flotantes --- */
 .floating-status-badge {
   position: absolute;
   top: 16px;
@@ -319,10 +345,8 @@
   border: 1.5px solid #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   background: var(--vehicle-color, #3a7bd5);
-  /* La rotación se aplica inline con JS, sin transición para que sea instantánea */
 }
 
-/* Faros: dos círculos amarillos en la parte superior (frente) */
 .vehicle-shape::before {
   content: '';
   position: absolute;
@@ -336,13 +360,12 @@
   z-index: 2;
 }
 
-/* ====== COLORES POR FLOTA (anulan los colores por estatus) ====== */
-.fleet-urbanus .vehicle-shape { background: #dc2626 !important; } /* rojo */
-.fleet-zafiro .vehicle-shape { background: #22c55e !important; }   /* verde vivo */
-.fleet-vagoneta .vehicle-shape { background: #4b7a3e !important; } /* verde militar */
-.fleet-orion .vehicle-shape { background: #166534 !important; }    /* verde bandera */
+/* Colores por flota */
+.fleet-urbanus .vehicle-shape { background: #dc2626 !important; }
+.fleet-zafiro .vehicle-shape { background: #22c55e !important; }
+.fleet-vagoneta .vehicle-shape { background: #4b7a3e !important; }
+.fleet-orion .vehicle-shape { background: #166534 !important; }
 
-/* (Opcional: mantener el pulso solo para reserva/mantenimiento, pero con el color de flota) */
 .unit-badge.status-reserva.state-idle .vehicle-shape {
   animation: resPulseLight 2s infinite;
 }
@@ -369,10 +392,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
   z-index: 10;
   pointer-events: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-/* Pulso para unidades en reposo */
 @keyframes resPulseLight {
   0% { box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.5), 0 2px 8px rgba(0, 0, 0, 0.2); }
   70% { box-shadow: 0 0 0 6px rgba(2, 132, 199, 0), 0 2px 8px rgba(0, 0, 0, 0.2); }
@@ -518,7 +539,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Puntos de conexión */
 .pulse-green-dot::before {
   content: '';
   display: inline-block;
@@ -556,6 +576,7 @@
 .zone-label {
   position: absolute;
   transform: translate(-50%, -50%);
+  transform: rotate(-110deg);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -570,19 +591,17 @@
   z-index: 5;
 }
 
-/* ====================================================================== */
-/* ====== LEYENDA (simbología) — rediseño estético + fix pantalla completa */
-/* ====================================================================== */
+/* ====== LEYENDA ====== */
 .legend-box {
   position: absolute;
   bottom: 20px;
   right: 20px;
-  z-index: 2147483647; /* máximo posible: garantiza que quede sobre todo, incluido fullscreen */
+  z-index: 2147483647;
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 168px;
-  padding: 12px 14px 12px 14px;
+  padding: 12px 14px;
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(250, 248, 245, 0.97) 100%);
   backdrop-filter: blur(10px);
@@ -596,7 +615,7 @@
   color: var(--cc-text);
   pointer-events: none;
   user-select: none;
-  transform: translateZ(0); /* fuerza su propia capa de composición */
+  transform: translateZ(0);
 }
 
 .legend-box-title {
@@ -641,19 +660,12 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
 }
-
-/* Colores de la leyenda (coinciden con los de flota) */
 .legend-color.fleet-urbanus { background: #dc2626; }
 .legend-color.fleet-zafiro { background: #22c55e; }
 .legend-color.fleet-vagoneta { background: #4b7a3e; }
 .legend-color.fleet-orion { background: #166534; }
 
-/* ====== PANTALLA COMPLETA: asegurar visibilidad total de la leyenda ======
-   El posicionamiento fijo real se fuerza desde JS (estilos inline) usando el
-   estado isFullscreen, por ser más confiable entre navegadores. Aquí solo
-   nos aseguramos de que ningún contenedor recorte el contenido con overflow
-   y de que, si por lo que sea el selector :fullscreen sí aplica, la leyenda
-   quede igualmente visible y por encima de todo. */
+/* ====== PANTALLA COMPLETA ====== */
 .plano-map-wrapper:fullscreen,
 .plano-map-wrapper:-webkit-full-screen,
 .plano-map-wrapper:-moz-full-screen {
@@ -667,7 +679,7 @@
 .plano-map-wrapper:fullscreen .floorplan-canvas,
 .plano-map-wrapper:-webkit-full-screen .floorplan-canvas,
 .plano-map-wrapper:-moz-full-screen .floorplan-canvas {
-  overflow: visible; /* evita que la leyenda sea recortada */
+  overflow: visible;
   max-width: 100%;
   max-height: 100%;
   width: auto;
@@ -681,7 +693,7 @@
   opacity: 1 !important;
 }
 
-/* Responsive */
+/* ====== RESPONSIVE ====== */
 @media (max-width: 768px) {
   .patio-info-banner {
     flex-direction: column;
