@@ -387,8 +387,15 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         const pos = getPos(e);
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = brushSize;
+        
+        if (color === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = brushSize * 2; // Goma un poco más gruesa
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = brushSize;
+        }
     };
 
     const draw = (e) => {
@@ -493,6 +500,18 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
                             style={{ backgroundColor: c.value }}
                         />
                     ))}
+                    <div className="mx-1 h-5 w-px bg-gray-200" />
+                    <button
+                        type="button"
+                        title="Borrador"
+                        onClick={() => setColor('eraser')}
+                        className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all ${color === 'eraser' ? 'border-gray-800 bg-gray-100 shadow' : 'border-transparent bg-gray-50 hover:bg-gray-200 text-gray-500'}`}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.5 14.5L10.5 8.5" />
+                        </svg>
+                    </button>
                 </div>
 
                 <div className="mx-1 h-5 w-px bg-gray-200" />

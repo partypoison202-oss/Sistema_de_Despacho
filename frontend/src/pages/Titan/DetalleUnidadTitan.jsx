@@ -192,198 +192,195 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
       {!selectedUnidad ? (
         <div style={{ textAlign: 'center', marginTop: '50px' }}>
           <h2 className="titan-subtitle">Cargando datos de la unidad...</h2>
-          <p>Si la pantalla no carga, por favor intenta seleccionar nuevamente.</p>
+          <p style={{ color: 'var(--tw-color-gray-500)' }}>Si la pantalla no carga, por favor intenta seleccionar nuevamente.</p>
         </div>
       ) : (
         <div className="titan-form-container">
-          {/* Botón cancelar fuera del recuadro gris, arriba */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-            <button 
-              onClick={onCancel}
-              style={{
-                backgroundColor: 'transparent',
-                border: '1px solid #d1d5db',
-                padding: '6px 18px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                color: '#4b5563',
-                fontSize: '0.9rem'
-              }}
-            >
-              ✕ Cancelar
+            <button className="titan-btn-cancel" onClick={onCancel}>
+              <svg className="titan-btn-cancel-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path>
+              </svg>
+              Contraer Formulario
             </button>
           </div>
 
+          {/* Header guinda de la unidad */}
           <div className="titan-header-info">
             <div>
               <h3>Unidad {selectedUnidad.numero_economico}</h3>
               <div className="titan-info-grid">
-                <p><strong>Ruta:</strong> {selectedUnidad.ruta || 'N/A'}</p>
-                <p><strong>Tarjetón:</strong> {selectedUnidad.numero_tarjeton || 'N/A'}</p>
-                <p><strong>Conductor:</strong> {selectedUnidad.nombre_conductor || 'N/A'}</p>
+                <p>
+                  <strong>Ruta</strong>
+                  <span>{selectedUnidad.ruta || 'N/A'}</span>
+                </p>
+                <p>
+                  <strong>Tarjetón</strong>
+                  <span>{selectedUnidad.numero_tarjeton || 'N/A'}</span>
+                </p>
+                <p>
+                  <strong>Conductor</strong>
+                  <span>{selectedUnidad.nombre_conductor || 'N/A'}</span>
+                </p>
               </div>
             </div>
           </div>
 
-            <div className="titan-section">
-              <h4>Información General</h4>
-              <div className="form-group">
-                <label>Intervalo</label>
-                <input type="text" value={intervalo} onChange={(e) => setIntervalo(e.target.value)} placeholder="Ej. 10 min" />
-              </div>
-              <div className="form-group">
-                <label>Observaciones</label>
-                <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows="3" placeholder="Detalles de supervisión..."></textarea>
-              </div>
+          {/* Información General */}
+          <div className="titan-section">
+            <h4>Información General</h4>
+            <div className="form-group">
+              <label>Intervalo</label>
+              <input type="text" value={intervalo} onChange={(e) => setIntervalo(e.target.value)} placeholder="Ej. 10 min" />
             </div>
-
-            <div className="titan-tabs">
-              <button className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`} onClick={() => setActiveTab('DESINCORPORACION')}>
-                DESINCORPORACIÓN
-              </button>
-              <button className={`titan-tab ${activeTab === 'INCORPORACION' ? 'active' : ''}`} onClick={() => setActiveTab('INCORPORACION')}>
-                INCORPORACIÓN
-              </button>
-              <button className={`titan-tab ${activeTab === 'ACCIDENTE' ? 'active' : ''}`} onClick={() => setActiveTab('ACCIDENTE')}>
-                ACCIDENTES
-              </button>
+            <div className="form-group">
+              <label>Observaciones</label>
+              <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows="3" placeholder="Detalles de supervisión..."></textarea>
             </div>
+          </div>
 
-            {activeTab && (
-              <div className="titan-section active-tab-content">
-                {(activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') && (
-                  <>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Corrida</label>
-                        <input type="text" value={corrida} onChange={(e) => setCorrida(e.target.value)} />
-                      </div>
-                      <div className="form-group" style={{ position: 'relative' }}>
-                        <label>Hora</label>
-                        <button
-                          type="button"
-                          onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)}
-                          className="form-group-time-trigger"
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            fontSize: '1rem',
-                            textAlign: 'left',
-                            backgroundColor: '#f9fafb',
-                            color: '#1f2937',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}
-                        >
-                          <span>{horaEvento || '--:--'}</span>
-                          <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                          </svg>
-                        </button>
-                        
-                        {dropdownHoraOpen && (
-                          <>
-                            <div 
-                              style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
-                              onClick={() => setDropdownHoraOpen(false)}
-                            />
-                            <IOSTimePicker 
-                              value={horaEvento} 
-                              onChange={setHoraEvento} 
-                              onClose={() => setDropdownHoraOpen(false)}
-                              onSave={() => setDropdownHoraOpen(false)}
-                            />
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Ubicación</label>
-                      <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." style={{ width: '100%', backgroundColor: '#f3f4f6' }} />
-                    </div>
+          {/* Tabs de eventos */}
+          <div className="titan-tabs">
+            <button className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`} onClick={() => setActiveTab('DESINCORPORACION')}>
+              Desincorporación
+            </button>
+            <button className={`titan-tab ${activeTab === 'INCORPORACION' ? 'active' : ''}`} onClick={() => setActiveTab('INCORPORACION')}>
+              Incorporación
+            </button>
+            <button className={`titan-tab ${activeTab === 'ACCIDENTE' ? 'active' : ''}`} onClick={() => setActiveTab('ACCIDENTE')}>
+              Accidente
+            </button>
+          </div>
 
-                    {activeTab === 'DESINCORPORACION' && (
-                      <div className="form-group">
-                        <label>Motivo <span style={{color: 'red'}}>*</span></label>
-                        <textarea value={motivoDesincorporacion} onChange={(e) => setMotivoDesincorporacion(e.target.value)} rows="4" placeholder="Describe el motivo de la desincorporación..."></textarea>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {activeTab === 'ACCIDENTE' && (
-                  <>
+          {activeTab && (
+            <div className="titan-section active-tab-content">
+              {(activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') && (
+                <>
+                  <div className="form-row">
                     <div className="form-group">
-                      <label>Dueño del Particular</label>
-                      <input type="text" value={accDueno} onChange={(e) => setAccDueno(e.target.value)} />
+                      <label>Corrida</label>
+                      <input type="text" value={corrida} onChange={(e) => setCorrida(e.target.value)} />
                     </div>
-                    <div className="form-group">
-                      <label>Tipo de Vehículo Particular</label>
-                      <input type="text" value={accVehiculo} onChange={(e) => setAccVehiculo(e.target.value)} />
+                    <div className="form-group" style={{ position: 'relative' }}>
+                      <label>Hora</label>
+                      <button
+                        type="button"
+                        onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)}
+                        className="form-group-time-trigger"
+                      >
+                        <span>{horaEvento || '--:--'}</span>
+                        <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                        </svg>
+                      </button>
+                      
+                      {dropdownHoraOpen && (
+                        <>
+                          <div 
+                            style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                            onClick={() => setDropdownHoraOpen(false)}
+                          />
+                          <IOSTimePicker 
+                            value={horaEvento} 
+                            onChange={setHoraEvento} 
+                            onClose={() => setDropdownHoraOpen(false)}
+                            onSave={() => setDropdownHoraOpen(false)}
+                          />
+                        </>
+                      )}
                     </div>
-                    <div className="form-group">
-                      <label>Placas</label>
-                      <input type="text" value={accPlacas} onChange={(e) => setAccPlacas(e.target.value)} />
-                    </div>
-                    <div className="form-group checkbox-group">
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={accSeguro} onChange={(e) => setAccSeguro(e.target.checked)} style={{ width: '20px', height: '20px' }} />
-                        ¿Cuenta con seguro?
-                      </label>
-                    </div>
-                    <div className="form-group">
-                      <label>Hechos <span style={{color: 'red'}}>*</span></label>
-                      <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>
-                    </div>
-                    <div className="form-group">
-                      <label>Ubicación</label>
-                      <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." style={{ width: '100%', backgroundColor: '#f3f4f6' }} />
-                    </div>
-                  </>
-                )}
-
-                <div className="form-group" style={{ marginTop: '20px' }}>
-                  <label>Evidencia Fotográfica (Máx. {activeTab === 'ACCIDENTE' ? 10 : 5})</label>
-                  <input type="file" multiple accept="image/*" onChange={handleFotoChange} style={{ display: 'block', marginBottom: '10px' }} />
-                  
-                  <div className="titan-fotos-preview" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {previewFotos.map((src, idx) => (
-                      <div key={idx} style={{ position: 'relative', width: '80px', height: '80px' }}>
-                        <img src={src} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc' }} />
-                        <button 
-                          type="button" 
-                          onClick={() => removeFoto(idx)}
-                          style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer' }}
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ))}
                   </div>
-                </div>
+                  
+                  <div className="form-group">
+                    <label>Ubicación</label>
+                    <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." />
+                  </div>
 
-                <div style={{ marginTop: '30px', textAlign: 'right' }}>
-                  <button 
-                    className="centro-btn centro-btn--primary" 
-                    onClick={handleSubmit} 
-                    disabled={guardando}
-                    style={{ padding: '12px 30px', fontSize: '1.1rem' }}
-                  >
-                    {guardando ? 'Reportando...' : 'Reportar'}
-                  </button>
+                  {activeTab === 'DESINCORPORACION' && (
+                    <div className="form-group">
+                      <label>Motivo <span style={{color: 'var(--state-red-text, #dc2626)'}}>*</span></label>
+                      <textarea value={motivoDesincorporacion} onChange={(e) => setMotivoDesincorporacion(e.target.value)} rows="4" placeholder="Describe el motivo de la desincorporación..."></textarea>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {activeTab === 'ACCIDENTE' && (
+                <>
+                  <div className="form-group">
+                    <label>Dueño del Particular</label>
+                    <input type="text" value={accDueno} onChange={(e) => setAccDueno(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>Tipo de Vehículo Particular</label>
+                    <input type="text" value={accVehiculo} onChange={(e) => setAccVehiculo(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>Placas</label>
+                    <input type="text" value={accPlacas} onChange={(e) => setAccPlacas(e.target.value)} />
+                  </div>
+                  <div className="form-group checkbox-group">
+                    <label>
+                      <input type="checkbox" checked={accSeguro} onChange={(e) => setAccSeguro(e.target.checked)} />
+                      ¿Cuenta con seguro?
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label>Hechos <span style={{color: 'var(--state-red-text, #dc2626)'}}>*</span></label>
+                    <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>
+                  </div>
+                  <div className="form-group">
+                    <label>Ubicación</label>
+                    <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." />
+                  </div>
+                </>
+              )}
+
+              {/* Evidencia fotográfica */}
+              <div className="form-group" style={{ marginTop: '20px' }}>
+                <label>Evidencia Fotográfica (Máx. {activeTab === 'ACCIDENTE' ? 10 : 5})</label>
+                
+                <label className="titan-file-upload">
+                  <input type="file" multiple accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                  </svg>
+                  <span>Haz clic aquí para seleccionar imágenes</span>
+                </label>
+                
+                <div className="titan-fotos-preview">
+                  {previewFotos.map((src, idx) => (
+                    <div key={idx} className="titan-foto-item">
+                      <img src={src} alt="Preview" />
+                      <button 
+                        type="button" 
+                        className="titan-foto-item__remove"
+                        onClick={() => removeFoto(idx)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Botón Reportar */}
+              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                  className="centro-btn centro-btn--primary" 
+                  onClick={handleSubmit} 
+                  disabled={guardando}
+                >
+                  {guardando ? 'Guardando...' : 'Reportar Evento'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
 export default DetalleUnidadTitan;
+

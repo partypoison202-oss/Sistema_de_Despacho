@@ -816,6 +816,62 @@ export default function DetalleUnidad() {
               configActual={configActual}
               onSelectUnit={handleSelectUnit}
             />
+            {/* RESERVA T6 (Conductores Disponibles) */}
+            <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === 'reservaT6' ? null : 'reservaT6')} 
+                  className={`dropdown-trigger ${openDropdown === 'reservaT6' ? 'dropdown-trigger--open' : ''}`}
+                >
+                  <div className="dropdown-trigger__icon-container">
+                    <img src={configActual.image} alt="Conductor" className="dropdown-trigger__icon" />
+                  </div>
+                  <span className="dropdown-trigger__value">RESERVA T6</span>
+                  <span className="dropdown-trigger__label">Conductores Disponibles</span>
+                  <div className={`dropdown-trigger__arrow ${openDropdown === 'reservaT6' ? 'dropdown-trigger__arrow--open' : ''}`}>
+                    <svg className="arrow-icon" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </div>
+                </button>
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    backgroundColor: '#6b1d33',
+                    color: 'white',
+                    borderRadius: '50%',
+                    padding: conductoresDisponibles.length > 9 ? '2px 5px' : '2px 6px',
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold',
+                    minWidth: '18px',
+                    textAlign: 'center',
+                    lineHeight: '1.3',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                    border: '2px solid #ffffff',
+                  }}
+                >
+                  {conductoresDisponibles.length}
+                </span>
+              </div>
+              {openDropdown === 'reservaT6' && (
+                <div className="dropdown-menu">
+                  <div className="dropdown-menu__scroll">
+                    {conductoresDisponibles.length > 0 ? (
+                      conductoresDisponibles.map((c) => (
+                        <div key={c.tarjeton} className="dropdown-menu__item" style={{ cursor: 'default' }}>
+                          <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 'bold' }}>{c.nombre}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tarjetón: {c.tarjeton}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="dropdown-menu__item dropdown-menu__item--empty">Sin reservas disponibles</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="info-panel">

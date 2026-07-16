@@ -102,7 +102,7 @@ export default function CentroControl() {
     { programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0 }
   );
   
-  const eficienciaGlobal = totales.programadas > 0 ? Math.round((totales.operacion / totales.programadas) * 100) : 0;
+  const eficienciaGlobal = totales.programadas > 0 ? Math.round(((totales.operacion + totales.reserva) / totales.programadas) * 100) : 0;
 
   // ---- Generación de PDF (misma lógica que Dashboard.jsx) ----
   const generarPDF = (elementRef, nombreArchivo) => {

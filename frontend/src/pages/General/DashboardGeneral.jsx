@@ -33,7 +33,7 @@ const esRutaAlimentador = (ruta) => {
 
 const normalizarEstatus = (valor) => {
   const texto = normalizarTexto(valor);
-  if (texto === 'OPERACION' || texto === 'OPERANDO' || texto === 'EN OPERACION') {
+  if (texto === 'OPERACION' || texto === 'OPERANDO' || texto === 'EN OPERACION' || texto === 'RESERVA' || texto === 'EN RESERVA') {
     return 'OPERACION';
   }
   return 'FUERA';
