@@ -39,7 +39,7 @@
 
 .unit-control-panel__selectors {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   flex-wrap: wrap;
   gap: 1.5rem;
@@ -664,6 +664,13 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 1150px) {
+  .unit-control-panel__selectors {
+    max-width: 26rem;
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 768px) {

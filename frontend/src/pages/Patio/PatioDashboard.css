@@ -147,11 +147,18 @@
   display: block;
 }
 
+.map-scroll-area {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  position: relative;
+  z-index: 10;
+}
+
 .floorplan-canvas {
   position: relative;
   width: 100%;
   aspect-ratio: 1041 / 703;
-  overflow: hidden;
 }
 
 .floorplan-image {
@@ -292,7 +299,7 @@
 
 .fullscreen-btn {
   position: absolute;
-  bottom: 16px;
+  top: 72px;
   right: 16px;
   z-index: 50;
   background: rgba(255, 255, 255, 0.85);
@@ -595,7 +602,7 @@
 .legend-box {
   position: absolute;
   bottom: 20px;
-  right: 20px;
+  left: 20px;
   z-index: 2147483647;
   display: flex;
   flex-direction: column;
@@ -668,7 +675,8 @@
 /* ====== PANTALLA COMPLETA ====== */
 .plano-map-wrapper:fullscreen,
 .plano-map-wrapper:-webkit-full-screen,
-.plano-map-wrapper:-moz-full-screen {
+.plano-map-wrapper:-moz-full-screen,
+.plano-map-wrapper.ios-fullscreen {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -676,9 +684,22 @@
   overflow: visible;
 }
 
+/* Pseudo-fullscreen logic for iOS devices (since they don't support true div fullscreen) */
+.plano-map-wrapper.ios-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
 .plano-map-wrapper:fullscreen .floorplan-canvas,
 .plano-map-wrapper:-webkit-full-screen .floorplan-canvas,
-.plano-map-wrapper:-moz-full-screen .floorplan-canvas {
+.plano-map-wrapper:-moz-full-screen .floorplan-canvas,
+.plano-map-wrapper.ios-fullscreen .floorplan-canvas {
   overflow: visible;
   max-width: 100%;
   max-height: 100%;
@@ -688,13 +709,34 @@
 
 .plano-map-wrapper:fullscreen .legend-box,
 .plano-map-wrapper:-webkit-full-screen .legend-box,
-.plano-map-wrapper:-moz-full-screen .legend-box {
+.plano-map-wrapper:-moz-full-screen .legend-box,
+.plano-map-wrapper.ios-fullscreen .legend-box {
   z-index: 2147483647;
   opacity: 1 !important;
 }
 
+.plano-map-wrapper:fullscreen .floating-fleet-tabs,
+.plano-map-wrapper:-webkit-full-screen .floating-fleet-tabs,
+.plano-map-wrapper:-moz-full-screen .floating-fleet-tabs,
+.plano-map-wrapper.ios-fullscreen .floating-fleet-tabs {
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 /* ====== RESPONSIVE ====== */
 @media (max-width: 768px) {
+  .plano-map-wrapper {
+    overflow: hidden;
+  }
+  .map-scroll-area {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+  .floorplan-canvas {
+    min-width: 800px; /* Evita que el mapa se haga diminuto en móviles, permitiendo scroll horizontal */
+  }
   .patio-info-banner {
     flex-direction: column;
     align-items: flex-start;
@@ -735,7 +777,7 @@
     padding: 2px 6px;
   }
   .fullscreen-btn {
-    bottom: 8px;
+    top: 50px;
     right: 8px;
     padding: 6px;
   }
@@ -745,7 +787,7 @@
   }
   .legend-box {
     bottom: 12px;
-    right: 12px;
+    left: 12px;
     padding: 8px 10px;
     min-width: 130px;
   }
