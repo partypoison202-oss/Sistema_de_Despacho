@@ -363,15 +363,27 @@ class DespachoController extends Controller
     public function actualizar(Request $request)
     {
         $request->validate(['unidades' => 'required|array']);
-        $unidadesExcel = $request->input('unidades');
+        $unidadesReq = $request->input('unidades');
         $fechaHoy = Carbon::today()->toDateString();
 
+        // 1. Obtener todas las unidades de la BD
         $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
 
+        // 2. Obtener conductores indexados por tarjetón para autocompletar nombre
+        $conductoresMap = DB::table('conductores')->select('tarjeton', 'nombre')->get()->keyBy(function ($c) {
+            return trim($c->tarjeton);
+        });
+
+        // 3. Procesar las unidades enviadas
+        $unidadesProcesadasIds = [];
         $actualizados = 0;
+        $creados = 0;
         $errores = [];
 
-        foreach ($unidadesExcel as $fila) {
+        // Liberar todos los conductores antes de re-asignar
+        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+
+        foreach ($unidadesReq as $fila) {
             $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
             $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
 
@@ -381,37 +393,81 @@ class DespachoController extends Controller
                 continue;
             }
 
+            $unidadesProcesadasIds[] = $unidad->id;
+
+            // Autocompletar conductor desde el catálogo por tarjetón
+            $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
+            $conductorNombre = '';
+            if ($tarjetonVal !== '') {
+                $conductorCatalog = $conductoresMap->get($tarjetonVal);
+                if ($conductorCatalog) {
+                    $conductorNombre = $conductorCatalog->nombre;
+                    // Marcar en servicio
+                    DB::table('conductores')->where('tarjeton', $tarjetonVal)->update(['estado_servicio' => 'en_servicio']);
+                } else {
+                    // Fallback a lo que venga si no existe en el catálogo (o vacío)
+                    $conductorNombre = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
+                }
+            }
+
+            $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
+            $horaSalidaVal = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
+
+            // Buscar si ya existe hoy
             $registro = DB::table('informacion_operativa')
                 ->where('unidad_id', $unidad->id)
                 ->whereDate('fecha_registro', $fechaHoy)
                 ->first();
 
+            $data = [
+                'ruta'             => (string) ($fila['RUTA'] ?? ''),
+                'numero_tarjeton'  => $tarjetonVal,
+                'nombre_conductor' => $conductorNombre,
+                'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
+                'hora_programada'  => $horaSalidaVal === '' ? null : $horaSalidaVal,
+                'tipo'             => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido'))
+            ];
+
             if ($registro) {
                 try {
-                    $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-                    $horaSalidaVal = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
-
                     DB::table('informacion_operativa')
                         ->where('id', $registro->id)
-                        ->update([
-                            'ruta'             => (string) ($fila['RUTA'] ?? ''),
-                            'numero_tarjeton'  => (string) ($fila['TARJETON'] ?? ''),
-                            'nombre_conductor' => (string) ($fila['NOMBRE_CONDUCTOR'] ?? ''),
-                            'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
-                            'hora_programada'  => $horaSalidaVal === '' ? null : $horaSalidaVal,
-                        ]);
-
+                        ->update($data);
                     $actualizados++;
                 } catch (\Exception $e) {
-                    \Log::error("Fallo individual en ID {$registro->id}: " . $e->getMessage());
+                    \Log::error("Fallo individual de actualización en ID {$registro->id}: " . $e->getMessage());
                     $errores[] = "Error al actualizar ECO {$numeroEcoClean}: " . $e->getMessage();
+                }
+            } else {
+                try {
+                    $data['unidad_id'] = $unidad->id;
+                    $data['estatus'] = trim((string) ($fila['ESTATUS'] ?? 'operacion'));
+                    $data['fecha_registro'] = now();
+                    
+                    DB::table('informacion_operativa')->insert($data);
+                    $creados++;
+                } catch (\Exception $e) {
+                    \Log::error("Fallo individual de creación para ECO {$numeroEcoClean}: " . $e->getMessage());
+                    $errores[] = "Error al crear ECO {$numeroEcoClean}: " . $e->getMessage();
                 }
             }
         }
 
+        // 4. Eliminar registros que NO se enviaron en la petición
+        try {
+            $eliminados = DB::table('informacion_operativa')
+                ->whereDate('fecha_registro', $fechaHoy)
+                ->whereNotIn('unidad_id', $unidadesProcesadasIds)
+                ->delete();
+        } catch (\Exception $e) {
+            \Log::error("Fallo al eliminar registros no enviados: " . $e->getMessage());
+            $errores[] = "Error al eliminar registros obsoletos: " . $e->getMessage();
+            $eliminados = 0;
+        }
+
         return response()->json([
             'status' => 'success',
-            'message' => "Proceso finalizado. Total actualizados: {$actualizados}",
+            'message' => "Proceso finalizado. Creados: {$creados}, Actualizados: {$actualizados}, Eliminados: {$eliminados}",
             'errores' => $errores
         ], 200);
     }
@@ -808,5 +864,14 @@ class DespachoController extends Controller
             'status' => 'success',
             'message' => 'Ruta actualizada correctamente.'
         ], 200);
+    }
+
+    public function obtenerCatalogoUnidades()
+    {
+        $unidades = DB::table('unidades')
+            ->select('id', 'numero_eco', 'tipo')
+            ->orderBy('numero_eco')
+            ->get();
+        return response()->json($unidades, 200);
     }
 }

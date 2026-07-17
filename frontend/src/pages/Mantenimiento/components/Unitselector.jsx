@@ -63,7 +63,7 @@ export default function UnitSelector({
           <div className="dropdown-menu__scroll">
             {cargandoUnidades ? (
               <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)' }}></span>
+                <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '20px', height: '20px', borderWidth: '3px' }}></span>
                 Cargando unidades...
               </div>
             ) : unidades.length === 0 ? (

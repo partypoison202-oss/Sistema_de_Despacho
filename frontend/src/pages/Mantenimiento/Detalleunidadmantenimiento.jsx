@@ -7,6 +7,7 @@ import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import UnitSelector from './components/UnitSelector';
+import AppleDatePicker from './components/AppleDatePicker';
 import FuelGaugeSelector from './components/FuelGaugeSelector';
 import ChecklistForm from '../CheckList/CheckList';
 import CONDUCTORES from '../../data/conductores';
@@ -647,7 +648,7 @@ export default function DetalleUnidadMantenimiento() {
     <div className="layout-container">
       <Header
         title={selectedOption || 'Seleccione Unidad'}
-        eyebrow={`${configActual.title} / Inspección — Detalle de Unidad`}  // <- Cambiado a "Inspección"
+        eyebrow={`${configActual.title} / Inspección — Detalle de Unidad`}
       />
 
       <main className="main-content">
@@ -763,7 +764,7 @@ export default function DetalleUnidadMantenimiento() {
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      <h3 className="info-card__title">Inspección</h3>  {/* <- Cambiado de "Mantenimiento" a "Inspección" */}
+                      <h3 className="info-card__title">Inspección</h3>
                     </div>
 
                     <div className="info-card__body">
@@ -801,25 +802,25 @@ export default function DetalleUnidadMantenimiento() {
                       <div className="info-card__item" style={{ marginTop: '1rem' }}>
                         <span className="info-card__label">Kilometraje</span>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
                           className="interactive-input"
                           style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
-                          placeholder="Ej. 152300"
+                          placeholder="Ej: 125000"
                           value={mantenimientoForm.kilometraje}
-                          onChange={(e) => handleMantenimientoChange('kilometraje', e.target.value)}
+                          onChange={(e) => handleMantenimientoChange('kilometraje', e.target.value.replace(/\D/g, '').substring(0, 6))}
                         />
                       </div>
 
                       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
                         <span className="info-card__label">Última Carga de Gasolina</span>
-                        <input
-                          type="date"
-                          className="interactive-input"
-                          style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
-                          value={mantenimientoForm.fechaUltimaCarga}
-                          onChange={(e) => handleMantenimientoChange('fechaUltimaCarga', e.target.value)}
-                        />
+                        <div className="mt-1 relative z-50">
+                          <AppleDatePicker
+                            value={mantenimientoForm.fechaUltimaCarga}
+                            onChange={(dateStr) => handleMantenimientoChange('fechaUltimaCarga', dateStr)}
+                            placeholder="Seleccionar fecha"
+                          />
+                        </div>
                         {mantenimientoForm.fechaUltimaCarga && (() => {
                           const dias = Math.floor((Date.now() - new Date(mantenimientoForm.fechaUltimaCarga)) / 86400000);
                           const alerta = dias > 3;

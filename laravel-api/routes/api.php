@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/despacho/actualizar-adicionales', [DespachoController::class, 'actualizarAdicionales']);
     Route::post('/despacho/actualizar-tarjeton', [DespachoController::class, 'actualizarTarjeton']);
     Route::post('/despacho/actualizar-horas', [DespachoController::class, 'actualizarHoras']);
+    Route::get('/despacho/catalogo/unidades', [DespachoController::class, 'obtenerCatalogoUnidades']);
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
 
     // Gestión de Conductores

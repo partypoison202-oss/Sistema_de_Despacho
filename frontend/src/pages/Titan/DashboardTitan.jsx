@@ -7,10 +7,10 @@ import './Titan.css';
 import DetalleUnidadTitan from './DetalleUnidadTitan';
 
 const modelsConfig = [
-  { id: 'urbanus', label: 'URBANUSS', color: 'maroon', image: '/images/urbanu.webp' },
-  { id: 'zafiro', label: 'ZAFIRO', color: 'gold', image: '/images/zafiro.webp' },
-  { id: 'vagoneta', label: 'VAGONETA', color: 'green', image: '/images/vagoneta.webp' },
-  { id: 'orion', label: 'ORIÓN', color: 'blue', image: '/images/orionlateral.webp' },
+  { id: 'urbanus', label: 'URBANUSS', subtitle: 'UNIDADES TIPO AUTOBÚS', color: 'maroon', image: '/images/urbanu.webp' },
+  { id: 'zafiro', label: 'ZAFIRO', subtitle: 'UNIDADES TIPO MICROBÚS', color: 'gold', image: '/images/zafiro.webp' },
+  { id: 'vagoneta', label: 'VAGONETA', subtitle: 'UNIDADES TIPO VAN', color: 'green', image: '/images/vagoneta.webp' },
+  { id: 'orion', label: 'ORION', subtitle: 'UNIDADES TIPO ORION', color: 'blue', image: '/images/orionlateral.webp' },
 ];
 
 const DashboardTitan = () => {
@@ -181,9 +181,10 @@ const DashboardTitan = () => {
                     ...(cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}),
                     position: 'relative',
                     zIndex: expandedModel === mc.id ? 50 : 1,
-                    padding: activeUnidad ? '8px' : undefined,
-                    border: activeUnidad && isSelected ? '2px solid var(--brand-maroon-text)' : undefined,
-                    backgroundColor: activeUnidad && isSelected ? '#f9fafb' : undefined,
+                    padding: activeUnidad ? '8px' : '0',
+                    border: activeUnidad && isSelected ? '2px solid var(--brand-maroon-text)' : 'none',
+                    backgroundColor: activeUnidad && isSelected ? '#f9fafb' : 'transparent',
+                    boxShadow: activeUnidad && isSelected ? undefined : 'none',
                     transition: 'all 0.3s ease-out',
                     minHeight: activeUnidad ? '45px' : undefined
                   }}
@@ -198,9 +199,9 @@ const DashboardTitan = () => {
                   {/* Burbuja de unidades en operación */}
                   <div style={{
                     position: 'absolute',
-                    top: activeUnidad ? '-5px' : '-10px',
-                    right: activeUnidad ? '-5px' : '-10px',
-                    backgroundColor: '#059669', // Verde para indicar operación
+                    top: activeUnidad ? '-5px' : '5px',
+                    right: activeUnidad ? '-5px' : '20px',
+                    backgroundColor: '#6b1d33', // Guinda
                     color: 'white',
                     borderRadius: '50%',
                     width: activeUnidad ? '20px' : '35px',
@@ -218,10 +219,11 @@ const DashboardTitan = () => {
                     {cargando ? '—' : m.operacion}
                   </div>
 
-                  <div className="centro-type-card__header" style={{ flexDirection: 'column', alignItems: 'center', gap: activeUnidad ? '0px' : '20px', justifyContent: 'center', transition: 'all 0.3s ease-out' }}>
-                    <img src={mc.image} alt={mc.label} className="centro-type-card__image" style={{ width: activeUnidad ? '90px' : '110px', height: activeUnidad ? '55px' : '60px', objectFit: 'contain', transition: 'all 0.3s ease-out' }} />
-                    <div className="centro-type-card__heading" style={{ textAlign: 'center', transition: 'all 0.3s ease-out', display: activeUnidad ? 'none' : 'block' }}>
-                      <span className="centro-type-card__label" style={{ fontSize: '1.4rem', transition: 'all 0.3s ease-out' }}>{mc.label}</span>
+                  <div className="centro-type-card__header" style={{ flexDirection: 'column', alignItems: 'center', gap: activeUnidad ? '0px' : '15px', justifyContent: 'center', transition: 'all 0.3s ease-out' }}>
+                    <img src={mc.image} alt={mc.label} className="centro-type-card__image" style={{ width: activeUnidad ? '90px' : '100%', maxWidth: '240px', height: activeUnidad ? '55px' : '120px', objectFit: 'contain', transition: 'all 0.3s ease-out' }} />
+                    <div className="centro-type-card__heading" style={{ textAlign: 'center', transition: 'all 0.3s ease-out', display: activeUnidad ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                      <span className="centro-type-card__label" style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0b162c', transition: 'all 0.3s ease-out' }}>{mc.label}</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#c5a059', letterSpacing: '0.5px' }}>{mc.subtitle}</span>
                     </div>
                   </div>
 
