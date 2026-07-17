@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import IOSTimePicker from '../../Unidades/componentsdetalleunidad/IOSTimePicker';
 import './ExcelVIsta.css';
 
 const HEADER_TRANSLATIONS = {
@@ -7,36 +8,82 @@ const HEADER_TRANSLATIONS = {
   ECONOMICO: 'Económico',
   TARJETON: 'Tarjetón',
   NOMBRE_CONDUCTOR: 'Conductor',
+  ESTATUS: 'Estatus',
   HORA_DE_ACOPLE: 'Hora de Acople',
   CORRIDAS: 'Corridas',
 };
 
-const EXCLUDED_KEYS = ['ESTATUS', 'FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS', 'HORA_PROGRAMADA'];
+const EXCLUDED_KEYS = ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS', 'HORA_PROGRAMADA'];
 
 export default function ExcelPreview({ 
   data = [], 
   catalogUnidades = [],
   catalogConductores = [],
-  catalogRutas = [],
+  catalogRutasObj = { troncales: [], alimentadoras: [] },
   onUpdate,
-  onDelete, 
+  onClear, 
   onSave,        
   hasChanges,    
   isSaving       
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTimePickerRow, setActiveTimePickerRow] = useState(null);
+  const [tempTime, setTempTime] = useState('00:00');
+  const [openDropdown, setOpenDropdown] = useState({ rowIndex: null, field: null });
+  const [dropdownSearch, setDropdownSearch] = useState('');
 
   // Las cabeceras del editor directo
-  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'TARJETON', 'NOMBRE_CONDUCTOR', 'RUTA', 'HORA_DE_ACOPLE', 'CORRIDAS'];
+  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS', 'HORA_DE_ACOPLE', 'CORRIDAS'];
 
-  // Filtrar los datos en base al término de búsqueda
-  const filteredData = (data || []).filter(fila => {
+  // Orden personalizado solicitado
+  const customSortOrder = ['URBANUS', 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
+
+  // Estatus traducciones para mostrar (alineados a las reglas de la BD)
+  const estatusTranslations = {
+    operacion: 'Operación',
+    mantenimiento: 'Mantenimiento',
+    reserva: 'Reserva'
+  };
+
+  // Colores asociados a cada estatus para badges y listados
+  const estatusColors = {
+    operacion: { bg: 'rgba(16, 185, 129, 0.08)', text: '#10b981', border: 'rgba(16, 185, 129, 0.2)' },       // Verde
+    mantenimiento: { bg: 'rgba(239, 68, 68, 0.08)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' },   // Rojo
+    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' }        // Azul
+  };
+
+  // 1. Ordenar los datos por tipo de unidad (según el orden de la lista) y luego por ECO numérico
+  const sortedData = [...(data || [])].sort((a, b) => {
+    const typeA = String(a.TIPO_DE_UNIDAD || '').toUpperCase();
+    const typeB = String(b.TIPO_DE_UNIDAD || '').toUpperCase();
+
+    let indexA = customSortOrder.indexOf(typeA);
+    if (indexA === -1) indexA = 999;
+    let indexB = customSortOrder.indexOf(typeB);
+    if (indexB === -1) indexB = 999;
+
+    if (indexA !== indexB) {
+      return indexA - indexB;
+    }
+
+    const ecoA = parseInt(a.ECONOMICO || '0', 10);
+    const ecoB = parseInt(b.ECONOMICO || '0', 10);
+    return ecoA - ecoB;
+  });
+
+  // 2. Filtrar los datos en base al término de búsqueda
+  const filteredData = sortedData.filter(fila => {
     if (!fila) return false;
     return Object.entries(fila).some(([key, val]) => {
       if (EXCLUDED_KEYS.includes(key)) return false;
       return String(val ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     });
   });
+
+  const handleOpenDropdown = (rowIndex, field) => {
+    setDropdownSearch('');
+    setOpenDropdown({ rowIndex, field });
+  };
 
   return (
     <div className="excel-table-card">
@@ -67,25 +114,6 @@ export default function ExcelPreview({
         </div>
       </div>
 
-      {/* Datalists nativos HTML5 para autocompletado y selección súper rápida */}
-      <datalist id="unidades-catalog">
-        {(catalogUnidades || []).map(u => (
-          <option key={u.id} value={u.numero_eco}>{(u.tipo || 'URBANUS').toUpperCase()}</option>
-        ))}
-      </datalist>
-
-      <datalist id="conductores-catalog">
-        {(catalogConductores || []).map(c => (
-          <option key={c.id} value={c.tarjeton}>{c.nombre || ''}</option>
-        ))}
-      </datalist>
-
-      <datalist id="rutas-catalog">
-        {(catalogRutas || []).map((r, idx) => (
-          <option key={idx} value={r}>{r}</option>
-        ))}
-      </datalist>
-
       <div className="table-wrapper">
         <table className="excel-preview-table">
           <thead>
@@ -95,13 +123,13 @@ export default function ExcelPreview({
                   {HEADER_TRANSLATIONS[h] || h}
                 </th>
               ))}
-              <th className="col-acciones" style={{ textAlign: 'center', width: '80px' }}>Acciones</th>
+              <th className="col-acciones" style={{ textAlign: 'center', width: '85px' }}>LIMPIAR</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.length === 0 ? (
               <tr>
-                <td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>
+                <td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '2.5rem', color: '#9ca3af', fontWeight: '500' }}>
                   No hay registros. Haz clic en "+ Agregar Unidad" para iniciar.
                 </td>
               </tr>
@@ -111,26 +139,341 @@ export default function ExcelPreview({
                 return (
                   <tr key={originalIndex !== -1 ? originalIndex : index}>
                     {headers.map(h => {
-                      const isReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'NOMBRE_CONDUCTOR';
-                      
+                      const isReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR';
+
+                      if (h === 'HORA_DE_ACOPLE') {
+                        const isOpen = activeTimePickerRow === originalIndex;
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!isOpen) {
+                                  setTempTime(fila[h] || '00:00');
+                                  setActiveTimePickerRow(originalIndex);
+                                  setOpenDropdown({ rowIndex: null, field: null });
+                                } else {
+                                  setActiveTimePickerRow(null);
+                                }
+                              }}
+                              className={`edit-input dropdown-trigger ${isOpen ? 'active-trigger' : ''}`}
+                              style={{ 
+                                textAlign: 'center', 
+                                height: '34px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '100%',
+                                fontWeight: '600',
+                                borderRadius: '6px'
+                              }}
+                            >
+                              {fila[h] || '00:00'}
+                            </button>
+                            {isOpen && (
+                              <>
+                                <div 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  onClick={(e) => { e.stopPropagation(); setActiveTimePickerRow(null); }}
+                                />
+                                <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', zIndex: 999, width: '220px' }}>
+                                  <IOSTimePicker
+                                    value={tempTime}
+                                    onChange={setTempTime}
+                                    onClose={() => setActiveTimePickerRow(null)}
+                                    onSave={async () => {
+                                      onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, tempTime);
+                                    }}
+                                  />
+                                </div>
+                              </>
+                            )}
+                          </td>
+                        );
+                      }
+
+                      if (h === 'RUTA') {
+                        const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUS' || fila.TIPO_DE_UNIDAD === 'URBANUSS';
+                        const availableRoutes = isTroncal ? (catalogRutasObj.troncales || []) : (catalogRutasObj.alimentadoras || []);
+                        const isRutaOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'RUTA';
+                        
+                        const filteredRoutes = availableRoutes.filter(r => 
+                          r.toLowerCase().includes(dropdownSearch.toLowerCase())
+                        );
+
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isRutaOpen) {
+                                  setOpenDropdown({ rowIndex: null, field: null });
+                                } else {
+                                  setActiveTimePickerRow(null);
+                                  handleOpenDropdown(originalIndex, 'RUTA');
+                                }
+                              }}
+                              className={`edit-input dropdown-trigger ${isRutaOpen ? 'active-trigger' : ''}`}
+                            >
+                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {fila[h] || 'Selecciona...'}
+                              </span>
+                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isRutaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 10l5 5 5-5z" />
+                              </svg>
+                            </button>
+                            {isRutaOpen && (
+                              <>
+                                <div 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
+                                />
+                                <div className="dropdown-menu">
+                                  <div className="dropdown-menu-search-container">
+                                    <input
+                                      type="text"
+                                      placeholder="Buscar ruta..."
+                                      value={dropdownSearch}
+                                      onChange={(e) => setDropdownSearch(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="dropdown-menu-search-input"
+                                    />
+                                  </div>
+                                  <div className="dropdown-menu__scroll">
+                                    <button
+                                      type="button"
+                                      className="dropdown-menu__item dropdown-menu__item--none"
+                                      onClick={() => {
+                                        onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, '');
+                                        setOpenDropdown({ rowIndex: null, field: null });
+                                      }}
+                                    >
+                                      NINGUNA
+                                    </button>
+                                    {filteredRoutes.length === 0 ? (
+                                      <div className="dropdown-menu-no-results">Sin coincidencias</div>
+                                    ) : (
+                                      filteredRoutes.map((r, idx) => {
+                                        const isSelected = fila[h] === r;
+                                        return (
+                                          <button
+                                            key={idx}
+                                            type="button"
+                                            className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
+                                            onClick={() => {
+                                              onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, r);
+                                              setOpenDropdown({ rowIndex: null, field: null });
+                                            }}
+                                          >
+                                            <span>{r}</span>
+                                            {isSelected && (
+                                              <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </td>
+                        );
+                      }
+
+                      if (h === 'TARJETON') {
+                        const isTarjetonOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON';
+                        
+                        const filteredDrivers = (catalogConductores || []).filter(c => 
+                          String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
+                          String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase())
+                        );
+
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isTarjetonOpen) {
+                                  setOpenDropdown({ rowIndex: null, field: null });
+                                } else {
+                                  setActiveTimePickerRow(null);
+                                  handleOpenDropdown(originalIndex, 'TARJETON');
+                                }
+                              }}
+                              className={`edit-input dropdown-trigger ${isTarjetonOpen ? 'active-trigger' : ''}`}
+                            >
+                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {fila[h] ? String(fila[h]) : 'Selecciona...'}
+                              </span>
+                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isTarjetonOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 10l5 5 5-5z" />
+                              </svg>
+                            </button>
+                            {isTarjetonOpen && (
+                              <>
+                                <div 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
+                                />
+                                <div className="dropdown-menu dropdown-menu--wide">
+                                  <div className="dropdown-menu-search-container">
+                                    <input
+                                      type="text"
+                                      placeholder="Buscar conductor o tarjetón..."
+                                      value={dropdownSearch}
+                                      onChange={(e) => setDropdownSearch(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="dropdown-menu-search-input"
+                                    />
+                                  </div>
+                                  <div className="dropdown-menu__scroll">
+                                    <button
+                                      type="button"
+                                      className="dropdown-menu__item dropdown-menu__item--none"
+                                      onClick={() => {
+                                        onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, '');
+                                        setOpenDropdown({ rowIndex: null, field: null });
+                                      }}
+                                    >
+                                      NINGUNO
+                                    </button>
+                                    {filteredDrivers.length === 0 ? (
+                                      <div className="dropdown-menu-no-results">Sin coincidencias</div>
+                                    ) : (
+                                      filteredDrivers.map((c, idx) => {
+                                        const isSelected = String(fila[h]).trim() === String(c.tarjeton).trim();
+                                        return (
+                                          <button
+                                            key={idx}
+                                            type="button"
+                                            className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
+                                            onClick={() => {
+                                              onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, String(c.tarjeton).trim());
+                                              setOpenDropdown({ rowIndex: null, field: null });
+                                            }}
+                                          >
+                                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                              <strong style={{ color: isSelected ? 'var(--brand-maroon-bg)' : '#111827', marginRight: '4px' }}>{c.tarjeton}</strong> - {c.nombre}
+                                            </span>
+                                            {isSelected && (
+                                              <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </td>
+                        );
+                      }
+
+                      if (h === 'ESTATUS') {
+                        const isEstatusOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'ESTATUS';
+                        const currentStatus = fila[h] || 'operacion';
+                        const statusStyle = estatusColors[currentStatus] || estatusColors.operacion;
+
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isEstatusOpen) {
+                                  setOpenDropdown({ rowIndex: null, field: null });
+                                } else {
+                                  setActiveTimePickerRow(null);
+                                  handleOpenDropdown(originalIndex, 'ESTATUS');
+                                }
+                              }}
+                              className={`edit-input dropdown-trigger ${isEstatusOpen ? 'active-trigger' : ''}`}
+                              style={{
+                                color: statusStyle.text,
+                                backgroundColor: statusStyle.bg,
+                                borderColor: statusStyle.border,
+                                fontWeight: '600'
+                              }}
+                            >
+                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {estatusTranslations[currentStatus]}
+                              </span>
+                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isEstatusOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: statusStyle.text }} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7 10l5 5 5-5z" />
+                              </svg>
+                            </button>
+                            {isEstatusOpen && (
+                              <>
+                                <div 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
+                                />
+                                <div className="dropdown-menu" style={{ width: '100%', minWidth: '130px' }}>
+                                  <div className="dropdown-menu__scroll">
+                                    {Object.entries(estatusTranslations).map(([key, label], idx) => {
+                                      const isSelected = currentStatus === key;
+                                      const optStyle = estatusColors[key];
+                                      return (
+                                        <button
+                                          key={idx}
+                                          type="button"
+                                          className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
+                                          style={{
+                                            color: isSelected ? 'var(--brand-maroon-bg)' : optStyle.text,
+                                            fontWeight: isSelected ? '700' : '600'
+                                          }}
+                                          onClick={() => {
+                                            onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, key);
+                                            setOpenDropdown({ rowIndex: null, field: null });
+                                          }}
+                                        >
+                                          <span>{label}</span>
+                                          {isSelected && (
+                                            <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </td>
+                        );
+                      }
+
                       return (
                         <td key={h} className={`cell-${h.toLowerCase()}`}>
                           {isReadOnly ? (
-                            <div style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', color: '#4b5563', fontWeight: h === 'NOMBRE_CONDUCTOR' ? '600' : 'normal' }}>
+                            <div style={{ 
+                              padding: '0.45rem 0.6rem', 
+                              fontSize: '0.875rem', 
+                              color: h === 'ECONOMICO' ? '#111827' : '#4b5563', 
+                              fontWeight: (h === 'NOMBRE_CONDUCTOR' || h === 'ECONOMICO') ? '700' : 'normal', 
+                              textAlign: h === 'ECONOMICO' ? 'center' : 'left'
+                            }}>
                               {fila[h] || '-'}
                             </div>
                           ) : (
                             <input
                               type="text"
                               value={fila[h] ?? ''}
-                              onChange={(e) => onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, e.target.value)}
-                              className="edit-input"
+                              onChange={(e) => {
+                                let val = e.target.value;
+                                if (h === 'CORRIDAS') {
+                                  val = val.replace(/\D/g, '').substring(0, 2);
+                                }
+                                onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, val);
+                              }}
+                              className="edit-input edit-text-input"
                               placeholder="-"
-                              list={
-                                h === 'ECONOMICO' ? 'unidades-catalog' :
-                                h === 'TARJETON' ? 'conductores-catalog' :
-                                h === 'RUTA' ? 'rutas-catalog' : undefined
-                              }
                             />
                           )}
                         </td>
@@ -139,22 +482,29 @@ export default function ExcelPreview({
                     <td className="cell-acciones" style={{ textAlign: 'center' }}>
                       <button
                         type="button"
-                        onClick={() => onDelete && onDelete(originalIndex !== -1 ? originalIndex : index)}
+                        onClick={() => onClear && onClear(originalIndex !== -1 ? originalIndex : index)}
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#6b1d33',
+                          color: '#dc2626',
                           cursor: 'pointer',
-                          padding: '4px',
-                          borderRadius: '4px',
+                          padding: '6px',
+                          borderRadius: '6px',
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          transition: 'background-color 0.2s'
+                          transition: 'all 0.2s',
+                          border: '1px solid transparent'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(107, 29, 51, 0.08)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        title="Eliminar unidad"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.08)';
+                          e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.borderColor = 'transparent';
+                        }}
+                        title="Vaciar datos operativos de la unidad"
                       >
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -173,7 +523,7 @@ export default function ExcelPreview({
         <div className="excel-actions-bottom">
           <div className="cambios-advertencia">
             <span className="pulsing-dot"></span>
-            Tienes cambios sin guardar
+            Tienes cambios sin guardar en esta sesión
           </div>
           <button 
             className="btn-excel-sincronizar save-changes-btn"
