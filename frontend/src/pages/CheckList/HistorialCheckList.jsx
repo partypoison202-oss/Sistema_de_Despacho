@@ -399,9 +399,9 @@ export default function HistorialCheckList() {
     };
 
     // Estadísticas
-    const totalChecklists = checklists?.length ?? 0;
-    const totalBien = checklists?.reduce((sum, c) => sum + c.total_bien, 0) ?? 0;
-    const totalMal  = checklists?.reduce((sum, c) => sum + c.total_mal, 0) ?? 0;
+    const totalChecklists = displayedChecklists?.length ?? 0;
+    const unidadesBuenEstado = displayedChecklists?.filter(c => c.total_mal === 0).length ?? 0;
+    const unidadesConDanos = displayedChecklists?.filter(c => c.total_mal >= 4).length ?? 0;
     
     const periodLabel = PERIODS.find(p => p.key === period)?.label || 'Diario';
 
@@ -492,12 +492,12 @@ export default function HistorialCheckList() {
                         <p className="mt-1 text-3xl font-extrabold text-guinda-700">{cargando ? '-' : totalChecklists}</p>
                     </div>
                     <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Puntos Bien</p>
-                        <p className="mt-1 text-3xl font-extrabold text-emerald-600">{cargando ? '-' : totalBien}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Unidad en buen estado</p>
+                        <p className="mt-1 text-3xl font-extrabold text-emerald-600">{cargando ? '-' : unidadesBuenEstado}</p>
                     </div>
                     <div className="rounded-2xl border border-red-100 bg-red-50/50 p-5 shadow-sm">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-red-500">Puntos Mal</p>
-                        <p className="mt-1 text-3xl font-extrabold text-red-500">{cargando ? '-' : totalMal}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-red-500">Daños de unidad</p>
+                        <p className="mt-1 text-3xl font-extrabold text-red-500">{cargando ? '-' : unidadesConDanos}</p>
                     </div>
                 </div>
 
