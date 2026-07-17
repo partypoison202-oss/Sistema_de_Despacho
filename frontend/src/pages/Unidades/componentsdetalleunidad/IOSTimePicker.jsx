@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const IOSPickerWheel = ({ options, value, onChange }) => {
   const containerRef = useRef(null);
-  const itemHeight = 40; 
+  const itemHeight = 40;
 
   useEffect(() => {
     if (containerRef.current) {
@@ -11,6 +11,7 @@ const IOSPickerWheel = ({ options, value, onChange }) => {
         containerRef.current.scrollTop = index * itemHeight;
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScroll = (e) => {
@@ -22,7 +23,7 @@ const IOSPickerWheel = ({ options, value, onChange }) => {
   };
 
   return (
-    <div 
+    <div
       ref={containerRef}
       onScroll={handleScroll}
       style={{
@@ -41,9 +42,9 @@ const IOSPickerWheel = ({ options, value, onChange }) => {
         @keyframes ios-spin { to { transform: rotate(360deg); } }
         .ios-animate-spin { animation: ios-spin 1s linear infinite; }
       `}</style>
-      <div style={{ height: itemHeight }} /> 
+      <div style={{ height: itemHeight }} />
       {options.map((opt, i) => (
-        <div 
+        <div
           key={i}
           style={{
             height: itemHeight,
@@ -58,13 +59,16 @@ const IOSPickerWheel = ({ options, value, onChange }) => {
             cursor: 'pointer'
           }}
           onClick={() => {
-            containerRef.current.scrollTop = i * itemHeight;
+            if (containerRef.current) {
+              containerRef.current.scrollTop = i * itemHeight;
+            }
+            onChange(opt);
           }}
         >
           {opt}
         </div>
       ))}
-      <div style={{ height: itemHeight }} /> 
+      <div style={{ height: itemHeight }} />
     </div>
   );
 };
@@ -74,23 +78,50 @@ export default function IOSTimePicker({ value, onChange, onClose, onSave }) {
   const [minutes, setMinutes] = useState('00');
   const [isSaving, setIsSaving] = useState(false);
 
-  const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
-  const minuteOptions = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  const hourOptions = React.useMemo(
+    () => Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0')),
+    []
+  );
+  const minuteOptions = React.useMemo(
+    () => Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')),
+    []
+  );
 
+  // Inicializa el picker con el valor recibido SOLO al montar (al abrirse).
+  // No sincronizamos en cada cambio de "value" para no crear un ida-y-vuelta
+  // con el padre mientras el usuario edita.
   useEffect(() => {
     if (value) {
       const [h, m] = value.split(':');
-      if (h && h !== hours) setHours(h);
-      if (m && m !== minutes) setMinutes(m);
+      if (h) setHours(h);
+      if (m) setMinutes(m);
     }
-  }, [value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(() => {
-    const newVal = `${hours}:${minutes}`;
-    if (value !== newVal) {
-      onChange(newVal);
+  // Ya NO propagamos onChange en cada cambio de hours/minutes.
+  // El valor solo se confirma hacia el padre al presionar "Guardar",
+  // así el formulario padre no se re-renderiza mientras el usuario edita
+  // (eso era lo que causaba el parpadeo).
+
+  const handleGuardar = async (e) => {
+    e.stopPropagation();
+    const nuevoValor = `${hours}:${minutes}`;
+    onChange(nuevoValor);
+
+    if (onSave) {
+      setIsSaving(true);
+      try {
+        await onSave();
+        onClose();
+      } catch (error) {
+        setIsSaving(false);
+        // Si falla, el usuario puede intentar de nuevo
+      }
+    } else {
+      onClose();
     }
-  }, [hours, minutes]);
+  };
 
   return (
     <div style={{
@@ -156,21 +187,7 @@ export default function IOSTimePicker({ value, onChange, onClose, onSave }) {
         <button
           type="button"
           disabled={isSaving}
-          onClick={async (e) => { 
-            e.stopPropagation(); 
-            if (onSave) {
-              setIsSaving(true);
-              try {
-                await onSave();
-                onClose();
-              } catch (error) {
-                setIsSaving(false);
-                // Si falla, el usuario puede intentar de nuevo
-              }
-            } else {
-              onClose(); 
-            }
-          }}
+          onClick={handleGuardar}
           style={{
             background: '#6b1d33',
             color: 'white',

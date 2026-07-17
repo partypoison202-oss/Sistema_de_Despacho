@@ -37,12 +37,55 @@ function LogoSTM({ className = '' }) {
     );
 }
 
+// ── Ícono: ojo abierto (mostrar contraseña) ──
+function IconEye({ className = '' }) {
+    return (
+        <svg
+            className={className}
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    );
+}
+
+// ── Ícono: ojo tachado (ocultar contraseña) ──
+function IconEyeOff({ className = '' }) {
+    return (
+        <svg
+            className={className}
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+            <path d="M10.73 5.08A11 11 0 0 1 12 5c7 0 11 7 11 7a13.16 13.16 0 0 1-3.19 4.19M6.61 6.61A13.5 13.5 0 0 0 1 12s4 7 11 7a10.7 10.7 0 0 0 5.39-1.61" />
+            <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+    );
+}
+
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorUsuario, setErrorUsuario] = useState('');
   const [errorPassword, setErrorPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const { login, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -139,6 +182,13 @@ export default function Login() {
     }
   };
 
+  // Detecta si Bloq Mayús está activado durante el tecleo
+  const checkCapsLock = (e) => {
+    if (typeof e.getModifierState === 'function') {
+      setCapsLockOn(e.getModifierState('CapsLock'));
+    }
+  };
+
   return (
     <div className="login-wrapper">
       <GlobalClock className="absolute top-4 right-4 hidden lg:flex" />
@@ -194,19 +244,39 @@ export default function Login() {
                   <div className="login__field-header">
                       <label htmlFor="password">Contraseña</label>
                   </div>
-                  <input
-                    type="password"
-                    id="password"
-                    value={password}
-                    onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (errorPassword) setErrorPassword('');
-                    }}
-                    placeholder="••••••••"
-                    disabled={isSubmitting}
-                    className={errorPassword ? "border-red-500" : ""}
-                  />
+
+                  <div className="login__password-wrapper">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      value={password}
+                      onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (errorPassword) setErrorPassword('');
+                      }}
+                      onKeyUp={checkCapsLock}
+                      onKeyDown={checkCapsLock}
+                      placeholder="••••••••"
+                      disabled={isSubmitting}
+                      className={errorPassword ? "border-red-500" : ""}
+                    />
+                    <button
+                      type="button"
+                      className="login__password-toggle"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showPassword ? <IconEyeOff /> : <IconEye />}
+                    </button>
+                  </div>
+
                   {errorPassword && <span className="text-red-500 text-xs font-semibold mt-1">{errorPassword}</span>}
+                  {capsLockOn && (
+                    <span className="login__caps-warning">
+                      ⚠ Bloq Mayús está activado
+                    </span>
+                  )}
                 </div>
 
                 <button type="submit" className="login__submit-btn" disabled={isSubmitting}>

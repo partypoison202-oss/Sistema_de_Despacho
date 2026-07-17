@@ -150,6 +150,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
         formData.append('accidente_seguro', accSeguro);
         formData.append('accidente_hechos', accHechos);
         formData.append('ubicacion_gps', ubicacionGPS);
+        formData.append('hora_evento', horaEvento); // ⬅️ CAMPO DE HORA AGREGADO PARA ACCIDENTE
       }
 
       fotos.forEach((foto, index) => {
@@ -241,13 +242,31 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
           {/* Tabs de eventos */}
           <div className="titan-tabs">
-            <button className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`} onClick={() => setActiveTab('DESINCORPORACION')}>
+            <button 
+              className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`} 
+              onClick={() => {
+                setActiveTab('DESINCORPORACION');
+                // Si se desea mantener la hora actual al cambiar a esta pestaña, se puede hacer igual
+              }}
+            >
               Desincorporación
             </button>
-            <button className={`titan-tab ${activeTab === 'INCORPORACION' ? 'active' : ''}`} onClick={() => setActiveTab('INCORPORACION')}>
+            <button 
+              className={`titan-tab ${activeTab === 'INCORPORACION' ? 'active' : ''}`} 
+              onClick={() => {
+                setActiveTab('INCORPORACION');
+              }}
+            >
               Incorporación
             </button>
-            <button className={`titan-tab ${activeTab === 'ACCIDENTE' ? 'active' : ''}`} onClick={() => setActiveTab('ACCIDENTE')}>
+            <button 
+              className={`titan-tab ${activeTab === 'ACCIDENTE' ? 'active' : ''}`} 
+              onClick={() => {
+                setActiveTab('ACCIDENTE');
+                // Actualizar hora al momento de abrir la pestaña de accidente
+                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+              }}
+            >
               Accidente
             </button>
           </div>
@@ -329,6 +348,37 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                     <label>Hechos <span style={{color: 'var(--state-red-text, #dc2626)'}}>*</span></label>
                     <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>
                   </div>
+
+                  {/* ⬇️ NUEVO CAMPO DE HORA PARA ACCIDENTE */}
+                  <div className="form-group" style={{ position: 'relative' }}>
+                    <label>Hora del accidente</label>
+                    <button
+                      type="button"
+                      onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)}
+                      className="form-group-time-trigger"
+                    >
+                      <span>{horaEvento || '--:--'}</span>
+                      <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                      </svg>
+                    </button>
+
+                    {dropdownHoraOpen && (
+                      <>
+                        <div 
+                          style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                          onClick={() => setDropdownHoraOpen(false)}
+                        />
+                        <IOSTimePicker 
+                          value={horaEvento} 
+                          onChange={setHoraEvento} 
+                          onClose={() => setDropdownHoraOpen(false)}
+                          onSave={() => setDropdownHoraOpen(false)}
+                        />
+                      </>
+                    )}
+                  </div>
+
                   <div className="form-group">
                     <label>Ubicación</label>
                     <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." />
@@ -383,4 +433,3 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 };
 
 export default DetalleUnidadTitan;
-
