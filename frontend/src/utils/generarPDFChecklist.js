@@ -342,12 +342,25 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
                 fotosEvidencia.map(async foto => ({ ...foto, img: await loadImage(foto.url) }))
             );
 
+            // Configuración de la cuadrícula
+            const cols = 2;
+            const gap = 8;
+            const contentW = pageW - margin * 2;
+            const cellW = (contentW - gap * (cols - 1)) / cols;
+            const maxImgH = 55; // Altura máxima para que las fotos se vean estéticas
+            const captionSpace = 10;
+            const cellH = maxImgH + captionSpace;
+
             let firstPhoto = true;
-            for (const { label, img } of loadedPhotos) {
+            let currentX = margin;
+            let colIndex = 0;
+
+            for (let i = 0; i < loadedPhotos.length; i++) {
+                const { label, img } = loadedPhotos[i];
                 if (!img) continue;
 
                 if (firstPhoto) {
-                    if (pageH - currentY - 18 < 70) {
+                    if (pageH - currentY - 18 < cellH) {
                         doc.addPage();
                         drawHeader(doc, logoImg, pageW);
                         currentY = HEADER_H + 9;
@@ -358,36 +371,51 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
                     doc.setFontSize(10);
                     doc.setTextColor(...COLOR_GUINDA);
                     doc.text('EVIDENCIAS FOTOGRÁFICAS', margin, currentY);
-                    currentY += 6;
+                    currentY += 8;
                     firstPhoto = false;
                 }
 
-                if (pageH - currentY - 18 < 80) {
+                // Salto de página si ya no cabe la fila
+                if (colIndex === 0 && pageH - currentY - 18 < cellH) {
                     doc.addPage();
                     drawHeader(doc, logoImg, pageW);
                     currentY = HEADER_H + 9;
                 }
 
-                doc.setFont('helvetica', 'italic');
-                doc.setFontSize(8);
-                doc.setTextColor(...COLOR_GRAY_TEXT);
-                doc.text(`Evidencia: ${label}`, margin, currentY);
-                currentY += 4;
-
                 const props = doc.getImageProperties(img);
-                const maxW  = pageW - margin * 2;
-                let   pdfH  = (props.height * maxW) / props.width;
+                let pdfW = cellW;
+                let pdfH = (props.height * pdfW) / props.width;
+
+                if (pdfH > maxImgH) {
+                    pdfH = maxImgH;
+                    pdfW = (props.width * pdfH) / props.height;
+                }
 
                 const compressedDataUrl = compressImage(img, 800, 0.6);
 
-                if (pdfH > 70) {
-                    pdfH = 70;
-                    const pdfW = (props.width * pdfH) / props.height;
-                    doc.addImage(compressedDataUrl, 'JPEG', margin + (maxW - pdfW) / 2, currentY, pdfW, pdfH, undefined, 'FAST');
+                // Centrar imagen horizontalmente en su celda y alinearla al fondo del área de imagen
+                const imgX = currentX + (cellW - pdfW) / 2;
+                const imgY = currentY + (maxImgH - pdfH); // Para que se alineen por abajo si son de distintos tamaños
+                
+                doc.addImage(compressedDataUrl, 'JPEG', imgX, imgY, pdfW, pdfH, undefined, 'FAST');
+
+                // Dibujar leyenda debajo de la celda
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(8);
+                doc.setTextColor(...COLOR_GRAY_TEXT);
+                
+                const lines = doc.splitTextToSize(`Falla en: ${label}`, cellW);
+                doc.text(lines, currentX + cellW / 2, currentY + maxImgH + 4, { align: 'center' });
+
+                // Avanzar índices
+                colIndex++;
+                if (colIndex >= cols) {
+                    colIndex = 0;
+                    currentX = margin;
+                    currentY += cellH + 4; // Bajar a la siguiente fila
                 } else {
-                    doc.addImage(compressedDataUrl, 'JPEG', margin, currentY, maxW, pdfH, undefined, 'FAST');
+                    currentX += cellW + gap; // Mover a la siguiente columna
                 }
-                currentY += pdfH + 8;
             }
         }
 
