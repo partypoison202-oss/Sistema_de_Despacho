@@ -22,8 +22,9 @@ const PUNTOS = [
 ];
 
 // Colores institucionales
-const COLOR_GUINDA     = [136, 19, 55];
-const COLOR_GUINDA_DK  = [100, 10, 35];
+const COLOR_GUINDA     = [96, 26, 42];  // #601a2a (Color oficial SITMAH)
+const COLOR_GUINDA_DK  = [70, 15, 30];  // Tono más oscuro para contrastes
+const COLOR_GOLD       = [197, 160, 89]; // #c5a059 (Dorado oficial)
 const COLOR_WHITE      = [255, 255, 255];
 const COLOR_GRAY_LIGHT = [246, 246, 248];
 const COLOR_GRAY_TEXT  = [75, 85, 99];
@@ -42,16 +43,15 @@ const loadImage = (src) => {
 };
 
 /**
- * Compone una imagen con fondo transparente sobre un color sólido.
+ * Convierte una imagen a formato PNG con fondo transparente.
  * Devuelve un data URL PNG listo para jsPDF sin cuadro negro.
  */
-const compositeLogoOnColor = (imgEl, bgRGB) => {
+const convertLogoToPNG = (imgEl) => {
     const canvas = document.createElement('canvas');
     canvas.width  = imgEl.naturalWidth  || imgEl.width;
     canvas.height = imgEl.naturalHeight || imgEl.height;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Ya no rellenamos con color de fondo, dejamos transparente
     ctx.drawImage(imgEl, 0, 0);
     return canvas.toDataURL('image/png');
 };
@@ -112,7 +112,7 @@ const drawHeader = (doc, logoImg, pageWidth) => {
     // Subtítulo (institución)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
-    doc.setTextColor(...COLOR_WHITE);
+    doc.setTextColor(...COLOR_GOLD);
     doc.text('SISTEMA DE TRANSPORTE METROPOLITANO DE HIDALGO', pageWidth / 2, 11, { align: 'center' });
 
     // Título principal
@@ -152,9 +152,9 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
         let   y        = HEADER_H + 9;
 
         // ── Cargar logo ──────────────────────────────────────────────────────
-        // Cargar logo y compositar sobre fondo guinda para eliminar cuadro negro
+        // Convertimos a PNG transparente para jsPDF
         const logoRaw  = await loadImage('/images/sistema de tm.webp');
-        const logoImg  = logoRaw ? compositeLogoOnColor(logoRaw, COLOR_GUINDA) : null;
+        const logoImg  = logoRaw ? convertLogoToPNG(logoRaw) : null;
 
         // ── Encabezado primera página ────────────────────────────────────────
         drawHeader(doc, logoImg, pageW);
