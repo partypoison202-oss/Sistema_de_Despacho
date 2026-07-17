@@ -49,6 +49,7 @@ export default function DetalleUnidadMantenimiento() {
   const [viewingChecklist, setViewingChecklist] = useState(false);
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [lightboxDibujo, setLightboxDibujo] = useState(null);
+  const [descargandoPDF, setDescargandoPDF] = useState(false);
 
   // Modal de asignación (requerido para pasar a Operación)
   const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
@@ -1091,14 +1092,30 @@ export default function DetalleUnidadMantenimiento() {
                         <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                           <h4 className="text-base font-extrabold text-rose-950">Puntos Evaluados</h4>
                           <button
-                            onClick={() => generarPDFChecklist(recentChecklist, 'download')}
-                            className="flex items-center gap-2 bg-rose-50 text-rose-900 hover:bg-rose-100 transition-colors px-3 py-1.5 rounded-xl font-bold shadow-sm"
+                            onClick={async () => {
+                              if (descargandoPDF) return;
+                              setDescargandoPDF(true);
+                              try {
+                                await generarPDFChecklist(recentChecklist, 'download');
+                              } finally {
+                                setDescargandoPDF(false);
+                              }
+                            }}
+                            disabled={descargandoPDF}
+                            className="flex items-center gap-2 bg-rose-50 text-rose-900 hover:bg-rose-100 transition-colors px-3 py-1.5 rounded-xl font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Descargar PDF"
                           >
-                            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Descargar
+                            {descargandoPDF ? (
+                              <svg className="animate-spin h-5 w-5 text-rose-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : (
+                              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            )}
+                            {descargandoPDF ? 'Descargando...' : 'Descargar'}
                           </button>
                         </div>
 

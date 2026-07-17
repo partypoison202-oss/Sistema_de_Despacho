@@ -22,8 +22,9 @@ const PUNTOS = [
 ];
 
 // Colores institucionales
-const COLOR_GUINDA     = [136, 19, 55];
-const COLOR_GUINDA_DK  = [100, 10, 35];
+const COLOR_GUINDA     = [96, 26, 42];  // #601a2a (Color oficial SITMAH)
+const COLOR_GUINDA_DK  = [70, 15, 30];  // Tono más oscuro para contrastes
+const COLOR_GOLD       = [197, 160, 89]; // #c5a059 (Dorado oficial)
 const COLOR_WHITE      = [255, 255, 255];
 const COLOR_GRAY_LIGHT = [246, 246, 248];
 const COLOR_GRAY_TEXT  = [75, 85, 99];
@@ -42,16 +43,15 @@ const loadImage = (src) => {
 };
 
 /**
- * Compone una imagen con fondo transparente sobre un color sólido.
+ * Convierte una imagen a formato PNG con fondo transparente.
  * Devuelve un data URL PNG listo para jsPDF sin cuadro negro.
  */
-const compositeLogoOnColor = (imgEl, bgRGB) => {
+const convertLogoToPNG = (imgEl) => {
     const canvas = document.createElement('canvas');
     canvas.width  = imgEl.naturalWidth  || imgEl.width;
     canvas.height = imgEl.naturalHeight || imgEl.height;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = `rgb(${bgRGB[0]}, ${bgRGB[1]}, ${bgRGB[2]})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Ya no rellenamos con color de fondo, dejamos transparente
     ctx.drawImage(imgEl, 0, 0);
     return canvas.toDataURL('image/png');
 };
@@ -112,7 +112,7 @@ const drawHeader = (doc, logoImg, pageWidth) => {
     // Subtítulo (institución)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
-    doc.setTextColor(...COLOR_WHITE);
+    doc.setTextColor(...COLOR_GOLD);
     doc.text('SISTEMA DE TRANSPORTE METROPOLITANO DE HIDALGO', pageWidth / 2, 11, { align: 'center' });
 
     // Título principal
@@ -152,9 +152,9 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
         let   y        = HEADER_H + 9;
 
         // ── Cargar logo ──────────────────────────────────────────────────────
-        // Cargar logo y compositar sobre fondo guinda para eliminar cuadro negro
+        // Convertimos a PNG transparente para jsPDF
         const logoRaw  = await loadImage('/images/sistema de tm.webp');
-        const logoImg  = logoRaw ? compositeLogoOnColor(logoRaw, COLOR_GUINDA) : null;
+        const logoImg  = logoRaw ? convertLogoToPNG(logoRaw) : null;
 
         // ── Encabezado primera página ────────────────────────────────────────
         drawHeader(doc, logoImg, pageW);
@@ -342,12 +342,25 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
                 fotosEvidencia.map(async foto => ({ ...foto, img: await loadImage(foto.url) }))
             );
 
+            // Configuración de la cuadrícula
+            const cols = 2;
+            const gap = 8;
+            const contentW = pageW - margin * 2;
+            const cellW = (contentW - gap * (cols - 1)) / cols;
+            const maxImgH = 55; // Altura máxima para que las fotos se vean estéticas
+            const captionSpace = 10;
+            const cellH = maxImgH + captionSpace;
+
             let firstPhoto = true;
-            for (const { label, img } of loadedPhotos) {
+            let currentX = margin;
+            let colIndex = 0;
+
+            for (let i = 0; i < loadedPhotos.length; i++) {
+                const { label, img } = loadedPhotos[i];
                 if (!img) continue;
 
                 if (firstPhoto) {
-                    if (pageH - currentY - 18 < 70) {
+                    if (pageH - currentY - 18 < cellH) {
                         doc.addPage();
                         drawHeader(doc, logoImg, pageW);
                         currentY = HEADER_H + 9;
@@ -358,36 +371,51 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
                     doc.setFontSize(10);
                     doc.setTextColor(...COLOR_GUINDA);
                     doc.text('EVIDENCIAS FOTOGRÁFICAS', margin, currentY);
-                    currentY += 6;
+                    currentY += 8;
                     firstPhoto = false;
                 }
 
-                if (pageH - currentY - 18 < 80) {
+                // Salto de página si ya no cabe la fila
+                if (colIndex === 0 && pageH - currentY - 18 < cellH) {
                     doc.addPage();
                     drawHeader(doc, logoImg, pageW);
                     currentY = HEADER_H + 9;
                 }
 
-                doc.setFont('helvetica', 'italic');
-                doc.setFontSize(8);
-                doc.setTextColor(...COLOR_GRAY_TEXT);
-                doc.text(`Evidencia: ${label}`, margin, currentY);
-                currentY += 4;
-
                 const props = doc.getImageProperties(img);
-                const maxW  = pageW - margin * 2;
-                let   pdfH  = (props.height * maxW) / props.width;
+                let pdfW = cellW;
+                let pdfH = (props.height * pdfW) / props.width;
+
+                if (pdfH > maxImgH) {
+                    pdfH = maxImgH;
+                    pdfW = (props.width * pdfH) / props.height;
+                }
 
                 const compressedDataUrl = compressImage(img, 800, 0.6);
 
-                if (pdfH > 70) {
-                    pdfH = 70;
-                    const pdfW = (props.width * pdfH) / props.height;
-                    doc.addImage(compressedDataUrl, 'JPEG', margin + (maxW - pdfW) / 2, currentY, pdfW, pdfH, undefined, 'FAST');
+                // Centrar imagen horizontalmente en su celda y alinearla al fondo del área de imagen
+                const imgX = currentX + (cellW - pdfW) / 2;
+                const imgY = currentY + (maxImgH - pdfH); // Para que se alineen por abajo si son de distintos tamaños
+                
+                doc.addImage(compressedDataUrl, 'JPEG', imgX, imgY, pdfW, pdfH, undefined, 'FAST');
+
+                // Dibujar leyenda debajo de la celda
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(8);
+                doc.setTextColor(...COLOR_GRAY_TEXT);
+                
+                const lines = doc.splitTextToSize(`Falla en: ${label}`, cellW);
+                doc.text(lines, currentX + cellW / 2, currentY + maxImgH + 4, { align: 'center' });
+
+                // Avanzar índices
+                colIndex++;
+                if (colIndex >= cols) {
+                    colIndex = 0;
+                    currentX = margin;
+                    currentY += cellH + 4; // Bajar a la siguiente fila
                 } else {
-                    doc.addImage(compressedDataUrl, 'JPEG', margin, currentY, maxW, pdfH, undefined, 'FAST');
+                    currentX += cellW + gap; // Mover a la siguiente columna
                 }
-                currentY += pdfH + 8;
             }
         }
 
