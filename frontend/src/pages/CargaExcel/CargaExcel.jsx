@@ -14,7 +14,7 @@ export default function CargaExcel() {
   // Catálogos
   const [catalogUnidades, setCatalogUnidades] = useState([]);
   const [catalogConductores, setCatalogConductores] = useState([]);
-  const [catalogRutas, setCatalogRutas] = useState([]);
+  const [catalogRutasObj, setCatalogRutasObj] = useState({ troncales: [], alimentadoras: [] });
 
   // Helper para obtener el token de autenticación
   const getAuthHeaders = () => {
@@ -45,12 +45,7 @@ export default function CargaExcel() {
       }
       if (resRutas.ok) {
         const data = await resRutas.json();
-        const routesObj = data || {};
-        const allRoutes = [
-          ...(routesObj.troncales || []),
-          ...(routesObj.alimentadoras || [])
-        ];
-        setCatalogRutas(allRoutes);
+        setCatalogRutasObj(data || { troncales: [], alimentadoras: [] });
       }
     } catch (err) {
       console.error('Error al cargar catálogos:', err);
@@ -104,24 +99,32 @@ export default function CargaExcel() {
     setHasChanges(true);
   };
 
-  // Eliminar un registro de la lista
-  const handleDeleteRecord = (index) => {
+  // Vaciar los campos de un registro (excepto unidad y eco)
+  const handleClearRecord = (index) => {
     const target = previewData[index];
     const targetEco = target ? (target.ECONOMICO || 'Sin ECO') : 'Sin ECO';
 
     Swal.fire({
-      title: '¿Eliminar registro?',
-      text: `Se quitará la unidad ${targetEco} de la lista de despacho. Recuerda guardar cambios.`,
+      title: '¿Vaciar registro?',
+      text: `Se limpiarán los datos operativos de la unidad ${targetEco}. El tipo y número económico se conservarán.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#6b1d33',
       cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonText: 'Sí, vaciar',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedData = [...previewData];
-        updatedData.splice(index, 1);
+        updatedData[index] = {
+          ...updatedData[index],
+          RUTA: '',
+          TARJETON: '',
+          NOMBRE_CONDUCTOR: '',
+          ESTATUS: 'operacion',
+          HORA_DE_ACOPLE: '',
+          CORRIDAS: null
+        };
         setPreviewData(updatedData);
         setHasChanges(true);
       }
@@ -245,9 +248,9 @@ export default function CargaExcel() {
             data={previewData}
             catalogUnidades={catalogUnidades}
             catalogConductores={catalogConductores}
-            catalogRutas={catalogRutas}
+            catalogRutasObj={catalogRutasObj}
             onUpdate={handleUpdateRecord}
-            onDelete={handleDeleteRecord}
+            onClear={handleClearRecord}
             onSave={handleSaveChanges}
             hasChanges={hasChanges}
             isSaving={isSaving}
