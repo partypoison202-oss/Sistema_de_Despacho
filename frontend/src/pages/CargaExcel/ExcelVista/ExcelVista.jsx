@@ -38,22 +38,18 @@ export default function ExcelPreview({
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUS', 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
 
-  // Estatus traducciones para mostrar
+  // Estatus traducciones para mostrar (alineados a las reglas de la BD)
   const estatusTranslations = {
     operacion: 'Operación',
-    taller: 'Taller',
-    reserva: 'Reserva',
-    siniestro: 'Siniestro',
-    baja: 'Baja'
+    mantenimiento: 'Mantenimiento',
+    reserva: 'Reserva'
   };
 
   // Colores asociados a cada estatus para badges y listados
   const estatusColors = {
-    operacion: { bg: 'rgba(16, 185, 129, 0.08)', text: '#10b981', border: 'rgba(16, 185, 129, 0.2)' }, // Verde
-    taller: { bg: 'rgba(239, 68, 68, 0.08)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' },     // Rojo
-    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' },   // Azul
-    siniestro: { bg: 'rgba(245, 158, 11, 0.08)', text: '#f59e0b', border: 'rgba(245, 158, 11, 0.2)' }, // Ámbar
-    baja: { bg: 'rgba(107, 114, 128, 0.08)', text: '#6b7280', border: 'rgba(107, 114, 128, 0.2)' }     // Gris
+    operacion: { bg: 'rgba(16, 185, 129, 0.08)', text: '#10b981', border: 'rgba(16, 185, 129, 0.2)' },       // Verde
+    mantenimiento: { bg: 'rgba(239, 68, 68, 0.08)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' },   // Rojo
+    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' }        // Azul
   };
 
   // 1. Ordenar los datos por tipo de unidad (según el orden de la lista) y luego por ECO numérico
@@ -461,11 +457,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem', 
                               color: h === 'ECONOMICO' ? '#111827' : '#4b5563', 
                               fontWeight: (h === 'NOMBRE_CONDUCTOR' || h === 'ECONOMICO') ? '700' : 'normal', 
-                              background: h === 'ECONOMICO' ? 'linear-gradient(135deg, #f3f4f6, #e5e7eb)' : 'transparent', 
-                              borderRadius: '6px',
-                              textAlign: h === 'ECONOMICO' ? 'center' : 'left',
-                              border: h === 'ECONOMICO' ? '1px solid #d1d5db' : 'none',
-                              boxShadow: h === 'ECONOMICO' ? 'inset 0 1px 2px rgba(0, 0, 0, 0.05)' : 'none'
+                              textAlign: h === 'ECONOMICO' ? 'center' : 'left'
                             }}>
                               {fila[h] || '-'}
                             </div>

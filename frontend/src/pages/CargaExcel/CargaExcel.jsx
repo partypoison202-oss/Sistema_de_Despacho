@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 
 export default function CargaExcel() {
+  const queryClient = useQueryClient();
   const [previewData, setPreviewData] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [cargandoTabla, setCargandoTabla] = useState(true);
-
-  // Catálogos
-  const [catalogUnidades, setCatalogUnidades] = useState([]);
-  const [catalogConductores, setCatalogConductores] = useState([]);
-  const [catalogRutasObj, setCatalogRutasObj] = useState({ troncales: [], alimentadoras: [] });
 
   // Helper para obtener el token de autenticación
   const getAuthHeaders = () => {
@@ -25,58 +21,66 @@ export default function CargaExcel() {
     };
   };
 
-  // Carga inicial de datos y catálogos
+  // 1. Obtener y cachear Catálogos usando React Query (Cache de larga duración)
   const fetchCatalogos = async () => {
-    try {
-      const headers = getAuthHeaders();
-      const [resUnidades, resConductores, resRutas] = await Promise.all([
-        fetch(`${API_BASE}/api/despacho/catalogo/unidades`, { headers }),
-        fetch(`${API_BASE}/api/conductores`, { headers }),
-        fetch(`${API_BASE}/api/despacho/rutas`, { headers })
-      ]);
+    const headers = getAuthHeaders();
+    const [resUnidades, resConductores, resRutas] = await Promise.all([
+      fetch(`${API_BASE}/api/despacho/catalogo/unidades`, { headers }),
+      fetch(`${API_BASE}/api/conductores`, { headers }),
+      fetch(`${API_BASE}/api/despacho/rutas`, { headers })
+    ]);
 
-      if (resUnidades.ok) {
-        const data = await resUnidades.json();
-        setCatalogUnidades(Array.isArray(data) ? data : []);
-      }
-      if (resConductores.ok) {
-        const data = await resConductores.json();
-        setCatalogConductores(Array.isArray(data) ? data : []);
-      }
-      if (resRutas.ok) {
-        const data = await resRutas.json();
-        setCatalogRutasObj(data || { troncales: [], alimentadoras: [] });
-      }
-    } catch (err) {
-      console.error('Error al cargar catálogos:', err);
+    if (!resUnidades.ok || !resConductores.ok || !resRutas.ok) {
+      throw new Error('Error al cargar catálogos');
     }
+
+    const unidades = await resUnidades.json();
+    const conductores = await resConductores.json();
+    const rutas = await resRutas.json();
+
+    return {
+      unidades: Array.isArray(unidades) ? unidades : [],
+      conductores: Array.isArray(conductores) ? conductores : [],
+      rutasObj: rutas || { troncales: [], alimentadoras: [] }
+    };
   };
 
+  const { data: catalogos } = useQuery({
+    queryKey: ['capturista-catalogos'],
+    queryFn: fetchCatalogos,
+    staleTime: 1000 * 60 * 30, // Mantener en cache por 30 minutos sin refetch automático
+  });
+
+  const catalogUnidades = catalogos?.unidades || [];
+  const catalogConductores = catalogos?.conductores || [];
+  const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
+
+  // 2. Cargar datos de la BD en tiempo real (Polling cada 8 segundos)
   const fetchDatosHoy = async () => {
-    setCargandoTabla(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
-        method: 'GET',
-        headers: getAuthHeaders()
-      });
-      if (response.ok) {
-        const datos = await response.json();
-        setPreviewData(Array.isArray(datos) ? datos : []);
-      } else {
-        setPreviewData([]);
-      }
-    } catch (error) {
-      console.error('Error al obtener datos de hoy:', error);
-      setPreviewData([]);
-    } finally {
-      setCargandoTabla(false);
+    const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+      throw new Error('Error al obtener datos de hoy');
     }
+    const datos = await response.json();
+    return Array.isArray(datos) ? datos : [];
   };
 
+  const { data: serverData, isLoading: cargandoTabla } = useQuery({
+    queryKey: ['despacho-hoy'],
+    queryFn: fetchDatosHoy,
+    // Detiene el refetch en segundo plano si hay cambios locales sin guardar para no sobrescribir el trabajo del capturista
+    refetchInterval: hasChanges ? false : 8000, 
+  });
+
+  // Sincronizar datos del servidor con el estado local del editor cuando no hay cambios pendientes
   useEffect(() => {
-    fetchCatalogos();
-    fetchDatosHoy();
-  }, []);
+    if (serverData && !hasChanges) {
+      setPreviewData(serverData);
+    }
+  }, [serverData, hasChanges]);
 
   // Agregar un nuevo registro vacío a la lista
   const handleAddRecord = () => {
@@ -199,8 +203,8 @@ export default function CargaExcel() {
         text: 'La programación operativa se ha guardado correctamente.',
         confirmButtonColor: '#c5a059'
       });
-      // Refrescar datos
-      await fetchDatosHoy();
+      // Invalidar cache para forzar la recarga de datos frescos
+      queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -237,7 +241,7 @@ export default function CargaExcel() {
           </div>
         </div>
 
-        {cargandoTabla ? (
+        {cargandoTabla && previewData.length === 0 ? (
           <div className="excel-card-table-loading" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
             <span className="spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '3rem', height: '3rem', marginBottom: '1rem', display: 'inline-block' }}></span>
             <h3 style={{ color: '#4b5563', margin: 0 }}>Cargando programación diaria...</h3>
