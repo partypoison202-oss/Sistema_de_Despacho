@@ -130,7 +130,7 @@ export default function ExcelPreview({
             {filteredData.length === 0 ? (
               <tr>
                 <td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '2.5rem', color: '#9ca3af', fontWeight: '500' }}>
-                  No hay registros. Haz clic en "+ Agregar Unidad" para iniciar.
+                  No hay registros operativos disponibles.
                 </td>
               </tr>
             ) : (

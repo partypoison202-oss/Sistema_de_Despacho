@@ -82,26 +82,7 @@ export default function CargaExcel() {
     }
   }, [serverData, hasChanges]);
 
-  // Agregar un nuevo registro vacío a la lista
-  const handleAddRecord = () => {
-    const nuevoRegistro = {
-      TIPO_DE_UNIDAD: 'URBANUS', // valor inicial
-      RUTA: '',
-      ECONOMICO: '',
-      TARJETON: '',
-      NOMBRE_CONDUCTOR: '',
-      ESTATUS: 'operacion',
-      FALLA: null,
-      CORRIDAS: null,
-      CICLO: null,
-      MOTIVO: null,
-      MOTIVO_ESTATUS: null,
-      HORA_DE_ACOPLE: '',
-      HORA_PROGRAMADA: ''
-    };
-    setPreviewData((prev) => [nuevoRegistro, ...prev]);
-    setHasChanges(true);
-  };
+
 
   // Vaciar los campos de un registro (excepto unidad y eco)
   const handleClearRecord = (index) => {
@@ -227,18 +208,7 @@ export default function CargaExcel() {
             <p className="excel-subtitle">Organiza, edita y concilia la programación operativa de hoy directamente en el sistema</p>
           </div>
 
-          <div className="excel-control-section" style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              onClick={handleAddRecord}
-              className="btn-excel-sincronizar"
-              style={{ backgroundColor: '#c5a059' }}
-            >
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              <span>Agregar Unidad</span>
-            </button>
-          </div>
+
         </div>
 
         {cargandoTabla && previewData.length === 0 ? (
