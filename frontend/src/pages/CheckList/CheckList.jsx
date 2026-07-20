@@ -819,7 +819,7 @@ export default function ChecklistForm({
 
             setLoadingEcos(true);
             try {
-                const token = localStorage.getItem('token');
+                const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
                 const res = await fetch(`${API_BASE}/api/unidades/listar/${tipo}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -902,7 +902,7 @@ export default function ChecklistForm({
             method: editMode && checklistId ? 'PUT' : 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`
             },
             body: JSON.stringify({
                 tipo_unidad: tipoUnidad,

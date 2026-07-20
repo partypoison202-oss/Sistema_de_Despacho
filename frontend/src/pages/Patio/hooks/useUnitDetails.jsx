@@ -8,7 +8,7 @@ export const useUnitDetails = (selectedFleet) => {
   const handleMouseEnterUnit = async (eco, status) => {
     setHoveredUnitEco(eco);
     if (unitDetailsCache[eco]) return;
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     try {
       const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanus';
       const response = await fetch(`${API_BASE}/api/unidades/detalle/${fleetToUse}/${eco}`, {

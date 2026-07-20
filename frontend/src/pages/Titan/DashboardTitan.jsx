@@ -28,7 +28,7 @@ const DashboardTitan = () => {
   const fetchUnidades = async (silent = false) => {
     try {
       if (!silent) setCargando(true);
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const response = await fetch(`${API_BASE}/api/titan/unidades`, {
         headers: {
           'Authorization': `Bearer ${token}`

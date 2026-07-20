@@ -19,7 +19,7 @@ export const usePatioData = (selectedFleet) => {
 
   const fetchUnits = async (fleetId, silent = false) => {
     if (!silent) setLoading(true);
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
 
     try {
       let data = [];

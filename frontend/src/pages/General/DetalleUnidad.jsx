@@ -32,7 +32,7 @@ export default function DetalleUnidad() {
 
   const fetchDespachoHoy = async () => {
     const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}` },
     });
     if (!response.ok) throw new Error('Error al cargar');
     return response.json();

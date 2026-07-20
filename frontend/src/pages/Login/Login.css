@@ -173,6 +173,35 @@
   font-weight: 600;
   color: #b8860b;
 }
+
+/* ── REMEMBER ME CHECKBOX ── */
+.login__remember {
+  display: flex;
+  align-items: center;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.login__remember-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--tw-color-gray-600);
+  cursor: pointer;
+  user-select: none;
+}
+
+.login__remember-checkbox {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--tw-color-gray-300);
+  accent-color: var(--color-gold);
+  cursor: pointer;
+}
+
 /* ── BOTÓN ── */
 .login__submit-btn {
   background-color: var(--color-gold);

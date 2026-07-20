@@ -35,7 +35,7 @@ export default function CentroControl() {
 
   // ---- Carga y desglose de unidades por tipo y estatus ----
   const fetchDespachoHoy = async () => {
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
       headers: {
         'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ export default function CentroControl() {
 
   const handleGenerarReporte = async () => {
     setIsGenerating(true);
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
 
     try {
       const [respRutas, respUnidades] = await Promise.all([

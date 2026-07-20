@@ -66,7 +66,7 @@ export default function DetalleUnidadMantenimiento() {
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
 
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
   const extraerNumeroEco = (valor) => {
     const texto = String(valor ?? '');

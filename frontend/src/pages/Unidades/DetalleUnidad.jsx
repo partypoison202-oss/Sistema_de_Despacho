@@ -63,7 +63,7 @@ export default function DetalleUnidad() {
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
 
   // Utilidades
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
   const normalizarNumeroEco = (valor) => {
     const digitos = String(valor ?? '').trim().toUpperCase().match(/\d+/)?.[0] ?? '';
@@ -103,7 +103,7 @@ export default function DetalleUnidad() {
   const [dbConductores, setDbConductores] = useState([]);
   
   const fetchConductores = async () => {
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     if (!token) return;
     try {
       const res = await fetch(`${API_BASE}/api/conductores`, {

@@ -18,7 +18,7 @@ export default function HistorialDespacho() {
     try {
       const response = await fetch(`${API_BASE}/api/historial-operativo/fechas`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
           'Accept': 'application/json'
         }
       });
@@ -41,7 +41,7 @@ export default function HistorialDespacho() {
     try {
       const response = await fetch(`${API_BASE}/api/historial-operativo/despacho/${fecha}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
           'Accept': 'application/json'
         }
       });

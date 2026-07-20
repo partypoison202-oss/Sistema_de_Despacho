@@ -21,7 +21,7 @@ export default function FleetSelection() {
 
   useEffect(() => {
     const fetchConteos = async () => {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       if (!token) {
         navigate('/login');
         return;

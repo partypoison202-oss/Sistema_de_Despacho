@@ -38,7 +38,7 @@ export default function ResumenDespacho() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
           headers: {
             'Content-Type': 'application/json',
