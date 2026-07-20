@@ -238,8 +238,8 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
             doc.text(label, x + boxW / 2, y + 14, { align: 'center' });
         };
 
-        drawBox(margin,            [236, 253, 245], COLOR_BIEN, COLOR_BIEN,        totalBien,   'BIEN');
-        drawBox(margin + boxW + 4, [254, 242, 242], COLOR_MAL,  COLOR_MAL,         totalMal,    'MAL');
+        drawBox(margin,            [236, 253, 245], COLOR_BIEN, COLOR_BIEN,        totalBien,   'BUEN ESTADO');
+        drawBox(margin + boxW + 4, [254, 242, 242], COLOR_MAL,  COLOR_MAL,         totalMal,    'DAÑOS');
         drawBox(margin + (boxW + 4) * 2, [243, 244, 246], [156, 163, 175], [75, 85, 99], totalPuntos, 'TOTAL');
 
         y += boxH + 8;
