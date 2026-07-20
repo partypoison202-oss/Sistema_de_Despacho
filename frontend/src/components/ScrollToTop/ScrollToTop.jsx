@@ -3,29 +3,47 @@ import './ScrollToTop.css';
 
 const ScrollToTop = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [scrollContainer, setScrollContainer] = useState(null);
 
-  // Muestra el botón cuando el usuario hace scroll hacia abajo
-  const toggleVisibility = () => {
-    if (window.scrollY > 300) {
+  const toggleVisibility = (e) => {
+    const target = e.target === document ? document.documentElement : e.target;
+    
+    // Ignorar contenedores pequeños (dropdowns, modales pequeños, etc.)
+    // Solo reaccionar a contenedores que ocupan al menos el 50% de la pantalla
+    if (target.clientHeight < window.innerHeight * 0.5) return;
+
+    if (target.scrollTop > 300) {
       setIsVisible(true);
-    } else {
+      setScrollContainer(target);
+    } else if (target === scrollContainer || !scrollContainer) {
       setIsVisible(false);
+      if (target === scrollContainer) {
+        setScrollContainer(null);
+      }
     }
   };
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    if (scrollContainer) {
+      scrollContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } else {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
   };
 
   useEffect(() => {
-    window.addEventListener('scroll', toggleVisibility);
+    // Usar la fase de captura (true) para interceptar eventos de scroll en CUALQUIER contenedor
+    window.addEventListener('scroll', toggleVisibility, true);
     return () => {
-      window.removeEventListener('scroll', toggleVisibility);
+      window.removeEventListener('scroll', toggleVisibility, true);
     };
-  }, []);
+  }, [scrollContainer]);
 
   return (
     <div className="scroll-to-top">
