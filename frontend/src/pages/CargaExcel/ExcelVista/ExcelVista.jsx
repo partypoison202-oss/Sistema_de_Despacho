@@ -123,7 +123,6 @@ export default function ExcelPreview({
                   {HEADER_TRANSLATIONS[h] || h}
                 </th>
               ))}
-              <th className="col-acciones" style={{ textAlign: 'center', width: '85px' }}>LIMPIAR</th>
             </tr>
           </thead>
           <tbody>
@@ -169,6 +168,9 @@ export default function ExcelPreview({
                               }}
                             >
                               {fila[h] || '00:00'}
+                              {fila.ESTATUS === 'operacion' && (!fila[h] || fila[h] === '00:00') && (
+                                <span title="Falta llenar Hora de Acople" style={{ marginLeft: '6px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
+                              )}
                             </button>
                             {isOpen && (
                               <>
@@ -218,6 +220,9 @@ export default function ExcelPreview({
                               <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                                 {fila[h] || 'Selecciona...'}
                               </span>
+                              {fila.ESTATUS === 'operacion' && !fila[h] && (
+                                <span title="Falta seleccionar Ruta" style={{ marginLeft: '4px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
+                              )}
                               <svg style={{ width: '0.9rem', height: '0.9rem', transform: isRutaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M7 10l5 5 5-5z" />
                               </svg>
@@ -308,6 +313,9 @@ export default function ExcelPreview({
                               <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                                 {fila[h] ? String(fila[h]) : 'Selecciona...'}
                               </span>
+                              {fila.ESTATUS === 'operacion' && !fila[h] && (
+                                <span title="Falta seleccionar Tarjetón" style={{ marginLeft: '4px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
+                              )}
                               <svg style={{ width: '0.9rem', height: '0.9rem', transform: isTarjetonOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M7 10l5 5 5-5z" />
                               </svg>
@@ -377,7 +385,8 @@ export default function ExcelPreview({
 
                       if (h === 'ESTATUS') {
                         const isEstatusOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'ESTATUS';
-                        const currentStatus = fila[h] || 'operacion';
+                        const rawStatus = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        const currentStatus = rawStatus.includes('mantenimiento') ? 'mantenimiento' : rawStatus.includes('reserva') ? 'reserva' : 'operacion';
                         const statusStyle = estatusColors[currentStatus] || estatusColors.operacion;
 
                         return (
@@ -462,55 +471,28 @@ export default function ExcelPreview({
                               {fila[h] || '-'}
                             </div>
                           ) : (
-                            <input
-                              type="text"
-                              value={fila[h] ?? ''}
-                              onChange={(e) => {
-                                let val = e.target.value;
-                                if (h === 'CORRIDAS') {
-                                  val = val.replace(/\D/g, '').substring(0, 2);
-                                }
-                                onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, val);
-                              }}
-                              className="edit-input edit-text-input"
-                              placeholder="-"
-                            />
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                value={fila[h] ?? ''}
+                                onChange={(e) => {
+                                  let val = e.target.value;
+                                  if (h === 'CORRIDAS') {
+                                    val = val.replace(/\D/g, '').substring(0, 2);
+                                  }
+                                  onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, val);
+                                }}
+                                className="edit-input edit-text-input"
+                                placeholder="-"
+                              />
+                              {fila.ESTATUS === 'operacion' && !fila[h] && (
+                                <span title={`Falta llenar ${HEADER_TRANSLATIONS[h] || h}`} style={{ position: 'absolute', right: '6px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
+                              )}
+                            </div>
                           )}
                         </td>
                       );
                     })}
-                    <td className="cell-acciones" style={{ textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => onClear && onClear(originalIndex !== -1 ? originalIndex : index)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#dc2626',
-                          cursor: 'pointer',
-                          padding: '6px',
-                          borderRadius: '6px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s',
-                          border: '1px solid transparent'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.08)';
-                          e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.2)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.borderColor = 'transparent';
-                        }}
-                        title="Vaciar datos operativos de la unidad"
-                      >
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </td>
                   </tr>
                 );
               })

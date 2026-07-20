@@ -84,50 +84,82 @@ export default function CargaExcel() {
 
 
 
-  // Vaciar los campos de un registro (excepto unidad y eco)
-  const handleClearRecord = (index) => {
-    const target = previewData[index];
-    const targetEco = target ? (target.ECONOMICO || 'Sin ECO') : 'Sin ECO';
 
-    Swal.fire({
-      title: '¿Vaciar registro?',
-      text: `Se limpiarán los datos operativos de la unidad ${targetEco}. El tipo y número económico se conservarán.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#6b1d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Sí, vaciar',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const updatedData = [...previewData];
-        updatedData[index] = {
-          ...updatedData[index],
-          RUTA: '',
-          TARJETON: '',
-          NOMBRE_CONDUCTOR: '',
-          ESTATUS: 'operacion',
-          HORA_DE_ACOPLE: '',
-          CORRIDAS: null
-        };
-        setPreviewData(updatedData);
-        setHasChanges(true);
-      }
-    });
-  };
 
   // Actualizar un campo específico de un registro
-  const handleUpdateRecord = (index, field, value) => {
+  const handleUpdateRecord = async (index, field, value) => {
     const updatedData = [...previewData];
     const valStr = String(value ?? '').trim();
+
+    // 1. Cambio de Estatus
+    if (field === 'ESTATUS') {
+      if (valStr === 'mantenimiento' || valStr === 'reserva') {
+        updatedData[index]['ESTATUS'] = valStr;
+        updatedData[index]['RUTA'] = '';
+        updatedData[index]['TARJETON'] = '';
+        updatedData[index]['NOMBRE_CONDUCTOR'] = '';
+        updatedData[index]['HORA_DE_ACOPLE'] = '';
+        updatedData[index]['CORRIDAS'] = null;
+      } else {
+        updatedData[index]['ESTATUS'] = valStr;
+      }
+      setPreviewData(updatedData);
+      setHasChanges(true);
+      return;
+    }
     
-    // Si se actualiza el Tarjetón, buscar automáticamente el nombre del conductor
+    // 2. Asignación de Tarjetón / Conductor con validación de exclusividad 1 a 1
     if (field === 'TARJETON') {
-      const conductor = catalogConductores.find(c => trimString(c.tarjeton) === valStr);
-      updatedData[index]['TARJETON'] = valStr;
-      updatedData[index]['NOMBRE_CONDUCTOR'] = conductor ? conductor.nombre : '';
+      // Si el usuario simplemente está limpiando el conductor (vaciando el campo)
+      if (valStr === '') {
+        updatedData[index]['TARJETON'] = '';
+        updatedData[index]['NOMBRE_CONDUCTOR'] = '';
+        setPreviewData(updatedData);
+        setHasChanges(true);
+        return;
+      }
+
+      // Buscar si este conductor ya está asignado a OTRA unidad en la lista
+      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.TARJETON) === valStr);
+      const newDriverConductor = catalogConductores.find(c => trimString(c.tarjeton) === valStr);
+      const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
+
+      if (existingRowIndex !== -1) {
+        // Conductor en uso, solicitar confirmación para intercambiar
+        const existingRow = updatedData[existingRowIndex];
+        const currentUnitDriverTarjeton = updatedData[index]['TARJETON'];
+        const currentUnitDriverName = updatedData[index]['NOMBRE_CONDUCTOR'];
+
+        const confirm = await Swal.fire({
+          title: 'Conductor en servicio',
+          text: `El conductor ${newDriverName} ya está asignado a la unidad ${existingRow.ECONOMICO}. ¿Deseas hacer el cambio?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#c5a059',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, hacer cambio',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (confirm.isConfirmed) {
+          // Asignar el nuevo conductor a la unidad seleccionada
+          updatedData[index]['TARJETON'] = valStr;
+          updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
+
+          // La unidad que tenía a este conductor ahora recibe al conductor que tenía la unidad actual (Intercambio)
+          updatedData[existingRowIndex]['TARJETON'] = currentUnitDriverTarjeton;
+          updatedData[existingRowIndex]['NOMBRE_CONDUCTOR'] = currentUnitDriverName;
+
+          setPreviewData(updatedData);
+          setHasChanges(true);
+        }
+        return;
+      } else {
+        // El conductor está libre, asignación normal
+        updatedData[index]['TARJETON'] = valStr;
+        updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
+      }
     } else if (field === 'ECONOMICO') {
-      // Si se actualiza el económico, buscar su tipo correspondiente y asignarlo
       const shortcutEco = valStr ? valStr.padStart(3, '0') : '';
       const unidad = catalogUnidades.find(u => trimString(u.numero_eco) === shortcutEco || trimString(u.numero_eco) === valStr);
       updatedData[index]['ECONOMICO'] = shortcutEco;
@@ -224,7 +256,7 @@ export default function CargaExcel() {
             catalogConductores={catalogConductores}
             catalogRutasObj={catalogRutasObj}
             onUpdate={handleUpdateRecord}
-            onClear={handleClearRecord}
+
             onSave={handleSaveChanges}
             hasChanges={hasChanges}
             isSaving={isSaving}
