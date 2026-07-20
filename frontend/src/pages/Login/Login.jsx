@@ -140,8 +140,9 @@ export default function Login() {
       if (!response.ok) {
         Swal.fire({
           icon: 'error',
-          title: 'Error de autenticación',
-          text: data.message || 'Credenciales incorrectas'
+          title: 'Error de acceso',
+          text: data.message || 'Usuario o contraseña incorrectos',
+          confirmButtonColor: '#c5a059'
         });
         setIsSubmitting(false);
         return;
@@ -220,7 +221,7 @@ export default function Login() {
 
               <div className="login__header">
                   <h2 className="login__title">Bienvenido</h2>
-                  <p className="login__subtitle">Ingresa tus credenciales para continuar</p>
+                  <p className="login__subtitle">Ingresa tu usuario y contraseña para continuar</p>
               </div>
 
               <form className="login__form" onSubmit={handleLogin}>
