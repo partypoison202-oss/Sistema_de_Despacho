@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useRef } from 'react';
 import API_BASE from '../config/api';
+import Swal from 'sweetalert2';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
@@ -21,6 +22,14 @@ export const AuthProvider = ({ children }) => {
   const logoutDueToInactivity = () => {
     console.log("Sesión expirada por inactividad");
     logout();
+    Swal.fire({
+      icon: 'info',
+      title: 'Sesión expirada',
+      text: 'Por tu seguridad, hemos cerrado la sesión debido a 15 minutos de inactividad.',
+      confirmButtonColor: '#c5a059',
+      confirmButtonText: 'Volver a iniciar sesión',
+      allowOutsideClick: false
+    });
   };
 
   const resetTimer = () => {
