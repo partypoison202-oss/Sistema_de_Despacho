@@ -27,13 +27,13 @@ import DashboardTitan from './pages/Titan/DashboardTitan';
 import DetalleUnidadTitan from './pages/Titan/DetalleUnidadTitan';
 import Mantenimiento from './pages/Mantenimiento/Mantenimiento';
 import DetalleUnidadMantenimiento from './pages/Mantenimiento/DetalleUnidadMantenimiento';
-
-
+import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 
 function App() {
   return (
     <AuthProvider>
       <GlobalClock />
+      <ScrollToTop />
       <BrowserRouter>
         <Routes>
           {/* Pantalla de Inicio de Sesión */}
