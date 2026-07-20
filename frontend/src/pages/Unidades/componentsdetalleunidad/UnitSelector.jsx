@@ -30,7 +30,7 @@ export default function UnitSelector({
   }, [isOpen, setIsOpen]);
 
   const handleMouseEnter = (unidad) => {
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     if (!token) return;
     const numeroLimpio = String(unidad.eco).padStart(3, '0');
     queryClient.prefetchQuery({

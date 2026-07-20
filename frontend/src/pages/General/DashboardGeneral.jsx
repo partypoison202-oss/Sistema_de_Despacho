@@ -140,7 +140,7 @@ export default function Dashboard() {
 
   const fetchConteos = async () => {
     const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}` },
     });
     if (!response.ok) throw new Error('Error');
     return response.json();
@@ -154,7 +154,7 @@ export default function Dashboard() {
 
   const fetchDespachoHoy = async () => {
     const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}` },
     });
     if (!response.ok) throw new Error('Error');
     return response.json();

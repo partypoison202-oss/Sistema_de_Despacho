@@ -201,7 +201,7 @@ const PatioDashboard = () => {
 
   // --- Data fetching ----------------------------------------------------
   const fetchAllUnitsData = async () => {
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
 
     const promises = fleetIds.map(async (id) => {
@@ -566,7 +566,7 @@ const PatioDashboard = () => {
     setHoveredUnitEco(eco);
     if (unitDetailsCache[eco] && unitDetailsCache[eco].nombre_conductor !== 'No asignado' && unitDetailsCache[eco].nombre_conductor !== undefined) return;
 
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     try {
       const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanus';
       const response = await fetch(`${API_BASE}/api/unidades/detalle/${fleetToUse}/${eco}`, {

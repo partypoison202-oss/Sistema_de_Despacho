@@ -68,7 +68,7 @@ export default function UnitInfoPanel({
   useEffect(() => {
     const fetchRutas = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
            headers: { Authorization: `Bearer ${token}` }
         });
@@ -158,7 +158,7 @@ export default function UnitInfoPanel({
   const handleSavePerdida = async (cicloVal, motivoVal) => {
     setGuardandoPerdida(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const ecoNum = selectedOption.replace(/\D/g, '');
       const response = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
         method: 'POST',
@@ -234,7 +234,7 @@ export default function UnitInfoPanel({
       }
       setGuardandoPerdida(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const ecoNum = selectedOption.replace(/\D/g, '');
         const payload = {
           eco: ecoNum,
@@ -266,7 +266,7 @@ export default function UnitInfoPanel({
       }
       setGuardandoPerdida(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const ecoNum = selectedOption.replace(/\D/g, '');
         const payload = {
           eco: ecoNum,
@@ -295,7 +295,7 @@ export default function UnitInfoPanel({
 
   const enviarMovimientoPlataforma = async (tipo, conductor, ruta, motivo, estatus) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const ecoNum = selectedOption.replace(/\D/g, '');
       const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
         method: 'POST',
@@ -361,7 +361,7 @@ export default function UnitInfoPanel({
 
   const checkHistory = async (ecoNumber) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       if (!token) return;
       const today = new Date().toISOString().split('T')[0];
       const res = await fetch(`${API_BASE}/api/checklists?period=daily&date=${today}&economico=${ecoNumber}`, {

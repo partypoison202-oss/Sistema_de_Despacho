@@ -157,7 +157,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
         formData.append(`fotos[${index}]`, foto);
       });
 
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const response = await fetch(`${API_BASE}/api/titan/reporte`, {
         method: 'POST',
         headers: {

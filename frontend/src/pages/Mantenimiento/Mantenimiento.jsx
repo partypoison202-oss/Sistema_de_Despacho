@@ -21,7 +21,7 @@ export default function Mantenimiento() {
       queryClient.prefetchQuery({
         queryKey: ['unidades-list', modulo.id],
         queryFn: async () => {
-          const token = localStorage.getItem('token');
+          const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
           if (!token) return [];
           const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -64,7 +64,7 @@ export default function Mantenimiento() {
     if (!allCached) setBuscandoUnidad(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const resultados = await Promise.all(
         transportModules.map(async (modulo) => {
           try {
@@ -129,7 +129,7 @@ export default function Mantenimiento() {
     const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
+        Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
       },
     });
     if (!response.ok) throw new Error('Error de conexion');

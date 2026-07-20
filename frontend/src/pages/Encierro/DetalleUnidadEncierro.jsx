@@ -90,7 +90,7 @@ export default function DetalleUnidadEncierro() {
   useEffect(() => {
     const fetchRutas = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
            headers: { Authorization: `Bearer ${token}` }
         });
@@ -220,7 +220,7 @@ export default function DetalleUnidadEncierro() {
 
   const configActual = encierroModules.find(m => m.id === tipoTransporte);
 
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
   const extraerNumeroEco = (valor) => {
     const texto = String(valor ?? '');
@@ -263,7 +263,7 @@ export default function DetalleUnidadEncierro() {
   const [dbConductores, setDbConductores] = useState([]);
   
   const fetchConductores = async () => {
-    const token = localStorage.getItem('token');
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     if (!token) return;
     try {
       const res = await fetch(`${API_BASE}/api/conductores`, {

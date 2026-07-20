@@ -320,7 +320,7 @@ export default function HistorialCheckList() {
     const fetchChecklists = async () => {
         setCargando(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
             let url = `${API_BASE}/api/checklists?period=${period}&date=${selectedDate}`;
             if (filterEconomico) {
                 url += `&economico=${filterEconomico}`;
