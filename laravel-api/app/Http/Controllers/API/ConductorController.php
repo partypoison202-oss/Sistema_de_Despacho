@@ -12,11 +12,8 @@ class ConductorController extends Controller
 {
     public function index()
     {
-        $fechaHoy = Carbon::today()->toDateString();
-        
-        // Obtener todos los tarjetones asignados hoy
+        // Obtener todos los tarjetones asignados en tiempo real
         $asignaciones = DB::table('informacion_operativa')
-            ->whereDate('fecha_registro', $fechaHoy)
             ->whereNotNull('numero_tarjeton')
             ->where('numero_tarjeton', '!=', '')
             ->pluck('numero_tarjeton')

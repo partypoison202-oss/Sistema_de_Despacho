@@ -1,4 +1,4 @@
-﻿/* src/pages/Historial/Historial.css */
+/* src/pages/Historial/Historial.css */
 
 .historial-page {
   min-height: 100vh;
@@ -136,3 +136,20 @@
     gap: 1rem;
   }
 }
+
+/* Spinner Animations */
+.spinner {
+  border: 4px solid rgba(107, 29, 51, 0.1);
+  border-top: 4px solid var(--brand-maroon-bg, #6b1d33);
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+

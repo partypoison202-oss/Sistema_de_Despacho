@@ -159,12 +159,7 @@ class DespachoController extends Controller
      */
     public function conteoUnidadesPorTipo()
     {
-        $fechaHoy = Carbon::today()->toDateString();
-
-        \Log::info('conteoUnidadesPorTipo - fechaHoy', ['fecha' => $fechaHoy]);
-
         $conteos = DB::table('informacion_operativa')
-            ->whereDate('fecha_registro', $fechaHoy)
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
             ->groupBy('tipo')
             ->get();
@@ -191,12 +186,10 @@ class DespachoController extends Controller
     public function listarUnidadesPorTipo($tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-        $fechaHoy = Carbon::today()->toDateString();
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]) // ← CAMBIO AQUÍ
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select(
                 'unidades.numero_eco', 
                 'informacion_operativa.numero_tarjeton as tarjeton', 
@@ -233,7 +226,6 @@ class DespachoController extends Controller
     {
         $tipoNormalizado = strtolower(trim($tipo));
         $tarjetonLimpio = trim($tarjeton);
-        $fechaHoy = Carbon::today()->toDateString();
 
         if ($tarjetonLimpio === '') {
             return response()->json(['status' => 'success', 'unidad' => null], 200);
@@ -242,7 +234,6 @@ class DespachoController extends Controller
         $unidad = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->where('informacion_operativa.numero_tarjeton', $tarjetonLimpio)
             ->select('unidades.numero_eco as numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton', 'informacion_operativa.estatus')
             ->first();
@@ -268,12 +259,10 @@ class DespachoController extends Controller
     public function obtenerPorTipo($tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-        $fechaHoy = Carbon::today()->toDateString();
 
         // 🔥 CORREGIDO: usar informacion_operativa.tipo
         $data = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->select(
                 'unidades.numero_eco as economico',
@@ -301,7 +290,6 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->whereDate('informacion_operativa.fecha_registro', Carbon::today()->toDateString())
             ->select(
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
@@ -364,7 +352,6 @@ class DespachoController extends Controller
     {
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
-        $fechaHoy = Carbon::today()->toDateString();
 
         // 1. Obtener todas las unidades de la BD
         $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
@@ -416,7 +403,6 @@ class DespachoController extends Controller
             // Buscar si ya existe hoy
             $registro = DB::table('informacion_operativa')
                 ->where('unidad_id', $unidad->id)
-                ->whereDate('fecha_registro', $fechaHoy)
                 ->first();
 
             $data = [
@@ -456,7 +442,6 @@ class DespachoController extends Controller
         // 4. Eliminar registros que NO se enviaron en la petición
         try {
             $eliminados = DB::table('informacion_operativa')
-                ->whereDate('fecha_registro', $fechaHoy)
                 ->whereNotIn('unidad_id', $unidadesProcesadasIds)
                 ->delete();
         } catch (\Exception $e) {
@@ -494,7 +479,6 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select('informacion_operativa.id')
             ->first();
 
@@ -555,20 +539,18 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select('informacion_operativa.id', 'informacion_operativa.numero_tarjeton')
             ->first();
 
         if (!$registro) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unidad no encontrada en la operación de hoy.'
+                'message' => 'Unidad no encontrada en la operación.'
             ], 404);
         }
 
         // Si el conductor ya estaba asignado a otra unidad hoy, desasignarlo de esa otra unidad
         DB::table('informacion_operativa')
-            ->whereDate('fecha_registro', $fechaHoy)
             ->where('numero_tarjeton', $tarjetonLimpio)
             ->where('id', '!=', $registro->id)
             ->update([
@@ -623,14 +605,13 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select('informacion_operativa.id')
             ->first();
 
         if (!$registro) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unidad no encontrada en el registro de hoy'
+                'message' => 'Unidad no encontrada en el registro operativo'
             ], 404);
         }
 
@@ -662,11 +643,8 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
-        $fechaHoy = Carbon::today()->toDateString();
-
         $registros = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select(
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
@@ -739,14 +717,13 @@ class DespachoController extends Controller
 
         $registroOperativo = DB::table('informacion_operativa')
             ->where('unidad_id', $unidad->id)
-            ->whereDate('fecha_registro', $fechaHoy)
             ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
             ->first();
 
         if (!$registroOperativo) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Esta unidad no tiene registro operativo para el día de hoy.'
+                'message' => 'Esta unidad no tiene registro operativo.'
             ], 404);
         }
 
@@ -778,7 +755,6 @@ class DespachoController extends Controller
                 
                 if ($tarjetonLimpio) {
                     DB::table('informacion_operativa')
-                        ->whereDate('fecha_registro', $fechaHoy)
                         ->where('numero_tarjeton', $tarjetonLimpio)
                         ->where('id', '!=', $registroOperativo->id)
                         ->update([
@@ -843,14 +819,13 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->where(DB::raw('LOWER(informacion_operativa.tipo)'), $tipoNormalizado)
-            ->whereDate('informacion_operativa.fecha_registro', $fechaHoy)
             ->select('informacion_operativa.id')
             ->first();
 
         if (!$operacion) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No hay registro de operación para esta unidad hoy.'
+                'message' => 'No hay registro de operación para esta unidad.'
             ], 404);
         }
 

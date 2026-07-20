@@ -12,13 +12,8 @@ class TitanController extends Controller
     public function getUnidadesOperacion()
     {
         try {
-            $hoy = now()->toDateString();
-            
             $unidades = DB::table('unidades')
-                ->join('informacion_operativa', function ($join) use ($hoy) {
-                    $join->on('unidades.id', '=', 'informacion_operativa.unidad_id')
-                         ->whereDate('informacion_operativa.fecha_registro', '=', $hoy);
-                })
+                ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
                 ->select(
                     'unidades.id',
                     'unidades.numero_eco as numero_economico',

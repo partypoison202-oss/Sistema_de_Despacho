@@ -25,7 +25,6 @@ class ReporteController extends Controller
         }
 
         $registros = DB::table('informacion_operativa')
-            ->whereDate('fecha_registro', $fechaHoy)
             ->get();
 
         foreach ($registros as $reg) {
@@ -82,12 +81,10 @@ class ReporteController extends Controller
 
             foreach ($tipos as $tipo) {
                 $programadas = DB::table('informacion_operativa')
-                    ->whereDate('fecha_registro', $fechaHoy)
                     ->where('tipo', $tipo)
                     ->count();
 
                 $en_servicio = DB::table('informacion_operativa')
-                    ->whereDate('fecha_registro', $fechaHoy)
                     ->where('tipo', $tipo)
                     ->where('estatus', 'OPERACION')
                     ->count();

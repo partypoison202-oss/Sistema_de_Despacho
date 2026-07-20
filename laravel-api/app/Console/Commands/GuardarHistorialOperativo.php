@@ -17,27 +17,25 @@ class GuardarHistorialOperativo extends Command
      */
     public function handle()
     {
-        $fechaHoy = Carbon::today()->toDateString();
+        $fechaHistorial = Carbon::yesterday()->toDateString();
         
-        // Verificar si ya se guardó hoy para no duplicar si se corre manual
-        $existe = DB::table('historial_operativo')->where('fecha_historial', $fechaHoy)->exists();
+        // Verificar si ya se guardó para no duplicar
+        $existe = DB::table('historial_operativo')->where('fecha_historial', $fechaHistorial)->exists();
         if ($existe) {
-            $this->info("El historial para {$fechaHoy} ya existe.");
+            $this->info("El historial para {$fechaHistorial} ya existe.");
             return;
         }
 
-        $registrosHoy = DB::table('informacion_operativa')
-            ->whereDate('fecha_registro', $fechaHoy)
-            ->get();
+        $registros = DB::table('informacion_operativa')->get();
 
-        if ($registrosHoy->isEmpty()) {
-            $this->info("No hay registros operativos de hoy ({$fechaHoy}) para guardar.");
+        if ($registros->isEmpty()) {
+            $this->info("No hay registros operativos para guardar.");
             return;
         }
 
-        $datosInsertar = $registrosHoy->map(function ($registro) use ($fechaHoy) {
+        $datosInsertar = $registros->map(function ($registro) use ($fechaHistorial) {
             return [
-                'fecha_historial' => $fechaHoy,
+                'fecha_historial' => $fechaHistorial,
                 'unidad_id'       => $registro->unidad_id,
                 'ruta'            => $registro->ruta,
                 'numero_tarjeton' => $registro->numero_tarjeton,
@@ -58,6 +56,6 @@ class GuardarHistorialOperativo extends Command
 
         DB::table('historial_operativo')->insert($datosInsertar);
 
-        $this->info("Se han guardado " . count($datosInsertar) . " registros en el historial_operativo para la fecha {$fechaHoy}.");
+        $this->info("Se han guardado " . count($datosInsertar) . " registros en el historial_operativo para la fecha {$fechaHistorial}.");
     }
 }

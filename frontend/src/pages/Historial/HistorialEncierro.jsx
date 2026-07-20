@@ -1,68 +1,57 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import './Historial.css';
 
 export default function HistorialEncierro() {
-  const [fechas, setFechas] = useState([]);
   const [selectedFecha, setSelectedFecha] = useState('');
-  const [datos, setDatos] = useState([]);
-  const [cargando, setCargando] = useState(false);
 
-  useEffect(() => {
-    fetchFechas();
-  }, []);
-
-  const fetchFechas = async () => {
-    try {
+  // 1. Obtener listado de fechas únicas registradas en el historial (Cacheado por 5 minutos)
+  const { data: fechas = [], isLoading: isLoadingFechas } = useQuery({
+    queryKey: ['historial-fechas'],
+    queryFn: async () => {
       const response = await fetch(`${API_BASE}/api/historial-operativo/fechas`, {
         headers: {
           'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
           'Accept': 'application/json'
         }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setFechas(data);
-        if (data.length > 0) {
-          setSelectedFecha(data[0]);
-          fetchDatos(data[0]);
-        }
-      }
-    } catch (error) {
-      console.error("Error obteniendo fechas:", error);
-    }
-  };
+      if (!response.ok) throw new Error('Error al obtener fechas');
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
-  const fetchDatos = async (fecha) => {
-    if (!fecha) return;
-    setCargando(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/historial-operativo/encierro/${fecha}`, {
+  // Autoseleccionar la fecha más reciente al cargar las fechas
+  useEffect(() => {
+    if (fechas.length > 0 && !selectedFecha) {
+      setSelectedFecha(fechas[0]);
+    }
+  }, [fechas, selectedFecha]);
+
+  // 2. Obtener el historial para la fecha seleccionada (Cacheado por 5 minutos)
+  const { data: datos = [], isLoading: isLoadingDatos } = useQuery({
+    queryKey: ['historial-encierro', selectedFecha],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE}/api/historial-operativo/encierro/${selectedFecha}`, {
         headers: {
           'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
           'Accept': 'application/json'
         }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setDatos(data);
-      } else {
-        Swal.fire('Error', 'No se pudo obtener el historial', 'error');
-      }
-    } catch (error) {
-      console.error("Error obteniendo datos:", error);
-      Swal.fire('Error', 'Hubo un problema de conexion', 'error');
-    } finally {
-      setCargando(false);
-    }
-  };
+      if (!response.ok) throw new Error('Error al obtener el historial');
+      return response.json();
+    },
+    enabled: !!selectedFecha,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const cargando = isLoadingFechas || (isLoadingDatos && !!selectedFecha);
 
   const handleFechaChange = (e) => {
-    const f = e.target.value;
-    setSelectedFecha(f);
-    fetchDatos(f);
+    setSelectedFecha(e.target.value);
   };
 
   return (
@@ -74,7 +63,7 @@ export default function HistorialEncierro() {
           <h2>Unidades Fuera de Servicio (Mantenimiento/Reserva)</h2>
           <div className="historial-filter">
             <label>Seleccionar Fecha:</label>
-            <select value={selectedFecha} onChange={handleFechaChange}>
+            <select value={selectedFecha} onChange={handleFechaChange} disabled={cargando}>
               {fechas.map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
@@ -83,7 +72,11 @@ export default function HistorialEncierro() {
         </div>
 
         {cargando ? (
-          <div className="loading">Cargando datos...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
+            <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
+            <h3 style={{ color: '#4b5563', margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>Cargando datos del historial...</h3>
+            <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Buscando registros en base de datos</p>
+          </div>
         ) : (
           <div className="table-responsive">
             <table className="historial-table">
@@ -102,7 +95,7 @@ export default function HistorialEncierro() {
                     <td>{d.tipo}</td>
                     <td>{d.economico}</td>
                     <td>
-                      <span className={`estatus-badge estatus-${d.estatus.toLowerCase()}`}>
+                      <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
                         {d.estatus}
                       </span>
                     </td>
@@ -112,7 +105,7 @@ export default function HistorialEncierro() {
                 ))}
                 {datos.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="text-center">No hay unidades en mantenimiento/reserva para esta fecha.</td>
+                    <td colSpan="5" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay unidades en mantenimiento/reserva para esta fecha.</td>
                   </tr>
                 )}
               </tbody>
