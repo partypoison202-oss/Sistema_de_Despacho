@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     Swal.fire({
       icon: 'info',
       title: 'Sesión expirada',
-      text: 'Por tu seguridad, hemos cerrado la sesión debido a 15 minutos de inactividad.',
+      text: 'Por tu seguridad, hemos cerrado la sesión debido a un periodo prolongado de inactividad.',
       confirmButtonColor: '#c5a059',
       confirmButtonText: 'Volver a iniciar sesión',
       allowOutsideClick: false
