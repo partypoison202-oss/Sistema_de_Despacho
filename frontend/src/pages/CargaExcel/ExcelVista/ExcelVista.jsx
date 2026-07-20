@@ -167,10 +167,12 @@ export default function ExcelPreview({
                                 borderRadius: '6px'
                               }}
                             >
-                              {fila[h] || '00:00'}
-                              {fila.ESTATUS === 'operacion' && (!fila[h] || fila[h] === '00:00') && (
-                                <span title="Falta llenar Hora de Acople" style={{ marginLeft: '6px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '4px' }}>
+                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{fila[h] || '00:00'}</span>
+                                {fila.ESTATUS === 'operacion' && (!fila[h] || fila[h] === '00:00') && (
+                                  <span title="Falta llenar Hora de Acople" style={{ color: '#f59e0b', fontSize: '1rem', flexShrink: 0 }}>⚠️</span>
+                                )}
+                              </div>
                             </button>
                             {isOpen && (
                               <>
@@ -217,12 +219,14 @@ export default function ExcelPreview({
                               }}
                               className={`edit-input dropdown-trigger ${isRutaOpen ? 'active-trigger' : ''}`}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                {fila[h] || 'Selecciona...'}
-                              </span>
-                              {fila.ESTATUS === 'operacion' && !fila[h] && (
-                                <span title="Falta seleccionar Ruta" style={{ marginLeft: '4px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '4px' }}>
+                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
+                                  {fila[h] || 'Selecciona...'}
+                                </span>
+                                {fila.ESTATUS === 'operacion' && !fila[h] && (
+                                  <span title="Falta seleccionar Ruta" style={{ color: '#f59e0b', fontSize: '1rem', flexShrink: 0 }}>⚠️</span>
+                                )}
+                              </div>
                               <svg style={{ width: '0.9rem', height: '0.9rem', transform: isRutaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M7 10l5 5 5-5z" />
                               </svg>
@@ -291,10 +295,14 @@ export default function ExcelPreview({
                       if (h === 'TARJETON') {
                         const isTarjetonOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON';
                         
-                        const filteredDrivers = (catalogConductores || []).filter(c => 
-                          String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
-                          String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase())
-                        );
+                        const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUS' || fila.TIPO_DE_UNIDAD === 'URBANUSS';
+                        
+                        const filteredDrivers = (catalogConductores || []).filter(c => {
+                          if (isTroncal && String(c.tipo_tarjeton).toUpperCase() !== 'C') return false;
+                          
+                          return String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
+                                 String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
+                        });
 
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
@@ -310,12 +318,14 @@ export default function ExcelPreview({
                               }}
                               className={`edit-input dropdown-trigger ${isTarjetonOpen ? 'active-trigger' : ''}`}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                {fila[h] ? String(fila[h]) : 'Selecciona...'}
-                              </span>
-                              {fila.ESTATUS === 'operacion' && !fila[h] && (
-                                <span title="Falta seleccionar Tarjetón" style={{ marginLeft: '4px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '4px' }}>
+                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
+                                  {fila[h] ? String(fila[h]) : 'Selecciona...'}
+                                </span>
+                                {fila.ESTATUS === 'operacion' && !fila[h] && (
+                                  <span title="Falta seleccionar Tarjetón" style={{ color: '#f59e0b', fontSize: '1rem', flexShrink: 0 }}>⚠️</span>
+                                )}
+                              </div>
                               <svg style={{ width: '0.9rem', height: '0.9rem', transform: isTarjetonOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M7 10l5 5 5-5z" />
                               </svg>
@@ -326,7 +336,7 @@ export default function ExcelPreview({
                                   style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
                                   onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
                                 />
-                                <div className="dropdown-menu dropdown-menu--wide">
+                                <div className="dropdown-menu" style={{ width: '100%', minWidth: '130px' }}>
                                   <div className="dropdown-menu-search-container">
                                     <input
                                       type="text"
@@ -363,9 +373,9 @@ export default function ExcelPreview({
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
                                           >
-                                            <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                              <strong style={{ color: isSelected ? 'var(--brand-maroon-bg)' : '#111827', marginRight: '4px' }}>{c.tarjeton}</strong> - {c.nombre}
-                                            </span>
+                                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block', textAlign: 'center', width: '100%' }}>
+                                                <strong style={{ color: isSelected ? 'var(--brand-maroon-bg)' : '#111827' }}>{c.tarjeton}</strong>
+                                              </span>
                                             {isSelected && (
                                               <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -471,7 +481,7 @@ export default function ExcelPreview({
                               {fila[h] || '-'}
                             </div>
                           ) : (
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
                               <input
                                 type="text"
                                 value={fila[h] ?? ''}
@@ -484,9 +494,10 @@ export default function ExcelPreview({
                                 }}
                                 className="edit-input edit-text-input"
                                 placeholder="-"
+                                style={{ paddingRight: fila.ESTATUS === 'operacion' && !fila[h] ? '24px' : '8px' }}
                               />
                               {fila.ESTATUS === 'operacion' && !fila[h] && (
-                                <span title={`Falta llenar ${HEADER_TRANSLATIONS[h] || h}`} style={{ position: 'absolute', right: '6px', color: '#f59e0b', fontSize: '1rem' }}>⚠️</span>
+                                <span title={`Falta llenar ${HEADER_TRANSLATIONS[h] || h}`} style={{ position: 'absolute', right: '6px', color: '#f59e0b', fontSize: '1rem', pointerEvents: 'none' }}>⚠️</span>
                               )}
                             </div>
                           )}

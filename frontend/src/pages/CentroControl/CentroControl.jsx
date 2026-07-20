@@ -504,7 +504,7 @@ export default function CentroControl() {
                       <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
                       <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
                       <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
-                        {cargando ? '—' : `${Math.round(pct(m.operacion, m.programadas))}%`}
+                        {cargando ? '—' : `${Math.round(pct(m.operacion + m.reserva, m.programadas))}%`}
                       </span>
                       <span className="centro-status-value"></span>
                     </div>

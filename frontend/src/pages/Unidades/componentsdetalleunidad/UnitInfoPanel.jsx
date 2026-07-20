@@ -702,7 +702,7 @@ export default function UnitInfoPanel({
                                   handleConfirmTarjeton(c.id.toString());
                                 }}
                               >
-                                {c.nombre} <br/><span style={{fontSize: '0.75rem', opacity: 0.7}}>Tarjetón: {c.id}</span>
+                                {c.id}
                               </button>
                             ))}
                         </div>

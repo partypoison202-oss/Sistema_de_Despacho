@@ -117,7 +117,8 @@ export default function DetalleUnidad() {
           id: c.tarjeton,
           tarjeton: c.tarjeton,
           nombre: c.nombre,
-          estado_servicio: c.estado_servicio
+          estado_servicio: c.estado_servicio,
+          tipo_tarjeton: c.tipo_tarjeton
         }));
         setDbConductores(mapped);
       }
@@ -133,7 +134,10 @@ export default function DetalleUnidad() {
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
-  const conductoresDisponibles = dbConductores.filter(c => c.estado_servicio === 'disponible');
+  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
+  const conductoresDisponibles = dbConductores.filter(c => 
+    c.estado_servicio === 'disponible' && (!isTroncal || c.tipo_tarjeton === 'C')
+  );
 
   useEffect(() => {
     const fetchRutas = async () => {
@@ -145,7 +149,7 @@ export default function DetalleUnidad() {
         });
         if (res.ok) {
            const data = await res.json();
-            if (configActual?.id === 'urbanus') {
+            if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
               setRutasOpciones(data.troncales || []);
             } else {
               setRutasOpciones(data.alimentadoras || []);
@@ -860,8 +864,8 @@ export default function DetalleUnidad() {
                     {conductoresDisponibles.length > 0 ? (
                       conductoresDisponibles.map((c) => (
                         <div key={c.tarjeton} className="dropdown-menu__item" style={{ cursor: 'default' }}>
-                          <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                            {c.nombre} - ID: ({c.tarjeton})
+                          <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
+                            {c.tarjeton}
                           </span>
                         </div>
                       ))
