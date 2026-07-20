@@ -1,14 +1,56 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useRef } from 'react';
 import API_BASE from '../config/api';
-
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || null;
+  });
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('token') !== null;
+  });
   const [loading, setLoading] = useState(true);
+
+  const inactivityTimerRef = useRef(null);
+  const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutos
+
+  // Función para cerrar sesión por inactividad
+  const logoutDueToInactivity = () => {
+    console.log("Sesión expirada por inactividad");
+    logout();
+  };
+
+  const resetTimer = () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    // Solo activar el temporizador si NO está activo el "remember me" y hay token
+    if (!rememberMe && token) {
+      inactivityTimerRef.current = setTimeout(logoutDueToInactivity, TIMEOUT_MS);
+    }
+  };
+
+  // Efecto para escuchar la inactividad
+  useEffect(() => {
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    const handleActivity = () => {
+      resetTimer();
+    };
+
+    if (!rememberMe && token) {
+      events.forEach(event => document.addEventListener(event, handleActivity));
+      resetTimer(); // Iniciar la primera vez
+    }
+
+    return () => {
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      events.forEach(event => document.removeEventListener(event, handleActivity));
+    };
+  }, [rememberMe, token]);
 
   useEffect(() => {
     if (token) {
@@ -36,10 +78,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  const login = (userData, authToken) => {
+  const login = (userData, authToken, isRememberMe = false) => {
     setUser(userData);
     setToken(authToken);
-    localStorage.setItem('token', authToken);
+    setRememberMe(isRememberMe);
+    
+    if (isRememberMe) {
+      localStorage.setItem('token', authToken);
+      sessionStorage.removeItem('token');
+    } else {
+      sessionStorage.setItem('token', authToken);
+      localStorage.removeItem('token');
+    }
   };
 
   const logout = () => {
@@ -53,7 +103,9 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(null);
     setToken(null);
+    setRememberMe(false);
     localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
   };
 
   return (

@@ -86,6 +86,7 @@ export default function Login() {
   const [errorPassword, setErrorPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { login, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -147,7 +148,7 @@ export default function Login() {
       }
 
       // Guardar sesión
-      login(data.user, data.access_token);
+      login(data.user, data.access_token, rememberMe);
       
       // Redirigir según rol
       redirigirPorRol(data.user, navigate);
@@ -277,6 +278,19 @@ export default function Login() {
                       ⚠ Bloq Mayús está activado
                     </span>
                   )}
+                </div>
+
+                <div className="login__remember">
+                  <label className="login__remember-label">
+                    <input 
+                      type="checkbox" 
+                      className="login__remember-checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      disabled={isSubmitting}
+                    />
+                    <span>Mantener sesión activa</span>
+                  </label>
                 </div>
 
                 <button type="submit" className="login__submit-btn" disabled={isSubmitting}>
