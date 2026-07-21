@@ -5,5 +5,11 @@
   "eslint.experimental.useFlatConfig": true,
   "css.lint.unknownAtRules": "ignore",
   "javascript.validate.enable": false,
-  "cSpell.language": "en,es"
+  "cSpell.language": "en,es",
+  "workbench.colorCustomizations": {
+    "editor.wordHighlightBackground": "#8ab4f860",
+    "editor.wordHighlightBorder": "#00000000",
+    "editor.wordHighlightStrongBackground": "#8ab4f860",
+    "editor.wordHighlightStrongBorder": "#00000000"
+  }
 }

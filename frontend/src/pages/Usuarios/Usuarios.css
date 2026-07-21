@@ -9,10 +9,51 @@
   padding: 0 1rem;
 }
 
+.usuarios-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--tw-color-gray-400);
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid var(--tw-color-gray-300);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background-color: var(--tw-color-white);
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--brand-gold-bg);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
+}
+
 .usuarios-actions {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 1.5rem;
 }
 
 .btn-primary {
@@ -47,6 +88,14 @@
   padding: 1rem;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.usuarios-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.usuarios-table tbody tr:hover {
+  background-color: var(--tw-color-gray-50);
 }
 
 .usuarios-table th {
@@ -85,29 +134,45 @@
 .actions-cell {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
-.btn-edit, .btn-delete {
-  padding: 0.3rem 0.7rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  border: none;
+.btn-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
   cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
 }
 
-.btn-edit {
-  background-color: var(--tw-color-gray-50);
-  color: var(--tw-color-gray-700);
+.btn-icon-action svg {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
-.btn-edit:hover { background-color: var(--tw-color-gray-200); }
+.btn-icon-edit {
+  color: var(--tw-color-gray-500);
+}
 
-.btn-delete {
+.btn-icon-edit:hover {
+  background-color: var(--tw-color-gray-100);
+  color: var(--brand-maroon-bg);
+  border-color: var(--tw-color-gray-200);
+}
+
+.btn-icon-delete {
+  color: var(--tw-color-gray-500);
+}
+
+.btn-icon-delete:hover {
   background-color: var(--state-red-light);
   color: var(--state-red-text);
+  border-color: rgba(239, 68, 68, 0.2);
 }
-
-.btn-delete:hover { background-color: var(--state-red-light); }
 
 /* Modal Styles */
 .modal-overlay {
@@ -154,8 +219,52 @@
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--tw-color-gray-300);
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--brand-gold-bg);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--tw-color-gray-500);
+  margin-top: 0.35rem;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 2.5rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--tw-color-gray-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.password-toggle-btn:hover {
+  color: var(--tw-color-gray-700);
 }
 
 .modal-actions {

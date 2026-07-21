@@ -47,13 +47,24 @@ class UserController extends Controller
             'activo' => 'sometimes|boolean'
         ]);
 
-        $data = $request->except(['contrasena']);
+        $data = $request->except(['contrasena', 'activo']);
         
         if ($request->filled('contrasena')) {
             $data['contrasena'] = Hash::make($request->contrasena);
         }
 
-        $user->update($data);
+        if (count($data) > 0) {
+            $user->update($data);
+        }
+
+        if ($request->has('activo')) {
+            $isActivo = filter_var($request->activo, FILTER_VALIDATE_BOOLEAN);
+            // Actualizar usando Query Builder para evitar el 'cast' del modelo Eloquent
+            \Illuminate\Support\Facades\DB::table('usuarios')
+                ->where('id', $id)
+                ->update(['activo' => $isActivo ? 'true' : 'false']);
+            $user->activo = $isActivo;
+        }
 
         return response()->json($user->load('role'));
     }

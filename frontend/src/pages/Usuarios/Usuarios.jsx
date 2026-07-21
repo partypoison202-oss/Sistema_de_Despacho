@@ -11,6 +11,7 @@ export default function Usuarios() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Form state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,7 +24,13 @@ export default function Usuarios() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-const [togglingUserId, setTogglingUserId] = useState(null);
+  const [togglingUserId, setTogglingUserId] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const formatRoleName = (name) => {
+    if (!name) return '';
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  };
 
   const fetchData = async () => {
     try {
@@ -67,7 +74,14 @@ const [togglingUserId, setTogglingUserId] = useState(null);
         rol_id: ''
       });
     }
+    setShowPassword(false);
     setIsModalOpen(true);
+  };
+
+  const handleUsernameChange = (e) => {
+    // Forzar minúsculas y sin espacios para evitar errores de capa 8
+    const val = e.target.value.replace(/\s+/g, '').toLowerCase();
+    setFormData({ ...formData, usuario: val });
   };
 
   const handleSubmit = async (e) => {
@@ -113,7 +127,15 @@ const [togglingUserId, setTogglingUserId] = useState(null);
         return;
       }
 
-      Swal.fire('Éxito', 'Usuario guardado correctamente', 'success');
+      Swal.fire({
+        icon: 'success',
+        title: 'Usuario guardado',
+        html: !formData.id 
+          ? `El usuario <b>${formData.usuario}</b> ha sido creado.<br/><br/>Contraseña de acceso: <b>${formData.contrasena}</b><br/><br/><small style="color: #666;">Copia estas credenciales y envíalas al empleado.</small>` 
+          : 'Los datos del usuario han sido actualizados.',
+        confirmButtonColor: '#c5a059'
+      });
+
       setIsModalOpen(false);
       fetchData();
     } catch (_err) {
@@ -187,15 +209,40 @@ const [togglingUserId, setTogglingUserId] = useState(null);
     }
   };
 
+  const filteredUsers = users.filter(user => 
+    user.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.role?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const isFormValid = formData.nombre_completo.trim() !== '' && 
+                      formData.usuario.trim() !== '' && 
+                      formData.rol_id !== '' && 
+                      (formData.id || formData.contrasena.length >= 6);
+
   return (
     <div className="usuarios-page">
       <Header title="Gestión de Usuarios" eyebrow="Administración del Sistema" hideLogos={true} />
       
       <main className="usuarios-container">
-        <div className="usuarios-actions">
-          <button className="btn-primary" onClick={() => handleOpenModal()} style={{ backgroundColor: '#c29b53', color: '#fff' }}>
-            + Nuevo Usuario
-          </button>
+        <div className="usuarios-header-actions">
+          <div className="search-container">
+            <svg className="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input 
+              type="text" 
+              className="search-input" 
+              placeholder="Buscar por nombre, usuario o rol..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="usuarios-actions">
+            <button className="btn-primary" onClick={() => handleOpenModal()} style={{ backgroundColor: '#c29b53', color: '#fff' }}>
+              + Nuevo Usuario
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -216,18 +263,18 @@ const [togglingUserId, setTogglingUserId] = useState(null);
                 </tr>
               </thead>
               <tbody>
-                {users.map(user => (
+                {filteredUsers.length > 0 ? filteredUsers.map(user => (
                   <tr key={user.id}>
                     <td>{user.nombre_completo}</td>
                     <td>{user.usuario}</td>
-                    <td><span className="role-badge">{user.role?.nombre}</span></td>
+                    <td><span className="role-badge">{formatRoleName(user.role?.nombre)}</span></td>
                     <td>
-                      <button                    className={`status-badge ${user.activo ? 'active' : 'inactive'}`}
-                    disabled={togglingUserId === user.id}
-                    onClick={() => {
-                      setTogglingUserId(user.id);
-                      handleToggleActive(user).finally(() => setTogglingUserId(null));
-                    }}
+                      <button className={`status-badge ${user.activo ? 'active' : 'inactive'}`}
+                        disabled={togglingUserId === user.id}
+                        onClick={() => {
+                          setTogglingUserId(user.id);
+                          handleToggleActive(user).finally(() => setTogglingUserId(null));
+                        }}
                       >
                       {togglingUserId === user.id ? (
                         <><span className="spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px' }}></span> Cambiando...</>
@@ -237,11 +284,19 @@ const [togglingUserId, setTogglingUserId] = useState(null);
                       </button>
                     </td>
                     <td className="actions-cell">
-                      <button className="btn-edit" onClick={() => handleOpenModal(user)}>Editar</button>
-                      <button className="btn-delete" onClick={() => handleDelete(user.id)}>Eliminar</button>
+                      <button className="btn-icon-action btn-icon-edit" onClick={() => handleOpenModal(user)} title="Editar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      </button>
+                      <button className="btn-icon-action btn-icon-delete" onClick={() => handleDelete(user.id)} title="Eliminar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>No se encontraron usuarios.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -255,40 +310,57 @@ const [togglingUserId, setTogglingUserId] = useState(null);
             <h2>{formData.id ? 'Editar Usuario' : 'Crear Usuario'}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Nombre Completo (Ej. Juan Pérez)</label>
+                <label>Nombre Completo</label>
                 <input 
                   type="text" 
                   value={formData.nombre_completo}
                   onChange={e => setFormData({...formData, nombre_completo: e.target.value})}
                   required 
                   disabled={isSubmitting}
-                  placeholder="Ingrese el nombre completo del empleado"
+                  placeholder="Ej. Juan Pérez"
                 />
+                <span className="form-hint">Nombre real del empleado.</span>
               </div>
               <div className="form-group">
-                <label>Nombre de Usuario (Para iniciar sesión)</label>
+                <label>Nombre de Usuario</label>
                 <input 
                   type="text" 
                   value={formData.usuario}
-                  onChange={e => setFormData({...formData, usuario: e.target.value})}
+                  onChange={handleUsernameChange}
                   required 
                   disabled={isSubmitting}
-                  placeholder="Ej. juanperez123"
+                  placeholder="Ej. juanperez"
                   autoComplete="username"
                 />
+                <span className="form-hint">Se usará para iniciar sesión. Sin espacios y en minúsculas.</span>
               </div>
               <div className="form-group">
-                <label>Contraseña {formData.id && '(Dejar en blanco para mantener)'} <span style={{fontSize: '0.85em', color: '#666', fontWeight: 'normal'}}>- Mínimo 6 caracteres</span></label>
-                <input 
-                  type="password" 
-                  value={formData.contrasena}
-                  onChange={e => setFormData({...formData, contrasena: e.target.value})}
-                  required={!formData.id} 
-                  disabled={isSubmitting}
-                  placeholder={formData.id ? "Nueva contraseña (opcional)" : "Mínimo 6 caracteres"}
-                  autoComplete="new-password"
-                  minLength={6}
-                />
+                <label>Contraseña {formData.id && '(Opcional para mantener la actual)'}</label>
+                <div className="password-input-wrapper">
+                  <input 
+                    type={showPassword ? "text" : "password"}
+                    value={formData.contrasena}
+                    onChange={e => setFormData({...formData, contrasena: e.target.value})}
+                    required={!formData.id} 
+                    disabled={isSubmitting}
+                    placeholder={formData.id ? "Nueva contraseña (opcional)" : "Mínimo 6 caracteres"}
+                    autoComplete="new-password"
+                    minLength={6}
+                  />
+                  <button 
+                    type="button" 
+                    className="password-toggle-btn" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPassword ? (
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    ) : (
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+                <span className="form-hint" style={{ color: (formData.contrasena && formData.contrasena.length < 6) ? 'red' : 'inherit' }}>Debe contener al menos 6 caracteres.</span>
               </div>
               <div className="form-group">
                 <label>Rol</label>
@@ -300,18 +372,18 @@ const [togglingUserId, setTogglingUserId] = useState(null);
                 >
                   <option value="">Seleccione un rol</option>
                   {roles.map(role => (
-                    <option key={role.id} value={role.id}>{role.nombre}</option>
+                    <option key={role.id} value={role.id}>{formatRoleName(role.nombre)}</option>
                   ))}
                 </select>
               </div>
               
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Cancelar</button>
-                <button type="submit" className="btn-save" disabled={isSubmitting}>
+                <button type="submit" className="btn-save" disabled={isSubmitting || !isFormValid} style={{ opacity: (!isFormValid || isSubmitting) ? 0.6 : 1 }}>
                   {isSubmitting ? (
                     <><span className="spinner" style={{ width: '1.2rem', height: '1.2rem', borderWidth: '3px' }}></span> Guardando...</>
                   ) : (
-                    'Guardar'
+                    'Guardar Usuario'
                   )}
                 </button>
               </div>
