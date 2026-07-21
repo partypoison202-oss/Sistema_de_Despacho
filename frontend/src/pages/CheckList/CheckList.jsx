@@ -1133,7 +1133,18 @@ export default function ChecklistForm({
                                 </span>
                             </p>
                             <p className="mb-2 text-xs text-gray-400">{fmtFecha} — {fmtHora}</p>
-                            <p className="mb-6 text-sm text-gray-400">{totalBien} bien · {totalMal} con fallas</p>
+                            <div className="mb-6 flex flex-col items-center gap-2">
+                                <p className="text-sm text-gray-400">{totalBien} bien · {totalMal} con fallas</p>
+                                {totalMal <= 3 ? (
+                                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                                        UNIDAD EN BUEN ESTADO
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+                                        DAÑOS DE UNIDAD
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex flex-col gap-3">
                                 {inline ? (
                                     <button

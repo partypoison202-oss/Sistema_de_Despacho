@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import Header from '../../components/Header/Header';
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 
 
 // ── Íconos ────────────────────────────────────────────────────────────────────
@@ -310,6 +314,8 @@ export default function HistorialCheckList() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [checklists, setChecklists] = useState([]);
     const [cargando, setCargando] = useState(true);
+    const [downloadingId, setDownloadingId] = useState(null);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [previewId, setPreviewId] = useState(null);
     const previewRef = useRef(null);
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -379,28 +385,87 @@ export default function HistorialCheckList() {
         setPeriod(newPeriod);
     };
 
-    const handlePrintTable = () => {
+    const handlePrintTable = async () => {
         setPreviewId(null);
-        setTimeout(() => {
-            window.print();
-        }, 300);
+        setIsGeneratingPdf(true);
+        // Pequeña pausa para asegurar que el DOM (como cerrar el preview) esté actualizado
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        try {
+            const el = document.getElementById('reporte-pdf');
+            if (!el) return;
+            const canvas = await html2canvas(el, {
+                scale: 1,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                windowWidth: el.scrollWidth,
+                windowHeight: el.scrollHeight
+            });
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.6);
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+            
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            
+            const margin = 8;
+            const imgWidth = pdfWidth - (margin * 2);
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            let heightLeft = imgHeight;
+            let position = margin;
+
+            pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+            heightLeft -= (pdfHeight - (margin * 2));
+
+            while (heightLeft > 2) {
+                position -= (pdfHeight - (margin * 2));
+                pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+                heightLeft -= (pdfHeight - (margin * 2));
+            }
+
+            pdf.save(`Historial_Checklist_${new Date().toISOString().slice(0, 10)}.pdf`);
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Generado!',
+                text: 'El reporte en PDF se ha generado y descargado correctamente.',
+                confirmButtonColor: '#c29b53',
+                timer: 2500
+            });
+        } catch (error) {
+            console.error('Error al generar PDF:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Ocurrió un error al generar el PDF.',
+                confirmButtonColor: '#601a2a'
+            });
+        } finally {
+            setIsGeneratingPdf(false);
+        }
     };
 
     const generarPDF = async (id, accion = 'download') => {
         const checklist = checklists?.find(c => c.id === id);
         if (!checklist) return;
 
+        setDownloadingId(id);
         try {
             await generarPDFChecklist(checklist, accion);
         } catch (err) {
             console.error("Error al generar PDF:", err);
             alert(`Hubo un error al generar el PDF: ${err.message || err}`);
+        } finally {
+            setDownloadingId(null);
         }
     };
 
     // Estadísticas
     const totalChecklists = displayedChecklists?.length ?? 0;
-    const unidadesBuenEstado = displayedChecklists?.filter(c => c.total_mal === 0).length ?? 0;
+    const unidadesBuenEstado = displayedChecklists?.filter(c => c.total_mal <= 3).length ?? 0;
     const unidadesConDanos = displayedChecklists?.filter(c => c.total_mal >= 4).length ?? 0;
     
     const periodLabel = PERIODS.find(p => p.key === period)?.label || 'Diario';
@@ -410,7 +475,7 @@ export default function HistorialCheckList() {
             <Header hideBackButton={false} />
             
             <main className="main-content">
-                
+                <div id="reporte-pdf" className="bg-gray-50 p-1">
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700">
@@ -443,19 +508,10 @@ export default function HistorialCheckList() {
                     ))}
 
                     {/* Selector de fecha */}
-                    <div className="relative ml-auto flex items-center group">
-                        <div 
-                            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition group-hover:bg-gray-50"
-                        >
-                            <IconCalendar className="text-guinda-700" />
-                            {/* Ajuste de zona horaria manual para que se renderice bien localmente */}
-                            {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </div>
-                        <input
-                            type="date"
+                    <div className="ml-auto w-48">
+                        <AppleDatePicker
                             value={selectedDate}
-                            onChange={handleDateChange}
-                            className="absolute inset-0 h-full w-full opacity-0 cursor-pointer"
+                            onChange={(val) => setSelectedDate(val)}
                         />
                     </div>
                 </div>
@@ -511,11 +567,20 @@ export default function HistorialCheckList() {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handlePrintTable}
-                                disabled={displayedChecklists.length === 0}
+                                disabled={displayedChecklists.length === 0 || isGeneratingPdf}
                                 className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                <IconPrint />
-                                Imprimir Reporte
+                                {isGeneratingPdf ? (
+                                    <>
+                                        <svg className="h-4 w-4 animate-spin text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        Generando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <IconPrint />
+                                        Imprimir Reporte
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -600,14 +665,20 @@ export default function HistorialCheckList() {
                                                         </button>
                                                         <button
                                                             onClick={() => generarPDF(c.id, 'download')}
-                                                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-blue-600 shadow-sm transition hover:bg-blue-50 active:scale-95"
+                                                            disabled={downloadingId === c.id}
+                                                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-blue-600 shadow-sm transition hover:bg-blue-50 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
                                                             title="Descargar PDF"
                                                         >
-                                                            <IconDownload />
+                                                            {downloadingId === c.id ? (
+                                                                <svg className="h-4 w-4 animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                            ) : (
+                                                                <IconDownload />
+                                                            )}
                                                         </button>
                                                         <button
                                                             onClick={() => generarPDF(c.id, 'print')}
-                                                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-gray-600 shadow-sm transition hover:bg-gray-50 active:scale-95"
+                                                            disabled={downloadingId === c.id}
+                                                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-1.5 text-gray-600 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-50 disabled:cursor-wait"
                                                             title="Imprimir"
                                                         >
                                                             <IconPrint />
@@ -650,9 +721,8 @@ export default function HistorialCheckList() {
                         </div>
                     )}
                 </div>
-
-                
-                </main>
+                </div>
+            </main>
 
             {/* Modal para visualizar imágenes en grande */}
             {lightboxImage && createPortal(
