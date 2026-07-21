@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
@@ -81,10 +82,6 @@ export default function CargaExcel() {
       setPreviewData(serverData);
     }
   }, [serverData, hasChanges]);
-
-
-
-
 
   // Actualizar un campo específico de un registro
   const handleUpdateRecord = async (index, field, value) => {
@@ -230,6 +227,88 @@ export default function CargaExcel() {
     }
   };
 
+  // Exportar los datos actuales a un archivo Excel (.xlsx) con formato
+  const handleExportExcel = () => {
+    if (!previewData || previewData.length === 0) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Sin datos',
+        text: 'No hay registros cargados para exportar.',
+        confirmButtonColor: '#c5a059'
+      });
+      return;
+    }
+
+    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'CORRIDAS'];
+    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de Acople', 'Corridas'];
+
+    // Construir array de arrays: encabezados + filas de datos
+    const datosHoja = [
+      encabezados,
+      ...previewData.map(fila => columnas.map(col => fila[col] ?? ''))
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(datosHoja);
+
+    // Ancho de columnas
+    worksheet['!cols'] = encabezados.map((h, i) => ({
+      wch: Math.max(h.length, ...previewData.map(fila => String(fila[columnas[i]] ?? '').length)) + 3
+    }));
+
+    // Colores por estatus (fondo de fila)
+    const colorPorEstatus = {
+      operacion: 'C6EFCE',      // verde claro
+      reserva: 'DDEBF7',        // azul claro
+      mantenimiento: 'FFF2CC'   // amarillo claro
+    };
+
+    const rango = XLSX.utils.decode_range(worksheet['!ref']);
+
+    // Formato del encabezado (fila 0): fondo vino, texto blanco, negritas
+    for (let col = rango.s.c; col <= rango.e.c; col++) {
+      const celdaRef = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (!worksheet[celdaRef]) continue;
+      worksheet[celdaRef].s = {
+        fill: { fgColor: { rgb: '6B1D33' } },
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        border: {
+          top: { style: 'thin', color: { rgb: '4A1020' } },
+          bottom: { style: 'thin', color: { rgb: '4A1020' } },
+          left: { style: 'thin', color: { rgb: '4A1020' } },
+          right: { style: 'thin', color: { rgb: '4A1020' } }
+        }
+      };
+    }
+
+    // Formato de las filas de datos: colores por estatus + bordes + centrado
+    previewData.forEach((fila, rowIdx) => {
+      const excelRow = rowIdx + 1; // +1 porque la fila 0 es encabezado
+      const bgColor = colorPorEstatus[String(fila.ESTATUS || '').toLowerCase()] || 'FFFFFF';
+
+      for (let col = rango.s.c; col <= rango.e.c; col++) {
+        const celdaRef = XLSX.utils.encode_cell({ r: excelRow, c: col });
+        if (!worksheet[celdaRef]) continue;
+        worksheet[celdaRef].s = {
+          fill: { fgColor: { rgb: bgColor } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            bottom: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            left: { style: 'thin', color: { rgb: 'D1D5DB' } },
+            right: { style: 'thin', color: { rgb: 'D1D5DB' } }
+          }
+        };
+      }
+    });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Despacho');
+
+    const fecha = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `Despacho_Diario_${fecha}.xlsx`, { cellStyles: true });
+  };
+
   return (
     <div className="excel-layout">
       <Header />
@@ -240,7 +319,32 @@ export default function CargaExcel() {
             <p className="excel-subtitle">Organiza, edita y concilia la programación operativa de hoy directamente en el sistema</p>
           </div>
 
-
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="excel-export-btn"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '0.6rem',
+              border: 'none',
+              background: '#1e7145',
+              color: 'white',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = '#155a35'}
+            onMouseOut={(e) => e.currentTarget.style.background = '#1e7145'}
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Descargar Excel
+          </button>
         </div>
 
         {cargandoTabla && previewData.length === 0 ? (

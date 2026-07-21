@@ -302,9 +302,12 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const isDrawing = useRef(false);
+    const pathsRef = useRef([]);
+    const currentPathRef = useRef(null);
     const historyRef = useRef([]);
     const [color, setColor] = useState('#ef4444');
     const [brushSize, setBrushSize] = useState(3);
+    const [mode, setMode] = useState('pencil'); // 'pencil' | 'eraser'
     const [canUndo, setCanUndo] = useState(false);
 
     const COLORS = [
@@ -315,7 +318,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         { value: '#1f2937', label: 'Negro' },
     ];
 
-    // Inicializar canvas con la imagen de fondo
+    // ── Inicializar canvas ──────────────────────────────────────────────
     const initCanvas = useCallback(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
@@ -333,35 +336,74 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         ctx.scale(dpr, dpr);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-
-        historyRef.current = [];
-        setCanUndo(false);
     }, []);
 
     useEffect(() => {
         initCanvas();
         const handleResize = () => {
-            // Guardar estado actual antes de resize
+            // Redibujar todo después del resize
             const canvas = canvasRef.current;
             if (!canvas) return;
-            const dataUrl = canvas.toDataURL();
+            // Guardamos los trazos actuales
+            const paths = pathsRef.current;
             initCanvas();
-            // Restaurar después de resize
-            const img = new Image();
-            img.onload = () => {
-                const ctx = canvas.getContext('2d');
-                const dpr = window.devicePixelRatio || 1;
-                ctx.save();
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                ctx.restore();
-            };
-            img.src = dataUrl;
+            renderAllPaths();
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [initCanvas]);
 
+    // ── Renderizado de todos los trazos ────────────────────────────────
+    const renderAllPaths = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
+        // Dibujar todos los trazos guardados
+        pathsRef.current.forEach(path => {
+            if (path.points.length < 2) return;
+            ctx.beginPath();
+            ctx.moveTo(path.points[0].x, path.points[0].y);
+            for (let i = 1; i < path.points.length; i++) {
+                ctx.lineTo(path.points[i].x, path.points[i].y);
+            }
+            ctx.strokeStyle = path.color;
+            ctx.lineWidth = path.size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        });
+
+        // Dibujar el trazo actual (si existe)
+        if (currentPathRef.current && currentPathRef.current.points.length > 1) {
+            const path = currentPathRef.current;
+            ctx.beginPath();
+            ctx.moveTo(path.points[0].x, path.points[0].y);
+            for (let i = 1; i < path.points.length; i++) {
+                ctx.lineTo(path.points[i].x, path.points[i].y);
+            }
+            ctx.strokeStyle = path.color;
+            ctx.lineWidth = path.size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+    }, []);
+
+    // ── Guardar snapshot en historial (copia profunda) ──────────────
+    const saveSnapshot = useCallback(() => {
+        const copy = JSON.parse(JSON.stringify(pathsRef.current));
+        historyRef.current.push(copy);
+        if (historyRef.current.length > 30) historyRef.current.shift();
+        setCanUndo(true);
+    }, []);
+
+    // ── Obtener posición (mouse/touch) ──────────────────────────────
     const getPos = (e) => {
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
@@ -372,15 +414,69 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         };
     };
 
-    const saveSnapshot = () => {
-        const canvas = canvasRef.current;
-        historyRef.current.push(canvas.toDataURL());
-        if (historyRef.current.length > 30) historyRef.current.shift();
-        setCanUndo(true);
-    };
+    // ── Borrar trazo más cercano al punto ──────────────────────────────
+    const eraseAt = useCallback((pos) => {
+        const threshold = 20; // píxeles de tolerancia
+        let minDist = Infinity;
+        let indexToRemove = -1;
 
+        pathsRef.current.forEach((path, idx) => {
+            // Calcular distancia mínima entre el punto y cualquier punto del trazo
+            for (let p of path.points) {
+                const dx = p.x - pos.x;
+                const dy = p.y - pos.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    indexToRemove = idx;
+                }
+            }
+        });
+
+        if (indexToRemove !== -1 && minDist <= threshold) {
+            // Eliminar el trazo
+            pathsRef.current.splice(indexToRemove, 1);
+            saveSnapshot();
+            renderAllPaths();
+            // Actualizar imagen compuesta
+            if (onSave) {
+                const canvas = canvasRef.current;
+                const dpr = window.devicePixelRatio || 1;
+                const composite = document.createElement('canvas');
+                composite.width = canvas.width;
+                composite.height = canvas.height;
+                const compCtx = composite.getContext('2d');
+                const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}${tipoUnidad ? '_blueprint' : ''}.webp`;
+                const bgImg = new Image();
+                bgImg.onload = () => {
+                    compCtx.globalAlpha = 0.6;
+                    compCtx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                    compCtx.globalAlpha = 1.0;
+                    // El canvas ya contiene solo los trazos (sin fondo)
+                    compCtx.drawImage(canvas, 0, 0);
+                    onSave(composite.toDataURL('image/png'));
+                };
+                bgImg.onerror = () => {
+                    compCtx.drawImage(canvas, 0, 0);
+                    onSave(composite.toDataURL('image/png'));
+                };
+                bgImg.src = blueprintUrl;
+            }
+        }
+    }, [onSave, renderAllPaths, saveSnapshot, tipoUnidad]);
+
+    // ── Eventos de dibujo ──────────────────────────────────────────────
     const startDraw = (e) => {
         e.preventDefault();
+        const pos = getPos(e);
+
+        if (mode === 'eraser') {
+            // Modo goma: borrar al hacer clic (sin arrastrar)
+            eraseAt(pos);
+            return;
+        }
+
+        // Modo lápiz: iniciar nuevo trazo
         saveSnapshot();
         isDrawing.current = true;
         const ctx = canvasRef.current.getContext('2d');
@@ -400,27 +496,60 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
 
     const draw = (e) => {
         e.preventDefault();
-        if (!isDrawing.current) return;
-        const ctx = canvasRef.current.getContext('2d');
+        if (!isDrawing.current || mode === 'eraser') return;
         const pos = getPos(e);
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
+        const path = currentPathRef.current;
+        if (!path) return;
+        path.points.push(pos);
+
+        // Dibujar incrementalmente la línea desde el penúltimo punto
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        // No es necesario limpiar todo, solo añadir la nueva línea
+        const len = path.points.length;
+        if (len >= 2) {
+            ctx.beginPath();
+            ctx.moveTo(path.points[len-2].x, path.points[len-2].y);
+            ctx.lineTo(path.points[len-1].x, path.points[len-1].y);
+            ctx.strokeStyle = path.color;
+            ctx.lineWidth = path.size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+        ctx.restore();
     };
 
     const stopDraw = (e) => {
         if (e) e.preventDefault();
-        if (!isDrawing.current) return;
+        if (!isDrawing.current || mode === 'eraser') {
+            isDrawing.current = false;
+            return;
+        }
         isDrawing.current = false;
-        const ctx = canvasRef.current.getContext('2d');
-        ctx.closePath();
-        // Componer canvas con imagen de fondo antes de guardar (imagen completa)
+
+        // Guardar el trazo actual en paths
+        const path = currentPathRef.current;
+        if (path && path.points.length > 1) {
+            pathsRef.current.push(path);
+        }
+        currentPathRef.current = null;
+        // El snapshot ya se guardó al inicio, pero si el trazo tenía solo un punto no se guarda
+        // En ese caso no hay cambios, pero igual redibujamos para limpiar
+        renderAllPaths();
+
+        // Actualizar la imagen compuesta
         if (onSave) {
             const canvas = canvasRef.current;
-            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}${tipoUnidad ? '_blueprint' : ''}.webp`;
+            const dpr = window.devicePixelRatio || 1;
             const composite = document.createElement('canvas');
             composite.width = canvas.width;
             composite.height = canvas.height;
             const compCtx = composite.getContext('2d');
+            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}${tipoUnidad ? '_blueprint' : ''}.webp`;
             const bgImg = new Image();
             bgImg.onload = () => {
                 compCtx.globalAlpha = 0.6;
@@ -437,52 +566,64 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
     };
 
+    // ── Deshacer ────────────────────────────────────────────────────────
     const handleUndo = () => {
         if (historyRef.current.length === 0) return;
         const prev = historyRef.current.pop();
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        const img = new Image();
-        img.onload = () => {
-            ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            ctx.restore();
-            if (onSave) onSave(canvas.toDataURL('image/png'));
-        };
-        img.src = prev;
+        pathsRef.current = prev;
+        currentPathRef.current = null;
+        renderAllPaths();
         setCanUndo(historyRef.current.length > 0);
+        if (onSave) {
+            const canvas = canvasRef.current;
+            const dpr = window.devicePixelRatio || 1;
+            const composite = document.createElement('canvas');
+            composite.width = canvas.width;
+            composite.height = canvas.height;
+            const compCtx = composite.getContext('2d');
+            const blueprintUrl = `/images/${(tipoUnidad || 'hero').toLowerCase()}${tipoUnidad ? '_blueprint' : ''}.webp`;
+            const bgImg = new Image();
+            bgImg.onload = () => {
+                compCtx.globalAlpha = 0.6;
+                compCtx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+                compCtx.globalAlpha = 1.0;
+                compCtx.drawImage(canvas, 0, 0);
+                onSave(composite.toDataURL('image/png'));
+            };
+            bgImg.onerror = () => {
+                compCtx.drawImage(canvas, 0, 0);
+                onSave(composite.toDataURL('image/png'));
+            };
+            bgImg.src = blueprintUrl;
+        }
     };
 
-    // Exponer el método clear() para que el componente padre pueda limpiar el canvas
-    useImperativeHandle(ref, () => ({
-        clear: () => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
-            historyRef.current = [];
-            setCanUndo(false);
-            if (onSave) onSave(null);
-        }
-    }));
-
+    // ── Limpiar todo ─────────────────────────────────────────────────────
     const handleClear = () => {
         saveSnapshot();
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
+        pathsRef.current = [];
+        currentPathRef.current = null;
+        renderAllPaths();
         if (onSave) onSave(null);
     };
 
+    // ── Exponer método clear al padre ──────────────────────────────────
+    useImperativeHandle(ref, () => ({
+        clear: handleClear
+    }));
+
+    // ── Alternar modo ───────────────────────────────────────────────────
+    const toggleMode = () => {
+        setMode(prev => prev === 'pencil' ? 'eraser' : 'pencil');
+        // Si estamos dibujando, cancelar
+        if (isDrawing.current) {
+            isDrawing.current = false;
+            currentPathRef.current = null;
+            renderAllPaths();
+        }
+    };
+
+    // ── Render ──────────────────────────────────────────────────────────
     return (
         <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             {/* Toolbar */}
@@ -516,23 +657,43 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
 
                 <div className="mx-1 h-5 w-px bg-gray-200" />
 
-                {/* Tamaño de pincel */}
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold text-gray-400 uppercase">Grosor</span>
-                    {[2, 4, 6].map((s) => (
-                        <button
-                            key={s}
-                            type="button"
-                            onClick={() => setBrushSize(s)}
-                            className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${brushSize === s
-                                ? 'bg-gray-800 text-white'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                }`}
-                        >
-                            <span className="rounded-full bg-current" style={{ width: s + 2, height: s + 2 }} />
-                        </button>
-                    ))}
-                </div>
+                {/* Tamaño de pincel (solo en modo lápiz) */}
+                {mode === 'pencil' && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase">Grosor</span>
+                        {[2, 4, 6].map((s) => (
+                            <button
+                                key={s}
+                                type="button"
+                                onClick={() => setBrushSize(s)}
+                                className={`flex h-7 w-7 items-center justify-center rounded-lg transition ${brushSize === s
+                                    ? 'bg-gray-800 text-white'
+                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                    }`}
+                            >
+                                <span className="rounded-full bg-current" style={{ width: s + 2, height: s + 2 }} />
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                <div className="mx-1 h-5 w-px bg-gray-200" />
+
+                {/* Botón modo goma */}
+                <button
+                    type="button"
+                    onClick={toggleMode}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${mode === 'eraser'
+                        ? 'border-red-300 bg-red-50 text-red-600'
+                        : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+                        }`}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 4l6 6-8 8-6-6 8-8z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h16" />
+                    </svg>
+                    {mode === 'eraser' ? 'Goma activa' : 'Goma'}
+                </button>
 
                 <div className="ml-auto flex gap-1.5">
                     <button
@@ -578,10 +739,8 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
                     alt={`Blueprint de ${tipoUnidad}`}
                     className="absolute inset-0 h-full w-full object-contain pointer-events-none select-none opacity-60"
                     draggable={false}
-                    onError={(e) => { e.target.src = '/images/hero.webp'; }} // fallback
+                    onError={(e) => { e.target.src = '/images/hero.webp'; }}
                 />
-                {/* Canvas de dibujo superpuesto */}
-
                 <canvas
                     ref={canvasRef}
                     className="absolute inset-0 h-full w-full touch-none"
@@ -597,7 +756,9 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             </div>
 
             <p className="border-t border-gray-100 px-4 py-2.5 text-center text-[11px] text-gray-400">
-                Dibuja sobre la imagen para señalar los detalles o problemas encontrados
+                {mode === 'pencil'
+                    ? 'Dibuja sobre la imagen para señalar los detalles o problemas encontrados'
+                    : 'Toca sobre un trazo para borrarlo por completo'}
             </p>
         </div>
     );
