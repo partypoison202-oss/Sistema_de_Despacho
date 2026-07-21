@@ -47,11 +47,8 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'rol_id');
     }
 
-    protected function casts(): array
-    {
-        return [
-            'activo' => 'boolean',
-            'contrasena' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'activo' => 'boolean',
+        'contrasena' => 'hashed',
+    ];
 }

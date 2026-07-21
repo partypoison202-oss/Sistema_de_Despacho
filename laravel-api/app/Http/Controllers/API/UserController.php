@@ -29,7 +29,6 @@ class UserController extends Controller
             'nombre_completo' => $request->nombre_completo,
             'usuario' => $request->usuario,
             'contrasena' => Hash::make($request->contrasena),
-            'activo' => true,
             'rol_id' => $request->rol_id
         ]);
 
