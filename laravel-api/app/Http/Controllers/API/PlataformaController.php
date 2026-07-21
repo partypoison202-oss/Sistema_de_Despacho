@@ -13,59 +13,80 @@ class PlataformaController extends Controller
     public function registrarMovimiento(Request $request)
     {
         $request->validate([
-            'numero_eco' => 'required',
+            'numero_eco' => 'required|string',
             'tipo' => 'required|string',
             'tipo_movimiento' => 'required|string|in:INCORPORACION,DESINCORPORACION',
-            // Incorporacion
             'conductor' => 'nullable|string',
             'ruta' => 'nullable|string',
-            // Desincorporacion
             'motivo' => 'nullable|string',
-            'estatus_nuevo' => 'nullable|string|in:RESERVA,MANTENIMIENTO',
+            'estatus_nuevo' => 'nullable|string|in:RESERVA,MANTENIMIENTO,PATIO NORTE',
         ]);
 
         DB::beginTransaction();
         try {
-            $numeroEco = $request->numero_eco;
-            $tipo = $request->tipo;
+            $numeroEco = trim((string) $request->numero_eco);
             $tipoMovimiento = $request->tipo_movimiento;
             $usuarioId = auth()->id();
 
-            // Obtain current unit to record previous state
+            Log::info('Buscando unidad con numero_eco:', ['numero_eco' => $numeroEco]);
+
+            // tipo (urbanuss/orion/zafiro/vagoneta) es fijo según el numero_eco,
+            // NO se modifica nunca en este flujo.
             $unidad = DB::table('unidades')
-                ->where('numero_economico', $numeroEco)
-                ->where('tipo_unidad', $tipo)
+                ->where('numero_eco', $numeroEco)
                 ->first();
-                
+
             if (!$unidad) {
-                return response()->json(['error' => 'Unidad no encontrada'], 404);
+                Log::warning('Unidad no encontrada', ['numero_eco' => $numeroEco]);
+                return response()->json([
+                    'error' => 'Unidad no encontrada',
+                    'busqueda' => ['numero_eco' => $numeroEco]
+                ], 404);
             }
+
             $unidadId = $unidad->id;
 
-            $estatusAnterior = $unidad->estatus;
+            // El estatus real y vigente de la unidad vive en `informacion_operativa`
+            // (la misma tabla que usa DespachoController para todo el sistema).
+            $registroOperativo = DB::table('informacion_operativa')
+                ->where('unidad_id', $unidadId)
+                ->first();
+
+            // Si nunca ha tenido registro operativo, se asume RESERVA.
+            $estatusAnteriorRaw = $registroOperativo->estatus ?? 'RESERVA';
+            $estatusAnterior = strtoupper(trim($estatusAnteriorRaw));
             $estatusNuevo = $estatusAnterior;
 
             if ($tipoMovimiento === 'INCORPORACION') {
+                if ($estatusAnterior === 'OPERACION') {
+                    return response()->json([
+                        'error' => 'La unidad ya está en operación'
+                    ], 422);
+                }
                 $estatusNuevo = 'OPERACION';
-                // Move to operation, update conductor and route
-                DB::table('unidades')->where('id', $unidadId)->update([
-                    'estatus' => $estatusNuevo,
-                    'tarjeton' => $request->conductor,
-                    'ruta' => $request->ruta,
-                    'updated_at' => Carbon::now()
-                ]);
             } else if ($tipoMovimiento === 'DESINCORPORACION') {
-                $estatusNuevo = $request->estatus_nuevo;
-                // Move out of operation, clear conductor and route
-                DB::table('unidades')->where('id', $unidadId)->update([
-                    'estatus' => $estatusNuevo,
-                    'tarjeton' => null,
-                    'ruta' => null,
-                    'updated_at' => Carbon::now()
-                ]);
+                if ($estatusAnterior !== 'OPERACION') {
+                    return response()->json([
+                        'error' => 'La unidad no está en operación, no se puede desincorporar'
+                    ], 422);
+                }
+                $estatusNuevo = $request->estatus_nuevo ?? 'RESERVA';
             }
 
-            // Record the movement
+            // Sincronizar el cambio con informacion_operativa, que es la tabla
+            // que consume el resto del sistema (DespachoController).
+            if ($registroOperativo) {
+                DB::table('informacion_operativa')
+                    ->where('id', $registroOperativo->id)
+                    ->update([
+                        'estatus' => strtolower($estatusNuevo),
+                    ]);
+            } else {
+                Log::warning('No existe registro en informacion_operativa para esta unidad; solo se registrará el historial.', ['unidad_id' => $unidadId]);
+            }
+
+            // Registrar movimiento en plataforma_movimientos.
+            // Aquí sí se guarda el historial de conductor, ruta, motivo y estatus.
             DB::table('plataforma_movimientos')->insert([
                 'unidad_id' => $unidadId,
                 'usuario_id' => $usuarioId,
@@ -85,7 +106,11 @@ class PlataformaController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error en PlataformaController@registrarMovimiento: ' . $e->getMessage());
-            return response()->json(['error' => 'No se pudo registrar el movimiento'], 500);
+            return response()->json([
+                'error' => 'Error al registrar el movimiento',
+                'detalle' => $e->getMessage(),
+                'linea' => $e->getLine()
+            ], 500);
         }
     }
 }

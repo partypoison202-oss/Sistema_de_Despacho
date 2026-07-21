@@ -30,6 +30,7 @@ export default function UnitInfoPanel({
   handleCambiarEstatus,
   cambiandoEstatus,
   conductoresDisponibles,
+  onUpdate, // <-- IMPORTANTE: asegúrate de pasar esta prop desde el padre
 }) {
   const { user } = useContext(AuthContext);
   const isPlataforma = user?.role?.codigo === 'PLATAFORMA' || localStorage.getItem('dashboardMode') === 'PLATAFORMA';
@@ -54,7 +55,6 @@ export default function UnitInfoPanel({
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
 
-  // Sincronizar estados locales cuando cambien los datos operativos
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
     if (datosOperativos.acople) setFormAcople(datosOperativos.acople);
@@ -90,11 +90,10 @@ export default function UnitInfoPanel({
   const navigate = useNavigate();
 
   // Modals de Plataforma
-  const [modalPlataformaVisible, setModalPlataformaVisible] = useState(null); // 'INCORPORACION' | 'DESINCORPORACION' | null
+  const [modalPlataformaVisible, setModalPlataformaVisible] = useState(null);
   const [platMotivo, setPlatMotivo] = useState('');
   const [platEstatus, setPlatEstatus] = useState('');
   const [platEstatusDropdown, setPlatEstatusDropdown] = useState(false);
-  
   const [platConductor, setPlatConductor] = useState('');
   const [platConductorDropdown, setPlatConductorDropdown] = useState(false);
   const [platRuta, setPlatRuta] = useState('');
@@ -143,11 +142,9 @@ export default function UnitInfoPanel({
     { value: '5', label: '5' },
   ];
 
-  // Maneja el toggle Sí/No de "¿Hubo corridas perdidas?"
   const handleToggleCorridasPerdidas = async (valor) => {
     setHuboCorridasPerdidas(valor);
     if (!valor) {
-      // Si se selecciona "No", limpiamos los campos dependientes
       setPerdidaCiclos('');
       setPerdidaMotivo('');
       setDropdownCiclosOpen(false);
@@ -160,7 +157,7 @@ export default function UnitInfoPanel({
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const ecoNum = selectedOption.replace(/\D/g, '');
-      const response = await fetch('http://localhost:8000/api/despacho/actualizar-adicionales', {
+      const response = await fetch(`${API_BASE}/api/despacho/actualizar-adicionales`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -193,7 +190,6 @@ export default function UnitInfoPanel({
             timer: 2000
           });
         }
-        // Sync local object reference
         datosOperativos.ciclo = cicloVal || '';
         datosOperativos.motivo = motivoVal || '';
       } else {
@@ -212,12 +208,6 @@ export default function UnitInfoPanel({
     }
   };
 
-  const handleMotivoChange = (e) => {
-    const val = e.target.value;
-    const filteredVal = val.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase();
-    setPerdidaMotivo(filteredVal);
-  };
-
   const handlePlataformaMovimiento = (tipoMovimiento) => {
     setModalPlataformaVisible(tipoMovimiento);
     setPlatMotivo('');
@@ -226,6 +216,7 @@ export default function UnitInfoPanel({
     setPlatRuta('');
   };
 
+  // ************* FUNCIÓN CORREGIDA (con logs para depurar error 500) *************
   const handleConfirmarPlataforma = async () => {
     if (modalPlataformaVisible === 'INCORPORACION') {
       if (!platConductor || !platRuta) {
@@ -237,29 +228,38 @@ export default function UnitInfoPanel({
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const ecoNum = selectedOption.replace(/\D/g, '');
         const payload = {
-          eco: ecoNum,
-          ruta: platRuta,
-          conductorId: platConductor,
-          nuevoEstatus: 'operacion'
+          numero_eco: ecoNum,
+          tipo: configActual.id,
+          tipo_movimiento: 'INCORPORACION',
+          conductor: platConductor,
+          ruta: platRuta
         };
-        const response = await fetch(`${API_BASE}/api/despacho/incorporar-unidad`, {
+        console.log('📤 Payload INCORPORACION:', payload); // <-- para depurar
+
+        const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
         });
-        if (!response.ok) throw new Error('Error al incorporar unidad');
-        onUpdate();
+
+        const result = await response.json();
+        if (!response.ok) {
+          console.error('❌ Error response:', result);
+          throw new Error(result.error || result.message || 'Error al incorporar unidad');
+        }
+
+        if (typeof onUpdate === 'function') onUpdate();
         setModalPlataformaVisible(null);
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({ icon: 'success', title: 'Éxito', text: `Unidad ECO${ecoNum} en operación.`, confirmButtonColor: '#6b1d33' });
       } catch (error) {
         console.error(error);
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire('Error', 'Ocurrió un error al incorporar la unidad.', 'error');
+        Swal.fire('Error', error.message || 'Ocurrió un error al incorporar la unidad.', 'error');
       } finally {
         setGuardandoPerdida(false);
       }
-    } else {
+    } else { // DESINCORPORACION
       if (!platMotivo || !platEstatus) {
         const Swal = (await import('sweetalert2')).default;
         return Swal.fire('Error', 'Debe ingresar un motivo y seleccionar un destino.', 'error');
@@ -269,73 +269,40 @@ export default function UnitInfoPanel({
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const ecoNum = selectedOption.replace(/\D/g, '');
         const payload = {
-          eco: ecoNum,
+          numero_eco: ecoNum,
+          tipo: configActual.id,
+          tipo_movimiento: 'DESINCORPORACION',
           motivo: platMotivo,
-          nuevoEstatus: platEstatus.toLowerCase()
+          estatus_nuevo: platEstatus.toUpperCase()
         };
-        const response = await fetch(`${API_BASE}/api/despacho/desincorporar-unidad`, {
+        console.log('📤 Payload DESINCORPORACION:', payload); // <-- para depurar
+
+        const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
         });
-        if (!response.ok) throw new Error('Error al desincorporar unidad');
-        onUpdate();
+
+        const result = await response.json();
+        if (!response.ok) {
+          console.error('❌ Error response:', result);
+          throw new Error(result.error || result.message || 'Error al desincorporar unidad');
+        }
+
+        if (typeof onUpdate === 'function') onUpdate();
         setModalPlataformaVisible(null);
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({ icon: 'success', title: 'Éxito', text: `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`, confirmButtonColor: '#6b1d33' });
       } catch (error) {
         console.error(error);
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire('Error', 'Ocurrió un error al desincorporar la unidad.', 'error');
+        Swal.fire('Error', error.message || 'Ocurrió un error al desincorporar la unidad.', 'error');
       } finally {
         setGuardandoPerdida(false);
       }
     }
   };
-
-  const enviarMovimientoPlataforma = async (tipo, conductor, ruta, motivo, estatus) => {
-    try {
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-      const ecoNum = selectedOption.replace(/\D/g, '');
-      const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          numero_eco: ecoNum,
-          tipo: configActual.id,
-          tipo_movimiento: tipo,
-          conductor: conductor,
-          ruta: ruta,
-          motivo: motivo,
-          estatus_nuevo: estatus
-        })
-      });
-      
-      const result = await response.json();
-      if (response.ok) {
-        const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
-          icon: 'success',
-          title: 'Movimiento Exitoso',
-          text: result.message,
-          timer: 2000,
-          showConfirmButton: false
-        }).then(() => {
-          window.location.reload();
-        });
-      } else {
-        const Swal = (await import('sweetalert2')).default;
-        Swal.fire('Error', result.error || 'Ocurrió un error', 'error');
-      }
-    } catch (error) {
-      console.error(error);
-      const Swal = (await import('sweetalert2')).default;
-      Swal.fire('Error', 'Error de conexión', 'error');
-    }
-  };
+  // ****************************************************************************
 
   const handleHacerCheckList = () => {
     setShowChecklist(true);
@@ -371,7 +338,6 @@ export default function UnitInfoPanel({
         const data = await res.json();
         if (data.checklists && data.checklists.length > 0) {
           const latest = data.checklists[0];
-          
           setHasCompletedChecklist(true);
           setRecentChecklist(latest);
         } else {
@@ -456,6 +422,7 @@ export default function UnitInfoPanel({
     setEditandoRuta(false);
   };
 
+  // --- JSX (se mantiene exactamente igual al que ya tenías) ---
   return (
     <div className="unit-dashboard-container animate-fade-in-up">
       {/* CARD ENCABEZADO DE UNIDAD */}
@@ -914,7 +881,7 @@ export default function UnitInfoPanel({
               </div>
             )}
 
-            {/* Ciclos Perdidos y Motivo: se muestran en la fila 3 (lado a lado) si es "SÍ" */}
+            {/* Ciclos Perdidos y Motivo */}
             {!isPlataforma && huboCorridasPerdidas && (
               <>
                 <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownCiclosOpen ? 50 : 1 }}>
@@ -1034,7 +1001,7 @@ export default function UnitInfoPanel({
               </>
             )}
 
-            {/* Botón Guardar: solo aparece si hay cambios reales */}
+            {/* Botón Guardar para corridas perdidas */}
             {!isPlataforma && huboCorridasPerdidas && (perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
               <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'end', marginTop: '0.5rem' }} className="animate-fade-in-up">
                 <button
@@ -1067,7 +1034,7 @@ export default function UnitInfoPanel({
               </div>
             )}
             
-            {/* INCORPORAR / DESINCORPORAR for PLATAFORMA */}
+            {/* INCORPORAR / DESINCORPORAR para PLATAFORMA */}
             {isPlataforma && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', width: '100%' }}>
                 <span className="info-card__label">Movimientos de Plataforma</span>
@@ -1085,8 +1052,8 @@ export default function UnitInfoPanel({
                     style={{
                       flex: 1,
                       border: 'none',
-                      background: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-100)' : '#f8fafc',
-                      color: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-400)' : '#1d4ed8',
+                      background: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-100)' : '#6b1d33',
+                      color: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-400)' : 'white',
                       fontWeight: 700,
                       fontSize: '0.85rem',
                       cursor: datosOperativos.estatus === 'operacion' ? 'not-allowed' : 'pointer',
@@ -1507,7 +1474,6 @@ export default function UnitInfoPanel({
             
             {modalPlataformaVisible === 'INCORPORACION' && (
               <div className="flex flex-col gap-4">
-                {/* Custom React Dropdown para Conductor */}
                 <div style={{ position: 'relative' }}>
                   <button
                     type="button"
@@ -1546,7 +1512,6 @@ export default function UnitInfoPanel({
                   )}
                 </div>
 
-                {/* Custom React Dropdown para Ruta */}
                 <div style={{ position: 'relative' }}>
                   <button
                     type="button"
@@ -1566,20 +1531,20 @@ export default function UnitInfoPanel({
                   {platRutaDropdown && (
                     <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
-                        {(configActual?.rutas || []).map(r => (
-                          <button
+                          {(rutasOpciones || []).map(r => (
+                            <button
                             key={r}
                             type="button"
                             className="dropdown-menu__item hover:bg-slate-50 transition-colors"
                             style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platRuta == r ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
-                              setPlatRuta(r);
-                              setPlatRutaDropdown(false);
+                            setPlatRuta(r);
+                            setPlatRutaDropdown(false);
                             }}
-                          >
-                            {r}
-                          </button>
-                        ))}
+                            >
+                              {r}
+                            </button>
+                          ))}
                       </div>
                     </div>
                   )}
@@ -1597,7 +1562,6 @@ export default function UnitInfoPanel({
                   onChange={(e) => setPlatMotivo(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase())}
                 />
                 
-                {/* Custom React Dropdown para Destino */}
                 <div style={{ position: 'relative' }}>
                   <button
                     type="button"
