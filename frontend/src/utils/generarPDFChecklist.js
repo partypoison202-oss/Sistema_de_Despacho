@@ -153,7 +153,7 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
 
         // ── Cargar logo ──────────────────────────────────────────────────────
         // Convertimos a PNG transparente para jsPDF
-        const logoRaw  = await loadImage('/images/sistema de tm.webp');
+        const logoRaw  = await loadImage('/images/sistema_de_tm.webp');
         const logoImg  = logoRaw ? convertLogoToPNG(logoRaw) : null;
 
         // ── Encabezado primera página ────────────────────────────────────────

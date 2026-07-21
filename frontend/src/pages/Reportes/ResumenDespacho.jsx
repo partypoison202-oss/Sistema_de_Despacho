@@ -196,7 +196,7 @@ export default function ResumenDespacho() {
               <h2>Sistema Integrado de Transporte Masivo de Hidalgo</h2>
             </div>
             <div className="banner-right">
-              <img src="/images/sistema de tm.webp" alt="Sistema de Transporte Metropolitano" className="logo-derecha" />
+              <img src="/images/sistema_de_tm.webp" alt="Sistema de Transporte Metropolitano" className="logo-derecha" />
             </div>
           </div>
           <div className="resumen-date">

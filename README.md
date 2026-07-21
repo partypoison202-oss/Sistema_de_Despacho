@@ -2,11 +2,13 @@
 
 > **SITMAH** (Sistema de Transporte Metropolitano de Hidalgo)
 
-<p align="center">
-  <img src="frontend/public/images/sistema%20de%20tm.png" alt="Sistema de Transporte Metropolitano" height="130" align="middle" style="vertical-align: middle;" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="frontend/public/images/sitmah_logo.png" alt="SITMAH" height="100" align="middle" style="vertical-align: middle;" />
-</p>
+<div align="center">
+
+![Sistema de Transporte Metropolitano](frontend/public/images/sistema_de_tm.webp)
+&nbsp;&nbsp;&nbsp;&nbsp;
+![SITMAH](frontend/public/images/sitmah_logo.webp)
+
+</div>
 
 Este proyecto es una plataforma web integral diseñada para la gestión, inspección preoperativa (checklist), control de despacho en tiempo real y generación de reportes generales y específicos para la flota del Sistema de Transporte Metropolitano de Hidalgo.
 
@@ -20,7 +22,7 @@ El sistema está construido sobre una arquitectura moderna desacoplada en tres c
 
 ### 1. Frontend (React)
 Interfaz de usuario de alto rendimiento, reactiva y optimizada:
-*   **Core:** React 19 + JavaScript (Vite 8 como empaquetador y servidor de desarrollo).
+*   **Core:** React 19 + JavaScript (Vite como empaquetador y servidor de desarrollo).
 *   **Estilos:** Tailwind CSS v4 para un diseño premium, moderno y responsive, complementado con CSS nativo.
 *   **Rutas:** React Router v7 para una navegación rápida tipo Single Page Application (SPA).
 *   **Componentes Visuales:** SweetAlert2 para diálogos modales dinámicos, Recharts para gráficos de métricas operativas.
@@ -30,8 +32,8 @@ Interfaz de usuario de alto rendimiento, reactiva y optimizada:
 Backend de servicios robusto y de alto rendimiento:
 *   **Framework:** Laravel 13 con PHP 8.3+.
 *   **Seguridad y Autenticación:** Laravel Sanctum para el control de acceso basado en tokens seguros de API.
-*   **Base de Datos por Defecto:** SQLite (para facilidades de desarrollo local, portable en `laravel-api/database/database.sqlite`).
-*   **Soporte Multi-Base de Datos:** Preparado para PostgreSQL / Neon (la configuración de drivers se encuentra disponible en `.env`).
+*   **Base de Datos por Defecto:** PostgreSQL / Neon (la configuración de drivers se encuentra disponible y activa en `.env`).
+*   **Soporte Multi-Base de Datos:** Preparado para SQLite, MySQL y otros cambiando la configuración.
 
 ### 3. Backend de Soporte (Node.js)
 Servicio alternativo auxiliar ligero:
@@ -63,7 +65,7 @@ Antes de comenzar, asegúrate de tener instalado en tu sistema:
 1.  **Node.js** (v18 o superior recomendado)
 2.  **PHP** (v8.3 o superior recomendado)
 3.  **Composer** (gestor de dependencias de PHP)
-4.  **SQLite3** (para la base de datos predeterminada de Laravel)
+4.  **Base de Datos** (La conexión hacia PostgreSQL/NeonDB ya viene preconfigurada, no requieres base local salvo que desees cambiarla).
 
 ---
 
@@ -99,11 +101,8 @@ composer install
     ```bash
     php artisan key:generate
     ```
-3.  Crea e inicializa la base de datos SQLite:
+3.  Ejecuta las migraciones en tu base de datos (por defecto apuntando a PostgreSQL/Neon):
     ```bash
-    # Crear archivo de base de datos
-    touch database/database.sqlite
-    
     # Ejecutar las migraciones
     php artisan migrate
     ```
