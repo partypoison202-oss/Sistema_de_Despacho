@@ -92,7 +92,23 @@ const [togglingUserId, setTogglingUserId] = useState(null);
       const data = await res.json();
 
       if (!res.ok) {
-        Swal.fire('Error', data.message || 'Error al guardar el usuario', 'error');
+        let errorMessage = data.message || 'Error al guardar el usuario';
+        
+        // Si hay errores de validación (Laravel HTTP 422), los mostramos detalladamente
+        if (data.errors) {
+          const firstError = Object.values(data.errors)[0][0]; // Toma el primer error del backend
+          errorMessage = firstError;
+        } else if (errorMessage.includes('SQLSTATE') || errorMessage.includes('Datatype mismatch')) {
+          // Ocultar errores crudos de base de datos a los usuarios
+          errorMessage = 'Ocurrió un error interno en el servidor al intentar guardar. Contacte al soporte técnico.';
+        }
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Datos inválidos',
+          text: errorMessage,
+          confirmButtonColor: '#c5a059'
+        });
         setIsSubmitting(false);
         return;
       }
@@ -239,33 +255,39 @@ const [togglingUserId, setTogglingUserId] = useState(null);
             <h2>{formData.id ? 'Editar Usuario' : 'Crear Usuario'}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Nombre Completo</label>
+                <label>Nombre Completo (Ej. Juan Pérez)</label>
                 <input 
                   type="text" 
                   value={formData.nombre_completo}
                   onChange={e => setFormData({...formData, nombre_completo: e.target.value})}
                   required 
                   disabled={isSubmitting}
+                  placeholder="Ingrese el nombre completo del empleado"
                 />
               </div>
               <div className="form-group">
-                <label>Nombre de Usuario</label>
+                <label>Nombre de Usuario (Para iniciar sesión)</label>
                 <input 
                   type="text" 
                   value={formData.usuario}
                   onChange={e => setFormData({...formData, usuario: e.target.value})}
                   required 
                   disabled={isSubmitting}
+                  placeholder="Ej. juanperez123"
+                  autoComplete="username"
                 />
               </div>
               <div className="form-group">
-                <label>Contraseña {formData.id && '(Dejar en blanco para mantener)'}</label>
+                <label>Contraseña {formData.id && '(Dejar en blanco para mantener)'} <span style={{fontSize: '0.85em', color: '#666', fontWeight: 'normal'}}>- Mínimo 6 caracteres</span></label>
                 <input 
                   type="password" 
                   value={formData.contrasena}
                   onChange={e => setFormData({...formData, contrasena: e.target.value})}
                   required={!formData.id} 
                   disabled={isSubmitting}
+                  placeholder={formData.id ? "Nueva contraseña (opcional)" : "Mínimo 6 caracteres"}
+                  autoComplete="new-password"
+                  minLength={6}
                 />
               </div>
               <div className="form-group">
