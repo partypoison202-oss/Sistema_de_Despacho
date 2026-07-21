@@ -3,15 +3,13 @@ import React, { useState, useRef } from 'react';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { encierroModules } from '../../config/encierroModules';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
-import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
-import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
 import '../Dashboard/Dashboard.css';
 import API_BASE from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
+import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
 import { useEffect } from 'react';
 
 export default function DashboardEncierro() {
@@ -46,61 +44,7 @@ export default function DashboardEncierro() {
     });
   }, [queryClient]);
 
-  const [reporteDataRutas, setReporteDataRutas] = useState(null);
-  const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
-  const [mostrarReporte, setMostrarReporte] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Referencias para los elementos a capturar
-  const reporteRutasRef = useRef(null);
-  const reporteUnidadesRef = useRef(null);
-
-  // Función para generar PDF a partir de una referencia
-  const generarPDF = (elementRef, nombreArchivo) => {
-    return new Promise((resolve, reject) => {
-      const element = elementRef.current;
-      if (!element) {
-        reject(new Error(`Elemento ${nombreArchivo} no encontrado`));
-        return;
-      }
-      html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
-      })
-        .then((canvas) => {
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-          
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-          
-          const margin = 10;
-          const imgWidth = pdfWidth - (margin * 2);
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-          let heightLeft = imgHeight;
-          let position = margin;
-
-          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-          heightLeft -= (pdfHeight - (margin * 2));
-
-          while (heightLeft > 2) {
-            position -= (pdfHeight - (margin * 2));
-            pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-            heightLeft -= (pdfHeight - (margin * 2));
-          }
-
-          pdf.save(`${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
-          resolve();
-        })
-        .catch(reject);
-    });
-  };
 
   const handleGenerarReporte = async () => {
     setIsGenerating(true);
@@ -143,23 +87,14 @@ export default function DashboardEncierro() {
       const dataRutas = await respRutas.json();
       const dataUnidades = await respUnidades.json();
 
-      setReporteDataRutas(dataRutas);
-      setReporteDataUnidades(dataUnidades);
-      setMostrarReporte(true);
-
-      // Esperar a que React renderice los componentes ocultos
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Generar PDF de rutas
-      await generarPDF(reporteRutasRef, 'Reporte_Rutas_Encierro');
-      
-      // Generar PDF de unidades
-      await generarPDF(reporteUnidadesRef, 'Reporte_Unidades_Encierro');
+      // Generar PDF nativos
+      await generarPDFReporteGeneral(dataRutas);
+      await generarPDFReporteUnidades(dataUnidades);
 
       Swal.fire({
         icon: 'success',
         title: '¡Reportes Generados!',
-        text: 'Los reportes se han generado y descargado exitosamente.',
+        text: 'Se han descargado los dos reportes correctamente.',
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
@@ -171,12 +106,11 @@ export default function DashboardEncierro() {
       console.error('Error:', error);
       Swal.fire({
         icon: 'error',
-        title: 'Error de conexión',
-        text: error.message || 'No se pudieron generar los reportes.',
-        confirmButtonColor: '#601a2a'
+        title: 'Error',
+        text: error.message || 'Ocurrió un error al generar los reportes.',
+        confirmButtonColor: '#601a2a',
       });
     } finally {
-      setMostrarReporte(false);
       setIsGenerating(false);
     }
   };
@@ -344,20 +278,6 @@ export default function DashboardEncierro() {
           </div>
         </main>
       </div>
-
-      {mostrarReporte && reporteDataRutas && reporteDataUnidades && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: '-9999px',
-            zIndex: -1,
-          }}
-        >
-          <PlantillaReporteGeneral data={reporteDataRutas} ref={reporteRutasRef} />
-          <PlantillaReporteUnidades data={reporteDataUnidades} ref={reporteUnidadesRef} />
-        </div>
-      )}
     </>
   );
 }

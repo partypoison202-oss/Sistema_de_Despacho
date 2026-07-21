@@ -1,25 +1,19 @@
 // src/pages/Dashboard/Dashboard.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
 import './Dashboard.css';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
-import Swal from 'sweetalert2';
-import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
-import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
-import API_BASE from '../../config/api';
+import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
+import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import API_BASE from '../../config/api';
 
 export default function Dashboard() {
-  const [reporteDataRutas, setReporteDataRutas] = useState(null);
-  const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
-  const [mostrarReporte, setMostrarReporte] = useState(false);
+  const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [busquedaEco, setBusquedaEco] = useState('');
-  const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -50,57 +44,6 @@ export default function Dashboard() {
   }, [queryClient]);
 
   // Referencias para los elementos a capturar
-  const reporteRutasRef = useRef(null);
-  const reporteUnidadesRef = useRef(null);
-
-  // Función para generar PDF a partir de una referencia
-  const generarPDF = (elementRef, nombreArchivo) => {
-    return new Promise((resolve, reject) => {
-      const element = elementRef.current;
-      if (!element) {
-        reject(new Error(`Elemento ${nombreArchivo} no encontrado`));
-        return;
-      }
-      html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
-      })
-        .then((canvas) => {
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          // Cambiado a portrait como en resumen despacho
-          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-          
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-          
-          const margin = 10;
-          const imgWidth = pdfWidth - (margin * 2);
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          
-          let heightLeft = imgHeight;
-          let position = margin;
-
-          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-          heightLeft -= (pdfHeight - (margin * 2));
-
-          // Paginación si el contenido se corta
-          while (heightLeft > 2) {
-            position -= (pdfHeight - (margin * 2));
-            pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-            heightLeft -= (pdfHeight - (margin * 2));
-          }
-
-          pdf.save(`${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
-          resolve();
-        })
-        .catch(reject);
-    });
-  };
 
   const normalizarNumeroEco = (valor) => {
     const digitos = String(valor ?? '').trim().toUpperCase().match(/\d+/)?.[0] ?? '';
@@ -225,18 +168,9 @@ export default function Dashboard() {
       const dataRutas = await respRutas.json();
       const dataUnidades = await respUnidades.json();
 
-      setReporteDataRutas(dataRutas);
-      setReporteDataUnidades(dataUnidades);
-      setMostrarReporte(true);
-
-      // Esperar a que React renderice los componentes ocultos
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Generar PDF de rutas
-      await generarPDF(reporteRutasRef, 'Reporte_Rutas');
-
-      // Generar PDF de unidades
-      await generarPDF(reporteUnidadesRef, 'Reporte_Unidades');
+      // Generar PDF nativos
+      await generarPDFReporteGeneral(dataRutas);
+      await generarPDFReporteUnidades(dataUnidades);
 
       Swal.fire({
         icon: 'success',
@@ -258,7 +192,6 @@ export default function Dashboard() {
         confirmButtonColor: '#601a2a',
       });
     } finally {
-      setMostrarReporte(false);
       setIsGenerating(false);
     }
   };
@@ -338,18 +271,6 @@ export default function Dashboard() {
                 ) : 'Generar Reportes PDF'}
               </button>
           </div>
-
-          {/* Componentes ocultos para generar PDF (fuera de pantalla) */}
-          {mostrarReporte && reporteDataRutas && (
-            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-              <PlantillaReporteGeneral data={reporteDataRutas} ref={reporteRutasRef} />
-            </div>
-          )}
-          {mostrarReporte && reporteDataUnidades && (
-            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-              <PlantillaReporteUnidades data={reporteDataUnidades} ref={reporteUnidadesRef} />
-            </div>
-          )}
         </main>
       </div>
     </>

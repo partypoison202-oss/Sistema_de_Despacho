@@ -480,13 +480,12 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         saveSnapshot();
         isDrawing.current = true;
         const ctx = canvasRef.current.getContext('2d');
-        const pos = getPos(e);
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
         
         if (color === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = brushSize * 2; // Goma un poco más gruesa
+            ctx.lineWidth = 20; // Tamaño de goma fijo y grande
         } else {
             ctx.globalCompositeOperation = 'source-over';
             ctx.strokeStyle = color;

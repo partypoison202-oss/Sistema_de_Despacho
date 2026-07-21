@@ -2,12 +2,10 @@
 import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
-import PlantillaReporteGeneral from '../../components/Reportes/PlantillaReporteGeneral';
-import PlantillaReporteUnidades from '../../components/Reportes/PlantillaReporteUnidades';
+import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
+import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 
@@ -24,14 +22,7 @@ export default function CentroControl() {
 
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Estado para la generación de los PDFs (igual que en Dashboard.jsx)
-  const [reporteDataRutas, setReporteDataRutas] = useState(null);
-  const [reporteDataUnidades, setReporteDataUnidades] = useState(null);
-  const [mostrarReporte, setMostrarReporte] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
-
-  const reporteRutasRef = useRef(null);
-  const reporteUnidadesRef = useRef(null);
 
   // ---- Carga y desglose de unidades por tipo y estatus ----
   const fetchDespachoHoy = async () => {
@@ -104,52 +95,7 @@ export default function CentroControl() {
   
   const eficienciaGlobal = totales.programadas > 0 ? Math.round(((totales.operacion + totales.reserva) / totales.programadas) * 100) : 0;
 
-  // ---- Generación de PDF (misma lógica que Dashboard.jsx) ----
-  const generarPDF = (elementRef, nombreArchivo) => {
-    return new Promise((resolve, reject) => {
-      const element = elementRef.current;
-      if (!element) {
-        reject(new Error(`Elemento ${nombreArchivo} no encontrado`));
-        return;
-      }
-      html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
-      })
-        .then((canvas) => {
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-          
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-          
-          const margin = 10;
-          const imgWidth = pdfWidth - (margin * 2);
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-          let heightLeft = imgHeight;
-          let position = margin;
-
-          pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-          heightLeft -= (pdfHeight - (margin * 2));
-
-          while (heightLeft > 2) {
-            position -= (pdfHeight - (margin * 2));
-            pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-            heightLeft -= (pdfHeight - (margin * 2));
-          }
-
-          pdf.save(`${nombreArchivo}_${new Date().toISOString().slice(0, 10)}.pdf`);
-          resolve();
-        })
-        .catch(reject);
-    });
-  };
 
   const handleGenerarReporte = async () => {
     setIsGenerating(true);
@@ -186,18 +132,12 @@ export default function CentroControl() {
         }
         throw new Error(errorMsg);
       }
-
       const dataRutas = await respRutas.json();
       const dataUnidades = await respUnidades.json();
 
-      setReporteDataRutas(dataRutas);
-      setReporteDataUnidades(dataUnidades);
-      setMostrarReporte(true);
-
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      await generarPDF(reporteRutasRef, 'Reporte_Rutas');
-      await generarPDF(reporteUnidadesRef, 'Reporte_Unidades');
+      // Generar PDF nativos
+      await generarPDFReporteGeneral(dataRutas);
+      await generarPDFReporteUnidades(dataUnidades);
 
       Swal.fire({
         icon: 'success',
@@ -209,6 +149,7 @@ export default function CentroControl() {
         timer: 3000,
         timerProgressBar: true,
       });
+
     } catch (error) {
       console.error('Error:', error);
       Swal.fire({
@@ -218,7 +159,6 @@ export default function CentroControl() {
         confirmButtonColor: '#601a2a',
       });
     } finally {
-      setMostrarReporte(false);
       setIsGenerating(false);
     }
   };
@@ -540,18 +480,6 @@ export default function CentroControl() {
           </section>
         </main>
       </div>
-
-      {/* Plantillas ocultas para capturar con html2canvas */}
-      {mostrarReporte && reporteDataRutas && reporteDataUnidades && (
-        <>
-          <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1 }} ref={reporteRutasRef}>
-            <PlantillaReporteGeneral data={reporteDataRutas} />
-          </div>
-          <div style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1 }} ref={reporteUnidadesRef}>
-            <PlantillaReporteUnidades data={reporteDataUnidades} />
-          </div>
-        </>
-      )}
     </>
   );
 }

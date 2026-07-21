@@ -55,12 +55,13 @@ export default function UnitInfoPanel({
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
 
+  const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
+
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
     if (datosOperativos.acople) setFormAcople(datosOperativos.acople);
   }, [datosOperativos]);
   const [rutasOpciones, setRutasOpciones] = useState([]);
-  const [editandoRuta, setEditandoRuta] = useState(false);
   const [formRuta, setFormRuta] = useState('');
   const [guardandoRuta, setGuardandoRuta] = useState(false);
   const [dropdownRutaOpen, setDropdownRutaOpen] = useState(false);
@@ -464,7 +465,7 @@ export default function UnitInfoPanel({
             {/* Ruta Asignada */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Ruta Asignada</span>
-                {editandoRuta ? (
+                {!isPlataforma && !isReservaOrMantenimiento ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
                     <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
                       <button
@@ -492,12 +493,12 @@ export default function UnitInfoPanel({
                             <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
                           </div>
                         ) : (
-                          <>
-                            <span>{formRuta || 'SELECCIONAR'}</span>
-                            <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
+                            <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
                               <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                             </svg>
-                          </>
+                          </div>
                         )}
                       </button>
 
@@ -537,7 +538,7 @@ export default function UnitInfoPanel({
                     </div>
                   </div>
                 ) : (
-                  <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between' }}>
+                  <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -547,21 +548,6 @@ export default function UnitInfoPanel({
                         {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
                       </p>
                     </div>
-                    {!isPlataforma && (
-                      <button
-                        onClick={() => {
-                          setFormRuta(datosOperativos.ruta || '');
-                          setEditandoRuta(true);
-                          setDropdownRutaOpen(true);
-                        }}
-                        title="Modificar Ruta"
-                        style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                      >
-                        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                    )}
                   </div>
                 )}
             </div>
@@ -569,7 +555,7 @@ export default function UnitInfoPanel({
             {/* Número de Tarjetón (Editable) */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Número de Tarjetón</span>
-              {editandoTarjeton ? (
+              {!isPlataforma && !isReservaOrMantenimiento ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
                   <div ref={tarjetonRef} style={{ position: 'relative', width: '100%', zIndex: dropdownTarjetonOpen ? 50 : 1 }}>
                     <div
@@ -593,10 +579,10 @@ export default function UnitInfoPanel({
                           <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal', fontSize: '0.85rem' }}>Guardando...</span>
                         </div>
                       ) : (
-                        <>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                           <input
                             type="text"
-                            placeholder="Buscar o escribir tarjetón..."
+                            placeholder={datosOperativos.tarjeton ? String(datosOperativos.tarjeton) : "Buscar o escribir tarjetón..."}
                             value={formTarjeton}
                             onChange={(e) => {
                               setFormTarjeton(e.target.value);
@@ -618,7 +604,7 @@ export default function UnitInfoPanel({
                                 handleConfirmTarjeton();
                                 setDropdownTarjetonOpen(false);
                               } else if (e.key === 'Escape') {
-                                handleCancelTarjetonEdit();
+                                setFormTarjeton('');
                                 setDropdownTarjetonOpen(false);
                               }
                             }}
@@ -626,12 +612,12 @@ export default function UnitInfoPanel({
                           <svg
                             onClick={() => setDropdownTarjetonOpen(!dropdownTarjetonOpen)}
                             className={`arrow-icon ${dropdownTarjetonOpen ? 'dropdown-trigger__arrow--open' : ''}`}
-                            style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit' }}
+                            style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
                             fill="currentColor" viewBox="0 0 24 24"
                           >
                             <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                           </svg>
-                        </>
+                        </div>
                       )}
                     </div>
                     {dropdownTarjetonOpen && !guardandoTarjeton && (
@@ -678,31 +664,17 @@ export default function UnitInfoPanel({
                   </div>
                 </div>
               ) : (
-                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
-                    </svg>
-                    <p className="info-card__value">
-                      {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
-                    </p>
-                  </div>
-                  {!isPlataforma && (
-                    <button
-                      onClick={() => {
-                        setEditandoTarjeton(true);
-                        setDropdownTarjetonOpen(true);
-                      }}
-                      title="Asignar Conductor por Tarjetón"
-                      style={{ background: 'transparent', color: 'var(--tw-color-gray-400)', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                    >
-                      <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
                       </svg>
-                    </button>
-                  )}
-                </div>
-              )}
+                      <p className="info-card__value">
+                        {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                      </p>
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -730,9 +702,10 @@ export default function UnitInfoPanel({
 
             <div className="info-card__item">
               <span className="info-card__label">Hora Programada</span>
-              <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative' }}>
+              <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
+                  disabled={isPlataforma || isReservaOrMantenimiento}
                   onClick={() => { setDropdownHoraOpen(!dropdownHoraOpen); setDropdownAcopleOpen(false); }}
                   style={{
                     background: 'transparent',
@@ -744,14 +717,16 @@ export default function UnitInfoPanel({
                     width: '100%',
                     padding: '0.5rem 0.5rem 0.5rem 2.2rem',
                     outline: 'none',
-                    cursor: 'pointer',
+                    cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'
                   }}
                 >
-                  <span>{formHoraProgramada || '--:--'}</span>
-                  <svg className={`arrow-icon ${dropdownHoraOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                    {formHoraProgramada || '--:--'}
+                  </span>
+                  <svg className={`arrow-icon ${dropdownHoraOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                   </svg>
                 </button>
@@ -781,9 +756,10 @@ export default function UnitInfoPanel({
             </div>
             <div className="info-card__item">
               <span className="info-card__label">Hora de Acople</span>
-              <div className="badge-display badge-display--maroon" style={{ padding: 0, overflow: 'visible', position: 'relative' }}>
+              <div className="badge-display badge-display--maroon" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
+                  disabled={isPlataforma || isReservaOrMantenimiento}
                   onClick={() => { setDropdownAcopleOpen(!dropdownAcopleOpen); setDropdownHoraOpen(false); }}
                   style={{
                     background: 'transparent',
@@ -795,14 +771,16 @@ export default function UnitInfoPanel({
                     width: '100%',
                     padding: '0.5rem 0.5rem 0.5rem 2.2rem',
                     outline: 'none',
-                    cursor: 'pointer',
+                    cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'
                   }}
                 >
-                  <span>{formAcople || '--:--'}</span>
-                  <svg className={`arrow-icon ${dropdownAcopleOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownAcopleOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                    {formAcople || '--:--'}
+                  </span>
+                  <svg className={`arrow-icon ${dropdownAcopleOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownAcopleOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                   </svg>
                 </button>
@@ -846,6 +824,7 @@ export default function UnitInfoPanel({
                 }}>
                   <button
                     type="button"
+                    disabled={isPlataforma || isReservaOrMantenimiento}
                     onClick={() => handleToggleCorridasPerdidas(true)}
                     style={{
                       flex: 1,
@@ -854,7 +833,8 @@ export default function UnitInfoPanel({
                       color: huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
                       fontWeight: 700,
                       fontSize: '0.85rem',
-                      cursor: 'pointer',
+                      cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
+                      opacity: (isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
                       transition: 'all 0.2s'
                     }}
                   >
@@ -862,6 +842,7 @@ export default function UnitInfoPanel({
                   </button>
                   <button
                     type="button"
+                    disabled={isPlataforma || isReservaOrMantenimiento}
                     onClick={() => handleToggleCorridasPerdidas(false)}
                     style={{
                       flex: 1,
@@ -871,7 +852,8 @@ export default function UnitInfoPanel({
                       color: !huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
                       fontWeight: 700,
                       fontSize: '0.85rem',
-                      cursor: 'pointer',
+                      cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
+                      opacity: (isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
                       transition: 'all 0.2s'
                     }}
                   >
@@ -903,8 +885,10 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                   >
-                    <span>{perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' CICLOS' : 'SELECCIONAR'}</span>
-                    <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                      {perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' CICLOS' : 'SELECCIONAR'}
+                    </span>
+                    <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                     </svg>
                   </button>
@@ -919,6 +903,7 @@ export default function UnitInfoPanel({
                           onClick={() => {
                             setPerdidaCiclos('');
                             setDropdownCiclosOpen(false);
+                            handleSavePerdida('', perdidaMotivo);
                           }}
                         >
                           SELECCIONAR
@@ -932,6 +917,7 @@ export default function UnitInfoPanel({
                             onClick={() => {
                               setPerdidaCiclos(opt.value);
                               setDropdownCiclosOpen(false);
+                              handleSavePerdida(opt.value, perdidaMotivo);
                             }}
                           >
                             {opt.label} CICLOS
@@ -961,8 +947,10 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setDropdownMotivoOpen(!dropdownMotivoOpen)}
                   >
-                    <span>{perdidaMotivo || 'SELECCIONAR MOTIVO'}</span>
-                    <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                      {perdidaMotivo || 'SELECCIONAR MOTIVO'}
+                    </span>
+                    <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                     </svg>
                   </button>
@@ -976,6 +964,7 @@ export default function UnitInfoPanel({
                           onClick={() => {
                             setPerdidaMotivo('');
                             setDropdownMotivoOpen(false);
+                            handleSavePerdida(perdidaCiclos, '');
                           }}
                         >
                           SELECCIONAR MOTIVO
@@ -989,6 +978,7 @@ export default function UnitInfoPanel({
                             onClick={() => {
                               setPerdidaMotivo(motivo);
                               setDropdownMotivoOpen(false);
+                              handleSavePerdida(perdidaCiclos, motivo);
                             }}
                           >
                             {motivo}
@@ -999,39 +989,6 @@ export default function UnitInfoPanel({
                   )}
                 </div>
               </>
-            )}
-
-            {/* Botón Guardar para corridas perdidas */}
-            {!isPlataforma && huboCorridasPerdidas && (perdidaCiclos !== (datosOperativos.ciclo || '') || perdidaMotivo !== (datosOperativos.motivo || '')) && (
-              <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'end', marginTop: '0.5rem' }} className="animate-fade-in-up">
-                <button
-                  type="button"
-                  disabled={!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida}
-                  onClick={() => handleSavePerdida(perdidaCiclos, perdidaMotivo.trim())}
-                  className="interactive-input"
-                  style={{
-                    width: 'auto',
-                    padding: '0 1.5rem',
-                    height: '2.3rem',
-                    background: '#6b1d33',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    cursor: (!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida) ? 'not-allowed' : 'pointer',
-                    opacity: (!perdidaCiclos || !perdidaMotivo.trim() || guardandoPerdida) ? 0.6 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  {guardandoPerdida && (
-                    <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
-                  )}
-                  GUARDAR
-                </button>
-              </div>
             )}
             
             {/* INCORPORAR / DESINCORPORAR para PLATAFORMA */}
@@ -1483,10 +1440,10 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setPlatConductorDropdown(!platConductorDropdown)}
                   >
-                    <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8' }}>
+                    <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
                       {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
                     </span>
-                    <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33' }} fill="currentColor" viewBox="0 0 24 24">
+                    <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                     </svg>
                   </button>
@@ -1521,10 +1478,10 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setPlatRutaDropdown(!platRutaDropdown)}
                   >
-                    <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8' }}>
+                    <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
                       {platRuta || 'Seleccione una ruta...'}
                     </span>
-                    <svg className={`arrow-icon ${platRutaDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platRutaDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33' }} fill="currentColor" viewBox="0 0 24 24">
+                    <svg className={`arrow-icon ${platRutaDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platRutaDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                     </svg>
                   </button>
@@ -1571,10 +1528,10 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setPlatEstatusDropdown(!platEstatusDropdown)}
                   >
-                    <span style={{ fontWeight: 600, color: platEstatus ? '#0b162c' : '#94a3b8' }}>
+                    <span style={{ fontWeight: 600, color: platEstatus ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
                       {platEstatus || 'Destino de la unidad...'}
                     </span>
-                    <svg className={`arrow-icon ${platEstatusDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platEstatusDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33' }} fill="currentColor" viewBox="0 0 24 24">
+                    <svg className={`arrow-icon ${platEstatusDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platEstatusDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                     </svg>
                   </button>
