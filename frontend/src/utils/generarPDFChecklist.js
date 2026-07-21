@@ -194,7 +194,7 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
         const rows = [
             { label: 'Unidad (Económico)', value: checklist.economico || checklist.numero_eco || '—' },
             { label: 'Tipo de Unidad',      value: checklist.tipo_unidad  || '—' },
-            { label: 'Servicio / Ruta',     value: checklist.servicio     || '—' },
+            { label: 'Servicio / Ruta',     value: (!checklist.servicio || checklist.servicio.toLowerCase().includes('seleccione')) ? '—' : checklist.servicio },
             { label: 'Inspector',           value: checklist.user_name    || '—' },
             { label: 'Conductor',           value: conductorNombre },
             { label: 'Fecha y Hora',        value: dateFormatted },
@@ -254,13 +254,11 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
         const tableData = [];
         PUNTOS.forEach(punto => {
             const pd = checklist.puntos?.[punto.id];
-            if (pd && pd.estado) {
-                tableData.push([
-                    punto.label,
-                    pd.estado === 'bien' ? 'Bien' : 'Mal',
-                    pd.observaciones || '—',
-                ]);
-            }
+            tableData.push([
+                punto.label,
+                (pd && pd.estado) ? (pd.estado === 'bien' ? 'Bien' : 'Mal') : '—',
+                (pd && pd.observaciones) ? pd.observaciones : '—',
+            ]);
         });
 
         autoTable(doc, {
@@ -429,7 +427,16 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
         // ── Guardar / Imprimir ───────────────────────────────────────────────
         if (accion === 'print') {
             doc.autoPrint();
-            window.open(doc.output('bloburl'), '_blank');
+            const blob = doc.output('blob');
+            const url = URL.createObjectURL(blob);
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+            iframe.onload = () => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            };
         } else {
             doc.save(`Checklist_${checklist.id}_Unidad${checklist.economico || ''}.pdf`);
         }
