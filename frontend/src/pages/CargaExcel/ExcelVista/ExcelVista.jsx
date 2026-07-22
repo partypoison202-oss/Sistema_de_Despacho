@@ -222,21 +222,11 @@ export default function ExcelPreview({
                               }}
                               disabled={isRowDisabled}
                               className={`edit-input dropdown-trigger ${isRutaOpen ? 'active-trigger' : ''}`}
-                              style={{
-                                cursor: isRowDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isRowDisabled ? 0.6 : 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                width: '100%',
-                                gap: '4px'
-                              }}
+                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
-                                {fila[h] || 'Selecciona...'}
-                              </span>
-                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isRutaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M7 10l5 5 5-5z" />
+                              <span>{fila[h] || 'Selecciona...'}</span>
+                              <svg style={{ transform: isRutaOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
                             {isRutaOpen && (
@@ -326,21 +316,11 @@ export default function ExcelPreview({
                               }}
                               disabled={isRowDisabled}
                               className={`edit-input dropdown-trigger ${isTarjetonOpen ? 'active-trigger' : ''}`}
-                              style={{
-                                cursor: isRowDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isRowDisabled ? 0.6 : 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                width: '100%',
-                                gap: '4px'
-                              }}
+                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
-                                {fila[h] ? String(fila[h]) : 'Selecciona...'}
-                              </span>
-                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isTarjetonOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M7 10l5 5 5-5z" />
+                              <span>{fila[h] ? String(fila[h]) : 'Selecciona...'}</span>
+                              <svg style={{ transform: isTarjetonOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
                             {isTarjetonOpen && (
@@ -386,9 +366,7 @@ export default function ExcelPreview({
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
                                           >
-                                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block', textAlign: 'center', width: '100%' }}>
-                                                <strong style={{ color: isSelected ? 'var(--brand-maroon-bg)' : '#111827' }}>{c.tarjeton}</strong>
-                                              </span>
+                                            <span>{c.tarjeton}</span>
                                             {isSelected && (
                                               <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -425,22 +403,12 @@ export default function ExcelPreview({
                                 }
                               }}
                               className={`edit-input dropdown-trigger ${isEstatusOpen ? 'active-trigger' : ''}`}
-                              style={{
-                                color: statusStyle.text,
-                                backgroundColor: statusStyle.bg,
-                                borderColor: statusStyle.border,
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '100%',
-                                padding: '0.2rem 0',
-                                gap: '4px'
-                              }}
+                              style={{ cursor: 'pointer' }}
                             >
-                              <span style={{ whiteSpace: 'nowrap', lineHeight: '1.2' }}>
-                                {estatusTranslations[currentStatus]} {isEstatusOpen ? '▲' : '▼'}
-                              </span>
+                              <span>{estatusTranslations[currentStatus]}</span>
+                              <svg style={{ transform: isEstatusOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                              </svg>
                             </button>
                             {isEstatusOpen && (
                               <>
@@ -497,7 +465,7 @@ export default function ExcelPreview({
                               {fila[h] || ''}
                             </div>
                           ) : (
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: h === 'CORRIDAS' ? 'center' : 'flex-start', width: '100%' }}>
                               <input
                                 type="text"
                                 disabled={isRowDisabled}
