@@ -285,7 +285,12 @@ class DespachoController extends Controller
         $tipoNormalizado = strtolower(trim($tipo));
         $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
 
-        // 🔥 CORREGIDO: agregar numero_tarjeton al select
+        // Buscar primero la unidad base para tener siempre sus datos de mantenimiento
+        $unidadBase = DB::table('unidades')
+            ->where('numero_eco', $numeroEcoClean)
+            ->first();
+
+        // 🔥 CORREGIDO: agregar numero_tarjeton al select y campos de mantenimiento
         $info = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
@@ -325,7 +330,12 @@ class DespachoController extends Controller
                 'ciclo'     => $info->ciclo,
                 'motivo'    => $info->motivo,
                 'hora_programada' => $info->hora_programada,
-                'acople'    => $info->acople
+                'acople'    => $info->acople,
+                // Nuevos campos de mantenimiento
+                'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
+                'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
+                'numero_cincho'      => $unidadBase->numero_cincho ?? null,
+                'fecha_ultima_carga' => $unidadBase->fecha_ultima_carga ?? null,
             ] : [
                 'status'    => 'success',
                 'asignado'  => false,
@@ -338,7 +348,12 @@ class DespachoController extends Controller
                 'ciclo'     => null,
                 'motivo'    => null,
                 'hora_programada' => null,
-                'acople'    => null
+                'acople'    => null,
+                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
+                'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
+                'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
+                'numero_cincho'      => $unidadBase->numero_cincho ?? null,
+                'fecha_ultima_carga' => $unidadBase->fecha_ultima_carga ?? null,
             ],
             200
         );
@@ -848,5 +863,61 @@ class DespachoController extends Controller
             ->orderBy('numero_eco')
             ->get();
         return response()->json($unidades, 200);
+    }
+
+    /**
+     * Guarda la información de mantenimiento (combustible, adblue, cincho) en la tabla unidades.
+     */
+    public function guardarMantenimiento(Request $request)
+    {
+        try {
+            \Log::info('[guardarMantenimiento] Request recibido', $request->all());
+
+            $request->validate([
+                'numero_eco' => 'required|string',
+                'tipo' => 'required|string',
+            ]);
+
+            $tipoNormalizado = strtolower(trim($request->tipo));
+            $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
+
+            \Log::info('[guardarMantenimiento] Buscando unidad', ['eco' => $numeroEcoClean, 'tipo' => $tipoNormalizado]);
+
+            $unidad = DB::table('unidades')
+                ->where('numero_eco', $numeroEcoClean)
+                ->first();
+
+            \Log::info('[guardarMantenimiento] Unidad encontrada', ['unidad' => $unidad]);
+
+            if (!$unidad) {
+                \Log::error('[guardarMantenimiento] Unidad NO encontrada', ['eco' => $numeroEcoClean]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unidad no encontrada en la base de datos.'
+                ], 404);
+            }
+
+            DB::table('unidades')
+                ->where('id', $unidad->id)
+                ->update([
+                    'nivel_combustible'  => $request->nivel_combustible === '' ? null : $request->nivel_combustible,
+                    'nivel_adblue'       => $request->nivel_adblue === '' ? null : $request->nivel_adblue,
+                    'numero_cincho'      => $request->numero_cincho === '' ? null : $request->numero_cincho,
+                    'fecha_ultima_carga' => $request->fecha_ultima_carga === '' ? null : $request->fecha_ultima_carga,
+                ]);
+
+            \Log::info('[guardarMantenimiento] Guardado exitosamente', ['id' => $unidad->id]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Información de mantenimiento guardada correctamente.'
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('[guardarMantenimiento] Error de validación', ['errors' => $e->errors()]);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            \Log::error('[guardarMantenimiento] Excepción', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 }
