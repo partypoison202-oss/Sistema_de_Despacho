@@ -1,9 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+
+const CALENDAR_WIDTH = 288; // w-72
 
 const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const dropdownRef = useRef(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const wrapperRef = useRef(null);
+  const buttonRef = useRef(null);
+  const calendarRef = useRef(null);
 
   useEffect(() => {
     if (value) {
@@ -17,9 +23,40 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" })
     }
   }, [value]);
 
+  // Calcula la posición del calendario centrado debajo del campo, respetando los bordes de la pantalla
+  const updatePosition = useCallback(() => {
+    const btn = buttonRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const margin = 8;
+
+    let left = rect.left + rect.width / 2 - CALENDAR_WIDTH / 2;
+    // Evita que se salga por la izquierda o la derecha de la ventana
+    left = Math.max(margin, Math.min(left, window.innerWidth - CALENDAR_WIDTH - margin));
+
+    const top = rect.bottom + 8;
+
+    setCoords({ top, left });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+
+    const handleReposition = () => updatePosition();
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [isOpen, updatePosition]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const clickedButton = wrapperRef.current && wrapperRef.current.contains(event.target);
+      const clickedCalendar = calendarRef.current && calendarRef.current.contains(event.target);
+      if (!clickedButton && !clickedCalendar) {
         setIsOpen(false);
       }
     };
@@ -117,6 +154,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" })
     <div className="relative inline-block w-full select-none" ref={dropdownRef}>
       {/* Botón trigger estilo iOS Pill / Card */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between gap-2 px-3.5 py-2 bg-white/90 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-sm hover:shadow hover:bg-white active:scale-[0.98] transition-all duration-150 cursor-pointer"

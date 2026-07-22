@@ -74,20 +74,33 @@ class TitanController extends Controller
                 'accidente_placas' => 'nullable|string',
                 'accidente_seguro' => 'nullable',
                 'accidente_hechos' => 'nullable|string',
+                'firma_particular' => 'nullable|image|mimes:png,jpg,jpeg|max:5120',
+                'fotos' => 'nullable|array',
                 'fotos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120'
             ]);
 
             DB::beginTransaction();
 
-            $seguro = null;
-            if (isset($validated['accidente_seguro'])) {
-                $seguro = filter_var($validated['accidente_seguro'], FILTER_VALIDATE_BOOLEAN);
+            // Normalizar accidente_seguro a string 'true'/'false' para Postgres
+            $seguro = $request->input('accidente_seguro');
+            if (is_bool($seguro)) {
+                $seguro = $seguro ? 'true' : 'false';
+            } elseif (is_numeric($seguro)) {
+                $seguro = (int) $seguro ? 'true' : 'false';
+            } elseif ($seguro === null) {
+                $seguro = null;
+            }
+
+            // Guardar firma del particular (si viene)
+            $rutaFirma = null;
+            if ($request->hasFile('firma_particular')) {
+                $rutaFirma = $request->file('firma_particular')->store('titan/firmas', 'public');
             }
 
             // Guardar reporte
             $reporteId = DB::table('reportes_titan')->insertGetId([
                 'unidad_id' => $validated['unidad_id'],
-                'usuario_id' => auth()->id() ?? 1, // Fallback a 1 si no hay usuario auth temporalmente
+                'usuario_id' => auth()->id() ?? 1,
                 'intervalo' => $validated['intervalo'] ?? null,
                 'observaciones' => $validated['observaciones'] ?? null,
                 'tipo_evento' => $validated['tipo_evento'],
@@ -104,22 +117,27 @@ class TitanController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Guardar fotos
+            // Guardar fotos (el frontend debe enviar el campo como fotos[])
             if ($request->hasFile('fotos')) {
                 foreach ($request->file('fotos') as $foto) {
-                    $path = $foto->store('reportes_titan', 'public');
+                    if (!$foto->isValid()) {
+                        continue;
+                    }
+                    $rutaFoto = $foto->store('titan/fotos', 'public');
                     DB::table('reportes_titan_fotos')->insert([
                         'reporte_titan_id' => $reporteId,
-                        'ruta_foto' => $path,
+                        'ruta_foto' => $rutaFoto,
                         'created_at' => now(),
-                        'updated_at' => now()
+                        'updated_at' => now(),
                     ]);
                 }
             }
 
             DB::commit();
-
-            return response()->json(['message' => 'Reporte guardado exitosamente', 'reporte_id' => $reporteId], 201);
+            return response()->json([
+                'message' => 'Reporte guardado exitosamente',
+                'reporte_id' => $reporteId
+            ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();

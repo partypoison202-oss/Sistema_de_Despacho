@@ -8,15 +8,14 @@ use App\Http\Controllers\API\ReporteController;
 use App\Http\Controllers\API\ConductorController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\API\PlataformaController;
+use App\Http\Controllers\API\TitanController;
+use App\Http\Controllers\API\TitanReporteController;
+use App\Http\Controllers\API\HistorialOperativoController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
-// routes/api.php
-
-Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
-// routes/api.php
 
 // Todas las rutas dentro de este grupo requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
@@ -30,7 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
-    
+
     // Gestión de Despacho
     Route::get('/despacho/rutas', [DespachoController::class, 'obtenerRutas']);
     Route::post('/despacho/actualizar-ruta', [DespachoController::class, 'actualizarRuta']);
@@ -50,40 +49,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);
     Route::get('/unidades/buscar-tarjeton/{tipo}/{tarjeton}', [DespachoController::class, 'buscarUnidadPorTarjeton']);
     Route::get('/unidades/detalle/{tipo}/{numeroEco}', [DespachoController::class, 'obtenerDetalleUnidad']);
-    Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']); // <-- Esta es la que necesitas
+    Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']);
     Route::get('/unidades/{tipo}', [DespachoController::class, 'obtenerPorTipo']);
 
-    //rutas de reportes
+    // Rutas de reportes
     Route::get('/despacho/reporte-general', [ReporteController::class, 'generarReporteGeneralData']);
     Route::get('/despacho/reporte-unidades', [ReporteController::class, 'generarReporteUnidades']);
-    
+
     // Checklist
     Route::post('/checklist', [ChecklistController::class, 'store']);
     Route::put('/checklist/{id}', [ChecklistController::class, 'update']);
     Route::get('/checklists', [ChecklistController::class, 'index']);
 
     // Historial Operativo
-    Route::get('/historial-operativo/fechas', [App\Http\Controllers\API\HistorialOperativoController::class, 'getFechas']);
-    Route::get('/historial-operativo/despacho/{fecha}', [App\Http\Controllers\API\HistorialOperativoController::class, 'getHistorialDespacho']);
-    Route::get('/historial-operativo/encierro/{fecha}', [App\Http\Controllers\API\HistorialOperativoController::class, 'getHistorialEncierro']);
+    Route::get('/historial-operativo/fechas', [HistorialOperativoController::class, 'getFechas']);
+    Route::get('/historial-operativo/despacho/{fecha}', [HistorialOperativoController::class, 'getHistorialDespacho']);
+    Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
 
     // RUTAS PARA TITAN
-    Route::get('/titan/unidades', [App\Http\Controllers\API\TitanController::class, 'getUnidadesOperacion']);
-    Route::post('/titan/reporte', [App\Http\Controllers\API\TitanController::class, 'guardarReporte']);
+    Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);
+    Route::post('/titan/reporte', [TitanController::class, 'guardarReporte']);
+    Route::get('/titan/{usuarioId}/reportes', [TitanReporteController::class, 'reportesPorTitan']);
 
     // RUTAS PARA PLATAFORMA
     Route::post('/plataforma/movimiento', [PlataformaController::class, 'registrarMovimiento']);
 });
 
-Route::get('/setup-titan', function() {
+Route::get('/setup-titan', function () {
     try {
-        // Insert TITAN role if not exists
         \Illuminate\Support\Facades\DB::table('roles')->updateOrInsert(
             ['codigo' => 'TITAN'],
             ['nombre' => 'TITAN']
         );
 
-        // Create reportes_titan table
         if (!\Illuminate\Support\Facades\Schema::hasTable('reportes_titan')) {
             \Illuminate\Support\Facades\Schema::create('reportes_titan', function (Illuminate\Database\Schema\Blueprint $table) {
                 $table->id();
@@ -92,25 +90,25 @@ Route::get('/setup-titan', function() {
                 $table->string('intervalo')->nullable();
                 $table->text('observaciones')->nullable();
                 $table->string('tipo_evento'); // DESINCORPORACION, INCORPORACION, ACCIDENTE
-                
+
                 // Desincorporacion / Incorporacion
                 $table->string('corrida')->nullable();
                 $table->string('hora_evento')->nullable();
                 $table->string('ubicacion_gps')->nullable();
                 $table->text('motivo_desincorporacion')->nullable();
-                
+
                 // Accidentes
                 $table->string('accidente_dueno')->nullable();
                 $table->string('accidente_vehiculo')->nullable();
                 $table->string('accidente_placas')->nullable();
                 $table->boolean('accidente_seguro')->nullable();
                 $table->text('accidente_hechos')->nullable();
-                
+                $table->string('firma_particular')->nullable();
+
                 $table->timestamps();
             });
         }
 
-        // Create reportes_titan_fotos table
         if (!\Illuminate\Support\Facades\Schema::hasTable('reportes_titan_fotos')) {
             \Illuminate\Support\Facades\Schema::create('reportes_titan_fotos', function (Illuminate\Database\Schema\Blueprint $table) {
                 $table->id();
@@ -126,15 +124,13 @@ Route::get('/setup-titan', function() {
     }
 });
 
-Route::get('/setup-plataforma', function() {
+Route::get('/setup-plataforma', function () {
     try {
-        // Insert PLATAFORMA role if not exists
         \Illuminate\Support\Facades\DB::table('roles')->updateOrInsert(
             ['codigo' => 'PLATAFORMA'],
             ['nombre' => 'PLATAFORMA']
         );
 
-        // Create plataforma_movimientos table
         if (!\Illuminate\Support\Facades\Schema::hasTable('plataforma_movimientos')) {
             \Illuminate\Support\Facades\Schema::create('plataforma_movimientos', function (Illuminate\Database\Schema\Blueprint $table) {
                 $table->id();

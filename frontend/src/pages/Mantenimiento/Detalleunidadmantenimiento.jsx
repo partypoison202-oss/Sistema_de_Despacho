@@ -35,11 +35,17 @@ export default function DetalleUnidadMantenimiento() {
   });
 
   // Campos de mantenimiento: los captura el usuario que realiza el mantenimiento (no vienen del sistema)
+  // Ahora separados por medidor: Gasolina y AdBlue, cada uno con kilometraje, fecha de última carga y litros cargados
   const [mantenimientoForm, setMantenimientoForm] = useState({
     nivelGasolina: '',
+    kilometrajeGasolina: '',
+    fechaUltimaCargaGasolina: '',
+    litrosGasolina: '',
+
     nivelAdblue: '',
-    kilometraje: '',
-    fechaUltimaCarga: '',
+    kilometrajeAdblue: '',
+    fechaUltimaCargaAdblue: '',
+    litrosAdblue: '',
   });
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false);
 
@@ -317,9 +323,14 @@ export default function DetalleUnidadMantenimiento() {
       setMantenimientoForm(
         guardadoLocal || {
           nivelGasolina: '',
+          kilometrajeGasolina: '',
+          fechaUltimaCargaGasolina: '',
+          litrosGasolina: '',
+
           nivelAdblue: '',
-          kilometraje: '',
-          fechaUltimaCarga: '',
+          kilometrajeAdblue: '',
+          fechaUltimaCargaAdblue: '',
+          litrosAdblue: '',
         }
       );
     } catch (error) {
@@ -663,6 +674,26 @@ export default function DetalleUnidadMantenimiento() {
     );
   }
 
+  // Helper para renderizar el bloque de "días desde la última carga"
+  const renderAlertaDias = (fecha) => {
+    if (!fecha) return null;
+    const dias = Math.floor((Date.now() - new Date(fecha)) / 86400000);
+    const alerta = dias > 3;
+    return (
+      <span
+        style={{
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          marginTop: '0.35rem',
+          display: 'block',
+          color: alerta ? '#ef4444' : '#10b981',
+        }}
+      >
+        {dias === 0 ? 'Hoy' : `Hace ${dias} día${dias > 1 ? 's' : ''}`} {alerta && '⚠️ revisar carga'}
+      </span>
+    );
+  };
+
   return (
     <div className="layout-container">
       <Header
@@ -777,7 +808,7 @@ export default function DetalleUnidadMantenimiento() {
                     </div>
                   </div>
 
-                  {/* CARD: INSPECCIÓN (campos capturados por el usuario) */}
+                  {/* CARD: INSPECCIÓN — dos medidores independientes: Gasolina y AdBlue */}
                   <div className="info-card">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -787,76 +818,131 @@ export default function DetalleUnidadMantenimiento() {
                     </div>
 
                     <div className="info-card__body">
-                      {/* Medidores tipo aguja: Gasolina y AdBlue, uno al lado del otro */}
+                      {/* --- Bloques GASOLINA y ADBLUE, uno al lado del otro --- */}
                       <div
                         style={{
                           display: 'flex',
-                          gap: '0.25rem',
-                          justifyContent: 'center',
-                          alignItems: 'flex-start',
-                          background: '#fafafa',
-                          borderRadius: '0.75rem',
-                          padding: '0.6rem 0.25rem 0.1rem',
-                          border: '1px solid #f0f0f0',
+                          gap: '0.75rem',
+                          alignItems: 'stretch',
                         }}
                       >
-                        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', justifyContent: 'center' }}>
-                          <FuelGaugeSelector
-                            value={mantenimientoForm.nivelGasolina}
-                            onChange={(v) => handleMantenimientoChange('nivelGasolina', v)}
-                            color="#c5a059"
-                            label="Gasolina"
-                          />
-                        </div>
-                        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', justifyContent: 'center' }}>
-                          <FuelGaugeSelector
-                            value={mantenimientoForm.nivelAdblue}
-                            onChange={(v) => handleMantenimientoChange('nivelAdblue', v)}
-                            color="#3b82f6"
-                            label="AdBlue"
-                          />
-                        </div>
-                      </div>
+                        {/* --- Bloque: GASOLINA --- */}
+                        <div
+                          style={{
+                            flex: '1 1 0',
+                            minWidth: 0,
+                            background: '#fafafa',
+                            borderRadius: '0.75rem',
+                            padding: '0.85rem 0.65rem 1rem',
+                            border: '1px solid #f0f0f0',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <FuelGaugeSelector
+                              value={mantenimientoForm.nivelGasolina}
+                              onChange={(v) => handleMantenimientoChange('nivelGasolina', v)}
+                              color="#c5a059"
+                              label="Gasolina"
+                            />
+                          </div>
 
-                      <div className="info-card__item" style={{ marginTop: '1rem' }}>
-                        <span className="info-card__label">Kilometraje</span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          className="interactive-input"
-                          style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
-                          placeholder="Ej: 125000"
-                          value={mantenimientoForm.kilometraje}
-                          onChange={(e) => handleMantenimientoChange('kilometraje', e.target.value.replace(/\D/g, '').substring(0, 6))}
-                        />
-                      </div>
+                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                            <span className="info-card__label">Kilometraje</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              className="interactive-input"
+                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
+                              placeholder="Ej: 125000"
+                              value={mantenimientoForm.kilometrajeGasolina}
+                              onChange={(e) => handleMantenimientoChange('kilometrajeGasolina', e.target.value.replace(/\D/g, '').substring(0, 6))}
+                            />
+                          </div>
 
-                      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                        <span className="info-card__label">Última Carga de Gasolina</span>
-                        <div className="mt-1 relative z-50">
-                          <AppleDatePicker
-                            value={mantenimientoForm.fechaUltimaCarga}
-                            onChange={(dateStr) => handleMantenimientoChange('fechaUltimaCarga', dateStr)}
-                            placeholder="Seleccionar fecha"
-                          />
+                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                            <span className="info-card__label">Última Carga</span>
+                            <div className="mt-1 relative z-50">
+                              <AppleDatePicker
+                                value={mantenimientoForm.fechaUltimaCargaGasolina}
+                                onChange={(dateStr) => handleMantenimientoChange('fechaUltimaCargaGasolina', dateStr)}
+                                placeholder="Seleccionar fecha"
+                              />
+                            </div>
+                            {renderAlertaDias(mantenimientoForm.fechaUltimaCargaGasolina)}
+                          </div>
+
+                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                            <span className="info-card__label">Litros Cargados</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="interactive-input"
+                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
+                              placeholder="Ej: 120"
+                              value={mantenimientoForm.litrosGasolina}
+                              onChange={(e) => handleMantenimientoChange('litrosGasolina', e.target.value.replace(/[^0-9.]/g, '').substring(0, 6))}
+                            />
+                          </div>
                         </div>
-                        {mantenimientoForm.fechaUltimaCarga && (() => {
-                          const dias = Math.floor((Date.now() - new Date(mantenimientoForm.fechaUltimaCarga)) / 86400000);
-                          const alerta = dias > 3;
-                          return (
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                marginTop: '0.35rem',
-                                display: 'block',
-                                color: alerta ? '#ef4444' : '#10b981',
-                              }}
-                            >
-                              {dias === 0 ? 'Hoy' : `Hace ${dias} día${dias > 1 ? 's' : ''}`} {alerta && '⚠️ revisar carga'}
-                            </span>
-                          );
-                        })()}
+
+                        {/* --- Bloque: ADBLUE --- */}
+                        <div
+                          style={{
+                            flex: '1 1 0',
+                            minWidth: 0,
+                            background: '#fafafa',
+                            borderRadius: '0.75rem',
+                            padding: '0.85rem 0.65rem 1rem',
+                            border: '1px solid #f0f0f0',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <FuelGaugeSelector
+                              value={mantenimientoForm.nivelAdblue}
+                              onChange={(v) => handleMantenimientoChange('nivelAdblue', v)}
+                              color="#3b82f6"
+                              label="AdBlue"
+                            />
+                          </div>
+
+                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                            <span className="info-card__label">Kilometraje</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              className="interactive-input"
+                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
+                              placeholder="Ej: 125000"
+                              value={mantenimientoForm.kilometrajeAdblue}
+                              onChange={(e) => handleMantenimientoChange('kilometrajeAdblue', e.target.value.replace(/\D/g, '').substring(0, 6))}
+                            />
+                          </div>
+
+                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                            <span className="info-card__label">Última Carga</span>
+                            <div className="mt-1 relative z-50">
+                              <AppleDatePicker
+                                value={mantenimientoForm.fechaUltimaCargaAdblue}
+                                onChange={(dateStr) => handleMantenimientoChange('fechaUltimaCargaAdblue', dateStr)}
+                                placeholder="Seleccionar fecha"
+                              />
+                            </div>
+                            {renderAlertaDias(mantenimientoForm.fechaUltimaCargaAdblue)}
+                          </div>
+
+                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                            <span className="info-card__label">Litros Cargados</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              className="interactive-input"
+                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
+                              placeholder="Ej: 20"
+                              value={mantenimientoForm.litrosAdblue}
+                              onChange={(e) => handleMantenimientoChange('litrosAdblue', e.target.value.replace(/[^0-9.]/g, '').substring(0, 6))}
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'end', marginTop: '1rem' }}>

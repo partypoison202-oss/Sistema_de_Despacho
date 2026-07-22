@@ -341,11 +341,8 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
     useEffect(() => {
         initCanvas();
         const handleResize = () => {
-            // Redibujar todo después del resize
             const canvas = canvasRef.current;
             if (!canvas) return;
-            // Guardamos los trazos actuales
-            const paths = pathsRef.current;
             initCanvas();
             renderAllPaths();
         };
@@ -364,7 +361,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
 
-        // Dibujar todos los trazos guardados
         pathsRef.current.forEach(path => {
             if (path.points.length < 2) return;
             ctx.beginPath();
@@ -379,7 +375,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             ctx.stroke();
         });
 
-        // Dibujar el trazo actual (si existe)
         if (currentPathRef.current && currentPathRef.current.points.length > 1) {
             const path = currentPathRef.current;
             ctx.beginPath();
@@ -395,7 +390,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
     }, []);
 
-    // ── Guardar snapshot en historial (copia profunda) ──────────────
+    // ── Guardar snapshot en historial ──────────────────────────────
     const saveSnapshot = useCallback(() => {
         const copy = JSON.parse(JSON.stringify(pathsRef.current));
         historyRef.current.push(copy);
@@ -416,12 +411,11 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
 
     // ── Borrar trazo más cercano al punto ──────────────────────────────
     const eraseAt = useCallback((pos) => {
-        const threshold = 20; // píxeles de tolerancia
+        const threshold = 20;
         let minDist = Infinity;
         let indexToRemove = -1;
 
         pathsRef.current.forEach((path, idx) => {
-            // Calcular distancia mínima entre el punto y cualquier punto del trazo
             for (let p of path.points) {
                 const dx = p.x - pos.x;
                 const dy = p.y - pos.y;
@@ -434,11 +428,9 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         });
 
         if (indexToRemove !== -1 && minDist <= threshold) {
-            // Eliminar el trazo
             pathsRef.current.splice(indexToRemove, 1);
             saveSnapshot();
             renderAllPaths();
-            // Actualizar imagen compuesta
             if (onSave) {
                 const canvas = canvasRef.current;
                 const dpr = window.devicePixelRatio || 1;
@@ -452,7 +444,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
                     compCtx.globalAlpha = 0.6;
                     compCtx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
                     compCtx.globalAlpha = 1.0;
-                    // El canvas ya contiene solo los trazos (sin fondo)
                     compCtx.drawImage(canvas, 0, 0);
                     onSave(composite.toDataURL('image/png'));
                 };
@@ -466,12 +457,12 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
     }, [onSave, renderAllPaths, saveSnapshot, tipoUnidad]);
 
     // ── Eventos de dibujo ──────────────────────────────────────────────
+    // *** CORREGIDO: Se eliminó la redeclaración de 'pos' ***
     const startDraw = (e) => {
         e.preventDefault();
         const pos = getPos(e);
 
         if (mode === 'eraser') {
-            // Modo goma: borrar al hacer clic (sin arrastrar)
             eraseAt(pos);
             return;
         }
@@ -482,7 +473,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         const ctx = canvasRef.current.getContext('2d');
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
-        
+
         if (color === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
             ctx.lineWidth = 20; // Tamaño de goma fijo y grande
@@ -491,6 +482,13 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             ctx.strokeStyle = color;
             ctx.lineWidth = brushSize;
         }
+
+        // Crear el trazo actual
+        currentPathRef.current = {
+            points: [{ ...pos }],
+            color: color === 'eraser' ? '#ffffff' : color,
+            size: brushSize,
+        };
     };
 
     const draw = (e) => {
@@ -501,13 +499,11 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         if (!path) return;
         path.points.push(pos);
 
-        // Dibujar incrementalmente la línea desde el penúltimo punto
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        // No es necesario limpiar todo, solo añadir la nueva línea
         const len = path.points.length;
         if (len >= 2) {
             ctx.beginPath();
@@ -530,17 +526,13 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
         isDrawing.current = false;
 
-        // Guardar el trazo actual en paths
         const path = currentPathRef.current;
         if (path && path.points.length > 1) {
             pathsRef.current.push(path);
         }
         currentPathRef.current = null;
-        // El snapshot ya se guardó al inicio, pero si el trazo tenía solo un punto no se guarda
-        // En ese caso no hay cambios, pero igual redibujamos para limpiar
         renderAllPaths();
 
-        // Actualizar la imagen compuesta
         if (onSave) {
             const canvas = canvasRef.current;
             const dpr = window.devicePixelRatio || 1;
@@ -614,7 +606,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
     // ── Alternar modo ───────────────────────────────────────────────────
     const toggleMode = () => {
         setMode(prev => prev === 'pencil' ? 'eraser' : 'pencil');
-        // Si estamos dibujando, cancelar
         if (isDrawing.current) {
             isDrawing.current = false;
             currentPathRef.current = null;
@@ -790,7 +781,6 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Comprimir como JPEG con calidad de 0.7
             const compressed = canvas.toDataURL('image/jpeg', 0.7);
             resolve(compressed);
         };
@@ -817,18 +807,18 @@ export default function ChecklistForm({
     const [isManualEco, setIsManualEco] = useState(false);
 
     // ── Datos del formulario ──────────────────────────────────────────────────
-    const [conductorId, setConductorId] = useState('');   // numérico, manual
+    const [conductorId, setConductorId] = useState('');
     const [conductorTarjeton, setConductorTarjeton] = useState('');
     const [conductorNombre, setConductorNombre] = useState('');
-    const [economico, setEconomico] = useState('');   // pendiente de datos
+    const [economico, setEconomico] = useState('');
     const [servicio, setServicio] = useState('');
     const [puntos, setPuntos] = useState(buildEstadoInicial);
     const [enviado, setEnviado] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [savedChecklist, setSavedChecklist] = useState(null);
-    const [dibujo, setDibujo] = useState(null);     // data URL del canvas
-    const fechaHoraRef = useRef(new Date()); // se fija al enviar
-    const drawingCanvasRef = useRef(null);   // ref para limpiar el canvas de dibujo
+    const [dibujo, setDibujo] = useState(null);
+    const fechaHoraRef = useRef(new Date());
+    const drawingCanvasRef = useRef(null);
     const hideTop = inline || (new URLSearchParams(location.search).get('hide_top') === 'true');
 
     // ── Cámara y Evidencias ───────────────────────────────────────────────────
@@ -875,7 +865,6 @@ export default function ChecklistForm({
             let normalizedTipo = qTipoRaw.toUpperCase();
             if (normalizedTipo === 'URBANUS') normalizedTipo = 'URBANUSS';
 
-            // Se ejecuta de manera asíncrona para que no bloquee el renderizado principal
             const loadUrlUnit = async () => {
                 await handleTipoUnidad(normalizedTipo, true);
                 if (qEco) {
@@ -907,7 +896,7 @@ export default function ChecklistForm({
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
         if (file && activePuntoId) {
-            setShowCamera(false); // Asegurar que el modal se cierre
+            setShowCamera(false);
             const reader = new FileReader();
             reader.onload = async (event) => {
                 try {
@@ -959,7 +948,6 @@ export default function ChecklistForm({
     // ── Lógica de control ─────────────────────────────────────────────────────
     const unidadSeleccionada = tipoUnidad !== '';
 
-    // Al seleccionar Tipo de Unidad
     const handleTipoUnidad = async (tipo, forceLoad = false) => {
         if (tipoUnidad !== tipo || forceLoad) {
             setTipoUnidad(tipo);
@@ -986,7 +974,6 @@ export default function ChecklistForm({
                 if (res.ok) {
                     let data = await res.json();
 
-                    // Fallback para URBANUSS si no hay datos en backend
                     if ((!data || data.length === 0) && tipo === 'URBANUSS') {
                         data = Array.from({ length: 42 }, (_, i) => ({ numero_eco: String(i + 1) }));
                     }
@@ -1010,7 +997,6 @@ export default function ChecklistForm({
         }
     };
 
-    // Al escribir manual el ECO o cambiar select
     const handleEconomicoChange = (ecoValue) => {
         setEconomico(ecoValue);
     };
@@ -1023,7 +1009,6 @@ export default function ChecklistForm({
     const handleCambioPunto = (id, campo, valor) =>
         setPuntos((prev) => ({ ...prev, [id]: { ...prev[id], [campo]: valor } }));
 
-    // Solo dígitos en el campo ID y autocompletar si existe en CONDUCTORES
     const handleConductorId = (e) => {
         const v = e.target.value.replace(/\D/g, '').slice(0, 10);
         setConductorId(v);
@@ -1104,9 +1089,7 @@ export default function ChecklistForm({
 
     // ── Pantalla de confirmación ──────────────────────────────────────────────
     if (enviado) {
-        // eslint-disable-next-line react-hooks/refs
         const fmtFecha = fechaHoraRef.current.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
-        // eslint-disable-next-line react-hooks/refs
         const fmtHora = fechaHoraRef.current.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
         return (
             <div className={inline ? "w-full" : "menu-page"}>
@@ -1201,7 +1184,6 @@ export default function ChecklistForm({
                             <IconClipboard />
                             Checklist de Unidades {tipoUnidad}
                         </h2>
-                        {/* Reloj en esquina superior derecha del header */}
                         <RelojFecha />
                     </div>
                 )}
@@ -1299,7 +1281,6 @@ export default function ChecklistForm({
 
                             {!hideTop && (
                                 <>
-                                    {/* Datos de identificación */}
                                     <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                                         <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
                                             2 · Identificación del Conductor
@@ -1311,7 +1292,6 @@ export default function ChecklistForm({
                                         </p>
 
                                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
-                                            {/* ID Conductor — solo números, manual */}
                                             <div className="sm:col-span-3">
                                                 <label htmlFor="conductor-id" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
                                                     ID Conductor
@@ -1330,7 +1310,6 @@ export default function ChecklistForm({
                                                 />
                                             </div>
 
-                                            {/* Tipo de Tarjetón */}
                                             <div className="sm:col-span-3">
                                                 <label htmlFor="tarjeton" className="mb-1.5 block text-xs font-bold uppercase tracking-widest text-guinda-700">
                                                     Tarjetón
@@ -1346,7 +1325,6 @@ export default function ChecklistForm({
                                                 />
                                             </div>
 
-                                            {/* Nombre del Conductor */}
                                             <div className="sm:col-span-6 relative">
                                                 <label htmlFor="nombre-conductor" className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-guinda-700 h-4">
                                                     Conductor Asignado
@@ -1368,7 +1346,6 @@ export default function ChecklistForm({
                                         </div>
                                     </section>
 
-                                    {/* Servicio / RA */}
                                     <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                                         <p className="mb-4 text-xs font-bold uppercase tracking-widest text-guinda-700">
                                             3 · {tipoUnidad === 'URBANUSS' ? 'Servicio' : 'RA (Ruta)'}
@@ -1398,7 +1375,6 @@ export default function ChecklistForm({
                                 </>
                             )}
 
-                            {/* Contadores */}
                             <div className="mb-4 grid grid-cols-2 gap-3 text-center">
                                 <div className="rounded-xl bg-emerald-50 py-3">
                                     <p className="text-2xl font-extrabold text-emerald-600">{totalBien}</p>
@@ -1410,7 +1386,6 @@ export default function ChecklistForm({
                                 </div>
                             </div>
 
-                            {/* Barra de progreso */}
                             <div className="mb-5 flex items-center gap-3">
                                 <div className="flex-1 overflow-hidden rounded-full bg-gray-100" style={{ height: '6px' }}>
                                     <div
@@ -1421,7 +1396,6 @@ export default function ChecklistForm({
                                 <span className="text-xs font-bold text-guinda-700">{progreso}%</span>
                             </div>
 
-                            {/* ── 16 Puntos de revisión ────────────────────────── */}
                             <section className="mb-6">
                                 <h3 className="mb-4 text-lg font-extrabold text-guinda-700 dark:text-red-400">
                                     {!hideTop && '4 · '}Puntos de Revisión Técnica — {PUNTOS.length} ítems
@@ -1440,7 +1414,6 @@ export default function ChecklistForm({
                                 </ul>
                             </section>
 
-                            {/* ── 5 · Referencia visual ─────────────────────────── */}
                             <section className="mb-6">
                                 <h3 className="mb-4 text-lg font-extrabold text-[#6b1d33]">
                                     {!hideTop && '5 · '}Referencia visual — Marca los detalles
@@ -1454,7 +1427,6 @@ export default function ChecklistForm({
                                 </div>
                             </section>
 
-                            {/* Botón de envío */}
                             <div className="pb-10">
                                 <div className={`flex flex-col-reverse sm:flex-row gap-4 ${!inline ? 'justify-end' : ''}`}>
                                     {inline && (
@@ -1520,7 +1492,6 @@ export default function ChecklistForm({
                     </form>
                 </div>
 
-                {/* Input oculto para cámara nativa o selector de archivos */}
                 <input
                     id="camera-input-fallback"
                     type="file"
@@ -1534,7 +1505,6 @@ export default function ChecklistForm({
                     }}
                 />
 
-                {/* Input oculto para galería / seleccionar de dispositivo */}
                 <input
                     id="gallery-input"
                     type="file"
@@ -1547,7 +1517,6 @@ export default function ChecklistForm({
                     }}
                 />
 
-                {/* Modal de Cámara WebRTC */}
                 <CameraModal
                     isOpen={showCamera}
                     onClose={() => setShowCamera(false)}

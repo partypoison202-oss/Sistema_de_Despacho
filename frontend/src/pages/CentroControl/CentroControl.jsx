@@ -24,6 +24,14 @@ export default function CentroControl() {
 
   const [globalSearch, setGlobalSearch] = useState('');
 
+  const reporteRutasRef = useRef(null);
+  const reporteUnidadesRef = useRef(null);
+
+  // ---- Titanes (activos / notificaciones) ----
+  // TODO: reemplazar por datos reales cuando exista el endpoint de Titanes
+  const [titanesActivos, setTitanesActivos] = useState(0);
+  const [titanesNotificaciones, setTitanesNotificaciones] = useState(0);
+
   // ---- Carga y desglose de unidades por tipo y estatus ----
   const fetchDespachoHoy = async () => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -219,10 +227,78 @@ export default function CentroControl() {
               y genera reportes generales del despacho.
             </p>
           </div>
+ 
+          <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
 
-          {/* ---------- Acceso al Plano de Patio ---------- */}
-          <div className="centro-kpis-actions">
             <button
+              type="button"
+              className="centro-btn-plano"
+              onClick={() => navigate('/reportestitanes')}
+              style={{ position: 'relative' }}
+            >
+              {/* Burbuja: Titanes activos */}
+              <span
+                title="Titanes activos"
+                style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  left: '-10px',
+                  minWidth: '22px',
+                  height: '22px',
+                  padding: '0 5px',
+                  borderRadius: '999px',
+                  backgroundColor: '#059669',
+                  color: '#ffffff',
+                  fontSize: '0.7rem',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(5, 150, 105, 0.4)',
+                  border: '2px solid #ffffff',
+                  lineHeight: 1,
+                }}
+              >
+                {titanesActivos}
+              </span>
+
+              {/* Burbuja: Notificaciones */}
+              {titanesNotificaciones > 0 && (
+                <span
+                  title="Notificaciones"
+                  style={{
+                    position: 'absolute',
+                    top: '-10px',
+                    right: '-10px',
+                    minWidth: '22px',
+                    height: '22px',
+                    padding: '0 5px',
+                    borderRadius: '999px',
+                    backgroundColor: '#dc2626',
+                    color: '#ffffff',
+                    fontSize: '0.7rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 6px rgba(220, 38, 38, 0.4)',
+                    border: '2px solid #ffffff',
+                    lineHeight: 1,
+                  }}
+                >
+                  {titanesNotificaciones}
+                </span>
+              )}
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M12 8v4" />
+              <path d="M12 16h.01" />
+            </svg>
+              Titanes
+            </button>
+
+                        <button
               type="button"
               className="centro-btn-plano"
               onClick={() => navigate('/plano-patio')}

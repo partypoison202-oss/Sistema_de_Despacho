@@ -1,40 +1,157 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
 import '../CentroControl/CentroControl.css';
-import './Titan.css'; // New CSS file for specific Titan forms
+import './Titan.css';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 
 const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) => {
   const [unidades, setUnidades] = useState(model?.units || []);
   const [selectedUnidad, setSelectedUnidad] = useState(null);
-  
+
   // General Form State
   const [intervalo, setIntervalo] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [fotos, setFotos] = useState([]);
   const [previewFotos, setPreviewFotos] = useState([]);
-  
+
   // Tabs State
-  const [activeTab, setActiveTab] = useState(''); // 'DESINCORPORACION', 'INCORPORACION', 'ACCIDENTE'
-  
+  const [activeTab, setActiveTab] = useState('');
+
   // Event Specific State
   const [corrida, setCorrida] = useState('');
   const [horaEvento, setHoraEvento] = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [ubicacionGPS, setUbicacionGPS] = useState('');
   const [motivoDesincorporacion, setMotivoDesincorporacion] = useState('');
-  
+
   const [accDueno, setAccDueno] = useState('');
   const [accVehiculo, setAccVehiculo] = useState('');
   const [accPlacas, setAccPlacas] = useState('');
   const [accSeguro, setAccSeguro] = useState(false);
   const [accHechos, setAccHechos] = useState('');
 
+  // Firma del particular (canvas)
+  const firmaCanvasRef = useRef(null);
+  const firmaCtxRef = useRef(null);
+  const isDrawingRef = useRef(false);
+  const [firmaVacia, setFirmaVacia] = useState(true);
+
   const [guardando, setGuardando] = useState(false);
 
+  // ---------- Funciones de firma (con useCallback para estabilidad) ----------
+  const getFirmaCoords = useCallback((e) => {
+    const canvas = firmaCanvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  }, []);
+
+  const handleFirmaStart = useCallback((e) => {
+    e.preventDefault();
+    const ctx = firmaCtxRef.current;
+    if (!ctx) return;
+    const { x, y } = getFirmaCoords(e);
+    isDrawingRef.current = true;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }, [getFirmaCoords]);
+
+  const handleFirmaMove = useCallback((e) => {
+    if (!isDrawingRef.current) return;
+    e.preventDefault();
+    const ctx = firmaCtxRef.current;
+    if (!ctx) return;
+    const { x, y } = getFirmaCoords(e);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    if (firmaVacia) setFirmaVacia(false);
+  }, [getFirmaCoords, firmaVacia]);
+
+  const handleFirmaEnd = useCallback((e) => {
+    if (!isDrawingRef.current) return;
+    e.preventDefault();
+    isDrawingRef.current = false;
+  }, []);
+
+  const initFirmaCanvas = useCallback(() => {
+    const canvas = firmaCanvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * ratio);
+    canvas.height = Math.round(rect.height * ratio);
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.lineWidth = 2 * ratio;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1f1f1f';
+    firmaCtxRef.current = ctx;
+  }, []);
+
+  // Limpiar firma
+  const limpiarFirma = useCallback(() => {
+    const canvas = firmaCanvasRef.current;
+    const ctx = firmaCtxRef.current;
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setFirmaVacia(true);
+  }, []);
+
+  // Obtener blob de la firma
+  const getFirmaBlob = useCallback(() => {
+    return new Promise((resolve) => {
+      const canvas = firmaCanvasRef.current;
+      if (!canvas || firmaVacia) {
+        resolve(null);
+        return;
+      }
+      canvas.toBlob((blob) => resolve(blob), 'image/png');
+    });
+  }, [firmaVacia]);
+
+  // ---------- Effect para inicializar canvas y eventos táctiles ----------
+  useEffect(() => {
+    if (activeTab !== 'ACCIDENTE') return;
+
+    const canvas = firmaCanvasRef.current;
+    if (!canvas) return;
+
+    initFirmaCanvas();
+
+    canvas.addEventListener('touchstart', handleFirmaStart, { passive: false });
+    canvas.addEventListener('touchmove', handleFirmaMove, { passive: false });
+    canvas.addEventListener('touchend', handleFirmaEnd, { passive: false });
+
+    const resizeObserver = new ResizeObserver(() => {
+      initFirmaCanvas();
+    });
+    resizeObserver.observe(canvas);
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleFirmaStart);
+      canvas.removeEventListener('touchmove', handleFirmaMove);
+      canvas.removeEventListener('touchend', handleFirmaEnd);
+      resizeObserver.disconnect();
+    };
+  }, [activeTab, initFirmaCanvas, handleFirmaStart, handleFirmaMove, handleFirmaEnd]);
+
+  // ---------- Resto del componente ----------
   useEffect(() => {
     if (preselectedUnidad && (!selectedUnidad || selectedUnidad.id !== preselectedUnidad.id)) {
       handleSelectUnidad(preselectedUnidad);
@@ -45,14 +162,12 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     setSelectedUnidad(u);
     setCorrida(u.corrida || '');
     setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-    
-    // Clear other states
     setIntervalo('');
     setObservaciones('');
     setFotos([]);
     setPreviewFotos([]);
     setActiveTab('');
-    getGPSLocation(); // Automatically get location
+    getGPSLocation();
     setMotivoDesincorporacion('');
     setAccDueno('');
     setAccVehiculo('');
@@ -60,6 +175,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     setAccSeguro(false);
     setAccHechos('');
     setUbicacionGPS('');
+    setFirmaVacia(true);
   };
 
   const getGPSLocation = () => {
@@ -77,7 +193,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
               setUbicacionGPS(`${lat}, ${lon}`);
             }
           } catch (error) {
-            console.error("Error reverse geocoding:", error);
+            console.error('Error reverse geocoding:', error);
             setUbicacionGPS(`${lat}, ${lon}`);
           }
         },
@@ -93,7 +209,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   const handleFotoChange = (e) => {
     const maxFotos = activeTab === 'ACCIDENTE' ? 10 : 5;
     const files = Array.from(e.target.files);
-    
+
     if (fotos.length + files.length > maxFotos) {
       Swal.fire('Atención', `Solo puedes subir un máximo de ${maxFotos} fotos para este tipo de reporte.`, 'warning');
       return;
@@ -102,8 +218,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     const newFotos = [...fotos, ...files];
     setFotos(newFotos);
 
-    // Generar previews
-    const newPreviews = files.map(f => URL.createObjectURL(f));
+    const newPreviews = files.map((f) => URL.createObjectURL(f));
     setPreviewFotos([...previewFotos, ...newPreviews]);
   };
 
@@ -135,7 +250,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
       formData.append('intervalo', intervalo);
       formData.append('observaciones', observaciones);
       formData.append('tipo_evento', activeTab);
-      
+
       if (activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') {
         formData.append('corrida', corrida);
         formData.append('hora_evento', horaEvento);
@@ -147,21 +262,28 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
         formData.append('accidente_dueno', accDueno);
         formData.append('accidente_vehiculo', accVehiculo);
         formData.append('accidente_placas', accPlacas);
-        formData.append('accidente_seguro', accSeguro);
+        formData.append('accidente_seguro', accSeguro ? 'true' : 'false');
         formData.append('accidente_hechos', accHechos);
         formData.append('ubicacion_gps', ubicacionGPS);
-        formData.append('hora_evento', horaEvento); // ⬅️ CAMPO DE HORA AGREGADO PARA ACCIDENTE
+        formData.append('hora_evento', horaEvento);
+
+        const firmaBlob = await getFirmaBlob();
+        if (firmaBlob) {
+          formData.append('firma_particular', firmaBlob, 'firma_particular.png');
+        }
       }
 
-      fotos.forEach((foto, index) => {
-        formData.append(`fotos[${index}]`, foto);
+      // IMPORTANTE: usar 'fotos[]' (no 'fotos[0]', 'fotos[1]'...) para que
+      // Laravel arme correctamente el array y la validación 'fotos.*' funcione.
+      fotos.forEach((foto) => {
+        formData.append('fotos[]', foto);
       });
 
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const response = await fetch(`${API_BASE}/api/titan/reporte`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: formData
       });
@@ -242,28 +364,22 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
           {/* Tabs de eventos */}
           <div className="titan-tabs">
-            <button 
-              className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`} 
-              onClick={() => {
-                setActiveTab('DESINCORPORACION');
-                // Si se desea mantener la hora actual al cambiar a esta pestaña, se puede hacer igual
-              }}
+            <button
+              className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`}
+              onClick={() => setActiveTab('DESINCORPORACION')}
             >
               Desincorporación
             </button>
-            <button 
-              className={`titan-tab ${activeTab === 'INCORPORACION' ? 'active' : ''}`} 
-              onClick={() => {
-                setActiveTab('INCORPORACION');
-              }}
+            <button
+              className={`titan-tab ${activeTab === 'INCORPORACION' ? 'active' : ''}`}
+              onClick={() => setActiveTab('INCORPORACION')}
             >
               Incorporación
             </button>
-            <button 
-              className={`titan-tab ${activeTab === 'ACCIDENTE' ? 'active' : ''}`} 
+            <button
+              className={`titan-tab ${activeTab === 'ACCIDENTE' ? 'active' : ''}`}
               onClick={() => {
                 setActiveTab('ACCIDENTE');
-                // Actualizar hora al momento de abrir la pestaña de accidente
                 setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
               }}
             >
@@ -292,16 +408,16 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                           <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                         </svg>
                       </button>
-                      
+
                       {dropdownHoraOpen && (
                         <>
-                          <div 
-                            style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                          <div
+                            style={{ position: 'fixed', inset: 0, zIndex: 998 }}
                             onClick={() => setDropdownHoraOpen(false)}
                           />
-                          <IOSTimePicker 
-                            value={horaEvento} 
-                            onChange={setHoraEvento} 
+                          <IOSTimePicker
+                            value={horaEvento}
+                            onChange={setHoraEvento}
                             onClose={() => setDropdownHoraOpen(false)}
                             onSave={() => setDropdownHoraOpen(false)}
                           />
@@ -309,7 +425,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Ubicación</label>
                     <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." />
@@ -317,7 +433,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
                   {activeTab === 'DESINCORPORACION' && (
                     <div className="form-group">
-                      <label>Motivo <span style={{color: 'var(--state-red-text, #dc2626)'}}>*</span></label>
+                      <label>Motivo <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
                       <textarea value={motivoDesincorporacion} onChange={(e) => setMotivoDesincorporacion(e.target.value)} rows="4" placeholder="Describe el motivo de la desincorporación..."></textarea>
                     </div>
                   )}
@@ -345,11 +461,10 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                     </label>
                   </div>
                   <div className="form-group">
-                    <label>Hechos <span style={{color: 'var(--state-red-text, #dc2626)'}}>*</span></label>
+                    <label>Hechos <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
                     <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>
                   </div>
 
-                  {/* ⬇️ NUEVO CAMPO DE HORA PARA ACCIDENTE */}
                   <div className="form-group" style={{ position: 'relative' }}>
                     <label>Hora del accidente</label>
                     <button
@@ -365,13 +480,13 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
                     {dropdownHoraOpen && (
                       <>
-                        <div 
-                          style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                        <div
+                          style={{ position: 'fixed', inset: 0, zIndex: 998 }}
                           onClick={() => setDropdownHoraOpen(false)}
                         />
-                        <IOSTimePicker 
-                          value={horaEvento} 
-                          onChange={setHoraEvento} 
+                        <IOSTimePicker
+                          value={horaEvento}
+                          onChange={setHoraEvento}
                           onClose={() => setDropdownHoraOpen(false)}
                           onSave={() => setDropdownHoraOpen(false)}
                         />
@@ -383,13 +498,72 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                     <label>Ubicación</label>
                     <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." />
                   </div>
+
+                  {/* FIRMA DE PARTICULAR */}
+                  <div className="form-group">
+                    <label>Firma de particular</label>
+                    <div
+                      className="titan-firma-wrapper"
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '180px',
+                        border: '2px dashed var(--brand-maroon-text, #601a2a)',
+                        borderRadius: '8px',
+                        backgroundColor: '#ffffff',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <canvas
+                        ref={firmaCanvasRef}
+                        className="titan-firma-canvas"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'block',
+                          cursor: 'crosshair',
+                          touchAction: 'none',
+                        }}
+                        onMouseDown={handleFirmaStart}
+                        onMouseMove={handleFirmaMove}
+                        onMouseUp={handleFirmaEnd}
+                        onMouseLeave={handleFirmaEnd}
+                      />
+                      {firmaVacia && (
+                        <span
+                          className="titan-firma-placeholder"
+                          style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            color: '#9ca3af',
+                            fontSize: '14px',
+                            pointerEvents: 'none',
+                            userSelect: 'none',
+                          }}
+                        >
+                          Firma aquí con el dedo o el mouse
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                      <button
+                        type="button"
+                        className="titan-btn-cancel"
+                        onClick={limpiarFirma}
+                      >
+                        Limpiar firma
+                      </button>
+                    </div>
+                  </div>
                 </>
               )}
 
               {/* Evidencia fotográfica */}
               <div className="form-group" style={{ marginTop: '20px' }}>
                 <label>Evidencia Fotográfica (Máx. {activeTab === 'ACCIDENTE' ? 10 : 5})</label>
-                
+
                 <label className="titan-file-upload">
                   <input type="file" multiple accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -397,13 +571,13 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                   </svg>
                   <span>Haz clic aquí para seleccionar imágenes</span>
                 </label>
-                
+
                 <div className="titan-fotos-preview">
                   {previewFotos.map((src, idx) => (
                     <div key={idx} className="titan-foto-item">
                       <img src={src} alt="Preview" />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="titan-foto-item__remove"
                         onClick={() => removeFoto(idx)}
                       >
@@ -416,9 +590,9 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
               {/* Botón Reportar */}
               <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button 
-                  className="centro-btn centro-btn--primary" 
-                  onClick={handleSubmit} 
+                <button
+                  className="centro-btn centro-btn--primary"
+                  onClick={handleSubmit}
                   disabled={guardando}
                 >
                   {guardando ? 'Guardando...' : 'Reportar Evento'}

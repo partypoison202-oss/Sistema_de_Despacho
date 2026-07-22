@@ -28,6 +28,7 @@ import DetalleUnidadTitan from './pages/Titan/DetalleUnidadTitan';
 import Mantenimiento from './pages/Mantenimiento/Mantenimiento';
 import DetalleUnidadMantenimiento from './pages/Mantenimiento/DetalleUnidadMantenimiento';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
+import ReportesTitanes from './pages/CentroControl/ReporteTitanes/ReporteTitanes';
 
 function App() {
   return (
@@ -199,6 +200,9 @@ function App() {
               <DetalleUnidadMantenimiento />
             </ProtectedRoute>
           } />
+
+          {/* ruta para reporte de titane */}
+          <Route path="/reportestitanes" element={<ReportesTitanes />} />
 
           {/* Redirección por defecto si no existe la ruta */}
           <Route path="*" element={<Navigate to="/" replace />} />
