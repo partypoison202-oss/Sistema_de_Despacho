@@ -2,9 +2,11 @@
 
 > **SITMAH** (Sistema de Transporte Metropolitano de Hidalgo)
 
-<div align="center">
-  <img src="frontend/public/images/sistema_de_tm.webp" alt="Sistema de Transporte Metropolitano" width="150" style="margin-right: 15px; vertical-align: middle; display: inline-block;" /><img src="frontend/public/images/sitmah_logo.webp" alt="SITMAH Logo" width="120" style="vertical-align: middle; display: inline-block;" />
+<div>
+  <img src="frontend/public/images/sistema_de_tm.webp" alt="Sistema de Transporte Metropolitano" width="150" align="left" />
+  <img src="frontend/public/images/sitmah_logo.webp" alt="SITMAH Logo" width="120" align="right" />
 </div>
+<br clear="both"/>
 
 Este proyecto es una plataforma web integral diseñada para la gestión, inspección preoperativa (checklist), control de despacho en tiempo real y generación de reportes generales y específicos para la flota del Sistema de Transporte Metropolitano de Hidalgo.
 
