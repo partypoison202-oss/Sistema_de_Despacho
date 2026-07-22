@@ -151,7 +151,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" })
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
   return (
-    <div className="relative inline-block w-full select-none" ref={dropdownRef}>
+    <div className="relative inline-block w-full select-none" ref={wrapperRef}>
       {/* Botón trigger estilo iOS Pill / Card */}
       <button
         ref={buttonRef}

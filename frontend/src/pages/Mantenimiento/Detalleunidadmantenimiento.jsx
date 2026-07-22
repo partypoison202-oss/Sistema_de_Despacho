@@ -21,6 +21,33 @@ export default function DetalleUnidadMantenimiento() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
+  // ── Migración de localStorage: limpiar datos con esquema viejo para evitar pantalla en blanco ──
+  useEffect(() => {
+    try {
+      const keysToDelete = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('mantenimiento_')) {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            // Si tiene el esquema viejo (kilometraje sin sufijo), marcar para eliminar
+            if ('kilometraje' in parsed || 'fechaUltimaCarga' in parsed) {
+              keysToDelete.push(key);
+            }
+          }
+        }
+      }
+      keysToDelete.forEach(key => localStorage.removeItem(key));
+      if (keysToDelete.length > 0) {
+        console.log(`[Mantenimiento] Limpieza de ${keysToDelete.length} entradas con esquema viejo.`);
+      }
+    } catch (e) {
+      console.warn('[Mantenimiento] Error en migración de localStorage', e);
+    }
+  }, []);
+
+
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
@@ -45,7 +72,7 @@ export default function DetalleUnidadMantenimiento() {
     nivelAdblue: '',
     kilometrajeAdblue: '',
     fechaUltimaCargaAdblue: '',
-    litrosAdblue: '',
+    numeroCincho: '',
   });
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false);
 
@@ -71,6 +98,9 @@ export default function DetalleUnidadMantenimiento() {
   const modalRutaRef = useRef(null);
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
+  
+  const isDiesel = ['urbanus', 'urbanuss', 'zafiro', 'orion'].includes(tipoTransporte?.toLowerCase());
+  const combustibleLabel = isDiesel ? 'Diésel' : 'Gasolina';
 
   const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
@@ -320,19 +350,18 @@ export default function DetalleUnidadMantenimiento() {
       // El mantenimiento se recupera de localStorage si existe para esta unidad;
       // si no hay datos guardados, inicia en blanco
       const guardadoLocal = cargarMantenimientoLocal(numeroLimpio);
-      setMantenimientoForm(
-        guardadoLocal || {
-          nivelGasolina: '',
-          kilometrajeGasolina: '',
-          fechaUltimaCargaGasolina: '',
-          litrosGasolina: '',
+      setMantenimientoForm({
+        nivelGasolina: '',
+        kilometrajeGasolina: '',
+        fechaUltimaCargaGasolina: '',
+        litrosGasolina: '',
 
-          nivelAdblue: '',
-          kilometrajeAdblue: '',
-          fechaUltimaCargaAdblue: '',
-          litrosAdblue: '',
-        }
-      );
+        nivelAdblue: '',
+        kilometrajeAdblue: '',
+        fechaUltimaCargaAdblue: '',
+        litrosAdblue: '',
+        ...(guardadoLocal || {})
+      });
     } catch (error) {
       console.error('Error en la petición:', error);
       setDatosOperativos({
@@ -842,7 +871,7 @@ export default function DetalleUnidadMantenimiento() {
                               value={mantenimientoForm.nivelGasolina}
                               onChange={(v) => handleMantenimientoChange('nivelGasolina', v)}
                               color="#c5a059"
-                              label="Gasolina"
+                              label={combustibleLabel}
                             />
                           </div>
 
@@ -854,7 +883,7 @@ export default function DetalleUnidadMantenimiento() {
                               className="interactive-input"
                               style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
                               placeholder="Ej: 125000"
-                              value={mantenimientoForm.kilometrajeGasolina}
+                              value={mantenimientoForm.kilometrajeGasolina || ''}
                               onChange={(e) => handleMantenimientoChange('kilometrajeGasolina', e.target.value.replace(/\D/g, '').substring(0, 6))}
                             />
                           </div>
@@ -879,7 +908,7 @@ export default function DetalleUnidadMantenimiento() {
                               className="interactive-input"
                               style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
                               placeholder="Ej: 120"
-                              value={mantenimientoForm.litrosGasolina}
+                              value={mantenimientoForm.litrosGasolina || ''}
                               onChange={(e) => handleMantenimientoChange('litrosGasolina', e.target.value.replace(/[^0-9.]/g, '').substring(0, 6))}
                             />
                           </div>
@@ -913,7 +942,7 @@ export default function DetalleUnidadMantenimiento() {
                               className="interactive-input"
                               style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
                               placeholder="Ej: 125000"
-                              value={mantenimientoForm.kilometrajeAdblue}
+                              value={mantenimientoForm.kilometrajeAdblue || ''}
                               onChange={(e) => handleMantenimientoChange('kilometrajeAdblue', e.target.value.replace(/\D/g, '').substring(0, 6))}
                             />
                           </div>
@@ -938,11 +967,31 @@ export default function DetalleUnidadMantenimiento() {
                               className="interactive-input"
                               style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
                               placeholder="Ej: 20"
-                              value={mantenimientoForm.litrosAdblue}
+                              value={mantenimientoForm.litrosAdblue || ''}
                               onChange={(e) => handleMantenimientoChange('litrosAdblue', e.target.value.replace(/[^0-9.]/g, '').substring(0, 6))}
                             />
                           </div>
                         </div>
+                      </div>
+
+                      {/* --- Bloque: NÚMERO DE CINCHO (Único, debajo de ambos) --- */}
+                      <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
+                        <span className="info-card__label">Número de Cincho</span>
+                        <input
+                          type="text"
+                          className="interactive-input"
+                          style={{ 
+                            marginTop: '0.35rem', 
+                            padding: '0 0.85rem', 
+                            height: '2.5rem', 
+                            fontSize: '0.9rem', 
+                            width: '100%',
+                            textTransform: 'uppercase'
+                          }}
+                          placeholder="Ej: AB123456"
+                          value={mantenimientoForm.numeroCincho || ''}
+                          onChange={(e) => handleMantenimientoChange('numeroCincho', e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
+                        />
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'end', marginTop: '1rem' }}>
