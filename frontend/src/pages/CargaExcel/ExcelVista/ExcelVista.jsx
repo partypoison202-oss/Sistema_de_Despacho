@@ -366,7 +366,22 @@ export default function ExcelPreview({
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
                                           >
-                                            <span>{c.tarjeton}</span>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
+                                              <span>{c.tarjeton}</span>
+                                              <span style={{
+                                                fontSize: '0.65rem',
+                                                padding: '0.2rem 0.5rem',
+                                                borderRadius: '1rem',
+                                                backgroundColor: c.estado_servicio === 'en_servicio' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                                                color: c.estado_servicio === 'en_servicio' ? '#ef4444' : '#22c55e',
+                                                fontWeight: '700',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.02em',
+                                                lineHeight: '1'
+                                              }}>
+                                                {c.estado_servicio === 'en_servicio' ? 'Servicio' : 'Disponible'}
+                                              </span>
+                                            </span>
                                             {isSelected && (
                                               <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
