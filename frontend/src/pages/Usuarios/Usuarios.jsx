@@ -157,6 +157,38 @@ export default function Usuarios() {
     return;
   }
 
+  if (user.activo) {
+    const result = await Swal.fire({
+      title: '¿Dar de baja a este usuario?',
+      text: `¿Estás seguro que deseas poner inactivo a ${user.nombre_completo || user.usuario}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#c5a059',
+      confirmButtonText: 'Sí, dar de baja',
+      cancelButtonText: 'Cancelar'
+    });
+    
+    if (!result.isConfirmed) {
+      return;
+    }
+  } else {
+    const result = await Swal.fire({
+      title: '¿Reactivar a este usuario?',
+      text: `¿Estás seguro que deseas poner activo nuevamente a ${user.nombre_completo || user.usuario}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#c5a059',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, reactivar',
+      cancelButtonText: 'Cancelar'
+    });
+    
+    if (!result.isConfirmed) {
+      return;
+    }
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/users/${user.id}`, {
       method: 'PUT',
@@ -213,7 +245,18 @@ export default function Usuarios() {
     user.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.role?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => {
+    const isAdminA = a.role?.nombre?.toLowerCase() === 'administrador';
+    const isAdminB = b.role?.nombre?.toLowerCase() === 'administrador';
+    
+    if (isAdminA && !isAdminB) return -1;
+    if (!isAdminA && isAdminB) return 1;
+    
+    if (a.activo && !b.activo) return -1;
+    if (!a.activo && b.activo) return 1;
+    
+    return a.nombre_completo.localeCompare(b.nombre_completo);
+  });
 
   const isFormValid = formData.nombre_completo.trim() !== '' && 
                       formData.usuario.trim() !== '' && 
