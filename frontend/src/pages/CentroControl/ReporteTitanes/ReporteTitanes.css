@@ -1,0 +1,279 @@
+.reportes-titanes-page {
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+.reportes-titanes-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.rt-eyebrow {
+  color: #601a2a;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rt-title {
+  font-size: 1.8rem;
+  margin: 4px 0 8px;
+}
+
+.rt-subtitle {
+  color: #6b7280;
+  margin-bottom: 28px;
+}
+
+.rt-panel {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(96, 26, 42, 0.08);
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.rt-panel__selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.rt-panel__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.rt-select {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #111827;
+  background: #fff;
+}
+
+.rt-select:focus {
+  outline: none;
+  border-color: #601a2a;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.1);
+}
+
+.rt-panel__info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  flex: 1;
+}
+
+.rt-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.rt-info-item__label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rt-info-item__value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.rt-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.rt-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(96, 26, 42, 0.08);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  transition: opacity 0.2s ease;
+  border-left: 4px solid #601a2a;
+}
+
+.rt-card--disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.rt-card--incorporacion { border-left-color: #059669; }
+.rt-card--desincorporacion { border-left-color: #d97706; }
+.rt-card--accidentes { border-left-color: #dc2626; }
+
+.rt-card__icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(96, 26, 42, 0.08);
+  color: #601a2a;
+}
+
+.rt-card--incorporacion .rt-card__icon { background: rgba(5, 150, 105, 0.1); color: #059669; }
+.rt-card--desincorporacion .rt-card__icon { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+.rt-card--accidentes .rt-card__icon { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+
+.rt-card__title {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.rt-card__value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.rt-card__hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* ==========================================================
+   Agrega este bloque al final de ReportesTitanes.css
+   (estilos del modal de detalle de reportes)
+   ========================================================== */
+
+.rt-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rt-card:not(.rt-card--disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.rt-card--disabled {
+  cursor: default;
+}
+
+.rt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.rt-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.rt-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.rt-modal__header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--brand-maroon-text, #601a2a);
+}
+
+.rt-modal__close {
+  border: none;
+  background: none;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  color: #888;
+}
+
+.rt-modal__close:hover {
+  color: #333;
+}
+
+.rt-modal__body {
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.rt-modal__empty {
+  color: #888;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.rt-reporte-item {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.rt-reporte-item p {
+  margin: 4px 0;
+}
+
+.rt-reporte-item__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #eee;
+}
+
+.rt-reporte-item__fotos,
+.rt-reporte-item__firma {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.rt-reporte-item__firma {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.rt-reporte-item__fotos img,
+.rt-reporte-item__firma img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
