@@ -110,26 +110,8 @@ export default function DetalleUnidadMantenimiento() {
     return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
   };
 
-  // ---- Persistencia local (temporal, sin backend) de los campos de mantenimiento ----
-  const getMantenimientoKey = (eco) => `mantenimiento_${tipoTransporte}_${eco}`;
-
-  const cargarMantenimientoLocal = (eco) => {
-    try {
-      const raw = localStorage.getItem(getMantenimientoKey(eco));
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      console.error('Error al leer mantenimiento local', e);
-      return null;
-    }
-  };
-
-  const guardarMantenimientoLocal = (eco, datos) => {
-    try {
-      localStorage.setItem(getMantenimientoKey(eco), JSON.stringify(datos));
-    } catch (e) {
-      console.error('Error al guardar mantenimiento local', e);
-    }
-  };
+  // ---- Persistencia en Backend ----
+  // Se ha eliminado el localStorage en favor de la base de datos
 
   // Cerrar dropdowns del modal al hacer clic fuera
   useEffect(() => {
@@ -347,20 +329,17 @@ export default function DetalleUnidadMantenimiento() {
         });
       }
 
-      // El mantenimiento se recupera de localStorage si existe para esta unidad;
-      // si no hay datos guardados, inicia en blanco
-      const guardadoLocal = cargarMantenimientoLocal(numeroLimpio);
+      // El mantenimiento se recupera desde la respuesta del servidor (Base de datos)
       setMantenimientoForm({
-        nivelGasolina: '',
-        kilometrajeGasolina: '',
-        fechaUltimaCargaGasolina: '',
+        nivelGasolina: resultado.nivel_combustible || '',
+        kilometrajeGasolina: '', // Estos datos ya no se usan en el modelo viejo si los limpiamos, pero los mantenemos en el form por si se necesitan
+        fechaUltimaCargaGasolina: isDiesel ? '' : (resultado.fecha_ultima_carga || ''),
         litrosGasolina: '',
 
-        nivelAdblue: '',
+        nivelAdblue: resultado.nivel_adblue || '',
         kilometrajeAdblue: '',
-        fechaUltimaCargaAdblue: '',
-        litrosAdblue: '',
-        ...(guardadoLocal || {})
+        fechaUltimaCargaAdblue: isDiesel ? (resultado.fecha_ultima_carga || '') : '',
+        numeroCincho: resultado.numero_cincho || '',
       });
     } catch (error) {
       console.error('Error en la petición:', error);
@@ -379,43 +358,63 @@ export default function DetalleUnidadMantenimiento() {
     setMantenimientoForm((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  // Guardar automáticamente en localStorage cada vez que cambien los datos de mantenimiento
-  useEffect(() => {
-    if (!selectedOption) return;
-    const numeroLimpio = selectedOption.replace(/\D/g, '');
-    if (!numeroLimpio) return;
-    guardarMantenimientoLocal(numeroLimpio, mantenimientoForm);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mantenimientoForm, selectedOption]);
-
-  // NOTA: Aún no está conectado el endpoint de backend para mantenimiento
-  // (la ruta api/unidades/actualizar-mantenimiento todavía no soporta POST).
-  // Por ahora este botón solo confirma el guardado local; el useEffect de arriba
-  // ya persiste los datos en localStorage en cada cambio, así que este botón
-  // es más bien un "confirmar" visual para el usuario.
   const handleGuardarMantenimiento = async () => {
     if (!selectedOption) return;
+
+    // Validación para evitar guardar si no hay ningún dato
+    const { nivelGasolina, nivelAdblue, numeroCincho, fechaUltimaCargaGasolina, fechaUltimaCargaAdblue } = mantenimientoForm;
+    if (!nivelGasolina && !nivelAdblue && !numeroCincho && !fechaUltimaCargaGasolina && !fechaUltimaCargaAdblue) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sin datos',
+        text: 'Por favor ingresa al menos un dato de inspección para poder guardar.',
+        confirmButtonColor: '#c5a059',
+      });
+      return;
+    }
+
     setGuardandoMantenimiento(true);
     try {
       const numeroLimpio = selectedOption.replace(/\D/g, '');
-      guardarMantenimientoLocal(numeroLimpio, mantenimientoForm);
+      const token = getToken();
+      
+      const payload = {
+        numero_eco: numeroLimpio,
+        tipo: tipoTransporte,
+        nivel_combustible: mantenimientoForm.nivelGasolina,
+        nivel_adblue: mantenimientoForm.nivelAdblue,
+        numero_cincho: mantenimientoForm.numeroCincho,
+        fecha_ultima_carga: isDiesel ? mantenimientoForm.fechaUltimaCargaAdblue : mantenimientoForm.fechaUltimaCargaGasolina
+      };
 
-      // Pequeña espera artificial para que el spinner se sienta natural
-      await new Promise((resolve) => setTimeout(resolve, 400));
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Mantenimiento Guardado',
-        text: 'Los datos se guardaron correctamente',
-        confirmButtonColor: '#c5a059',
-        timer: 2200,
+      const response = await fetch(`${API_BASE}/api/mantenimiento/guardar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
+
+      const data = await response.json();
+
+      if (response.ok && data.status === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Mantenimiento Guardado',
+          text: 'Los datos se guardaron correctamente en el servidor',
+          confirmButtonColor: '#c5a059',
+          timer: 2200,
+        });
+      } else {
+        throw new Error(data.message || 'Error al guardar');
+      }
     } catch (error) {
-      console.error('Error al guardar mantenimiento localmente:', error);
+      console.error('Error al guardar mantenimiento en servidor:', error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'No se pudo guardar la información localmente.',
+        text: 'No se pudo guardar la información en la base de datos.',
         confirmButtonColor: '#601a2a',
       });
     } finally {

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 
 const CALENDAR_WIDTH = 288; // w-72
 
-const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" }) => {
+const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -74,7 +74,12 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" })
 
   const handleNextMonth = (e) => {
     e.stopPropagation();
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    const today = new Date();
+    if (disableFuture && (nextMonth.getFullYear() > today.getFullYear() || (nextMonth.getFullYear() === today.getFullYear() && nextMonth.getMonth() > today.getMonth()))) {
+      return; // No avanzar al próximo mes si está deshabilitado el futuro
+    }
+    setCurrentMonth(nextMonth);
   };
 
   const handleSelectDate = (day) => {
@@ -129,18 +134,22 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" })
   for (let i = 1; i <= daysInMonth; i++) {
     const isSelected = selYear === currentMonth.getFullYear() && selMonth === currentMonth.getMonth() && selDay === i;
     const isToday = today.getDate() === i && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
+    const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
+    const isFuture = disableFuture && currentDate > today;
 
     days.push(
       <button
         key={`day-${i}`}
         type="button"
+        disabled={isFuture}
         onClick={(e) => { e.stopPropagation(); handleSelectDate(i); }}
-        className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-semibold transition-all duration-150 active:scale-90
-          ${isSelected 
+        className={`w-8 h-8 flex items-center justify-center rounded-full text-xs transition-all duration-150
+          ${isFuture ? 'opacity-30 cursor-not-allowed text-slate-400 font-normal' : 'active:scale-90 font-semibold cursor-pointer'}
+          ${!isFuture && isSelected 
             ? 'bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
-            : isToday 
+            : !isFuture && isToday 
               ? 'text-[#6b1d33] bg-[#6b1d33]/15 font-bold border border-[#6b1d33]/30' 
-              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'}
+              : !isFuture ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900' : ''}
         `}
       >
         {i}
@@ -205,7 +214,8 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha" })
             <button 
               type="button" 
               onClick={handleNextMonth} 
-              className="p-1.5 rounded-full hover:bg-slate-100 text-[#6b1d33] active:scale-95 transition-all"
+              disabled={disableFuture && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth()}
+              className={`p-1.5 rounded-full transition-all ${disableFuture && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth() ? 'opacity-30 cursor-not-allowed text-slate-400' : 'hover:bg-slate-100 text-[#6b1d33] active:scale-95'}`}
               title="Mes siguiente"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
