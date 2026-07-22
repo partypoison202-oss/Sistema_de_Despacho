@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import './Historial.css';
 
 export default function HistorialEncierro() {
   const [selectedFecha, setSelectedFecha] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   // 1. Obtener listado de fechas únicas registradas en el historial (Cacheado por 5 minutos)
   const { data: fechas = [], isLoading: isLoadingFechas } = useQuery({
@@ -31,6 +34,17 @@ export default function HistorialEncierro() {
     }
   }, [fechas, selectedFecha]);
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // 2. Obtener el historial para la fecha seleccionada (Cacheado por 5 minutos)
   const { data: datos = [], isLoading: isLoadingDatos } = useQuery({
     queryKey: ['historial-encierro', selectedFecha],
@@ -50,8 +64,33 @@ export default function HistorialEncierro() {
 
   const cargando = isLoadingFechas || (isLoadingDatos && !!selectedFecha);
 
-  const handleFechaChange = (e) => {
-    setSelectedFecha(e.target.value);
+  const handleFechaChange = (f) => {
+    setSelectedFecha(f);
+    setIsDropdownOpen(false);
+  };
+
+  const exportToExcel = () => {
+    if (!datos || datos.length === 0) return;
+    
+    const worksheetData = datos.map(d => ({
+      'TIPO': d.tipo || '',
+      'ECO': d.economico || '',
+      'ESTATUS': d.estatus || '',
+      'MOTIVO DE ESTATUS (BAJA)': d.motivo_estatus || '',
+      'FALLA REPORTADA': d.falla || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    
+    // Auto-ajustar ancho de columnas
+    const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
+      wch: Math.max(key.length, ...worksheetData.map(row => String(row[key] || '').length)) + 2
+    }));
+    worksheet['!cols'] = colWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Historial_Encierro");
+    XLSX.writeFile(workbook, `Historial_Encierro_${selectedFecha}.xlsx`);
   };
 
   return (
@@ -63,11 +102,52 @@ export default function HistorialEncierro() {
           <h2>Unidades Fuera de Servicio (Mantenimiento/Reserva)</h2>
           <div className="historial-filter">
             <label>Seleccionar Fecha:</label>
-            <select value={selectedFecha} onChange={handleFechaChange} disabled={cargando}>
-              {fechas.map(f => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
+            <div className="custom-dropdown-container" ref={dropdownRef}>
+              <button 
+                type="button" 
+                className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
+                onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
+                disabled={cargando}
+              >
+                {selectedFecha || 'SELECCIONAR'}
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 10l5 5 5-5H7z" />
+                </svg>
+              </button>
+              {isDropdownOpen && (
+                <div className="custom-dropdown-menu">
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {fechas.map(f => (
+                      <button
+                        key={f}
+                        type="button"
+                        className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
+                        onClick={() => handleFechaChange(f)}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                    {fechas.length === 0 && (
+                      <div className="custom-dropdown-item" style={{ color: '#9ca3af' }}>Sin fechas disponibles</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <button 
+              className="export-excel-btn" 
+              onClick={exportToExcel}
+              disabled={cargando || datos.length === 0}
+              title="Descargar Historial en Excel"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Descargar Excel
+            </button>
           </div>
         </div>
 

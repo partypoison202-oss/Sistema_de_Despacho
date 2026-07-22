@@ -222,21 +222,11 @@ export default function ExcelPreview({
                               }}
                               disabled={isRowDisabled}
                               className={`edit-input dropdown-trigger ${isRutaOpen ? 'active-trigger' : ''}`}
-                              style={{
-                                cursor: isRowDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isRowDisabled ? 0.6 : 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                width: '100%',
-                                gap: '4px'
-                              }}
+                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
-                                {fila[h] || 'Selecciona...'}
-                              </span>
-                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isRutaOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M7 10l5 5 5-5z" />
+                              <span>{fila[h] || 'Selecciona...'}</span>
+                              <svg style={{ transform: isRutaOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
                             {isRutaOpen && (
@@ -326,21 +316,11 @@ export default function ExcelPreview({
                               }}
                               disabled={isRowDisabled}
                               className={`edit-input dropdown-trigger ${isTarjetonOpen ? 'active-trigger' : ''}`}
-                              style={{
-                                cursor: isRowDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isRowDisabled ? 0.6 : 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                width: '100%',
-                                gap: '4px'
-                              }}
+                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
-                                {fila[h] ? String(fila[h]) : 'Selecciona...'}
-                              </span>
-                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isTarjetonOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: '#9ca3af' }} fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M7 10l5 5 5-5z" />
+                              <span>{fila[h] ? String(fila[h]) : 'Selecciona...'}</span>
+                              <svg style={{ transform: isTarjetonOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
                             {isTarjetonOpen && (
@@ -386,9 +366,22 @@ export default function ExcelPreview({
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
                                           >
-                                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block', textAlign: 'center', width: '100%' }}>
-                                                <strong style={{ color: isSelected ? 'var(--brand-maroon-bg)' : '#111827' }}>{c.tarjeton}</strong>
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
+                                              <span>{c.tarjeton}</span>
+                                              <span style={{
+                                                fontSize: '0.65rem',
+                                                padding: '0.2rem 0.5rem',
+                                                borderRadius: '1rem',
+                                                backgroundColor: c.estado_servicio === 'en_servicio' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                                                color: c.estado_servicio === 'en_servicio' ? '#ef4444' : '#22c55e',
+                                                fontWeight: '700',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.02em',
+                                                lineHeight: '1'
+                                              }}>
+                                                {c.estado_servicio === 'en_servicio' ? 'Servicio' : 'Disponible'}
                                               </span>
+                                            </span>
                                             {isSelected && (
                                               <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -425,23 +418,11 @@ export default function ExcelPreview({
                                 }
                               }}
                               className={`edit-input dropdown-trigger ${isEstatusOpen ? 'active-trigger' : ''}`}
-                              style={{
-                                color: statusStyle.text,
-                                backgroundColor: statusStyle.bg,
-                                borderColor: statusStyle.border,
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '100%',
-                                gap: '4px'
-                              }}
+                              style={{ cursor: 'pointer' }}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                {estatusTranslations[currentStatus]}
-                              </span>
-                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isEstatusOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: statusStyle.text }} fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M7 10l5 5 5-5z" />
+                              <span>{estatusTranslations[currentStatus]}</span>
+                              <svg style={{ transform: isEstatusOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
                             {isEstatusOpen && (
@@ -493,13 +474,13 @@ export default function ExcelPreview({
                               padding: '0.45rem 0.6rem', 
                               fontSize: '0.875rem', 
                               color: h === 'ECONOMICO' ? '#111827' : '#4b5563', 
-                              fontWeight: (h === 'NOMBRE_CONDUCTOR' || h === 'ECONOMICO') ? '700' : 'normal', 
+                              fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal', 
                               textAlign: h === 'ECONOMICO' ? 'center' : 'left'
                             }}>
-                              {fila[h] || '-'}
+                              {fila[h] || ''}
                             </div>
                           ) : (
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: h === 'CORRIDAS' ? 'center' : 'flex-start', width: '100%' }}>
                               <input
                                 type="text"
                                 disabled={isRowDisabled}
@@ -511,12 +492,16 @@ export default function ExcelPreview({
                                   }
                                   onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, val);
                                 }}
-                                className="edit-input edit-text-input"
-                                placeholder="-"
+                                className={`edit-input edit-text-input ${h === 'CORRIDAS' ? 'text-center' : ''}`}
+                                placeholder=""
+                                maxLength={h === 'CORRIDAS' ? 2 : undefined}
                                 style={{ 
-                                  paddingRight: '8px',
+                                  paddingRight: h === 'CORRIDAS' ? '0' : '8px',
                                   cursor: isRowDisabled ? 'not-allowed' : 'text',
-                                  opacity: isRowDisabled ? 0.6 : 1
+                                  opacity: isRowDisabled ? 0.6 : 1,
+                                  width: h === 'CORRIDAS' ? '3.5rem' : '100%',
+                                  margin: h === 'CORRIDAS' ? '0 auto' : '0',
+                                  textAlign: h === 'CORRIDAS' ? 'center' : 'left'
                                 }}
                               />
                             </div>
