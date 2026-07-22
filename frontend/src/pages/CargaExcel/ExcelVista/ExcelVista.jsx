@@ -434,15 +434,13 @@ export default function ExcelPreview({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 width: '100%',
+                                padding: '0.2rem 0',
                                 gap: '4px'
                               }}
                             >
-                              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                {estatusTranslations[currentStatus]}
+                              <span style={{ whiteSpace: 'nowrap', lineHeight: '1.2' }}>
+                                {estatusTranslations[currentStatus]} {isEstatusOpen ? '▲' : '▼'}
                               </span>
-                              <svg style={{ width: '0.9rem', height: '0.9rem', transform: isEstatusOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, color: statusStyle.text }} fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M7 10l5 5 5-5z" />
-                              </svg>
                             </button>
                             {isEstatusOpen && (
                               <>
@@ -493,10 +491,10 @@ export default function ExcelPreview({
                               padding: '0.45rem 0.6rem', 
                               fontSize: '0.875rem', 
                               color: h === 'ECONOMICO' ? '#111827' : '#4b5563', 
-                              fontWeight: (h === 'NOMBRE_CONDUCTOR' || h === 'ECONOMICO') ? '700' : 'normal', 
+                              fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal', 
                               textAlign: h === 'ECONOMICO' ? 'center' : 'left'
                             }}>
-                              {fila[h] || '-'}
+                              {fila[h] || ''}
                             </div>
                           ) : (
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -511,12 +509,16 @@ export default function ExcelPreview({
                                   }
                                   onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, val);
                                 }}
-                                className="edit-input edit-text-input"
-                                placeholder="-"
+                                className={`edit-input edit-text-input ${h === 'CORRIDAS' ? 'text-center' : ''}`}
+                                placeholder=""
+                                maxLength={h === 'CORRIDAS' ? 2 : undefined}
                                 style={{ 
-                                  paddingRight: '8px',
+                                  paddingRight: h === 'CORRIDAS' ? '0' : '8px',
                                   cursor: isRowDisabled ? 'not-allowed' : 'text',
-                                  opacity: isRowDisabled ? 0.6 : 1
+                                  opacity: isRowDisabled ? 0.6 : 1,
+                                  width: h === 'CORRIDAS' ? '3.5rem' : '100%',
+                                  margin: h === 'CORRIDAS' ? '0 auto' : '0',
+                                  textAlign: h === 'CORRIDAS' ? 'center' : 'left'
                                 }}
                               />
                             </div>

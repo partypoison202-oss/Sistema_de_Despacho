@@ -491,4 +491,28 @@
   background: var(--brand-maroon-bg);
 }
 
+.excel-preview-table th.col-corridas,
+.excel-preview-table td.cell-corridas {
+  width: 80px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.excel-preview-table th.col-nombre_conductor,
+.excel-preview-table td.cell-nombre_conductor {
+  min-width: 250px;
+}
+
+.excel-preview-table th.col-tarjeton,
+.excel-preview-table td.cell-tarjeton,
+.excel-preview-table th.col-ruta,
+.excel-preview-table td.cell-ruta {
+  min-width: 140px;
+}
+
+.excel-preview-table th.col-estatus,
+.excel-preview-table td.cell-estatus {
+  min-width: 160px;
+}
+
 
