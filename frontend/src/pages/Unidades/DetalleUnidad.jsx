@@ -828,7 +828,12 @@ export default function DetalleUnidad() {
                   className={`dropdown-trigger ${openDropdown === 'reservaT6' ? 'dropdown-trigger--open' : ''}`}
                 >
                   <div className="dropdown-trigger__icon-container">
-                    <img src={configActual.image} alt="Conductor" className="dropdown-trigger__icon" />
+                    <svg className="dropdown-trigger__icon" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '2rem', height: '2rem' }}>
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
                   </div>
                   <span className="dropdown-trigger__value">RESERVA T6</span>
                   <div className={`dropdown-trigger__arrow ${openDropdown === 'reservaT6' ? 'dropdown-trigger__arrow--open' : ''}`}>
