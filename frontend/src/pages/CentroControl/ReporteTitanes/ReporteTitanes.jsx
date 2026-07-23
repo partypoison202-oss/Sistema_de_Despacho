@@ -1,6 +1,6 @@
 // src/pages/ReportesTitanes/ReportesTitanes.jsx
-import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../../components/Header/Header';
 import './ReporteTitanes.css';
 import API_BASE from '../../../config/api';
@@ -33,6 +33,32 @@ const fetchReportesTitan = async (usuarioId) => {
   return res.json();
 };
 
+// Trae TODOS los reportes (de cualquier titán) que aún no han sido vistos por el panel de control
+const fetchNotificacionesPendientes = async () => {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  const res = await fetch(`${API_BASE}/api/titan/notificaciones-pendientes`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) throw new Error('Error de conexión al obtener notificaciones');
+  return res.json();
+};
+
+// Marca una lista de reportes como vistos
+const marcarVistos = async (ids) => {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  await fetch(`${API_BASE}/api/titan/reportes/marcar-vistos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ids }),
+  });
+};
+
 const formatFecha = (fecha) => {
   if (!fecha) return 'N/A';
   try {
@@ -48,13 +74,59 @@ const formatFecha = (fecha) => {
   }
 };
 
+// Determina si un texto de ubicación tiene formato de coordenadas "lat, lng"
+// para poder generar un link directo a Google Maps
+const esCoordenada = (texto) => {
+  if (!texto) return false;
+  return /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(texto.trim());
+};
+
+// Cache simple en memoria para no repetir peticiones de la misma coordenada
+// durante la sesión (persiste mientras el componente esté montado en el navegador)
+const cacheDirecciones = new Map();
+
+// Convierte "lat, lng" a una dirección legible usando Nominatim (OpenStreetMap).
+// Es un servicio gratuito, pero tiene límite de uso (~1 petición/segundo) y
+// pide un User-Agent identificable, que en el navegador se resuelve solo.
+const obtenerDireccion = async (coordenadas) => {
+  if (cacheDirecciones.has(coordenadas)) {
+    return cacheDirecciones.get(coordenadas);
+  }
+
+  const [lat, lng] = coordenadas.split(',').map((v) => v.trim());
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+
+  const res = await fetch(url, {
+    headers: {
+      'Accept-Language': 'es',
+    },
+  });
+  if (!res.ok) throw new Error('No se pudo obtener la dirección');
+
+  const data = await res.json();
+  const direccion = data?.display_name || null;
+
+  cacheDirecciones.set(coordenadas, direccion);
+  return direccion;
+};
+
 export default function ReportesTitanes() {
+  const queryClient = useQueryClient();
+
   const [titanSeleccionadoId, setTitanSeleccionadoId] = useState('');
   const [tipoModal, setTipoModal] = useState(null); // 'INCORPORACION' | 'DESINCORPORACION' | 'ACCIDENTE' | null
+  const [selectorAbierto, setSelectorAbierto] = useState(false);
 
   const { data: usuarios = [], isLoading: cargandoUsuarios, isError } = useQuery({
     queryKey: ['usuarios'],
     queryFn: fetchUsuarios,
+  });
+
+  // Notificaciones pendientes (reportes no vistos) de todos los titanes
+  const { data: notificacionesData = [] } = useQuery({
+    queryKey: ['titan-notificaciones-pendientes'],
+    queryFn: fetchNotificacionesPendientes,
+    refetchInterval: 15000,
   });
 
   // Filtramos solo usuarios activos con rol TITAN
@@ -79,6 +151,26 @@ export default function ReportesTitanes() {
 
   const hayTitanSeleccionado = !!titanSeleccionadoId;
 
+  // Notificaciones agrupadas por titán (usuario_id)
+  const notifPorTitan = useMemo(() => {
+    const map = {};
+    (Array.isArray(notificacionesData) ? notificacionesData : []).forEach((n) => {
+      if (!map[n.usuario_id]) map[n.usuario_id] = [];
+      map[n.usuario_id].push(n);
+    });
+    return map;
+  }, [notificacionesData]);
+
+  // Notificaciones del titán actualmente seleccionado, agrupadas por tipo de evento
+  const notifTitanActual = notifPorTitan[titanSeleccionadoId] || [];
+  const notifPorTipo = useMemo(() => {
+    const map = { INCORPORACION: [], DESINCORPORACION: [], ACCIDENTE: [] };
+    notifTitanActual.forEach((n) => {
+      if (map[n.tipo_evento]) map[n.tipo_evento].push(n);
+    });
+    return map;
+  }, [notifTitanActual]);
+
   const {
     data: reporteTitan,
     isLoading: cargandoReporte,
@@ -94,18 +186,51 @@ export default function ReportesTitanes() {
   const incorporaciones = reporteTitan?.incorporaciones ?? 0;
   const desincorporaciones = reporteTitan?.desincorporaciones ?? 0;
   const accidentes = reporteTitan?.accidentes ?? 0;
-  // TODO: la ubicación aún no se guarda de forma independiente; pendiente de
-  // agregar el componente de geolocalización general del titán.
-  const ubicacion = 'Pendiente de implementar';
+
+  // Ubicación: tomamos el reporte más reciente que traiga ubicacion_gps
+  const ultimoReporteConUbicacion = useMemo(() => {
+    const reportes = reporteTitan?.reportes ?? [];
+    if (reportes.length === 0) return null;
+
+    const conUbicacion = reportes.filter((r) => r.ubicacion_gps);
+    if (conUbicacion.length === 0) return null;
+
+    return conUbicacion.reduce((masReciente, actual) =>
+      new Date(actual.created_at) > new Date(masReciente.created_at) ? actual : masReciente
+    );
+  }, [reporteTitan]);
+
+  const ubicacion = ultimoReporteConUbicacion?.ubicacion_gps ?? null;
+  const ubicacionEsCoordenada = esCoordenada(ubicacion);
+
+  // Traducimos las coordenadas a una dirección legible (geocodificación inversa)
+  const { data: direccionUbicacion, isLoading: cargandoDireccion } = useQuery({
+    queryKey: ['direccion-titan', ubicacion],
+    queryFn: () => obtenerDireccion(ubicacion),
+    enabled: !!ubicacion && ubicacionEsCoordenada,
+    staleTime: Infinity, // una misma coordenada siempre da la misma dirección
+    retry: 1,
+  });
 
   const reportesFiltrados = useMemo(() => {
     if (!tipoModal || !reporteTitan?.reportes) return [];
     return reporteTitan.reportes.filter((r) => r.tipo_evento === tipoModal);
   }, [tipoModal, reporteTitan]);
 
-  const abrirModal = (tipo) => {
+  const abrirModal = async (tipo) => {
     if (!hayTitanSeleccionado) return;
     setTipoModal(tipo);
+
+    // Marcamos como vistos los reportes pendientes de este tipo para este titán
+    const idsAMarcar = (notifPorTipo[tipo] || []).map((n) => n.id);
+    if (idsAMarcar.length > 0) {
+      try {
+        await marcarVistos(idsAMarcar);
+        queryClient.invalidateQueries({ queryKey: ['titan-notificaciones-pendientes'] });
+      } catch (err) {
+        console.error('Error al marcar reportes como vistos:', err);
+      }
+    }
   };
   const cerrarModal = () => setTipoModal(null);
 
@@ -131,42 +256,136 @@ export default function ReportesTitanes() {
 
         {/* ---------- Panel de selección e información ---------- */}
         <section className="rt-panel">
-          <div className="rt-panel__selector">
-            <label htmlFor="titan-select" className="rt-panel__label">
+          <div className="rt-panel__selector" style={{ position: 'relative' }}>
+            <label className="rt-panel__label">
               Titán
             </label>
-            <select
-              id="titan-select"
+            <button
+              type="button"
               className="rt-select"
-              value={titanSeleccionadoId}
-              onChange={(e) => {
-                setTitanSeleccionadoId(e.target.value);
-                setTipoModal(null);
+              style={{
+                textAlign: 'left',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                cursor: cargandoUsuarios ? 'not-allowed' : 'pointer',
               }}
+              onClick={() => !cargandoUsuarios && setSelectorAbierto((v) => !v)}
               disabled={cargandoUsuarios}
             >
-              <option value="">
+              <span>
                 {cargandoUsuarios
                   ? 'Cargando titanes...'
                   : isError
                   ? 'Error al cargar titanes'
+                  : titanActual
+                  ? titanActual.nombre
                   : titanes.length === 0
                   ? 'No hay titanes activos'
                   : 'Selecciona un titán'}
-              </option>
-              {titanes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
+              </span>
+              <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>▾</span>
+            </button>
+
+            {selectorAbierto && !cargandoUsuarios && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 20,
+                  background: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '10px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                  marginTop: '4px',
+                  maxHeight: '260px',
+                  overflowY: 'auto',
+                }}
+              >
+                {titanes.length === 0 && (
+                  <div style={{ padding: '12px 14px', fontSize: '0.85rem', color: '#6b7280' }}>
+                    No hay titanes activos
+                  </div>
+                )}
+                {titanes.map((t) => {
+                  const notifs = notifPorTitan[t.id] || [];
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => {
+                        setTitanSeleccionadoId(String(t.id));
+                        setTipoModal(null);
+                        setSelectorAbierto(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <span>{t.nombre}</span>
+                      {notifs.length > 0 && (
+                        <span
+                          title={`${notifs.length} reporte(s) nuevo(s)`}
+                          style={{
+                            minWidth: '20px',
+                            height: '20px',
+                            padding: '0 5px',
+                            borderRadius: '999px',
+                            backgroundColor: '#dc2626',
+                            color: '#fff',
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 6px rgba(220, 38, 38, 0.4)',
+                          }}
+                        >
+                          {notifs.length}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="rt-panel__info">
             <div className="rt-info-item">
               <span className="rt-info-item__label">Ubicación</span>
               <span className="rt-info-item__value">
-                {!hayTitanSeleccionado ? '—' : ubicacion}
+                {!hayTitanSeleccionado ? (
+                  '—'
+                ) : cargandoInfo ? (
+                  '...'
+                ) : !ubicacion ? (
+                  'Sin ubicación registrada'
+                ) : ubicacionEsCoordenada ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${ubicacion}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`Registrada el ${formatFecha(ultimoReporteConUbicacion.created_at)}\nCoordenadas: ${ubicacion}`}
+                  >
+                    {cargandoDireccion
+                      ? 'Buscando dirección...'
+                      : direccionUbicacion || 'Ver en mapa'}
+                  </a>
+                ) : (
+                  <span title={`Registrada el ${formatFecha(ultimoReporteConUbicacion.created_at)}`}>
+                    {ubicacion}
+                  </span>
+                )}
               </span>
             </div>
             <div className="rt-info-item">
@@ -197,7 +416,33 @@ export default function ReportesTitanes() {
             onClick={() => abrirModal('INCORPORACION')}
             role="button"
             tabIndex={hayTitanSeleccionado ? 0 : -1}
+            style={{ position: 'relative' }}
           >
+            {notifPorTipo.INCORPORACION.length > 0 && (
+              <span
+                title={`${notifPorTipo.INCORPORACION.length} reporte(s) nuevo(s)`}
+                style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  minWidth: '20px',
+                  height: '20px',
+                  padding: '0 5px',
+                  borderRadius: '999px',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #fff',
+                  boxShadow: '0 2px 6px rgba(220,38,38,0.4)',
+                }}
+              >
+                {notifPorTipo.INCORPORACION.length}
+              </span>
+            )}
             <div className="rt-card__icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -220,7 +465,33 @@ export default function ReportesTitanes() {
             onClick={() => abrirModal('DESINCORPORACION')}
             role="button"
             tabIndex={hayTitanSeleccionado ? 0 : -1}
+            style={{ position: 'relative' }}
           >
+            {notifPorTipo.DESINCORPORACION.length > 0 && (
+              <span
+                title={`${notifPorTipo.DESINCORPORACION.length} reporte(s) nuevo(s)`}
+                style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  minWidth: '20px',
+                  height: '20px',
+                  padding: '0 5px',
+                  borderRadius: '999px',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #fff',
+                  boxShadow: '0 2px 6px rgba(220,38,38,0.4)',
+                }}
+              >
+                {notifPorTipo.DESINCORPORACION.length}
+              </span>
+            )}
             <div className="rt-card__icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -242,7 +513,33 @@ export default function ReportesTitanes() {
             onClick={() => abrirModal('ACCIDENTE')}
             role="button"
             tabIndex={hayTitanSeleccionado ? 0 : -1}
+            style={{ position: 'relative' }}
           >
+            {notifPorTipo.ACCIDENTE.length > 0 && (
+              <span
+                title={`${notifPorTipo.ACCIDENTE.length} reporte(s) nuevo(s)`}
+                style={{
+                  position: 'absolute',
+                  top: '-8px',
+                  right: '-8px',
+                  minWidth: '20px',
+                  height: '20px',
+                  padding: '0 5px',
+                  borderRadius: '999px',
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #fff',
+                  boxShadow: '0 2px 6px rgba(220,38,38,0.4)',
+                }}
+              >
+                {notifPorTipo.ACCIDENTE.length}
+              </span>
+            )}
             <div className="rt-card__icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />

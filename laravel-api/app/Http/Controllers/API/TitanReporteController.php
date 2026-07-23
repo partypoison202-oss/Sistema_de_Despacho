@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class TitanReporteController extends Controller
 {
@@ -87,4 +88,47 @@ class TitanReporteController extends Controller
         ], 500);
     }
 }
+
+/**
+     * Devuelve todos los reportes de titanes que aún no han sido
+     * vistos por el panel de Centro de Control.
+     */
+    public function notificacionesPendientes()
+    {
+        try {
+            $pendientes = DB::table('reportes_titan')
+                ->whereRaw('visto = false')
+                ->select('id', 'usuario_id', 'tipo_evento')
+                ->get();
+
+            return response()->json($pendientes, 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en notificacionesPendientes: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al obtener notificaciones pendientes'], 500);
+        }
+    }
+
+    /**
+     * Marca un conjunto de reportes de titanes como vistos.
+     */
+    public function marcarVistos(Request $request)
+    {
+        try {
+            $request->validate([
+                'ids' => ['required', 'array'],
+                'ids.*' => ['integer'],
+            ]);
+
+            DB::table('reportes_titan')
+                ->whereIn('id', $request->input('ids'))
+                ->update(['visto' => DB::raw('true'), 'updated_at' => now()]);
+
+            return response()->json(['success' => true], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en marcarVistos: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al marcar reportes como vistos'], 500);
+        }
+    }
 }
