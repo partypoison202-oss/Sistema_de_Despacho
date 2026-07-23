@@ -9,6 +9,7 @@ import '../Unidades/DetalleUnidad.css';
 import UnitSelector from './components/UnitSelector';
 import AppleDatePicker from './components/AppleDatePicker';
 import FuelGaugeSelector from './components/FuelGaugeSelector';
+import FuelInspection from './components/FuelInspection';
 import ChecklistForm from '../CheckList/CheckList';
 import CONDUCTORES from '../../data/conductores';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
@@ -61,20 +62,7 @@ export default function DetalleUnidadMantenimiento() {
     estatus: 'operacion',
   });
 
-  // Campos de mantenimiento: los captura el usuario que realiza el mantenimiento (no vienen del sistema)
-  // Ahora separados por medidor: Gasolina y AdBlue, cada uno con kilometraje, fecha de última carga y litros cargados
-  const [mantenimientoForm, setMantenimientoForm] = useState({
-    nivelGasolina: '',
-    kilometrajeGasolina: '',
-    fechaUltimaCargaGasolina: '',
-    litrosGasolina: '',
-
-    nivelAdblue: '',
-    kilometrajeAdblue: '',
-    fechaUltimaCargaAdblue: '',
-    numeroCincho: '',
-  });
-  const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false);
+  const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false); // kept for compatibility
 
   // Check List states
   const [showChecklist, setShowChecklist] = useState(false);
@@ -354,73 +342,7 @@ export default function DetalleUnidadMantenimiento() {
     }
   };
 
-  const handleMantenimientoChange = (campo, valor) => {
-    setMantenimientoForm((prev) => ({ ...prev, [campo]: valor }));
-  };
-
-  const handleGuardarMantenimiento = async () => {
-    if (!selectedOption) return;
-
-    // Validación para evitar guardar si no hay ningún dato
-    const { nivelGasolina, nivelAdblue, numeroCincho, fechaUltimaCargaGasolina, fechaUltimaCargaAdblue } = mantenimientoForm;
-    if (!nivelGasolina && !nivelAdblue && !numeroCincho && !fechaUltimaCargaGasolina && !fechaUltimaCargaAdblue) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Sin datos',
-        text: 'Por favor ingresa al menos un dato de inspección para poder guardar.',
-        confirmButtonColor: '#c5a059',
-      });
-      return;
-    }
-
-    setGuardandoMantenimiento(true);
-    try {
-      const numeroLimpio = selectedOption.replace(/\D/g, '');
-      const token = getToken();
-      
-      const payload = {
-        numero_eco: numeroLimpio,
-        tipo: tipoTransporte,
-        nivel_combustible: mantenimientoForm.nivelGasolina,
-        nivel_adblue: mantenimientoForm.nivelAdblue,
-        numero_cincho: mantenimientoForm.numeroCincho,
-        fecha_ultima_carga: isDiesel ? mantenimientoForm.fechaUltimaCargaAdblue : mantenimientoForm.fechaUltimaCargaGasolina
-      };
-
-      const response = await fetch(`${API_BASE}/api/mantenimiento/guardar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.status === 'success') {
-        Swal.fire({
-          icon: 'success',
-          title: 'Mantenimiento Guardado',
-          text: 'Los datos se guardaron correctamente en el servidor',
-          confirmButtonColor: '#c5a059',
-          timer: 2200,
-        });
-      } else {
-        throw new Error(data.message || 'Error al guardar');
-      }
-    } catch (error) {
-      console.error('Error al guardar mantenimiento en servidor:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudo guardar la información en la base de datos.',
-        confirmButtonColor: '#601a2a',
-      });
-    } finally {
-      setGuardandoMantenimiento(false);
-    }
-  };
+  // FuelInspection handles its own state and submit logic
 
   // Permite llegar con ?eco=### desde la búsqueda del Dashboard de Mantenimiento
   useEffect(() => {
@@ -836,7 +758,7 @@ export default function DetalleUnidadMantenimiento() {
                     </div>
                   </div>
 
-                  {/* CARD: INSPECCIÓN — dos medidores independientes: Gasolina y AdBlue */}
+                  {/* CARD: INSPECCIÓN — componente FuelInspection */}
                   <div className="info-card">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -844,188 +766,11 @@ export default function DetalleUnidadMantenimiento() {
                       </svg>
                       <h3 className="info-card__title">Inspección</h3>
                     </div>
-
-                    <div className="info-card__body">
-                      {/* --- Bloques GASOLINA y ADBLUE, uno al lado del otro --- */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '0.75rem',
-                          alignItems: 'stretch',
-                        }}
-                      >
-                        {/* --- Bloque: GASOLINA --- */}
-                        <div
-                          style={{
-                            flex: '1 1 0',
-                            minWidth: 0,
-                            background: '#fafafa',
-                            borderRadius: '0.75rem',
-                            padding: '0.85rem 0.65rem 1rem',
-                            border: '1px solid #f0f0f0',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <FuelGaugeSelector
-                              value={mantenimientoForm.nivelGasolina}
-                              onChange={(v) => handleMantenimientoChange('nivelGasolina', v)}
-                              color="#c5a059"
-                              label={combustibleLabel}
-                            />
-                          </div>
-
-                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                            <span className="info-card__label">Kilometraje</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              className="interactive-input"
-                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
-                              placeholder="Ej: 125000"
-                              value={mantenimientoForm.kilometrajeGasolina || ''}
-                              onChange={(e) => handleMantenimientoChange('kilometrajeGasolina', e.target.value.replace(/\D/g, '').substring(0, 6))}
-                            />
-                          </div>
-
-                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                            <span className="info-card__label">Última Carga</span>
-                            <div className="mt-1 relative z-50">
-                              <AppleDatePicker
-                                value={mantenimientoForm.fechaUltimaCargaGasolina}
-                                onChange={(dateStr) => handleMantenimientoChange('fechaUltimaCargaGasolina', dateStr)}
-                                placeholder="Seleccionar fecha"
-                              />
-                            </div>
-                            {renderAlertaDias(mantenimientoForm.fechaUltimaCargaGasolina)}
-                          </div>
-
-                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                            <span className="info-card__label">Litros Cargados</span>
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              className="interactive-input"
-                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
-                              placeholder="Ej: 120"
-                              value={mantenimientoForm.litrosGasolina || ''}
-                              onChange={(e) => handleMantenimientoChange('litrosGasolina', e.target.value.replace(/[^0-9.]/g, '').substring(0, 6))}
-                            />
-                          </div>
-                        </div>
-
-                        {/* --- Bloque: ADBLUE --- */}
-                        <div
-                          style={{
-                            flex: '1 1 0',
-                            minWidth: 0,
-                            background: '#fafafa',
-                            borderRadius: '0.75rem',
-                            padding: '0.85rem 0.65rem 1rem',
-                            border: '1px solid #f0f0f0',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <FuelGaugeSelector
-                              value={mantenimientoForm.nivelAdblue}
-                              onChange={(v) => handleMantenimientoChange('nivelAdblue', v)}
-                              color="#3b82f6"
-                              label="AdBlue"
-                            />
-                          </div>
-
-                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                            <span className="info-card__label">Kilometraje</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              className="interactive-input"
-                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
-                              placeholder="Ej: 125000"
-                              value={mantenimientoForm.kilometrajeAdblue || ''}
-                              onChange={(e) => handleMantenimientoChange('kilometrajeAdblue', e.target.value.replace(/\D/g, '').substring(0, 6))}
-                            />
-                          </div>
-
-                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                            <span className="info-card__label">Última Carga</span>
-                            <div className="mt-1 relative z-50">
-                              <AppleDatePicker
-                                value={mantenimientoForm.fechaUltimaCargaAdblue}
-                                onChange={(dateStr) => handleMantenimientoChange('fechaUltimaCargaAdblue', dateStr)}
-                                placeholder="Seleccionar fecha"
-                              />
-                            </div>
-                            {renderAlertaDias(mantenimientoForm.fechaUltimaCargaAdblue)}
-                          </div>
-
-                          <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                            <span className="info-card__label">Litros Cargados</span>
-                            <input
-                              type="text"
-                              inputMode="decimal"
-                              className="interactive-input"
-                              style={{ marginTop: '0.25rem', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.9rem', width: '100%' }}
-                              placeholder="Ej: 20"
-                              value={mantenimientoForm.litrosAdblue || ''}
-                              onChange={(e) => handleMantenimientoChange('litrosAdblue', e.target.value.replace(/[^0-9.]/g, '').substring(0, 6))}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* --- Bloque: NÚMERO DE CINCHO (Único, debajo de ambos) --- */}
-                      <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
-                        <span className="info-card__label">Número de Cincho</span>
-                        <input
-                          type="text"
-                          className="interactive-input"
-                          style={{ 
-                            marginTop: '0.35rem', 
-                            padding: '0 0.85rem', 
-                            height: '2.5rem', 
-                            fontSize: '0.9rem', 
-                            width: '100%',
-                            textTransform: 'uppercase'
-                          }}
-                          placeholder="Ej: AB123456"
-                          value={mantenimientoForm.numeroCincho || ''}
-                          onChange={(e) => handleMantenimientoChange('numeroCincho', e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'end', marginTop: '1rem' }}>
-                        <button
-                          type="button"
-                          disabled={guardandoMantenimiento}
-                          onClick={handleGuardarMantenimiento}
-                          className="interactive-input"
-                          style={{
-                            width: 'auto',
-                            padding: '0 1.5rem',
-                            height: '2.3rem',
-                            background: '#6b1d33',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            fontWeight: 700,
-                            fontSize: '0.85rem',
-                            cursor: guardandoMantenimiento ? 'not-allowed' : 'pointer',
-                            opacity: guardandoMantenimiento ? 0.6 : 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                          }}
-                        >
-                          {guardandoMantenimiento && (
-                            <span
-                              className="spinner"
-                              style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}
-                            ></span>
-                          )}
-                          GUARDAR
-                        </button>
-                      </div>
-                    </div>
+                    <FuelInspection
+                      eco={selectedOption}
+                      tipoTransporte={tipoTransporte}
+                      token={getToken()}
+                    />
                   </div>
 
                   {/* CARD: MOVILIDAD Y ESTATUS */}

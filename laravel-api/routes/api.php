@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/despacho/catalogo/unidades', [DespachoController::class, 'obtenerCatalogoUnidades']);
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
     Route::post('/mantenimiento/guardar', [DespachoController::class, 'guardarMantenimiento']);
+    Route::get('/mantenimiento/ultimo-registro/{eco}', [DespachoController::class, 'ultimoRegistroMantenimiento']);
 
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
