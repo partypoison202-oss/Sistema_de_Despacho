@@ -90,7 +90,7 @@ export const generarPDFReporteGeneral = async (data) => {
 
     // Caja 1 (Urbanus)
     pdf.setFillColor(...COLOR_BEIGE);
-    pdf.roundedRect(25, 45, 95, 60, 5, 5, 'F');
+    pdf.roundedRect(23, 45, 70, 60, 5, 5, 'F');
     if (urbanusImg && (urbanusImg.naturalWidth > 0 || urbanusImg.width > 0)) {
         const canvas = document.createElement('canvas');
         canvas.width  = urbanusImg.naturalWidth  || urbanusImg.width;
@@ -98,12 +98,12 @@ export const generarPDFReporteGeneral = async (data) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(urbanusImg, 0, 0);
         
-        const maxW = 90;
+        const maxW = 65;
         const maxH = 50;
         const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
         const drawW = canvas.width * ratio;
         const drawH = canvas.height * ratio;
-        const x = 27 + (maxW - drawW) / 2;
+        const x = 25.5 + (maxW - drawW) / 2;
         const y = 50 + (maxH - drawH) / 2;
         
         if (drawW > 0 && drawH > 0) {
@@ -112,7 +112,7 @@ export const generarPDFReporteGeneral = async (data) => {
     }
 
     // Caja 2 (Alimentadoras)
-    pdf.roundedRect(25, 115, 95, 80, 5, 5, 'F');
+    pdf.roundedRect(23, 115, 70, 80, 5, 5, 'F');
     if (zafiroImg && (zafiroImg.naturalWidth > 0 || zafiroImg.width > 0)) {
         const canvas = document.createElement('canvas');
         canvas.width  = zafiroImg.naturalWidth  || zafiroImg.width;
@@ -120,12 +120,12 @@ export const generarPDFReporteGeneral = async (data) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(zafiroImg, 0, 0);
         
-        const maxW = 90;
+        const maxW = 65;
         const maxH = 70;
         const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
         const drawW = canvas.width * ratio;
         const drawH = canvas.height * ratio;
-        const x = 27 + (maxW - drawW) / 2;
+        const x = 25.5 + (maxW - drawW) / 2;
         const y = 120 + (maxH - drawH) / 2;
         
         if (drawW > 0 && drawH > 0) {
@@ -137,10 +137,10 @@ export const generarPDFReporteGeneral = async (data) => {
     const head = [
         [
             { content: `${troncales.length} SERVICIOS DE TRONCAL /\n${alimentadoras.length} RUTA ALIMENTADORA`, rowSpan: 2, styles: { halign: 'center', valign: 'middle', fontSize: 7, fillColor: COLOR_GUINDA } },
-            { content: `N° UNIDADES`, colSpan: 3, styles: { halign: 'center', fontSize: 16 } }
+            { content: `N° UNIDADES`, colSpan: 4, styles: { halign: 'center', fontSize: 16 } }
         ],
         [
-            { content: 'EN OPERACIÓN', styles: { halign: 'center', fillColor: COLOR_GOLD } },
+            { content: 'EN OPERACIÓN', colSpan: 2, styles: { halign: 'center', fillColor: COLOR_GOLD } },
             { content: 'PATIO TERMINAL\nTÉLLEZ', styles: { halign: 'center', fillColor: COLOR_BEIGE, textColor: COLOR_GUINDA } },
             { content: 'TOTAL', styles: { halign: 'center' } }
         ]
@@ -202,7 +202,7 @@ export const generarPDFReporteGeneral = async (data) => {
 
     autoTable(pdf, {
         startY: 40,
-        margin: { left: 125, right: 10 },
+        margin: { left: 98, right: 10 },
         head: head,
         body: body,
         theme: 'grid',
@@ -210,6 +210,13 @@ export const generarPDFReporteGeneral = async (data) => {
             fillColor: COLOR_GUINDA,
             textColor: COLOR_WHITE,
             fontStyle: 'bold'
+        },
+        columnStyles: {
+            0: { cellWidth: 42 },
+            1: { cellWidth: 16 },
+            2: { cellWidth: 26 },
+            3: { cellWidth: 54 },
+            4: { cellWidth: 33 }
         },
         styles: {
             fontSize: 9,

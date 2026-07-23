@@ -5,6 +5,7 @@ const COLOR_GUINDA     = [96, 26, 42];
 const COLOR_GOLD       = [197, 160, 89];
 const COLOR_BEIGE      = [234, 222, 203]; // Color de las cajas (beige)
 const COLOR_BEIGE_LIGHT= [247, 241, 233]; 
+const COLOR_WHITE      = [255, 255, 255]; 
 
 const loadImage = (src) => {
     return new Promise((resolve) => {
@@ -15,6 +16,115 @@ const loadImage = (src) => {
         img.onerror = () => resolve(null);
         img.src = src;
     });
+};
+
+const drawFooterIconToCanvas = (type) => {
+    try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 120;
+        canvas.height = 120;
+        const ctx = canvas.getContext('2d');
+
+        if (type === 'clipboard') {
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(24, 26, 52, 68, 6);
+            else ctx.rect(24, 26, 52, 68);
+            ctx.stroke();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(40, 16, 20, 12, 3);
+            else ctx.rect(40, 16, 20, 12);
+            ctx.fill();
+
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(32, 42); ctx.lineTo(36, 46); ctx.lineTo(44, 38);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(48, 42); ctx.lineTo(66, 42);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(32, 56); ctx.lineTo(36, 60); ctx.lineTo(44, 52);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(48, 56); ctx.lineTo(66, 56);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(32, 70); ctx.lineTo(36, 74); ctx.lineTo(44, 66);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(48, 70); ctx.lineTo(62, 70);
+            ctx.stroke();
+
+            ctx.fillStyle = '#601a2a';
+            ctx.beginPath();
+            ctx.arc(74, 76, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(74, 76, 16, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(65, 76);
+            ctx.lineTo(71, 82);
+            ctx.lineTo(83, 69);
+            ctx.stroke();
+        } else if (type === 'bus') {
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(24, 22, 72, 68, 12);
+            else ctx.rect(24, 22, 72, 68);
+            ctx.stroke();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(40, 28, 40, 8, 3);
+            else ctx.rect(40, 28, 40, 8);
+            ctx.fill();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(30, 40, 60, 24, 6);
+            else ctx.rect(30, 40, 60, 24);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(60, 40); ctx.lineTo(60, 64);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(36, 76, 5, 0, Math.PI * 2);
+            ctx.arc(84, 76, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(50, 72, 20, 8, 2);
+            else ctx.rect(50, 72, 20, 8);
+            ctx.stroke();
+
+            ctx.fillRect(30, 90, 16, 10);
+            ctx.fillRect(74, 90, 16, 10);
+
+            ctx.fillRect(14, 42, 8, 16);
+            ctx.fillRect(98, 42, 8, 16);
+        }
+        return canvas.toDataURL('image/png');
+    } catch (e) {
+        return null;
+    }
 };
 
 export const generarPDFReporteUnidades = async (data) => {
@@ -161,31 +271,37 @@ export const generarPDFReporteUnidades = async (data) => {
     pdf.setDrawColor(...COLOR_GOLD);
     pdf.roundedRect(30, currentY, pw - 40, 35, 5, 5, 'FD');
 
-    // Icono clipboard (simulado con rectángulos guindas para simplificar)
+    // Icono clipboard (caja e icono más pequeños y simétricos)
     pdf.setFillColor(...COLOR_GUINDA);
-    pdf.roundedRect(35, currentY + 2.5, 25, 30, 4, 4, 'F');
-    // ...
+    pdf.roundedRect(35, currentY + 6, 21, 23, 3.5, 3.5, 'F');
+    const clipIconData = drawFooterIconToCanvas('clipboard');
+    if (clipIconData) {
+        pdf.addImage(clipIconData, 'PNG', 36.5, currentY + 7.5, 18, 20);
+    }
 
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.setFontSize(11);
-    pdf.text('TOTAL DE UNIDADES', 80, currentY + 12, { align: 'center' });
-    pdf.text('PROGRAMADAS', 80, currentY + 16, { align: 'center' });
-    pdf.setFontSize(35);
-    pdf.text((totales?.programadas ?? 0).toString(), 80, currentY + 30, { align: 'center' });
+    pdf.setFontSize(10.5);
+    pdf.text('TOTAL DE UNIDADES', 84, currentY + 11, { align: 'center' });
+    pdf.text('PROGRAMADAS', 84, currentY + 15, { align: 'center' });
+    pdf.setFontSize(32);
+    pdf.text((totales?.programadas ?? 0).toString(), 84, currentY + 29, { align: 'center' });
 
     // Separador vertical total
     pdf.line(115, currentY + 5, 115, currentY + 30);
 
-    // Icono bus
+    // Icono bus (caja e icono más pequeños y simétricos)
     pdf.setFillColor(...COLOR_GUINDA);
-    pdf.roundedRect(125, currentY + 2.5, 25, 30, 4, 4, 'F');
-    // ...
+    pdf.roundedRect(123, currentY + 6, 21, 23, 3.5, 3.5, 'F');
+    const busIconData = drawFooterIconToCanvas('bus');
+    if (busIconData) {
+        pdf.addImage(busIconData, 'PNG', 124.5, currentY + 7.5, 18, 20);
+    }
 
-    pdf.setFontSize(11);
-    pdf.text('TOTAL DE UNIDADES', 170, currentY + 12, { align: 'center' });
-    pdf.text('EN SERVICIO', 170, currentY + 16, { align: 'center' });
-    pdf.setFontSize(35);
-    pdf.text((totales?.en_servicio ?? 0).toString(), 170, currentY + 30, { align: 'center' });
+    pdf.setFontSize(10.5);
+    pdf.text('TOTAL DE UNIDADES', 172, currentY + 11, { align: 'center' });
+    pdf.text('EN SERVICIO', 172, currentY + 15, { align: 'center' });
+    pdf.setFontSize(32);
+    pdf.text((totales?.en_servicio ?? 0).toString(), 172, currentY + 29, { align: 'center' });
 
     pdf.save(`Reporte_Unidades_${new Date().toISOString().slice(0,10)}.pdf`);
 };

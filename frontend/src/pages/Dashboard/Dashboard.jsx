@@ -1,6 +1,6 @@
-// src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
