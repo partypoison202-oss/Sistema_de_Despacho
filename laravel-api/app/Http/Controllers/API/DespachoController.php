@@ -871,6 +871,7 @@ class DespachoController extends Controller
     public function guardarMantenimiento(Request $request)
     {
         try {
+            \Log::info('[guardarMantenimiento] RAW', ['raw' => file_get_contents('php://input')]);
             \Log::info('[guardarMantenimiento] Request recibido', $request->all());
 
             $request->validate([
@@ -904,6 +905,7 @@ class DespachoController extends Controller
                     'nivel_adblue'       => $request->nivel_adblue === '' ? null : $request->nivel_adblue,
                     'numero_cincho'      => $request->numero_cincho === '' ? null : $request->numero_cincho,
                     'fecha_ultima_carga' => $request->fecha_ultima_carga === '' ? null : $request->fecha_ultima_carga,
+                    'kilometraje'        => $request->kilometraje === '' ? null : $request->kilometraje,
                 ]);
 
             \Log::info('[guardarMantenimiento] Guardado exitosamente', ['id' => $unidad->id]);
@@ -919,5 +921,37 @@ class DespachoController extends Controller
             \Log::error('[guardarMantenimiento] Excepción', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Devuelve el último registro de mantenimiento guardado para una unidad.
+     */
+    public function ultimoRegistroMantenimiento($eco)
+    {
+        $numeroEcoClean = str_pad(trim($eco), 3, '0', STR_PAD_LEFT);
+
+        $unidad = DB::table('unidades')
+            ->where('numero_eco', $numeroEcoClean)
+            ->first();
+
+        if (!$unidad) {
+            return response()->json([
+                'status'             => 'success',
+                'nivel_combustible'  => null,
+                'nivel_adblue'       => null,
+                'numero_cincho'      => null,
+                'fecha_ultima_carga' => null,
+                'kilometraje'        => null,
+            ], 200);
+        }
+
+        return response()->json([
+            'status'             => 'success',
+            'nivel_combustible'  => $unidad->nivel_combustible,
+            'nivel_adblue'       => $unidad->nivel_adblue,
+            'numero_cincho'      => $unidad->numero_cincho,
+            'fecha_ultima_carga' => $unidad->fecha_ultima_carga,
+            'kilometraje'        => $unidad->kilometraje ?? null,
+        ], 200);
     }
 }
