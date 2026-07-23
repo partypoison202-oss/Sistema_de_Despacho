@@ -100,36 +100,29 @@ export default function DetalleUnidad() {
     refetchInterval: 30000,
   });
 
-  const [dbConductores, setDbConductores] = useState([]);
-  
-  const fetchConductores = async () => {
-    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-    if (!token) return;
-    try {
+  const { data: dbConductores = [], isLoading: cargandoConductores } = useQuery({
+    queryKey: ['conductores-list'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return [];
       const res = await fetch(`${API_BASE}/api/conductores`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (Array.isArray(data)) {
-        const mapped = data.map(c => ({
+        return data.map(c => ({
           id: c.tarjeton,
           tarjeton: c.tarjeton,
           nombre: c.nombre,
           estado_servicio: c.estado_servicio,
           tipo_tarjeton: c.tipo_tarjeton
         }));
-        setDbConductores(mapped);
       }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchConductores();
-  }, []);
+      return [];
+    },
+    staleTime: 60000,
+    refetchInterval: 30000,
+  });
 
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);

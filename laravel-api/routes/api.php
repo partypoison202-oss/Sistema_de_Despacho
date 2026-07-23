@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/fechas', [HistorialOperativoController::class, 'getFechas']);
     Route::get('/historial-operativo/despacho/{fecha}', [HistorialOperativoController::class, 'getHistorialDespacho']);
     Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
+    Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
 
     // RUTAS PARA TITAN
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);

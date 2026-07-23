@@ -72,4 +72,33 @@ class HistorialOperativoController extends Controller
 
         return response()->json($registros);
     }
+
+    /**
+     * Obtiene el historial completo (Capturista / General) de una fecha.
+     */
+    public function getHistorialGeneral($fecha)
+    {
+        $registros = DB::table('historial_operativo')
+            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->where('fecha_historial', $fecha)
+            ->select(
+                'historial_operativo.tipo',
+                'unidades.numero_eco as economico',
+                'historial_operativo.ruta',
+                'historial_operativo.numero_tarjeton',
+                'historial_operativo.nombre_conductor',
+                'historial_operativo.estatus',
+                'historial_operativo.hora_programada as hora_acople',
+                'historial_operativo.corridas',
+                'historial_operativo.ciclo',
+                'historial_operativo.motivo',
+                'historial_operativo.falla',
+                'historial_operativo.motivo_estatus'
+            )
+            ->orderBy('historial_operativo.tipo')
+            ->orderBy('unidades.numero_eco')
+            ->get();
+
+        return response()->json($registros);
+    }
 }

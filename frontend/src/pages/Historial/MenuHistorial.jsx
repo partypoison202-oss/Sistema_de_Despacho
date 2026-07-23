@@ -6,6 +6,19 @@ import '../Menu/Menu.css';
 
 const historialItems = [
   {
+    id: 'historial-general',
+    redirectTo: '/historial/general',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+        <path d="M18 14v-8" />
+        <path d="M15 9h6" />
+      </svg>
+    ),
+    label: 'HISTORIAL GENERAL',
+    color: 'blue',
+  },
+  {
     id: 'historial-checklist',
     redirectTo: '/checklist/historial',
     icon: (
@@ -67,7 +80,7 @@ export default function MenuHistorial() {
         <div className="dashboard-welcome">
           <h2 className="dashboard-heading">Seleccione un <span className="text-highlight">Historial</span></h2>
         </div>
-        
+
         <div className="dashboard-grid">
           {historialItems.map((item) => (
             <button

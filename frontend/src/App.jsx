@@ -16,6 +16,7 @@ import MenuCheckList from './pages/Menu/MenuCheckList';
 import CheckList from './pages/CheckList/CheckList';
 import HistorialCheckList from './pages/CheckList/HistorialCheckList';
 import MenuHistorial from './pages/Historial/MenuHistorial';
+import HistorialGeneral from './pages/Historial/HistorialGeneral';
 import HistorialDespacho from './pages/Historial/HistorialDespacho';
 import HistorialEncierro from './pages/Historial/HistorialEncierro';
 import FleetSelection from './components/Checklist/FleetSelection';
@@ -114,6 +115,12 @@ function App() {
           <Route path="/historial" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
               <MenuHistorial />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/historial/general" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CAPTURISTA', 'DESPACHO', 'GENERAL']}>
+              <HistorialGeneral />
             </ProtectedRoute>
           } />
 

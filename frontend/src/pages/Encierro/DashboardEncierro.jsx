@@ -162,7 +162,7 @@ export default function DashboardEncierro() {
           try {
             const cachedData = queryClient.getQueryData(['unidades-list-encierro', modulo.id]);
             let unidades = cachedData || [];
-            
+
             if (unidades.length === 0) {
               const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
                 headers: {
@@ -233,9 +233,9 @@ export default function DashboardEncierro() {
               placeholder="Buscar por número económico"
               className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
-            <button 
-              type="submit" 
-              className="dashboard__search-button" 
+            <button
+              type="submit"
+              className="dashboard__search-button"
               disabled={!busquedaEco || buscandoUnidad || parseInt(busquedaEco, 10) === 0}
             >
               {buscandoUnidad ? 'Buscando...' : 'Buscar'}
@@ -260,9 +260,9 @@ export default function DashboardEncierro() {
           </div>
 
           <div className="dashboard__actions">
-            <button 
-              className="btn-reporte" 
-              onClick={handleGenerarReporte} 
+            <button
+              className="btn-reporte"
+              onClick={handleGenerarReporte}
               disabled={isGenerating}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
