@@ -30,6 +30,7 @@ import Mantenimiento from './pages/Mantenimiento/Mantenimiento';
 import DetalleUnidadMantenimiento from './pages/Mantenimiento/DetalleUnidadMantenimiento';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import ReportesTitanes from './pages/CentroControl/ReporteTitanes/ReporteTitanes';
+import HistorialReportesTitanes from './pages/Historial/HistorialReportesTitanes';
 
 function App() {
   return (
@@ -210,6 +211,10 @@ function App() {
 
           {/* ruta para reporte de titane */}
           <Route path="/reportestitanes" element={<ReportesTitanes />} />
+
+
+          {/* ruta de historial de reportes de titanes */}
+          <Route path="/historial/reportes-titanes" element={<HistorialReportesTitanes />} />
 
           {/* Redirección por defecto si no existe la ruta */}
           <Route path="*" element={<Navigate to="/" replace />} />

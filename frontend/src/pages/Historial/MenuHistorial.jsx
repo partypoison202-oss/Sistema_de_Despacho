@@ -58,7 +58,22 @@ const historialItems = [
     ),
     label: 'HISTORIAL ENCIERRO',
     color: 'gold',
+  },
+
+  {
+    id: 'historial-reportes-titanes',
+    redirectTo: '/historial/reportes-titanes',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3v18h18" />
+        <path d="M7 15l4-4 3 3 5-6" />
+      </svg>
+    ),
+    label: 'HISTORIAL REPORTES TITANES',
+    color: 'purple',
   }
+
+
 ];
 
 export default function MenuHistorial() {

@@ -1,0 +1,290 @@
+/* Ajusta este hex si tu "vino" institucional es distinto */
+:root {
+  --hrt-vino: #7a1030;
+  --hrt-vino-suave: #f6e9ed;
+  --hrt-vino-borde: #e3c3cc;
+}
+
+.hrt-subtitle {
+  text-align: center;
+  color: #6b6b6b;
+  font-size: 0.95rem;
+  margin-top: 4px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hrt-error {
+  max-width: 1100px;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  background: #fdecec;
+  border: 1px solid #f5b5b5;
+  color: #b42318;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Panel de filtros */
+.hrt-filtros-panel {
+  max-width: 1100px;
+  margin: 24px auto 20px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.07);
+  border: 1px solid #eee;
+}
+
+.hrt-filtros-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--hrt-vino);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 16px;
+}
+
+.hrt-link-btn {
+  background: none;
+  border: none;
+  color: var(--hrt-vino);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.hrt-link-btn:hover {
+  background: var(--hrt-vino-suave);
+}
+
+.hrt-filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.hrt-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hrt-campo--titan {
+  grid-column: span 1;
+}
+
+.hrt-campo label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.hrt-campo select,
+.hrt-campo input {
+  padding: 10px 12px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  color: #222;
+  background: #fafafa;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hrt-campo select:focus,
+.hrt-campo input:focus {
+  outline: none;
+  border-color: var(--hrt-vino);
+  box-shadow: 0 0 0 3px rgba(122, 16, 48, 0.15);
+  background: #fff;
+}
+
+.hrt-campo select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Tarjetas de resumen */
+.hrt-resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 14px;
+  max-width: 1100px;
+  margin: 0 auto 20px;
+}
+
+.hrt-resumen-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px 12px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border-top: 4px solid #ccc;
+}
+
+.hrt-resumen-numero {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #222;
+}
+
+.hrt-resumen-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.hrt-card--total { border-top-color: var(--hrt-vino); }
+.hrt-card--total .hrt-resumen-numero { color: var(--hrt-vino); }
+
+.hrt-card--incorporacion { border-top-color: #16a34a; }
+.hrt-card--incorporacion .hrt-resumen-numero { color: #16a34a; }
+
+.hrt-card--desincorporacion { border-top-color: #ea9e0e; }
+.hrt-card--desincorporacion .hrt-resumen-numero { color: #b7790b; }
+
+.hrt-card--accidente { border-top-color: #dc2626; }
+.hrt-card--accidente .hrt-resumen-numero { color: #dc2626; }
+
+/* Resultados */
+.hrt-resultados {
+  max-width: 1100px;
+  margin: 0 auto 40px;
+}
+
+.hrt-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 50px 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  color: #777;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.hrt-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #eee;
+  border-top-color: var(--hrt-vino);
+  border-radius: 50%;
+  animation: hrt-spin 0.8s linear infinite;
+}
+
+@keyframes hrt-spin {
+  to { transform: rotate(360deg); }
+}
+
+.hrt-tabla-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+  padding: 8px;
+}
+
+.hrt-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.hrt-tabla thead th {
+  text-align: left;
+  padding: 12px 14px;
+  background: var(--hrt-vino-suave);
+  color: var(--hrt-vino);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+}
+
+.hrt-tabla tbody tr {
+  border-bottom: 1px solid #eee;
+  transition: background 0.15s ease;
+}
+
+.hrt-tabla tbody tr:hover {
+  background: var(--hrt-vino-suave);
+}
+
+.hrt-tabla td {
+  padding: 12px 14px;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* Badges de tipo de evento */
+.hrt-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.hrt-badge--incorporacion {
+  background: #e8f8ee;
+  color: #16a34a;
+}
+
+.hrt-badge--desincorporacion {
+  background: #fdf3e2;
+  color: #b7790b;
+}
+
+.hrt-badge--accidente {
+  background: #fdeaea;
+  color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .hrt-resumen-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hrt-filtros-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hrt-filtros-panel,
+  .hrt-resumen-grid,
+  .hrt-resultados,
+  .hrt-error {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .hrt-tabla {
+    font-size: 0.8rem;
+  }
+}
