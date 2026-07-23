@@ -17,6 +17,9 @@ const modelsConfig = [
   { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.webp', color: 'blue' },
 ];
 
+// Nombre del rol tal como está guardado en la tabla `roles`
+const ROL_TITAN = 'TITAN';
+
 export default function CentroControl() {
   const navigate = useNavigate();
 
@@ -28,9 +31,52 @@ export default function CentroControl() {
   const reporteUnidadesRef = useRef(null);
 
   // ---- Titanes (activos / notificaciones) ----
-  // TODO: reemplazar por datos reales cuando exista el endpoint de Titanes
-  const [titanesActivos, setTitanesActivos] = useState(0);
-  const [titanesNotificaciones, setTitanesNotificaciones] = useState(0);
+  const fetchUsuarios = async () => {
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    const res = await fetch(`${API_BASE}/api/users`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) throw new Error('Error de conexion');
+    return res.json();
+  };
+
+  const fetchNotificacionesPendientes = async () => {
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    const res = await fetch(`${API_BASE}/api/titan/notificaciones-pendientes`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) throw new Error('Error de conexion');
+    return res.json();
+  };
+
+  const { data: usuariosData = [] } = useQuery({
+    queryKey: ['usuarios'],
+    queryFn: fetchUsuarios,
+    refetchInterval: 30000,
+  });
+
+  const { data: notificacionesData = [] } = useQuery({
+    queryKey: ['titan-notificaciones-pendientes'],
+    queryFn: fetchNotificacionesPendientes,
+    refetchInterval: 15000,
+  });
+
+  const titanesActivos = React.useMemo(() => {
+    return (Array.isArray(usuariosData) ? usuariosData : []).filter((u) => {
+      const rolNombre = (u.role?.nombre || u.role?.name || '').toUpperCase().trim();
+      const esTitan = rolNombre === ROL_TITAN;
+      const estaActivo = u.activo === true || u.activo === 'true' || u.activo === 1 || u.activo === undefined;
+      return esTitan && estaActivo;
+    }).length;
+  }, [usuariosData]);
+
+  const titanesNotificaciones = Array.isArray(notificacionesData) ? notificacionesData.length : 0;
 
   // ---- Carga y desglose de unidades por tipo y estatus ----
   const fetchDespachoHoy = async () => {
