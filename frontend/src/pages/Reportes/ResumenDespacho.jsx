@@ -54,18 +54,16 @@ export default function ResumenDespacho() {
             const status = (d.ESTATUS || '').toUpperCase().trim();
             return status.includes('OPERACI');
           }).length;
-          const mant = units.filter(d => {
+          const mantUnits = units.filter(d => {
             const status = (d.ESTATUS || '').toUpperCase().trim();
             return status.includes('MANTENIMIENTO');
-          }).length;
+          });
+          const mant = mantUnits.length;
           const efi = prog > 0 ? Math.round((oper / prog) * 100) : 0;
           
           const fallasPorTipo = {};
-          units.forEach(u => {
-            let motivo = u.MOTIVO_ESTATUS ? u.MOTIVO_ESTATUS.trim() : '';
-            if (!motivo) {
-              motivo = u.FALLA ? u.FALLA.trim() : '';
-            }
+          mantUnits.forEach(u => {
+            let motivo = u.MOTIVO_ESTATUS ? u.MOTIVO_ESTATUS.trim() : (u.FALLA ? u.FALLA.trim() : '');
             if (motivo !== '') {
               if (!fallasPorTipo[motivo]) {
                 fallasPorTipo[motivo] = [];

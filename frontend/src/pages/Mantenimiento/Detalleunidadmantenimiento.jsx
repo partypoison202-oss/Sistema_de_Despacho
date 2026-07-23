@@ -410,30 +410,160 @@ export default function DetalleUnidadMantenimiento() {
     };
 
     if (requiereMotivo) {
-      swalOptions.input = 'textarea';
-      swalOptions.inputPlaceholder = 'Escribe el motivo del cambio de estatus...';
-      swalOptions.inputAttributes = { maxlength: '70' };
+      const motivosPredefinidos = [
+        'FALTA DE OPERADOR',
+        'MANTENIMIENTO',
+        'ACCIDENTE',
+        'FALTA DE COMBUSTIBLE',
+        'CONDICIONES CLIMATICAS',
+        'DESVIO OPERACIONAL',
+        'OTRO'
+      ];
+
+      swalOptions.html = `
+        <div style="text-align: left; margin-top: 0.5rem; position: relative;">
+          <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
+            Seleccione el motivo de ${nuevoEstatus.toUpperCase()}:
+          </label>
+          
+          <div style="position: relative;">
+            <button type="button" id="swal-motivo-trigger" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 1rem; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.88rem; font-weight: 700; color: #1f2937; cursor: pointer; outline: none; transition: all 0.2s ease;">
+              <span id="swal-motivo-trigger-text" style="text-transform: uppercase; color: #6b7280;">Seleccionar motivo</span>
+              <svg id="swal-motivo-arrow" style="width: 16px; height: 16px; color: #6b1d33; transition: transform 0.2s ease;" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 10l5 5 5-5H7z" />
+              </svg>
+            </button>
+
+            <div id="swal-motivo-menu" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); z-index: 9999; max-height: 180px; overflow-y: auto;">
+              ${motivosPredefinidos.map(m => `
+                <div class="swal-motivo-item" data-value="${m}" style="padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: #4b5563; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s ease, color 0.2s ease;">
+                  ${m}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <input type="hidden" id="swal-motivo-hidden" value="" />
+
+          <div id="swal-motivo-custom-container" style="display: none; margin-top: 0.75rem;">
+            <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="Escribe el motivo detallado..." maxlength="70" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem;"></textarea>
+            <div id="swal-motivo-counter" style="text-align: right; font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 4px;">0/70</div>
+          </div>
+        </div>
+      `;
+
       swalOptions.didOpen = () => {
-        const input = Swal.getInput();
-        const counter = document.createElement('div');
-        counter.style.textAlign = 'right';
-        counter.style.fontSize = '10px';
-        counter.style.fontWeight = '500';
-        counter.style.color = '#d1d5db';
-        counter.style.marginTop = '4px';
-        counter.style.marginRight = '4px';
-        counter.innerText = '0/70';
-        input.parentNode.insertBefore(counter, input.nextSibling);
-        input.addEventListener('input', () => {
-          const length = input.value.length;
-          counter.innerText = `${length}/70`;
-          counter.style.color = length >= 70 ? '#ef4444' : '#d1d5db';
-        });
-      };
-      swalOptions.inputValidator = (value) => {
-        if (!value || !value.trim()) {
-          return 'El motivo es obligatorio para este estatus.';
+        const popup = Swal.getPopup();
+        if (popup) popup.style.overflow = 'visible';
+
+        const htmlContainer = Swal.getHtmlContainer();
+        if (htmlContainer) {
+          htmlContainer.style.overflow = 'visible';
+          htmlContainer.style.position = 'relative';
+          htmlContainer.style.zIndex = '100';
         }
+
+        const actions = Swal.getActions();
+        if (actions) {
+          actions.style.position = 'relative';
+          actions.style.zIndex = '1';
+        }
+
+        const trigger = document.getElementById('swal-motivo-trigger');
+        const triggerText = document.getElementById('swal-motivo-trigger-text');
+        const arrow = document.getElementById('swal-motivo-arrow');
+        const menu = document.getElementById('swal-motivo-menu');
+        const hiddenInput = document.getElementById('swal-motivo-hidden');
+        const customContainer = document.getElementById('swal-motivo-custom-container');
+        const textarea = document.getElementById('swal-motivo-textarea');
+        const counter = document.getElementById('swal-motivo-counter');
+
+        let isOpen = false;
+
+        const toggleMenu = () => {
+          isOpen = !isOpen;
+          if (menu) menu.style.display = isOpen ? 'block' : 'none';
+          if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+          if (trigger) trigger.style.borderColor = isOpen ? '#6b1d33' : '#e5e7eb';
+        };
+
+        if (trigger) {
+          trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu();
+          });
+        }
+
+        const items = document.querySelectorAll('.swal-motivo-item');
+        items.forEach(item => {
+          item.addEventListener('mouseenter', () => {
+            item.style.background = '#f9fafb';
+            item.style.color = '#1f2937';
+          });
+          item.addEventListener('mouseleave', () => {
+            item.style.background = 'none';
+            item.style.color = '#4b5563';
+          });
+          item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const val = item.getAttribute('data-value');
+            if (hiddenInput) hiddenInput.value = val;
+            if (triggerText) {
+              triggerText.innerText = val;
+              triggerText.style.color = '#1f2937';
+            }
+            
+            toggleMenu();
+
+            if (val === 'OTRO') {
+              if (customContainer) customContainer.style.display = 'block';
+              if (textarea) textarea.focus();
+            } else {
+              if (customContainer) customContainer.style.display = 'none';
+              if (textarea) textarea.value = '';
+            }
+          });
+        });
+
+        document.addEventListener('click', (e) => {
+          if (isOpen && menu && trigger && !menu.contains(e.target) && !trigger.contains(e.target)) {
+            isOpen = false;
+            menu.style.display = 'none';
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+            if (trigger) trigger.style.borderColor = '#e5e7eb';
+          }
+        });
+
+        if (textarea) {
+          textarea.addEventListener('input', () => {
+            const len = textarea.value.length;
+            if (counter) {
+              counter.innerText = `${len}/70`;
+              counter.style.color = len >= 70 ? '#ef4444' : '#9ca3af';
+            }
+          });
+        }
+      };
+
+      swalOptions.preConfirm = () => {
+        const hiddenInput = document.getElementById('swal-motivo-hidden');
+        const textarea = document.getElementById('swal-motivo-textarea');
+
+        const val = hiddenInput ? hiddenInput.value : '';
+        if (!val) {
+          Swal.showValidationMessage('Debe seleccionar un motivo.');
+          return false;
+        }
+
+        if (val === 'OTRO') {
+          const customVal = textarea ? textarea.value.trim() : '';
+          if (!customVal) {
+            Swal.showValidationMessage('Por favor escriba el motivo en el cuadro de texto.');
+            return false;
+          }
+          return customVal;
+        }
+
+        return val;
       };
     }
 
