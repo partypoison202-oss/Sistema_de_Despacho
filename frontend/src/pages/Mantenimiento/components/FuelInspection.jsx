@@ -63,6 +63,7 @@ function FuelBlock({
   registroAnterior,
   isDiesel,
   showKilometraje,
+  showDias = true,
 }) {
   const dias = diasDesde(registroAnterior?.fecha_ultima_carga);
   const alerta = dias !== null && dias > 3;
@@ -112,7 +113,7 @@ function FuelBlock({
               value={
                 <>
                   {formatDate(registroAnterior.fecha_ultima_carga)}
-                  {dias !== null && (
+                  {showDias && dias !== null && (
                     <span
                       style={{
                         marginLeft: '0.35rem',
@@ -171,7 +172,7 @@ function FuelBlock({
             placeholder={registroAnterior?.fecha_ultima_carga ? formatDate(registroAnterior.fecha_ultima_carga) : "Seleccionar fecha"}
           />
         </div>
-        {dias !== null && (
+        {showDias && dias !== null && (
           <span
             style={{
               fontSize: '0.7rem',
@@ -426,6 +427,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           }}
           isDiesel={isDiesel}
           showKilometraje
+          showDias={false}
         />
 
         {/* AdBlue */}
@@ -444,8 +446,8 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
             fecha_ultima_carga: registroAnterior?.fecha_ultima_carga,
             kilometraje: registroAnterior?.kilometraje,
           }}
-          isDiesel={isDiesel}
-          showKilometraje={false}
+          showKilometraje
+          showDias={false}
         />
       </div>
 

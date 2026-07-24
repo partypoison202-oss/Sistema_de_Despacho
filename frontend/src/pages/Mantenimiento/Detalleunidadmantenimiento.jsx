@@ -284,6 +284,9 @@ export default function DetalleUnidadMantenimiento() {
         return;
       }
 
+      // Invalidar la caché para forzar siempre una petición fresca al servidor
+      await queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+
       const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
       const resultado = await queryClient.fetchQuery({
         queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio],
@@ -297,7 +300,6 @@ export default function DetalleUnidadMantenimiento() {
           if (!res.ok) throw new Error('Error en peticion');
           return res.json();
         },
-        staleTime: 60000,
       });
 
       if (resultado.status === 'success') {
@@ -330,7 +332,7 @@ export default function DetalleUnidadMantenimiento() {
         numeroCincho: resultado.numero_cincho || '',
       });
     } catch (error) {
-      console.error('Error en la petición:', error);
+      console.error('Error detallado en la petición:', error.message, error.stack);
       setDatosOperativos({
         conductor: 'Error de conexión',
         ruta: 'No se pudo obtener',
@@ -644,8 +646,8 @@ export default function DetalleUnidadMantenimiento() {
           })
         );
 
-        queryClient.invalidateQueries(['unidades-list-mantenimiento', tipoTransporte]);
-        queryClient.invalidateQueries(['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio]);
+        queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
+        queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'No se pudo cambiar el estatus', confirmButtonColor: '#601a2a' });
       }
@@ -733,8 +735,8 @@ export default function DetalleUnidadMantenimiento() {
           })
         );
 
-        queryClient.invalidateQueries(['unidades-list-mantenimiento', tipoTransporte]);
-        queryClient.invalidateQueries(['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio]);
+        queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
+        queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }

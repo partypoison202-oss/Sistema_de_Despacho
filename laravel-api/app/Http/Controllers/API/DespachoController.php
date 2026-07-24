@@ -282,7 +282,12 @@ class DespachoController extends Controller
 
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
+        \Log::info('[obtenerDetalleUnidad] Inicio', ['tipo' => $tipo, 'eco' => $numeroEco]);
         $tipoNormalizado = strtolower(trim($tipo));
+        // Normalizar alias: 'urbanuss' (con doble s de la URL) → 'urbanus' (nombre en BD)
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
         $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
 
         // Buscar primero la unidad base para tener siempre sus datos de mantenimiento
@@ -316,6 +321,8 @@ class DespachoController extends Controller
                 $estatus = 'operacion';
             }
         }
+
+        \Log::info('[obtenerDetalleUnidad] Fin', ['info' => (array)$info]);
 
         return response()->json(
             $info ? [
