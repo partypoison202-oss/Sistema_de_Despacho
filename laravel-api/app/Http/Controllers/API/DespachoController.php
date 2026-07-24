@@ -284,72 +284,37 @@ class DespachoController extends Controller
     {
         \Log::info('[obtenerDetalleUnidad] Inicio', ['tipo' => $tipo, 'eco' => $numeroEco]);
         $tipoNormalizado = strtolower(trim($tipo));
+        // Normalizar alias: 'urbanuss' (con doble s de la URL) → 'urbanus' (nombre en BD)
         if ($tipoNormalizado === 'urbanuss') {
             $tipoNormalizado = 'urbanus';
         }
         $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
 
-        // Buscar primero la unidad base
-        $unidadBaseQuery = DB::table('unidades')
-            ->where('numero_eco', $numeroEcoClean);
+        // Buscar primero la unidad base para tener siempre sus datos de mantenimiento
+        $unidadBase = DB::table('unidades')
+            ->where('numero_eco', $numeroEcoClean)
+            ->first();
 
-        if (in_array($tipoNormalizado, ['urbanus', 'urbanuss'], true)) {
-            $unidadBaseQuery->whereIn(DB::raw('LOWER(tipo)'), ['urbanus', 'urbanuss']);
-        } else {
-            $unidadBaseQuery->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado]);
-        }
-        $unidadBase = $unidadBaseQuery->first();
-
-        if (!$unidadBase) {
-            $unidadBase = DB::table('unidades')
-                ->where('numero_eco', $numeroEcoClean)
-                ->first();
-        }
-
-        // Buscar información operativa del día
-        $infoQuery = DB::table('informacion_operativa')
+        // 🔥 CORREGIDO: agregar numero_tarjeton al select y campos de mantenimiento
+        $info = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->where('unidades.numero_eco', $numeroEcoClean);
+            ->where('unidades.numero_eco', $numeroEcoClean)
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->select(
+                'informacion_operativa.ruta',
+                'informacion_operativa.nombre_conductor',
+                'informacion_operativa.numero_tarjeton',  // ✅ ahora seleccionado
+                'informacion_operativa.estatus',
+                'unidades.numero_eco',
+                'informacion_operativa.falla',
+                'informacion_operativa.corridas',
+                'informacion_operativa.ciclo',
+                'informacion_operativa.motivo',
+                'informacion_operativa.hora_programada',
+                'informacion_operativa.acople'
+            )
+            ->first();
 
-        if (in_array($tipoNormalizado, ['urbanus', 'urbanuss'], true)) {
-            $infoQuery->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), ['urbanus', 'urbanuss']);
-        } else {
-            $infoQuery->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]);
-        }
-
-        $info = $infoQuery->select(
-            'informacion_operativa.ruta',
-            'informacion_operativa.nombre_conductor',
-            'informacion_operativa.numero_tarjeton',
-            'informacion_operativa.estatus',
-            'unidades.numero_eco',
-            'informacion_operativa.falla',
-            'informacion_operativa.corridas',
-            'informacion_operativa.ciclo',
-            'informacion_operativa.motivo',
-            'informacion_operativa.hora_programada',
-            'informacion_operativa.acople'
-        )->first();
-
-        // Fallback: si no se encontró con el filtro de tipo exacto pero existe unidadBase, buscar por unidad_id
-        if (!$info && $unidadBase) {
-            $info = DB::table('informacion_operativa')
-                ->where('unidad_id', $unidadBase->id)
-                ->select(
-                    'ruta',
-                    'nombre_conductor',
-                    'numero_tarjeton',
-                    'estatus',
-                    'falla',
-                    'corridas',
-                    'ciclo',
-                    'motivo',
-                    'hora_programada',
-                    'acople'
-                )->first();
-        }
-
-        $estatus = 'operacion';
         if ($info) {
             $estatus = strtolower(trim($info->estatus ?? 'operacion'));
             if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
@@ -359,24 +324,46 @@ class DespachoController extends Controller
 
         \Log::info('[obtenerDetalleUnidad] Fin', ['info' => (array)$info]);
 
-        return response()->json([
-            'status'    => 'success',
-            'asignado'  => (bool)$info,
-            'ruta'      => $info ? ($info->ruta ?: 'Sin ruta') : 'Sin ruta',
-            'conductor' => $info ? ($info->nombre_conductor ?: 'No reportado hoy') : 'No reportado hoy',
-            'tarjeton'  => $info ? ($info->numero_tarjeton ?? '') : '',
-            'estatus'   => $estatus,
-            'falla'     => $info ? $info->falla : null,
-            'corridas'  => $info ? $info->corridas : null,
-            'ciclo'     => $info ? $info->ciclo : null,
-            'motivo'    => $info ? $info->motivo : null,
-            'hora_programada' => $info ? $info->hora_programada : null,
-            'acople'    => $info ? $info->acople : null,
-            'nivel_combustible'  => $unidadBase ? $unidadBase->nivel_combustible : null,
-            'nivel_adblue'       => $unidadBase ? $unidadBase->nivel_adblue : null,
-            'numero_cincho'      => $unidadBase ? $unidadBase->numero_cincho : null,
-            'fecha_ultima_carga' => $unidadBase ? $unidadBase->fecha_ultima_carga : null,
-        ], 200);
+        return response()->json(
+            $info ? [
+                'status'    => 'success',
+                'asignado'  => true,
+                'ruta'      => $info->ruta,
+                'conductor' => $info->nombre_conductor,
+                'tarjeton'  => $info->numero_tarjeton ?? '',  // ✅ ahora llega
+                'estatus'   => $estatus,
+                'falla'     => $info->falla,
+                'corridas'  => $info->corridas,
+                'ciclo'     => $info->ciclo,
+                'motivo'    => $info->motivo,
+                'hora_programada' => $info->hora_programada,
+                'acople'    => $info->acople,
+                // Nuevos campos de mantenimiento
+                'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
+                'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
+                'numero_cincho'      => $unidadBase->numero_cincho ?? null,
+                'fecha_ultima_carga' => $unidadBase->fecha_ultima_carga ?? null,
+            ] : [
+                'status'    => 'success',
+                'asignado'  => false,
+                'ruta'      => 'Sin ruta asignada',
+                'conductor' => 'Sin conductor',
+                'tarjeton'  => '',
+                'estatus'   => 'operacion',
+                'falla'     => null,
+                'corridas'  => null,
+                'ciclo'     => null,
+                'motivo'    => null,
+                'hora_programada' => null,
+                'acople'    => null,
+                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
+                'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
+                'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
+                'numero_cincho'      => $unidadBase->numero_cincho ?? null,
+                'fecha_ultima_carga' => $unidadBase->fecha_ultima_carga ?? null,
+            ],
+            200
+        );
     }
 
     /**

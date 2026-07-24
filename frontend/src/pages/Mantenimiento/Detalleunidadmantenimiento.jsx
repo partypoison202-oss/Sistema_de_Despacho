@@ -334,10 +334,10 @@ export default function DetalleUnidadMantenimiento() {
     } catch (error) {
       console.error('Error detallado en la petición:', error.message, error.stack);
       setDatosOperativos({
-        conductor: 'No reportado hoy',
-        ruta: 'Sin ruta',
+        conductor: 'Error de conexión',
+        ruta: 'No se pudo obtener',
         tarjeton: '',
-        estatus: unidadSeleccionada?.estado || 'operacion',
+        estatus: 'operacion',
       });
     } finally {
       setCargandoDatos(false);
