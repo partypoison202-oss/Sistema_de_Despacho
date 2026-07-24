@@ -146,7 +146,7 @@ export default function CentroControl() {
     }),
     { programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0 }
   );
-  
+
   const eficienciaGlobal = totales.programadas > 0 ? Math.round(((totales.operacion + totales.reserva) / totales.programadas) * 100) : 0;
 
 
@@ -273,7 +273,7 @@ export default function CentroControl() {
               y genera reportes generales del despacho.
             </p>
           </div>
- 
+
           <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
 
             <button
@@ -336,15 +336,15 @@ export default function CentroControl() {
                 </span>
               )}
 
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <path d="M12 8v4" />
-              <path d="M12 16h.01" />
-            </svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M12 8v4" />
+                <path d="M12 16h.01" />
+              </svg>
               Titanes
             </button>
 
-                        <button
+            <button
               type="button"
               className="centro-btn-plano"
               onClick={() => navigate('/plano-patio')}
@@ -413,7 +413,7 @@ export default function CentroControl() {
                 </svg>
               </div>
               <span className="centro-kpi__value" style={{ color: '#92400e' }}>{cargando ? '—' : `${eficienciaGlobal}%`}</span>
-              <span className="centro-kpi__label" style={{ color: '#b45309', fontWeight: 'bold' }}>Eficiencia Global</span>
+              <span className="centro-kpi__label" style={{ color: '#b45309', fontWeight: 'bold' }}>Eficiencia operativa</span>
             </div>
           </section>
 
@@ -425,9 +425,9 @@ export default function CentroControl() {
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
-              <input 
-                type="text" 
-                placeholder="Buscar unidad en toda la flota..." 
+              <input
+                type="text"
+                placeholder="Buscar unidad en toda la flota..."
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value.replace(/[^a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ]/g, ''))}
                 style={{
@@ -489,92 +489,92 @@ export default function CentroControl() {
             </section>
           ) : (
             <section className="centro-type-grid">
-            {modelsConfig.map((mc) => {
-              const m = modelData.find((x) => x.id === mc.id) || {
-                programadas: 0,
-                operacion: 0,
-                reserva: 0,
-                mantenimiento: 0,
-              };
-              return (
-                <div
-                  className={`centro-type-card centro-type-card--${mc.color} ${!cargando ? 'centro-type-card--clickable' : ''}`}
-                  style={cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}}
-                  key={mc.id}
-                  onClick={() => !cargando && navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } })}
-                  role="button"
-                  tabIndex={cargando ? -1 : 0}
-                  onKeyDown={(e) => {
-                    if (!cargando && (e.key === 'Enter' || e.key === ' ')) {
-                      navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } });
-                    }
-                  }}
-                >
-                  <div className="centro-type-card__header">
-                    <img src={mc.image} alt={mc.label} className="centro-type-card__image" />
-                    <div className="centro-type-card__heading">
-                      <span className="centro-type-card__label">{mc.label}</span>
-                      <span className="centro-type-card__total">
-                        {cargando ? '—' : m.programadas} unidades
-                      </span>
+              {modelsConfig.map((mc) => {
+                const m = modelData.find((x) => x.id === mc.id) || {
+                  programadas: 0,
+                  operacion: 0,
+                  reserva: 0,
+                  mantenimiento: 0,
+                };
+                return (
+                  <div
+                    className={`centro-type-card centro-type-card--${mc.color} ${!cargando ? 'centro-type-card--clickable' : ''}`}
+                    style={cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}}
+                    key={mc.id}
+                    onClick={() => !cargando && navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } })}
+                    role="button"
+                    tabIndex={cargando ? -1 : 0}
+                    onKeyDown={(e) => {
+                      if (!cargando && (e.key === 'Enter' || e.key === ' ')) {
+                        navigate(`/centro-control/detalle/${mc.id}`, { state: { model: m } });
+                      }
+                    }}
+                  >
+                    <div className="centro-type-card__header">
+                      <img src={mc.image} alt={mc.label} className="centro-type-card__image" />
+                      <div className="centro-type-card__heading">
+                        <span className="centro-type-card__label">{mc.label}</span>
+                        <span className="centro-type-card__total">
+                          {cargando ? '—' : m.programadas} unidades
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Barra apilada de proporción */}
-                  <div className="centro-bar" role="img" aria-label={`Distribución de estatus ${mc.label}`}>
-                    <span
-                      className="centro-bar__seg centro-bar__seg--operacion"
-                      style={{ width: `${pct(m.operacion, m.programadas)}%` }}
-                    />
-                    <span
-                      className="centro-bar__seg centro-bar__seg--reserva"
-                      style={{ width: `${pct(m.reserva, m.programadas)}%` }}
-                    />
-                    <span
-                      className="centro-bar__seg centro-bar__seg--mantenimiento"
-                      style={{ width: `${pct(m.mantenimiento, m.programadas)}%` }}
-                    />
-                  </div>
+                    {/* Barra apilada de proporción */}
+                    <div className="centro-bar" role="img" aria-label={`Distribución de estatus ${mc.label}`}>
+                      <span
+                        className="centro-bar__seg centro-bar__seg--operacion"
+                        style={{ width: `${pct(m.operacion, m.programadas)}%` }}
+                      />
+                      <span
+                        className="centro-bar__seg centro-bar__seg--reserva"
+                        style={{ width: `${pct(m.reserva, m.programadas)}%` }}
+                      />
+                      <span
+                        className="centro-bar__seg centro-bar__seg--mantenimiento"
+                        style={{ width: `${pct(m.mantenimiento, m.programadas)}%` }}
+                      />
+                    </div>
 
-                  {/* Detalle por estatus */}
-                  <div className="centro-status-list">
-                    <div className="centro-status-row">
-                      <span className="centro-status-dot centro-status-dot--operacion" />
-                      <span className="centro-status-label">Operación</span>
-                      <span className="centro-status-percent centro-status-percent--operacion">
-                        {cargando ? '—' : `${Math.round(pct(m.operacion, m.programadas))}%`}
-                      </span>
-                      <span className="centro-status-value">{cargando ? '—' : m.operacion}</span>
-                    </div>
-                    <div className="centro-status-row">
-                      <span className="centro-status-dot centro-status-dot--reserva" />
-                      <span className="centro-status-label">Reserva</span>
-                      <span className="centro-status-percent centro-status-percent--reserva">
-                        {cargando ? '—' : `${Math.round(pct(m.reserva, m.programadas))}%`}
-                      </span>
-                      <span className="centro-status-value">{cargando ? '—' : m.reserva}</span>
-                    </div>
-                    <div className="centro-status-row">
-                      <span className="centro-status-dot centro-status-dot--mantenimiento" />
-                      <span className="centro-status-label">Mantenimiento</span>
-                      <span className="centro-status-percent centro-status-percent--mantenimiento">
-                        {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.programadas))}%`}
-                      </span>
-                      <span className="centro-status-value">{cargando ? '—' : m.mantenimiento}</span>
-                    </div>
-                    <div className="centro-status-row" style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #f3f4f6' }}>
-                      <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
-                      <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
-                      <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
-                        {cargando ? '—' : `${Math.round(pct(m.operacion + m.reserva, m.programadas))}%`}
-                      </span>
-                      <span className="centro-status-value"></span>
+                    {/* Detalle por estatus */}
+                    <div className="centro-status-list">
+                      <div className="centro-status-row">
+                        <span className="centro-status-dot centro-status-dot--operacion" />
+                        <span className="centro-status-label">Operación</span>
+                        <span className="centro-status-percent centro-status-percent--operacion">
+                          {cargando ? '—' : `${Math.round(pct(m.operacion, m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value">{cargando ? '—' : m.operacion}</span>
+                      </div>
+                      <div className="centro-status-row">
+                        <span className="centro-status-dot centro-status-dot--reserva" />
+                        <span className="centro-status-label">Reserva</span>
+                        <span className="centro-status-percent centro-status-percent--reserva">
+                          {cargando ? '—' : `${Math.round(pct(m.reserva, m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value">{cargando ? '—' : m.reserva}</span>
+                      </div>
+                      <div className="centro-status-row">
+                        <span className="centro-status-dot centro-status-dot--mantenimiento" />
+                        <span className="centro-status-label">Mantenimiento</span>
+                        <span className="centro-status-percent centro-status-percent--mantenimiento">
+                          {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value">{cargando ? '—' : m.mantenimiento}</span>
+                      </div>
+                      <div className="centro-status-row" style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #f3f4f6' }}>
+                        <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
+                        <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
+                        <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
+                          {cargando ? '—' : `${Math.round(pct(m.operacion + m.reserva, m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value"></span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </section>
+                );
+              })}
+            </section>
           )}
 
           {/* ---------- Acciones ---------- */}
