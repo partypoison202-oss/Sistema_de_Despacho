@@ -161,9 +161,9 @@ export default function Mantenimiento() {
               placeholder="Buscar por número económico"
               className="mantenimiento__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
-            <button 
-              type="submit" 
-              className="mantenimiento__search-button" 
+            <button
+              type="submit"
+              className="mantenimiento__search-button"
               disabled={!busquedaEco || buscandoUnidad || parseInt(busquedaEco, 10) === 0}
             >
               {buscandoUnidad ? 'Buscando...' : 'Buscar'}
