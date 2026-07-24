@@ -186,6 +186,9 @@ class DespachoController extends Controller
     public function listarUnidadesPorTipo($tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
@@ -225,6 +228,9 @@ class DespachoController extends Controller
     public function buscarUnidadPorTarjeton($tipo, $tarjeton)
     {
         $tipoNormalizado = strtolower(trim($tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
         $tarjetonLimpio = trim($tarjeton);
 
         if ($tarjetonLimpio === '') {
@@ -259,6 +265,9 @@ class DespachoController extends Controller
     public function obtenerPorTipo($tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
 
         // 🔥 CORREGIDO: usar informacion_operativa.tipo
         $data = DB::table('informacion_operativa')

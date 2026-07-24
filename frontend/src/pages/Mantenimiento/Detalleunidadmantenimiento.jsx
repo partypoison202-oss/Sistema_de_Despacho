@@ -319,18 +319,7 @@ export default function DetalleUnidadMantenimiento() {
         });
       }
 
-      // El mantenimiento se recupera desde la respuesta del servidor (Base de datos)
-      setMantenimientoForm({
-        nivelGasolina: resultado.nivel_combustible || '',
-        kilometrajeGasolina: '', // Estos datos ya no se usan en el modelo viejo si los limpiamos, pero los mantenemos en el form por si se necesitan
-        fechaUltimaCargaGasolina: isDiesel ? '' : (resultado.fecha_ultima_carga || ''),
-        litrosGasolina: '',
-
-        nivelAdblue: resultado.nivel_adblue || '',
-        kilometrajeAdblue: '',
-        fechaUltimaCargaAdblue: isDiesel ? (resultado.fecha_ultima_carga || '') : '',
-        numeroCincho: resultado.numero_cincho || '',
-      });
+      // El mantenimiento se delega al componente FuelInspection que hace su propio fetch.
     } catch (error) {
       console.error('Error detallado en la petición:', error.message, error.stack);
       setDatosOperativos({
