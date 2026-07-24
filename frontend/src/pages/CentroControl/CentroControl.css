@@ -63,6 +63,15 @@
   margin: 0 0 10px;
 }
 
+/* --- Nueva clase para la fecha --- */
+.centro-date {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--cc-text-muted);
+  margin: -4px 0 12px 0;
+  letter-spacing: 0.02em;
+}
+
 .centro-subtitle {
   font-size: 0.95rem;
   color: var(--cc-text-muted);

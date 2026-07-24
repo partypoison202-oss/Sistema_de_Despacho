@@ -149,8 +149,6 @@ export default function CentroControl() {
 
   const eficienciaGlobal = totales.programadas > 0 ? Math.round(((totales.operacion + totales.reserva) / totales.programadas) * 100) : 0;
 
-
-
   const handleGenerarReporte = async () => {
     setIsGenerating(true);
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -259,6 +257,14 @@ export default function CentroControl() {
     );
   }
 
+  // Obtenemos la fecha actual formateada en español
+  const fechaActual = new Date().toLocaleDateString('es-ES', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   return (
     <>
       <div className="centro-page">
@@ -268,6 +274,8 @@ export default function CentroControl() {
           <div className="centro-welcome">
             <p className="centro-eyebrow">Visión general de la flota</p>
             <h1 className="centro-title">Centro de Control</h1>
+            {/* --- NUEVO: fecha actual --- */}
+            <p className="centro-date">{fechaActual}</p>
             <p className="centro-subtitle">
               Consulta el total de unidades programadas, su estatus operativo
               y genera reportes generales del despacho.

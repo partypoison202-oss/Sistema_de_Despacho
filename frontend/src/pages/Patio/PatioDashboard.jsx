@@ -84,12 +84,66 @@ const buildZonaVerdeSlots = (totalUnidades) => {
   return slots;
 };
 
-// --- Señalamientos de zona (ubicados en los costados) ---
+// --- Señalamientos de zona (ubicados en los costados) ----------------------
+// Cada zona tiene una posición "default" (la original) y una posición "alt"
+// hacia la cual se desplaza el label cuando las unidades ocupan suficiente
+// espacio como para taparlo. El "threshold" indica a partir de qué fracción
+// de ocupación se considera que el label debe moverse.
+// "shift" es un desplazamiento pequeño (en puntos porcentuales) hacia la
+// izquierda respecto a la posición original ("default"), NO una posición
+// nueva independiente. Así el movimiento es sutil y el label se mantiene
+// cerca de su lugar habitual, solo "esquivando" a las unidades.
 const ZONE_LABELS = [
-  { id: 'reserva-conductor', text: 'Reserva', top: '33%', left: '51%', color: '#1a76e0' },
-  { id: 'reserva-sin-conductor', text: 'Sin conductor', top: '47%', left: '53%', color: '#d4b400' },
-  { id: 'mantenimiento', text: 'Mantenimiento', top: '72%', left: '54%', color: '#c62828' },
+  {
+    id: 'reserva-conductor',
+    text: 'Reserva',
+    color: '#1a76e0',
+    default: { top: '33%', left: '51%' },
+    shift: { top: 0, left: -4 }, // se mueve 4pts a la izquierda, misma altura
+    capacity: slotsReservaConConductor.length,
+    threshold: 0.5,
+  },
+  {
+    id: 'reserva-sin-conductor',
+    text: 'Sin conductor',
+    color: '#d4b400',
+    default: { top: '47%', left: '53%' },
+    shift: { top: 0, left: -4 },
+    capacity: slotsReservaSinConductor.length,
+    threshold: 0.5,
+  },
+  {
+    id: 'mantenimiento',
+    text: 'Mantenimiento',
+    color: '#c62828',
+    default: { top: '72%', left: '54%' },
+    shift: { top: 0, left: -4 },
+    capacityPerRow: ZONA_VERDE_CAJONES_POR_FILA,
+    threshold: 0.5,
+  },
 ];
+
+// Calcula la posición final de un label de zona en función de qué tan
+// ocupada está esa zona. Si la ocupación no alcanza el umbral, se conserva
+// la posición original ("default"); si la supera, se aplica un pequeño
+// desplazamiento ("shift") hacia la izquierda para no tapar las unidades.
+const getZoneLabelPosition = (zone, occupancy) => {
+  let ratio = 0;
+  if (zone.capacity) {
+    ratio = zone.capacity > 0 ? occupancy / zone.capacity : 0;
+  } else if (zone.capacityPerRow) {
+    ratio = zone.capacityPerRow > 0 ? occupancy / zone.capacityPerRow : 0;
+  }
+
+  if (ratio < zone.threshold) return zone.default;
+
+  const baseTop = toNum(zone.default.top);
+  const baseLeft = toNum(zone.default.left);
+  return {
+    top: `${baseTop + (zone.shift.top || 0)}%`,
+    left: `${baseLeft + (zone.shift.left || 0)}%`,
+  };
+};
 
 // --- Función para detectar si una unidad tiene conductor ------------------
 const unitHasConductor = (u) => {
@@ -148,6 +202,13 @@ const PatioDashboard = () => {
   const [unitSlots, setUnitSlots] = useState(new Map());
   const [unitDetailsCache, setUnitDetailsCache] = useState({});
   const [hoveredUnitEco, setHoveredUnitEco] = useState(null);
+
+  // --- Ocupación por zona (para reubicar los labels dinámicamente) ------
+  const [zoneOccupancy, setZoneOccupancy] = useState({
+    'reserva-conductor': 0,
+    'reserva-sin-conductor': 0,
+    'mantenimiento': 0,
+  });
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -279,6 +340,13 @@ const PatioDashboard = () => {
     assign(reserveCon, [slotsReservaConConductor]);
     assign(reserveSin, [slotsReservaSinConductor]);
     assign(mantenimiento, [slotsVerde]);
+
+    // --- Actualiza la ocupación de cada zona para reubicar los labels ---
+    setZoneOccupancy({
+      'reserva-conductor': reserveCon.length,
+      'reserva-sin-conductor': reserveSin.length,
+      'mantenimiento': mantenimiento.length,
+    });
 
     return coordsMap;
   };
@@ -812,15 +880,24 @@ const PatioDashboard = () => {
               <div className="floorplan-canvas">
                 <img src="/images/BOCETO PATIO.png" alt="Plano del Patio" className="floorplan-image" />
 
-                {ZONE_LABELS.map((zone) => (
-                  <div
-                    key={zone.id}
-                    className="zone-label"
-                    style={{ top: zone.top, left: zone.left, '--zone-color': zone.color }}
-                  >
-                    {zone.text}
-                  </div>
-                ))}
+                {ZONE_LABELS.map((zone) => {
+                  const occupancy = zoneOccupancy[zone.id] ?? 0;
+                  const pos = getZoneLabelPosition(zone, occupancy);
+                  return (
+                    <div
+                      key={zone.id}
+                      className="zone-label"
+                      style={{
+                        top: pos.top,
+                        left: pos.left,
+                        '--zone-color': zone.color,
+                        transition: 'top 0.4s ease, left 0.4s ease',
+                      }}
+                    >
+                      {zone.text}
+                    </div>
+                  );
+                })}
 
                 {displayUnits.map(renderUnit)}
               </div>
