@@ -132,6 +132,14 @@
 .dashboard-card--brown .dashboard-card__icon { color: var(--color-brown); background: var(--color-brown-light); }
 .dashboard-card--brown:hover { border-color: #d9b997; }
 
+.dashboard-card--purple::before { background: #8b5cf6; }
+.dashboard-card--purple .dashboard-card__icon { color: #6d28d9; background: #ede9fe; }
+.dashboard-card--purple:hover { border-color: #c4b5fd; }
+
+.dashboard-card--emerald::before { background: #10b981; }
+.dashboard-card--emerald .dashboard-card__icon { color: #047857; background: #d1fae5; }
+.dashboard-card--emerald:hover { border-color: #6ee7b7; }
+
 /* ── Ícono ── */
 .dashboard-card__icon {
   width: 52px;

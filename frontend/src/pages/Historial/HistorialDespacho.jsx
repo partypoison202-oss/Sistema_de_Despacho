@@ -73,7 +73,7 @@ export default function HistorialDespacho() {
     if (!datos || datos.length === 0) return;
     
     const worksheetData = datos.map(d => ({
-      'TIPO': d.tipo || '',
+      'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
       'ECO': d.economico || '',
       'RUTA': d.ruta || '',
       'TARJETON': d.numero_tarjeton || '',
@@ -180,7 +180,7 @@ export default function HistorialDespacho() {
               <tbody>
                 {datos.map((d, i) => (
                   <tr key={i}>
-                    <td>{d.tipo}</td>
+                    <td>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td>{d.economico}</td>
                     <td>{d.ruta || '-'}</td>
                     <td>{d.numero_tarjeton || '-'}</td>

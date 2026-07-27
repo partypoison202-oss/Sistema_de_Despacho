@@ -203,7 +203,7 @@ export default function Login() {
             </h1>
             <div className="login-split__brand-divider" />
             <p className="login-split__brand-subtitle">
-                Gestión de Flotillas · Sitmah
+                Gestión de Flota · Sitmah
             </p>
         </div>
 
@@ -306,7 +306,7 @@ export default function Login() {
               </form>
               
               <p className="login__footer-text">
-                  Sitmah · Gestión de Flotillas &copy; {new Date().getFullYear()}
+                  Gestión de Flota · Sitmah &copy; {new Date().getFullYear()}
               </p>
             </div>
           </main>
