@@ -277,3 +277,55 @@
   border-radius: 6px;
   border: 1px solid #ddd;
 }
+
+.rt-panel__info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.rt-titan-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.rt-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* dos columnas */
+  gap: 12px 24px;
+}
+
+.rt-info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.rt-info-item__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  letter-spacing: 0.5px;
+}
+
+.rt-info-item__value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1f2937;
+  word-break: break-word;
+}
+
+/* Para que la ubicación no se expanda demasiado */
+.rt-info-item:first-child .rt-info-item__value {
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 640px) {
+  .rt-stats-grid {
+    grid-template-columns: 1fr; /* una columna en móvil */
+  }
+}

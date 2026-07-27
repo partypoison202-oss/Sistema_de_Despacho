@@ -151,9 +151,18 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                 className="app-header__profile-btn"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
-                <div className="profile-icon">
-                  {user.nombre_completo.charAt(0).toUpperCase()}
-                </div>
+                {user.foto_url ? (
+                  <img 
+                    src={user.foto_url} 
+                    alt={user.nombre_completo} 
+                    className="profile-icon"
+                    style={{ objectFit: 'cover' }}
+                  />
+                ) : (
+                  <div className="profile-icon">
+                    {user.nombre_completo.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </button>
 
               {showProfileMenu && (

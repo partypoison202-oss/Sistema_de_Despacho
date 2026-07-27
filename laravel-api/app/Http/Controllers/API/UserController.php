@@ -22,14 +22,21 @@ class UserController extends Controller
             'nombre_completo' => 'required|string|max:150',
             'usuario' => 'required|string|max:50|unique:usuarios',
             'contrasena' => 'required|string|min:6',
-            'rol_id' => 'required|integer|exists:roles,id'
+            'rol_id' => 'required|integer|exists:roles,id',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ]);
+
+        $fotoPath = null;
+        if ($request->hasFile('foto')) {
+            $fotoPath = $request->file('foto')->store('usuarios/fotos', 'public');
+        }
 
         $user = User::create([
             'nombre_completo' => $request->nombre_completo,
             'usuario' => $request->usuario,
             'contrasena' => Hash::make($request->contrasena),
-            'rol_id' => $request->rol_id
+            'rol_id' => $request->rol_id,
+            'foto_url' => $fotoPath
         ]);
 
         return response()->json($user->load('role'), 201);
@@ -44,13 +51,23 @@ class UserController extends Controller
             'usuario' => 'sometimes|string|max:50|unique:usuarios,usuario,'.$id,
             'contrasena' => 'nullable|string|min:6',
             'rol_id' => 'sometimes|integer|exists:roles,id',
-            'activo' => 'sometimes|boolean'
+            'activo' => 'sometimes|boolean',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ]);
 
-        $data = $request->except(['contrasena', 'activo']);
+        $data = $request->except(['contrasena', 'activo', 'foto']);
         
         if ($request->filled('contrasena')) {
             $data['contrasena'] = Hash::make($request->contrasena);
+        }
+
+        if ($request->hasFile('foto')) {
+            // Eliminar la foto anterior si existe
+            $oldFoto = $user->getRawOriginal('foto_url');
+            if ($oldFoto) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldFoto);
+            }
+            $data['foto_url'] = $request->file('foto')->store('usuarios/fotos', 'public');
         }
 
         if (count($data) > 0) {
@@ -72,6 +89,13 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+        
+        // Eliminar foto del disco si existe
+        $oldFoto = $user->getRawOriginal('foto_url');
+        if ($oldFoto) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($oldFoto);
+        }
+        
         $user->delete();
 
         return response()->json(['message' => 'Usuario eliminado correctamente']);

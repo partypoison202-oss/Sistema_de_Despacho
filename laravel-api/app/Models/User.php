@@ -29,13 +29,20 @@ class User extends Authenticatable
         'correo',
         'contrasena',
         'activo',
-        'rol_id'
+        'rol_id',
+        'foto_url'
     ];
 
     protected $hidden = [
         'contrasena',
         'remember_token',
     ];
+
+    // Accesor para obtener la URL pública de la foto
+    public function getFotoUrlAttribute($value)
+    {
+        return $value ? asset('storage/' . $value) : null;
+    }
 
     public function getAuthPassword()
     {

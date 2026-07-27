@@ -47,8 +47,8 @@ const slotsReservaConConductor = buildRowSlots(
 );
 // Fila inferior: reserva SIN conductor
 const slotsReservaSinConductor = buildRowSlots(
-  { sTop: 34.06, sLeft: 79.36, eTop: 46.43, eLeft: 56.60 },
-  { sTop: 39.93, sLeft: 80.82, eTop: 52.31, eLeft: 58.05 },
+  { sTop: 43.10, sLeft: 58.77, eTop: 29.44, eLeft: 81.08 },
+  { sTop: 50.39, sLeft: 60.33, eTop: 36.73, eLeft: 83.66 },
   15,
   -20.2
 );
@@ -84,66 +84,50 @@ const buildZonaVerdeSlots = (totalUnidades) => {
   return slots;
 };
 
-// --- Señalamientos de zona (ubicados en los costados) ----------------------
-// Cada zona tiene una posición "default" (la original) y una posición "alt"
-// hacia la cual se desplaza el label cuando las unidades ocupan suficiente
-// espacio como para taparlo. El "threshold" indica a partir de qué fracción
-// de ocupación se considera que el label debe moverse.
-// "shift" es un desplazamiento pequeño (en puntos porcentuales) hacia la
-// izquierda respecto a la posición original ("default"), NO una posición
-// nueva independiente. Así el movimiento es sutil y el label se mantiene
-// cerca de su lugar habitual, solo "esquivando" a las unidades.
-const ZONE_LABELS = [
+// --- Contornos de zona (reemplazan a los antiguos labels de texto) --------
+// Cada zona ahora se marca con un polígono de contorno (outline) dibujado
+// sobre el plano, en vez de una etiqueta de texto. Los puntos están en
+// porcentaje (top/left) relativos al contenedor del plano.
+// Coordenadas exactas de cada zona (x=left, y=top, en %).
+const ZONE_OUTLINES = [
   {
     id: 'reserva-conductor',
-    text: 'Reserva',
+    label: 'Reserva',
     color: '#1a76e0',
-    default: { top: '33%', left: '51%' },
-    shift: { top: 0, left: -4 }, // se mueve 4pts a la izquierda, misma altura
-    capacity: slotsReservaConConductor.length,
-    threshold: 0.5,
+    // [top, left]
+    points: [
+      [27.90, 53.81],
+      [14.04, 78.67],
+      [25.71, 81.61],
+      [39.91, 56.74],
+      [27.57, 53.58],
+    ],
   },
   {
     id: 'reserva-sin-conductor',
-    text: 'Sin conductor',
-    color: '#d4b400',
-    default: { top: '47%', left: '53%' },
-    shift: { top: 0, left: -4 },
-    capacity: slotsReservaSinConductor.length,
-    threshold: 0.5,
+    label: 'Sin conductor',
+    color: '#e0c400',
+    points: [
+      [41.43, 56.97],
+      [26.21, 81.84],
+      [38.39, 85.46],
+      [53.61, 59.57],
+      [41.60, 56.97],
+    ],
   },
   {
     id: 'mantenimiento',
-    text: 'Mantenimiento',
-    color: '#c62828',
-    default: { top: '72%', left: '54%' },
-    shift: { top: 0, left: -4 },
-    capacityPerRow: ZONA_VERDE_CAJONES_POR_FILA,
-    threshold: 0.5,
+    label: 'Mantenimiento',
+    color: '#d32f2f',
+    points: [
+      [78.97, 61.94],
+      [64.43, 58.55],
+      [50.56, 83.42],
+      [64.94, 87.72],
+      [78.80, 61.94],
+    ],
   },
 ];
-
-// Calcula la posición final de un label de zona en función de qué tan
-// ocupada está esa zona. Si la ocupación no alcanza el umbral, se conserva
-// la posición original ("default"); si la supera, se aplica un pequeño
-// desplazamiento ("shift") hacia la izquierda para no tapar las unidades.
-const getZoneLabelPosition = (zone, occupancy) => {
-  let ratio = 0;
-  if (zone.capacity) {
-    ratio = zone.capacity > 0 ? occupancy / zone.capacity : 0;
-  } else if (zone.capacityPerRow) {
-    ratio = zone.capacityPerRow > 0 ? occupancy / zone.capacityPerRow : 0;
-  }
-
-  if (ratio < zone.threshold) return zone.default;
-
-  const baseTop = toNum(zone.default.top);
-  const baseLeft = toNum(zone.default.left);
-  return {
-    top: `${baseTop + (zone.shift.top || 0)}%`,
-    left: `${baseLeft + (zone.shift.left || 0)}%`,
-  };
-};
 
 // --- Función para detectar si una unidad tiene conductor ------------------
 const unitHasConductor = (u) => {
@@ -202,13 +186,6 @@ const PatioDashboard = () => {
   const [unitSlots, setUnitSlots] = useState(new Map());
   const [unitDetailsCache, setUnitDetailsCache] = useState({});
   const [hoveredUnitEco, setHoveredUnitEco] = useState(null);
-
-  // --- Ocupación por zona (para reubicar los labels dinámicamente) ------
-  const [zoneOccupancy, setZoneOccupancy] = useState({
-    'reserva-conductor': 0,
-    'reserva-sin-conductor': 0,
-    'mantenimiento': 0,
-  });
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -340,13 +317,6 @@ const PatioDashboard = () => {
     assign(reserveCon, [slotsReservaConConductor]);
     assign(reserveSin, [slotsReservaSinConductor]);
     assign(mantenimiento, [slotsVerde]);
-
-    // --- Actualiza la ocupación de cada zona para reubicar los labels ---
-    setZoneOccupancy({
-      'reserva-conductor': reserveCon.length,
-      'reserva-sin-conductor': reserveSin.length,
-      'mantenimiento': mantenimiento.length,
-    });
 
     return coordsMap;
   };
@@ -880,30 +850,54 @@ const PatioDashboard = () => {
               <div className="floorplan-canvas">
                 <img src="/images/BOCETO PATIO.png" alt="Plano del Patio" className="floorplan-image" />
 
-                {ZONE_LABELS.map((zone) => {
-                  const occupancy = zoneOccupancy[zone.id] ?? 0;
-                  const pos = getZoneLabelPosition(zone, occupancy);
-                  return (
-                    <div
-                      key={zone.id}
-                      className="zone-label"
-                      style={{
-                        top: pos.top,
-                        left: pos.left,
-                        '--zone-color': zone.color,
-                        transition: 'top 0.4s ease, left 0.4s ease',
-                      }}
-                    >
-                      {zone.text}
-                    </div>
-                  );
-                })}
+                {/* Contornos de zona (sustituyen a los labels de texto) */}
+                <svg
+                  className="zone-outlines-svg"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    overflow: 'visible',
+                  }}
+                >
+                  {ZONE_OUTLINES.map((zone) => {
+                    const pts = zone.points.map(([top, left]) => `${left},${top}`).join(' ');
+                    return (
+                      <g key={zone.id}>
+                        {/* Contorno blanco de fondo para dar contraste sobre el plano */}
+                        <polygon
+                          points={pts}
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth="6"
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                          opacity="0.9"
+                        />
+                        {/* Contorno de color, más grueso y visible */}
+                        <polygon
+                          points={pts}
+                          fill="none"
+                          stroke={zone.color}
+                          strokeWidth="3"
+                          strokeLinejoin="round"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      </g>
+                    );
+                  })}
+                </svg>
 
                 {displayUnits.map(renderUnit)}
               </div>
             </div>
 
-            {/* Leyenda de colores por flota (Movida fuera del canvas para que no se oculte al hacer scroll) */}
+            {/* Leyenda de colores por flota y por zona (Movida fuera del canvas para que no se oculte al hacer scroll) */}
             <div
               className="legend-box"
               style={
@@ -919,11 +913,22 @@ const PatioDashboard = () => {
                   : undefined
               }
             >
-              <div className="legend-box-title">Flotas</div>
+              <div className="legend-box-title">Tecnologias</div>
               <div className="legend-item"><span className="legend-color fleet-urbanus"></span> Urbanuss</div>
               <div className="legend-item"><span className="legend-color fleet-zafiro"></span> Zafiro</div>
               <div className="legend-item"><span className="legend-color fleet-vagoneta"></span> Vagoneta</div>
               <div className="legend-item"><span className="legend-color fleet-orion"></span> Orion</div>
+
+              <div className="legend-box-title" style={{ marginTop: '10px' }}>Zonas</div>
+              {ZONE_OUTLINES.map((zone) => (
+                <div className="legend-item" key={zone.id}>
+                  <span
+                    className="legend-color"
+                    style={{ backgroundColor: 'transparent', border: `2px solid ${zone.color}` }}
+                  ></span>
+                  {zone.label}
+                </div>
+              ))}
             </div>
           </div>
         </div>

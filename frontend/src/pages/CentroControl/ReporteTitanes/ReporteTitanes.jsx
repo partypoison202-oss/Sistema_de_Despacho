@@ -86,8 +86,6 @@ const esCoordenada = (texto) => {
 const cacheDirecciones = new Map();
 
 // Convierte "lat, lng" a una dirección legible usando Nominatim (OpenStreetMap).
-// Es un servicio gratuito, pero tiene límite de uso (~1 petición/segundo) y
-// pide un User-Agent identificable, que en el navegador se resuelve solo.
 const obtenerDireccion = async (coordenadas) => {
   if (cacheDirecciones.has(coordenadas)) {
     return cacheDirecciones.get(coordenadas);
@@ -114,7 +112,7 @@ export default function ReportesTitanes() {
   const queryClient = useQueryClient();
 
   const [titanSeleccionadoId, setTitanSeleccionadoId] = useState('');
-  const [tipoModal, setTipoModal] = useState(null); // 'INCORPORACION' | 'DESINCORPORACION' | 'ACCIDENTE' | null
+  const [tipoModal, setTipoModal] = useState(null);
   const [selectorAbierto, setSelectorAbierto] = useState(false);
 
   const { data: usuarios = [], isLoading: cargandoUsuarios, isError } = useQuery({
@@ -122,14 +120,13 @@ export default function ReportesTitanes() {
     queryFn: fetchUsuarios,
   });
 
-  // Notificaciones pendientes (reportes no vistos) de todos los titanes
   const { data: notificacionesData = [] } = useQuery({
     queryKey: ['titan-notificaciones-pendientes'],
     queryFn: fetchNotificacionesPendientes,
     refetchInterval: 15000,
   });
 
-  // Filtramos solo usuarios activos con rol TITAN
+  // Filtramos solo usuarios activos con rol TITAN y guardamos también foto_url
   const titanes = useMemo(() => {
     return (Array.isArray(usuarios) ? usuarios : [])
       .filter((u) => {
@@ -141,6 +138,7 @@ export default function ReportesTitanes() {
       .map((u) => ({
         id: u.id,
         nombre: u.nombre_completo || u.usuario,
+        foto_url: u.foto_url || null,
       }));
   }, [usuarios]);
 
@@ -151,7 +149,6 @@ export default function ReportesTitanes() {
 
   const hayTitanSeleccionado = !!titanSeleccionadoId;
 
-  // Notificaciones agrupadas por titán (usuario_id)
   const notifPorTitan = useMemo(() => {
     const map = {};
     (Array.isArray(notificacionesData) ? notificacionesData : []).forEach((n) => {
@@ -161,7 +158,6 @@ export default function ReportesTitanes() {
     return map;
   }, [notificacionesData]);
 
-  // Notificaciones del titán actualmente seleccionado, agrupadas por tipo de evento
   const notifTitanActual = notifPorTitan[titanSeleccionadoId] || [];
   const notifPorTipo = useMemo(() => {
     const map = { INCORPORACION: [], DESINCORPORACION: [], ACCIDENTE: [] };
@@ -203,12 +199,11 @@ export default function ReportesTitanes() {
   const ubicacion = ultimoReporteConUbicacion?.ubicacion_gps ?? null;
   const ubicacionEsCoordenada = esCoordenada(ubicacion);
 
-  // Traducimos las coordenadas a una dirección legible (geocodificación inversa)
   const { data: direccionUbicacion, isLoading: cargandoDireccion } = useQuery({
     queryKey: ['direccion-titan', ubicacion],
     queryFn: () => obtenerDireccion(ubicacion),
     enabled: !!ubicacion && ubicacionEsCoordenada,
-    staleTime: Infinity, // una misma coordenada siempre da la misma dirección
+    staleTime: Infinity,
     retry: 1,
   });
 
@@ -221,7 +216,6 @@ export default function ReportesTitanes() {
     if (!hayTitanSeleccionado) return;
     setTipoModal(tipo);
 
-    // Marcamos como vistos los reportes pendientes de este tipo para este titán
     const idsAMarcar = (notifPorTipo[tipo] || []).map((n) => n.id);
     if (idsAMarcar.length > 0) {
       try {
@@ -256,155 +250,226 @@ export default function ReportesTitanes() {
 
         {/* ---------- Panel de selección e información ---------- */}
         <section className="rt-panel">
-          <div className="rt-panel__selector" style={{ position: 'relative' }}>
-            <label className="rt-panel__label">
-              Titán
-            </label>
-            <button
-              type="button"
-              className="rt-select"
-              style={{
-                textAlign: 'left',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                width: '100%',
-                cursor: cargandoUsuarios ? 'not-allowed' : 'pointer',
-              }}
-              onClick={() => !cargandoUsuarios && setSelectorAbierto((v) => !v)}
-              disabled={cargandoUsuarios}
-            >
-              <span>
-                {cargandoUsuarios
-                  ? 'Cargando titanes...'
-                  : isError
-                  ? 'Error al cargar titanes'
-                  : titanActual
-                  ? titanActual.nombre
-                  : titanes.length === 0
-                  ? 'No hay titanes activos'
-                  : 'Selecciona un titán'}
-              </span>
-              <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>▾</span>
-            </button>
-
-            {selectorAbierto && !cargandoUsuarios && (
-              <div
+          <div className="rt-panel__selector">
+            <label className="rt-panel__label">Titán</label>
+            {/* Contenedor interno que posiciona el dropdown relativo al botón */}
+            <div style={{ position: 'relative', width: '100%' }}>
+              <button
+                type="button"
+                className="rt-select"
                 style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  zIndex: 20,
-                  background: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '10px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                  marginTop: '4px',
-                  maxHeight: '260px',
-                  overflowY: 'auto',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  width: '100%',
+                  cursor: cargandoUsuarios ? 'not-allowed' : 'pointer',
+                  margin: 0, // elimina márgenes por defecto
                 }}
+                onClick={() => !cargandoUsuarios && setSelectorAbierto((v) => !v)}
+                disabled={cargandoUsuarios}
               >
-                {titanes.length === 0 && (
-                  <div style={{ padding: '12px 14px', fontSize: '0.85rem', color: '#6b7280' }}>
-                    No hay titanes activos
-                  </div>
-                )}
-                {titanes.map((t) => {
-                  const notifs = notifPorTitan[t.id] || [];
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => {
-                        setTitanSeleccionadoId(String(t.id));
-                        setTipoModal(null);
-                        setSelectorAbierto(false);
-                      }}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '10px 14px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <span>{t.nombre}</span>
-                      {notifs.length > 0 && (
-                        <span
-                          title={`${notifs.length} reporte(s) nuevo(s)`}
-                          style={{
-                            minWidth: '20px',
-                            height: '20px',
-                            padding: '0 5px',
-                            borderRadius: '999px',
-                            backgroundColor: '#dc2626',
-                            color: '#fff',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 6px rgba(220, 38, 38, 0.4)',
-                          }}
-                        >
-                          {notifs.length}
-                        </span>
-                      )}
+                <span>
+                  {cargandoUsuarios
+                    ? 'Cargando titanes...'
+                    : isError
+                    ? 'Error al cargar titanes'
+                    : titanActual
+                    ? titanActual.nombre
+                    : titanes.length === 0
+                    ? 'No hay titanes activos'
+                    : 'Selecciona un titán'}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>▾</span>
+              </button>
+
+              {selectorAbierto && !cargandoUsuarios && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 4px)',
+                    left: 0,
+                    right: 0,
+                    zIndex: 20,
+                    background: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {titanes.length === 0 && (
+                    <div style={{ padding: '12px 14px', fontSize: '0.85rem', color: '#6b7280' }}>
+                      No hay titanes activos
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                  {titanes.map((t) => {
+                    const notifs = notifPorTitan[t.id] || [];
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => {
+                          setTitanSeleccionadoId(String(t.id));
+                          setTipoModal(null);
+                          setSelectorAbierto(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '10px 14px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <span>{t.nombre}</span>
+                        {notifs.length > 0 && (
+                          <span
+                            title={`${notifs.length} reporte(s) nuevo(s)`}
+                            style={{
+                              minWidth: '20px',
+                              height: '20px',
+                              padding: '0 5px',
+                              borderRadius: '999px',
+                              backgroundColor: '#dc2626',
+                              color: '#fff',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 6px rgba(220, 38, 38, 0.4)',
+                            }}
+                          >
+                            {notifs.length}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* ---------- Panel de información (reorganizado) ---------- */}
           <div className="rt-panel__info">
-            <div className="rt-info-item">
-              <span className="rt-info-item__label">Ubicación</span>
-              <span className="rt-info-item__value">
-                {!hayTitanSeleccionado ? (
-                  '—'
-                ) : cargandoInfo ? (
-                  '...'
-                ) : !ubicacion ? (
-                  'Sin ubicación registrada'
-                ) : ubicacionEsCoordenada ? (
-                  <a
-                    href={`https://www.google.com/maps?q=${ubicacion}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={`Registrada el ${formatFecha(ultimoReporteConUbicacion.created_at)}\nCoordenadas: ${ubicacion}`}
-                  >
-                    {cargandoDireccion
-                      ? 'Buscando dirección...'
-                      : direccionUbicacion || 'Ver en mapa'}
-                  </a>
-                ) : (
-                  <span title={`Registrada el ${formatFecha(ultimoReporteConUbicacion.created_at)}`}>
-                    {ubicacion}
+            {/* Fila superior: avatar + nombre */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '16px',
+                paddingBottom: '12px',
+                borderBottom: '1px solid #e5e7eb',
+              }}
+            >
+              {titanActual ? (
+                <>
+                  {titanActual.foto_url ? (
+                    <img
+                      src={titanActual.foto_url}
+                      alt={`Foto de ${titanActual.nombre}`}
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        marginRight: '14px',
+                        border: '2px solid #c29b53',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        backgroundColor: '#c29b53',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: '24px',
+                        fontWeight: 'bold',
+                        marginRight: '14px',
+                      }}
+                    >
+                      {titanActual.nombre?.charAt(0) || '?'}
+                    </div>
+                  )}
+                  <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                    {titanActual.nombre}
                   </span>
-                )}
-              </span>
+                </>
+              ) : (
+                <span style={{ color: '#9ca3af', fontSize: '1rem' }}>
+                  Selecciona un titán para ver su información
+                </span>
+              )}
             </div>
-            <div className="rt-info-item">
-              <span className="rt-info-item__label">Incorporaciones</span>
-              <span className="rt-info-item__value">
-                {!hayTitanSeleccionado ? '—' : cargandoInfo ? '...' : incorporaciones}
-              </span>
-            </div>
-            <div className="rt-info-item">
-              <span className="rt-info-item__label">Desincorporaciones</span>
-              <span className="rt-info-item__value">
-                {!hayTitanSeleccionado ? '—' : cargandoInfo ? '...' : desincorporaciones}
-              </span>
-            </div>
-            <div className="rt-info-item">
-              <span className="rt-info-item__label">Accidentes</span>
-              <span className="rt-info-item__value">
-                {!hayTitanSeleccionado ? '—' : cargandoInfo ? '...' : accidentes}
-              </span>
+
+            {/* Cuadrícula de datos (2 columnas) */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px 20px',
+              }}
+            >
+              <div className="rt-info-item">
+                <span className="rt-info-item__label">Ubicación</span>
+                <span className="rt-info-item__value">
+                  {!hayTitanSeleccionado ? (
+                    '—'
+                  ) : cargandoInfo ? (
+                    '...'
+                  ) : !ubicacion ? (
+                    'Sin ubicación registrada'
+                  ) : ubicacionEsCoordenada ? (
+                    <a
+                      href={`https://www.google.com/maps?q=${ubicacion}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`Registrada el ${formatFecha(ultimoReporteConUbicacion.created_at)}\nCoordenadas: ${ubicacion}`}
+                    >
+                      {cargandoDireccion
+                        ? 'Buscando dirección...'
+                        : direccionUbicacion || 'Ver en mapa'}
+                    </a>
+                  ) : (
+                    <span
+                      title={`Registrada el ${formatFecha(ultimoReporteConUbicacion.created_at)}`}
+                    >
+                      {ubicacion}
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              <div className="rt-info-item">
+                <span className="rt-info-item__label">Incorporaciones</span>
+                <span className="rt-info-item__value">
+                  {!hayTitanSeleccionado ? '—' : cargandoInfo ? '...' : incorporaciones}
+                </span>
+              </div>
+
+              <div className="rt-info-item">
+                <span className="rt-info-item__label">Desincorporaciones</span>
+                <span className="rt-info-item__value">
+                  {!hayTitanSeleccionado ? '—' : cargandoInfo ? '...' : desincorporaciones}
+                </span>
+              </div>
+
+              <div className="rt-info-item">
+                <span className="rt-info-item__label">Accidentes</span>
+                <span className="rt-info-item__value">
+                  {!hayTitanSeleccionado ? '—' : cargandoInfo ? '...' : accidentes}
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -578,51 +643,91 @@ export default function ReportesTitanes() {
                 <p className="rt-modal__empty">No hay reportes de este tipo.</p>
               )}
 
-              {!cargandoInfo && reportesFiltrados.map((r) => (
-                <div key={r.id} className="rt-reporte-item">
-                  <div className="rt-reporte-item__head">
-                    <span><strong>Unidad:</strong> {r.numero_economico || 'N/A'}</span>
-                    <span>{formatFecha(r.created_at)}</span>
-                  </div>
-
-                  {r.ruta && <p><strong>Ruta:</strong> {r.ruta}</p>}
-                  {r.corrida && <p><strong>Corrida:</strong> {r.corrida}</p>}
-                  {r.intervalo && <p><strong>Intervalo:</strong> {r.intervalo}</p>}
-                  {r.hora_evento && <p><strong>Hora del evento:</strong> {r.hora_evento}</p>}
-                  {r.ubicacion_gps && <p><strong>Ubicación:</strong> {r.ubicacion_gps}</p>}
-                  {r.observaciones && <p><strong>Observaciones:</strong> {r.observaciones}</p>}
-
-                  {tipoModal === 'DESINCORPORACION' && r.motivo_desincorporacion && (
-                    <p><strong>Motivo:</strong> {r.motivo_desincorporacion}</p>
-                  )}
-
-                  {tipoModal === 'ACCIDENTE' && (
-                    <>
-                      <p><strong>Dueño del particular:</strong> {r.accidente_dueno || 'N/A'}</p>
-                      <p><strong>Vehículo:</strong> {r.accidente_vehiculo || 'N/A'}</p>
-                      <p><strong>Placas:</strong> {r.accidente_placas || 'N/A'}</p>
-                      <p><strong>¿Cuenta con seguro?:</strong> {r.accidente_seguro === 'true' ? 'Sí' : 'No'}</p>
-                      <p><strong>Hechos:</strong> {r.accidente_hechos || 'N/A'}</p>
-                      {r.firma_particular_url && (
-                        <div className="rt-reporte-item__firma">
-                          <strong>Firma del particular:</strong>
-                          <img src={r.firma_particular_url} alt="Firma del particular" />
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {r.fotos?.length > 0 && (
-                    <div className="rt-reporte-item__fotos">
-                      {r.fotos.map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noreferrer">
-                          <img src={url} alt={`Evidencia ${idx + 1}`} />
-                        </a>
-                      ))}
+              {!cargandoInfo &&
+                reportesFiltrados.map((r) => (
+                  <div key={r.id} className="rt-reporte-item">
+                    <div className="rt-reporte-item__head">
+                      <span>
+                        <strong>Unidad:</strong> {r.numero_economico || 'N/A'}
+                      </span>
+                      <span>{formatFecha(r.created_at)}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {r.ruta && (
+                      <p>
+                        <strong>Ruta:</strong> {r.ruta}
+                      </p>
+                    )}
+                    {r.corrida && (
+                      <p>
+                        <strong>Corrida:</strong> {r.corrida}
+                      </p>
+                    )}
+                    {r.intervalo && (
+                      <p>
+                        <strong>Intervalo:</strong> {r.intervalo}
+                      </p>
+                    )}
+                    {r.hora_evento && (
+                      <p>
+                        <strong>Hora del evento:</strong> {r.hora_evento}
+                      </p>
+                    )}
+                    {r.ubicacion_gps && (
+                      <p>
+                        <strong>Ubicación:</strong> {r.ubicacion_gps}
+                      </p>
+                    )}
+                    {r.observaciones && (
+                      <p>
+                        <strong>Observaciones:</strong> {r.observaciones}
+                      </p>
+                    )}
+
+                    {tipoModal === 'DESINCORPORACION' && r.motivo_desincorporacion && (
+                      <p>
+                        <strong>Motivo:</strong> {r.motivo_desincorporacion}
+                      </p>
+                    )}
+
+                    {tipoModal === 'ACCIDENTE' && (
+                      <>
+                        <p>
+                          <strong>Dueño del particular:</strong> {r.accidente_dueno || 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Vehículo:</strong> {r.accidente_vehiculo || 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Placas:</strong> {r.accidente_placas || 'N/A'}
+                        </p>
+                        <p>
+                          <strong>¿Cuenta con seguro?:</strong>{' '}
+                          {r.accidente_seguro === 'true' ? 'Sí' : 'No'}
+                        </p>
+                        <p>
+                          <strong>Hechos:</strong> {r.accidente_hechos || 'N/A'}
+                        </p>
+                        {r.firma_particular_url && (
+                          <div className="rt-reporte-item__firma">
+                            <strong>Firma del particular:</strong>
+                            <img src={r.firma_particular_url} alt="Firma del particular" />
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {r.fotos?.length > 0 && (
+                      <div className="rt-reporte-item__fotos">
+                        {r.fotos.map((url, idx) => (
+                          <a key={idx} href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt={`Evidencia ${idx + 1}`} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
             </div>
           </div>
         </div>
