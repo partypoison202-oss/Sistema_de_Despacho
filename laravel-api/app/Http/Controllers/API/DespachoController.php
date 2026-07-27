@@ -924,6 +924,19 @@ class DespachoController extends Controller
                     'kilometraje'        => $request->kilometraje === '' ? null : $request->kilometraje,
                 ]);
 
+            DB::table('historial_mantenimiento')->insert([
+                'unidad_id'          => $unidad->id,
+                'tipo_vehiculo'      => $tipoNormalizado,
+                'nivel_combustible'  => $request->nivel_combustible === '' ? null : $request->nivel_combustible,
+                'nivel_adblue'       => $request->nivel_adblue === '' ? null : $request->nivel_adblue,
+                'numero_cincho'      => $request->numero_cincho === '' ? null : $request->numero_cincho,
+                'fecha_ultima_carga' => $request->fecha_ultima_carga === '' ? null : $request->fecha_ultima_carga,
+                'kilometraje'        => $request->kilometraje === '' ? null : $request->kilometraje,
+                'fecha_registro'     => now(),
+                'created_at'         => now(),
+                'updated_at'         => now(),
+            ]);
+
             \Log::info('[guardarMantenimiento] Guardado exitosamente', ['id' => $unidad->id]);
 
             return response()->json([

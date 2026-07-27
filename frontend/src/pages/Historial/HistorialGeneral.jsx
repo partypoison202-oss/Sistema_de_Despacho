@@ -72,7 +72,7 @@ export default function HistorialGeneral() {
     if (!datos || datos.length === 0) return;
 
     const worksheetData = datos.map(d => ({
-      'TIPO DE UNIDAD': d.tipo || '',
+      'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
       'ECO': d.economico || '',
       'RUTA': d.ruta || '',
       'TARJETÓN': d.numero_tarjeton || '',
@@ -180,7 +180,7 @@ export default function HistorialGeneral() {
               <tbody>
                 {datos.map((d, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: '600' }}>{d.tipo}</td>
+                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td style={{ fontWeight: '700' }}>{d.economico}</td>
                     <td>{d.ruta || '-'}</td>
                     <td>{d.numero_tarjeton || '-'}</td>

@@ -129,13 +129,6 @@ function FuelBlock({
               }
             />
           )}
-          {registroAnterior?.kilometraje && (
-            <ContextLabel
-              label="Km anterior"
-              value={Number(registroAnterior.kilometraje).toLocaleString('es-MX')}
-              accent
-            />
-          )}
         </div>
       )}
 
@@ -407,6 +400,39 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         </p>
       )}
 
+      {/* ── Kilometraje Único ── */}
+      <div className="info-card__item" style={{ marginBottom: '1.25rem', background: '#fafafa', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #f0f0f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <span className="info-card__label" style={{ margin: 0, fontSize: '0.9rem' }}>Kilometraje Actual</span>
+          {registroAnterior?.kilometraje && (
+            <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+              Anterior: <span style={{ color: '#6b1d33', fontWeight: 700 }}>{Number(registroAnterior.kilometraje).toLocaleString('es-MX')} km</span>
+            </span>
+          )}
+        </div>
+        <input
+          type="text"
+          inputMode="numeric"
+          className="interactive-input"
+          style={{
+            padding: '0 0.85rem',
+            height: '2.3rem',
+            fontSize: '0.9rem',
+            width: '100%',
+            textAlign: 'center',
+            letterSpacing: '0.05em',
+            fontWeight: '600'
+          }}
+          placeholder={registroAnterior?.kilometraje ? Number(registroAnterior.kilometraje).toLocaleString('es-MX') : "Ej: 125000"}
+          value={form.kilometrajeGasolina || ''}
+          onChange={(e) => {
+            const v = e.target.value.replace(/\D/g, '').substring(0, 7);
+            set('kilometrajeGasolina', v);
+            set('kilometrajeAdblue', v);
+          }}
+        />
+      </div>
+
       {/* ── Dos medidores ── */}
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
         {/* Gasolina / Diésel */}
@@ -415,40 +441,36 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           color="#c5a059"
           nivelValue={form.nivelGasolina}
           onNivelChange={(v) => set('nivelGasolina', v)}
-          kilometrajeValue={form.kilometrajeGasolina}
-          onKilometrajeChange={(v) => set('kilometrajeGasolina', v)}
           litrosValue={form.litrosGasolina}
           onLitrosChange={(v) => set('litrosGasolina', v)}
           fechaValue={form.fechaUltimaCargaGasolina}
           onFechaChange={(v) => set('fechaUltimaCargaGasolina', v)}
           registroAnterior={{
             fecha_ultima_carga: registroAnterior?.fecha_ultima_carga,
-            kilometraje: registroAnterior?.kilometraje,
           }}
           isDiesel={isDiesel}
-          showKilometraje
           showDias={false}
         />
 
-        {/* AdBlue */}
-        <FuelBlock
-          label="AdBlue"
-          color="#3b82f6"
-          nivelValue={form.nivelAdblue}
-          onNivelChange={(v) => set('nivelAdblue', v)}
-          kilometrajeValue={form.kilometrajeAdblue}
-          onKilometrajeChange={(v) => set('kilometrajeAdblue', v)}
-          litrosValue={form.litrosAdblue}
-          onLitrosChange={(v) => set('litrosAdblue', v)}
-          fechaValue={form.fechaUltimaCargaAdblue}
-          onFechaChange={(v) => set('fechaUltimaCargaAdblue', v)}
-          registroAnterior={{
-            fecha_ultima_carga: registroAnterior?.fecha_ultima_carga,
-            kilometraje: registroAnterior?.kilometraje,
-          }}
-          showKilometraje
-          showDias={false}
-        />
+        {/* AdBlue (Oculto para vagonetas) */}
+        {tipoTransporte?.toLowerCase() !== 'vagoneta' && (
+          <FuelBlock
+            label="AdBlue"
+            color="#3b82f6"
+            nivelValue={form.nivelAdblue}
+            onNivelChange={(v) => set('nivelAdblue', v)}
+            kilometrajeValue={form.kilometrajeAdblue}
+            onKilometrajeChange={(v) => set('kilometrajeAdblue', v)}
+            litrosValue={form.litrosAdblue}
+            onLitrosChange={(v) => set('litrosAdblue', v)}
+            fechaValue={form.fechaUltimaCargaAdblue}
+            onFechaChange={(v) => set('fechaUltimaCargaAdblue', v)}
+            registroAnterior={{
+              fecha_ultima_carga: registroAnterior?.fecha_ultima_carga,
+            }}
+            showDias={false}
+          />
+        )}
       </div>
 
       {/* ── Número de Cincho ── */}

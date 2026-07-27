@@ -101,4 +101,42 @@ class HistorialOperativoController extends Controller
 
         return response()->json($registros);
     }
+
+    /**
+     * Obtiene el historial de mantenimiento de una fecha.
+     */
+    public function getHistorialMantenimiento($fecha)
+    {
+        $registros = DB::table('historial_mantenimiento')
+            ->join('unidades', 'historial_mantenimiento.unidad_id', '=', 'unidades.id')
+            ->whereDate('historial_mantenimiento.fecha_registro', $fecha)
+            ->select(
+                'unidades.numero_eco as economico',
+                'historial_mantenimiento.tipo_vehiculo as tipo',
+                'historial_mantenimiento.nivel_combustible',
+                'historial_mantenimiento.nivel_adblue',
+                'historial_mantenimiento.kilometraje',
+                'historial_mantenimiento.numero_cincho',
+                'historial_mantenimiento.fecha_ultima_carga',
+                'historial_mantenimiento.fecha_registro as hora_guardado'
+            )
+            ->orderBy('historial_mantenimiento.fecha_registro', 'desc')
+            ->get();
+
+        return response()->json($registros);
+    }
+
+    /**
+     * Obtiene las fechas únicas en las que se ha guardado mantenimiento.
+     */
+    public function getFechasMantenimiento()
+    {
+        $fechas = DB::table('historial_mantenimiento')
+            ->select(DB::raw('DATE(fecha_registro) as fecha'))
+            ->distinct()
+            ->orderBy('fecha', 'desc')
+            ->pluck('fecha');
+
+        return response()->json($fechas);
+    }
 }

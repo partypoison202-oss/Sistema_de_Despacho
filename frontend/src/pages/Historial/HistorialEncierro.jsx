@@ -73,7 +73,7 @@ export default function HistorialEncierro() {
     if (!datos || datos.length === 0) return;
     
     const worksheetData = datos.map(d => ({
-      'TIPO': d.tipo || '',
+      'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
       'ECO': d.economico || '',
       'ESTATUS': d.estatus || '',
       'MOTIVO DE ESTATUS (BAJA)': d.motivo_estatus || '',
@@ -172,7 +172,7 @@ export default function HistorialEncierro() {
               <tbody>
                 {datos.map((d, i) => (
                   <tr key={i}>
-                    <td>{d.tipo}</td>
+                    <td>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td>{d.economico}</td>
                     <td>
                       <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
