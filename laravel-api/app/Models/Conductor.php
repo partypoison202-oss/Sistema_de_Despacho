@@ -14,6 +14,8 @@ class Conductor extends Model
     protected $fillable = [
         'nombre',
         'tarjeton',
-        'estado_servicio'
+        'tipo_tarjeton',
+        'estado_servicio',
+        'estatus'
     ];
 }

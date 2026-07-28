@@ -179,6 +179,14 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   }}>
                     Ajustes
                   </button>
+                  {['ADMINISTRADOR', 'CAPTURISTA', 'DESPACHO'].includes(user.role.codigo) && (
+                    <button className="profile-menu-btn" onClick={() => {
+                      setShowProfileMenu(false);
+                      navigate('/operadores');
+                    }}>
+                      Gestión de Operadores
+                    </button>
+                  )}
                   {user.role.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {
                       setShowProfileMenu(false);

@@ -46,6 +46,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
+    Route::post('/conductores', [ConductorController::class, 'store']);
+    Route::put('/conductores/{id}', [ConductorController::class, 'update']);
+    Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
 
     // Rutas de Unidades (orden específico para evitar conflictos)
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);

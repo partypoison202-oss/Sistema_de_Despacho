@@ -32,6 +32,7 @@ import DetalleUnidadMantenimiento from './pages/Mantenimiento/DetalleUnidadMante
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import ReportesTitanes from './pages/CentroControl/ReporteTitanes/ReporteTitanes';
 import HistorialReportesTitanes from './pages/Historial/HistorialReportesTitanes';
+import Operadores from './pages/Operadores/Operadores';
 
 function App() {
   return (
@@ -97,6 +98,13 @@ function App() {
           <Route path="/cargar-excel" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CAPTURISTA']}>
               <CargaExcel />
+            </ProtectedRoute>
+          } />
+
+          {/* Ruta protegida para Operadores (ADMIN, CAPTURISTA, DESPACHO) */}
+          <Route path="/operadores" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CAPTURISTA', 'DESPACHO']}>
+              <Operadores />
             </ProtectedRoute>
           } />
 
