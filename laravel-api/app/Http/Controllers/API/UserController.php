@@ -16,6 +16,17 @@ class UserController extends Controller
         return response()->json($users);
     }
 
+    /**
+     * Convierte un archivo subido a un data URI Base64
+     * (ej: "data:image/png;base64,AAAA...")
+     */
+    private function fileToBase64($file): string
+    {
+        $mimeType = $file->getMimeType();
+        $base64 = base64_encode(file_get_contents($file->getRealPath()));
+        return "data:{$mimeType};base64,{$base64}";
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -26,9 +37,9 @@ class UserController extends Controller
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ]);
 
-        $fotoPath = null;
+        $fotoBase64 = null;
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')->store('usuarios/fotos', 'public');
+            $fotoBase64 = $this->fileToBase64($request->file('foto'));
         }
 
         $user = User::create([
@@ -36,7 +47,7 @@ class UserController extends Controller
             'usuario' => $request->usuario,
             'contrasena' => Hash::make($request->contrasena),
             'rol_id' => $request->rol_id,
-            'foto_url' => $fotoPath
+            'foto_url' => $fotoBase64
         ]);
 
         return response()->json($user->load('role'), 201);
@@ -56,18 +67,15 @@ class UserController extends Controller
         ]);
 
         $data = $request->except(['contrasena', 'activo', 'foto']);
-        
+
         if ($request->filled('contrasena')) {
             $data['contrasena'] = Hash::make($request->contrasena);
         }
 
         if ($request->hasFile('foto')) {
-            // Eliminar la foto anterior si existe
-            $oldFoto = $user->getRawOriginal('foto_url');
-            if ($oldFoto) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldFoto);
-            }
-            $data['foto_url'] = $request->file('foto')->store('usuarios/fotos', 'public');
+            // Ya no hay archivo físico que borrar del disco: al guardar
+            // Base64 en la BD, basta con sobrescribir la columna foto_url.
+            $data['foto_url'] = $this->fileToBase64($request->file('foto'));
         }
 
         if (count($data) > 0) {
@@ -89,13 +97,9 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
-        
-        // Eliminar foto del disco si existe
-        $oldFoto = $user->getRawOriginal('foto_url');
-        if ($oldFoto) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($oldFoto);
-        }
-        
+
+        // Ya no hay archivo físico que eliminar: foto_url vive en la BD
+        // como Base64, así que $user->delete() se encarga de todo.
         $user->delete();
 
         return response()->json(['message' => 'Usuario eliminado correctamente']);
@@ -107,4 +111,3 @@ class UserController extends Controller
         return response()->json($roles);
     }
 }
-

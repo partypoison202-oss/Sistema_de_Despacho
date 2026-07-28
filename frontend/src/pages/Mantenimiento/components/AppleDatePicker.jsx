@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 
 const CALENDAR_WIDTH = 288; // w-72
 
@@ -11,9 +10,9 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
   const buttonRef = useRef(null);
   const calendarRef = useRef(null);
 
+  // Sincroniza el mes con la fecha seleccionada
   useEffect(() => {
     if (value) {
-      // Evitar problemas de desfase horario separando YYYY-MM-DD
       const parts = value.split('-');
       if (parts.length === 3) {
         setCurrentMonth(new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
@@ -23,7 +22,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     }
   }, [value]);
 
-  // Calcula la posición del calendario centrado debajo del campo, respetando los bordes de la pantalla
+  // Calcula la posición del calendario
   const updatePosition = useCallback(() => {
     const btn = buttonRef.current;
     if (!btn) return;
@@ -31,14 +30,13 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     const margin = 8;
 
     let left = rect.left + rect.width / 2 - CALENDAR_WIDTH / 2;
-    // Evita que se salga por la izquierda o la derecha de la ventana
     left = Math.max(margin, Math.min(left, window.innerWidth - CALENDAR_WIDTH - margin));
 
     const top = rect.bottom + 8;
-
     setCoords({ top, left });
   }, []);
 
+  // Reposiciona al abrir y en eventos de resize/scroll
   useEffect(() => {
     if (!isOpen) return;
     updatePosition();
@@ -52,6 +50,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     };
   }, [isOpen, updatePosition]);
 
+  // Cierra al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       const clickedButton = wrapperRef.current && wrapperRef.current.contains(event.target);
@@ -77,7 +76,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
     const today = new Date();
     if (disableFuture && (nextMonth.getFullYear() > today.getFullYear() || (nextMonth.getFullYear() === today.getFullYear() && nextMonth.getMonth() > today.getMonth()))) {
-      return; // No avanzar al próximo mes si está deshabilitado el futuro
+      return;
     }
     setCurrentMonth(nextMonth);
   };
@@ -102,7 +101,6 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     setIsOpen(false);
   };
 
-  // Formatear texto para mostrar en el botón
   const formatDisplayValue = () => {
     if (!value) return placeholder;
     const parts = value.split('-');
@@ -118,7 +116,6 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     days.push(<div key={`empty-${i}`} className="w-8 h-8"></div>);
   }
 
-  // Parsear fecha seleccionada actual
   let selYear = null, selMonth = null, selDay = null;
   if (value) {
     const parts = value.split('-');
@@ -161,7 +158,6 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
 
   return (
     <div className="relative inline-block w-full select-none" ref={wrapperRef}>
-      {/* Botón trigger estilo iOS Pill / Card */}
       <button
         ref={buttonRef}
         type="button"
@@ -188,13 +184,11 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
         </svg>
       </button>
 
-      {/* Popover flotante con diseño iOS */}
       {isOpen && (
         <div 
           className="absolute z-[9999] mt-2 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-100 p-4 w-72 animate-fade-in-up transition-all"
           style={{ boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 1px 1px rgba(0,0,0,0.05)' }}
         >
-          {/* Header del Calendario */}
           <div className="flex items-center justify-between mb-3 px-1">
             <button 
               type="button" 
@@ -224,7 +218,6 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             </button>
           </div>
 
-          {/* Días de la semana */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, idx) => (
               <div key={day} className={`text-center text-[10px] font-bold uppercase tracking-wider ${idx === 0 || idx === 6 ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -233,12 +226,10 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             ))}
           </div>
 
-          {/* Matriz de Días */}
           <div className="grid grid-cols-7 gap-1">
             {days}
           </div>
 
-          {/* Pie de Popover: Botón Hoy */}
           <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center px-1">
             <button
               type="button"

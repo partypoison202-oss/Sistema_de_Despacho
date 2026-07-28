@@ -38,11 +38,9 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    // Accesor para obtener la URL pública de la foto
-    public function getFotoUrlAttribute($value)
-    {
-        return $value ? asset('storage/' . $value) : null;
-    }
+    // Nota: se removió el accessor getFotoUrlAttribute() que anteponía
+    // asset('storage/...'). Ahora foto_url guarda directamente el data URI
+    // Base64 (ej: "data:image/png;base64,...") listo para usarse en <img src>.
 
     public function getAuthPassword()
     {

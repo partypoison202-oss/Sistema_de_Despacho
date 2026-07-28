@@ -50,7 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
 
-    // Rutas de Unidades (orden específico para evitar conflictos)
+    // Rutas de Unidades
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);
     Route::get('/unidades/buscar-tarjeton/{tipo}/{tarjeton}', [DespachoController::class, 'buscarUnidadPorTarjeton']);
     Route::get('/unidades/detalle/{tipo}/{numeroEco}', [DespachoController::class, 'obtenerDetalleUnidad']);
@@ -73,12 +73,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-mantenimiento/fechas', [HistorialOperativoController::class, 'getFechasMantenimiento']);
     Route::get('/historial-mantenimiento/{fecha}', [HistorialOperativoController::class, 'getHistorialMantenimiento']);
+
     // RUTAS PARA TITAN
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);
     Route::post('/titan/reporte', [TitanController::class, 'guardarReporte']);
     Route::get('/titan/notificaciones-pendientes', [TitanReporteController::class, 'notificacionesPendientes']);
     Route::post('/titan/reportes/marcar-vistos', [TitanReporteController::class, 'marcarVistos']);
-    Route::get('/titan/{usuarioId}/reportes', [TitanReporteController::class, 'reportesPorTitan']);
     Route::get('/titan/{usuarioId}/reportes', [TitanReporteController::class, 'reportesPorTitan']);
 
     // RUTAS PARA PLATAFORMA
@@ -99,15 +99,13 @@ Route::get('/setup-titan', function () {
                 $table->foreignId('usuario_id')->constrained('usuarios');
                 $table->string('intervalo')->nullable();
                 $table->text('observaciones')->nullable();
-                $table->string('tipo_evento'); // DESINCORPORACION, INCORPORACION, ACCIDENTE
+                $table->string('tipo_evento');
 
-                // Desincorporacion / Incorporacion
                 $table->string('corrida')->nullable();
                 $table->string('hora_evento')->nullable();
                 $table->string('ubicacion_gps')->nullable();
                 $table->text('motivo_desincorporacion')->nullable();
 
-                // Accidentes
                 $table->string('accidente_dueno')->nullable();
                 $table->string('accidente_vehiculo')->nullable();
                 $table->string('accidente_placas')->nullable();
@@ -146,7 +144,7 @@ Route::get('/setup-plataforma', function () {
                 $table->id();
                 $table->foreignId('unidad_id')->constrained('unidades');
                 $table->foreignId('usuario_id')->constrained('usuarios');
-                $table->string('tipo_movimiento'); // INCORPORACION, DESINCORPORACION
+                $table->string('tipo_movimiento');
                 $table->string('estatus_anterior');
                 $table->string('estatus_nuevo');
                 $table->string('conductor_asignado')->nullable();

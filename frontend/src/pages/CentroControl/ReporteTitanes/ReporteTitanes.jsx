@@ -5,6 +5,8 @@ import Header from '../../../components/Header/Header';
 import UserAvatar from '../../../components/UserAvatar/UserAvatar';
 import './ReporteTitanes.css';
 import API_BASE from '../../../config/api';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 // Nombre del rol tal como está guardado en la tabla `roles`
 const ROL_TITAN = 'TITAN';
@@ -116,6 +118,15 @@ export default function ReportesTitanes() {
   const [tipoModal, setTipoModal] = useState(null);
   const [selectorAbierto, setSelectorAbierto] = useState(false);
 
+  // --- Estados del dashboard de filtros dentro del modal ---
+  const [busqueda, setBusqueda] = useState('');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [orden, setOrden] = useState('fecha-desc'); // fecha-desc | fecha-asc | unidad
+
+  // Estado para controlar la descarga
+  const [descargando, setDescargando] = useState(false);
+
   const { data: usuarios = [], isLoading: cargandoUsuarios, isError } = useQuery({
     queryKey: ['usuarios'],
     queryFn: fetchUsuarios,
@@ -208,10 +219,88 @@ export default function ReportesTitanes() {
     retry: 1,
   });
 
-  const reportesFiltrados = useMemo(() => {
+  // Reinicia los filtros del dashboard cada vez que se abre un modal (o cambia de tipo)
+  useEffect(() => {
+    if (tipoModal) {
+      setBusqueda('');
+      setFechaDesde('');
+      setFechaHasta('');
+      setOrden('fecha-desc');
+    }
+  }, [tipoModal]);
+
+  // Reportes base (sin filtrar) del tipo seleccionado
+  const reportesBase = useMemo(() => {
     if (!tipoModal || !reporteTitan?.reportes) return [];
     return reporteTitan.reportes.filter((r) => r.tipo_evento === tipoModal);
   }, [tipoModal, reporteTitan]);
+
+  // Reportes filtrados + ordenados para mostrar en el dashboard del modal
+  const reportesFiltrados = useMemo(() => {
+    let lista = [...reportesBase];
+
+    // Filtro de texto: unidad, ruta, corrida, observaciones y campos de accidente/desincorporación
+    if (busqueda.trim()) {
+      const q = busqueda.trim().toLowerCase();
+      lista = lista.filter((r) => {
+        const campos = [
+          r.numero_economico,
+          r.ruta,
+          r.corrida,
+          r.observaciones,
+          r.motivo_desincorporacion,
+          r.accidente_dueno,
+          r.accidente_vehiculo,
+          r.accidente_placas,
+        ];
+        return campos.some((c) => c && String(c).toLowerCase().includes(q));
+      });
+    }
+
+    // Filtro de rango de fechas
+    if (fechaDesde) {
+      const desde = new Date(fechaDesde + 'T00:00:00');
+      lista = lista.filter((r) => new Date(r.created_at) >= desde);
+    }
+    if (fechaHasta) {
+      const hasta = new Date(fechaHasta + 'T23:59:59');
+      lista = lista.filter((r) => new Date(r.created_at) <= hasta);
+    }
+
+    // Orden
+    lista.sort((a, b) => {
+      if (orden === 'fecha-asc') return new Date(a.created_at) - new Date(b.created_at);
+      if (orden === 'unidad') {
+        return String(a.numero_economico || '').localeCompare(String(b.numero_economico || ''));
+      }
+      return new Date(b.created_at) - new Date(a.created_at); // fecha-desc (default)
+    });
+
+    return lista;
+  }, [reportesBase, busqueda, fechaDesde, fechaHasta, orden]);
+
+  // Unidades distintas involucradas (para la barra de estadísticas)
+  const unidadesDistintas = useMemo(() => {
+    const set = new Set(reportesBase.map((r) => r.numero_economico).filter(Boolean));
+    return set.size;
+  }, [reportesBase]);
+
+  const ultimoReporteFecha = useMemo(() => {
+    if (reportesBase.length === 0) return null;
+    return reportesBase.reduce((masReciente, actual) =>
+      new Date(actual.created_at) > new Date(masReciente.created_at) ? actual : masReciente
+    ).created_at;
+  }, [reportesBase]);
+
+  const hayFiltrosActivos =
+    !!busqueda || !!fechaDesde || !!fechaHasta || orden !== 'fecha-desc';
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setFechaDesde('');
+    setFechaHasta('');
+    setOrden('fecha-desc');
+  };
 
   const abrirModal = async (tipo) => {
     if (!hayTitanSeleccionado) return;
@@ -235,6 +324,153 @@ export default function ReportesTitanes() {
     ACCIDENTE: 'Accidentes',
   }[tipoModal];
 
+  // ------------------------------------------------------------
+  // FUNCIONES PARA GENERAR PDF
+  // ------------------------------------------------------------
+  const generarPDF = (reportes, titulo, esIndividual = false) => {
+    if (!reportes || reportes.length === 0) {
+      alert('No hay reportes para descargar.');
+      return;
+    }
+
+    setDescargando(true);
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Título
+      doc.setFontSize(18);
+      doc.setTextColor(40, 40, 40);
+      doc.text(`Reportes de ${titulo}`, pageWidth / 2, 20, { align: 'center' });
+
+      // Subtítulo: Titán y tipo
+      doc.setFontSize(12);
+      doc.text(`Titán: ${titanActual?.nombre || 'N/A'}`, 14, 30);
+      doc.text(`Tipo: ${tituloModal}`, 14, 37);
+      doc.text(`Fecha de generación: ${new Date().toLocaleString('es-MX')}`, 14, 44);
+
+      let y = 50;
+
+      // Si es individual, mostramos un solo reporte con todos los detalles
+      if (esIndividual) {
+        const r = reportes[0];
+        const campos = [
+          ['Unidad', r.numero_economico || 'N/A'],
+          ['Ruta', r.ruta || 'N/A'],
+          ['Corrida', r.corrida || 'N/A'],
+          ['Intervalo', r.intervalo || 'N/A'],
+          ['Hora del evento', r.hora_evento || 'N/A'],
+          ['Ubicación GPS', r.ubicacion_gps || 'N/A'],
+          ['Observaciones', r.observaciones || 'N/A'],
+        ];
+
+        // Campos específicos según tipo
+        if (tipoModal === 'DESINCORPORACION') {
+          campos.push(['Motivo de desincorporación', r.motivo_desincorporacion || 'N/A']);
+        }
+        if (tipoModal === 'ACCIDENTE') {
+          campos.push(
+            ['Dueño del particular', r.accidente_dueno || 'N/A'],
+            ['Vehículo', r.accidente_vehiculo || 'N/A'],
+            ['Placas', r.accidente_placas || 'N/A'],
+            ['¿Cuenta con seguro?', r.accidente_seguro === 'true' ? 'Sí' : 'No'],
+            ['Hechos', r.accidente_hechos || 'N/A']
+          );
+        }
+
+        // Fotos
+        const fotos = r.fotos || [];
+        campos.push(['Fotos adjuntas', fotos.length > 0 ? `${fotos.length} imagen(es)` : 'Ninguna']);
+
+        doc.autoTable({
+          startY: y,
+          head: [['Campo', 'Valor']],
+          body: campos,
+          styles: { fontSize: 9, cellPadding: 2 },
+          headStyles: { fillColor: [41, 128, 185] },
+          columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } },
+        });
+
+        // Enlaces a fotos (opcional)
+        if (fotos.length > 0) {
+          const finalY = doc.lastAutoTable.finalY + 5;
+          doc.setFontSize(9);
+          doc.text('Enlaces a las fotos:', 14, finalY);
+          fotos.forEach((url, idx) => {
+            doc.textWithLink(`${idx+1}. ${url}`, 14, finalY + 5 + idx * 5, { url });
+          });
+        }
+
+        // Guardar
+        doc.save(`Reporte_${titulo}_${r.numero_economico || 'sin_unidad'}.pdf`);
+      } else {
+        // Múltiples reportes: tabla resumen
+        const headers = [
+          'Unidad',
+          'Ruta',
+          'Corrida',
+          'Fecha',
+          'Ubicación',
+          'Observaciones',
+        ];
+        const rows = reportes.map((r) => [
+          r.numero_economico || 'N/A',
+          r.ruta || 'N/A',
+          r.corrida || 'N/A',
+          formatFecha(r.created_at),
+          r.ubicacion_gps || 'N/A',
+          r.observaciones || 'N/A',
+        ]);
+
+        doc.autoTable({
+          startY: y,
+          head: [headers],
+          body: rows,
+          styles: { fontSize: 8, cellPadding: 1.5 },
+          headStyles: { fillColor: [41, 128, 185] },
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 20 },
+            3: { cellWidth: 35 },
+            4: { cellWidth: 35 },
+          },
+        });
+
+        // Detalles adicionales (se puede agregar en páginas siguientes si es necesario)
+        // Aquí no incluimos detalles por reporte para no hacer el PDF muy largo.
+        // Si se desea, se puede iterar y agregar tablas de detalle.
+
+        doc.save(`Reportes_${titulo}_${titanActual?.nombre || 'titan'}.pdf`);
+      }
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Ocurrió un error al generar el PDF.');
+    } finally {
+      setDescargando(false);
+    }
+  };
+
+  const descargarIndividual = (reporte) => {
+    generarPDF([reporte], `Reporte ${reporte.numero_economico || 'sin unidad'}`, true);
+  };
+
+  const descargarTodos = () => {
+    generarPDF(reportesBase, `Todos los ${tituloModal}`, false);
+  };
+
+  const descargarFiltrados = () => {
+    if (reportesFiltrados.length === 0) {
+      alert('No hay reportes que coincidan con los filtros.');
+      return;
+    }
+    generarPDF(reportesFiltrados, `Reportes filtrados (${tituloModal})`, false);
+  };
+
+  // ------------------------------------------------------------
+  // FIN FUNCIONES PDF
+  // ------------------------------------------------------------
+
   return (
     <div className="reportes-titanes-page">
       <Header title="Reportes de Titanes" eyebrow="Panel administrativo" />
@@ -253,7 +489,6 @@ export default function ReportesTitanes() {
         <section className="rt-panel">
           <div className="rt-panel__selector">
             <label className="rt-panel__label">Titán</label>
-            {/* Contenedor interno que posiciona el dropdown relativo al botón */}
             <div style={{ position: 'relative', width: '100%' }}>
               <button
                 type="button"
@@ -265,7 +500,7 @@ export default function ReportesTitanes() {
                   alignItems: 'center',
                   width: '100%',
                   cursor: cargandoUsuarios ? 'not-allowed' : 'pointer',
-                  margin: 0, // elimina márgenes por defecto
+                  margin: 0,
                 }}
                 onClick={() => !cargandoUsuarios && setSelectorAbierto((v) => !v)}
                 disabled={cargandoUsuarios}
@@ -358,7 +593,6 @@ export default function ReportesTitanes() {
 
           {/* ---------- Panel de información (reorganizado) ---------- */}
           <div className="rt-panel__info">
-            {/* Fila superior: avatar + nombre */}
             <div
               style={{
                 display: 'flex',
@@ -593,10 +827,10 @@ export default function ReportesTitanes() {
         </section>
       </main>
 
-      {/* ---------- Modal de detalle ---------- */}
+      {/* ---------- Modal de detalle (dashboard) ---------- */}
       {tipoModal && (
         <div className="rt-modal-overlay" onClick={cerrarModal}>
-          <div className="rt-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="rt-modal rt-modal--dashboard" onClick={(e) => e.stopPropagation()}>
             <div className="rt-modal__header">
               <h3>
                 {tituloModal} — {titanActual?.nombre}
@@ -606,11 +840,106 @@ export default function ReportesTitanes() {
               </button>
             </div>
 
+            {/* ---------- Barra de estadísticas ---------- */}
+            <div className="rt-dashboard-stats">
+              <div className="rt-dashboard-stat">
+                <span className="rt-dashboard-stat__value">{reportesBase.length}</span>
+                <span className="rt-dashboard-stat__label">Total de reportes</span>
+              </div>
+              <div className="rt-dashboard-stat">
+                <span className="rt-dashboard-stat__value">{unidadesDistintas}</span>
+                <span className="rt-dashboard-stat__label">Unidades distintas</span>
+              </div>
+              <div className="rt-dashboard-stat">
+                <span className="rt-dashboard-stat__value">{reportesFiltrados.length}</span>
+                <span className="rt-dashboard-stat__label">Coinciden con el filtro</span>
+              </div>
+              <div className="rt-dashboard-stat">
+                <span className="rt-dashboard-stat__value rt-dashboard-stat__value--sm">
+                  {ultimoReporteFecha ? formatFecha(ultimoReporteFecha) : 'N/A'}
+                </span>
+                <span className="rt-dashboard-stat__label">Reporte más reciente</span>
+              </div>
+            </div>
+
+            {/* ---------- Controles de filtro / orden y botones de descarga ---------- */}
+            <div className="rt-dashboard-controls">
+              <input
+                type="text"
+                className="rt-dashboard-input"
+                placeholder="Buscar por unidad, ruta, observaciones..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+
+              <div className="rt-dashboard-fechas">
+                <label>
+                  Desde
+                  <input
+                    type="date"
+                    value={fechaDesde}
+                    onChange={(e) => setFechaDesde(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Hasta
+                  <input
+                    type="date"
+                    value={fechaHasta}
+                    onChange={(e) => setFechaHasta(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <select
+                className="rt-dashboard-select"
+                value={orden}
+                onChange={(e) => setOrden(e.target.value)}
+              >
+                <option value="fecha-desc">Más reciente primero</option>
+                <option value="fecha-asc">Más antiguo primero</option>
+                <option value="unidad">Ordenar por unidad</option>
+              </select>
+
+              {hayFiltrosActivos && (
+                <button type="button" className="rt-dashboard-clear" onClick={limpiarFiltros}>
+                  Limpiar filtros
+                </button>
+              )}
+
+              {/* Botones de descarga */}
+              <div className="rt-download-buttons">
+                <button
+                  type="button"
+                  className="rt-download-btn"
+                  onClick={descargarTodos}
+                  disabled={descargando || reportesBase.length === 0}
+                >
+                  {descargando ? 'Generando...' : '📄 Descargar todos'}
+                </button>
+                {hayFiltrosActivos && reportesFiltrados.length > 0 && (
+                  <button
+                    type="button"
+                    className="rt-download-btn rt-download-btn--filtered"
+                    onClick={descargarFiltrados}
+                    disabled={descargando}
+                  >
+                    {descargando ? 'Generando...' : '📄 Descargar filtrados'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ---------- Cuerpo con la lista de reportes ---------- */}
             <div className="rt-modal__body">
               {cargandoInfo && <p className="rt-modal__empty">Cargando reportes...</p>}
 
-              {!cargandoInfo && reportesFiltrados.length === 0 && (
+              {!cargandoInfo && reportesBase.length === 0 && (
                 <p className="rt-modal__empty">No hay reportes de este tipo.</p>
+              )}
+
+              {!cargandoInfo && reportesBase.length > 0 && reportesFiltrados.length === 0 && (
+                <p className="rt-modal__empty">Ningún reporte coincide con los filtros aplicados.</p>
               )}
 
               {!cargandoInfo &&
@@ -621,6 +950,24 @@ export default function ReportesTitanes() {
                         <strong>Unidad:</strong> {r.numero_economico || 'N/A'}
                       </span>
                       <span>{formatFecha(r.created_at)}</span>
+                      {/* Botón de descarga individual */}
+                      <button
+                        type="button"
+                        className="rt-download-single"
+                        onClick={() => descargarIndividual(r)}
+                        disabled={descargando}
+                        style={{
+                          background: 'none',
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          padding: '2px 8px',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          marginLeft: 'auto',
+                        }}
+                      >
+                        📄 PDF
+                      </button>
                     </div>
 
                     {r.ruta && (

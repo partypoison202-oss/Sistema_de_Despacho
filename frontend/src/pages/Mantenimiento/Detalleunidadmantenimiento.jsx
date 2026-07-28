@@ -746,6 +746,7 @@ export default function DetalleUnidadMantenimiento() {
   }
 
   // Helper para renderizar el bloque de "días desde la última carga"
+  // (Solo una vez, la definición correcta)
   const renderAlertaDias = (fecha) => {
     if (!fecha) return null;
     const dias = Math.floor((Date.now() - new Date(fecha)) / 86400000);

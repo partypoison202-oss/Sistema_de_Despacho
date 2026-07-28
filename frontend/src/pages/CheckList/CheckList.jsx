@@ -411,7 +411,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
 
     // ── Borrar trazo más cercano al punto ──────────────────────────────
     const eraseAt = useCallback((pos) => {
-        const threshold = 20;
+        const threshold = 20; // <--- solo una declaración
         let minDist = Infinity;
         let indexToRemove = -1;
 
@@ -457,7 +457,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
     }, [onSave, renderAllPaths, saveSnapshot, tipoUnidad]);
 
     // ── Eventos de dibujo ──────────────────────────────────────────────
-    // *** CORREGIDO: Se eliminó la redeclaración de 'pos' ***
     const startDraw = (e) => {
         e.preventDefault();
         const pos = getPos(e);
@@ -473,6 +472,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         const ctx = canvasRef.current.getContext('2d');
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
+
 
         if (color === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
@@ -807,6 +807,7 @@ export default function ChecklistForm({
     const [isManualEco, setIsManualEco] = useState(false);
 
     // ── Datos del formulario ──────────────────────────────────────────────────
+    // *** CORREGIDO: eliminadas las declaraciones duplicadas ***
     const [conductorId, setConductorId] = useState('');
     const [conductorTarjeton, setConductorTarjeton] = useState('');
     const [conductorNombre, setConductorNombre] = useState('');
@@ -897,6 +898,7 @@ export default function ChecklistForm({
         const file = e.target.files?.[0];
         if (file && activePuntoId) {
             setShowCamera(false);
+            // *** CORREGIDO: se eliminó la línea duplicada `setShowCamera(false);` ***
             const reader = new FileReader();
             reader.onload = async (event) => {
                 try {

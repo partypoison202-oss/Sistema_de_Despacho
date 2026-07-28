@@ -329,3 +329,121 @@
     grid-template-columns: 1fr; /* una columna en móvil */
   }
 }
+
+/* ============================================================
+   Agrega esto al final de ReporteTitanes.css
+   ============================================================ */
+
+.rt-modal--dashboard {
+  max-width: 720px;
+}
+
+.rt-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.rt-dashboard-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 10px 6px;
+  text-align: center;
+}
+
+.rt-dashboard-stat__value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #c29b53;
+}
+
+.rt-dashboard-stat__value--sm {
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.rt-dashboard-stat__label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.rt-dashboard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.rt-dashboard-input {
+  flex: 1 1 220px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.rt-dashboard-fechas {
+  display: flex;
+  gap: 10px;
+}
+
+.rt-dashboard-fechas label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.7rem;
+  color: #6b7280;
+  gap: 2px;
+}
+
+.rt-dashboard-fechas input {
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.rt-dashboard-select {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.rt-dashboard-clear {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.rt-dashboard-clear:hover {
+  background: #e5e7eb;
+}
+
+/* Responsivo: en pantallas chicas, apila los controles y estadísticas */
+@media (max-width: 640px) {
+  .rt-dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rt-dashboard-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rt-dashboard-fechas {
+    flex-direction: column;
+  }
+}
