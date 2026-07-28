@@ -4,9 +4,9 @@
 }
 
 .usuarios-container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 2rem auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
 }
 
 .usuarios-header-actions {
@@ -73,21 +73,38 @@
 
 .table-responsive {
   background: var(--tw-color-white);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  border: 1px solid #e5e7eb;
   overflow-x: auto;
+  margin-bottom: 2rem;
 }
 
 .usuarios-table {
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
 }
 
 .usuarios-table th,
 .usuarios-table td {
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.usuarios-table th:first-child,
+.usuarios-table td:first-child {
+  width: 70px;
+  text-align: center;
+}
+
+.usuarios-table th:last-child,
+.usuarios-table td:last-child {
+  text-align: right;
+  padding-right: 1.5rem;
+  width: 140px;
 }
 
 .usuarios-table tbody tr {
@@ -135,6 +152,7 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  justify-content: flex-end;
 }
 
 .btn-icon-action {

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
 import { AuthContext } from '../../context/AuthContext';
 import AjustesModal from './AjustesModal';
+import UserAvatar from '../UserAvatar/UserAvatar';
 import './Header.css';
 
 export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
@@ -151,18 +152,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                 className="app-header__profile-btn"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
-                {user.foto_url ? (
-                  <img 
-                    src={user.foto_url} 
-                    alt={user.nombre_completo} 
-                    className="profile-icon"
-                    style={{ objectFit: 'cover' }}
-                  />
-                ) : (
-                  <div className="profile-icon">
-                    {user.nombre_completo.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <UserAvatar fotoUrl={user.foto_url} nombre={user.nombre_completo} size={40} />
               </button>
 
               {showProfileMenu && (

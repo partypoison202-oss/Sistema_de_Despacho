@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
+import UserAvatar from '../../components/UserAvatar/UserAvatar';
 import './Usuarios.css';
 import API_BASE from '../../config/api';
 
@@ -433,35 +434,7 @@ export default function Usuarios() {
                   filteredUsers.map((user) => (
                     <tr key={user.id}>
                       <td>
-                        {user.foto_url ? (
-                          <img
-                            src={user.foto_url}
-                            alt={user.nombre_completo}
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '50%',
-                              objectFit: 'cover',
-                            }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '50%',
-                              background: '#c29b53',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#fff',
-                              fontWeight: 'bold',
-                              fontSize: '18px',
-                            }}
-                          >
-                            {user.nombre_completo?.charAt(0) || '?'}
-                          </div>
-                        )}
+                        <UserAvatar fotoUrl={user.foto_url} nombre={user.nombre_completo} size={40} />
                       </td>
                       <td>{user.nombre_completo}</td>
                       <td>{user.usuario}</td>

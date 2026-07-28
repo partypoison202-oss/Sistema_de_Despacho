@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../../components/Header/Header';
+import UserAvatar from '../../../components/UserAvatar/UserAvatar';
 import './ReporteTitanes.css';
 import API_BASE from '../../../config/api';
 
@@ -369,38 +370,7 @@ export default function ReportesTitanes() {
             >
               {titanActual ? (
                 <>
-                  {titanActual.foto_url ? (
-                    <img
-                      src={titanActual.foto_url}
-                      alt={`Foto de ${titanActual.nombre}`}
-                      style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        marginRight: '14px',
-                        border: '2px solid #c29b53',
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '50%',
-                        backgroundColor: '#c29b53',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontSize: '24px',
-                        fontWeight: 'bold',
-                        marginRight: '14px',
-                      }}
-                    >
-                      {titanActual.nombre?.charAt(0) || '?'}
-                    </div>
-                  )}
+                  <UserAvatar fotoUrl={titanActual.foto_url} nombre={titanActual.nombre} size={56} style={{ marginRight: '14px', border: '2px solid #c29b53' }} />
                   <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>
                     {titanActual.nombre}
                   </span>
