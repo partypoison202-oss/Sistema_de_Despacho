@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class AmonestacionController extends Controller
 {
@@ -128,6 +129,8 @@ class AmonestacionController extends Controller
         $countToday = Amonestacion::whereYear('created_at', $year)->count() + 1;
         $folio = sprintf('AM-%s-%04d', $year, $countToday);
 
+        $negoFirmar = filter_var($request->conductor_nego_firmar, FILTER_VALIDATE_BOOLEAN);
+
         $amonestacion = Amonestacion::create([
             'folio' => $folio,
             'fecha' => $request->fecha,
@@ -144,7 +147,7 @@ class AmonestacionController extends Controller
             'inspector_gafete' => $request->inspector_gafete,
             'adscripcion' => 'Dirección Jurídica del SITMAH',
             'firma_inspector' => $request->firma_inspector,
-            'conductor_nego_firmar' => filter_var($request->conductor_nego_firmar, FILTER_VALIDATE_BOOLEAN) ? true : false,
+            'conductor_nego_firmar' => DB::raw($negoFirmar ? 'true' : 'false'),
             'recibio_nombre' => $request->recibio_nombre,
             'firma_conductor' => $request->firma_conductor,
         ]);

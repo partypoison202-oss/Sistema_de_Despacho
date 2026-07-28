@@ -7,6 +7,7 @@ use App\Models\Infraccion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 
 class InfraccionController extends Controller
 {
@@ -183,7 +184,7 @@ class InfraccionController extends Controller
             'adscripcion' => 'Dirección Jurídica del SITMAH',
             'firma_inspector' => $request->firma_inspector,
 
-            'conductor_nego_firmar' => filter_var($request->conductor_nego_firmar, FILTER_VALIDATE_BOOLEAN) ? true : false,
+            'conductor_nego_firmar' => DB::raw(filter_var($request->conductor_nego_firmar, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false'),
             'recibio_nombre' => $request->recibio_nombre,
             'firma_conductor' => $request->firma_conductor,
         ]);
