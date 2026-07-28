@@ -1,0 +1,79 @@
+.signature-pad-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.signature-pad-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.signature-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  border: 2px dashed #9ca3af;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  overflow: hidden;
+  touch-action: none;
+  box-sizing: border-box;
+}
+
+.signature-canvas-wrapper:focus-within,
+.signature-canvas-wrapper:hover {
+  border-color: #601a2a;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+.signature-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+}
+
+.signature-pad-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-clear-signature {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear-signature:hover:not(:disabled) {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.btn-clear-signature:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.signature-pad-container.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}

@@ -69,6 +69,7 @@ function App() {
           } />
 
           {/* INFRACCION Module */}
+          <Route path="/infraccion" element={<Navigate to="/infraccion/dashboard" replace />} />
           <Route path="/infraccion/dashboard" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'INFRACCION']}>
               <InfraccionDashboard />

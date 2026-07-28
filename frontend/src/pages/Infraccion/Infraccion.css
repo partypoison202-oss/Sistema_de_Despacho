@@ -1,37 +1,514 @@
 .infraccion-page {
   min-height: 100vh;
-  background: #f8f9fb;
+  background-color: #f8fafc;
 }
 
 .infraccion-main {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 40px 20px;
+  max-width: 1100px;
+  margin: 1.5rem auto 3rem auto;
+  padding: 0 1.25rem;
 }
 
-.infraccion-welcome {
-  text-align: center;
-  margin-bottom: 30px;
+/* Banner Troncal URBANUSS */
+.troncal-header-banner {
+  background: linear-gradient(135deg, #601a2a 0%, #42121d 100%);
+  color: #ffffff;
+  padding: 1.25rem 1.75rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(96, 26, 42, 0.2);
 }
 
-.infraccion-eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #dc2626;
-  margin-bottom: 6px;
+.troncal-banner-icon {
+  font-size: 2.25rem;
+  background: rgba(255, 255, 255, 0.15);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.infraccion-title {
-  font-size: 2rem;
+.troncal-header-banner h3 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: #0b162c;
-  margin-bottom: 10px;
+  letter-spacing: 0.5px;
 }
 
-.infraccion-subtitle {
-  color: #6b7280;
+.troncal-header-banner p {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+/* Form Wrapper & Plate Card */
+.plate-verification-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 2px solid #c29b53;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(194, 155, 83, 0.12);
+}
+
+.plate-verification-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.step-tag {
+  background: #c29b53;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+}
+
+.plate-verification-header h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.plate-input-wrapper {
+  margin-bottom: 1rem;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.plate-main-input {
+  flex: 1;
+  padding: 0.85rem 1.15rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  letter-spacing: 2px;
+}
+
+.plate-main-input:focus {
+  outline: none;
+  border-color: #601a2a;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.15);
+}
+
+.btn-verify-plate {
+  background: #601a2a;
+  color: #ffffff;
+  border: none;
+  padding: 0.85rem 1.75rem;
+  border-radius: 8px;
+  font-weight: 700;
   font-size: 1rem;
-  line-height: 1.5;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-verify-plate:hover:not(:disabled) {
+  background: #42121d;
+}
+
+.btn-verify-plate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.placa-status-hero {
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  border-left: 6px solid;
+}
+
+.placa-status-hero.primera-vez {
+  background-color: #f0fdf4;
+  border-color: #16a34a;
+  color: #14532d;
+}
+
+.placa-status-hero.reincidente {
+  background-color: #fef2f2;
+  border-color: #dc2626;
+  color: #7f1d1d;
+}
+
+.status-hero-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.5rem;
+}
+
+.status-hero-badge.green {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-hero-badge.red {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-hero-content h3 {
+  margin: 0.25rem 0 0.5rem 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.status-hero-content p {
+  margin: 0;
+  font-size: 0.925rem;
+  line-height: 1.45;
+}
+
+/* Card Form Container */
+.amonestacion-card-form,
+.infraccion-card-form {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  padding: 2.25rem;
+}
+
+.infraccion-card-form {
+  border-top: 4px solid #b91c1c;
+}
+
+.amonestacion-header-title,
+.infraccion-header-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.sitmah-badge-header {
+  display: inline-block;
+  background-color: #601a2a;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 0.25rem 0.85rem;
+  border-radius: 9999px;
+  margin-bottom: 0.5rem;
+}
+
+.infraccion-badge-header {
+  display: inline-block;
+  background-color: #b91c1c;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 0.25rem 0.85rem;
+  border-radius: 9999px;
+  margin-bottom: 0.5rem;
+}
+
+.amonestacion-header-title h2,
+.infraccion-header-title h2 {
+  color: #1e293b;
+  font-size: 1.65rem;
+  font-weight: 800;
+  margin: 0.25rem 0;
+  letter-spacing: 0.5px;
+}
+
+.subtitle-legal {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Section Blocks */
+.section-block {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.section-block.section-infraccion {
+  background: #fffafa;
+  border-color: #fee2e2;
+}
+
+.section-block-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 0.65rem;
+}
+
+.section-block.section-infraccion .section-block-title {
+  border-bottom-color: #fca5a5;
+}
+
+.section-number {
+  background-color: #601a2a;
+  color: #ffffff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.section-number.red {
+  background-color: #b91c1c;
+}
+
+.section-block-title h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* Grids */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.infraccion-input,
+.infraccion-select,
+.infraccion-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background-color: #ffffff;
+  color: #0f172a;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.infraccion-textarea {
+  font-family: inherit;
+  resize: vertical;
+}
+
+.infraccion-input:focus,
+.infraccion-select:focus,
+.infraccion-textarea:focus {
+  outline: none;
+  border-color: #601a2a;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.15);
+}
+
+.uppercase-input {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.highlight-input {
+  border-color: #c29b53;
+  background-color: #fffdf9;
+}
+
+.disabled-input {
+  background-color: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Calculadora UMA */
+.sancion-uma-card {
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1.25rem;
+
+}
+
+.uma-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.uma-number-input {
+  width: 120px !important;
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-align: center;
+  border-color: #dc2626;
+}
+
+.uma-unit-tag {
+  font-weight: 800;
+  color: #991b1b;
+  font-size: 1rem;
+}
+
+.uma-calc-badge {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+/* Alert Boxes & Checkbox */
+.placa-checking-box {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.checkbox-negativa-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.checkbox-custom-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-custom-container input {
+  width: 20px;
+  height: 20px;
+  accent-color: #601a2a;
+  margin-top: 2px;
+}
+
+.checkbox-text-legal {
+  color: #1e293b;
+  font-size: 0.925rem;
+  line-height: 1.4;
+}
+
+.negativa-notice-box {
+  background: #fff3f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.signature-section-wrapper {
+  margin-top: 1rem;
+}
+
+/* Form Actions */
+.amonestacion-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-cancel-form {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 0.85rem 1.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel-form:hover {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.btn-submit-form {
+  background: #601a2a;
+  color: #ffffff;
+  border: none;
+  padding: 0.85rem 2.25rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 3px 10px rgba(96, 26, 42, 0.25);
+}
+
+.btn-submit-form.btn-submit-red {
+  background: #b91c1c;
+  box-shadow: 0 3px 10px rgba(185, 28, 28, 0.25);
+}
+
+.btn-submit-form:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.btn-submit-form:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

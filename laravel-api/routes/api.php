@@ -11,6 +11,8 @@ use App\Http\Controllers\API\PlataformaController;
 use App\Http\Controllers\API\TitanController;
 use App\Http\Controllers\API\TitanReporteController;
 use App\Http\Controllers\API\HistorialOperativoController;
+use App\Http\Controllers\API\AmonestacionController;
+use App\Http\Controllers\API\InfraccionController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -83,6 +85,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // RUTAS PARA PLATAFORMA
     Route::post('/plataforma/movimiento', [PlataformaController::class, 'registrarMovimiento']);
+
+    // RUTAS PARA AMONESTACIONES / INFRACCIONES
+    Route::get('/amonestaciones', [AmonestacionController::class, 'index']);
+    Route::post('/amonestaciones', [AmonestacionController::class, 'store']);
+    Route::get('/amonestaciones/check/{placa}', [AmonestacionController::class, 'checkPlaca']);
+
+    Route::get('/infracciones', [InfraccionController::class, 'index']);
+    Route::post('/infracciones', [InfraccionController::class, 'store']);
 });
 
 Route::get('/setup-titan', function () {
@@ -155,6 +165,18 @@ Route::get('/setup-plataforma', function () {
         }
 
         return response()->json(['message' => 'PLATAFORMA setup completed successfully']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
+Route::get('/setup-infraccion', function () {
+    try {
+        \Illuminate\Support\Facades\DB::table('roles')->updateOrInsert(
+            ['codigo' => 'INFRACCION'],
+            ['nombre' => 'INFRACCION']
+        );
+        return response()->json(['message' => 'INFRACCION setup completed successfully']);
     } catch (\Exception $e) {
         return response()->json(['error' => $e->getMessage()], 500);
     }
