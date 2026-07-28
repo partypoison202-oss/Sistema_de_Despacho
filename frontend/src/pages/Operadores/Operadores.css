@@ -181,7 +181,7 @@
 }
 
 /* ALINEACIÓN SIMÉTRICA Y PERFECTA DE BOTONES DE ACCIÓN */
-.actions-cell {
+.actions-container {
   display: flex;
   align-items: center;
   justify-content: center;

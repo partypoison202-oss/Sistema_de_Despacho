@@ -148,7 +148,7 @@
   color: var(--brand-maroon-text);
 }
 
-.actions-cell {
+.actions-container {
   display: flex;
   gap: 0.5rem;
   align-items: center;
