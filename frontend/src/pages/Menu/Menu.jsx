@@ -115,6 +115,21 @@ const menuItems = [
     color: 'maroon',
   },
   {
+    id: 'infraccion',
+    redirectTo: '/infraccion/dashboard',
+    // Módulo restringido: solo estos roles ven la tarjeta en el menú
+    roles: ['ADMINISTRADOR', 'INFRACCION'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      </svg>
+    ),
+    label: 'INFRACCION',
+    color: 'red',
+  },
+  {
     id: 'plataforma',
     redirectTo: '/dashboard', 
     icon: (
@@ -135,12 +150,19 @@ export default function Menu() {
 
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA'].includes(user.role?.codigo)) {
+    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION'].includes(user.role?.codigo)) {
       navigate('/');
     }
   }, [user, navigate]);
 
   if (!user) return null;
+
+  // Solo mostramos las tarjetas que no tienen restricción de rol,
+  // o cuyo listado de roles incluye el rol del usuario actual.
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (!item.roles) return true;
+    return item.roles.includes(user.role?.codigo);
+  });
 
   const handleClick = (item) => {
     if (item.id === 'plataforma') {
@@ -167,7 +189,7 @@ export default function Menu() {
         </div>
 
         <div className="dashboard-grid">
-          {menuItems.map((item) => (
+          {visibleMenuItems.map((item) => (
             <button
               key={item.id}
               className={`dashboard-card dashboard-card--${item.color}`}

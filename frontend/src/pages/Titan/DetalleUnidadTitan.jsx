@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
+import { AuthContext } from '../../context/AuthContext';
 import '../CentroControl/CentroControl.css';
 import './Titan.css';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 
 const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) => {
+  const { user } = useContext(AuthContext);
   const [unidades, setUnidades] = useState(model?.units || []);
   const [selectedUnidad, setSelectedUnidad] = useState(null);
 
@@ -25,6 +27,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   const [horaEvento, setHoraEvento] = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [ubicacionGPS, setUbicacionGPS] = useState('');
+  const [ubicacionEvento, setUbicacionEvento] = useState('');
   const [motivoDesincorporacion, setMotivoDesincorporacion] = useState('');
 
   const [accDueno, setAccDueno] = useState('');
@@ -40,6 +43,50 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   const [firmaVacia, setFirmaVacia] = useState(true);
 
   const [guardando, setGuardando] = useState(false);
+
+  // Lista de estaciones para unidades Urbanuss
+  const ESTACIONES_URBANUSS = [
+    'Estacion Tellez',
+    'Estacion Gabriel Mancera',
+    'Estacion Matilde',
+    'Estacion Efren Rebolledo',
+    'Estacion Tercera Edad',
+    'Estacion San Antonio',
+    'Estacion Ejercito Mexicano',
+    'Estacion Felipe Angeles',
+    'Estacion Centro de Justicia',
+    'Estacion Vicente Segura',
+    'Estacion Juan C Doria',
+    'Estacion Hospitales',
+    'Estacion SEPH',
+    'Estacion Tecnologico de Pachuca',
+    'Estacion Bicentenario',
+    'Estacion Centro Minero',
+    'Estacion Zona Plateada',
+    'Estacion Tecnologico de Monterrey',
+    'Estacion Estadio Hidalgo',
+    'Estacion Cuna de Futbol',
+    'Estacion Santa Julia',
+    'Estacion Prepa 1',
+    'Estacion Bioparque',
+    'Estacion Parque del Maestro',
+    'Estacion Presidente Aleman',
+    'Estacion Plaza Juarez',
+    'Estacion Niños Heroes',
+    'Estacion Centro Historico',
+    'Estacion Central de Autobuses',
+  ];
+
+  // Lista de opciones para Zafiro, Orion y Vagoneta
+  const OPCIONES_OTRAS_TECNOLOGIAS = ['Destino', 'Origen'];
+
+  // Determina si la unidad seleccionada es Urbanuss, usando el id del modelo
+  // (viene de modelsConfig en DashboardTitan.jsx: 'urbanus', 'zafiro', 'vagoneta', 'orion')
+  const esUrbanuss = () => {
+    return model?.id === 'urbanus';
+  };
+
+  const opcionesUbicacionEvento = esUrbanuss() ? ESTACIONES_URBANUSS : OPCIONES_OTRAS_TECNOLOGIAS;
 
   // ---------- Funciones de firma (con useCallback para estabilidad) ----------
   const getFirmaCoords = useCallback((e) => {
@@ -175,6 +222,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     setAccSeguro(false);
     setAccHechos('');
     setUbicacionGPS('');
+    setUbicacionEvento('');
     setFirmaVacia(true);
   };
 
@@ -242,6 +290,11 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
       return;
     }
 
+    if ((activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') && !ubicacionEvento) {
+      Swal.fire('Atención', 'Debes seleccionar la ubicación del evento.', 'warning');
+      return;
+    }
+
     setGuardando(true);
 
     try {
@@ -254,7 +307,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
       if (activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') {
         formData.append('corrida', corrida);
         formData.append('hora_evento', horaEvento);
-        formData.append('ubicacion_gps', ubicacionGPS);
+        formData.append('ubicacion_evento', ubicacionEvento);
         if (activeTab === 'DESINCORPORACION') formData.append('motivo_desincorporacion', motivoDesincorporacion);
       }
 
@@ -326,6 +379,65 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
               </svg>
               Contraer Formulario
             </button>
+          </div>
+
+          {/* Saludo y ubicación del Titan */}
+          <div
+            className="titan-saludo-wrapper"
+            style={{
+              marginBottom: '16px',
+              padding: '14px 16px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #601a2a 0%, #7a2439 100%)',
+              boxShadow: '0 2px 8px rgba(96, 26, 42, 0.25)',
+            }}
+          >
+            <p
+              className="titan-saludo-texto"
+              style={{
+                margin: 0,
+                fontWeight: 700,
+                fontSize: '17px',
+                color: '#ffffff',
+                letterSpacing: '0.2px',
+              }}
+            >
+              Hola, {user?.nombre_completo || 'Usuario'} 
+            </p>
+            <div
+              className="titan-saludo-ubicacion"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '6px',
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#f0d9de"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0 }}
+              >
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '13px',
+                  color: '#f0d9de',
+                  lineHeight: 1.4,
+                }}
+              >
+                {ubicacionGPS || 'Obteniendo ubicación...'}
+              </p>
+            </div>
           </div>
 
           {/* Header guinda de la unidad */}
@@ -427,8 +539,17 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                   </div>
 
                   <div className="form-group">
-                    <label>Ubicación</label>
-                    <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." />
+                    <label>Ubicación <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
+                    <select
+                      value={ubicacionEvento}
+                      onChange={(e) => setUbicacionEvento(e.target.value)}
+                      className="form-group-select"
+                    >
+                      <option value="">Selecciona una ubicación...</option>
+                      {opcionesUbicacionEvento.map((opcion) => (
+                        <option key={opcion} value={opcion}>{opcion}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {activeTab === 'DESINCORPORACION' && (
@@ -492,11 +613,6 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                         />
                       </>
                     )}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Ubicación</label>
-                    <input type="text" value={ubicacionGPS} readOnly placeholder="Obteniendo coordenadas automáticamente..." />
                   </div>
 
                   {/* FIRMA DE PARTICULAR */}

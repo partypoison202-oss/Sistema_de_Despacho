@@ -33,6 +33,7 @@ import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import ReportesTitanes from './pages/CentroControl/ReporteTitanes/ReporteTitanes';
 import HistorialReportesTitanes from './pages/Historial/HistorialReportesTitanes';
 import Operadores from './pages/Operadores/Operadores';
+import InfraccionDashboard from './pages/Infraccion/InfraccionDashboard';
 
 function App() {
   return (
@@ -67,6 +68,13 @@ function App() {
             </ProtectedRoute>
           } />
 
+          {/* INFRACCION Module */}
+          <Route path="/infraccion/dashboard" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'INFRACCION']}>
+              <InfraccionDashboard />
+            </ProtectedRoute>
+          } />
+
           {/* Rutas de CheckList para USUARIO_GENERAL y ADMINISTRADOR */}
           {/* Dashboard General (nuevo) - tarjetas que llevan a /despacho/:id */}
           <Route path="/general" element={
@@ -82,7 +90,7 @@ function App() {
           } />
 
           <Route path="/menu" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION']}>
               <Menu />
             </ProtectedRoute>
           } />

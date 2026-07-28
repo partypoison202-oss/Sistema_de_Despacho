@@ -111,6 +111,15 @@ const obtenerDireccion = async (coordenadas) => {
   return direccion;
 };
 
+// Devuelve la ubicación relevante para un reporte, según su tipo:
+// - ACCIDENTE guarda la ubicación GPS del titán (ubicacion_gps)
+// - INCORPORACION / DESINCORPORACION guardan la ubicación seleccionada del catálogo (ubicacion_evento)
+const getUbicacionReporte = (r) => {
+  if (!r) return null;
+  if (r.tipo_evento === 'ACCIDENTE') return r.ubicacion_gps || null;
+  return r.ubicacion_evento || null;
+};
+
 export default function ReportesTitanes() {
   const queryClient = useQueryClient();
 
@@ -195,12 +204,13 @@ export default function ReportesTitanes() {
   const desincorporaciones = reporteTitan?.desincorporaciones ?? 0;
   const accidentes = reporteTitan?.accidentes ?? 0;
 
-  // Ubicación: tomamos el reporte más reciente que traiga ubicacion_gps
+  // Ubicación: tomamos el reporte de ACCIDENTE más reciente que traiga ubicacion_gps
+  // (la ubicación GPS del titán solo se registra en accidentes)
   const ultimoReporteConUbicacion = useMemo(() => {
     const reportes = reporteTitan?.reportes ?? [];
     if (reportes.length === 0) return null;
 
-    const conUbicacion = reportes.filter((r) => r.ubicacion_gps);
+    const conUbicacion = reportes.filter((r) => r.tipo_evento === 'ACCIDENTE' && r.ubicacion_gps);
     if (conUbicacion.length === 0) return null;
 
     return conUbicacion.reduce((masReciente, actual) =>
@@ -239,7 +249,7 @@ export default function ReportesTitanes() {
   const reportesFiltrados = useMemo(() => {
     let lista = [...reportesBase];
 
-    // Filtro de texto: unidad, ruta, corrida, observaciones y campos de accidente/desincorporación
+    // Filtro de texto: unidad, ruta, corrida, observaciones, ubicación y campos de accidente/desincorporación
     if (busqueda.trim()) {
       const q = busqueda.trim().toLowerCase();
       lista = lista.filter((r) => {
@@ -249,6 +259,7 @@ export default function ReportesTitanes() {
           r.corrida,
           r.observaciones,
           r.motivo_desincorporacion,
+          r.ubicacion_evento,
           r.accidente_dueno,
           r.accidente_vehiculo,
           r.accidente_placas,
@@ -354,13 +365,14 @@ export default function ReportesTitanes() {
       // Si es individual, mostramos un solo reporte con todos los detalles
       if (esIndividual) {
         const r = reportes[0];
+        const etiquetaUbicacion = tipoModal === 'ACCIDENTE' ? 'Ubicación GPS' : 'Ubicación';
         const campos = [
           ['Unidad', r.numero_economico || 'N/A'],
           ['Ruta', r.ruta || 'N/A'],
           ['Corrida', r.corrida || 'N/A'],
           ['Intervalo', r.intervalo || 'N/A'],
           ['Hora del evento', r.hora_evento || 'N/A'],
-          ['Ubicación GPS', r.ubicacion_gps || 'N/A'],
+          [etiquetaUbicacion, getUbicacionReporte(r) || 'N/A'],
           ['Observaciones', r.observaciones || 'N/A'],
         ];
 
@@ -405,12 +417,13 @@ export default function ReportesTitanes() {
         doc.save(`Reporte_${titulo}_${r.numero_economico || 'sin_unidad'}.pdf`);
       } else {
         // Múltiples reportes: tabla resumen
+        const etiquetaUbicacion = tipoModal === 'ACCIDENTE' ? 'Ubicación GPS' : 'Ubicación';
         const headers = [
           'Unidad',
           'Ruta',
           'Corrida',
           'Fecha',
-          'Ubicación',
+          etiquetaUbicacion,
           'Observaciones',
         ];
         const rows = reportes.map((r) => [
@@ -418,7 +431,7 @@ export default function ReportesTitanes() {
           r.ruta || 'N/A',
           r.corrida || 'N/A',
           formatFecha(r.created_at),
-          r.ubicacion_gps || 'N/A',
+          getUbicacionReporte(r) || 'N/A',
           r.observaciones || 'N/A',
         ]);
 
@@ -990,11 +1003,20 @@ export default function ReportesTitanes() {
                         <strong>Hora del evento:</strong> {r.hora_evento}
                       </p>
                     )}
-                    {r.ubicacion_gps && (
+
+                    {/* Ubicación: para incorporación/desincorporación viene del catálogo (ubicacion_evento);
+                        para accidentes viene del GPS del titán (ubicacion_gps) */}
+                    {(r.tipo_evento === 'INCORPORACION' || r.tipo_evento === 'DESINCORPORACION') && r.ubicacion_evento && (
                       <p>
-                        <strong>Ubicación:</strong> {r.ubicacion_gps}
+                        <strong>Ubicación:</strong> {r.ubicacion_evento}
                       </p>
                     )}
+                    {r.tipo_evento === 'ACCIDENTE' && r.ubicacion_gps && (
+                      <p>
+                        <strong>Ubicación GPS:</strong> {r.ubicacion_gps}
+                      </p>
+                    )}
+
                     {r.observaciones && (
                       <p>
                         <strong>Observaciones:</strong> {r.observaciones}

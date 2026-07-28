@@ -1,0 +1,37 @@
+.infraccion-page {
+  min-height: 100vh;
+  background: #f8f9fb;
+}
+
+.infraccion-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.infraccion-welcome {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.infraccion-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #dc2626;
+  margin-bottom: 6px;
+}
+
+.infraccion-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0b162c;
+  margin-bottom: 10px;
+}
+
+.infraccion-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1.5;
+}

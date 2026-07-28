@@ -4,6 +4,7 @@
   --color-gold: #c9a84c;
   --color-brown: #7b4a24;
   --color-brown-light: #f2e6da;
+  --color-red: #ba0e0e;
 }
 
 /* ════════════════════════════════
@@ -140,6 +141,9 @@
 .dashboard-card--emerald .dashboard-card__icon { color: #047857; background: #d1fae5; }
 .dashboard-card--emerald:hover { border-color: #6ee7b7; }
 
+.dashboard-card--red::before { background: #ba0e0e; }
+.dashboard-card--red .dashboard-card__icon { color: #8f1111; background: #ff8c8c; }
+.dashboard-card--red:hover { border-color: #ba0e0e; }
 /* ── Ícono ── */
 .dashboard-card__icon {
   width: 52px;
