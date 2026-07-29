@@ -1,12 +1,97 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import SignaturePad from '../../components/SignaturePad/SignaturePad';
+import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import API_BASE from '../../config/api';
 import { AuthContext } from '../../context/AuthContext';
+import { generarPDFAmonestacion } from '../../utils/generarPDFAmonestacion';
+import { generarPDFInfraccion } from '../../utils/generarPDFInfraccion';
 import './Infraccion.css';
 
 const UMA_VALOR_2026 = 108.57; // Valor de referencia UMA para cálculo visual en pesos
+
+// CustomSelect Component
+const CustomSelect = ({ value, onChange, options, placeholder = "SELECCIONAR", className = "" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getOptionLabel = (opt) => typeof opt === 'object' ? opt.label : opt;
+  const getOptionValue = (opt) => typeof opt === 'object' ? opt.value : opt;
+
+  const currentLabel = value ? (options.find(opt => getOptionValue(opt) === value) ? getOptionLabel(options.find(opt => getOptionValue(opt) === value)) : value) : placeholder;
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', width: '100%', zIndex: isOpen ? 50 : 1 }}>
+      <button
+        type="button"
+        className={className}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 0.85rem',
+          cursor: 'pointer',
+          textAlign: 'left',
+          background: '#ffffff',
+          border: '1px solid #601a2a',
+          borderRadius: '8px',
+          height: '2.3rem',
+          fontSize: '0.85rem',
+          width: '100%',
+          fontWeight: 'bold',
+          color: '#111827',
+          outline: 'none'
+        }}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {currentLabel}
+        </span>
+        <svg
+          style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0, color: '#601a2a' }}
+          fill="currentColor" viewBox="0 0 24 24"
+        >
+          <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div style={{ position: 'absolute', width: '100%', top: '100%', left: 0, background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginTop: '0.25rem', zIndex: 999, overflow: 'hidden' }}>
+          <div style={{ maxHeight: '12rem', overflowY: 'auto' }}>
+            {options.map((opt, i) => {
+              const optLabel = getOptionLabel(opt);
+              const optValue = getOptionValue(opt);
+              const isSelected = value === optValue;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.6rem 1rem', fontSize: '0.85rem', background: '#ffffff', border: 'none', borderBottom: i < options.length - 1 ? '1px solid #f3f4f6' : 'none', color: isSelected ? '#601a2a' : '#4b5563', fontWeight: isSelected ? 'bold' : 'normal', cursor: 'pointer' }}
+                  onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
+                  onMouseLeave={(e) => e.target.style.background = '#ffffff'}
+                  onClick={() => { onChange(optValue); setIsOpen(false); }}
+                >
+                  {optLabel}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const InfraccionDashboard = () => {
   const { token, user } = useContext(AuthContext);
@@ -15,6 +100,7 @@ const InfraccionDashboard = () => {
   const [placas, setPlacas] = useState('');
   const [checkingPlaca, setCheckingPlaca] = useState(false);
   const [placaStatus, setPlacaStatus] = useState(null);
+  const [tipoFormulario, setTipoFormulario] = useState(null); // 'amonestacion' | 'infraccion'
 
   // -------------------------------------------------------------
   // ESTADOS DEL FORMULARIO 1: ACTA DE AMONESTACIÓN (Primera Incursión)
@@ -41,9 +127,10 @@ const InfraccionDashboard = () => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   });
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [infMunicipio, setInfMunicipio] = useState('Pachuca de Soto');
   const [infUbicacionExacta, setInfUbicacionExacta] = useState('');
-  
+
   // Vehículo Infracción
   const [infEntidad, setInfEntidad] = useState('Hidalgo');
   const [infMarca, setInfMarca] = useState('');
@@ -64,8 +151,8 @@ const InfraccionDashboard = () => {
   // Motivación y Sanción
   const [infMotivacionHecho, setInfMotivacionHecho] = useState('transitaba');
   const [infDescripcionHechos, setInfDescripcionHechos] = useState('');
-  const [infSancionUma, setInfSancionUma] = useState(50);
-  const [infGarantiaTipo, setInfGarantiaTipo] = useState('Detención del Vehículo (Grúa / Depósito Vehicular)');
+  const [infSancionUma, setInfSancionUma] = useState('');
+  const [infGarantiaRetenida, setInfGarantiaRetenida] = useState(false);
   const [infGarantiaObservaciones, setInfGarantiaObservaciones] = useState('');
 
   // Inspector y Notificación Infracción
@@ -126,9 +213,17 @@ const InfraccionDashboard = () => {
         const data = await res.json();
         setPlacaStatus(data);
 
-        // Auto-llenar campos de Infracción si ya existe amonestación previa
-        if (data.has_amonestacion && data.latest) {
+        // Auto-llenar campos si ya existen antecedentes en la base de datos
+        if (data.latest) {
           const prev = data.latest;
+          setEntidadFederativa(prev.entidad_federativa || 'Hidalgo');
+          setMarca(prev.marca || '');
+          setModelo(prev.modelo || '');
+          setColor(prev.color || '');
+          setConductorNombre(prev.conductor_nombre || '');
+          setRecibioNombre(prev.conductor_nombre || '');
+          if (prev.inspector_gafete) setInspectorGafete(prev.inspector_gafete);
+
           setInfEntidad(prev.entidad_federativa || 'Hidalgo');
           setInfMarca(prev.marca || '');
           setInfModelo(prev.modelo || '');
@@ -137,6 +232,9 @@ const InfraccionDashboard = () => {
           setInfRecibioNombre(prev.conductor_nombre || '');
           if (prev.inspector_gafete) setInfInspectorGafete(prev.inspector_gafete);
         }
+
+        // Sugerir formulario predeterminado pero permitiendo libre selección al usuario
+        setTipoFormulario(data.has_amonestacion ? 'infraccion' : 'amonestacion');
       }
     } catch (_err) {
       console.error('Error al verificar placa:', _err);
@@ -154,7 +252,8 @@ const InfraccionDashboard = () => {
   const resetForm = () => {
     setPlacas('');
     setPlacaStatus(null);
-    
+    setTipoFormulario(null);
+
     // Reset Amonestación
     setFechaAmonestacion(new Date().toISOString().split('T')[0]);
     setLugarAmonestacion('Pachuca de Soto, Estado de Hidalgo');
@@ -193,8 +292,8 @@ const InfraccionDashboard = () => {
     setInfCalidadConductor('Conductora');
     setInfMotivacionHecho('transitaba');
     setInfDescripcionHechos('');
-    setInfSancionUma(50);
-    setInfGarantiaTipo('Detención del Vehículo (Grúa / Depósito Vehicular)');
+    setInfSancionUma('');
+    setInfGarantiaRetenida(false);
     setInfGarantiaObservaciones('');
     setInfInspectorGafete('');
     setInfFirmaInspector('');
@@ -271,11 +370,31 @@ const InfraccionDashboard = () => {
         return;
       }
 
+      const datosParaPDF = {
+        ...(data.amonestacion || {}),
+        ...payload, // Payload en vivo conserva las firmas Base64 del canvas y booleano estricto
+        inspector_nombre: user?.nombre_completo || user?.nombre || 'Administrador',
+      };
+
+      try {
+        await generarPDFAmonestacion(datosParaPDF, 'download');
+      } catch (pdfErr) {
+        console.error('Error generando PDF de amonestación:', pdfErr);
+      }
+
       Swal.fire({
         icon: 'success',
         title: 'Acta de Amonestación Registrada',
-        html: `Se generó el <b>Acta de Amonestación por Invasión de Carril Troncal (URBANUSS)</b><br/><br/>Folio: <h2 style="color: #601a2a; margin-top: 5px;">${data.amonestacion.folio}</h2>`,
-        confirmButtonColor: '#601a2a'
+        html: `Se generó el <b>Acta de Amonestación por Invasión de Carril Troncal (URBANUSS)</b><br/><br/>Folio: <h2 style="color: #601a2a; margin-top: 5px;">${data.amonestacion?.folio || ''}</h2><br/><span style="font-size: 0.85rem; color: #475569;">El documento PDF oficial ha sido generado y descargado.</span>`,
+        showCancelButton: true,
+        confirmButtonColor: '#601a2a',
+        cancelButtonColor: '#475569',
+        confirmButtonText: 'Ver / Imprimir PDF',
+        cancelButtonText: 'Cerrar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          generarPDFAmonestacion(datosParaPDF, 'open');
+        }
       });
 
       resetForm();
@@ -342,7 +461,7 @@ const InfraccionDashboard = () => {
         descripcion_hechos: infDescripcionHechos,
 
         sancion_uma: parseFloat(infSancionUma) || 0,
-        garantia_tipo: infGarantiaTipo,
+        garantia_tipo: infGarantiaRetenida ? 'Detención del Vehículo (Grúa / Depósito Vehicular)' : 'Otra Garantía',
         garantia_observaciones: infGarantiaObservaciones,
 
         inspector_gafete: infInspectorGafete,
@@ -375,11 +494,62 @@ const InfraccionDashboard = () => {
         return;
       }
 
+      // Preparar datos para el PDF
+      const datosParaPDF = {
+        folio: data.infraccion?.folio || 'BI-2026-0001',
+        fecha: infFechaExpedicion,
+        hora: infHoraIntervencion,
+        municipio: infMunicipio,
+        ubicacion_exacta: infUbicacionExacta,
+        lugar: `${infMunicipio}, ${infUbicacionExacta}`.trim(),
+        placas,
+        entidad_federativa: infEntidad,
+        marca: infMarca,
+        submarca: infSubmarca,
+        modelo: infModelo,
+        color: infColor,
+        niv_vin: infNivVin,
+        tipo_vehiculo: infTipoVehiculo,
+        conductor_nombre: infConductorNombre,
+        conductor_domicilio: infConductorDomicilio,
+        licencia_numero: infLicenciaNumero,
+        licencia_tipo: infLicenciaTipo,
+        licencia_estado: infLicenciaEstado,
+        calidad_conductor: infCalidadConductor,
+        motivacion_hecho: infMotivacionHecho,
+        descripcion_hechos: infDescripcionHechos,
+        sancion_uma: parseFloat(infSancionUma) || 0,
+        garantia_tipo: infGarantiaRetenida ? 'Detención del Vehículo (Grúa / Depósito Vehicular)' : 'Otra Garantía',
+        garantia_retenida: infGarantiaRetenida,
+        garantia_observaciones: infGarantiaObservaciones,
+        inspector_nombre: user?.nombre_completo || 'INSPECTOR EN SESIÓN',
+        inspector_gafete: infInspectorGafete,
+        firma_inspector: infFirmaInspector,
+        conductor_nego_firmar: Boolean(infNegoFirmar),
+        recibio_nombre: infRecibioNombre || infConductorNombre,
+        firma_conductor: infFirmaConductor
+      };
+
+      // Generar y descargar PDF automáticamente
+      try {
+        await generarPDFInfraccion(datosParaPDF, 'download');
+      } catch (pdfErr) {
+        console.error('Error generando PDF de infracción:', pdfErr);
+      }
+
       Swal.fire({
         icon: 'success',
         title: 'Boleta de Infracción Emitida',
-        html: `Se levantó exitosamente la <b>Boleta de Infracción por Reincidencia en Carril Troncal (URBANUSS)</b><br/><br/>Folio Oficial: <h2 style="color: #991b1b; margin-top: 5px;">${data.infraccion.folio}</h2>`,
-        confirmButtonColor: '#601a2a'
+        html: `Se levantó exitosamente la <b>Boleta de Infracción por Reincidencia en Carril Troncal (URBANUSS)</b><br/><br/>Folio Oficial: <h2 style="color: #991b1b; margin-top: 5px;">${data.infraccion?.folio || ''}</h2><br/><span style="font-size: 0.85rem; color: #475569;">El documento PDF oficial ha sido generado y descargado.</span>`,
+        showCancelButton: true,
+        confirmButtonColor: '#601a2a',
+        cancelButtonColor: '#475569',
+        confirmButtonText: 'Ver / Imprimir PDF',
+        cancelButtonText: 'Cerrar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          generarPDFInfraccion(datosParaPDF, 'open');
+        }
       });
 
       resetForm();
@@ -397,10 +567,17 @@ const InfraccionDashboard = () => {
       <main className="infraccion-main">
         {/* Banner Informativo Troncal URBANUSS */}
         <div className="troncal-header-banner">
-          <div className="troncal-banner-icon">🚌</div>
-          <div>
+          <div className="troncal-banner-icon">
+            <img
+              src="/images/urbanu-frente.webp"
+              alt="URBANUSS"
+              style={{ width: '46px', height: '46px', objectFit: 'contain', borderRadius: '8px' }}
+            />
+          </div>
+          <div className="troncal-banner-text">
+            <span className="troncal-banner-eyebrow">SITMAH · Módulo de Inspección</span>
             <h3>INSPECCIÓN Y CONTROL DE CARRIL CONFINADO TRONCAL (URBANUSS)</h3>
-            <p>Módulo exclusivo para la prevención y sanción por invasión del carril exclusivo de la ruta Troncal en el Estado de Hidalgo.</p>
+            <p>Prevención y sanción por invasión del carril exclusivo de la ruta Troncal • Estado de Hidalgo</p>
           </div>
         </div>
 
@@ -411,12 +588,12 @@ const InfraccionDashboard = () => {
               <span className="step-tag">PASO 1</span>
               <h4>VALIDAR PLACAS DEL VEHÍCULO EN CARRIL TRONCAL</h4>
             </div>
-            
+
             <div className="plate-input-wrapper">
               <div className="input-with-button">
                 <input
                   type="text"
-                  placeholder="Escriba o escanee placas (ej. HNK-123-A)"
+                  placeholder="Escriba las placas (ej. HNK-123-A)"
                   value={placas}
                   onChange={handlePlacasChange}
                   className="plate-main-input uppercase-input"
@@ -439,35 +616,100 @@ const InfraccionDashboard = () => {
             )}
 
             {placaStatus && !checkingPlaca && (
-              <div className={`placa-status-hero ${placaStatus.has_amonestacion ? 'reincidente' : 'primera-vez'}`}>
-                {placaStatus.has_amonestacion ? (
-                  <div className="status-hero-content">
-                    <div className="status-hero-badge red">🔴 REINCIDENCIA DETECTADA</div>
-                    <h3>PROCEDIMIENTO: LEVANTAMIENTO DE BOLETA DE INFRACCIÓN</h3>
-                    <p>
-                      El vehículo con placas <b>{placaStatus.placa}</b> ya cuenta con <b>{placaStatus.total_amonestaciones} Amonestación(es) previa(s)</b> en la base de datos (Folio: <b>{placaStatus.latest?.folio}</b> del {new Date(placaStatus.latest?.fecha).toLocaleDateString()}). Los datos conocidos han sido auto-llenados.
-                    </p>
+              <>
+                {/* ── RESULTADO DEL EXPEDIENTE ── */}
+                <div className={`placa-status-hero ${placaStatus.has_amonestacion ? 'reincidente' : 'primera-vez'}`}>
+                  <div className="status-hero-icon-row">
+                    {placaStatus.has_amonestacion ? (
+                      /* Icono triángulo de alerta */
+                      <svg viewBox="0 0 24 24" className="status-svg-icon red-icon" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                    ) : (
+                      /* Icono check circle */
+                      <svg viewBox="0 0 24 24" className="status-svg-icon green-icon" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
+                    )}
+                    <div className="status-hero-content">
+                      <div className={`status-hero-badge ${placaStatus.has_amonestacion ? 'red' : 'green'}`}>
+                        {placaStatus.has_amonestacion
+                          ? `ANTECEDENTES DETECTADOS (${placaStatus.total_amonestaciones} AMONESTACIÓN/ES)`
+                          : 'SIN ANTECEDENTES REGISTRADOS'}
+                      </div>
+                      <h3>
+                        {placaStatus.has_amonestacion
+                          ? `HISTORIAL REGISTRADO — PLACAS ${placaStatus.placa}`
+                          : `VEHÍCULO SIN ANTECEDENTES — PLACAS ${placaStatus.placa}`}
+                      </h3>
+                      <p>
+                        {placaStatus.has_amonestacion
+                          ? <>El vehículo cuenta con <b>{placaStatus.total_amonestaciones} amonestación(es) previa(s)</b>. Seleccione el procedimiento a registrar.</>
+                          : <>Las placas <b>{placaStatus.placa}</b> no registran sanciones anteriores en carril troncal. Seleccione el tipo de procedimiento a aplicar.</>}
+                      </p>
+                    </div>
                   </div>
-                ) : (
-                  <div className="status-hero-content">
-                    <div className="status-hero-badge green">🟢 PRIMERA INCURSIÓN EN CARRIL TRONCAL</div>
-                    <h3>PROCEDIMIENTO: REGISTRO DE ACTA DE AMONESTACIÓN</h3>
-                    <p>
-                      Las placas <b>{placaStatus.placa}</b> no registran antecedentes previos en el carril exclusivo de la ruta Troncal. Procede la captura de la primera <b>Acta de Amonestación</b>.
-                    </p>
+                </div>
+
+                {/* ── SELECTOR DE PROCEDIMIENTO ── */}
+                <div className="procedure-selector-container">
+                  <label className="procedure-selector-label">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.4rem', verticalAlign: 'middle' }}>
+                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    Seleccione el tipo de procedimiento a registrar:
+                  </label>
+                  <div className="procedure-selector-grid">
+
+                    {/* Botón: Acta de Amonestación */}
+                    <button
+                      type="button"
+                      onClick={() => setTipoFormulario('amonestacion')}
+                      className={`btn-procedure-option ${tipoFormulario === 'amonestacion' ? 'active-amonestacion' : ''}`}
+                    >
+                      <span className="proc-icon-wrap amonestacion-icon-wrap">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                      </span>
+                      <span className="proc-label">Acta de Amonestación</span>
+                    </button>
+
+                    {/* Botón: Boleta de Infracción */}
+                    <button
+                      type="button"
+                      onClick={() => setTipoFormulario('infraccion')}
+                      className={`btn-procedure-option ${tipoFormulario === 'infraccion' ? 'active-infraccion' : ''}`}
+                    >
+                      <span className="proc-icon-wrap infraccion-icon-wrap">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                      </span>
+                      <span className="proc-label">Boleta de Infracción</span>
+                    </button>
+
                   </div>
-                )}
-              </div>
+                </div>
+              </>
             )}
           </div>
 
           {/* ========================================================================= */}
-          {/* CASO A: PRIMERA VEZ -> MOSTRAR FORMULARIO DE AMONESTACIÓN                 */}
+          {/* CASO A: FORMULARIO DE AMONESTACIÓN                                        */}
           {/* ========================================================================= */}
-          {(!placaStatus || !placaStatus.has_amonestacion) && (
+          {tipoFormulario === 'amonestacion' && (
             <form className="amonestacion-card-form" onSubmit={handleSubmitAmonestacion}>
               <div className="amonestacion-header-title">
-                <div className="sitmah-badge-header">SITMAH • INSPECCIÓN TRONCAL</div>
                 <h2>ACTA DE AMONESTACIÓN</h2>
                 <p className="subtitle-legal">
                   Invasión de Carril Exclusivo Troncal (URBANUSS) • Secretaría de Movilidad y Transporte del Estado de Hidalgo
@@ -478,12 +720,9 @@ const InfraccionDashboard = () => {
               <div className="form-grid-2">
                 <div className="form-group">
                   <label className="form-label font-semibold">Fecha del Acta</label>
-                  <input
-                    type="date"
-                    required
+                  <AppleDatePicker
                     value={fechaAmonestacion}
-                    onChange={(e) => setFechaAmonestacion(e.target.value)}
-                    className="infraccion-input"
+                    onChange={(val) => setFechaAmonestacion(val)}
                   />
                 </div>
                 <div className="form-group">
@@ -521,15 +760,11 @@ const InfraccionDashboard = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Entidad Federativa *</label>
-                    <select
+                    <CustomSelect
                       value={entidadFederativa}
-                      onChange={(e) => setEntidadFederativa(e.target.value)}
-                      className="infraccion-select"
-                    >
-                      {ENTIDADES.map((ent) => (
-                        <option key={ent} value={ent}>{ent}</option>
-                      ))}
-                    </select>
+                      onChange={setEntidadFederativa}
+                      options={ENTIDADES}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Marca *</label>
@@ -575,10 +810,9 @@ const InfraccionDashboard = () => {
                       placeholder="Nombre completo"
                       value={conductorNombre}
                       onChange={(e) => {
-                        setConductorNombre(e.target.value);
-                        if (!conductorNegoFirmar && !recibioNombre) {
-                          setRecibioNombre(e.target.value);
-                        }
+                        const val = e.target.value;
+                        setConductorNombre(val);
+                        setRecibioNombre(val);
                       }}
                       className="infraccion-input"
                     />
@@ -730,12 +964,11 @@ const InfraccionDashboard = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* CASO B: REINCIDENCIA DETECTADA -> MOSTRAR FORMULARIO DE INFRACCIÓN        */}
+          {/* CASO B: FORMULARIO DE INFRACCIÓN                                          */}
           {/* ========================================================================= */}
-          {placaStatus && placaStatus.has_amonestacion && (
+          {tipoFormulario === 'infraccion' && (
             <form className="infraccion-card-form" onSubmit={handleSubmitInfraccion}>
               <div className="infraccion-header-title">
-                <div className="infraccion-badge-header">SITMAH • BOLETA DE INFRACCIÓN</div>
                 <h2>BOLETA DE INFRACCIÓN POR REINCIDENCIA</h2>
                 <p className="subtitle-legal">
                   Invasión de Carril Exclusivo Troncal (URBANUSS) • Secretaría de Movilidad y Transporte del Estado de Hidalgo
@@ -752,23 +985,61 @@ const InfraccionDashboard = () => {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Fecha de Expedición *</label>
-                    <input
-                      type="date"
-                      required
+                    <AppleDatePicker
                       value={infFechaExpedicion}
-                      onChange={(e) => setInfFechaExpedicion(e.target.value)}
-                      className="infraccion-input"
+                      onChange={(val) => setInfFechaExpedicion(val)}
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Hora de Intervención *</label>
-                    <input
-                      type="time"
-                      required
-                      value={infHoraIntervencion}
-                      onChange={(e) => setInfHoraIntervencion(e.target.value)}
-                      className="infraccion-input"
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowTimePicker(!showTimePicker)}
+                        style={{
+                          background: '#fef3c7',
+                          border: '1px solid #d97706',
+                          borderRadius: '8px',
+                          color: '#92400e',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          height: '2.3rem',
+                          padding: '0 0.85rem 0 2.2rem',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                          {infHoraIntervencion || '--:--'}
+                        </span>
+                        <svg style={{ transition: 'transform 0.2s', transform: showTimePicker ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem', color: '#92400e' }} fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                        </svg>
+                      </button>
+                      <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#92400e', width: '1rem', height: '1rem' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {showTimePicker && (
+                        <>
+                          <div
+                            style={{ position: 'fixed', inset: 0, zIndex: 998 }}
+                            onClick={(e) => { e.stopPropagation(); setShowTimePicker(false); }}
+                          />
+                          <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 999, width: '100%' }}>
+                            <IOSTimePicker
+                              value={infHoraIntervencion}
+                              onChange={(val) => setInfHoraIntervencion(val)}
+                              onClose={() => setShowTimePicker(false)}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -817,15 +1088,11 @@ const InfraccionDashboard = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Entidad Federativa *</label>
-                    <select
+                    <CustomSelect
                       value={infEntidad}
-                      onChange={(e) => setInfEntidad(e.target.value)}
-                      className="infraccion-select"
-                    >
-                      {ENTIDADES.map((ent) => (
-                        <option key={ent} value={ent}>{ent}</option>
-                      ))}
-                    </select>
+                      onChange={setInfEntidad}
+                      options={ENTIDADES}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Marca *</label>
@@ -888,15 +1155,11 @@ const InfraccionDashboard = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Tipo de Vehículo *</label>
-                    <select
+                    <CustomSelect
                       value={infTipoVehiculo}
-                      onChange={(e) => setInfTipoVehiculo(e.target.value)}
-                      className="infraccion-select"
-                    >
-                      {TIPOS_VEHICULO.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
+                      onChange={setInfTipoVehiculo}
+                      options={TIPOS_VEHICULO}
+                    />
                   </div>
                 </div>
               </div>
@@ -927,14 +1190,11 @@ const InfraccionDashboard = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Calidad con la que se ostenta *</label>
-                    <select
+                    <CustomSelect
                       value={infCalidadConductor}
-                      onChange={(e) => setInfCalidadConductor(e.target.value)}
-                      className="infraccion-select"
-                    >
-                      <option value="Conductora">Conductora</option>
-                      <option value="Propietaria del Vehículo">Propietaria del Vehículo</option>
-                    </select>
+                      onChange={setInfCalidadConductor}
+                      options={['Conductora', 'Propietaria del Vehículo']}
+                    />
                   </div>
                 </div>
 
@@ -992,15 +1252,15 @@ const InfraccionDashboard = () => {
 
                 <div className="form-group">
                   <label className="form-label">Motivación del Hecho *</label>
-                  <select
+                  <CustomSelect
                     value={infMotivacionHecho}
-                    onChange={(e) => setInfMotivacionHecho(e.target.value)}
-                    className="infraccion-select font-bold"
-                  >
-                    <option value="transitaba">Transitaba por el carril exclusivo Troncal (URBANUSS)</option>
-                    <option value="ingresó">Ingresó indebidamente al carril exclusivo Troncal (URBANUSS)</option>
-                    <option value="maniobró">Maniobró sin autorización en el carril exclusivo Troncal (URBANUSS)</option>
-                  </select>
+                    onChange={setInfMotivacionHecho}
+                    options={[
+                      { value: 'transitaba', label: 'Transitaba por el carril exclusivo Troncal (URBANUSS)' },
+                      { value: 'ingresó', label: 'Ingresó indebidamente al carril exclusivo Troncal (URBANUSS)' },
+                      { value: 'maniobró', label: 'Maniobró sin autorización en el carril exclusivo Troncal (URBANUSS)' }
+                    ]}
+                  />
                 </div>
 
                 <div className="form-group">
@@ -1029,37 +1289,51 @@ const InfraccionDashboard = () => {
                     </label>
                     <div className="uma-input-row">
                       <input
-                        type="number"
-                        min="1"
-                        step="1"
+                        type="text"
+                        inputMode="numeric"
                         required
                         value={infSancionUma}
-                        onChange={(e) => setInfSancionUma(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setInfSancionUma(val);
+                        }}
                         className="infraccion-input uma-number-input"
+                        placeholder="Ej. 50"
                       />
                       <span className="uma-unit-tag">UMAs</span>
-                      <div className="uma-calc-badge">
-                        💰 Equivale aprox. a: <b>${(parseFloat(infSancionUma || 0) * UMA_VALOR_2026).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN</b>
+                      <div
+                        className="uma-calc-badge"
+                        style={{
+                          background: infSancionUma ? '#fef2f2' : 'transparent',
+                          borderColor: infSancionUma ? '#fca5a5' : 'transparent',
+                          color: infSancionUma ? '#7f1d1d' : '#9ca3af'
+                        }}
+                      >
+                        {infSancionUma
+                          ? `Equivalente a $${(parseFloat(infSancionUma) * UMA_VALOR_2026).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`
+                          : ''}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="form-group mt-3">
-                  <label className="form-label font-bold">Garantía Retenida en Custodia del Pago *</label>
-                  <select
-                    value={infGarantiaTipo}
-                    onChange={(e) => setInfGarantiaTipo(e.target.value)}
-                    className="infraccion-select"
-                  >
-                    {GARANTIAS_OPCIONES.map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
+                <div className="form-group mt-3" style={{ marginBottom: '0.5rem' }}>
+                  <label className="form-label font-bold">Garantía retenida (en su caso):</label>
+                  <label className="checkbox-custom-container" style={{ margin: '0.75rem 0', display: 'inline-flex', alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={infGarantiaRetenida}
+                      onChange={(e) => setInfGarantiaRetenida(e.target.checked)}
+                      style={{ margin: 0 }}
+                    />
+                    <span className="checkbox-text-legal font-semibold text-gray-800" style={{ textTransform: 'uppercase' }}>
+                      Detención del Vehículo
+                    </span>
+                  </label>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Observaciones de Garantía (Ej. Pago en el momento, Grúa No. Gr-402, etc.)</label>
+                  <label className="form-label font-bold">Otro (especificar si se pagó en el momento, acuerdo, observación, etc.):</label>
                   <input
                     type="text"
                     placeholder="Especificar observaciones o acuerdos referentes a la garantía..."

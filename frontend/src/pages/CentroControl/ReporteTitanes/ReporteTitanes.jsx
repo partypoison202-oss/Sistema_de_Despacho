@@ -5,6 +5,8 @@ import Header from '../../../components/Header/Header';
 import UserAvatar from '../../../components/UserAvatar/UserAvatar';
 import './ReporteTitanes.css';
 import API_BASE from '../../../config/api';
+import AppleDatePicker from '../../Mantenimiento/components/AppleDatePicker';
+import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -888,18 +890,16 @@ export default function ReportesTitanes() {
               <div className="rt-dashboard-fechas">
                 <label>
                   Desde
-                  <input
-                    type="date"
+                  <AppleDatePicker
                     value={fechaDesde}
-                    onChange={(e) => setFechaDesde(e.target.value)}
+                    onChange={(val) => setFechaDesde(val)}
                   />
                 </label>
                 <label>
                   Hasta
-                  <input
-                    type="date"
+                  <AppleDatePicker
                     value={fechaHasta}
-                    onChange={(e) => setFechaHasta(e.target.value)}
+                    onChange={(val) => setFechaHasta(val)}
                   />
                 </label>
               </div>

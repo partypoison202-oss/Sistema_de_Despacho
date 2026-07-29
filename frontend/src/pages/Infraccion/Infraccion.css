@@ -1,190 +1,420 @@
+/* ==================================================================
+   MÓDULO DE INFRACCIONES — ESTILOS GLOBALES
+   Diseño orientado a inspectores de campo en dispositivos móviles
+   ================================================================== */
+
+/* ─── Página base ─── */
 .infraccion-page {
+  background: linear-gradient(160deg, #f8f6f9 0%, #f0eef3 100%);
   min-height: 100vh;
-  background-color: #f8fafc;
+  padding-bottom: 1.5rem;
 }
 
 .infraccion-main {
-  max-width: 1100px;
-  margin: 1.5rem auto 3rem auto;
-  padding: 0 1.25rem;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem 0.85rem;
 }
 
-/* Banner Troncal URBANUSS */
+/* ─── Banner hero de módulo ─── */
 .troncal-header-banner {
-  background: linear-gradient(135deg, #601a2a 0%, #42121d 100%);
-  color: #ffffff;
-  padding: 1.25rem 1.75rem;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #601a2a 0%, #3d0f1a 100%);
+  color: #fff;
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 15px rgba(96, 26, 42, 0.2);
+  gap: 1.1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 8px 28px rgba(96, 26, 42, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Orbe decorativo derecho */
+.troncal-header-banner::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Orbe decorativo izquierdo */
+.troncal-header-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  left: 40%;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .troncal-banner-icon {
-  font-size: 2.25rem;
+  font-size: 2rem;
   background: rgba(255, 255, 255, 0.15);
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.troncal-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.troncal-banner-eyebrow {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 0.3rem;
 }
 
 .troncal-header-banner h3 {
-  margin: 0 0 0.35rem 0;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  line-height: 1.25;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .troncal-header-banner p {
   margin: 0;
-  font-size: 0.875rem;
-  opacity: 0.9;
-  line-height: 1.4;
+  font-size: 0.775rem;
+  opacity: 0.78;
+  line-height: 1.35;
 }
 
-/* Form Wrapper & Plate Card */
+/* ─── Tarjeta de verificación de placas ─── */
 .plate-verification-card {
-  background: #ffffff;
-  border-radius: 12px;
-  border: 2px solid #c29b53;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 12px rgba(194, 155, 83, 0.12);
+  background: #fff;
+  border-radius: 16px;
+  border: none;
+  padding: 1.4rem 1.5rem 1.5rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07), 0 0 0 1.5px rgba(194, 155, 83, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.plate-verification-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #c29b53, #e8c97a, #c29b53);
+  border-radius: 16px 16px 0 0;
 }
 
 .plate-verification-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
 }
 
 .step-tag {
-  background: #c29b53;
-  color: #ffffff;
+  background: linear-gradient(135deg, #c29b53, #a07830);
+  color: #fff;
   font-weight: 800;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
   font-size: 0.75rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
 }
 
 .plate-verification-header h4 {
   margin: 0;
   color: #1e293b;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
+  letter-spacing: 0.3px;
 }
 
 .plate-input-wrapper {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .input-with-button {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .plate-main-input {
   flex: 1;
-  padding: 0.85rem 1.15rem;
-  font-size: 1.25rem;
+  padding: 1rem 1.1rem;
+  font-size: 1.45rem;
   font-weight: 800;
-  border: 2px solid #cbd5e1;
-  border-radius: 8px;
-  letter-spacing: 2px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  letter-spacing: 4px;
+  box-sizing: border-box;
+  color: #1e293b;
+  background: #fafafa;
+  transition: all 0.18s ease;
+}
+
+.plate-main-input::placeholder {
+  letter-spacing: 0.5px;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: #94a3b8;
 }
 
 .plate-main-input:focus {
   outline: none;
   border-color: #601a2a;
-  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.15);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.12);
 }
 
 .btn-verify-plate {
-  background: #601a2a;
-  color: #ffffff;
+  background: linear-gradient(135deg, #601a2a 0%, #3d0f1a 100%);
+  color: #fff;
   border: none;
-  padding: 0.85rem 1.75rem;
-  border-radius: 8px;
-  font-weight: 700;
+  padding: 1rem 1.6rem;
+  border-radius: 10px;
+  font-weight: 800;
   font-size: 1rem;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(96, 26, 42, 0.25);
+  transition: all 0.18s ease;
+  letter-spacing: 0.3px;
 }
 
 .btn-verify-plate:hover:not(:disabled) {
-  background: #42121d;
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(96, 26, 42, 0.3);
+}
+
+.btn-verify-plate:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .btn-verify-plate:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
+/* ─── Cargando / checking box ─── */
+.placa-checking-box {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.825rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+/* ─── Resultado de status de placas ─── */
 .placa-status-hero {
-  padding: 1.25rem 1.5rem;
-  border-radius: 10px;
-  border-left: 6px solid;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border-left: 4px solid;
+  margin-top: 0.85rem;
 }
 
 .placa-status-hero.primera-vez {
-  background-color: #f0fdf4;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   border-color: #16a34a;
   color: #14532d;
 }
 
 .placa-status-hero.reincidente {
-  background-color: #fef2f2;
+  background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
   border-color: #dc2626;
   color: #7f1d1d;
 }
 
+/* Fila icono + contenido */
+.status-hero-icon-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.status-svg-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.status-svg-icon.red-icon {
+  color: #dc2626;
+}
+
+.status-svg-icon.green-icon {
+  color: #16a34a;
+}
+
 .status-hero-badge {
-  display: inline-block;
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 1px;
-  padding: 0.2rem 0.65rem;
+  letter-spacing: 0.5px;
+  padding: 0.22rem 0.7rem;
   border-radius: 9999px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .status-hero-badge.green {
-  background-color: #dcfce7;
+  background: #bbf7d0;
   color: #15803d;
 }
 
 .status-hero-badge.red {
-  background-color: #fee2e2;
+  background: #fecaca;
   color: #b91c1c;
 }
 
 .status-hero-content h3 {
-  margin: 0.25rem 0 0.5rem 0;
-  font-size: 1.2rem;
+  margin: 0.2rem 0 0.35rem 0;
+  font-size: 0.95rem;
   font-weight: 800;
+  line-height: 1.3;
 }
 
 .status-hero-content p {
   margin: 0;
-  font-size: 0.925rem;
+  font-size: 0.825rem;
   line-height: 1.45;
+  opacity: 0.9;
 }
 
-/* Card Form Container */
+/* ─── Selector de procedimiento ─── */
+.procedure-selector-container {
+  margin-top: 1rem;
+}
+
+.procedure-selector-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.6px;
+  margin-bottom: 0.65rem;
+  text-transform: uppercase;
+}
+
+.procedure-selector-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.btn-procedure-option {
+  padding: 0.9rem 1.1rem;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #fafafa;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.85rem;
+  transition: all 0.18s ease;
+  text-align: left;
+}
+
+/* Contenedor icono SVG */
+.proc-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.amonestacion-icon-wrap {
+  background: #fef9ec;
+  color: #a07830;
+}
+
+.infraccion-icon-wrap {
+  background: #fff5f5;
+  color: #dc2626;
+}
+
+.proc-label {
+  font-size: 0.875rem;
+  font-weight: 800;
+  display: block;
+  line-height: 1.2;
+}
+
+.btn-procedure-option:hover:not(.active-amonestacion):not(.active-infraccion) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.btn-procedure-option.active-amonestacion {
+  border: 2px solid #601a2a;
+  background: #fffdf7;
+  color: #601a2a;
+  box-shadow: 0 4px 14px rgba(96, 26, 42, 0.12);
+}
+
+.btn-procedure-option.active-amonestacion .amonestacion-icon-wrap {
+  background: #f5e6d0;
+  color: #601a2a;
+}
+
+.btn-procedure-option.active-infraccion {
+  border: 2px solid #dc2626;
+  background: #fff8f8;
+  color: #b91c1c;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.12);
+}
+
+.btn-procedure-option.active-infraccion .infraccion-icon-wrap {
+  background: #fecaca;
+  color: #b91c1c;
+}
+
+
+/* ─── Formulario Card ─── */
 .amonestacion-card-form,
 .infraccion-card-form {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-  padding: 2.25rem;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9edf2;
+  padding: 1.5rem 1.25rem;
+  margin-top: 0.85rem;
 }
 
 .infraccion-card-form {
@@ -194,72 +424,49 @@
 .amonestacion-header-title,
 .infraccion-header-title {
   text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
   border-bottom: 2px solid #f1f5f9;
-}
-
-.sitmah-badge-header {
-  display: inline-block;
-  background-color: #601a2a;
-  color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  padding: 0.25rem 0.85rem;
-  border-radius: 9999px;
-  margin-bottom: 0.5rem;
-}
-
-.infraccion-badge-header {
-  display: inline-block;
-  background-color: #b91c1c;
-  color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  padding: 0.25rem 0.85rem;
-  border-radius: 9999px;
-  margin-bottom: 0.5rem;
 }
 
 .amonestacion-header-title h2,
 .infraccion-header-title h2 {
   color: #1e293b;
-  font-size: 1.65rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  margin: 0.25rem 0;
-  letter-spacing: 0.5px;
+  margin: 0.15rem 0;
+  letter-spacing: 0.3px;
 }
 
 .subtitle-legal {
   color: #64748b;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 500;
   margin: 0;
+  line-height: 1.4;
 }
 
-/* Section Blocks */
+/* ─── Section Blocks ─── */
 .section-block {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e9edf2;
   border-radius: 10px;
-  padding: 1.5rem;
-  margin-bottom: 1.75rem;
+  padding: 1rem 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .section-block.section-infraccion {
-  background: #fffafa;
-  border-color: #fee2e2;
+  background: #fffbfb;
+  border-color: #fde8e8;
 }
 
 .section-block-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-  border-bottom: 1px solid #cbd5e1;
-  padding-bottom: 0.65rem;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .section-block.section-infraccion .section-block-title {
@@ -267,76 +474,88 @@
 }
 
 .section-number {
-  background-color: #601a2a;
-  color: #ffffff;
-  width: 28px;
-  height: 28px;
+  background: linear-gradient(135deg, #601a2a, #3d0f1a);
+  color: #fff;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   flex-shrink: 0;
 }
 
 .section-number.red {
-  background-color: #b91c1c;
+  background: linear-gradient(135deg, #dc2626, #991b1b);
 }
 
 .section-block-title h3 {
   margin: 0;
   color: #1e293b;
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
-/* Grids */
+/* ─── Grids de formularios ─── */
 .form-grid-2 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 0.65rem;
 }
 
 .form-grid-3 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 0.65rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
+  gap: 0.3rem;
+  margin-bottom: 0.45rem;
 }
 
 .form-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #334155;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .infraccion-input,
 .infraccion-select,
 .infraccion-textarea {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #cbd5e1;
+  padding: 0.62rem 0.85rem;
+  border: 1.5px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 0.95rem;
-  background-color: #ffffff;
+  font-size: 0.875rem;
+  background: #fafafa;
   color: #0f172a;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   box-sizing: border-box;
+}
+
+.infraccion-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23601a2a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.85em;
+  padding-right: 2rem;
 }
 
 .infraccion-textarea {
   font-family: inherit;
   resize: vertical;
+  min-height: 80px;
 }
 
 .infraccion-input:focus,
@@ -344,45 +563,46 @@
 .infraccion-textarea:focus {
   outline: none;
   border-color: #601a2a;
-  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.15);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.1);
 }
 
 .uppercase-input {
   text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 1px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
 }
 
 .highlight-input {
   border-color: #c29b53;
-  background-color: #fffdf9;
+  background: #fffdf7;
 }
 
 .disabled-input {
-  background-color: #f1f5f9;
+  background: #f1f5f9;
   color: #64748b;
   cursor: not-allowed;
+  border-color: #e2e8f0;
 }
 
-/* Calculadora UMA */
+/* ─── Calculadora UMA ─── */
 .sancion-uma-card {
-  background: #ffffff;
-  border: 1px solid #fecaca;
+  background: #fff;
+  border: 1.5px solid #fecaca;
   border-radius: 8px;
-  padding: 1.25rem;
-
+  padding: 0.85rem;
 }
 
 .uma-input-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
 }
 
 .uma-number-input {
-  width: 120px !important;
-  font-size: 1.2rem;
+  width: 100px !important;
+  font-size: 1rem;
   font-weight: 800;
   text-align: center;
   border-color: #dc2626;
@@ -391,124 +611,231 @@
 .uma-unit-tag {
   font-weight: 800;
   color: #991b1b;
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
 .uma-calc-badge {
-  background-color: #fef2f2;
+  background: #fef2f2;
   color: #991b1b;
   border: 1px solid #fca5a5;
-  padding: 0.5rem 0.85rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.825rem;
+  font-weight: 600;
 }
 
-/* Alert Boxes & Checkbox */
-.placa-checking-box {
-  background: #eff6ff;
-  color: #1d4ed8;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
+/* ─── Checkbox / Negativa de firma ─── */
 .checkbox-negativa-card {
-  background: #ffffff;
+  background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.25rem;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.85rem;
 }
 
 .checkbox-custom-container {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.6rem;
   cursor: pointer;
   user-select: none;
 }
 
 .checkbox-custom-container input {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   accent-color: #601a2a;
   margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .checkbox-text-legal {
   color: #1e293b;
-  font-size: 0.925rem;
+  font-size: 0.825rem;
   line-height: 1.4;
 }
 
 .negativa-notice-box {
-  background: #fff3f2;
+  background: #fff5f5;
   border: 1px solid #fca5a5;
   color: #991b1b;
-  padding: 1rem;
+  padding: 0.75rem 0.85rem;
   border-radius: 8px;
   display: flex;
-  gap: 0.75rem;
-  align-items: center;
+  gap: 0.6rem;
+  align-items: flex-start;
+  font-size: 0.825rem;
+  margin-top: 0.5rem;
 }
 
 .signature-section-wrapper {
-  margin-top: 1rem;
+  margin-top: 0.65rem;
 }
 
-/* Form Actions */
+/* ─── Acciones del formulario ─── */
 .amonestacion-form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
 }
 
 .btn-cancel-form {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
   color: #475569;
-  padding: 0.85rem 1.75rem;
+  padding: 0.65rem 1.25rem;
   border-radius: 8px;
   font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .btn-cancel-form:hover {
   background: #f8fafc;
+  border-color: #94a3b8;
   color: #1e293b;
 }
 
 .btn-submit-form {
-  background: #601a2a;
-  color: #ffffff;
+  background: linear-gradient(135deg, #601a2a 0%, #3d0f1a 100%);
+  color: #fff;
   border: none;
-  padding: 0.85rem 2.25rem;
+  padding: 0.65rem 1.75rem;
   border-radius: 8px;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: opacity 0.2s ease;
-  box-shadow: 0 3px 10px rgba(96, 26, 42, 0.25);
+  box-shadow: 0 4px 10px rgba(96, 26, 42, 0.2);
+  transition: all 0.18s ease;
+  letter-spacing: 0.2px;
 }
 
 .btn-submit-form.btn-submit-red {
-  background: #b91c1c;
-  box-shadow: 0 3px 10px rgba(185, 28, 28, 0.25);
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  box-shadow: 0 4px 10px rgba(185, 28, 28, 0.2);
 }
 
 .btn-submit-form:hover:not(:disabled) {
   opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(96, 26, 42, 0.28);
+}
+
+.btn-submit-form:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .btn-submit-form:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* =================================================================
+   RESPONSIVE — TABLETS (≤ 768px)
+   ================================================================= */
+@media (max-width: 768px) {
+  .infraccion-main {
+    padding: 0.65rem 0.65rem;
+  }
+
+  .troncal-header-banner {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .plate-verification-card {
+    padding: 0.9rem 1rem;
+  }
+
+  .amonestacion-card-form,
+  .infraccion-card-form {
+    padding: 1.15rem 0.9rem;
+  }
+}
+
+/* =================================================================
+   RESPONSIVE — MÓVILES (≤ 550px)
+   ================================================================= */
+@media (max-width: 550px) {
+  .infraccion-main {
+    padding: 0.5rem 0.5rem;
+  }
+
+  .troncal-header-banner {
+    padding: 0.7rem 0.85rem;
+    gap: 0.7rem;
+  }
+
+  .troncal-header-banner h3 {
+    font-size: 0.825rem;
+  }
+
+  .troncal-header-banner p {
+    font-size: 0.7rem;
+  }
+
+  .plate-main-input {
+    font-size: 1.25rem;
+    padding: 0.85rem 0.85rem;
+    letter-spacing: 3px;
+  }
+
+  .btn-verify-plate {
+    padding: 0.85rem 1.1rem;
+    font-size: 0.9rem;
+  }
+
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .amonestacion-header-title h2,
+  .infraccion-header-title h2 {
+    font-size: 1.1rem;
+  }
+
+  .section-block {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .amonestacion-form-actions {
+    flex-direction: column-reverse;
+    gap: 0.55rem;
+  }
+
+  .btn-cancel-form,
+  .btn-submit-form {
+    width: 100%;
+    padding: 0.7rem;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .procedure-selector-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =================================================================
+   RESPONSIVE — TELÉFONOS PEQUEÑOS (≤ 380px)
+   ================================================================= */
+@media (max-width: 380px) {
+  .input-with-button {
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .plate-main-input {
+    text-align: center;
+    width: 100%;
+  }
+
+  .btn-verify-plate {
+    width: 100%;
+  }
 }

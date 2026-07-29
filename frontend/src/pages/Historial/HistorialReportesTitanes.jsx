@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import Header from '../../components/Header/Header';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import API_BASE from '../../config/api';
 import '../Menu/Menu.css';
 import './HistorialReportesTitanes.css';
@@ -221,10 +222,9 @@ export default function HistorialReportesTitanes() {
 
             <div className="hrt-campo">
               <label>Fecha del reporte</label>
-              <input
-                type="date"
+              <AppleDatePicker
                 value={filtros.fecha}
-                onChange={(e) => handleFiltroChange('fecha', e.target.value)}
+                onChange={(val) => handleFiltroChange('fecha', val)}
               />
             </div>
 
