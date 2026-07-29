@@ -1,0 +1,98 @@
+services:
+  # -------------------------------------------------------------
+  # 1. BASE DE DATOS POSTGRESQL
+  # -------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: despacho-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-neondb}
+      POSTGRES_USER: ${POSTGRES_USER:-neondb_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-despacho_secure_password_2026}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - despacho-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-neondb_owner} -d ${POSTGRES_DB:-neondb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # -------------------------------------------------------------
+  # 2. LARAVEL API (PHP 8.3)
+  # -------------------------------------------------------------
+  laravel-api:
+    build:
+      context: ./laravel-api
+      dockerfile: Dockerfile
+    container_name: despacho-laravel
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: "${APP_NAME:-Sistema de Despacho SITMAH}"
+      APP_ENV: "${APP_ENV:-production}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_KEY: "${APP_KEY:-base64:NwteU9JHYOxfPtB3jrW+NpBpaobal2AQ7BR64bMpTk8=}"
+      APP_URL: "${APP_URL:-http://localhost}"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-neondb}
+      DB_USERNAME: ${POSTGRES_USER:-neondb_owner}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-despacho_secure_password_2026}
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    ports:
+      - "${LARAVEL_PORT:-8000}:8000"
+    networks:
+      - despacho-network
+
+  # -------------------------------------------------------------
+  # 3. NODE.JS BACKEND (MICROSERVICIO AUXILIAR)
+  # -------------------------------------------------------------
+  node-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: despacho-node-backend
+    restart: always
+    ports:
+      - "${NODE_PORT:-4000}:4000"
+    networks:
+      - despacho-network
+
+  # -------------------------------------------------------------
+  # 4. FRONTEND REACT (SERVIDO POR NGINX)
+  # -------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: despacho-frontend
+    restart: always
+    depends_on:
+      - laravel-api
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+      - "5173:80"
+    networks:
+      - despacho-network
+
+# -------------------------------------------------------------
+# VOLÚMENES Y REDES PERSISTENTES
+# -------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  laravel_storage:
+    driver: local
+
+networks:
+  despacho-network:
+    driver: bridge
