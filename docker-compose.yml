@@ -79,8 +79,7 @@ services:
     depends_on:
       - laravel-api
     ports:
-      - "${FRONTEND_PORT:-80}:80"
-      - "5173:80"
+      - "${FRONTEND_PORT:-8080}:80"
     networks:
       - despacho-network
 
