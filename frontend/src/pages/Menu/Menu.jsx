@@ -51,6 +51,7 @@ const menuItems = [
   {
     id: 'capturista',
     redirectTo: '/cargar-excel', 
+    roles: ['ADMINISTRADOR', 'CAPTURISTA'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -60,6 +61,21 @@ const menuItems = [
     ),
     label: 'CAPTURISTA',
     color: 'green',
+  },
+  {
+    id: 'relevos',
+    redirectTo: '/cargar-excel',
+    roles: ['ADMINISTRADOR', 'RELEVOS'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 2.1l4 4-4 4" />
+        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+        <path d="M7 21.9l-4-4 4-4" />
+        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+      </svg>
+    ),
+    label: 'RELEVOS',
+    color: 'teal',
   },
 
 
@@ -141,6 +157,21 @@ const menuItems = [
     ),
     label: 'PLATAFORMA DASHBOARD',
     color: 'blue',
+  },
+  {
+    id: 'operadores',
+    redirectTo: '/operadores',
+    roles: ['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    label: 'GESTIÓN DE OPERADORES',
+    color: 'gold',
   }
 ];
 
@@ -150,7 +181,7 @@ export default function Menu() {
 
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION'].includes(user.role?.codigo)) {
+    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION', 'GESTOR_OPERADORES', 'RELEVOS', 'REVELOS', 'CAPTURISTA'].includes(user.role?.codigo)) {
       navigate('/');
     }
   }, [user, navigate]);
@@ -171,10 +202,17 @@ export default function Menu() {
       localStorage.setItem('dashboardMode', 'DESPACHO');
     }
 
+    // Vista previa de rol: al entrar por RELEVOS se simula esa vista,
+    // al entrar por CAPTURISTA se restaura la vista completa.
+    if (item.id === 'relevos') {
+      sessionStorage.setItem('vistaPreview', 'RELEVOS');
+    } else if (item.id === 'capturista') {
+      sessionStorage.removeItem('vistaPreview');
+    }
+
     if (item.redirectTo) {
       navigate(item.redirectTo);
     } else {
-      // Si no tiene redirectTo, mostrar un mensaje o no hacer nada
       console.warn('Ítem sin redirección:', item.label);
     }
   };

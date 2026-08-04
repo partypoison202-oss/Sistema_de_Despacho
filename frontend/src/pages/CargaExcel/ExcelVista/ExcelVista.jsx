@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import IOSTimePicker from '../../Unidades/componentsdetalleunidad/IOSTimePicker';
+import { AuthContext } from '../../../context/AuthContext';
 import './ExcelVIsta.css';
 
 const HEADER_TRANSLATIONS = {
@@ -26,6 +27,15 @@ export default function ExcelPreview({
   hasChanges,    
   isSaving       
 }) {
+  const { user } = useContext(AuthContext);
+  const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
+  const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
+  // isRelevos es verdadero si:
+  //   a) El usuario tiene el rol RELEVOS, O
+  //   b) El admin entró por la tarjeta "RELEVOS" del menú (vistaPreview)
+  const isRelevos = _roleCodigo === 'RELEVOS' || _roleCodigo === 'REVELOS'
+    || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
+    || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTimePickerRow, setActiveTimePickerRow] = useState(null);
   const [tempTime, setTempTime] = useState('00:00');
@@ -142,6 +152,33 @@ export default function ExcelPreview({
                   <tr key={originalIndex !== -1 ? originalIndex : index}>
                     {headers.map(h => {
                       const isReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR';
+
+                      // ── REVELOS: sólo texto plano, excepto TARJETON ──────────────
+                      if (isRelevos && h !== 'TARJETON') {
+                        // Para ESTATUS usamos la traducción; para HORA_DE_ACOPLE valor por defecto; resto directo
+                        let displayValue = fila[h] ?? '';
+                        if (h === 'ESTATUS') {
+                          const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                          const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+                          displayValue = estatusTranslations[curSt];
+                        } else if (h === 'HORA_DE_ACOPLE') {
+                          displayValue = fila[h] || '00:00';
+                        }
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`}>
+                            <div style={{
+                              padding: '0.45rem 0.6rem',
+                              fontSize: '0.875rem',
+                              color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
+                              fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO') ? 'center' : 'left',
+                            }}>
+                              {displayValue}
+                            </div>
+                          </td>
+                        );
+                      }
+                      // ── Fin bloque REVELOS ───────────────────────────────────────
 
                       if (h === 'HORA_DE_ACOPLE') {
                         const isOpen = activeTimePickerRow === originalIndex;
@@ -475,9 +512,9 @@ export default function ExcelPreview({
                               fontSize: '0.875rem', 
                               color: h === 'ECONOMICO' ? '#111827' : '#4b5563', 
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal', 
-                              textAlign: h === 'ECONOMICO' ? 'center' : 'left'
+                              textAlign: h === 'CORRIDAS' ? 'center' : (h === 'ECONOMICO' ? 'center' : 'left')
                             }}>
-                              {fila[h] || ''}
+                              {fila[h] ?? ''}
                             </div>
                           ) : (
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: h === 'CORRIDAS' ? 'center' : 'flex-start', width: '100%' }}>

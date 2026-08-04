@@ -20,8 +20,11 @@ export default function ProtectedRoute({ children, allowedRoles }) {
 
   if (allowedRoles && !allowedRoles.includes(user.role.codigo)) {
     // Redirigir según el rol del usuario
-    if (user.role.codigo === 'CAPTURISTA') {
+    if (user.role.codigo === 'CAPTURISTA' || user.role.codigo === 'RELEVOS' || user.role.codigo === 'REVELOS') {
       return <Navigate to="/cargar-excel" replace />;
+    }
+    if (user.role.codigo === 'GESTOR_OPERADORES') {
+      return <Navigate to="/operadores" replace />;
     }
     if (user.role.codigo === 'ENCIERRO') {
       return <Navigate to="/encierro/dashboard" replace />;

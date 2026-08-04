@@ -144,6 +144,10 @@
 .dashboard-card--red::before { background: #ba0e0e; }
 .dashboard-card--red .dashboard-card__icon { color: #8f1111; background: #ff8c8c; }
 .dashboard-card--red:hover { border-color: #ba0e0e; }
+
+.dashboard-card--teal::before { background: #0d9488; }
+.dashboard-card--teal .dashboard-card__icon { color: #0f766e; background: #ccfbf1; }
+.dashboard-card--teal:hover { border-color: #5eead4; }
 /* ── Ícono ── */
 .dashboard-card__icon {
   width: 52px;

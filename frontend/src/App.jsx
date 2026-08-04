@@ -91,7 +91,7 @@ function App() {
           } />
 
           <Route path="/menu" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'RELEVOS']}>
               <Menu />
             </ProtectedRoute>
           } />
@@ -103,16 +103,16 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* Ruta protegida para Excel (ADMIN y CAPTURISTA) */}
+          {/* Ruta protegida para Excel (ADMIN, CAPTURISTA y RELEVOS) */}
           <Route path="/cargar-excel" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CAPTURISTA']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CAPTURISTA', 'RELEVOS', 'REVELOS']}>
               <CargaExcel />
             </ProtectedRoute>
           } />
 
-          {/* Ruta protegida para Operadores (ADMIN, CAPTURISTA, DESPACHO) */}
+          {/* Ruta protegida para Operadores (ADMIN, GESTOR_OPERADORES y DESPACHO) */}
           <Route path="/operadores" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CAPTURISTA', 'DESPACHO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
               <Operadores />
             </ProtectedRoute>
           } />

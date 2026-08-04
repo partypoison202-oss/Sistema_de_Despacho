@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
@@ -10,6 +11,7 @@ import API_BASE from '../../config/api';
 
 export default function CargaExcel() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
   const [previewData, setPreviewData] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -322,33 +324,6 @@ export default function CargaExcel() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <button
-              type="button"
-              onClick={() => navigate('/operadores')}
-              className="excel-export-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.65rem 1.25rem',
-                borderRadius: '0.6rem',
-                border: 'none',
-                background: '#6b1d33',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.background = '#521526'}
-              onMouseOut={(e) => e.currentTarget.style.background = '#6b1d33'}
-            >
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-              Gestionar Operadores
-            </button>
-
             <button
               type="button"
               onClick={handleExportExcel}

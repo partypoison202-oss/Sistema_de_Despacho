@@ -169,8 +169,10 @@ export default function Login() {
     const rol = user.role?.codigo;
     if (rol === 'ADMINISTRADOR') {
       navigate('/menu');
-    } else if (rol === 'CAPTURISTA') {
+    } else if (rol === 'CAPTURISTA' || rol === 'RELEVOS') {
       navigate('/cargar-excel');
+    } else if (rol === 'GESTOR_OPERADORES') {
+      navigate('/operadores');
     } else if (rol === 'ENCIERRO') {
       navigate('/encierro/dashboard');
     } else if (rol === 'CENTRO_CONTROL') {

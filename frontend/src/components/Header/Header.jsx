@@ -169,7 +169,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   }}>
                     Ajustes
                   </button>
-                  {['ADMINISTRADOR', 'CAPTURISTA', 'DESPACHO'].includes(user.role.codigo) && (
+                  {['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'].includes(user.role.codigo) && (
                     <button className="profile-menu-btn" onClick={() => {
                       setShowProfileMenu(false);
                       navigate('/operadores');

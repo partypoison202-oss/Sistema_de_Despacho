@@ -80,7 +80,6 @@ export default function DetalleUnidadMantenimiento() {
   const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
   const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
   const [rutasOpciones, setRutasOpciones] = useState([]);
-  const [dbConductores, setDbConductores] = useState([]);
 
   const modalConductorRef = useRef(null);
   const modalRutaRef = useRef(null);
@@ -115,58 +114,57 @@ export default function DetalleUnidadMantenimiento() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Rutas disponibles (para el modal de asignación al pasar a Operación)
-  useEffect(() => {
-    const fetchRutas = async () => {
-      try {
-        const token = getToken();
-        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (configActual?.id === 'urbanus' || configActual?.id === 'URBANUSS') {
-            setRutasOpciones(data.troncales || []);
-          } else {
-            setRutasOpciones(data.alimentadoras || []);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching rutas', err);
-      }
-    };
-    if (configActual) fetchRutas();
-  }, [tipoTransporte, configActual]);
-
-  const fetchConductores = async () => {
-    const token = getToken();
-    if (!token) return;
-    try {
+  // ── Conductores (React Query con caché de 30 min) ───────────────────────
+  const { data: dbConductores = [] } = useQuery({
+    queryKey: ['mantenimiento-conductores'],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token) return [];
       const res = await fetch(`${API_BASE}/api/conductores`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) return [];
       const data = await res.json();
-      if (Array.isArray(data)) {
-        setDbConductores(
-          data.map((c) => ({
+      return Array.isArray(data)
+        ? data.map((c) => ({
             id: c.tarjeton,
             tarjeton: c.tarjeton,
             nombre: c.nombre,
             estado_servicio: c.estado_servicio,
           }))
-        );
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+        : [];
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutos
+  });
 
+  // ── Rutas disponibles (React Query con caché de 30 min) ─────────────────
+  const { data: _rutasData } = useQuery({
+    queryKey: ['mantenimiento-rutas'],
+    queryFn: async () => {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return { troncales: [], alimentadoras: [] };
+      return res.json();
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutos
+    enabled: !!configActual,
+  });
+
+  // Seleccionar el subconjunto de rutas según el tipo de transporte
   useEffect(() => {
-    fetchConductores();
-  }, []);
+    if (!_rutasData) return;
+    if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+      setRutasOpciones(_rutasData.troncales || []);
+    } else {
+      setRutasOpciones(_rutasData.alimentadoras || []);
+    }
+  }, [_rutasData, configActual]);
 
   const conductoresDisponibles = dbConductores.filter((c) => c.estado_servicio === 'disponible');
 
+  // ── Lista de unidades — queryKey unificado con el prefetch del dashboard ─
   const fetchUnidades = async () => {
     const token = getToken();
     if (!token) {
@@ -194,10 +192,37 @@ export default function DetalleUnidadMantenimiento() {
   };
 
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
-    queryKey: ['unidades-list-mantenimiento', tipoTransporte],
+    // Mismo queryKey que Mantenimiento.jsx usa en prefetchQuery → los datos
+    // descargados en el dashboard se reutilizan aquí sin nueva petición.
+    queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
+    staleTime: 60 * 1000, // 60 s — igual que el prefetch del dashboard
     refetchInterval: 30000,
   });
+
+  // ── Prefetch de detalles en background al cargar la lista ────────────────
+  useEffect(() => {
+    if (!unidadesList.length) return;
+    const token = getToken();
+    if (!token) return;
+    // Pre-cachear las primeras 30 unidades para que la selección sea instantánea
+    const unidadesAPrecalentar = unidadesList.slice(0, 30);
+    unidadesAPrecalentar.forEach((u) => {
+      queryClient.prefetchQuery({
+        queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, u.eco],
+        queryFn: async () => {
+          const res = await fetch(
+            `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${u.eco}`,
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+          );
+          if (!res.ok) return null;
+          return res.json();
+        },
+        staleTime: 30 * 1000, // 30 s
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidadesList, tipoTransporte]);
 
   const unidadesPorEstado = (estado) => unidadesList.filter((u) => u.estado === estado);
 
@@ -284,10 +309,9 @@ export default function DetalleUnidadMantenimiento() {
         return;
       }
 
-      // Invalidar la caché para forzar siempre una petición fresca al servidor
-      await queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
-
       const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
+      // Si el detalle ya está en caché (precalentado), se usa sin ir a red.
+      // Solo va a red si el dato tiene más de 30 s de antigüedad.
       const resultado = await queryClient.fetchQuery({
         queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio],
         queryFn: async () => {
@@ -300,6 +324,7 @@ export default function DetalleUnidadMantenimiento() {
           if (!res.ok) throw new Error('Error en peticion');
           return res.json();
         },
+        staleTime: 30 * 1000, // 30 s — usa caché si ya fue precalentado
       });
 
       if (resultado.status === 'success') {

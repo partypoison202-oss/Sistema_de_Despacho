@@ -79,8 +79,8 @@ class ConductorController extends Controller
             'tipo_tarjeton' => 'required|string|max:50'
         ]);
 
-        // Generar tarjetón de forma automática
-        $maxNum = 1000;
+        // Generar tarjetón de forma automática (iniciar a partir del 1080 si no hay mayores)
+        $maxNum = 1079;
         $existingTarjetones = DB::table('conductores')->pluck('tarjeton');
         foreach ($existingTarjetones as $t) {
             preg_match_all('/\d+/', (string)$t, $matches);

@@ -16,13 +16,14 @@ export default function Mantenimiento() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Precarga fantasma de las unidades de todas las flotillas
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    if (!token) return;
+
+    // 1. Precarga lista de unidades de cada flotilla
     transportModules.forEach((modulo) => {
       queryClient.prefetchQuery({
         queryKey: ['unidades-list', modulo.id],
         queryFn: async () => {
-          const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-          if (!token) return [];
           const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           });
@@ -38,6 +39,40 @@ export default function Mantenimiento() {
         },
         staleTime: 60000,
       });
+    });
+
+    // 2. Precarga catálogo de conductores (compartido por todas las flotillas)
+    queryClient.prefetchQuery({
+      queryKey: ['mantenimiento-conductores'],
+      queryFn: async () => {
+        const res = await fetch(`${API_BASE}/api/conductores`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data)
+          ? data.map((c) => ({
+              id: c.tarjeton,
+              tarjeton: c.tarjeton,
+              nombre: c.nombre,
+              estado_servicio: c.estado_servicio,
+            }))
+          : [];
+      },
+      staleTime: 30 * 60 * 1000, // 30 minutos
+    });
+
+    // 3. Precarga catálogo de rutas (compartido por todas las flotillas)
+    queryClient.prefetchQuery({
+      queryKey: ['mantenimiento-rutas'],
+      queryFn: async () => {
+        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return { troncales: [], alimentadoras: [] };
+        return res.json();
+      },
+      staleTime: 30 * 60 * 1000, // 30 minutos
     });
   }, [queryClient]);
 
