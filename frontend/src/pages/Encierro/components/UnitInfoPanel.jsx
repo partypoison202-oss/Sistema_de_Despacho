@@ -1,5 +1,5 @@
 // src/pages/Encierro/components/detalleunidadenciero/UnitInfoPanel.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function UnitInfoPanel({
   selectedOption,
@@ -20,6 +20,21 @@ export default function UnitInfoPanel({
   onGuardarEdicion,
   onCancelarEdicion,
 }) {
+  // Estado para la hora de salida (automática)
+  const [horaSalida, setHoraSalida] = useState('');
+
+  // Actualizar la hora cada vez que cambia la unidad seleccionada
+  useEffect(() => {
+    if (selectedOption) {
+      const ahora = new Date();
+      const horas = String(ahora.getHours()).padStart(2, '0');
+      const minutos = String(ahora.getMinutes()).padStart(2, '0');
+      setHoraSalida(`${horas}:${minutos}`);
+    } else {
+      setHoraSalida('');
+    }
+  }, [selectedOption]);
+
   return (
     <div className="data-grid">
       <div className="data-item">
@@ -161,6 +176,17 @@ export default function UnitInfoPanel({
           }}
         >
           {mensajeBusqueda ? mensajeBusqueda : cargandoDatos ? 'Buscando unidad...' : datosOperativos.tarjeton ? `Tarjetón actual: ${datosOperativos.tarjeton}` : 'No asignado'}
+        </p>
+      </div>
+
+      {/* Hora de salida (automática) */}
+      <div className="data-item">
+        <h3 className="data-item__label">Hora de salida</h3>
+        <p className="data-item__value" style={{ fontWeight: '600', color: 'var(--brand-maroon-text)' }}>
+          {selectedOption ? horaSalida : '—'}
+        </p>
+        <p style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.2rem' }}>
+          {selectedOption ? 'Hora actual al seleccionar la unidad' : 'Selecciona una unidad para mostrar la hora'}
         </p>
       </div>
     </div>
