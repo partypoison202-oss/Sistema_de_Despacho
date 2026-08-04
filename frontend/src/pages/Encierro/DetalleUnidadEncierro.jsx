@@ -92,16 +92,16 @@ export default function DetalleUnidadEncierro() {
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
-           headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-           const data = await res.json();
-           const configActual = encierroModules.find((m) => m.id === tipoTransporte);
-            if (configActual?.id === 'urbanus') {
-              setRutasOpciones(data.troncales || []);
-            } else {
-              setRutasOpciones(data.alimentadoras || []);
-            }
+          const data = await res.json();
+          const configActual = encierroModules.find((m) => m.id === tipoTransporte);
+          if (configActual?.id === 'urbanus') {
+            setRutasOpciones(data.troncales || []);
+          } else {
+            setRutasOpciones(data.alimentadoras || []);
+          }
         }
       } catch (err) {
         console.error('Error fetching rutas', err);
@@ -261,7 +261,7 @@ export default function DetalleUnidadEncierro() {
   });
 
   const [dbConductores, setDbConductores] = useState([]);
-  
+
   const fetchConductores = async () => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     if (!token) return;
@@ -396,7 +396,7 @@ export default function DetalleUnidadEncierro() {
     setSelectedEstado(unidadSeleccionada ? unidadSeleccionada.estado : null);
     setOpenDropdown(null);
     setCargandoDatos(true);
-    
+
     // Capturar la hora de interacción
     const now = new Date();
     setHoraEncierroCapturada(now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
@@ -621,7 +621,7 @@ export default function DetalleUnidadEncierro() {
     if (nuevoEstatus === 'operacion') {
       const tieneConductor = datosOperativos.conductor && datosOperativos.conductor !== 'No asignado' && datosOperativos.tarjeton;
       const tieneRuta = datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta';
-      
+
       if (!tieneConductor || !tieneRuta) {
         setModalEstatusNuevo('operacion');
         setModalEstatusConductor(tieneConductor ? String(datosOperativos.tarjeton).trim() : '');
@@ -754,7 +754,7 @@ export default function DetalleUnidadEncierro() {
               triggerText.innerText = val;
               triggerText.style.color = '#1f2937';
             }
-            
+
             toggleMenu();
 
             if (val === 'OTRO') {
@@ -940,7 +940,7 @@ export default function DetalleUnidadEncierro() {
           timer: 2000,
           showConfirmButton: false,
         });
-        
+
         setDatosOperativos((prev) => ({
           ...prev,
           estatus: modalEstatusNuevo,
@@ -1228,14 +1228,14 @@ export default function DetalleUnidadEncierro() {
                                     CANCELAR
                                   </button>
                                   {(conductoresDisponibles || [])
-                                     .filter(c => {
-                                       const search = formTarjeton.toLowerCase().trim();
-                                       const currentTarjeton = String(datosOperativos.tarjeton || '').toLowerCase().trim();
-                                       if (search === currentTarjeton || search === '') {
-                                         return true;
-                                       }
-                                       return c.nombre.toLowerCase().includes(search) || c.id.toString().includes(search);
-                                     })
+                                    .filter(c => {
+                                      const search = formTarjeton.toLowerCase().trim();
+                                      const currentTarjeton = String(datosOperativos.tarjeton || '').toLowerCase().trim();
+                                      if (search === currentTarjeton || search === '') {
+                                        return true;
+                                      }
+                                      return c.nombre.toLowerCase().includes(search) || c.id.toString().includes(search);
+                                    })
                                     .map((c) => (
                                       <button
                                         key={c.id}
@@ -1248,7 +1248,7 @@ export default function DetalleUnidadEncierro() {
                                           handleConfirmTarjeton(c.id.toString());
                                         }}
                                       >
-                                        {c.nombre} <br/><span style={{fontSize: '0.75rem', opacity: 0.7}}>Tarjetón: {c.id}</span>
+                                        {c.nombre} <br /><span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Tarjetón: {c.id}</span>
                                       </button>
                                     ))}
                                 </div>
@@ -1408,7 +1408,7 @@ export default function DetalleUnidadEncierro() {
                               </div>
                             )}
                           </div>
-                          
+
                           <div ref={motivoRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownMotivoOpen ? 50 : 1 }}>
                             <span className="info-card__label">Motivo (Obligatorio)</span>
                             <button
@@ -1447,7 +1447,7 @@ export default function DetalleUnidadEncierro() {
                                   >
                                     SELECCIONAR MOTIVO
                                   </button>
-                                  {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE CONBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map((motivo) => (
+                                  {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map((motivo) => (
                                     <button
                                       key={motivo}
                                       type="button"
@@ -1885,7 +1885,7 @@ export default function DetalleUnidadEncierro() {
         <div className="custom-modal-overlay" onClick={() => setModalEstatusOpen(false)}>
           <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
             <h2 className="custom-modal-title">Asignar Conductor y Ruta</h2>
-            
+
             <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
                 Conductor Disponible
@@ -1904,9 +1904,9 @@ export default function DetalleUnidadEncierro() {
                   <span>
                     {modalEstatusConductor
                       ? (() => {
-                          const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
-                          return found ? `${found.nombre} (${found.id})` : 'Seleccione un conductor...';
-                        })()
+                        const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
+                        return found ? `${found.nombre} (${found.id})` : 'Seleccione un conductor...';
+                      })()
                       : 'Seleccione un conductor...'}
                   </span>
                   <svg

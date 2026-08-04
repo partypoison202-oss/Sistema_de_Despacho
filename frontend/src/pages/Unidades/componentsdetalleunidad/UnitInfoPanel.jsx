@@ -34,7 +34,7 @@ export default function UnitInfoPanel({
 }) {
   const { user } = useContext(AuthContext);
   const isPlataforma = user?.role?.codigo === 'PLATAFORMA' || localStorage.getItem('dashboardMode') === 'PLATAFORMA';
-  
+
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
@@ -71,15 +71,15 @@ export default function UnitInfoPanel({
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
-           headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-           const data = await res.json();
-            if (configActual?.id === 'urbanus') {
-              setRutasOpciones(data.troncales || []);
-            } else {
-              setRutasOpciones(data.alimentadoras || []);
-            }
+          const data = await res.json();
+          if (configActual?.id === 'urbanus') {
+            setRutasOpciones(data.troncales || []);
+          } else {
+            setRutasOpciones(data.alimentadoras || []);
+          }
         }
       } catch (err) {
         console.error('Error fetching rutas', err);
@@ -465,91 +465,91 @@ export default function UnitInfoPanel({
             {/* Ruta Asignada */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Ruta Asignada</span>
-                {!isPlataforma && !isReservaOrMantenimiento ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                    <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
-                      <button
-                        type="button"
-                        className="interactive-input"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0 0.85rem',
-                          cursor: guardandoRuta ? 'not-allowed' : 'pointer',
-                          textAlign: 'left',
-                          background: 'var(--tw-color-white)',
-                          height: '2.3rem',
-                          fontSize: '0.85rem',
-                          width: '100%',
-                          fontWeight: 'bold',
-                          opacity: guardandoRuta ? 0.7 : 1
-                        }}
-                        onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
-                      >
-                        {guardandoRuta ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
-                            <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
-                            <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                            </svg>
-                          </div>
-                        )}
-                      </button>
-
-                      {dropdownRutaOpen && (
-                        <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                          <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                            <button
-                              type="button"
-                              className="dropdown-menu__item"
-                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                              onClick={() => {
-                                setFormRuta('');
-                                setDropdownRutaOpen(false);
-                                handleConfirmRuta('');
-                              }}
-                            >
-                              SELECCIONAR
-                            </button>
-                            {rutasOpciones.map((r, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                className="dropdown-menu__item"
-                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
-                                onClick={() => {
-                                  setFormRuta(r);
-                                  setDropdownRutaOpen(false);
-                                  handleConfirmRuta(r);
-                                }}
-                              >
-                                {r}
-                              </button>
-                            ))}
-                          </div>
+              {!isPlataforma && !isReservaOrMantenimiento ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
+                  <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
+                    <button
+                      type="button"
+                      className="interactive-input"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 0.85rem',
+                        cursor: guardandoRuta ? 'not-allowed' : 'pointer',
+                        textAlign: 'left',
+                        background: 'var(--tw-color-white)',
+                        height: '2.3rem',
+                        fontSize: '0.85rem',
+                        width: '100%',
+                        fontWeight: 'bold',
+                        opacity: guardandoRuta ? 0.7 : 1
+                      }}
+                      onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
+                    >
+                      {guardandoRuta ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
+                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
+                          <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
                         </div>
                       )}
-                    </div>
+                    </button>
+
+                    {dropdownRutaOpen && (
+                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                          <button
+                            type="button"
+                            className="dropdown-menu__item"
+                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                            onClick={() => {
+                              setFormRuta('');
+                              setDropdownRutaOpen(false);
+                              handleConfirmRuta('');
+                            }}
+                          >
+                            SELECCIONAR
+                          </button>
+                          {rutasOpciones.map((r, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              className="dropdown-menu__item"
+                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
+                              onClick={() => {
+                                setFormRuta(r);
+                                setDropdownRutaOpen(false);
+                                handleConfirmRuta(r);
+                              }}
+                            >
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <p className="info-card__value">
-                        {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
-                      </p>
-                    </div>
+                </div>
+              ) : (
+                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p className="info-card__value">
+                      {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
+                    </p>
                   </div>
-                )}
+                </div>
+              )}
             </div>
 
             {/* Número de Tarjetón (Editable) */}
@@ -664,17 +664,17 @@ export default function UnitInfoPanel({
                   </div>
                 </div>
               ) : (
-                  <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
-                      </svg>
-                      <p className="info-card__value">
-                        {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
-                      </p>
-                    </div>
+                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
+                    </svg>
+                    <p className="info-card__value">
+                      {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                    </p>
                   </div>
-                )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -733,16 +733,16 @@ export default function UnitInfoPanel({
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                
+
                 {dropdownHoraOpen && (
                   <>
-                    <div 
-                      style={{ position: 'fixed', inset: 0, zIndex: 999 }} 
+                    <div
+                      style={{ position: 'fixed', inset: 0, zIndex: 999 }}
                       onClick={(e) => { e.stopPropagation(); setDropdownHoraOpen(false); }}
                     />
-                    <IOSTimePicker 
-                      value={formHoraProgramada} 
-                      onChange={setFormHoraProgramada} 
+                    <IOSTimePicker
+                      value={formHoraProgramada}
+                      onChange={setFormHoraProgramada}
                       onClose={() => setDropdownHoraOpen(false)}
                       onSave={async () => {
                         if (handleSaveHoras) {
@@ -790,13 +790,13 @@ export default function UnitInfoPanel({
 
                 {dropdownAcopleOpen && (
                   <>
-                    <div 
-                      style={{ position: 'fixed', inset: 0, zIndex: 999 }} 
+                    <div
+                      style={{ position: 'fixed', inset: 0, zIndex: 999 }}
                       onClick={(e) => { e.stopPropagation(); setDropdownAcopleOpen(false); }}
                     />
-                    <IOSTimePicker 
-                      value={formAcople} 
-                      onChange={setFormAcople} 
+                    <IOSTimePicker
+                      value={formAcople}
+                      onChange={setFormAcople}
                       onClose={() => setDropdownAcopleOpen(false)}
                       onSave={async () => {
                         if (handleSaveHoras) {
@@ -969,7 +969,7 @@ export default function UnitInfoPanel({
                         >
                           SELECCIONAR MOTIVO
                         </button>
-                        {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE CONBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map((motivo) => (
+                        {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map((motivo) => (
                           <button
                             key={motivo}
                             type="button"
@@ -990,7 +990,7 @@ export default function UnitInfoPanel({
                 </div>
               </>
             )}
-            
+
             {/* INCORPORAR / DESINCORPORAR para PLATAFORMA */}
             {isPlataforma && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', width: '100%' }}>
@@ -1166,9 +1166,9 @@ export default function UnitInfoPanel({
           </div>
           {showChecklist && (
             <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
-              <ChecklistForm 
+              <ChecklistForm
                 origen="despacho"
-                inline={true} 
+                inline={true}
                 editMode={hasCompletedChecklist && showChecklist}
                 checklistId={recentChecklist?.id}
                 prefillData={{
@@ -1399,7 +1399,7 @@ export default function UnitInfoPanel({
                 )}
 
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => {
                       setViewingChecklist(false);
                       setShowChecklist(true);
@@ -1408,7 +1408,7 @@ export default function UnitInfoPanel({
                   >
                     Editar Check List
                   </button>
-                  <button 
+                  <button
                     onClick={() => setViewingChecklist(false)}
                     className="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
                   >
@@ -1428,7 +1428,7 @@ export default function UnitInfoPanel({
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 'Desincorporar Unidad'}
             </h2>
-            
+
             {modalPlataformaVisible === 'INCORPORACION' && (
               <div className="flex flex-col gap-4">
                 <div style={{ position: 'relative' }}>
@@ -1488,20 +1488,20 @@ export default function UnitInfoPanel({
                   {platRutaDropdown && (
                     <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
-                          {(rutasOpciones || []).map(r => (
-                            <button
+                        {(rutasOpciones || []).map(r => (
+                          <button
                             key={r}
                             type="button"
                             className="dropdown-menu__item hover:bg-slate-50 transition-colors"
                             style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platRuta == r ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
-                            setPlatRuta(r);
-                            setPlatRutaDropdown(false);
+                              setPlatRuta(r);
+                              setPlatRutaDropdown(false);
                             }}
-                            >
-                              {r}
-                            </button>
-                          ))}
+                          >
+                            {r}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1511,14 +1511,14 @@ export default function UnitInfoPanel({
 
             {modalPlataformaVisible === 'DESINCORPORACION' && (
               <div className="flex flex-col gap-4">
-                <textarea 
+                <textarea
                   className="interactive-input"
                   style={{ width: '100%', height: '100px', resize: 'none', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', fontSize: '0.9rem', color: '#0b162c', fontWeight: 500 }}
                   placeholder="Escribe el motivo de la desincorporación aquí..."
                   value={platMotivo}
                   onChange={(e) => setPlatMotivo(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase())}
                 />
-                
+
                 <div style={{ position: 'relative' }}>
                   <button
                     type="button"

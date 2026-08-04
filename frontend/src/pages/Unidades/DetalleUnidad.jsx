@@ -100,7 +100,7 @@ export default function DetalleUnidad() {
     refetchInterval: 30000,
   });
 
-  const { data: dbConductores = [], isLoading: cargandoConductores } = useQuery({
+  const { data: dbConductores = [], isLoading: cargandoConductores, refetch: fetchConductores } = useQuery({
     queryKey: ['conductores-list'],
     queryFn: async () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -401,6 +401,7 @@ export default function DetalleUnidad() {
           conductor: resultado.conductor,
         }));
         setTarjetonBusqueda(resultado.tarjeton);
+        queryClient.invalidateQueries(['conductores-list']);
         fetchConductores();
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
@@ -756,6 +757,7 @@ export default function DetalleUnidad() {
           };
         });
         setSelectedEstado(nuevoEstatus);
+        queryClient.invalidateQueries(['conductores-list']);
         fetchConductores();
 
         // Sincronizar cache de React Query para evitar condiciones de carrera (race conditions)
@@ -850,6 +852,7 @@ export default function DetalleUnidad() {
           tarjeton: modalEstatusConductor || data.tarjeton || prev.tarjeton,
         }));
         setSelectedEstado(modalEstatusNuevo);
+        queryClient.invalidateQueries(['conductores-list']);
         fetchConductores();
 
         // Sincronizar cache de React Query para evitar condiciones de carrera (race conditions)

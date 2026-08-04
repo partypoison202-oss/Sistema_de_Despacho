@@ -61,7 +61,7 @@ export default function TablaFaltantes({ titulo, filas = [] }) {
                   <td data-th="Motivo" className="tabla-faltantes__motivo">
                     <div className="tabla-faltantes__motivo-content">
                       <span className="tabla-faltantes__estado-punto" aria-hidden="true" />
-                      {fila.motivo || 'Sin motivo registrado'}
+                      {(fila.motivo || 'SIN MOTIVO REGISTRADO').toUpperCase()}
                     </div>
                   </td>
                 </tr>

@@ -392,8 +392,11 @@ class DespachoController extends Controller
             return trim($c->tarjeton);
         });
 
-        // 3. Procesar las unidades enviadas
+        // 3. Obtener mapa de unidad_id => id de informacion_operativa
+        $infoOperativaIds = DB::table('informacion_operativa')->pluck('id', 'unidad_id')->all();
+
         $unidadesProcesadasIds = [];
+        $tarjetonesEnServicio = [];
         $actualizados = 0;
         $creados = 0;
         $errores = [];
@@ -420,8 +423,7 @@ class DespachoController extends Controller
                 $conductorCatalog = $conductoresMap->get($tarjetonVal);
                 if ($conductorCatalog) {
                     $conductorNombre = $conductorCatalog->nombre;
-                    // Marcar en servicio
-                    DB::table('conductores')->where('tarjeton', $tarjetonVal)->update(['estado_servicio' => 'en_servicio']);
+                    $tarjetonesEnServicio[] = $tarjetonVal;
                 } else {
                     // Fallback a lo que venga si no existe en el catálogo (o vacío)
                     $conductorNombre = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
@@ -431,10 +433,8 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaSalidaVal = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
 
-            // Buscar si ya existe hoy
-            $registro = DB::table('informacion_operativa')
-                ->where('unidad_id', $unidad->id)
-                ->first();
+            // Buscar si ya existe el ID de registro
+            $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
             $data = [
                 'ruta'             => (string) ($fila['RUTA'] ?? ''),
@@ -445,14 +445,14 @@ class DespachoController extends Controller
                 'tipo'             => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido'))
             ];
 
-            if ($registro) {
+            if ($registroId) {
                 try {
                     DB::table('informacion_operativa')
-                        ->where('id', $registro->id)
+                        ->where('id', $registroId)
                         ->update($data);
                     $actualizados++;
                 } catch (\Exception $e) {
-                    \Log::error("Fallo individual de actualización en ID {$registro->id}: " . $e->getMessage());
+                    \Log::error("Fallo individual de actualización en ID {$registroId}: " . $e->getMessage());
                     $errores[] = "Error al actualizar ECO {$numeroEcoClean}: " . $e->getMessage();
                 }
             } else {
@@ -468,6 +468,13 @@ class DespachoController extends Controller
                     $errores[] = "Error al crear ECO {$numeroEcoClean}: " . $e->getMessage();
                 }
             }
+        }
+
+        // Marcar en servicio en una sola consulta batch
+        if (!empty($tarjetonesEnServicio)) {
+            DB::table('conductores')
+                ->whereIn('tarjeton', array_unique($tarjetonesEnServicio))
+                ->update(['estado_servicio' => 'en_servicio']);
         }
 
         // 4. Eliminar registros que NO se enviaron en la petición
