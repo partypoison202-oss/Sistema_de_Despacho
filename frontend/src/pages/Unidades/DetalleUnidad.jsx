@@ -906,102 +906,19 @@ export default function DetalleUnidad() {
       <main className="main-content">
         <div className="unit-control-panel">
           <div className="unit-control-panel__selectors">
-            <UnitSelector
-              isOpen={openDropdown === 'operacion'}
-              setIsOpen={(open) => setOpenDropdown(open ? 'operacion' : null)}
-              selectedOption={selectedOption}
-              selectedEstado={selectedEstado}
-              estado="operacion"
-              titulo="Operación"
-              unidades={unidadesPorEstado('operacion')}
-              cargandoUnidades={cargandoUnidades}
-              configActual={configActual}
-              onSelectUnit={handleSelectUnit}
-            />
-            <UnitSelector
-              isOpen={openDropdown === 'mantenimiento'}
-              setIsOpen={(open) => setOpenDropdown(open ? 'mantenimiento' : null)}
-              selectedOption={selectedOption}
-              selectedEstado={selectedEstado}
-              estado="mantenimiento"
-              titulo="Mantenimiento"
-              unidades={unidadesPorEstado('mantenimiento')}
-              cargandoUnidades={cargandoUnidades}
-              configActual={configActual}
-              onSelectUnit={handleSelectUnit}
-            />
-            <UnitSelector
-              isOpen={openDropdown === 'reserva'}
-              setIsOpen={(open) => setOpenDropdown(open ? 'reserva' : null)}
-              selectedOption={selectedOption}
-              selectedEstado={selectedEstado}
-              estado="reserva"
-              titulo="Reserva"
-              unidades={unidadesPorEstado('reserva')}
-              cargandoUnidades={cargandoUnidades}
-              configActual={configActual}
-              onSelectUnit={handleSelectUnit}
-            />
-            {/* RESERVA T6 (Conductores Disponibles) */}
-            <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'reservaT6' ? null : 'reservaT6')} 
-                  className={`dropdown-trigger ${openDropdown === 'reservaT6' ? 'dropdown-trigger--open' : ''}`}
-                >
-                  <div className="dropdown-trigger__icon-container">
-                    <svg className="dropdown-trigger__icon" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '2rem', height: '2rem' }}>
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="9" cy="7" r="4"></circle>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                  </div>
-                  <span className="dropdown-trigger__value">RESERVA T6</span>
-                  <div className={`dropdown-trigger__arrow ${openDropdown === 'reservaT6' ? 'dropdown-trigger__arrow--open' : ''}`}>
-                    <svg className="arrow-icon" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                    </svg>
-                  </div>
-                </button>
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-8px',
-                    right: '-8px',
-                    backgroundColor: '#6b1d33',
-                    color: 'white',
-                    borderRadius: '50%',
-                    padding: conductoresDisponibles.length > 9 ? '2px 5px' : '2px 6px',
-                    fontSize: '0.7rem',
-                    fontWeight: 'bold',
-                    minWidth: '18px',
-                    textAlign: 'center',
-                    lineHeight: '1.3',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                    border: '2px solid #ffffff',
-                  }}
-                >
-                  {conductoresDisponibles.length}
-                </span>
-              </div>
-              {openDropdown === 'reservaT6' && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-menu__scroll">
-                    {conductoresDisponibles.length > 0 ? (
-                      conductoresDisponibles.map((c) => (
-                        <div key={c.tarjeton} className="dropdown-menu__item" style={{ cursor: 'default' }}>
-                          <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
-                            {c.tarjeton}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="dropdown-menu__item dropdown-menu__item--empty">Sin reservas disponibles</div>
-                    )}
-                  </div>
-                </div>
-              )}
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <UnitSelector
+                isOpen={openDropdown === 'operacion'}
+                setIsOpen={(open) => setOpenDropdown(open ? 'operacion' : null)}
+                selectedOption={selectedOption}
+                selectedEstado={selectedEstado}
+                estado="operacion"
+                titulo="Operación"
+                unidades={unidadesPorEstado('operacion')}
+                cargandoUnidades={cargandoUnidades}
+                configActual={configActual}
+                onSelectUnit={handleSelectUnit}
+              />
             </div>
           </div>
 
@@ -1036,151 +953,7 @@ export default function DetalleUnidad() {
         </div>
       </main>
 
-      {modalEstatusOpen && (
-        <div className="custom-modal-overlay" onClick={() => setModalEstatusOpen(false)}>
-          <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2 className="custom-modal-title">Asignar Conductor y Ruta</h2>
-            
-            <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
-                Conductor Disponible
-              </label>
-              <div ref={modalConductorRef} style={{ position: 'relative', width: '100%' }}>
-                <button
-                  type="button"
-                  className="interactive-input"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
-                    border: modalEstatusConductorDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
-                    color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
-                  }}
-                  onClick={() => { setModalEstatusConductorDropdown(!modalEstatusConductorDropdown); setModalEstatusRutaDropdown(false); }}
-                >
-                  <span>
-                    {modalEstatusConductor
-                      ? (() => {
-                          const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
-                          return found ? `${found.nombre} (${found.id})` : 'Seleccione un conductor...';
-                        })()
-                      : 'Seleccione un conductor...'}
-                  </span>
-                  <svg
-                    className="arrow-icon"
-                    style={{
-                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
-                      transform: modalEstatusConductorDropdown ? 'rotate(180deg)' : 'none',
-                      color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'inherit'
-                    }}
-                    fill="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
-                </button>
-                {modalEstatusConductorDropdown && (
-                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
-                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                      <button
-                        type="button"
-                        className="dropdown-menu__item"
-                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                        onClick={() => { setModalEstatusConductor(''); setModalEstatusConductorDropdown(false); }}
-                      >
-                        Seleccione un conductor...
-                      </button>
-                      {(conductoresDisponibles || []).map(c => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                          onClick={() => { setModalEstatusConductor(c.id.toString()); setModalEstatusConductorDropdown(false); }}
-                        >
-                          {c.nombre} ({c.id})
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
-                Ruta
-              </label>
-              <div ref={modalRutaRef} style={{ position: 'relative', width: '100%' }}>
-                <button
-                  type="button"
-                  className="interactive-input"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
-                    border: modalEstatusRutaDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
-                    color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
-                  }}
-                  onClick={() => { setModalEstatusRutaDropdown(!modalEstatusRutaDropdown); setModalEstatusConductorDropdown(false); }}
-                >
-                  <span>{modalEstatusRuta || 'Seleccione una ruta...'}</span>
-                  <svg
-                    className="arrow-icon"
-                    style={{
-                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
-                      transform: modalEstatusRutaDropdown ? 'rotate(180deg)' : 'none',
-                      color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'inherit'
-                    }}
-                    fill="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
-                </button>
-                {modalEstatusRutaDropdown && (
-                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
-                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                      <button
-                        type="button"
-                        className="dropdown-menu__item"
-                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                        onClick={() => { setModalEstatusRuta(''); setModalEstatusRutaDropdown(false); }}
-                      >
-                        Seleccione una ruta...
-                      </button>
-                      {(rutasOpciones || []).map(r => (
-                        <button
-                          key={r}
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                          onClick={() => { setModalEstatusRuta(r); setModalEstatusRutaDropdown(false); }}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="custom-modal-actions">
-              <button
-                type="button"
-                className="custom-modal-btn-save"
-                onClick={confirmModalEstatus}
-                disabled={!modalEstatusConductor || !modalEstatusRuta}
-                style={{ opacity: (!modalEstatusConductor || !modalEstatusRuta) ? 0.5 : 1, cursor: (!modalEstatusConductor || !modalEstatusRuta) ? 'not-allowed' : 'pointer' }}
-              >
-                Guardar
-              </button>
-              <button
-                type="button"
-                className="custom-modal-btn-cancel"
-                onClick={() => setModalEstatusOpen(false)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

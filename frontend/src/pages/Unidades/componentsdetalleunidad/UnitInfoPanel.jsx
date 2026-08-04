@@ -2,9 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import ChecklistForm from '../../CheckList/CheckList';
 import CONDUCTORES from '../../../data/conductores';
-import { generarPDFChecklist } from '../../../utils/generarPDFChecklist';
 import API_BASE from '../../../config/api';
 import Swal from 'sweetalert2';
 
@@ -30,7 +28,7 @@ export default function UnitInfoPanel({
   handleCambiarEstatus,
   cambiandoEstatus,
   conductoresDisponibles,
-  onUpdate, // <-- IMPORTANTE: asegúrate de pasar esta prop desde el padre
+  onUpdate,
 }) {
   const { user } = useContext(AuthContext);
   const isPlataforma = user?.role?.codigo === 'PLATAFORMA' || localStorage.getItem('dashboardMode') === 'PLATAFORMA';
@@ -49,7 +47,7 @@ export default function UnitInfoPanel({
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
   const [formHoraProgramada, setFormHoraProgramada] = useState('');
-  const [formAcople, setFormAcople] = useState('');
+  const [formAcople, setFormAcople] = useState(''); // ⬅️ Se usará para la hora de salida automática
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [dropdownAcopleOpen, setDropdownAcopleOpen] = useState(false);
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
@@ -57,10 +55,24 @@ export default function UnitInfoPanel({
 
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
 
+  // Inicializar hora programada desde datosOperativos
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
-    if (datosOperativos.acople) setFormAcople(datosOperativos.acople);
+    // ⚠️ Ya NO inicializamos formAcople desde datosOperativos porque será automático
   }, [datosOperativos]);
+
+  // ✅ AUTOMÁTICO: actualizar la hora de salida al seleccionar una unidad
+  useEffect(() => {
+    if (selectedOption) {
+      const ahora = new Date();
+      const horas = String(ahora.getHours()).padStart(2, '0');
+      const minutos = String(ahora.getMinutes()).padStart(2, '0');
+      setFormAcople(`${horas}:${minutos}`);
+    } else {
+      setFormAcople('');
+    }
+  }, [selectedOption]);
+
   const [rutasOpciones, setRutasOpciones] = useState([]);
   const [formRuta, setFormRuta] = useState('');
   const [guardandoRuta, setGuardandoRuta] = useState(false);
@@ -217,7 +229,6 @@ export default function UnitInfoPanel({
     setPlatRuta('');
   };
 
-  // ************* FUNCIÓN CORREGIDA (con logs para depurar error 500) *************
   const handleConfirmarPlataforma = async () => {
     if (modalPlataformaVisible === 'INCORPORACION') {
       if (!platConductor || !platRuta) {
@@ -235,20 +246,16 @@ export default function UnitInfoPanel({
           conductor: platConductor,
           ruta: platRuta
         };
-        console.log('📤 Payload INCORPORACION:', payload); // <-- para depurar
-
         const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
         });
-
         const result = await response.json();
         if (!response.ok) {
           console.error('❌ Error response:', result);
           throw new Error(result.error || result.message || 'Error al incorporar unidad');
         }
-
         if (typeof onUpdate === 'function') onUpdate();
         setModalPlataformaVisible(null);
         const Swal = (await import('sweetalert2')).default;
@@ -260,7 +267,7 @@ export default function UnitInfoPanel({
       } finally {
         setGuardandoPerdida(false);
       }
-    } else { // DESINCORPORACION
+    } else {
       if (!platMotivo || !platEstatus) {
         const Swal = (await import('sweetalert2')).default;
         return Swal.fire('Error', 'Debe ingresar un motivo y seleccionar un destino.', 'error');
@@ -276,20 +283,16 @@ export default function UnitInfoPanel({
           motivo: platMotivo,
           estatus_nuevo: platEstatus.toUpperCase()
         };
-        console.log('📤 Payload DESINCORPORACION:', payload); // <-- para depurar
-
         const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
         });
-
         const result = await response.json();
         if (!response.ok) {
           console.error('❌ Error response:', result);
           throw new Error(result.error || result.message || 'Error al desincorporar unidad');
         }
-
         if (typeof onUpdate === 'function') onUpdate();
         setModalPlataformaVisible(null);
         const Swal = (await import('sweetalert2')).default;
@@ -303,7 +306,6 @@ export default function UnitInfoPanel({
       }
     }
   };
-  // ****************************************************************************
 
   const handleHacerCheckList = () => {
     setShowChecklist(true);
@@ -312,7 +314,6 @@ export default function UnitInfoPanel({
   const getConductorDisplay = () => {
     const val = datosOperativos.conductor;
     if (!val || val === 'Sin conductor') return 'No asignado';
-
     const isNum = !isNaN(val) && String(val).trim() !== '';
     if (isNum) {
       const found = CONDUCTORES.find(c => c.id === Number(val));
@@ -356,7 +357,6 @@ export default function UnitInfoPanel({
     setHasCompletedChecklist(false);
     setShowChecklist(false);
     setViewingChecklist(false);
-
     if (selectedOption) {
       const ecoNum = selectedOption.replace(/\D/g, '');
       if (ecoNum) {
@@ -423,7 +423,7 @@ export default function UnitInfoPanel({
     setEditandoRuta(false);
   };
 
-  // --- JSX (se mantiene exactamente igual al que ya tenías) ---
+  // ==================== JSX ====================
   return (
     <div className="unit-dashboard-container animate-fade-in-up">
       {/* CARD ENCABEZADO DE UNIDAD */}
@@ -754,59 +754,21 @@ export default function UnitInfoPanel({
                 )}
               </div>
             </div>
+
+            {/* ✅ NUEVO: Hora de salida (automática) */}
             <div className="info-card__item">
-              <span className="info-card__label">Hora de Acople</span>
-              <div className="badge-display badge-display--maroon" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
-                <button
-                  type="button"
-                  disabled={isPlataforma || isReservaOrMantenimiento}
-                  onClick={() => { setDropdownAcopleOpen(!dropdownAcopleOpen); setDropdownHoraOpen(false); }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'inherit',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    fontFamily: 'inherit',
-                    width: '100%',
-                    padding: '0.5rem 0.5rem 0.5rem 2.2rem',
-                    outline: 'none',
-                    cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
-                    {formAcople || '--:--'}
-                  </span>
-                  <svg className={`arrow-icon ${dropdownAcopleOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownAcopleOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
-                </button>
-                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <span className="info-card__label">Hora de salida</span>
+              <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1 }}>
+                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-
-                {dropdownAcopleOpen && (
-                  <>
-                    <div
-                      style={{ position: 'fixed', inset: 0, zIndex: 999 }}
-                      onClick={(e) => { e.stopPropagation(); setDropdownAcopleOpen(false); }}
-                    />
-                    <IOSTimePicker
-                      value={formAcople}
-                      onChange={setFormAcople}
-                      onClose={() => setDropdownAcopleOpen(false)}
-                      onSave={async () => {
-                        if (handleSaveHoras) {
-                          await handleSaveHoras(formHoraProgramada, formAcople);
-                        }
-                      }}
-                    />
-                  </>
-                )}
+                <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+                  {formAcople || '--:--'}
+                </span>
               </div>
+              <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.2rem', textAlign: 'center' }}>
+                (Se actualiza automáticamente al seleccionar la unidad)
+              </p>
             </div>
 
             {/* Toggle: ¿Hubo corridas perdidas? */}
@@ -1041,384 +1003,6 @@ export default function UnitInfoPanel({
             )}
           </div>
         </div>
-
-        {/* CARD 3: MOVILIDAD Y ESTATUS */}
-        <div className="info-card info-card--double">
-          <div className="info-card__header">
-            <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
-            <h3 className="info-card__title">Movilidad y Estatus</h3>
-          </div>
-          <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-              {[
-                { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
-                { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
-                { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' }
-              ].map(st => {
-                const isActive = datosOperativos.estatus === st.id;
-                return (
-                  <button
-                    key={st.id}
-                    onClick={() => handleCambiarEstatus && handleCambiarEstatus(st.id)}
-                    disabled={cambiandoEstatus || isPlataforma}
-                    style={{
-                      padding: '1rem 0.5rem',
-                      borderRadius: '0.75rem',
-                      border: `2px solid ${isActive ? st.color : 'transparent'}`,
-                      backgroundColor: isActive ? st.bgActive : 'var(--tw-color-gray-100)',
-                      color: isActive ? st.color : 'var(--tw-color-gray-500)',
-                      fontWeight: isActive ? 700 : 500,
-                      fontSize: '0.85rem',
-                      cursor: (cambiandoEstatus || isPlataforma) ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      opacity: ((cambiandoEstatus || isPlataforma) && !isActive) ? 0.5 : 1
-                    }}
-                  >
-                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? '#ffffff' : 'var(--tw-color-gray-300)' }}></div>
-                    {st.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* CARD 4: CHECKLIST */}
-        <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 className="info-card__title">Check List</h3>
-            </div>
-            {hasCompletedChecklist && (
-              <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--state-green-light)', color: 'var(--state-green-text)', padding: '0.35rem 0.75rem', borderRadius: '9999px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                Realizado
-              </span>
-            )}
-          </div>
-          <div className="info-card__body" style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem', flex: 1, paddingBottom: '0.5rem', alignItems: 'stretch' }}>
-            {!hasCompletedChecklist ? (
-              <button
-                onClick={handleHacerCheckList}
-                className="interactive-input"
-                style={{
-                  flex: 1,
-                  borderRadius: '0.75rem',
-                  border: 'none',
-                  backgroundColor: '#6b1d33',
-                  color: 'white',
-                  fontSize: '1.25rem',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 10px -2px rgba(107, 29, 51, 0.4)',
-                  transition: 'transform 0.1s, background-color 0.2s',
-                  padding: '1rem',
-                  opacity: 1
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4a1020'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#6b1d33'}
-                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              >
-                Hacer Check list
-              </button>
-            ) : (
-              <button
-                onClick={handleRevisarCheckList}
-                className="interactive-input"
-                style={{
-                  flex: 1,
-                  borderRadius: '0.75rem',
-                  border: 'none',
-                  backgroundColor: '#c29b53',
-                  color: 'white',
-                  fontSize: '1.25rem',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 10px -2px rgba(194, 155, 83, 0.4)',
-                  transition: 'transform 0.1s, background-color 0.2s',
-                  padding: '1rem',
-                  opacity: 1
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#a88344'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#c29b53'}
-                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              >
-                Revisar check list
-              </button>
-            )}
-          </div>
-          {showChecklist && (
-            <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
-              <ChecklistForm
-                origen="despacho"
-                inline={true}
-                editMode={hasCompletedChecklist && showChecklist}
-                checklistId={recentChecklist?.id}
-                prefillData={{
-                  numero_eco: selectedOption ? selectedOption.replace(/\D/g, '') : '',
-                  tipoTransporte: configActual.id,
-                  conductorNombre: getConductorDisplay() !== 'No asignado' ? getConductorDisplay() : '',
-                  servicio: (() => {
-                    let r = datosOperativos.ruta || '';
-                    if (r === 'Sin ruta') r = '';
-                    if (configActual.id === 'URBANUSS') {
-                      if (r.includes('T-01')) return 'T01';
-                      if (r.includes('T-02')) return 'T02';
-                      if (r.includes('T-04')) return 'T04';
-                      if (r.includes('T-05')) return 'T05';
-                      if (r.includes('ESPECIAL')) return 'SE';
-                      if (r.includes('METROPOLITANO')) return 'TM';
-                      if (r.includes('POTENCIA')) return 'HP';
-                      if (r.includes('MOVILIDAD')) return 'TLM';
-                    }
-                    return r;
-                  })(),
-                  puntos: recentChecklist?.puntos,
-                  dibujo: recentChecklist?.dibujo
-                }}
-                onClose={() => setShowChecklist(false)}
-                onComplete={(checklist) => {
-                  setHasCompletedChecklist(true);
-                  setRecentChecklist(checklist);
-                  setShowChecklist(false);
-                  Swal.fire({
-                    icon: 'success',
-                    title: '¡Check list completado!',
-                    text: 'El check list ha sido guardado correctamente.',
-                    confirmButtonColor: '#6b1d33'
-                  });
-                }}
-              />
-            </div>
-          )}
-          {viewingChecklist && recentChecklist && !showChecklist && (() => {
-            const pts = typeof recentChecklist.puntos === 'string'
-              ? JSON.parse(recentChecklist.puntos)
-              : recentChecklist.puntos;
-
-            const entries = pts ? Object.entries(pts) : [];
-            const totalPuntos = entries.length;
-            const totalBien = entries.filter(([_, val]) => val?.estado === 'bien').length;
-            const totalMal = entries.filter(([_, val]) => val?.estado === 'mal').length;
-            const totalPendiente = totalPuntos - totalBien - totalMal;
-
-            const PUNTOS_LABEL = {
-              carroceria_exterior: 'Carrocería exterior',
-              mobitec: 'Mobitec',
-              torreta: 'Torreta',
-              pintura_vinil: 'Pintura y vinil',
-              parabrisas_cristales: 'Parabrisas y cristales',
-              luces_exteriores: 'Luces exteriores',
-              puertas: 'Puertas',
-              llantas: 'Llantas',
-              rines: 'Rines',
-              retrovisores: 'Retrovisores',
-              limpieza: 'Limpieza',
-              asientos: 'Asientos',
-              extintor_seguridad: 'Extintor y seguridad',
-              documentacion: 'Documentación',
-              tecnologia: 'Tecnología',
-              alerta_tablero: 'Alerta en tablero'
-            };
-
-            const getConductorNombre = () => {
-              if (recentChecklist.conductor?.nombre) return recentChecklist.conductor.nombre;
-              if (recentChecklist.conductor_nombre) return recentChecklist.conductor_nombre;
-              if (recentChecklist.conductor_id) {
-                const found = CONDUCTORES.find(c => c.id === Number(recentChecklist.conductor_id));
-                if (found) return found.nombre;
-              }
-              return 'No asignado';
-            };
-
-            return (
-              <div className="animate-fade-in-up mt-6 rounded-2xl border border-rose-900/10 bg-white p-5 shadow-md">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-                  <h4 className="text-base font-extrabold text-rose-950">
-                    Puntos Evaluados
-                  </h4>
-                  <button
-                    onClick={async () => {
-                      if (descargandoPDF) return;
-                      setDescargandoPDF(true);
-                      try {
-                        await generarPDFChecklist(recentChecklist, 'download');
-                      } finally {
-                        setDescargandoPDF(false);
-                      }
-                    }}
-                    disabled={descargandoPDF}
-                    className="flex items-center gap-2 bg-rose-50 text-rose-900 hover:bg-rose-100 transition-colors px-3 py-1.5 rounded-xl font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Descargar PDF"
-                  >
-                    {descargandoPDF ? (
-                      <svg className="animate-spin h-5 w-5 text-rose-900" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    )}
-                    {descargandoPDF ? 'Descargando...' : 'Descargar'}
-                  </button>
-                </div>
-
-                {/* Counters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 text-center">
-                  <div className="bg-emerald-50 border border-emerald-100 py-2 rounded-xl">
-                    <span className="block text-lg font-extrabold text-emerald-600 leading-none">{totalBien}</span>
-                    <span className="text-[9px] font-bold uppercase text-emerald-700 tracking-wider">Bien</span>
-                  </div>
-                  <div className="bg-rose-50 border border-rose-100 py-2 rounded-xl">
-                    <span className="block text-lg font-extrabold text-rose-600 leading-none">{totalMal}</span>
-                    <span className="text-[9px] font-bold uppercase text-rose-700 tracking-wider">Mal</span>
-                  </div>
-                </div>
-
-                {/* Points List */}
-                <div className="mb-4">
-                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1 border border-slate-100 rounded-xl p-2 bg-slate-50/50">
-                    {entries.length > 0 ? (
-                      entries.map(([key, val], idx) => {
-                        const isBien = val?.estado === 'bien';
-                        return (
-                          <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-start gap-2.5">
-                            <div className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${isBien ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                              {isBien ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                                </svg>
-                              ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-xs font-bold text-slate-800 leading-tight">{PUNTOS_LABEL[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                              {val?.observaciones ? (
-                                <p className="mt-1 text-[10px] text-slate-500 break-words">
-                                  <span className="font-semibold text-slate-400">Obs:</span> {val.observaciones}
-                                </p>
-                              ) : (
-                                <p className="mt-0.5 text-[9px] italic text-slate-400">Sin observaciones</p>
-                              )}
-
-                              {/* Foto de evidencia */}
-                              {(val?.foto || (val?.fotos && val.fotos.length > 0)) && (
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                  {val.foto && (
-                                    <img
-                                      src={val.foto}
-                                      alt={`Evidencia`}
-                                      className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-90 transition-opacity"
-                                      onClick={() => setLightboxDibujo(val.foto)}
-                                      title="Clic para ampliar"
-                                    />
-                                  )}
-                                  {val.fotos && val.fotos.map((imgUrl, fIdx) => (
-                                    <img
-                                      key={fIdx}
-                                      src={imgUrl}
-                                      alt={`Evidencia ${fIdx + 1}`}
-                                      className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-90 transition-opacity"
-                                      onClick={() => setLightboxDibujo(imgUrl)}
-                                      title="Clic para ampliar"
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <span className="text-xs text-slate-400 italic text-center py-4">No hay puntos evaluados.</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Draw Evidence */}
-                {recentChecklist.dibujo && (
-                  <div className="mb-4">
-                    <p className="text-xs font-bold text-slate-700 mb-2">Referencia Visual de Fallas</p>
-                    <div className="flex justify-center p-2 border border-slate-100 rounded-xl bg-slate-50/50">
-                      <img
-                        src={recentChecklist.dibujo}
-                        alt="Evidencia de fallas"
-                        className="w-full rounded-lg object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
-                        style={{ aspectRatio: '5/3' }}
-                        onClick={() => setLightboxDibujo(recentChecklist.dibujo)}
-                        title="Clic para ampliar"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {lightboxDibujo && createPortal(
-                  <div
-                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-                    onClick={() => setLightboxDibujo(null)}
-                  >
-                    <button
-                      className="absolute top-4 right-4 text-white/70 hover:text-white transition"
-                      onClick={() => setLightboxDibujo(null)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-8 w-8">
-                        <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                      </svg>
-                    </button>
-                    <img
-                      src={lightboxDibujo}
-                      alt="Vista ampliada"
-                      className="max-w-[92vw] max-h-[90vh] rounded-xl shadow-2xl object-contain"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>,
-                  document.body
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setViewingChecklist(false);
-                      setShowChecklist(true);
-                    }}
-                    className="flex-1 py-2.5 rounded-xl font-bold text-xs text-white bg-guinda-700 hover:bg-guinda-800 transition-colors shadow-sm"
-                  >
-                    Editar Check List
-                  </button>
-                  <button
-                    onClick={() => setViewingChecklist(false)}
-                    className="flex-1 py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                  >
-                    Cerrar Detalles
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
       </div>
 
       {/* REACT MODAL PARA PLATAFORMA */}
@@ -1584,7 +1168,6 @@ export default function UnitInfoPanel({
         </div>,
         document.body
       )}
-
     </div>
   );
 }
