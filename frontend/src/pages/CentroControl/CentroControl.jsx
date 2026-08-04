@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
+import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 
@@ -24,6 +25,7 @@ export default function CentroControl() {
   const navigate = useNavigate();
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingStats, setIsGeneratingStats] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -212,6 +214,36 @@ export default function CentroControl() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerarReporteEstadisticas = async () => {
+    setIsGeneratingStats(true);
+    try {
+      // Usamos los mismos datos calculados que ya están en el componente:
+      // totales, modelData, y eficienciaGlobal
+      await generarPDFEstadisticasCentro(totales, modelData, eficienciaGlobal);
+      
+      Swal.fire({
+        icon: 'success',
+        title: '¡Reporte Generado!',
+        text: 'El reporte de estadísticas se ha descargado correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    } catch (error) {
+      console.error('Error al generar estadísticas:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ocurrió un error al generar el reporte de estadísticas.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setIsGeneratingStats(false);
     }
   };
 
@@ -598,6 +630,20 @@ export default function CentroControl() {
                 </>
               ) : (
                 'Reporte General'
+              )}
+            </button>
+
+            <button
+              className="centro-btn centro-btn--primary"
+              onClick={handleGenerarReporteEstadisticas}
+              disabled={isGeneratingStats || cargando}
+            >
+              {isGeneratingStats ? (
+                <>
+                  <span className="centro-spinner"></span> Generando...
+                </>
+              ) : (
+                'Reporte Estadístico'
               )}
             </button>
 
