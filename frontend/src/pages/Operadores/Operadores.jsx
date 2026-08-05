@@ -418,12 +418,16 @@ export default function Operadores() {
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Juan Pérez López"
+                  placeholder="Ej. PÉREZ LÓPEZ JUAN"
                   value={nombre}
                   onChange={handleNombreChange}
                   maxLength={100}
                   className="modal-input"
                 />
+                <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Inicia por <strong style={{ color: '#666' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).
+                </small>
               </div>
 
               <div className="form-group">
@@ -491,12 +495,16 @@ export default function Operadores() {
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Juan Pérez López"
+                  placeholder="Ej. PÉREZ LÓPEZ JUAN"
                   value={nombre}
                   onChange={handleNombreChange}
                   maxLength={100}
                   className="modal-input"
                 />
+                <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Inicia por <strong style={{ color: '#666' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).
+                </small>
               </div>
 
               <div className="form-group">
