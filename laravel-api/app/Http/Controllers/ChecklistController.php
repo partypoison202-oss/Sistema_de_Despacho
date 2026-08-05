@@ -94,7 +94,7 @@ class ChecklistController extends Controller
             'puntos.*.fotos.*'          => ['nullable', 'string'],
             'dibujo'                    => ['nullable', 'string'],
             'fecha_hora'                => ['required', 'string'],
-            'origen'                    => ['nullable', 'string', 'in:despacho,encierro'],
+            'origen'                    => ['nullable', 'string', 'in:despacho,encierro,mantenimiento,mesaControl'],
         ]);
 
         $checklist = Checklist::create([
@@ -134,7 +134,7 @@ class ChecklistController extends Controller
             'puntos.*.fotos.*'          => ['nullable', 'string'],
             'dibujo'                    => ['nullable', 'string'],
             'fecha_hora'                => ['required', 'string'],
-            'origen'                    => ['nullable', 'string', 'in:despacho,encierro'],
+            'origen'                    => ['nullable', 'string', 'in:despacho,encierro,mantenimiento,mesaControl'],
         ]);
 
         $checklist->update([

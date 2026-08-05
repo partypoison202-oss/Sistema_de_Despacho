@@ -69,7 +69,10 @@ const DashboardTitan = () => {
     setBuscandoUnidad(true);
     const ecoFormat = busquedaEco.padStart(3, '0');
 
-    const match = todasLasUnidades.find(u => u.numero_economico === ecoFormat);
+    const match = todasLasUnidades.find(u => {
+      const status = String(u.estatus || u.estado || 'operacion').toLowerCase().trim();
+      return u.numero_economico === ecoFormat && (status === 'operacion' || status === '');
+    });
     if (match) {
       const model = modelData.find(m => m.id === match.modelId);
       setActiveModel(model);

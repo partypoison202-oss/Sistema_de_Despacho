@@ -107,8 +107,8 @@ export default function DetalleUnidadMesaControl() {
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
     queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
-    staleTime: 60000,
-    refetchInterval: 30000,
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 
   const { data: dbConductores = [], isLoading: cargandoConductores, refetch: fetchConductores } = useQuery({
@@ -131,8 +131,8 @@ export default function DetalleUnidadMesaControl() {
       }
       return [];
     },
-    staleTime: 60000,
-    refetchInterval: 30000,
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 
   const unidadesPorEstado = (estado) =>
@@ -142,6 +142,61 @@ export default function DetalleUnidadMesaControl() {
   const conductoresDisponibles = dbConductores.filter(c => 
     c.estado_servicio === 'disponible' && (!isTroncal || c.tipo_tarjeton === 'C')
   );
+
+  const selectedEcoClean = selectedOption ? String(selectedOption.match(/\d+/)?.[0] || '').padStart(3, '0') : '';
+
+  const { data: activeUnitData, refetch: refetchActiveUnit } = useQuery({
+    queryKey: ['unidad-detalle', tipoTransporte, selectedEcoClean],
+    queryFn: async () => {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token || !selectedEcoClean) return null;
+      const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${selectedEcoClean}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) throw new Error('Error en peticion');
+      return res.json();
+    },
+    enabled: !!selectedEcoClean,
+    refetchInterval: 5000, // Poll every 5 seconds for real time!
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    if (activeUnitData) {
+      if (activeUnitData.status === 'success') {
+        setDatosOperativos({
+          conductor: activeUnitData.conductor || 'No reportado hoy',
+          ruta: activeUnitData.ruta || 'Sin ruta',
+          tarjeton: activeUnitData.tarjeton || '',
+          corrida: activeUnitData.corridas || '',
+          horaSalida: activeUnitData.hora_salida || '',
+          estatus: activeUnitData.estatus || 'operacion',
+          ciclo: activeUnitData.ciclo || '',
+          motivo: activeUnitData.motivo || '',
+          horaProgramada: activeUnitData.hora_programada || '',
+          acople: activeUnitData.acople || '',
+        });
+        setFallaTexto(activeUnitData.falla || '');
+        setSelectedEstado(activeUnitData.estatus || 'operacion');
+      } else {
+        setDatosOperativos({
+          conductor: 'No reportado hoy',
+          ruta: 'Sin ruta',
+          tarjeton: '',
+          corrida: '',
+          horaSalida: '',
+          estatus: 'operacion',
+          ciclo: '',
+          motivo: '',
+          horaProgramada: '',
+          acople: '',
+        });
+        setFallaTexto('');
+      }
+      setCargandoDatos(false);
+    }
+  }, [activeUnitData]);
 
   useEffect(() => {
     const fetchRutas = async () => {
@@ -207,72 +262,7 @@ export default function DetalleUnidadMesaControl() {
     setTarjetonBusqueda(unidadSeleccionada.tarjeton || '');
     setCargandoDatos(true);
     setMensajeBusqueda('');
-
     setOpenDropdown(null);
-
-    const numeroLimpio = String(unidadSeleccionada.eco).padStart(3, '0');
-
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
-      const resultado = await queryClient.fetchQuery({
-        queryKey: ['unidad-detalle', tipoTransporte, numeroLimpio],
-        queryFn: async () => {
-          const res = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          });
-          if (!res.ok) throw new Error('Error en peticion');
-          return res.json();
-        },
-        staleTime: 60000,
-      });
-
-      if (resultado.status === 'success') {
-        setDatosOperativos({
-          conductor: resultado.conductor || 'No reportado hoy',
-          ruta: resultado.ruta || 'Sin ruta',
-          tarjeton: resultado.tarjeton || '',
-          corrida: resultado.corridas || '',
-          horaSalida: resultado.hora_salida || '',
-          estatus: resultado.estatus || unidadSeleccionada.estado || 'operacion',
-          ciclo: resultado.ciclo || '',
-          motivo: resultado.motivo || '',
-          horaProgramada: resultado.hora_programada || '',
-          acople: resultado.acople || '',
-        });
-        setFallaTexto(resultado.falla || '');
-        setSelectedEstado(resultado.estatus || unidadSeleccionada.estado || 'operacion');
-      } else {
-        setDatosOperativos({
-          conductor: 'No reportado hoy',
-          ruta: 'Sin ruta',
-          tarjeton: '',
-          corrida: '',
-          horaSalida: '',
-          estatus: unidadSeleccionada?.estado || 'operacion',
-          ciclo: '',
-          motivo: '',
-          horaProgramada: '',
-          acople: '',
-        });
-        setFallaTexto('');
-      }
-    } catch (error) {
-      console.error('Error en la petición:', error);
-      setDatosOperativos({
-        conductor: 'Error de conexión',
-        ruta: 'No se pudo obtener',
-        tarjeton: '',
-        corrida: '',
-        horaSalida: '',
-      });
-    } finally {
-      setCargandoDatos(false);
-    }
   };
 
   const buscarUnidadPorInput = async () => {
