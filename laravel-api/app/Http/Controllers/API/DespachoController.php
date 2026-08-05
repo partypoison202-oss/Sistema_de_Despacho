@@ -442,7 +442,8 @@ class DespachoController extends Controller
                 'nombre_conductor' => $conductorNombre,
                 'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
                 'hora_programada'  => $horaSalidaVal === '' ? null : $horaSalidaVal,
-                'tipo'             => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido'))
+                'tipo'             => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
+                'estatus'          => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
             ];
 
             if ($registroId) {

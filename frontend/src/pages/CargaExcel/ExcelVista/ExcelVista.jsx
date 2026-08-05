@@ -1,4 +1,5 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import IOSTimePicker from '../../Unidades/componentsdetalleunidad/IOSTimePicker';
 import { AuthContext } from '../../../context/AuthContext';
 import './ExcelVIsta.css';
@@ -37,10 +38,12 @@ export default function ExcelPreview({
     || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
     || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTech, setSelectedTech] = useState('');
   const [activeTimePickerRow, setActiveTimePickerRow] = useState(null);
   const [tempTime, setTempTime] = useState('00:00');
   const [openDropdown, setOpenDropdown] = useState({ rowIndex: null, field: null });
   const [dropdownSearch, setDropdownSearch] = useState('');
+  const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
 
   // Las cabeceras del editor directo
   const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS', 'HORA_DE_ACOPLE', 'CORRIDAS'];
@@ -81,19 +84,63 @@ export default function ExcelPreview({
     return ecoA - ecoB;
   });
 
-  // 2. Filtrar los datos en base al término de búsqueda
+  // 2. Filtrar los datos en base al término de búsqueda y tecnología seleccionada
   const filteredData = sortedData.filter(fila => {
     if (!fila) return false;
+    
+    if (selectedTech) {
+      const type = String(fila.TIPO_DE_UNIDAD || '').toUpperCase();
+      const normalizedType = type === 'URBANUSS' ? 'URBANUS' : type;
+      if (normalizedType !== selectedTech) return false;
+    }
+
     return Object.entries(fila).some(([key, val]) => {
       if (EXCLUDED_KEYS.includes(key)) return false;
       return String(val ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     });
   });
 
-  const handleOpenDropdown = (rowIndex, field) => {
+  const handleOpenDropdown = (e, rowIndex, field) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < 250;
+    setDropdownCoords({
+      top: openUp ? rect.top : rect.bottom,
+      left: rect.left,
+      width: rect.width,
+      openUp
+    });
     setDropdownSearch('');
     setOpenDropdown({ rowIndex, field });
   };
+
+  const handleOpenTimePicker = (e, originalIndex, currentValue) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < 250;
+    setDropdownCoords({
+      top: openUp ? rect.top : rect.bottom,
+      left: rect.left + rect.width / 2,
+      width: 220,
+      openUp
+    });
+    setTempTime(currentValue || '00:00');
+    setActiveTimePickerRow(originalIndex);
+    setOpenDropdown({ rowIndex: null, field: null });
+  };
+
+  useEffect(() => {
+    const handleScroll = (e) => {
+      const target = e.target;
+      // Solo cerramos si el scroll ocurre específicamente dentro de la tabla
+      if (target && target.classList && target.classList.contains('table-wrapper')) {
+        setOpenDropdown({ rowIndex: null, field: null });
+        setActiveTimePickerRow(null);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
 
   return (
     <div className="excel-table-card">
@@ -103,6 +150,21 @@ export default function ExcelPreview({
           <p className="excel-table-subtitle">Captura, edita y concilia las unidades en ruta para el día de hoy</p>
         </div>
         <div className="excel-table-header-right">
+          <div className="tech-filters-group">
+            {['URBANUS', 'ZAFIRO', 'VAGONETA', 'ORION'].map((tech) => {
+              const isActive = selectedTech === tech;
+              return (
+                <button
+                  key={tech}
+                  type="button"
+                  onClick={() => setSelectedTech(isActive ? '' : tech)}
+                  className={`tech-filter-btn ${isActive ? 'active' : ''}`}
+                >
+                  {tech === 'ORION' ? 'ORIÓN' : tech}
+                </button>
+              );
+            })}
+          </div>
           <div className="search-container">
             <svg className="search-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -147,6 +209,7 @@ export default function ExcelPreview({
                 const originalIndex = data.indexOf(fila);
                 const rawRowStatus = String(fila.ESTATUS || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 const isRowDisabled = rawRowStatus.includes('mantenimiento') || rawRowStatus.includes('reserva');
+                const isBottomRow = filteredData.length > 1 && (filteredData.length - index <= 2);
 
                 return (
                   <tr key={originalIndex !== -1 ? originalIndex : index}>
@@ -186,11 +249,9 @@ export default function ExcelPreview({
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(e) => {
                                 if (!isOpen) {
-                                  setTempTime(fila[h] || '00:00');
-                                  setActiveTimePickerRow(originalIndex);
-                                  setOpenDropdown({ rowIndex: null, field: null });
+                                  handleOpenTimePicker(e, originalIndex, fila[h]);
                                 } else {
                                   setActiveTimePickerRow(null);
                                 }
@@ -214,23 +275,35 @@ export default function ExcelPreview({
                                 <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{fila[h] || '00:00'}</span>
                               </div>
                             </button>
-                            {isOpen && (
+                            {isOpen && createPortal(
                               <>
                                 <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
                                   onClick={(e) => { e.stopPropagation(); setActiveTimePickerRow(null); }}
                                 />
-                                <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', zIndex: 999, width: '220px' }}>
+                                <div className="ios-time-picker-popover" style={{ 
+                                  position: 'fixed', 
+                                  top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`, 
+                                  bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
+                                  left: `${dropdownCoords.left}px`, 
+                                  transform: 'translateX(-50%)', 
+                                  zIndex: 9999, 
+                                  width: '220px',
+                                  marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
+                                  marginTop: dropdownCoords.openUp ? '0' : '0.4rem'
+                                }}>
                                   <IOSTimePicker
                                     value={tempTime}
                                     onChange={setTempTime}
                                     onClose={() => setActiveTimePickerRow(null)}
-                                    onSave={async () => {
-                                      onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, tempTime);
+                                    onSave={async (finalTime) => {
+                                      onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, finalTime);
+                                      setActiveTimePickerRow(null);
                                     }}
                                   />
                                 </div>
-                              </>
+                              </>,
+                              document.body
                             )}
                           </td>
                         );
@@ -249,12 +322,12 @@ export default function ExcelPreview({
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(e) => {
                                 if (isRutaOpen) {
                                   setOpenDropdown({ rowIndex: null, field: null });
                                 } else {
                                   setActiveTimePickerRow(null);
-                                  handleOpenDropdown(originalIndex, 'RUTA');
+                                  handleOpenDropdown(e, originalIndex, 'RUTA');
                                 }
                               }}
                               disabled={isRowDisabled}
@@ -266,13 +339,26 @@ export default function ExcelPreview({
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
-                            {isRutaOpen && (
+                            {isRutaOpen && createPortal(
                               <>
                                 <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
                                   onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
                                 />
-                                <div className="dropdown-menu">
+                                <div 
+                                  className="dropdown-menu" 
+                                  style={{ 
+                                    position: 'fixed',
+                                    top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
+                                    bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
+                                    left: `${dropdownCoords.left}px`,
+                                    right: 'auto',
+                                    width: `${dropdownCoords.width}px`,
+                                    marginTop: dropdownCoords.openUp ? '0' : '0.4rem',
+                                    marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
+                                    zIndex: 9999
+                                  }}
+                                >
                                   <div className="dropdown-menu-search-container">
                                     <input
                                       type="text"
@@ -321,7 +407,8 @@ export default function ExcelPreview({
                                     )}
                                   </div>
                                 </div>
-                              </>
+                              </>,
+                              document.body
                             )}
                           </td>
                         );
@@ -343,12 +430,12 @@ export default function ExcelPreview({
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(e) => {
                                 if (isTarjetonOpen) {
                                   setOpenDropdown({ rowIndex: null, field: null });
                                 } else {
                                   setActiveTimePickerRow(null);
-                                  handleOpenDropdown(originalIndex, 'TARJETON');
+                                  handleOpenDropdown(e, originalIndex, 'TARJETON');
                                 }
                               }}
                               disabled={isRowDisabled}
@@ -360,13 +447,27 @@ export default function ExcelPreview({
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
-                            {isTarjetonOpen && (
+                            {isTarjetonOpen && createPortal(
                               <>
                                 <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
                                   onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
                                 />
-                                <div className="dropdown-menu" style={{ width: '100%', minWidth: '130px' }}>
+                                <div 
+                                  className="dropdown-menu" 
+                                  style={{ 
+                                    position: 'fixed',
+                                    top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
+                                    bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
+                                    left: `${dropdownCoords.left}px`,
+                                    right: 'auto',
+                                    width: `${dropdownCoords.width}px`,
+                                    minWidth: '130px',
+                                    marginTop: dropdownCoords.openUp ? '0' : '0.4rem',
+                                    marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
+                                    zIndex: 9999
+                                  }}
+                                >
                                   <div className="dropdown-menu-search-container">
                                     <input
                                       type="text"
@@ -430,7 +531,8 @@ export default function ExcelPreview({
                                     )}
                                   </div>
                                 </div>
-                              </>
+                              </>,
+                              document.body
                             )}
                           </td>
                         );
@@ -446,12 +548,12 @@ export default function ExcelPreview({
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(e) => {
                                 if (isEstatusOpen) {
                                   setOpenDropdown({ rowIndex: null, field: null });
                                 } else {
                                   setActiveTimePickerRow(null);
-                                  handleOpenDropdown(originalIndex, 'ESTATUS');
+                                  handleOpenDropdown(e, originalIndex, 'ESTATUS');
                                 }
                               }}
                               className={`edit-input dropdown-trigger ${isEstatusOpen ? 'active-trigger' : ''}`}
@@ -462,13 +564,27 @@ export default function ExcelPreview({
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
                             </button>
-                            {isEstatusOpen && (
+                            {isEstatusOpen && createPortal(
                               <>
                                 <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
                                   onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
                                 />
-                                <div className="dropdown-menu" style={{ width: '100%', minWidth: '130px' }}>
+                                <div 
+                                  className="dropdown-menu" 
+                                  style={{ 
+                                    position: 'fixed',
+                                    top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
+                                    bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
+                                    left: `${dropdownCoords.left}px`,
+                                    right: 'auto',
+                                    width: `${dropdownCoords.width}px`,
+                                    minWidth: '130px',
+                                    marginTop: dropdownCoords.openUp ? '0' : '0.4rem',
+                                    marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
+                                    zIndex: 9999
+                                  }}
+                                >
                                   <div className="dropdown-menu__scroll">
                                     {Object.entries(estatusTranslations).map(([key, label], idx) => {
                                       const isSelected = currentStatus === key;
@@ -498,7 +614,8 @@ export default function ExcelPreview({
                                     })}
                                   </div>
                                 </div>
-                              </>
+                              </>,
+                              document.body
                             )}
                           </td>
                         );

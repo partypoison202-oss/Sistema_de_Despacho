@@ -87,6 +87,7 @@
 .table-wrapper {
   overflow: auto;
   max-height: 520px;
+  min-height: 350px;
   background: var(--tw-color-white);
   border-radius: 8px;
   border: 1px solid var(--tw-color-gray-200);
@@ -545,6 +546,50 @@
 .excel-preview-table th.col-estatus,
 .excel-preview-table td.cell-estatus {
   min-width: 180px;
+}
+
+/* Open upwards dropdown */
+.dropdown-menu.open-up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 0.4rem;
+  box-shadow: 0 -12px 25px -5px rgba(0, 0, 0, 0.1), 0 -8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Technology filter select replaced by buttons group */
+.tech-filters-group {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.tech-filter-btn {
+  background-color: var(--tw-color-gray-50);
+  border: 1.5px solid #e5e7eb;
+  color: var(--tw-color-gray-600);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.tech-filter-btn:hover {
+  background-color: var(--tw-color-gray-100);
+  border-color: #d1d5db;
+  color: var(--tw-color-gray-800);
+}
+
+.tech-filter-btn.active {
+  background-color: var(--brand-maroon-bg);
+  border-color: var(--brand-maroon-bg);
+  color: var(--tw-color-white);
+  box-shadow: 0 2px 6px rgba(107, 29, 51, 0.2);
 }
 
 

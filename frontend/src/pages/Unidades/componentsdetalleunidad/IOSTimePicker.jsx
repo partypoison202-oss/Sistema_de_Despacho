@@ -33,7 +33,8 @@ const IOSPickerWheel = ({ options, value, onChange }) => {
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
         position: 'relative',
-        flex: 1
+        flex: 1,
+        overscrollBehaviorY: 'contain'
       }}
       className="ios-wheel-container"
     >
@@ -112,7 +113,7 @@ export default function IOSTimePicker({ value, onChange, onClose, onSave }) {
     if (onSave) {
       setIsSaving(true);
       try {
-        await onSave();
+        await onSave(nuevoValor);
         onClose();
       } catch (error) {
         setIsSaving(false);
