@@ -11,8 +11,6 @@ use App\Http\Controllers\API\PlataformaController;
 use App\Http\Controllers\API\TitanController;
 use App\Http\Controllers\API\TitanReporteController;
 use App\Http\Controllers\API\HistorialOperativoController;
-use App\Http\Controllers\API\AmonestacionController;
-use App\Http\Controllers\API\InfraccionController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -72,27 +70,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/fechas', [HistorialOperativoController::class, 'getFechas']);
     Route::get('/historial-operativo/despacho/{fecha}', [HistorialOperativoController::class, 'getHistorialDespacho']);
     Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
-    Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
-    Route::get('/historial-mantenimiento/fechas', [HistorialOperativoController::class, 'getFechasMantenimiento']);
-    Route::get('/historial-mantenimiento/{fecha}', [HistorialOperativoController::class, 'getHistorialMantenimiento']);
 
     // RUTAS PARA TITAN
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);
     Route::post('/titan/reporte', [TitanController::class, 'guardarReporte']);
-    Route::get('/titan/notificaciones-pendientes', [TitanReporteController::class, 'notificacionesPendientes']);
-    Route::post('/titan/reportes/marcar-vistos', [TitanReporteController::class, 'marcarVistos']);
     Route::get('/titan/{usuarioId}/reportes', [TitanReporteController::class, 'reportesPorTitan']);
 
     // RUTAS PARA PLATAFORMA
     Route::post('/plataforma/movimiento', [PlataformaController::class, 'registrarMovimiento']);
-
-    // RUTAS PARA AMONESTACIONES / INFRACCIONES
-    Route::get('/amonestaciones', [AmonestacionController::class, 'index']);
-    Route::post('/amonestaciones', [AmonestacionController::class, 'store']);
-    Route::get('/amonestaciones/check/{placa}', [AmonestacionController::class, 'checkPlaca']);
-
-    Route::get('/infracciones', [InfraccionController::class, 'index']);
-    Route::post('/infracciones', [InfraccionController::class, 'store']);
 });
 
 Route::get('/setup-titan', function () {
@@ -109,13 +94,15 @@ Route::get('/setup-titan', function () {
                 $table->foreignId('usuario_id')->constrained('usuarios');
                 $table->string('intervalo')->nullable();
                 $table->text('observaciones')->nullable();
-                $table->string('tipo_evento');
+                $table->string('tipo_evento'); // DESINCORPORACION, INCORPORACION, ACCIDENTE
 
+                // Desincorporacion / Incorporacion
                 $table->string('corrida')->nullable();
                 $table->string('hora_evento')->nullable();
                 $table->string('ubicacion_gps')->nullable();
                 $table->text('motivo_desincorporacion')->nullable();
 
+                // Accidentes
                 $table->string('accidente_dueno')->nullable();
                 $table->string('accidente_vehiculo')->nullable();
                 $table->string('accidente_placas')->nullable();

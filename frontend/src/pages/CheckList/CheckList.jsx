@@ -8,13 +8,10 @@ import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
 import Swal from 'sweetalert2';
 
+const MAX_OBS = 250;
 
-const MAX_OBS = 250; // límite de caracteres para observaciones
-
-// Caché local para evitar recargar unidades del backend en cada selección
 const ecosCache = {};
 
-// ─── Tipos de unidad ──────────────────────────────────────────────────────────
 const TIPOS_UNIDAD = [
     { value: 'URBANUSS', label: 'URBANUSS' },
     { value: 'ZAFIRO', label: 'ZAFIRO' },
@@ -22,7 +19,6 @@ const TIPOS_UNIDAD = [
     { value: 'ORION', label: 'ORION' },
 ];
 
-// ─── Catálogo de servicios ────────────────────────────────────────────────────
 const SERVICIOS = [
     { value: '', label: '— Selecciona un servicio —' },
     { value: 'T01', label: 'T-01 EXPRÉS' },
@@ -64,7 +60,6 @@ const RUTAS_RA = [
     { value: 'RA-20B', label: 'RA-20B' },
 ];
 
-// ─── Puntos de revisión técnica ───────────────────────────────────────────────
 const PUNTOS = [
     { id: 'carroceria_exterior', label: 'Carrocería', desc: 'Revisar estado general de la carrocería (golpes y abolladuras).' },
     { id: 'mobitec', label: 'Mobitec', desc: 'Verificar que prenda, funcione correctamente y no esté dañado.' },
@@ -90,27 +85,30 @@ const buildEstadoInicial = () =>
         return acc;
     }, {});
 
-// ─── Íconos ───────────────────────────────────────────────────────────────────
 const IconCheck = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
     </svg>
 );
+
 const IconX = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
         <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
     </svg>
 );
+
 const IconClipboard = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
         <path fillRule="evenodd" d="M10.5 3A1.501 1.501 0 0 0 9 4.5h6A1.5 1.5 0 0 0 13.5 3h-3Zm-2.693.178A3 3 0 0 1 10.5 1.5h3a3 3 0 0 1 2.694 1.678c.497.042.992.092 1.486.15 1.497.173 2.57 1.46 2.57 2.929V19.5a3 3 0 0 1-3 3H6.75a3 3 0 0 1-3-3V6.257c0-1.47 1.073-2.756 2.57-2.93.493-.057.989-.107 1.487-.149Z" clipRule="evenodd" />
     </svg>
 );
+
 const Chevron = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
         <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
     </svg>
 );
+
 const IconCamera = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-5 w-5">
         <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
@@ -118,7 +116,6 @@ const IconCamera = () => (
     </svg>
 );
 
-// ─── Reloj en tiempo real ─────────────────────────────────────────────────────
 function RelojFecha() {
     const [ahora, setAhora] = useState(new Date());
     useEffect(() => {
@@ -135,7 +132,6 @@ function RelojFecha() {
     );
 }
 
-// ─── Select estilizado ────────────────────────────────────────────────────────
 function SelectField({ id, label, value, onChange, options, disabled = false, required = false }) {
     return (
         <div>
@@ -165,7 +161,6 @@ function SelectField({ id, label, value, onChange, options, disabled = false, re
     );
 }
 
-// ─── Fila de revisión ─────────────────────────────────────────────────────────
 function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
     const { estado, observaciones: rawObservaciones, fotos: rawFotos } = datos || {};
     const observaciones = rawObservaciones || '';
@@ -201,7 +196,6 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
                     <button type="button" onClick={() => handleEstado('mal')} className={btnMal} aria-pressed={estado === 'mal'}>
                         <IconX /> Mal
                     </button>
-                    {/* Botón de cámara (Evidencia) */}
                     <button
                         type="button"
                         title="Tomar foto de evidencia"
@@ -222,7 +216,6 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
                 </div>
             </div>
 
-            {/* Contenedor de observaciones y fotos */}
             <div className="mt-3 flex flex-col gap-3">
                 <div className="w-full">
                     <textarea
@@ -241,7 +234,6 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
                     </div>
                 </div>
 
-                {/* Previews de fotos en miniatura */}
                 {fotos && fotos.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                         {fotos.map((fotoUrl, idx) => (
@@ -271,7 +263,6 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
                 )}
             </div>
 
-            {/* Modal para previsualizar la foto en grande */}
             {lightboxImage && createPortal(
                 <div
                     className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 transition-opacity"
@@ -297,7 +288,6 @@ function FilaPunto({ punto, datos, onChange, numero, onStartCamera }) {
     );
 }
 
-// ─── Componentes: Pizarra de Dibujo ─────────────────────────────────────────────
 const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, ref) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -307,7 +297,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
     const historyRef = useRef([]);
     const [color, setColor] = useState('#ef4444');
     const [brushSize, setBrushSize] = useState(3);
-    const [mode, setMode] = useState('pencil'); // 'pencil' | 'eraser'
+    const [mode, setMode] = useState('pencil');
     const [canUndo, setCanUndo] = useState(false);
 
     const COLORS = [
@@ -318,7 +308,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         { value: '#1f2937', label: 'Negro' },
     ];
 
-    // ── Inicializar canvas ──────────────────────────────────────────────
     const initCanvas = useCallback(() => {
         const canvas = canvasRef.current;
         const container = containerRef.current;
@@ -350,7 +339,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         return () => window.removeEventListener('resize', handleResize);
     }, [initCanvas]);
 
-    // ── Renderizado de todos los trazos ────────────────────────────────
     const renderAllPaths = useCallback(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -390,7 +378,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
     }, []);
 
-    // ── Guardar snapshot en historial ──────────────────────────────
     const saveSnapshot = useCallback(() => {
         const copy = JSON.parse(JSON.stringify(pathsRef.current));
         historyRef.current.push(copy);
@@ -398,7 +385,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         setCanUndo(true);
     }, []);
 
-    // ── Obtener posición (mouse/touch) ──────────────────────────────
     const getPos = (e) => {
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
@@ -409,9 +395,8 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         };
     };
 
-    // ── Borrar trazo más cercano al punto ──────────────────────────────
     const eraseAt = useCallback((pos) => {
-        const threshold = 20; // <--- solo una declaración
+        const threshold = 20;
         let minDist = Infinity;
         let indexToRemove = -1;
 
@@ -456,7 +441,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
     }, [onSave, renderAllPaths, saveSnapshot, tipoUnidad]);
 
-    // ── Eventos de dibujo ──────────────────────────────────────────────
     const startDraw = (e) => {
         e.preventDefault();
         const pos = getPos(e);
@@ -466,24 +450,21 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             return;
         }
 
-        // Modo lápiz: iniciar nuevo trazo
         saveSnapshot();
         isDrawing.current = true;
         const ctx = canvasRef.current.getContext('2d');
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
 
-
         if (color === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = 20; // Tamaño de goma fijo y grande
+            ctx.lineWidth = 20;
         } else {
             ctx.globalCompositeOperation = 'source-over';
             ctx.strokeStyle = color;
             ctx.lineWidth = brushSize;
         }
 
-        // Crear el trazo actual
         currentPathRef.current = {
             points: [{ ...pos }],
             color: color === 'eraser' ? '#ffffff' : color,
@@ -557,7 +538,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
     };
 
-    // ── Deshacer ────────────────────────────────────────────────────────
     const handleUndo = () => {
         if (historyRef.current.length === 0) return;
         const prev = historyRef.current.pop();
@@ -589,7 +569,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
     };
 
-    // ── Limpiar todo ─────────────────────────────────────────────────────
     const handleClear = () => {
         saveSnapshot();
         pathsRef.current = [];
@@ -598,12 +577,10 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         if (onSave) onSave(null);
     };
 
-    // ── Exponer método clear al padre ──────────────────────────────────
     useImperativeHandle(ref, () => ({
         clear: handleClear
     }));
 
-    // ── Alternar modo ───────────────────────────────────────────────────
     const toggleMode = () => {
         setMode(prev => prev === 'pencil' ? 'eraser' : 'pencil');
         if (isDrawing.current) {
@@ -613,12 +590,9 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
         }
     };
 
-    // ── Render ──────────────────────────────────────────────────────────
     return (
         <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-            {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3">
-                {/* Colores */}
                 <div className="flex items-center gap-1.5">
                     {COLORS.map((c) => (
                         <button
@@ -647,7 +621,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
 
                 <div className="mx-1 h-5 w-px bg-gray-200" />
 
-                {/* Tamaño de pincel (solo en modo lápiz) */}
                 {mode === 'pencil' && (
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-semibold text-gray-400 uppercase">Grosor</span>
@@ -669,7 +642,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
 
                 <div className="mx-1 h-5 w-px bg-gray-200" />
 
-                {/* Botón modo goma */}
                 <button
                     type="button"
                     onClick={toggleMode}
@@ -704,7 +676,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
                 </div>
             </div>
 
-            {/* Canvas con imagen de fondo */}
             <div
                 ref={containerRef}
                 className="relative w-full"
@@ -723,7 +694,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
                     })()
                 }}
             >
-                {/* Imagen de referencia como fondo según tipo de unidad */}
                 <img
                     src={`/images/${(tipoUnidad || 'hero').toLowerCase()}${tipoUnidad ? '_blueprint' : ''}.webp`}
                     alt={`Blueprint de ${tipoUnidad}`}
@@ -754,7 +724,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
     );
 });
 
-// Comprimir y redimensionar imagen en Base64 para optimizar almacenamiento
 const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -788,7 +757,6 @@ const compressImage = (dataUrl, maxWidth = 800, maxHeight = 600) => {
     });
 };
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 export default function ChecklistForm({
     inline = false,
     prefillData = null,
@@ -800,40 +768,38 @@ export default function ChecklistForm({
 }) {
     const navigate = useNavigate();
     const location = useLocation();
-    // ── Paso 1: selección de unidad ───────────────────────────────────────────
+
     const [tipoUnidad, setTipoUnidad] = useState('');
     const [ecosList, setEcosList] = useState([]);
     const [loadingEcos, setLoadingEcos] = useState(false);
     const [isManualEco, setIsManualEco] = useState(false);
 
-    // ── Datos del formulario ──────────────────────────────────────────────────
-    // *** CORREGIDO: eliminadas las declaraciones duplicadas ***
+    // --- ESTADOS (corregidos: sin duplicados) ---
     const [conductorId, setConductorId] = useState('');
     const [conductorTarjeton, setConductorTarjeton] = useState('');
     const [conductorNombre, setConductorNombre] = useState('');
-    const [economico, setEconomico] = useState('');
+    const [economico, setEconomico] = useState('');  // única declaración
     const [servicio, setServicio] = useState('');
     const [puntos, setPuntos] = useState(buildEstadoInicial);
     const [enviado, setEnviado] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [savedChecklist, setSavedChecklist] = useState(null);
-    const [dibujo, setDibujo] = useState(null);
-    const fechaHoraRef = useRef(new Date());
-    const drawingCanvasRef = useRef(null);
-    const hideTop = inline || (new URLSearchParams(location.search).get('hide_top') === 'true');
+    const [dibujo, setDibujo] = useState(null);      // única declaración
+    const fechaHoraRef = useRef(new Date());          // única declaración
+    const drawingCanvasRef = useRef(null);            // única declaración
 
-    // ── Cámara y Evidencias ───────────────────────────────────────────────────
     const [activePuntoId, setActivePuntoId] = useState(null);
     const [showCamera, setShowCamera] = useState(false);
     const fileInputRef = useRef(null);
     const galleryInputRef = useRef(null);
+
+    const hideTop = inline || (new URLSearchParams(location.search).get('hide_top') === 'true');
 
     const handleStartCamera = (puntoId) => {
         setActivePuntoId(puntoId);
         setShowCamera(true);
     };
 
-    // Auto-cargar unidad si viene en la URL o prefillData
     useEffect(() => {
         let qEco, qTipoRaw, qServicio, qConductorNombre;
 
@@ -891,14 +857,12 @@ export default function ChecklistForm({
             };
             loadUrlUnit();
         }
-
     }, [location.search, inline, prefillData?.numero_eco, prefillData?.tipoTransporte]);
 
     const handleFileChange = async (e) => {
         const file = e.target.files?.[0];
         if (file && activePuntoId) {
             setShowCamera(false);
-            // *** CORREGIDO: se eliminó la línea duplicada `setShowCamera(false);` ***
             const reader = new FileReader();
             reader.onload = async (event) => {
                 try {
@@ -947,7 +911,6 @@ export default function ChecklistForm({
         }
     };
 
-    // ── Lógica de control ─────────────────────────────────────────────────────
     const unidadSeleccionada = tipoUnidad !== '';
 
     const handleTipoUnidad = async (tipo, forceLoad = false) => {
@@ -1088,8 +1051,6 @@ export default function ChecklistForm({
             });
     };
 
-
-    // ── Pantalla de confirmación ──────────────────────────────────────────────
     if (enviado) {
         const fmtFecha = fechaHoraRef.current.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
         const fmtHora = fechaHoraRef.current.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -1175,7 +1136,6 @@ export default function ChecklistForm({
         );
     }
 
-    // ── Formulario ────────────────────────────────────────────────────────────
     return (
         <div className={inline ? "inline-checklist" : "layout-container"}>
             {!hideTop && <Header hideBackButton={false} />}
@@ -1205,7 +1165,6 @@ export default function ChecklistForm({
                     )}
                     <form onSubmit={handleSubmit} noValidate>
 
-                        {/* ══ PASO 1 — Económico ══════════════════════════════ */}
                         {!hideTop && (
                             <section className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                                 {tipoUnidad && (
@@ -1278,7 +1237,6 @@ export default function ChecklistForm({
                             </section>
                         )}
 
-                        {/* ══ PASO 2 — Datos de la unidad (bloqueado hasta elegir tipo) ══ */}
                         <div className={`transition-all duration-300 ${unidadSeleccionada ? 'opacity-100' : 'pointer-events-none opacity-30'}`}>
 
                             {!hideTop && (
@@ -1344,7 +1302,6 @@ export default function ChecklistForm({
                                                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 text-base font-medium text-gray-800 transition focus:border-guinda-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-guinda-700/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                 />
                                             </div>
-
                                         </div>
                                     </section>
 

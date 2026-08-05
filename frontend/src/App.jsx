@@ -1,3 +1,4 @@
+// src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -35,6 +36,11 @@ import HistorialReportesTitanes from './pages/Historial/HistorialReportesTitanes
 import Operadores from './pages/Operadores/Operadores';
 import InfraccionDashboard from './pages/Infraccion/InfraccionDashboard';
 
+// ========== NUEVOS IMPORTS PARA MESA DE CONTROL ==========
+import DashboardMesaControl from '../src/pages/MesadeControl/DashboardMesaControl';
+import DetalleUnidadMesaControl from '../src/pages/MesadeControl/DetalleUnidadMesaControl';
+// ========================================================
+
 function App() {
   return (
     <AuthProvider>
@@ -44,8 +50,6 @@ function App() {
         <Routes>
           {/* Pantalla de Inicio de Sesión */}
           <Route path="/" element={<Login />} />
-
-          
 
           {/* Ruta protegida de detalle de despacho (pantalla "General" nueva) */}
           <Route path="/despacho/:id" element={
@@ -84,11 +88,25 @@ function App() {
             </ProtectedRoute>
           } />
 
+          {/* ========== DESPACHO DASHBOARD (ruta original) ========== */}
           <Route path="/dashboard" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
               <Dashboard />
             </ProtectedRoute>
           } />
+
+          {/* ========== NUEVA RUTA: MESA DE CONTROL ========== */}
+          <Route path="/mesa-control" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
+              <DashboardMesaControl />
+            </ProtectedRoute>
+          } />
+          <Route path="/mesa-control/:tipoTransporte" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
+              <DetalleUnidadMesaControl />
+            </ProtectedRoute>
+          } />
+          {/* ==================================================== */}
 
           <Route path="/menu" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'RELEVOS']}>
@@ -235,7 +253,6 @@ function App() {
 
           {/* ruta para reporte de titane */}
           <Route path="/reportestitanes" element={<ReportesTitanes />} />
-
 
           {/* ruta de historial de reportes de titanes */}
           <Route path="/historial/reportes-titanes" element={<HistorialReportesTitanes />} />

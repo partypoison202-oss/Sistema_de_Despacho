@@ -60,6 +60,10 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       navigate('/centro-control');
     } else if (role === 'GENERAL') {
       navigate('/general');
+    } else if (role === 'TITAN') {
+      navigate('/titan/dashboard');
+    } else if (role === 'INFRACCION') {
+      navigate('/infraccion/dashboard');
     } else {
       navigate('/dashboard');
     }
@@ -87,7 +91,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                           location.pathname === '/centro-control' ||
                           location.pathname === '/cargar-excel' ||
                           location.pathname === '/general' ||
-                          location.pathname === '/titan/dashboard';
+                          location.pathname === '/titan/dashboard' ||
+                          location.pathname === '/infraccion/dashboard';
       showBackButton = !isDashboard;
     }
   }

@@ -1,4 +1,4 @@
-// src/pages/Encierro/components/UnitSelector.jsx
+// src/pages/MesaControl/components/UnitSelector.jsx
 import React, { useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import API_BASE from '../../../config/api';
@@ -71,8 +71,7 @@ export default function UnitSelector({
           </div>
         </button>
 
-
-        {/* Burbuja siempre visible (con 0 si no hay unidades) */}
+        {/* Burbuja siempre visible */}
         {!cargandoUnidades && (
           <span
             style={{

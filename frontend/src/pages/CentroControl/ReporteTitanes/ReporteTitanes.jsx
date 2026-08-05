@@ -8,7 +8,7 @@ import API_BASE from '../../../config/api';
 import AppleDatePicker from '../../Mantenimiento/components/AppleDatePicker';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // 👈 Importación correcta
 
 // Nombre del rol tal como está guardado en la tabla `roles`
 const ROL_TITAN = 'TITAN';
@@ -137,6 +137,9 @@ export default function ReportesTitanes() {
 
   // Estado para controlar la descarga
   const [descargando, setDescargando] = useState(false);
+
+  // Estado para el modal de visualización de firma
+  const [firmaModalUrl, setFirmaModalUrl] = useState(null);
 
   const { data: usuarios = [], isLoading: cargandoUsuarios, isError } = useQuery({
     queryKey: ['usuarios'],
@@ -338,7 +341,7 @@ export default function ReportesTitanes() {
   }[tipoModal];
 
   // ------------------------------------------------------------
-  // FUNCIONES PARA GENERAR PDF
+  // FUNCIONES PARA GENERAR PDF (CORREGIDAS)
   // ------------------------------------------------------------
   const generarPDF = (reportes, titulo, esIndividual = false) => {
     if (!reportes || reportes.length === 0) {
@@ -390,13 +393,17 @@ export default function ReportesTitanes() {
             ['¿Cuenta con seguro?', r.accidente_seguro === 'true' ? 'Sí' : 'No'],
             ['Hechos', r.accidente_hechos || 'N/A']
           );
+          if (r.firma_particular_url) {
+            campos.push(['Firma del particular', 'Ver en el reporte digital']);
+          }
         }
 
         // Fotos
         const fotos = r.fotos || [];
         campos.push(['Fotos adjuntas', fotos.length > 0 ? `${fotos.length} imagen(es)` : 'Ninguna']);
 
-        doc.autoTable({
+        // 👇 Usamos autoTable(doc, options)
+        autoTable(doc, {
           startY: y,
           head: [['Campo', 'Valor']],
           body: campos,
@@ -411,11 +418,11 @@ export default function ReportesTitanes() {
           doc.setFontSize(9);
           doc.text('Enlaces a las fotos:', 14, finalY);
           fotos.forEach((url, idx) => {
-            doc.textWithLink(`${idx+1}. ${url}`, 14, finalY + 5 + idx * 5, { url });
+            // doc.textWithLink puede no estar disponible, usamos solo texto
+            doc.text(`${idx+1}. ${url}`, 14, finalY + 5 + idx * 5);
           });
         }
 
-        // Guardar
         doc.save(`Reporte_${titulo}_${r.numero_economico || 'sin_unidad'}.pdf`);
       } else {
         // Múltiples reportes: tabla resumen
@@ -437,7 +444,8 @@ export default function ReportesTitanes() {
           r.observaciones || 'N/A',
         ]);
 
-        doc.autoTable({
+        // 👇 Usamos autoTable(doc, options)
+        autoTable(doc, {
           startY: y,
           head: [headers],
           body: rows,
@@ -451,10 +459,6 @@ export default function ReportesTitanes() {
             4: { cellWidth: 35 },
           },
         });
-
-        // Detalles adicionales (se puede agregar en páginas siguientes si es necesario)
-        // Aquí no incluimos detalles por reporte para no hacer el PDF muy largo.
-        // Si se desea, se puede iterar y agregar tablas de detalle.
 
         doc.save(`Reportes_${titulo}_${titanActual?.nombre || 'titan'}.pdf`);
       }
@@ -1047,10 +1051,17 @@ export default function ReportesTitanes() {
                         <p>
                           <strong>Hechos:</strong> {r.accidente_hechos || 'N/A'}
                         </p>
+                        {/* Firma del particular con botón para visualizar */}
                         {r.firma_particular_url && (
                           <div className="rt-reporte-item__firma">
                             <strong>Firma del particular:</strong>
-                            <img src={r.firma_particular_url} alt="Firma del particular" />
+                            <button
+                              type="button"
+                              className="rt-firma-btn"
+                              onClick={() => setFirmaModalUrl(r.firma_particular_url)}
+                            >
+                              Ver firma
+                            </button>
                           </div>
                         )}
                       </>
@@ -1067,6 +1078,80 @@ export default function ReportesTitanes() {
                     )}
                   </div>
                 ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Modal de visualización de firma (superpuesto) ---------- */}
+      {firmaModalUrl && (
+        <div
+          className="rt-firma-modal-overlay"
+          onClick={() => setFirmaModalUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div
+            className="rt-firma-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff',
+              padding: '20px',
+              borderRadius: '12px',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              position: 'relative',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            }}
+          >
+            <button
+              className="rt-firma-modal__close"
+              onClick={() => setFirmaModalUrl(null)}
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '15px',
+                fontSize: '1.8rem',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#333',
+              }}
+            >
+              ×
+            </button>
+            <img
+              src={firmaModalUrl}
+              alt="Firma del particular"
+              style={{ maxWidth: '100%', maxHeight: '80vh', display: 'block', margin: '0 auto' }}
+            />
+            <div style={{ textAlign: 'center', marginTop: '15px' }}>
+              <a
+                href={firmaModalUrl}
+                download="firma_particular.png"
+                className="rt-firma-modal__download"
+                style={{
+                  display: 'inline-block',
+                  padding: '8px 20px',
+                  background: '#c29b53',
+                  color: '#fff',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                }}
+              >
+                Descargar firma
+              </a>
             </div>
           </div>
         </div>

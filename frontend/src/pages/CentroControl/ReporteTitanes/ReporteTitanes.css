@@ -447,3 +447,24 @@
     flex-direction: column;
   }
 }
+
+.rt-reporte-item__firma {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.rt-firma-btn {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.rt-firma-btn:hover {
+  background: #e0e0e0;
+}

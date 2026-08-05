@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
@@ -43,50 +43,6 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   const [firmaVacia, setFirmaVacia] = useState(true);
 
   const [guardando, setGuardando] = useState(false);
-
-  // Lista de estaciones para unidades Urbanuss
-  const ESTACIONES_URBANUSS = [
-    'Estacion Tellez',
-    'Estacion Gabriel Mancera',
-    'Estacion Matilde',
-    'Estacion Efren Rebolledo',
-    'Estacion Tercera Edad',
-    'Estacion San Antonio',
-    'Estacion Ejercito Mexicano',
-    'Estacion Felipe Angeles',
-    'Estacion Centro de Justicia',
-    'Estacion Vicente Segura',
-    'Estacion Juan C Doria',
-    'Estacion Hospitales',
-    'Estacion SEPH',
-    'Estacion Tecnologico de Pachuca',
-    'Estacion Bicentenario',
-    'Estacion Centro Minero',
-    'Estacion Zona Plateada',
-    'Estacion Tecnologico de Monterrey',
-    'Estacion Estadio Hidalgo',
-    'Estacion Cuna de Futbol',
-    'Estacion Santa Julia',
-    'Estacion Prepa 1',
-    'Estacion Bioparque',
-    'Estacion Parque del Maestro',
-    'Estacion Presidente Aleman',
-    'Estacion Plaza Juarez',
-    'Estacion Niños Heroes',
-    'Estacion Centro Historico',
-    'Estacion Central de Autobuses',
-  ];
-
-  // Lista de opciones para Zafiro, Orion y Vagoneta
-  const OPCIONES_OTRAS_TECNOLOGIAS = ['Destino', 'Origen'];
-
-  // Determina si la unidad seleccionada es Urbanuss, usando el id del modelo
-  // (viene de modelsConfig en DashboardTitan.jsx: 'urbanus', 'zafiro', 'vagoneta', 'orion')
-  const esUrbanuss = () => {
-    return model?.id === 'urbanus';
-  };
-
-  const opcionesUbicacionEvento = esUrbanuss() ? ESTACIONES_URBANUSS : OPCIONES_OTRAS_TECNOLOGIAS;
 
   // ---------- Funciones de firma (con useCallback para estabilidad) ----------
   const getFirmaCoords = useCallback((e) => {
@@ -222,7 +178,6 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     setAccSeguro(false);
     setAccHechos('');
     setUbicacionGPS('');
-    setUbicacionEvento('');
     setFirmaVacia(true);
   };
 
@@ -613,6 +568,64 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                         />
                       </>
                     )}
+                  </div>
+
+                  <div className="form-group">
+                    <label>Firma de particular</label>
+                    <div
+                      className="titan-firma-wrapper"
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '180px',
+                        border: '2px dashed var(--brand-maroon-text, #601a2a)',
+                        borderRadius: '8px',
+                        backgroundColor: '#ffffff',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <canvas
+                        ref={firmaCanvasRef}
+                        className="titan-firma-canvas"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'block',
+                          cursor: 'crosshair',
+                          touchAction: 'none',
+                        }}
+                        onMouseDown={handleFirmaStart}
+                        onMouseMove={handleFirmaMove}
+                        onMouseUp={handleFirmaEnd}
+                        onMouseLeave={handleFirmaEnd}
+                      />
+                      {firmaVacia && (
+                        <span
+                          className="titan-firma-placeholder"
+                          style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            color: '#9ca3af',
+                            fontSize: '14px',
+                            pointerEvents: 'none',
+                            userSelect: 'none',
+                          }}
+                        >
+                          Firma aquí con el dedo o el mouse
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                      <button
+                        type="button"
+                        className="titan-btn-cancel"
+                        onClick={limpiarFirma}
+                      >
+                        Limpiar firma
+                      </button>
+                    </div>
                   </div>
 
                   {/* FIRMA DE PARTICULAR */}

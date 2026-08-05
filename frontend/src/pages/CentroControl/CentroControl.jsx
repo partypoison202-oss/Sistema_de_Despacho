@@ -33,52 +33,9 @@ export default function CentroControl() {
   const reporteUnidadesRef = useRef(null);
 
   // ---- Titanes (activos / notificaciones) ----
-  const fetchUsuarios = async () => {
-    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-    const res = await fetch(`${API_BASE}/api/users`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.ok) throw new Error('Error de conexion');
-    return res.json();
-  };
-
-  const fetchNotificacionesPendientes = async () => {
-    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-    const res = await fetch(`${API_BASE}/api/titan/notificaciones-pendientes`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.ok) throw new Error('Error de conexion');
-    return res.json();
-  };
-
-  const { data: usuariosData = [] } = useQuery({
-    queryKey: ['usuarios'],
-    queryFn: fetchUsuarios,
-    refetchInterval: 30000,
-  });
-
-  const { data: notificacionesData = [] } = useQuery({
-    queryKey: ['titan-notificaciones-pendientes'],
-    queryFn: fetchNotificacionesPendientes,
-    refetchInterval: 15000,
-  });
-
-  const titanesActivos = React.useMemo(() => {
-    return (Array.isArray(usuariosData) ? usuariosData : []).filter((u) => {
-      const rolNombre = (u.role?.nombre || u.role?.name || '').toUpperCase().trim();
-      const esTitan = rolNombre === ROL_TITAN;
-      const estaActivo = u.activo === true || u.activo === 'true' || u.activo === 1 || u.activo === undefined;
-      return esTitan && estaActivo;
-    }).length;
-  }, [usuariosData]);
-
-  const titanesNotificaciones = Array.isArray(notificacionesData) ? notificacionesData.length : 0;
+  // TODO: reemplazar por datos reales cuando exista el endpoint de Titanes
+  const [titanesActivos, setTitanesActivos] = useState(0);
+  const [titanesNotificaciones, setTitanesNotificaciones] = useState(0);
 
   // ---- Carga y desglose de unidades por tipo y estatus ----
   const fetchDespachoHoy = async () => {
@@ -313,7 +270,7 @@ export default function CentroControl() {
               y genera reportes generales del despacho.
             </p>
           </div>
-
+ 
           <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
 
             <button
@@ -376,15 +333,15 @@ export default function CentroControl() {
                 </span>
               )}
 
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="M12 8v4" />
-                <path d="M12 16h.01" />
-              </svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M12 8v4" />
+              <path d="M12 16h.01" />
+            </svg>
               Titanes
             </button>
 
-            <button
+                        <button
               type="button"
               className="centro-btn-plano"
               onClick={() => navigate('/plano-patio')}

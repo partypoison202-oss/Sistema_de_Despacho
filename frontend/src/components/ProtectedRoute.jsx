@@ -29,10 +29,24 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     if (user.role.codigo === 'ENCIERRO') {
       return <Navigate to="/encierro/dashboard" replace />;
     }
-    if (user.role.codigo === 'GENERAL') {
+    if (rol === 'GENERAL') {
       return <Navigate to="/general" replace />;
     }
-    return <Navigate to="/dashboard" replace />;
+    if (rol === 'CENTRO_CONTROL') {
+      return <Navigate to="/centro-control" replace />;
+    }
+    if (rol === 'TITAN') {
+      return <Navigate to="/titan/dashboard" replace />;
+    }
+    if (rol === 'INFRACCION') {
+      return <Navigate to="/infraccion/dashboard" replace />;
+    }
+    if (rol === 'DESPACHO' || rol === 'PLATAFORMA') {
+      return <Navigate to="/dashboard" replace />;
+    }
+
+    // Rol no reconocido: enviar al login para evitar loops
+    return <Navigate to="/" replace />;
   }
 
   return children;
