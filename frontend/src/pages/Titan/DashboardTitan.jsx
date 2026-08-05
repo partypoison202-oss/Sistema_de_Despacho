@@ -90,13 +90,13 @@ const DashboardTitan = () => {
 
   return (
     <div className="centro-control-container" onClick={() => setExpandedModel(null)}>
-      <Header title="TITAN - Unidades en Operación" />
+      <Header title="TITÁN - Unidades en Operación" />
 
       <main className="centro-control-main">
         {!activeUnidad && (
           <div className="centro-welcome" style={{ marginBottom: '50px' }}>
             <p className="centro-eyebrow">Visión general de la flota</p>
-            <h1 className="centro-title">TITAN</h1>
+            <h1 className="centro-title">TITÁN</h1>
             <p className="centro-subtitle">
               Consulta el total de unidades en operación, su estatus operativo y genera reportes de supervisión rápidamente.
             </p>
