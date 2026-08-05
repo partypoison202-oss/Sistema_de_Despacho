@@ -21,6 +21,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
   // Tabs State
   const [activeTab, setActiveTab] = useState('');
+  const ACCIDENT_TYPES = ['ACCIDENTE', 'CHOQUE', 'ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
 
   // Event Specific State
   const [corrida, setCorrida] = useState('');
@@ -130,7 +131,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
   // ---------- Effect para inicializar canvas y eventos táctiles ----------
   useEffect(() => {
-    if (activeTab !== 'ACCIDENTE') return;
+    if (!ACCIDENT_TYPES.includes(activeTab)) return;
 
     const canvas = firmaCanvasRef.current;
     if (!canvas) return;
@@ -210,7 +211,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   };
 
   const handleFotoChange = (e) => {
-    const maxFotos = activeTab === 'ACCIDENTE' ? 10 : 5;
+    const maxFotos = ACCIDENT_TYPES.includes(activeTab) ? 10 : 5;
     const files = Array.from(e.target.files);
 
     if (fotos.length + files.length > maxFotos) {
@@ -236,7 +237,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     if (!selectedUnidad) return;
 
     if (!activeTab) {
-      Swal.fire('Atención', 'Debes seleccionar un tipo de reporte (Desincorporación, Incorporación o Accidente).', 'warning');
+      Swal.fire('Atención', 'Debes seleccionar un tipo de reporte válido.', 'warning');
       return;
     }
 
@@ -266,7 +267,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
         if (activeTab === 'DESINCORPORACION') formData.append('motivo_desincorporacion', motivoDesincorporacion);
       }
 
-      if (activeTab === 'ACCIDENTE') {
+      if (ACCIDENT_TYPES.includes(activeTab)) {
         formData.append('accidente_dueno', accDueno);
         formData.append('accidente_vehiculo', accVehiculo);
         formData.append('accidente_placas', accPlacas);
@@ -430,7 +431,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
           </div>
 
           {/* Tabs de eventos */}
-          <div className="titan-tabs">
+          <div className="titan-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             <button
               className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`}
               onClick={() => setActiveTab('DESINCORPORACION')}
@@ -451,6 +452,42 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
               }}
             >
               Accidente
+            </button>
+            <button
+              className={`titan-tab ${activeTab === 'CHOQUE' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('CHOQUE');
+                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+              }}
+            >
+              Choque
+            </button>
+            <button
+              className={`titan-tab ${activeTab === 'ATROPELLADO' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('ATROPELLADO');
+                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+              }}
+            >
+              Atropellado
+            </button>
+            <button
+              className={`titan-tab ${activeTab === 'CODIGO_AMBAR' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('CODIGO_AMBAR');
+                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+              }}
+            >
+              Código Ámbar
+            </button>
+            <button
+              className={`titan-tab ${activeTab === 'CODIGO_ROJO' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('CODIGO_ROJO');
+                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+              }}
+            >
+              Código Rojo
             </button>
           </div>
 
@@ -516,7 +553,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                 </>
               )}
 
-              {activeTab === 'ACCIDENTE' && (
+              {ACCIDENT_TYPES.includes(activeTab) && (
                 <>
                   <div className="form-group">
                     <label>Dueño del Particular</label>
@@ -691,7 +728,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
               {/* Evidencia fotográfica */}
               <div className="form-group" style={{ marginTop: '20px' }}>
-                <label>Evidencia Fotográfica (Máx. {activeTab === 'ACCIDENTE' ? 10 : 5})</label>
+                <label>Evidencia Fotográfica (Máx. {ACCIDENT_TYPES.includes(activeTab) ? 10 : 5})</label>
 
                 <label className="titan-file-upload">
                   <input type="file" multiple accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />

@@ -71,12 +71,12 @@ class TitanReporteController extends Controller
                 return $r;
             });
 
-            return response()->json([
-                'incorporaciones' => $reportes->where('tipo_evento', 'INCORPORACION')->count(),
-                'desincorporaciones' => $reportes->where('tipo_evento', 'DESINCORPORACION')->count(),
-                'accidentes' => $reportes->where('tipo_evento', 'ACCIDENTE')->count(),
-                'reportes' => $data,
-            ], 200);
+        return response()->json([
+            'incorporaciones' => $reportes->where('tipo_evento', 'INCORPORACION')->count(),
+            'desincorporaciones' => $reportes->where('tipo_evento', 'DESINCORPORACION')->count(),
+            'accidentes' => $reportes->whereIn('tipo_evento', ['ACCIDENTE', 'CHOQUE', 'ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'])->count(),
+            'reportes' => $data,
+        ], 200);
 
         } catch (\Exception $e) {
             // Registrar el error en el log de Laravel
