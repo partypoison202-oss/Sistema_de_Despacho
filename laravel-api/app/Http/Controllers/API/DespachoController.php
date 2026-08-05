@@ -773,7 +773,7 @@ class DespachoController extends Controller
 
         $fechaHoy = Carbon::today()->toDateString();
 
-        if ($nuevoEstatus === 'reserva') {
+        if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') {
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;

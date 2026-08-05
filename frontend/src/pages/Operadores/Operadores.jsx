@@ -89,7 +89,7 @@ export default function Operadores() {
 
   // Validación en tiempo real para el nombre del operador: solo letras, acentos, ñ y espacios
   const handleNombreChange = (e) => {
-    const val = e.target.value;
+    const val = e.target.value.toUpperCase();
     const filtered = val.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
     if (filtered.length <= 100) {
       setNombre(filtered);

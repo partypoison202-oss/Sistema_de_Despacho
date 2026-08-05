@@ -845,13 +845,13 @@ export default function DetalleUnidadEncierro() {
           showConfirmButton: false
         });
         setDatosOperativos((prev) => {
-          const isReserva = nuevoEstatus === 'reserva';
+          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
           return {
             ...prev,
             estatus: nuevoEstatus,
-            conductor: isReserva ? 'No reportado hoy' : prev.conductor,
-            ruta: isReserva ? 'Sin ruta' : prev.ruta,
-            tarjeton: isReserva ? '' : prev.tarjeton,
+            conductor: isClearFields ? 'No reportado hoy' : prev.conductor,
+            ruta: isClearFields ? 'Sin ruta' : prev.ruta,
+            tarjeton: isClearFields ? '' : prev.tarjeton,
           };
         });
         setSelectedEstado(nuevoEstatus);
@@ -860,13 +860,13 @@ export default function DetalleUnidadEncierro() {
         // Sincronizar cache de React Query para evitar condiciones de carrera (race conditions)
         queryClient.setQueryData(['unidad-detalle', tipoTransporte, numeroLimpio], (old) => {
           if (!old) return old;
-          const isReserva = nuevoEstatus === 'reserva';
+          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
           return {
             ...old,
             estatus: nuevoEstatus,
-            conductor: isReserva ? 'No reportado hoy' : old.conductor,
-            ruta: isReserva ? 'Sin ruta' : old.ruta,
-            tarjeton: isReserva ? '' : old.tarjeton,
+            conductor: isClearFields ? 'No reportado hoy' : old.conductor,
+            ruta: isClearFields ? 'Sin ruta' : old.ruta,
+            tarjeton: isClearFields ? '' : old.tarjeton,
             asignado: true
           };
         });
@@ -874,13 +874,13 @@ export default function DetalleUnidadEncierro() {
         queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (old = []) => {
           return old.map(u => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-              const isReserva = nuevoEstatus === 'reserva';
+              const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
               return {
                 ...u,
                 estatus: nuevoEstatus,
-                nombre_conductor: isReserva ? 'No reportado hoy' : u.nombre_conductor,
-                ruta: isReserva ? 'Sin ruta' : u.ruta,
-                tarjeton: isReserva ? '' : u.tarjeton,
+                nombre_conductor: isClearFields ? 'No reportado hoy' : u.nombre_conductor,
+                ruta: isClearFields ? 'Sin ruta' : u.ruta,
+                tarjeton: isClearFields ? '' : u.tarjeton,
               };
             }
             return u;

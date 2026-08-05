@@ -796,13 +796,13 @@ export default function DetalleUnidadMesaControl() {
         });
         
         setDatosOperativos((prev) => {
-          const isReserva = nuevoEstatus === 'reserva';
+          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
           return {
             ...prev,
             estatus: nuevoEstatus,
-            conductor: isReserva ? 'No reportado hoy' : (data.conductor_asignado || prev.conductor),
-            ruta: isReserva ? 'Sin ruta' : (data.ruta_asignada || prev.ruta),
-            tarjeton: isReserva ? '' : (data.tarjeton || prev.tarjeton),
+            conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || prev.conductor),
+            ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || prev.ruta),
+            tarjeton: isClearFields ? '' : (data.tarjeton || prev.tarjeton),
           };
         });
         setSelectedEstado(nuevoEstatus);
@@ -811,13 +811,13 @@ export default function DetalleUnidadMesaControl() {
 
         queryClient.setQueryData(['unidad-detalle', tipoTransporte, numeroLimpio], (old) => {
           if (!old) return old;
-          const isReserva = nuevoEstatus === 'reserva';
+          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
           return {
             ...old,
             estatus: nuevoEstatus,
-            conductor: isReserva ? 'No reportado hoy' : (data.conductor_asignado || old.conductor),
-            ruta: isReserva ? 'Sin ruta' : (data.ruta_asignada || old.ruta),
-            tarjeton: isReserva ? '' : (data.tarjeton || old.tarjeton),
+            conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || old.conductor),
+            ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || old.ruta),
+            tarjeton: isClearFields ? '' : (data.tarjeton || old.tarjeton),
             asignado: true
           };
         });
@@ -825,13 +825,13 @@ export default function DetalleUnidadMesaControl() {
         queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) => {
           return old.map(u => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-              const isReserva = nuevoEstatus === 'reserva';
+              const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
               return {
                 ...u,
                 estatus: nuevoEstatus,
-                nombre_conductor: isReserva ? 'No reportado hoy' : (data.conductor_asignado || u.nombre_conductor),
-                ruta: isReserva ? 'Sin ruta' : (data.ruta_asignada || u.ruta),
-                tarjeton: isReserva ? '' : (data.tarjeton || u.tarjeton),
+                nombre_conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || u.nombre_conductor),
+                ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || u.ruta),
+                tarjeton: isClearFields ? '' : (data.tarjeton || u.tarjeton),
               };
             }
             return u;
