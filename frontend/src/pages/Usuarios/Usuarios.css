@@ -204,15 +204,19 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
 }
 
 .modal-content {
   background: var(--tw-color-white);
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 12px;
   width: 100%;
   max-width: 500px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .modal-content h2 {
@@ -239,6 +243,9 @@
   border: 1px solid var(--tw-color-gray-300);
   border-radius: 6px;
   font-size: 1rem;
+  text-transform: none !important;
+  font-weight: 500;
+  color: var(--tw-color-gray-900);
   transition: all 0.2s;
 }
 
@@ -263,7 +270,7 @@
 }
 
 .password-input-wrapper input {
-  padding-right: 2.5rem;
+  padding-right: 2.75rem;
 }
 
 .password-toggle-btn {
@@ -272,17 +279,24 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--tw-color-gray-400);
+  color: var(--tw-color-gray-500);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem;
+  padding: 0.35rem;
   border-radius: 4px;
-  transition: color 0.2s;
+  transition: color 0.2s, background-color 0.2s;
+  z-index: 2;
+}
+
+.password-toggle-btn svg {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 
 .password-toggle-btn:hover {
-  color: var(--tw-color-gray-700);
+  color: var(--brand-maroon-bg);
+  background-color: var(--tw-color-gray-100);
 }
 
 .modal-actions {

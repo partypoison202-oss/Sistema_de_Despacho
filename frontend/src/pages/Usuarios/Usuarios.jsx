@@ -154,8 +154,8 @@ export default function Usuarios() {
   };
 
   const handleUsernameChange = (e) => {
-    // Forzar minúsculas y sin espacios para evitar errores de capa 8
-    const val = e.target.value.replace(/\s+/g, '').toLowerCase();
+    // Preservar exactamente el texto tal como lo escribe el usuario
+    const val = e.target.value;
     setFormData({ ...formData, usuario: val });
   };
 
