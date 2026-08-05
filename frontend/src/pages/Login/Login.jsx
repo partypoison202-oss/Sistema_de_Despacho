@@ -152,7 +152,17 @@ export default function Login() {
       login(data.user, data.access_token, rememberMe);
       
       // Redirigir según rol
-      redirigirPorRol(data.user, navigate);
+      const redirigido = redirigirPorRol(data.user, navigate);
+
+      if (!redirigido) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Rol sin pantalla asignada',
+          text: 'Tu usuario no tiene un rol con una pantalla configurada. Contacta al administrador.',
+          confirmButtonColor: '#c5a059'
+        });
+        setIsSubmitting(false);
+      }
       
     } catch {
       Swal.fire({
@@ -165,6 +175,7 @@ export default function Login() {
   };
 
   // Función auxiliar para centralizar la redirección por rol
+  // Devuelve true si logró redirigir, false si el rol no está mapeado
   const redirigirPorRol = (user, navigate) => {
     const rol = user.role?.codigo;
     if (rol === 'ADMINISTRADOR') {
@@ -179,11 +190,16 @@ export default function Login() {
       navigate('/centro-control');
     } else if (rol === 'TITAN') {
       navigate('/titan/dashboard');
+    } else if (rol === 'INFRACCION') {
+      navigate('/infraccion/dashboard');
     } else if (rol === 'GENERAL') {
       navigate('/general');
     } else if (rol === 'DESPACHO' || rol === 'PLATAFORMA') {
       navigate('/dashboard');
+    } else {
+      return false;
     }
+    return true;
   };
 
   // Detecta si Bloq Mayús está activado durante el tecleo

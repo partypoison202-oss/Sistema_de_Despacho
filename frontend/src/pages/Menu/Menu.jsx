@@ -1,3 +1,4 @@
+// src/pages/Menu/Menu.jsx
 import { useNavigate } from 'react-router-dom';
 import { useContext, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
@@ -77,23 +78,20 @@ const menuItems = [
     label: 'RELEVOS',
     color: 'teal',
   },
-
-
   {
-  id: 'mantenimiento',
-  redirectTo: '/mantenimiento',
-  icon: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
-    </svg>
-  ),
-  label: 'MANTENIMIENTO',
-  color: 'brown',
+    id: 'mantenimiento',
+    redirectTo: '/mantenimiento',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
+      </svg>
+    ),
+    label: 'MANTENIMIENTO',
+    color: 'brown',
   },
-
   {
     id: 'centro',
-    redirectTo: '/centro-control',  // <--- CAMBIO AQUÍ
+    redirectTo: '/centro-control',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -133,7 +131,6 @@ const menuItems = [
   {
     id: 'infraccion',
     redirectTo: '/infraccion/dashboard',
-    // Módulo restringido: solo estos roles ven la tarjeta en el menú
     roles: ['ADMINISTRADOR', 'INFRACCION'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -145,9 +142,10 @@ const menuItems = [
     label: 'INFRACCION',
     color: 'red',
   },
+  // ========== CAMBIO: PLATAFORMA → MESA DE CONTROL ==========
   {
-    id: 'plataforma',
-    redirectTo: '/dashboard', 
+    id: 'mesa-control',          // antes 'plataforma'
+    redirectTo: '/mesa-control', // antes '/dashboard'
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -155,9 +153,10 @@ const menuItems = [
         <line x1="12" y1="17" x2="12" y2="21"></line>
       </svg>
     ),
-    label: 'PLATAFORMA DASHBOARD',
+    label: 'MESA DE CONTROL',   // antes 'PLATAFORMA DASHBOARD'
     color: 'blue',
   },
+  // ========================================================
   {
     id: 'operadores',
     redirectTo: '/operadores',
@@ -188,22 +187,20 @@ export default function Menu() {
 
   if (!user) return null;
 
-  // Solo mostramos las tarjetas que no tienen restricción de rol,
-  // o cuyo listado de roles incluye el rol del usuario actual.
   const visibleMenuItems = menuItems.filter((item) => {
     if (!item.roles) return true;
     return item.roles.includes(user.role?.codigo);
   });
 
   const handleClick = (item) => {
-    if (item.id === 'plataforma') {
-      localStorage.setItem('dashboardMode', 'PLATAFORMA');
-    } else if (item.id === 'despacho') {
+    // Ya no necesitamos setear dashboardMode para plataforma, pero mantenemos la lógica para despacho
+    if (item.id === 'despacho') {
       localStorage.setItem('dashboardMode', 'DESPACHO');
+    } else if (item.id === 'mesa-control') {
+      localStorage.setItem('dashboardMode', 'PLATAFORMA'); // opcional
     }
 
-    // Vista previa de rol: al entrar por RELEVOS se simula esa vista,
-    // al entrar por CAPTURISTA se restaura la vista completa.
+    // Vista previa de rol: RELEVOS y CAPTURISTA
     if (item.id === 'relevos') {
       sessionStorage.setItem('vistaPreview', 'RELEVOS');
     } else if (item.id === 'capturista') {

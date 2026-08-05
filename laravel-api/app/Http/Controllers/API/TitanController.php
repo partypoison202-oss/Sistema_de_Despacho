@@ -115,6 +115,7 @@ class TitanController extends Controller
                 'accidente_placas' => $validated['accidente_placas'] ?? null,
                 'accidente_seguro' => $seguro,
                 'accidente_hechos' => $validated['accidente_hechos'] ?? null,
+                'firma_particular_url' => $rutaFirma,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
