@@ -11,6 +11,7 @@ use App\Http\Controllers\API\PlataformaController;
 use App\Http\Controllers\API\TitanController;
 use App\Http\Controllers\API\TitanReporteController;
 use App\Http\Controllers\API\HistorialOperativoController;
+use App\Http\Controllers\API\BitacoraController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -78,6 +79,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // RUTAS PARA PLATAFORMA
     Route::post('/plataforma/movimiento', [PlataformaController::class, 'registrarMovimiento']);
+
+    // RUTAS PARA BITACORA
+    Route::get('/bitacoras', [BitacoraController::class, 'index']);
+    Route::post('/bitacoras', [BitacoraController::class, 'store']);
 });
 
 Route::get('/setup-titan', function () {
@@ -164,6 +169,45 @@ Route::get('/setup-infraccion', function () {
             ['nombre' => 'INFRACCION']
         );
         return response()->json(['message' => 'INFRACCION setup completed successfully']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
+Route::get('/setup-bitacora', function () {
+    try {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('bitacoras')) {
+            \Illuminate\Support\Facades\Schema::create('bitacoras', function (Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('corrida')->nullable();
+                $table->string('ruta')->nullable();
+                $table->string('unidad')->nullable();
+                $table->string('cambio_1')->nullable();
+                $table->string('cambio_2')->nullable();
+                $table->string('cambio_3')->nullable();
+                $table->string('cambio_4')->nullable();
+                $table->string('id_matutino')->nullable();
+                $table->string('id_vespertino')->nullable();
+                $table->timestamps();
+            });
+            return response()->json(['message' => 'BITACORA table created successfully']);
+        } else {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('bitacoras', 'corrida')) {
+                \Illuminate\Support\Facades\Schema::table('bitacoras', function (Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('corrida')->nullable()->after('id');
+                    $table->string('ruta')->nullable()->after('corrida');
+                    $table->string('cambio_1')->nullable()->after('unidad');
+                    $table->string('cambio_2')->nullable()->after('cambio_1');
+                    $table->string('cambio_3')->nullable()->after('cambio_2');
+                    $table->string('cambio_4')->nullable()->after('cambio_3');
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('bitacoras', 'cambio')) {
+                        $table->dropColumn('cambio');
+                    }
+                });
+                return response()->json(['message' => 'BITACORA table updated with new columns successfully']);
+            }
+            return response()->json(['message' => 'BITACORA table already up to date']);
+        }
     } catch (\Exception $e) {
         return response()->json(['error' => $e->getMessage()], 500);
     }

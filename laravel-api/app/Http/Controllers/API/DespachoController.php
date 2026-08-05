@@ -199,7 +199,8 @@ class DespachoController extends Controller
                 'informacion_operativa.estatus',
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
-                'informacion_operativa.falla'
+                'informacion_operativa.falla',
+                'informacion_operativa.corridas'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -216,6 +217,7 @@ class DespachoController extends Controller
                     'ruta' => $unidad->ruta,
                     'nombre_conductor' => $unidad->nombre_conductor,
                     'falla' => $unidad->falla,
+                    'corridas' => $unidad->corridas,
                 ];
             });
 

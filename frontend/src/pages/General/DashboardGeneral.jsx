@@ -5,10 +5,13 @@ import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import TablaInformativa from './components/TablaInformativa';
 import TablaFaltantes from './components/TablaFaltantes';
+import TablaBitacoraGeneral from './components/TablaBitacoraGeneral';        // NUEVO
+import TablaRutasAlimentadoras from './components/TablaRutasAlimentadoras';  // NUEVO
 import { transportModules } from '../../config/transportModules';
 import API_BASE from '../../config/api';
 import './DashboardGeneral.css';
 
+// ========== Funciones auxiliares (sin cambios) ==========
 const normalizarTexto = (valor) => String(valor ?? '').trim().toUpperCase();
 
 const normalizarRuta = (ruta) => {
@@ -22,9 +25,6 @@ const esRutaTroncal = (ruta) => {
   return texto.startsWith('T-') || texto.startsWith('T');
 };
 
-// FIX: antes solo detectaba rutas que contuvieran "RA" o fueran exactamente "20B".
-// Los datos reales usan códigos como "05", "15C", "2A", "2B", "20B", etc.
-// La regla correcta es: si tiene ruta asignada y NO es troncal, es alimentador.
 const esRutaAlimentador = (ruta) => {
   const texto = normalizarRuta(ruta);
   if (texto === 'SIN SERVICIO') return false;
@@ -39,13 +39,13 @@ const normalizarEstatus = (valor) => {
   return 'FUERA';
 };
 
+// ========== Construcción de resúmenes (sin cambios) ==========
 const construirResumen = (registros, tipo) => {
   const filasPorServicio = new Map();
 
   registros.forEach((registro) => {
     const ruta = normalizarRuta(registro.ruta);
     const coincide = tipo === 'troncal' ? esRutaTroncal(ruta) : esRutaAlimentador(ruta);
-
     if (!coincide) return;
 
     const entrada = filasPorServicio.get(ruta) || {
@@ -67,11 +67,9 @@ const construirResumen = (registros, tipo) => {
     if (registro.corridas !== null && registro.corridas !== undefined && registro.corridas !== '') {
       entrada.corridas.push(String(registro.corridas));
     }
-
     if (registro.motivo) {
       entrada.motivos.push(String(registro.motivo));
     }
-
     if (registro.economico) {
       entrada.economicos.push(String(registro.economico));
     }
@@ -115,8 +113,6 @@ const construirResumen = (registros, tipo) => {
   };
 };
 
-// Construye la lista plana de unidades con estatus "FUERA" para la
-// tabla de unidades faltantes (ECO, RUTA, CORRIDA, CICLO, MOTIVO).
 const construirFaltantes = (registros) =>
   registros
     .filter((registro) => normalizarEstatus(registro.estatus) === 'FUERA')
@@ -133,14 +129,22 @@ const construirFaltantes = (registros) =>
     })
     .sort((a, b) => a.ruta.localeCompare(b.ruta) || a.eco.localeCompare(b.eco));
 
+// ========== Componente principal ==========
 export default function Dashboard() {
+  // Estados de visibilidad
   const [mostrarTroncal, setMostrarTroncal] = useState(false);
   const [mostrarAlimentador, setMostrarAlimentador] = useState(false);
   const [mostrarFaltantes, setMostrarFaltantes] = useState(false);
+  const [mostrarBitacoraGeneral, setMostrarBitacoraGeneral] = useState(false);   // NUEVO
+  const [mostrarRutasAlimentadoras, setMostrarRutasAlimentadoras] = useState(false); // NUEVO
 
+  // ===== Consultas existentes =====
   const fetchConteos = async () => {
     const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+      },
     });
     if (!response.ok) throw new Error('Error');
     return response.json();
@@ -154,7 +158,10 @@ export default function Dashboard() {
 
   const fetchDespachoHoy = async () => {
     const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+      },
     });
     if (!response.ok) throw new Error('Error');
     return response.json();
@@ -166,6 +173,47 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  // ===== NUEVAS consultas para bitácoras =====
+  const fetchBitacoraGeneral = async () => {
+    const response = await fetch(`${API_BASE}/api/bitacoras`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+      },
+    });
+    if (!response.ok) throw new Error('Error al obtener bitácora general');
+    const data = await response.json();
+    return data.filter(b => b.tipo_unidad && b.tipo_unidad.toUpperCase().trim().includes('URBANUS'));
+  };
+
+  const fetchRutasAlimentadoras = async () => {
+    const response = await fetch(`${API_BASE}/api/bitacoras`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+      },
+    });
+    if (!response.ok) throw new Error('Error al obtener rutas alimentadoras');
+    const data = await response.json();
+    return data.filter(b => {
+      const tipo = b.tipo_unidad ? b.tipo_unidad.toUpperCase().trim() : '';
+      return tipo.includes('ZAFIRO') || tipo.includes('ORION') || tipo.includes('VAGONETA');
+    });
+  };
+
+  const { data: bitacoraGeneral = [], isLoading: cargandoBitacoraGeneral } = useQuery({
+    queryKey: ['bitacora-general'],
+    queryFn: fetchBitacoraGeneral,
+    refetchInterval: 60000, // cada 60 segundos
+  });
+
+  const { data: rutasAlimentadoras = [], isLoading: cargandoRutasAlimentadoras } = useQuery({
+    queryKey: ['rutas-alimentadoras'],
+    queryFn: fetchRutasAlimentadoras,
+    refetchInterval: 60000,
+  });
+
+  // ===== Procesamiento de datos de despacho (sin cambios) =====
   const registrosNormalizados = React.useMemo(() => {
     return Array.isArray(registrosHoy)
       ? registrosHoy.map((registro) => ({
@@ -188,8 +236,6 @@ export default function Dashboard() {
   const faltantesUnidades = React.useMemo(() => construirFaltantes(registrosNormalizados), [registrosNormalizados]);
 
   const cargando = cargandoConteos || cargandoHoy;
-
-
 
   return (
     <div className="dashboard">
@@ -215,8 +261,9 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Etiquetas desplegables de tablas informativas */}
+        {/* ===== TABLAS INFORMATIVAS ===== */}
         <div className="dashboard__tablas-informativas">
+          {/* Etiqueta Troncal */}
           <button
             className="dashboard__etiqueta"
             onClick={() => setMostrarTroncal((prev) => !prev)}
@@ -230,7 +277,6 @@ export default function Dashboard() {
               ▾
             </span>
           </button>
-
           {mostrarTroncal && (
             <TablaInformativa
               titulo="Tabla informativa servicio troncal"
@@ -244,6 +290,7 @@ export default function Dashboard() {
             />
           )}
 
+          {/* Etiqueta Alimentador */}
           <button
             className="dashboard__etiqueta"
             onClick={() => setMostrarAlimentador((prev) => !prev)}
@@ -257,7 +304,6 @@ export default function Dashboard() {
               ▾
             </span>
           </button>
-
           {mostrarAlimentador && (
             <TablaInformativa
               titulo="Tabla informativa de servicio alimentador"
@@ -271,6 +317,7 @@ export default function Dashboard() {
             />
           )}
 
+          {/* Etiqueta Faltantes */}
           <button
             className="dashboard__etiqueta"
             onClick={() => setMostrarFaltantes((prev) => !prev)}
@@ -284,12 +331,47 @@ export default function Dashboard() {
               ▾
             </span>
           </button>
-
           {mostrarFaltantes && (
             <TablaFaltantes
               titulo="Unidades faltantes"
               filas={faltantesUnidades}
             />
+          )}
+
+          {/* ===== NUEVA ETIQUETA: Bitácora General ===== */}
+          <button
+            className="dashboard__etiqueta"
+            onClick={() => setMostrarBitacoraGeneral((prev) => !prev)}
+          >
+            <span>Bitácora General</span>
+            <span
+              className={`dashboard__etiqueta-flecha ${
+                mostrarBitacoraGeneral ? 'dashboard__etiqueta-flecha--abierta' : ''
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+          {mostrarBitacoraGeneral && (
+            <TablaBitacoraGeneral data={bitacoraGeneral} />
+          )}
+
+          {/* ===== NUEVA ETIQUETA: Rutas Alimentadoras ===== */}
+          <button
+            className="dashboard__etiqueta"
+            onClick={() => setMostrarRutasAlimentadoras((prev) => !prev)}
+          >
+            <span>Rutas Alimentadoras</span>
+            <span
+              className={`dashboard__etiqueta-flecha ${
+                mostrarRutasAlimentadoras ? 'dashboard__etiqueta-flecha--abierta' : ''
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+          {mostrarRutasAlimentadoras && (
+            <TablaRutasAlimentadoras data={rutasAlimentadoras} />
           )}
         </div>
       </main>

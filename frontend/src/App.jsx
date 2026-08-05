@@ -1,4 +1,3 @@
-// src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -40,6 +39,8 @@ import InfraccionDashboard from './pages/Infraccion/InfraccionDashboard';
 import DashboardMesaControl from '../src/pages/MesadeControl/DashboardMesaControl';
 import DetalleUnidadMesaControl from '../src/pages/MesadeControl/DetalleUnidadMesaControl';
 // ========================================================
+
+// =================================================
 
 function App() {
   return (
@@ -237,6 +238,8 @@ function App() {
               <PatioDashboard />
             </ProtectedRoute>
           } />
+
+          {/* =============================================================== */}
 
           {/* Rutas protegidas para MANTENIMIENTO (solo ADMIN y MANTENIMIENTO) */}
           <Route path="/mantenimiento" element={

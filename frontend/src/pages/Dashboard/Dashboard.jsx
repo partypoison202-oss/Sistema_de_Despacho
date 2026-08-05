@@ -92,7 +92,8 @@ export default function Dashboard() {
             const unidadEncontrada = unidades.find((unidad) => {
               const valorEco = unidad.numero_eco !== undefined ? unidad.numero_eco : unidad.eco;
               const numeroEcoUnidad = normalizarNumeroEco(valorEco ?? '');
-              return numeroEcoUnidad === eco;
+              const isOperacion = (unidad.estatus || '').toLowerCase().trim().includes('operaci');
+              return numeroEcoUnidad === eco && isOperacion;
             });
 
             return unidadEncontrada ? { modulo, unidad: unidadEncontrada } : null;

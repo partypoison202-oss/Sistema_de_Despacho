@@ -63,7 +63,6 @@
   margin: 0 0 10px;
 }
 
-/* --- Nueva clase para la fecha --- */
 .centro-date {
   font-size: 1rem;
   font-weight: 500;
@@ -149,12 +148,10 @@
 .centro-kpi--total {
   border-left-color: var(--cc-maroon);
 }
-
 .centro-kpi--total .centro-kpi__icon {
   background: rgba(96, 26, 42, 0.1);
   color: var(--cc-maroon);
 }
-
 .centro-kpi--total .centro-kpi__value {
   color: var(--cc-maroon);
 }
@@ -162,12 +159,10 @@
 .centro-kpi--operacion {
   border-left-color: var(--cc-operacion);
 }
-
 .centro-kpi--operacion .centro-kpi__icon {
   background: var(--cc-operacion-bg);
   color: var(--cc-operacion);
 }
-
 .centro-kpi--operacion .centro-kpi__value {
   color: var(--cc-operacion);
 }
@@ -175,12 +170,10 @@
 .centro-kpi--reserva {
   border-left-color: var(--cc-reserva);
 }
-
 .centro-kpi--reserva .centro-kpi__icon {
   background: var(--cc-reserva-bg);
   color: var(--cc-reserva);
 }
-
 .centro-kpi--reserva .centro-kpi__value {
   color: var(--cc-reserva);
 }
@@ -188,12 +181,10 @@
 .centro-kpi--mantenimiento {
   border-left-color: var(--cc-mantenimiento);
 }
-
 .centro-kpi--mantenimiento .centro-kpi__icon {
   background: var(--cc-mantenimiento-bg);
   color: var(--cc-mantenimiento);
 }
-
 .centro-kpi--mantenimiento .centro-kpi__value {
   color: var(--cc-mantenimiento);
 }
@@ -202,7 +193,6 @@
 .centro-section-header {
   margin: 8px 0 16px;
 }
-
 .centro-section-header h2 {
   font-size: 1.05rem;
   font-weight: 700;
@@ -219,7 +209,6 @@
   gap: 18px;
   margin-bottom: 36px;
 }
-
 @media (max-width: 760px) {
   .centro-type-grid {
     grid-template-columns: 1fr;
@@ -235,28 +224,22 @@
   border-top: 4px solid transparent;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-
 .centro-type-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 24px rgba(96, 26, 42, 0.14);
 }
-
 .centro-type-card--clickable {
   cursor: pointer;
 }
-
 .centro-type-card--maroon {
   border-top-color: var(--cc-maroon);
 }
-
 .centro-type-card--gold {
   border-top-color: var(--cc-gold);
 }
-
 .centro-type-card--green {
   border-top-color: var(--cc-green);
 }
-
 .centro-type-card--blue {
   border-top-color: var(--cc-blue);
 }
@@ -267,34 +250,30 @@
   gap: 14px;
   margin-bottom: 16px;
 }
-
 .centro-type-card__image {
   width: 64px;
   height: 48px;
   object-fit: contain;
   flex-shrink: 0;
 }
-
 .centro-type-card__heading {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-
 .centro-type-card__label {
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: var(--cc-text);
 }
-
 .centro-type-card__total {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--cc-text-muted);
 }
 
-/* Barra apilada de proporción */
+/* Barra apilada */
 .centro-bar {
   display: flex;
   width: 100%;
@@ -304,20 +283,16 @@
   background: var(--tw-color-gray-50);
   margin-bottom: 16px;
 }
-
 .centro-bar__seg {
   height: 100%;
   transition: width 0.4s ease;
 }
-
 .centro-bar__seg--operacion {
   background: var(--cc-operacion);
 }
-
 .centro-bar__seg--reserva {
   background: var(--cc-reserva);
 }
-
 .centro-bar__seg--mantenimiento {
   background: var(--cc-mantenimiento);
 }
@@ -328,7 +303,6 @@
   flex-direction: column;
   gap: 8px;
 }
-
 .centro-status-row {
   display: flex;
   align-items: center;
@@ -336,40 +310,32 @@
   padding: 6px 4px;
   border-radius: 8px;
 }
-
 .centro-status-row:hover {
   background: var(--tw-color-gray-50);
 }
-
 .centro-status-dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-
 .centro-status-dot--operacion {
   background: var(--cc-operacion);
 }
-
 .centro-status-dot--reserva {
   background: var(--cc-reserva);
 }
-
 .centro-status-dot--mantenimiento {
   background: var(--cc-mantenimiento);
 }
-
 .centro-status-dot--otros {
   background: var(--cc-otros);
 }
-
 .centro-status-label {
   font-size: 0.85rem;
   color: var(--cc-text-muted);
   flex: 1;
 }
-
 .centro-status-percent {
   font-size: 0.72rem;
   font-weight: 700;
@@ -378,22 +344,18 @@
   min-width: 42px;
   text-align: center;
 }
-
 .centro-status-percent--operacion {
   color: var(--cc-operacion);
   background: var(--cc-operacion-bg);
 }
-
 .centro-status-percent--reserva {
   color: var(--cc-reserva);
   background: var(--cc-reserva-bg);
 }
-
 .centro-status-percent--mantenimiento {
   color: var(--cc-mantenimiento);
   background: var(--cc-mantenimiento-bg);
 }
-
 .centro-status-value {
   font-size: 0.95rem;
   font-weight: 700;
@@ -424,30 +386,26 @@
   gap: 8px;
   transition: filter 0.15s ease, transform 0.15s ease;
 }
-
 .centro-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
-
 .centro-btn:not(:disabled):hover {
   transform: translateY(-2px);
   filter: brightness(1.05);
 }
-
 .centro-btn--primary {
   background: var(--cc-maroon);
   color: var(--tw-color-white);
   box-shadow: 0 6px 16px rgba(96, 26, 42, 0.25);
 }
-
 .centro-btn--secondary {
   background: var(--tw-color-white);
   color: var(--cc-maroon);
   border: 1.5px solid var(--cc-maroon);
 }
 
-/* Spinner del botón de reporte */
+/* Spinner */
 .centro-spinner {
   width: 14px;
   height: 14px;
@@ -457,13 +415,13 @@
   display: inline-block;
   animation: centro-spin 0.7s linear infinite;
 }
-
 @keyframes centro-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
+/* ---------- Botones de acción superior (Titanes, Bitácora, Plano) ---------- */
 .centro-kpis-actions {
   display: flex;
   justify-content: flex-end;
@@ -486,15 +444,74 @@
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(96, 26, 42, 0.08);
 }
-
 .centro-btn-plano svg {
   width: 20px;
   height: 20px;
 }
-
 .centro-btn-plano:hover {
   background: #601a2a;
   color: #ffffff;
   box-shadow: 0 6px 16px rgba(96, 26, 42, 0.25);
   transform: translateY(-2px);
+}
+
+/* Variante para el botón Bitácora (color distintivo) */
+.centro-btn-plano--bitacora {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+.centro-btn-plano--bitacora:hover {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+}
+
+/* ---------- Estilos adicionales para el formulario/modal de bitácora (opcional) ---------- */
+.centro-bitacora-form {
+  background: var(--cc-card-bg);
+  border-radius: var(--cc-radius);
+  padding: 24px;
+  box-shadow: var(--cc-shadow);
+  margin-top: 20px;
+  border: 1px solid var(--cc-border);
+}
+.centro-bitacora-form h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--cc-maroon);
+  margin: 0 0 16px;
+}
+.centro-bitacora-form .form-group {
+  margin-bottom: 16px;
+}
+.centro-bitacora-form label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cc-text-muted);
+  margin-bottom: 4px;
+}
+.centro-bitacora-form input,
+.centro-bitacora-form select,
+.centro-bitacora-form textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--cc-border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+.centro-bitacora-form input:focus,
+.centro-bitacora-form select:focus,
+.centro-bitacora-form textarea:focus {
+  outline: none;
+  border-color: var(--cc-maroon);
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.1);
+}
+.centro-bitacora-form .form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
 }

@@ -1,4 +1,3 @@
-// src/pages/CentroControl/CentroControl.jsx
 import React, { useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +8,7 @@ import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
+import FormularioBitacora from './FormularioBitacora/FormularioBitacora';
 
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
 const modelsConfig = [
@@ -26,6 +26,7 @@ export default function CentroControl() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingStats, setIsGeneratingStats] = useState(false);
+  const [isBitacoraOpen, setIsBitacoraOpen] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -263,7 +264,6 @@ export default function CentroControl() {
           <div className="centro-welcome">
             <p className="centro-eyebrow">Visión general de la flota</p>
             <h1 className="centro-title">Centro de Control</h1>
-            {/* --- NUEVO: fecha actual --- */}
             <p className="centro-date">{fechaActual}</p>
             <p className="centro-subtitle">
               Consulta el total de unidades programadas, su estatus operativo
@@ -273,13 +273,13 @@ export default function CentroControl() {
  
           <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
 
+            {/* Botón Titanes */}
             <button
               type="button"
               className="centro-btn-plano"
               onClick={() => navigate('/reportestitanes')}
               style={{ position: 'relative' }}
             >
-              {/* Burbuja: Titanes activos */}
               <span
                 title="Titanes activos"
                 style={{
@@ -305,7 +305,6 @@ export default function CentroControl() {
                 {titanesActivos}
               </span>
 
-              {/* Burbuja: Notificaciones */}
               {titanesNotificaciones > 0 && (
                 <span
                   title="Notificaciones"
@@ -333,15 +332,32 @@ export default function CentroControl() {
                 </span>
               )}
 
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <path d="M12 8v4" />
-              <path d="M12 16h.01" />
-            </svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M12 8v4" />
+                <path d="M12 16h.01" />
+              </svg>
               Titanes
             </button>
 
-                        <button
+            {/* ===== NUEVO BOTÓN BITÁCORA ===== */}
+            <button
+              type="button"
+              className="centro-btn-plano centro-btn-plano--bitacora"
+              onClick={() => setIsBitacoraOpen(true)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              Bitácora
+            </button>
+
+            {/* Botón Plano de Patio */}
+            <button
               type="button"
               className="centro-btn-plano"
               onClick={() => navigate('/plano-patio')}
@@ -357,6 +373,7 @@ export default function CentroControl() {
 
           {/* ---------- KPIs globales ---------- */}
           <section className="centro-kpis">
+            {/* ... resto de KPIs (sin cambios) ... */}
             <div className="centro-kpi centro-kpi--total">
               <div className="centro-kpi__icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -517,7 +534,6 @@ export default function CentroControl() {
                       </div>
                     </div>
 
-                    {/* Barra apilada de proporción */}
                     <div className="centro-bar" role="img" aria-label={`Distribución de estatus ${mc.label}`}>
                       <span
                         className="centro-bar__seg centro-bar__seg--operacion"
@@ -533,7 +549,6 @@ export default function CentroControl() {
                       />
                     </div>
 
-                    {/* Detalle por estatus */}
                     <div className="centro-status-list">
                       <div className="centro-status-row">
                         <span className="centro-status-dot centro-status-dot--operacion" />
@@ -613,6 +628,10 @@ export default function CentroControl() {
           </section>
         </main>
       </div>
+
+      {isBitacoraOpen && (
+        <FormularioBitacora onClose={() => setIsBitacoraOpen(false)} />
+      )}
     </>
   );
 }

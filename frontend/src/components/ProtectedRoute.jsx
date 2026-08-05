@@ -18,36 +18,32 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/" replace />;
   }
 
+  // Si se definieron roles permitidos y el usuario no está en ellos, redirigir
   if (allowedRoles && !allowedRoles.includes(user.role.codigo)) {
-    // Redirigir según el rol del usuario
-    if (user.role.codigo === 'CAPTURISTA' || user.role.codigo === 'RELEVOS' || user.role.codigo === 'REVELOS') {
-      return <Navigate to="/cargar-excel" replace />;
-    }
-    if (user.role.codigo === 'GESTOR_OPERADORES') {
-      return <Navigate to="/operadores" replace />;
-    }
-    if (user.role.codigo === 'ENCIERRO') {
-      return <Navigate to="/encierro/dashboard" replace />;
-    }
-    if (rol === 'GENERAL') {
-      return <Navigate to="/general" replace />;
-    }
-    if (rol === 'CENTRO_CONTROL') {
-      return <Navigate to="/centro-control" replace />;
-    }
-    if (rol === 'TITAN') {
-      return <Navigate to="/titan/dashboard" replace />;
-    }
-    if (rol === 'INFRACCION') {
-      return <Navigate to="/infraccion/dashboard" replace />;
-    }
-    if (rol === 'DESPACHO' || rol === 'PLATAFORMA') {
-      return <Navigate to="/dashboard" replace />;
+    // Mapeo de roles a rutas de redirección
+    const roleRedirectMap = {
+      CAPTURISTA: '/cargar-excel',
+      RELEVOS: '/cargar-excel',
+      REVELOS: '/cargar-excel',
+      GESTOR_OPERADORES: '/operadores',
+      ENCIERRO: '/encierro/dashboard',
+      GENERAL: '/general',
+      CENTRO_CONTROL: '/centro-control',
+      TITAN: '/titan/dashboard',
+      INFRACCION: '/infraccion/dashboard',
+      DESPACHO: '/dashboard',
+      PLATAFORMA: '/dashboard',
+    };
+
+    const redirectPath = roleRedirectMap[user.role.codigo];
+    if (redirectPath) {
+      return <Navigate to={redirectPath} replace />;
     }
 
-    // Rol no reconocido: enviar al login para evitar loops
+    // Si el rol no está en el mapa, enviar al login (evita loops)
     return <Navigate to="/" replace />;
   }
 
+  // Si el usuario tiene el rol permitido, renderizar los children
   return children;
 }
