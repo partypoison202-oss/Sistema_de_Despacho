@@ -54,7 +54,7 @@ export default function CentroControl() {
   const { data: apiData = [], isLoading: cargando } = useQuery({
     queryKey: ['despacho-hoy'],
     queryFn: fetchDespachoHoy,
-    refetchInterval: 30000,
+    refetchInterval: 10000, // Cada 10s – monitoreo activo de operaciones
   });
 
   const modelData = React.useMemo(() => {

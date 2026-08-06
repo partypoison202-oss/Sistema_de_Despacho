@@ -317,7 +317,8 @@ class DespachoController extends Controller
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
                 'informacion_operativa.hora_programada',
-                'informacion_operativa.acople'
+                'informacion_operativa.acople',
+                'informacion_operativa.hora_salida'
             )
             ->first();
 
@@ -344,6 +345,8 @@ class DespachoController extends Controller
                 'motivo'    => $info->motivo,
                 'hora_programada' => $info->hora_programada,
                 'acople'    => $info->acople,
+                'hora_salida' => $info->hora_salida,
+                // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -361,6 +364,8 @@ class DespachoController extends Controller
                 'motivo'    => null,
                 'hora_programada' => null,
                 'acople'    => null,
+                'hora_salida' => null,
+                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -614,7 +619,8 @@ class DespachoController extends Controller
             'tipo' => 'required|string',
             'numero_eco' => 'required|string',
             'hora_programada' => 'nullable|string',
-            'acople' => 'nullable|string'
+            'acople' => 'nullable|string',
+            'hora_salida' => 'nullable|string'
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
@@ -634,12 +640,18 @@ class DespachoController extends Controller
             ], 404);
         }
 
+        $updateData = [
+            'hora_programada' => $request->hora_programada,
+            'acople' => $request->acople
+        ];
+
+        if ($request->has('hora_salida')) {
+            $updateData['hora_salida'] = $request->hora_salida;
+        }
+
         $actualizado = DB::table('informacion_operativa')
             ->where('id', $registro->id)
-            ->update([
-                'hora_programada' => $request->hora_programada,
-                'acople' => $request->acople
-            ]);
+            ->update($updateData);
 
         if ($actualizado !== false) {
             // Registrar acción en la bitácora de cambios
@@ -652,7 +664,8 @@ class DespachoController extends Controller
                 'status' => 'success',
                 'message' => 'Horas actualizadas exitosamente',
                 'hora_programada' => $request->hora_programada,
-                'acople' => $request->acople
+                'acople' => $request->acople,
+                'hora_salida' => $request->hora_salida ?? null
             ], 200);
         }
 

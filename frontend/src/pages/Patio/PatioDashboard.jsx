@@ -263,7 +263,7 @@ const PatioDashboard = () => {
   const { data: allApiUnits = [], isLoading: loading, refetch: forceFetchUnits } = useQuery({
     queryKey: ['unidades-patio-all'],
     queryFn: fetchAllUnitsData,
-    refetchInterval: 3000,
+    refetchInterval: 5000, // Cada 5s – casi tiempo real, sin saturar servidor
     refetchOnWindowFocus: true,
   });
 

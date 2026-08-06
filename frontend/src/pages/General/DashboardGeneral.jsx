@@ -153,7 +153,7 @@ export default function Dashboard() {
   const { data: conteos = {}, isLoading: cargandoConteos } = useQuery({
     queryKey: ['conteo-unidades-global'],
     queryFn: fetchConteos,
-    refetchInterval: 30000,
+    refetchInterval: 60000, // Cada 60s – pantalla informativa
   });
 
   const fetchDespachoHoy = async () => {
@@ -170,7 +170,7 @@ export default function Dashboard() {
   const { data: registrosHoy = [], isLoading: cargandoHoy } = useQuery({
     queryKey: ['despacho-hoy'],
     queryFn: fetchDespachoHoy,
-    refetchInterval: 30000,
+    refetchInterval: 60000, // Cada 60s – pantalla informativa
   });
 
   // ===== NUEVAS consultas para bitácoras =====
