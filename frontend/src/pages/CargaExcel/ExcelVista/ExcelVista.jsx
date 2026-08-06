@@ -11,7 +11,7 @@ const HEADER_TRANSLATIONS = {
   TARJETON: 'Tarjetón',
   NOMBRE_CONDUCTOR: 'Conductor',
   ESTATUS: 'Estatus',
-  HORA_DE_ACOPLE: 'Hora de Acople',
+  HORA_DE_ACOPLE: 'Hora Programada',
   CORRIDAS: 'Corrida',
 };
 
