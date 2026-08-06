@@ -60,19 +60,34 @@ export default function UnitInfoPanel({
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
   }, [datosOperativos]);
 
-  // AUTOMÁTICO: actualizar la hora de salida con la hora actual del sistema o usar la guardada
+  // AUTOMÁTICO: hora de salida en tiempo real
   useEffect(() => {
-    if (datosOperativos.hora_salida) {
-      setFormHoraSalida(datosOperativos.hora_salida);
-    } else if (selectedOption) {
+    let intervalId;
+    
+    const updateTime = () => {
       const ahora = new Date();
       const horas = String(ahora.getHours()).padStart(2, '0');
       const minutos = String(ahora.getMinutes()).padStart(2, '0');
-      setFormHoraSalida(`${horas}:${minutos}`);
+      const showColon = ahora.getSeconds() % 2 === 0;
+      
+      setFormHoraSalida(
+        <span>
+          {horas}<span style={{ visibility: showColon ? 'visible' : 'hidden' }}>:</span>{minutos}
+        </span>
+      );
+    };
+
+    if (selectedOption) {
+      updateTime();
+      intervalId = setInterval(updateTime, 1000); // actualiza cada 1 segundo
     } else {
       setFormHoraSalida('');
     }
-  }, [selectedOption, datosOperativos.hora_salida]);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [selectedOption]);
 
   const calculateAcople = (timeStr) => {
     if (!timeStr) return '--:--';
@@ -791,57 +806,13 @@ export default function UnitInfoPanel({
             {/* 6. Hora de Salida (Manual confirm) */}
             <div className="info-card__item">
               <span className="info-card__label">Hora de Salida</span>
-              <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1, flex: 1 }}>
-                  <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                    {formHoraSalida || '--:--'}
-                  </span>
-                </div>
-                
-                <button
-                  type="button"
-                  disabled={guardandoSalida || isPlataforma || isReservaOrMantenimiento}
-                  onClick={async () => {
-                    setGuardandoSalida(true);
-                    try {
-                      if (handleSaveHoras) {
-                        await handleSaveHoras(formHoraProgramada, calculatedAcople, formHoraSalida);
-                        const Swal = (await import('sweetalert2')).default;
-                        Swal.fire({
-                          icon: 'success',
-                          title: 'Hora de Salida Guardada',
-                          text: `Se registró la salida a las ${formHoraSalida}`,
-                          confirmButtonColor: '#601a2a',
-                          timer: 2000,
-                          showConfirmButton: false,
-                        });
-                      }
-                    } catch(e) {
-                       console.error(e);
-                    } finally {
-                       setGuardandoSalida(false);
-                    }
-                  }}
-                  style={{
-                    background: '#601a2a',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    padding: '0 0.85rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold',
-                    cursor: (guardandoSalida || isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
-                    opacity: (guardandoSalida || isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {guardandoSalida ? '...' : 'Guardar'}
-                </button>
+              <div className="badge-display badge-display--maroon">
+                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="badge-display__text">
+                  {formHoraSalida || '--:--'}
+                </span>
               </div>
             </div>
 
