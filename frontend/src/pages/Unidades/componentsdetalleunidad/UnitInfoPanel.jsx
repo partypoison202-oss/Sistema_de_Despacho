@@ -47,31 +47,62 @@ export default function UnitInfoPanel({
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
   const [formHoraProgramada, setFormHoraProgramada] = useState('');
-  const [formAcople, setFormAcople] = useState(''); // ⬅️ Se usará para la hora de salida automática
+  const [formHoraSalida, setFormHoraSalida] = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
-  const [dropdownAcopleOpen, setDropdownAcopleOpen] = useState(false);
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
+  const [guardandoSalida, setGuardandoSalida] = useState(false);
 
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
 
   // Inicializar hora programada desde datosOperativos
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
-    // ⚠️ Ya NO inicializamos formAcople desde datosOperativos porque será automático
   }, [datosOperativos]);
 
-  // ✅ AUTOMÁTICO: actualizar la hora de salida al seleccionar una unidad
+  // AUTOMÁTICO: hora de salida en tiempo real
   useEffect(() => {
-    if (selectedOption) {
+    let intervalId;
+    
+    const updateTime = () => {
       const ahora = new Date();
       const horas = String(ahora.getHours()).padStart(2, '0');
       const minutos = String(ahora.getMinutes()).padStart(2, '0');
-      setFormAcople(`${horas}:${minutos}`);
+      const showColon = ahora.getSeconds() % 2 === 0;
+      
+      setFormHoraSalida(
+        <span>
+          {horas}<span style={{ visibility: showColon ? 'visible' : 'hidden' }}>:</span>{minutos}
+        </span>
+      );
+    };
+
+    if (selectedOption) {
+      updateTime();
+      intervalId = setInterval(updateTime, 1000); // actualiza cada 1 segundo
     } else {
-      setFormAcople('');
+      setFormHoraSalida('');
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [selectedOption]);
+
+  const calculateAcople = (timeStr) => {
+    if (!timeStr) return '--:--';
+    const [hStr, mStr] = timeStr.split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (isNaN(h) || isNaN(m)) return '--:--';
+    const totalMins = h * 60 + m + 30;
+    const newH = Math.floor(totalMins / 60) % 24;
+    const newM = totalMins % 60;
+    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+  };
+
+  const calculatedAcople = calculateAcople(formHoraProgramada);
+
 
   const [rutasOpciones, setRutasOpciones] = useState([]);
   const [formRuta, setFormRuta] = useState('');
@@ -449,111 +480,8 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Servicio Activo</h3>
           </div>
           <div className="info-card__body">
-            {/* Conductor Asignado */}
+            {/* 1. Número de Tarjetón (Editable) */}
             <div className="info-card__item">
-              <span className="info-card__label">Conductor Asignado</span>
-              <div className="info-card__value-wrapper">
-                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
-                </p>
-              </div>
-            </div>
-
-            {/* Ruta Asignada */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-              <span className="info-card__label">Ruta Asignada</span>
-              {!isPlataforma && !isReservaOrMantenimiento ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                  <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
-                    <button
-                      type="button"
-                      className="interactive-input"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 0.85rem',
-                        cursor: guardandoRuta ? 'not-allowed' : 'pointer',
-                        textAlign: 'left',
-                        background: 'var(--tw-color-white)',
-                        height: '2.3rem',
-                        fontSize: '0.85rem',
-                        width: '100%',
-                        fontWeight: 'bold',
-                        opacity: guardandoRuta ? 0.7 : 1
-                      }}
-                      onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
-                    >
-                      {guardandoRuta ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
-                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
-                          <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-
-                    {dropdownRutaOpen && (
-                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                          <button
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                            onClick={() => {
-                              setFormRuta('');
-                              setDropdownRutaOpen(false);
-                              handleConfirmRuta('');
-                            }}
-                          >
-                            SELECCIONAR
-                          </button>
-                          {rutasOpciones.map((r, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              className="dropdown-menu__item"
-                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
-                              onClick={() => {
-                                setFormRuta(r);
-                                setDropdownRutaOpen(false);
-                                handleConfirmRuta(r);
-                              }}
-                            >
-                              {r}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <p className="info-card__value">
-                      {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Número de Tarjetón (Editable) */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Número de Tarjetón</span>
               {!isPlataforma && !isReservaOrMantenimiento ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
@@ -676,6 +604,122 @@ export default function UnitInfoPanel({
                 </div>
               )}
             </div>
+
+            {/* 2. Conductor Asignado */}
+            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+              <span className="info-card__label">Conductor Asignado</span>
+              <div className="info-card__value-wrapper">
+                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Ruta Asignada */}
+            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+              <span className="info-card__label">Ruta Asignada</span>
+              {!isPlataforma && !isReservaOrMantenimiento ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
+                  <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
+                    <button
+                      type="button"
+                      className="interactive-input"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 0.85rem',
+                        cursor: guardandoRuta ? 'not-allowed' : 'pointer',
+                        textAlign: 'left',
+                        background: 'var(--tw-color-white)',
+                        height: '2.3rem',
+                        fontSize: '0.85rem',
+                        width: '100%',
+                        fontWeight: 'bold',
+                        opacity: guardandoRuta ? 0.7 : 1
+                      }}
+                      onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
+                    >
+                      {guardandoRuta ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
+                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
+                          <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+
+                    {dropdownRutaOpen && (
+                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                          <button
+                            type="button"
+                            className="dropdown-menu__item"
+                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                            onClick={() => {
+                              setFormRuta('');
+                              setDropdownRutaOpen(false);
+                              handleConfirmRuta('');
+                            }}
+                          >
+                            SELECCIONAR
+                          </button>
+                          {rutasOpciones.map((r, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              className="dropdown-menu__item"
+                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
+                              onClick={() => {
+                                setFormRuta(r);
+                                setDropdownRutaOpen(false);
+                                handleConfirmRuta(r);
+                              }}
+                            >
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p className="info-card__value">
+                      {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Corrida */}
+            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+              <span className="info-card__label">Corrida</span>
+              <div className="info-card__value-wrapper">
+                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                </svg>
+                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -688,25 +732,15 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Despacho</h3>
           </div>
           <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="info-card__item">
-              <span className="info-card__label">Corrida</span>
-              <div className="badge-display badge-display--maroon">
-                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-                <span className="badge-display__text">
-                  {cargandoDatos ? '...' : (datosOperativos.corrida || 'No asignada')}
-                </span>
-              </div>
-            </div>
 
+            {/* 4. Hora Programada */}
             <div className="info-card__item">
               <span className="info-card__label">Hora Programada</span>
               <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
                   disabled={isPlataforma || isReservaOrMantenimiento}
-                  onClick={() => { setDropdownHoraOpen(!dropdownHoraOpen); setDropdownAcopleOpen(false); }}
+                  onClick={() => { setDropdownHoraOpen(!dropdownHoraOpen); }}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -745,8 +779,9 @@ export default function UnitInfoPanel({
                       onChange={setFormHoraProgramada}
                       onClose={() => setDropdownHoraOpen(false)}
                       onSave={async () => {
+                        // Al guardar la hora programada no guardamos acople al backend, o si es necesario se le pasa calculatedAcople
                         if (handleSaveHoras) {
-                          await handleSaveHoras(formHoraProgramada, formAcople);
+                          await handleSaveHoras(formHoraProgramada, calculatedAcople);
                         }
                       }}
                     />
@@ -755,20 +790,30 @@ export default function UnitInfoPanel({
               </div>
             </div>
 
-            {/* ✅ NUEVO: Hora de salida (automática) */}
+            {/* 5. Hora de Acople (+30 min) */}
             <div className="info-card__item">
-              <span className="info-card__label">Hora de salida</span>
-              <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1 }}>
+              <span className="info-card__label">Hora de Acople (+30m)</span>
+              <div className="badge-display badge-display--gray" style={{ padding: '0.5rem 1rem', opacity: 1, border: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                <svg className="badge-display__icon" style={{ color: '#6b7280' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#374151' }}>
+                  {calculatedAcople}
+                </span>
+              </div>
+            </div>
+
+            {/* 6. Hora de Salida (Manual confirm) */}
+            <div className="info-card__item">
+              <span className="info-card__label">Hora de Salida</span>
+              <div className="badge-display badge-display--maroon">
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                  {formAcople || '--:--'}
+                <span className="badge-display__text">
+                  {formHoraSalida || '--:--'}
                 </span>
               </div>
-              <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.2rem', textAlign: 'center' }}>
-                (Se actualiza automáticamente al seleccionar la unidad)
-              </p>
             </div>
 
             {/* Toggle: ¿Hubo corridas perdidas? */}

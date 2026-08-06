@@ -171,7 +171,7 @@ export default function DashboardMesaControl() {
   const { data: conteos = {}, isLoading: cargando } = useQuery({
     queryKey: ['conteo-unidades-global'],
     queryFn: fetchConteos,
-    refetchInterval: 30000,
+    refetchInterval: 10000, // Cada 10s – pantalla crítica del despachador
   });
 
   return (

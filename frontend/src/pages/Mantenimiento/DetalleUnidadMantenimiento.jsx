@@ -11,6 +11,7 @@ import AppleDatePicker from './components/AppleDatePicker';
 import FuelGaugeSelector from './components/FuelGaugeSelector';
 import FuelInspection from './components/FuelInspection';
 import ChecklistForm from '../CheckList/CheckList';
+import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import CONDUCTORES from '../../data/conductores';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 import API_BASE from '../../config/api';
@@ -800,6 +801,11 @@ export default function DetalleUnidadMantenimiento() {
 
       <main className="main-content">
         <div className="unit-control-panel">
+          <LocalSearchBar 
+            unidades={unidadesList} 
+            onSelectUnit={handleSelectUnit} 
+            moduleName={configActual?.title || 'esta sección'} 
+          />
           <div className="unit-control-panel__selectors">
             <UnitSelector
               isOpen={openDropdown === 'operacion'}

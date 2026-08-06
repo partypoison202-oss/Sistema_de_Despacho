@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { encierroModules } from '../../config/encierroModules';
 import Header from '../../components/Header/Header';
+import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
@@ -1045,6 +1046,11 @@ export default function DetalleUnidadEncierro() {
 
       <main className="main-content">
         <div className="unit-control-panel">
+          <LocalSearchBar 
+            unidades={unidadesList} 
+            onSelectUnit={handleSelectUnit} 
+            moduleName={configActual?.title || 'esta sección'} 
+          />
           <div className="unit-control-panel__selectors">
             {/* ✅ NUEVO: contenedor con flex y gap para los dos selectores */}
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>

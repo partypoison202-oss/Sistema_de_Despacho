@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
+import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
 import UnitInfoPanelMesaControl from './UnitInfoPanelMesaControl';
 import ChecklistForm from '../CheckList/CheckList';
@@ -943,6 +944,11 @@ export default function DetalleUnidadMesaControl() {
       />
       <main className="main-content">
         <div className="unit-control-panel">
+          <LocalSearchBar 
+            unidades={unidadesList} 
+            onSelectUnit={handleSelectUnit} 
+            moduleName={configActual?.title || 'esta sección'} 
+          />
           <div className="unit-control-panel__selectors">
             <UnitSelector
               isOpen={openDropdown === 'operacion'}

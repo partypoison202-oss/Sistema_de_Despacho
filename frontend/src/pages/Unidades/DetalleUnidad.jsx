@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
+import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import UnitSelector from './componentsdetalleunidad/UnitSelector';
 import RutaSelector from './componentsdetalleunidad/RutaSelector';
 import UnitInfoPanel from './componentsdetalleunidad/UnitInfoPanel';
@@ -519,7 +520,7 @@ export default function DetalleUnidad() {
   };
 
   // Guardar Horas
-  const handleSaveHoras = async (horaProgramada, acople) => {
+  const handleSaveHoras = async (horaProgramada, acople, horaSalida = null) => {
     try {
       const token = getToken();
       if (!token) throw new Error('No token');
@@ -533,6 +534,10 @@ export default function DetalleUnidad() {
         hora_programada: horaProgramada,
         acople: acople,
       };
+      
+      if (horaSalida !== null) {
+          payload.hora_salida = horaSalida;
+      }
 
       const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-horas`, {
         method: 'POST',
@@ -546,6 +551,7 @@ export default function DetalleUnidad() {
           ...prev,
           horaProgramada: horaProgramada,
           acople: acople,
+          ...(horaSalida !== null && { horaSalida: horaSalida })
         }));
         return { success: true };
       } else {
@@ -960,6 +966,11 @@ export default function DetalleUnidad() {
       />
       <main className="main-content">
         <div className="unit-control-panel">
+          <LocalSearchBar 
+            unidades={unidadesList} 
+            onSelectUnit={handleSelectUnit} 
+            moduleName={configActual?.title || 'esta sección'} 
+          />
           <div className="unit-control-panel__selectors">
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <UnitSelector

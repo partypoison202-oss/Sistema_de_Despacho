@@ -1,0 +1,44 @@
+/* ==========================================================================
+   Buscador Local (Dentro de Detalle)
+   ========================================================================== */
+.local-search-container {
+  display: flex;
+  align-items: center;
+  background-color: var(--tw-color-white);
+  border: 1px solid var(--tw-color-gray-200);
+  border-radius: 0.875rem;
+  padding: 0.5rem 1rem;
+  width: 100%;
+  max-width: 18rem;
+  margin-bottom: 1.5rem;
+  margin-left: auto;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.local-search-container:focus-within {
+  border-color: var(--brand-maroon-text);
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.1);
+}
+
+.local-search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.95rem;
+  color: var(--tw-color-gray-900);
+  background: transparent;
+  font-weight: 500;
+}
+
+.local-search-input::placeholder {
+  color: var(--tw-color-gray-400);
+  font-weight: 400;
+}
+
+.local-search-icon {
+  color: var(--tw-color-gray-400);
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+}
