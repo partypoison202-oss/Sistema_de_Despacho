@@ -58,6 +58,68 @@ function CustomSelect({ value, onChange, options }) {
   );
 }
 
+// Componente de Dropdown de Estatus de Servicio para Operadores
+function StatusDropdown({ value, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const options = [
+    { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
+    { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
+    { value: 'falta', label: 'FALTA', class: 'falta' },
+    { value: 'reserva', label: 'RESERVA', class: 'reserva' }
+  ];
+
+  const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
+
+  return (
+    <div className="status-dropdown-container" ref={dropdownRef}>
+      <button
+        type="button"
+        className={`status-dropdown-trigger ${selectedOpt.class} ${isOpen ? 'open' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="status-text">{selectedOpt.label}</span>
+        <svg
+          className={`arrow-icon ${isOpen ? 'open' : ''}`}
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+        >
+          <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="status-dropdown-menu">
+          {options.map((opt) => (
+            <div
+              key={opt.value}
+              className={`status-dropdown-item ${opt.class} ${value === opt.value ? 'active' : ''}`}
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+            >
+              {opt.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Operadores() {
   const { user } = useContext(AuthContext);
   const [conductores, setConductores] = useState([]);
@@ -389,16 +451,10 @@ export default function Operadores() {
                           </span>
                         </td>
                         <td>
-                          <select
-                            value={c.estado_servicio || 'disponible'}
-                            onChange={(e) => handleStatusChange(c, e.target.value)}
-                            className={`servicio-select ${c.estado_servicio || 'disponible'}`}
-                          >
-                            <option value="disponible">DISPONIBLE</option>
-                            <option value="en_servicio">EN SERVICIO</option>
-                            <option value="falta">FALTA</option>
-                            <option value="reserva">RESERVA</option>
-                          </select>
+                          <StatusDropdown
+                            value={c.estado_servicio}
+                            onChange={(newStatus) => handleStatusChange(c, newStatus)}
+                          />
                         </td>
                         <td>
                           <div className="actions-container">

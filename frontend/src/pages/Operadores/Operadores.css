@@ -180,41 +180,141 @@
   color: #0369a1;
 }
 
-.servicio-select {
-  font-size: 0.75rem;
+/* CONTENEDOR DEL DROPDOWN DE ESTADO DE SERVICIO */
+.status-dropdown-container {
+  position: relative;
+  display: inline-block;
+  width: 140px;
+}
+
+/* TRIGGER (BOTÓN PRINCIPAL) */
+.status-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.72rem;
   font-weight: 700;
-  padding: 0.25rem 1.5rem 0.25rem 0.6rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 9999px;
-  border: none;
+  border: 1px solid transparent;
   outline: none;
   cursor: pointer;
   text-transform: uppercase;
-  background-position: right 0.4rem center;
-  background-repeat: no-repeat;
-  background-size: 0.8rem;
-  appearance: none;
-  display: inline-block;
-  min-width: 120px;
+  transition: all 0.2s ease;
+  line-height: 1.2;
 }
-.servicio-select.en_servicio {
+
+.status-dropdown-trigger .arrow-icon {
+  margin-left: 0.35rem;
+  transition: transform 0.2s ease;
+  width: 14px;
+  height: 14px;
+}
+
+.status-dropdown-trigger.open .arrow-icon {
+  transform: rotate(180deg);
+}
+
+/* COLORES DEL TRIGGER SEGÚN ESTATUS */
+.status-dropdown-trigger.en_servicio {
   background-color: #dcfce7;
   color: #15803d;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2315803d'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
 }
-.servicio-select.disponible {
+.status-dropdown-trigger.en_servicio:hover {
+  background-color: #bbf7d0;
+}
+
+.status-dropdown-trigger.disponible {
   background-color: #e0f2fe;
   color: #0369a1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%230369a1'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
 }
-.servicio-select.falta {
+.status-dropdown-trigger.disponible:hover {
+  background-color: #bae6fd;
+}
+
+.status-dropdown-trigger.falta {
   background-color: #fee2e2;
   color: #b91c1c;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23b91c1c'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
 }
-.servicio-select.reserva {
+.status-dropdown-trigger.falta:hover {
+  background-color: #fecaca;
+}
+
+.status-dropdown-trigger.reserva {
   background-color: #fef3c7;
   color: #d97706;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d97706'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+.status-dropdown-trigger.reserva:hover {
+  background-color: #fde68a;
+}
+
+/* MENÚ DESPLEGABLE */
+.status-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin-top: 0.25rem;
+  overflow: hidden;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+/* OPCIONES DEL DROPDOWN */
+.status-dropdown-item {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+/* COLORES Y COMPORTAMIENTO HOVER DE LAS OPCIONES */
+.status-dropdown-item.en_servicio {
+  color: #15803d;
+  background-color: transparent;
+}
+.status-dropdown-item.en_servicio:hover, 
+.status-dropdown-item.en_servicio.active {
+  background-color: #dcfce7;
+}
+
+.status-dropdown-item.disponible {
+  color: #0369a1;
+  background-color: transparent;
+}
+.status-dropdown-item.disponible:hover,
+.status-dropdown-item.disponible.active {
+  background-color: #e0f2fe;
+}
+
+.status-dropdown-item.falta {
+  color: #b91c1c;
+  background-color: transparent;
+}
+.status-dropdown-item.falta:hover,
+.status-dropdown-item.falta.active {
+  background-color: #fee2e2;
+}
+
+.status-dropdown-item.reserva {
+  color: #d97706;
+  background-color: transparent;
+}
+.status-dropdown-item.reserva:hover,
+.status-dropdown-item.reserva.active {
+  background-color: #fef3c7;
 }
 
 /* ALINEACIÓN SIMÉTRICA Y PERFECTA DE BOTONES DE ACCIÓN */
