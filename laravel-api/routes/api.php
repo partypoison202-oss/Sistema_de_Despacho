@@ -12,6 +12,8 @@ use App\Http\Controllers\API\TitanController;
 use App\Http\Controllers\API\TitanReporteController;
 use App\Http\Controllers\API\HistorialOperativoController;
 use App\Http\Controllers\API\BitacoraController;
+use App\Http\Controllers\API\AmonestacionController;
+use App\Http\Controllers\API\InfraccionController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -83,6 +85,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // RUTAS PARA BITACORA
     Route::get('/bitacoras', [BitacoraController::class, 'index']);
     Route::post('/bitacoras', [BitacoraController::class, 'store']);
+
+    // RUTAS PARA AMONESTACIONES E INFRACCIONES
+    Route::get('/amonestaciones/check/{placa}', [AmonestacionController::class, 'checkPlaca']);
+    Route::get('/amonestaciones', [AmonestacionController::class, 'index']);
+    Route::post('/amonestaciones', [AmonestacionController::class, 'store']);
+    Route::get('/infracciones', [InfraccionController::class, 'index']);
+    Route::post('/infracciones', [InfraccionController::class, 'store']);
 });
 
 Route::get('/setup-titan', function () {
