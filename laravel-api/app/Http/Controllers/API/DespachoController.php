@@ -26,8 +26,7 @@ class DespachoController extends Controller
         $unidadesExcel = $request->input('unidades');
         $fechaHoy = Carbon::today()->toDateString();
 
-        // Al iniciar una importación masiva, liberar todos los conductores
-        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+        DB::table('conductores')->where('estado_servicio', 'en_servicio')->update(['estado_servicio' => 'disponible']);
 
         // Pre-cargar todas las unidades en memoria
         $todasLasUnidades = DB::table('unidades')
@@ -398,7 +397,7 @@ class DespachoController extends Controller
         $creados = 0;
         $errores = [];
 
-        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+        DB::table('conductores')->where('estado_servicio', 'en_servicio')->update(['estado_servicio' => 'disponible']);
 
         foreach ($unidadesReq as $fila) {
             $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
@@ -776,9 +775,14 @@ class DespachoController extends Controller
             $updateData['corrida'] = null;
 
             if ($registroOperativo->numero_tarjeton) {
+                $nuevoEstadoConductor = 'disponible';
+                if ($motivoEstatus && strtoupper(trim($motivoEstatus)) === 'FALTA DE OPERADOR') {
+                    $nuevoEstadoConductor = 'falta';
+                }
+
                 DB::table('conductores')
                     ->where('tarjeton', $registroOperativo->numero_tarjeton)
-                    ->update(['estado_servicio' => 'disponible']);
+                    ->update(['estado_servicio' => $nuevoEstadoConductor]);
             }
         } else {
             $allInputs = $request->all();

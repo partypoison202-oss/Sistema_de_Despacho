@@ -333,7 +333,7 @@ export default function DetalleUnidadEncierro() {
     fetchConductores();
   }, []);
 
-  const conductoresDisponibles = dbConductores.filter(c => c.estado_servicio === 'disponible');
+  const conductoresDisponibles = dbConductores.filter(c => c.estado_servicio === 'disponible' || c.estado_servicio === 'reserva' || c.estado_servicio === 'falta');
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
@@ -1347,14 +1347,42 @@ export default function DetalleUnidadEncierro() {
                                         key={c.id}
                                         type="button"
                                         className="dropdown-menu__item"
-                                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', textAlign: 'left', fontWeight: 'normal' }}
-                                        onClick={() => {
+                                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', textAlign: 'left', fontWeight: 'normal', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                        onClick={async () => {
+                                          if (c.estado_servicio === 'falta' || c.estado_servicio === 'reserva') {
+                                            const label = c.estado_servicio === 'falta' ? 'FALTA' : 'RESERVA';
+                                            const confirm = await Swal.fire({
+                                              title: 'Confirmar asignación',
+                                              text: `El operador ${c.nombre} está en estatus de ${label}. ¿Deseas asignarlo a esta unidad y cambiar su estatus a EN SERVICIO?`,
+                                              icon: 'warning',
+                                              showCancelButton: true,
+                                              confirmButtonColor: '#c5a059',
+                                              cancelButtonColor: '#6b7280',
+                                              confirmButtonText: 'Sí, asignar',
+                                              cancelButtonText: 'Cancelar'
+                                            });
+                                            if (!confirm.isConfirmed) return;
+                                          }
                                           setFormTarjeton(c.id.toString());
                                           setDropdownTarjetonOpen(false);
                                           handleConfirmTarjeton(c.id.toString());
                                         }}
                                       >
-                                        {c.nombre} <br /><span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Tarjetón: {c.id}</span>
+                                        <div>
+                                          {c.nombre} <br /><span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Tarjetón: {c.id}</span>
+                                        </div>
+                                        {(c.estado_servicio === 'falta' || c.estado_servicio === 'reserva') && (
+                                          <span style={{
+                                            fontSize: '0.65rem',
+                                            padding: '0.15rem 0.4rem',
+                                            borderRadius: '4px',
+                                            backgroundColor: c.estado_servicio === 'falta' ? '#fee2e2' : '#fef3c7',
+                                            color: c.estado_servicio === 'falta' ? '#b91c1c' : '#d97706',
+                                            fontWeight: '700'
+                                          }}>
+                                            {c.estado_servicio === 'falta' ? 'FALTA' : 'RESERVA'}
+                                          </span>
+                                        )}
                                       </button>
                                     ))}
                                 </div>

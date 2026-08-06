@@ -269,6 +269,37 @@ export default function Operadores() {
     }
   };
 
+  const handleStatusChange = async (conductor, nuevoEstatus) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/conductores/${conductor.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          estado_servicio: nuevoEstatus
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al actualizar estatus');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Estatus Actualizado',
+        text: `El estatus de ${conductor.nombre} se actualizó a ${nuevoEstatus.replace('_', ' ').toUpperCase()}.`,
+        confirmButtonColor: '#c5a059',
+        timer: 1500
+      });
+      fetchConductores();
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message,
+        confirmButtonColor: '#6b1d33'
+      });
+    }
+  };
+
   const filteredConductores = conductores.filter(c => {
     const term = searchTerm.toLowerCase();
     return (
@@ -358,9 +389,16 @@ export default function Operadores() {
                           </span>
                         </td>
                         <td>
-                          <span className={`servicio-badge ${c.estado_servicio === 'en_servicio' ? 'en-servicio' : 'disponible'}`}>
-                            {c.estado_servicio === 'en_servicio' ? 'EN SERVICIO' : 'DISPONIBLE'}
-                          </span>
+                          <select
+                            value={c.estado_servicio || 'disponible'}
+                            onChange={(e) => handleStatusChange(c, e.target.value)}
+                            className={`servicio-select ${c.estado_servicio || 'disponible'}`}
+                          >
+                            <option value="disponible">DISPONIBLE</option>
+                            <option value="en_servicio">EN SERVICIO</option>
+                            <option value="falta">FALTA</option>
+                            <option value="reserva">RESERVA</option>
+                          </select>
                         </td>
                         <td>
                           <div className="actions-container">

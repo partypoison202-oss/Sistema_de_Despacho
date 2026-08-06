@@ -510,14 +510,32 @@ export default function ExcelPreview({
                                                 fontSize: '0.65rem',
                                                 padding: '0.2rem 0.5rem',
                                                 borderRadius: '1rem',
-                                                backgroundColor: c.estado_servicio === 'en_servicio' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                                                color: c.estado_servicio === 'en_servicio' ? '#ef4444' : '#22c55e',
+                                                backgroundColor: c.estado_servicio === 'en_servicio'
+                                                  ? 'rgba(239, 68, 68, 0.1)'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? 'rgba(220, 38, 38, 0.15)'
+                                                    : c.estado_servicio === 'reserva'
+                                                      ? 'rgba(217, 119, 6, 0.15)'
+                                                      : 'rgba(34, 197, 94, 0.1)',
+                                                color: c.estado_servicio === 'en_servicio'
+                                                  ? '#ef4444'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? '#dc2626'
+                                                    : c.estado_servicio === 'reserva'
+                                                      ? '#d97706'
+                                                      : '#22c55e',
                                                 fontWeight: '700',
                                                 textTransform: 'uppercase',
                                                 letterSpacing: '0.02em',
                                                 lineHeight: '1'
                                               }}>
-                                                {c.estado_servicio === 'en_servicio' ? 'Servicio' : 'Disponible'}
+                                                {c.estado_servicio === 'en_servicio'
+                                                  ? 'Servicio'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? 'Falta'
+                                                    : c.estado_servicio === 'reserva'
+                                                      ? 'Reserva'
+                                                      : 'Disponible'}
                                               </span>
                                             </span>
                                             {isSelected && (

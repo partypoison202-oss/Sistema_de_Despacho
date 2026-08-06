@@ -124,7 +124,8 @@ class ConductorController extends Controller
 
         $request->validate([
             'nombre' => 'sometimes|required|string|max:200',
-            'tipo_tarjeton' => 'sometimes|required|string|max:50'
+            'tipo_tarjeton' => 'sometimes|required|string|max:50',
+            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,reserva'
         ]);
 
         if ($request->has('nombre')) {
@@ -133,6 +134,22 @@ class ConductorController extends Controller
 
         if ($request->has('tipo_tarjeton')) {
             $conductor->tipo_tarjeton = trim($request->tipo_tarjeton);
+        }
+
+        if ($request->has('estado_servicio')) {
+            $nuevoEstado = $request->estado_servicio;
+            $conductor->estado_servicio = $nuevoEstado;
+
+            // Si el nuevo estado NO es en_servicio, y el conductor estaba asignado a alguna unidad,
+            // desvincular al conductor de la unidad
+            if ($nuevoEstado !== 'en_servicio') {
+                DB::table('informacion_operativa')
+                    ->where('numero_tarjeton', $conductor->tarjeton)
+                    ->update([
+                        'numero_tarjeton' => null,
+                        'nombre_conductor' => null
+                    ]);
+            }
         }
 
         $conductor->save();
