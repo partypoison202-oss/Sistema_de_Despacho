@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
@@ -22,6 +22,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   // Tabs State
   const [activeTab, setActiveTab] = useState('');
   const ACCIDENT_TYPES = ['ACCIDENTE', 'CHOQUE', 'ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
+  const opcionesUbicacionEvento = ['TALLER', 'BASE SUR', 'BASE NORTE', 'VIA PUBLICA', 'OTRO'];
 
   // Event Specific State
   const [corrida, setCorrida] = useState('');
@@ -665,64 +666,6 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                     </div>
                   </div>
 
-                  {/* FIRMA DE PARTICULAR */}
-                  <div className="form-group">
-                    <label>Firma de particular</label>
-                    <div
-                      className="titan-firma-wrapper"
-                      style={{
-                        position: 'relative',
-                        width: '100%',
-                        height: '180px',
-                        border: '2px dashed var(--brand-maroon-text, #601a2a)',
-                        borderRadius: '8px',
-                        backgroundColor: '#ffffff',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <canvas
-                        ref={firmaCanvasRef}
-                        className="titan-firma-canvas"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'block',
-                          cursor: 'crosshair',
-                          touchAction: 'none',
-                        }}
-                        onMouseDown={handleFirmaStart}
-                        onMouseMove={handleFirmaMove}
-                        onMouseUp={handleFirmaEnd}
-                        onMouseLeave={handleFirmaEnd}
-                      />
-                      {firmaVacia && (
-                        <span
-                          className="titan-firma-placeholder"
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            color: '#9ca3af',
-                            fontSize: '14px',
-                            pointerEvents: 'none',
-                            userSelect: 'none',
-                          }}
-                        >
-                          Firma aquí con el dedo o el mouse
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                      <button
-                        type="button"
-                        className="titan-btn-cancel"
-                        onClick={limpiarFirma}
-                      >
-                        Limpiar firma
-                      </button>
-                    </div>
-                  </div>
                 </>
               )}
 

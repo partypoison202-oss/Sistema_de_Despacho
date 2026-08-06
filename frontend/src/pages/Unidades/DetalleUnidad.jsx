@@ -568,7 +568,7 @@ export default function DetalleUnidad() {
           <input type="hidden" id="swal-motivo-hidden" value="" />
 
           <div id="swal-motivo-custom-container" style="display: none; margin-top: 0.75rem;">
-            <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="Escribe el motivo detallado..." maxlength="70" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem;"></textarea>
+            <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="ESCRIBE EL MOTIVO DETALLADO..." maxlength="70" oninput="this.value = this.value.toUpperCase()" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem; text-transform: uppercase;"></textarea>
             <div id="swal-motivo-counter" style="text-align: right; font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 4px;">0/70</div>
           </div>
         </div>
