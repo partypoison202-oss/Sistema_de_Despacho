@@ -141,7 +141,7 @@ export default function DetalleUnidadMesaControl() {
 
   const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
   const conductoresDisponibles = dbConductores.filter(c => 
-    (c.estado_servicio === 'disponible' || c.estado_servicio === 'reserva' || c.estado_servicio === 'falta') && 
+    (c.estado_servicio === 'disponible' || c.estado_servicio === 'falta') && 
     (!isTroncal || c.tipo_tarjeton === 'C')
   );
 

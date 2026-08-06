@@ -125,11 +125,10 @@ export default function CargaExcel() {
       const newDriverConductor = catalogConductores.find(c => trimString(c.tarjeton) === valStr);
       const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
 
-      if (newDriverConductor && (newDriverConductor.estado_servicio === 'falta' || newDriverConductor.estado_servicio === 'reserva')) {
-        const estadoLabel = newDriverConductor.estado_servicio === 'falta' ? 'FALTA' : 'RESERVA';
+      if (newDriverConductor && newDriverConductor.estado_servicio === 'falta') {
         const confirm = await Swal.fire({
           title: 'Confirmar asignación',
-          text: `El operador ${newDriverName} está en estatus de ${estadoLabel}. ¿Deseas asignarlo a la unidad ${updatedData[index]['ECONOMICO']} y cambiar su estatus a en servicio?`,
+          text: `El operador ${newDriverName} está en estatus de FALTA. ¿Deseas asignarlo a la unidad ${updatedData[index]['ECONOMICO']} y cambiar su estatus a en servicio?`,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#c5a059',

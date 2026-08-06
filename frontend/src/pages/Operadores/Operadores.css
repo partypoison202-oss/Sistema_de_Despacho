@@ -241,13 +241,7 @@
   background-color: #fecaca;
 }
 
-.status-dropdown-trigger.reserva {
-  background-color: #fef3c7;
-  color: #d97706;
-}
-.status-dropdown-trigger.reserva:hover {
-  background-color: #fde68a;
-}
+
 
 /* MENÚ DESPLEGABLE */
 .status-dropdown-menu {
@@ -308,14 +302,7 @@
   background-color: #fee2e2;
 }
 
-.status-dropdown-item.reserva {
-  color: #d97706;
-  background-color: transparent;
-}
-.status-dropdown-item.reserva:hover,
-.status-dropdown-item.reserva.active {
-  background-color: #fef3c7;
-}
+
 
 /* ALINEACIÓN SIMÉTRICA Y PERFECTA DE BOTONES DE ACCIÓN */
 .actions-container {

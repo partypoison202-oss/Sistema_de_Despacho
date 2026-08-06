@@ -76,8 +76,7 @@ function StatusDropdown({ value, onChange }) {
   const options = [
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
     { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
-    { value: 'falta', label: 'FALTA', class: 'falta' },
-    { value: 'reserva', label: 'RESERVA', class: 'reserva' }
+    { value: 'falta', label: 'FALTA', class: 'falta' }
   ];
 
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
