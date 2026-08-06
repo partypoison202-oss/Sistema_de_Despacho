@@ -191,7 +191,8 @@ export default function DashboardEncierro() {
 
       const coincidencia = resultados.find(Boolean);
       if (coincidencia) {
-        const isOperacion = (coincidencia.unidad.estatus || '').toLowerCase().trim().includes('operaci');
+        const estatusUnidad = coincidencia.unidad.estatus || coincidencia.unidad.estado || 'operacion';
+        const isOperacion = estatusUnidad.toLowerCase().trim().includes('operaci');
         if (!isOperacion) {
           Swal.fire({
             icon: 'warning',
