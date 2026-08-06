@@ -193,10 +193,10 @@ class DespachoController extends Controller
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]) // ← CAMBIO AQUÍ
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->select(
-                'unidades.numero_eco', 
-                'informacion_operativa.numero_tarjeton as tarjeton', 
+                'unidades.numero_eco',
+                'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.estatus',
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
@@ -272,7 +272,6 @@ class DespachoController extends Controller
             $tipoNormalizado = 'urbanus';
         }
 
-        // 🔥 CORREGIDO: usar informacion_operativa.tipo
         $data = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
@@ -290,24 +289,19 @@ class DespachoController extends Controller
     /**
      * Obtiene el detalle de una unidad específica por tipo y número ECO
      */
-    // app/Http/Controllers/API/DespachoController.php
-
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
         \Log::info('[obtenerDetalleUnidad] Inicio', ['tipo' => $tipo, 'eco' => $numeroEco]);
         $tipoNormalizado = strtolower(trim($tipo));
-        // Normalizar alias: 'urbanuss' (con doble s de la URL) → 'urbanus' (nombre en BD)
         if ($tipoNormalizado === 'urbanuss') {
             $tipoNormalizado = 'urbanus';
         }
         $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
 
-        // Buscar primero la unidad base para tener siempre sus datos de mantenimiento
         $unidadBase = DB::table('unidades')
             ->where('numero_eco', $numeroEcoClean)
             ->first();
 
-        // 🔥 CORREGIDO: agregar numero_tarjeton al select y campos de mantenimiento
         $info = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
@@ -315,7 +309,7 @@ class DespachoController extends Controller
             ->select(
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
-                'informacion_operativa.numero_tarjeton',  // ✅ ahora seleccionado
+                'informacion_operativa.numero_tarjeton',
                 'informacion_operativa.estatus',
                 'unidades.numero_eco',
                 'informacion_operativa.falla',
@@ -342,7 +336,7 @@ class DespachoController extends Controller
                 'asignado'  => true,
                 'ruta'      => $info->ruta,
                 'conductor' => $info->nombre_conductor,
-                'tarjeton'  => $info->numero_tarjeton ?? '',  // ✅ ahora llega
+                'tarjeton'  => $info->numero_tarjeton ?? '',
                 'estatus'   => $estatus,
                 'falla'     => $info->falla,
                 'corridas'  => $info->corridas,
@@ -350,7 +344,6 @@ class DespachoController extends Controller
                 'motivo'    => $info->motivo,
                 'hora_programada' => $info->hora_programada,
                 'acople'    => $info->acople,
-                // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -368,7 +361,6 @@ class DespachoController extends Controller
                 'motivo'    => null,
                 'hora_programada' => null,
                 'acople'    => null,
-                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -387,15 +379,12 @@ class DespachoController extends Controller
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
 
-        // 1. Obtener todas las unidades de la BD
         $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
 
-        // 2. Obtener conductores indexados por tarjetón para autocompletar nombre
         $conductoresMap = DB::table('conductores')->select('tarjeton', 'nombre')->get()->keyBy(function ($c) {
             return trim($c->tarjeton);
         });
 
-        // 3. Obtener mapa de unidad_id => id de informacion_operativa
         $infoOperativaIds = DB::table('informacion_operativa')->pluck('id', 'unidad_id')->all();
 
         $unidadesProcesadasIds = [];
@@ -404,7 +393,6 @@ class DespachoController extends Controller
         $creados = 0;
         $errores = [];
 
-        // Liberar todos los conductores antes de re-asignar
         DB::table('conductores')->update(['estado_servicio' => 'disponible']);
 
         foreach ($unidadesReq as $fila) {
@@ -419,7 +407,6 @@ class DespachoController extends Controller
 
             $unidadesProcesadasIds[] = $unidad->id;
 
-            // Autocompletar conductor desde el catálogo por tarjetón
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
             if ($tarjetonVal !== '') {
@@ -428,7 +415,6 @@ class DespachoController extends Controller
                     $conductorNombre = $conductorCatalog->nombre;
                     $tarjetonesEnServicio[] = $tarjetonVal;
                 } else {
-                    // Fallback a lo que venga si no existe en el catálogo (o vacío)
                     $conductorNombre = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
                 }
             }
@@ -436,7 +422,6 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaSalidaVal = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
 
-            // Buscar si ya existe el ID de registro
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
             $data = [
@@ -474,14 +459,12 @@ class DespachoController extends Controller
             }
         }
 
-        // Marcar en servicio en una sola consulta batch
         if (!empty($tarjetonesEnServicio)) {
             DB::table('conductores')
                 ->whereIn('tarjeton', array_unique($tarjetonesEnServicio))
                 ->update(['estado_servicio' => 'en_servicio']);
         }
 
-        // 4. Eliminar registros que NO se enviaron en la petición
         try {
             $eliminados = DB::table('informacion_operativa')
                 ->whereNotIn('unidad_id', $unidadesProcesadasIds)
@@ -562,9 +545,7 @@ class DespachoController extends Controller
         $tipoNormalizado = strtolower(trim($request->tipo));
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $tarjetonLimpio = trim($request->tarjeton);
-        $fechaHoy = Carbon::today()->toDateString();
 
-        // 1. buscar conductor por tarjeton en catalogo
         $conductor = DB::table('conductores')
             ->where('tarjeton', $tarjetonLimpio)
             ->first();
@@ -576,7 +557,6 @@ class DespachoController extends Controller
             ], 422);
         }
 
-        // 2. buscar registro de informacion_operativa de hoy para la unidad
         $registro = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
@@ -591,7 +571,7 @@ class DespachoController extends Controller
             ], 404);
         }
 
-        // Si el conductor ya estaba asignado a otra unidad hoy, desasignarlo de esa otra unidad
+        // Desasignar conductor de otra unidad si estaba asignado
         DB::table('informacion_operativa')
             ->where('numero_tarjeton', $tarjetonLimpio)
             ->where('id', '!=', $registro->id)
@@ -600,7 +580,6 @@ class DespachoController extends Controller
                 'nombre_conductor' => null
             ]);
 
-        // 3. actualizar en informacion_operativa
         DB::table('informacion_operativa')
             ->where('id', $registro->id)
             ->update([
@@ -608,14 +587,6 @@ class DespachoController extends Controller
                 'nombre_conductor' => $conductor->nombre
             ]);
 
-        // Registrar acción en la bitácora de cambios
-        BitacoraHelper::registrarCambio(
-            $registro->unidad_id,
-            'CAMBIO_CONDUCTOR',
-            "CAMBIO DE CONDUCTOR - ANTERIOR: " . strtoupper($registro->nombre_conductor ?? 'SIN ASIGNAR') . " ({$registro->numero_tarjeton}), NUEVO: " . strtoupper($conductor->nombre) . " ({$tarjetonLimpio})"
-        );
-
-        // 4. Actualizar disponibilidad de conductores
         if ($registro->numero_tarjeton && $registro->numero_tarjeton !== $tarjetonLimpio) {
             DB::table('conductores')
                 ->where('tarjeton', $registro->numero_tarjeton)
@@ -648,7 +619,6 @@ class DespachoController extends Controller
 
         $tipoNormalizado = strtolower(trim($request->tipo));
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
-        $fechaHoy = Carbon::today()->toDateString();
 
         $registro = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -704,7 +674,7 @@ class DespachoController extends Controller
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.ruta',
-                'informacion_operativa.numero_tarjeton',   // ✅ agregado
+                'informacion_operativa.numero_tarjeton',
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.estatus',
                 'informacion_operativa.falla',
@@ -757,7 +727,6 @@ class DespachoController extends Controller
         $tipoNormalizado = strtolower(trim($request->tipo));
         $nuevoEstatus = strtolower(trim($request->estatus));
         $motivoEstatus = $request->motivo_estatus;
-        $fechaHoy = Carbon::today()->toDateString();
 
         $unidad = DB::table('unidades')
             ->where('numero_eco', $numeroEco)
@@ -786,8 +755,6 @@ class DespachoController extends Controller
             'estatus' => $nuevoEstatus,
             'motivo_estatus' => $motivoEstatus
         ];
-
-        $fechaHoy = Carbon::today()->toDateString();
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') {
             $updateData['nombre_conductor'] = null;
@@ -858,6 +825,9 @@ class DespachoController extends Controller
         ], 200);
     }
 
+    /**
+     * Obtiene la lista de rutas (troncales y alimentadoras) desde la tabla 'rutas'.
+     */
     public function obtenerRutas()
     {
         $troncales = DB::table('rutas')->where('tipo', 'troncal')->pluck('ruta');
@@ -869,6 +839,9 @@ class DespachoController extends Controller
         ], 200);
     }
 
+    /**
+     * Actualiza la ruta de una unidad específica.
+     */
     public function actualizarRuta(Request $request)
     {
         $request->validate([
@@ -880,7 +853,6 @@ class DespachoController extends Controller
         $tipoNormalizado = strtolower(trim($request->tipo));
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $rutaLimpia = trim($request->ruta);
-        $fechaHoy = Carbon::today()->toDateString();
 
         $operacion = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -915,6 +887,9 @@ class DespachoController extends Controller
         ], 200);
     }
 
+    /**
+     * Obtiene el catálogo de todas las unidades (id, número_eco, tipo).
+     */
     public function obtenerCatalogoUnidades()
     {
         $unidades = DB::table('unidades')
@@ -1025,5 +1000,51 @@ class DespachoController extends Controller
             'fecha_ultima_carga' => $unidad->fecha_ultima_carga,
             'kilometraje'        => $unidad->kilometraje ?? null,
         ], 200);
+    }
+
+    /**
+     * Obtiene todas las unidades de un tipo específico que están asignadas a una ruta determinada,
+     * para el día actual.
+     * 🔥 NUEVO MÉTODO AGREGADO 🔥
+     */
+    public function unidadesPorRuta($tipo, $ruta)
+    {
+        $tipoNormalizado = strtolower(trim($tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
+
+        $rutaLimpia = trim($ruta);
+
+        $unidades = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->where('informacion_operativa.ruta', $rutaLimpia)
+            // ->whereDate('informacion_operativa.fecha_registro', Carbon::today()) // 👈 FILTRO POR DÍA ACTUAL REMOVIDO PARA MOSTRAR UNIDADES
+            ->select(
+                'unidades.numero_eco',
+                'informacion_operativa.numero_tarjeton as tarjeton',
+                'informacion_operativa.estatus',
+                'informacion_operativa.ruta',
+                'informacion_operativa.nombre_conductor'
+            )
+            ->distinct()
+            ->orderBy('unidades.numero_eco')
+            ->get()
+            ->map(function ($unidad) {
+                $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
+                if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+                    $estatus = 'operacion';
+                }
+                return [
+                    'numero_eco' => $unidad->numero_eco,
+                    'tarjeton'   => $unidad->tarjeton,
+                    'estatus'    => $estatus,
+                    'ruta'       => $unidad->ruta,
+                    'nombre_conductor' => $unidad->nombre_conductor,
+                ];
+            });
+
+        return response()->json($unidades, 200);
     }
 }

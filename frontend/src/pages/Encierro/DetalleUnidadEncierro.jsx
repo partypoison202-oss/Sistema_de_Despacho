@@ -7,6 +7,7 @@ import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
+import RutaSelector from '../Unidades/componentsdetalleunidad/RutaSelector'; // ✅ IMPORTADO
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,6 +21,7 @@ export default function DetalleUnidadEncierro() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
+  const [selectedRuta, setSelectedRuta] = useState(null); // ✅ NUEVO
 
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
@@ -95,7 +97,7 @@ export default function DetalleUnidadEncierro() {
         if (res.ok) {
           const data = await res.json();
           const configActual = encierroModules.find((m) => m.id === tipoTransporte);
-          if (configActual?.id === 'urbanus') {
+          if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
             setRutasOpciones(data.troncales || []);
           } else {
             setRutasOpciones(data.alimentadoras || []);
@@ -258,6 +260,48 @@ export default function DetalleUnidadEncierro() {
     refetchInterval: 30000,
   });
 
+  const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
+
+  // ✅ NUEVO: unidades de la ruta seleccionada
+  const { data: unidadesPorRutaList = [], isLoading: cargandoUnidadesPorRuta } = useQuery({
+    queryKey: ['unidades-por-ruta-encierro', tipoTransporte, selectedRuta],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token || !selectedRuta) return [];
+      const res = await fetch(
+        `${API_BASE}/api/despacho/unidades-por-ruta/${tipoTransporte}/${encodeURIComponent(selectedRuta)}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      );
+      if (!res.ok) throw new Error('Error al obtener unidades de la ruta');
+      const data = await res.json();
+      const lista = Array.isArray(data) ? data : (data.unidades || []);
+      return lista.map((u) => ({
+        eco: String(u.numero_eco ?? u.eco ?? '').padStart(3, '0'),
+        tarjeton: String(u.tarjeton ?? '').trim(),
+        display: formatearEco(u.numero_eco ?? u.eco),
+        estado: (u.estatus || u.estado || 'operacion').toLowerCase(),
+      }));
+    },
+    enabled: !!selectedRuta && esAlimentadora,
+    staleTime: 30000,
+  });
+
+  // ✅ NUEVO: función para seleccionar ruta
+  const handleSelectRuta = (ruta) => {
+    setSelectedRuta(ruta);
+    setOpenDropdown(null);
+  };
+
+  // ✅ NUEVO: modificación de unidadesPorEstado para filtrar por ruta
+  const unidadesPorEstado = (estado) => {
+    let filtradas = unidadesList.filter((u) => u.estado === estado);
+    if (selectedRuta && esAlimentadora) {
+      const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
+      filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
+    }
+    return filtradas;
+  };
+
   const [dbConductores, setDbConductores] = useState([]);
 
   const fetchConductores = async () => {
@@ -295,8 +339,7 @@ export default function DetalleUnidadEncierro() {
     setFormTarjeton(datosOperativos.tarjeton || '');
   }, [datosOperativos.tarjeton]);
 
-  const unidadesPorEstado = (estado) => unidadesList.filter((u) => u.estado === estado);
-
+  // useEffect para capturar eco desde URL
   useEffect(() => {
     const ecoDesdeRuta = searchParams.get('eco');
     if (!ecoDesdeRuta || !unidadesList.length) return;
@@ -889,6 +932,8 @@ export default function DetalleUnidadEncierro() {
 
         queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
+        // ✅ NUEVO: invalidar también el filtro por ruta
+        queryClient.invalidateQueries(['unidades-por-ruta-encierro', tipoTransporte]);
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'No se pudo cambiar el estatus', confirmButtonColor: '#601a2a' });
       }
@@ -979,6 +1024,7 @@ export default function DetalleUnidadEncierro() {
 
         queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
+        queryClient.invalidateQueries(['unidades-por-ruta-encierro', tipoTransporte]);
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
@@ -1000,7 +1046,8 @@ export default function DetalleUnidadEncierro() {
       <main className="main-content">
         <div className="unit-control-panel">
           <div className="unit-control-panel__selectors">
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            {/* ✅ NUEVO: contenedor con flex y gap para los dos selectores */}
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <UnitSelector
                 isOpen={openDropdown === 'operacion'}
                 setIsOpen={(open) => setOpenDropdown(open ? 'operacion' : null)}
@@ -1013,7 +1060,84 @@ export default function DetalleUnidadEncierro() {
                 configActual={configActual}
                 onSelectUnit={handleSelectUnit}
               />
+
+              {/* ✅ NUEVO: selector de rutas alimentadoras */}
+              {esAlimentadora && (
+                <RutaSelector
+                  isOpen={openDropdown === 'rutas'}
+                  setIsOpen={(open) => setOpenDropdown(open ? 'rutas' : null)}
+                  selectedRuta={selectedRuta}
+                  titulo="RA"
+                  rutas={rutasOpciones}
+                  cargandoRutas={false}
+                  configActual={configActual}
+                  onSelectRuta={handleSelectRuta}
+                />
+              )}
             </div>
+
+            {/* ✅ NUEVO: lista de unidades de la ruta seleccionada */}
+            {esAlimentadora && selectedRuta && (
+              <div className="ruta-unidades-panel" style={{ width: '100%', marginTop: '1rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
+                    Unidades en ruta {selectedRuta}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRuta(null)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#6b1d33',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Limpiar filtro
+                  </button>
+                </div>
+
+                {cargandoUnidadesPorRuta ? (
+                  <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <span className="unidad-spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '20px', height: '20px', borderWidth: '3px' }}></span>
+                    Cargando unidades de la ruta...
+                  </div>
+                ) : unidadesPorRutaList.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No hay unidades en la ruta {selectedRuta}</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {unidadesPorRutaList.map((unidad) => (
+                      <button
+                        key={unidad.display}
+                        type="button"
+                        onClick={() => handleSelectUnit(unidad)}
+                        className="dropdown-menu__item"
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
+                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {unidad.display}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="info-panel">

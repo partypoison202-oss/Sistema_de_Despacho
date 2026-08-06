@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
 import UnitSelector from './componentsdetalleunidad/UnitSelector';
+import RutaSelector from './componentsdetalleunidad/RutaSelector';
 import UnitInfoPanel from './componentsdetalleunidad/UnitInfoPanel';
 
 import './DetalleUnidad.css';
@@ -34,7 +35,10 @@ export default function DetalleUnidad() {
   const [fallaTexto, setFallaTexto] = useState('');
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
   const [rutasOpciones, setRutasOpciones] = useState([]);
-  
+
+  // ✅ NUEVO: estado del selector de rutas (alimentadoras)
+  const [selectedRuta, setSelectedRuta] = useState(null);
+
   const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
   const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
   const [modalEstatusConductor, setModalEstatusConductor] = useState('');
@@ -61,6 +65,10 @@ export default function DetalleUnidad() {
   const queryClient = useQueryClient();
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
+
+  // ✅ NUEVO: sólo las alimentadoras (zafiro, orion, vagoneta...) muestran el selector de rutas.
+  // Las troncales (urbanus / urbanuss) usan rutas distintas y no aplican aquí.
+  const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
 
   // Utilidades
   const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -124,8 +132,41 @@ export default function DetalleUnidad() {
     refetchInterval: 30000,
   });
 
-  const unidadesPorEstado = (estado) =>
-    unidadesList.filter((u) => u.estado === estado);
+  // ✅ NUEVO: unidades de la ruta alimentadora seleccionada
+  const {
+    data: unidadesPorRutaList = [],
+    isLoading: cargandoUnidadesPorRuta,
+  } = useQuery({
+    queryKey: ['unidades-por-ruta', tipoTransporte, selectedRuta],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token || !selectedRuta) return [];
+      const res = await fetch(
+        `${API_BASE}/api/despacho/unidades-por-ruta/${tipoTransporte}/${encodeURIComponent(selectedRuta)}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      );
+      if (!res.ok) throw new Error('Error al obtener unidades de la ruta');
+      const data = await res.json();
+      const lista = Array.isArray(data) ? data : (data.unidades || []);
+      return lista.map((u) => ({
+        eco: String(u.numero_eco ?? u.eco ?? '').padStart(3, '0'),
+        tarjeton: String(u.tarjeton ?? '').trim(),
+        display: formatearEco(u.numero_eco ?? u.eco),
+        estado: u.estatus || u.estado || 'operacion',
+      }));
+    },
+    enabled: !!selectedRuta && esAlimentadora,
+    staleTime: 30000,
+  });
+
+  const unidadesPorEstado = (estado) => {
+    let filtradas = unidadesList.filter((u) => u.estado === estado);
+    if (selectedRuta && esAlimentadora) {
+      const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
+      filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
+    }
+    return filtradas;
+  };
 
   const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
   const conductoresDisponibles = dbConductores.filter(c => 
@@ -180,6 +221,14 @@ export default function DetalleUnidad() {
       </div>
     );
   }
+
+  // ✅ NUEVO: seleccionar una ruta alimentadora desde el dropdown de rutas
+  const handleSelectRuta = (ruta) => {
+    setSelectedRuta(ruta);
+    // Al cambiar de ruta, limpiamos la unidad seleccionada previamente
+    // para evitar confusión entre el filtro por ruta y la unidad activa.
+    setOpenDropdown(null);
+  };
 
   // Seleccionar unidad (desde dropdown o búsqueda)
   const handleSelectUnit = async (unidad) => {
@@ -796,6 +845,8 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
+        // ✅ NUEVO: refrescar también el filtro por ruta si estaba activo
+        queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
@@ -889,6 +940,7 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
+        queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
@@ -909,7 +961,7 @@ export default function DetalleUnidad() {
       <main className="main-content">
         <div className="unit-control-panel">
           <div className="unit-control-panel__selectors">
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <UnitSelector
                 isOpen={openDropdown === 'operacion'}
                 setIsOpen={(open) => setOpenDropdown(open ? 'operacion' : null)}
@@ -922,7 +974,84 @@ export default function DetalleUnidad() {
                 configActual={configActual}
                 onSelectUnit={handleSelectUnit}
               />
+
+              {/* ✅ NUEVO: selector de rutas alimentadoras (zafiro, orion, vagoneta, etc.) */}
+              {esAlimentadora && (
+                <RutaSelector
+                  isOpen={openDropdown === 'rutas'}
+                  setIsOpen={(open) => setOpenDropdown(open ? 'rutas' : null)}
+                  selectedRuta={selectedRuta}
+                  titulo="RA"
+                  rutas={rutasOpciones}
+                  cargandoRutas={false}
+                  configActual={configActual}
+                  onSelectRuta={handleSelectRuta}
+                />
+              )}
             </div>
+
+            {/* ✅ NUEVO: lista de unidades de la ruta seleccionada */}
+            {esAlimentadora && selectedRuta && (
+              <div className="ruta-unidades-panel" style={{ width: '100%', marginTop: '1rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
+                    Unidades en ruta {selectedRuta}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRuta(null)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#6b1d33',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Limpiar filtro
+                  </button>
+                </div>
+
+                {cargandoUnidadesPorRuta ? (
+                  <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <span className="unidad-spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '20px', height: '20px', borderWidth: '3px' }}></span>
+                    Cargando unidades de la ruta...
+                  </div>
+                ) : unidadesPorRutaList.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No hay unidades en la ruta {selectedRuta}</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {unidadesPorRutaList.map((unidad) => (
+                      <button
+                        key={unidad.display}
+                        type="button"
+                        onClick={() => handleSelectUnit(unidad)}
+                        className="dropdown-menu__item"
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
+                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {unidad.display}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="info-panel">
@@ -955,8 +1084,6 @@ export default function DetalleUnidad() {
           </div>
         </div>
       </main>
-
-
     </div>
   );
 }

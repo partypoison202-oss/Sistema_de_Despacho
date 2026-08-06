@@ -17,10 +17,9 @@ use App\Http\Controllers\API\InfraccionController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 
-// Todas las rutas dentro de este grupo requieren autenticación con Sanctum
+// Rutas que requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -60,6 +59,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']);
     Route::get('/unidades/{tipo}', [DespachoController::class, 'obtenerPorTipo']);
 
+    // ✅ NUEVA RUTA: unidades por ruta
+    Route::get('/despacho/unidades-por-ruta/{tipo}/{ruta}', [DespachoController::class, 'unidadesPorRuta']);
+
     // Rutas de reportes
     Route::get('/despacho/reporte-general', [ReporteController::class, 'generarReporteGeneralData']);
     Route::get('/despacho/reporte-unidades', [ReporteController::class, 'generarReporteUnidades']);
@@ -76,15 +78,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
 
-    // RUTAS PARA TITAN
+    // Rutas para TITAN
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);
     Route::post('/titan/reporte', [TitanController::class, 'guardarReporte']);
     Route::get('/titan/{usuarioId}/reportes', [TitanReporteController::class, 'reportesPorTitan']);
 
-    // RUTAS PARA PLATAFORMA
+    // Rutas para PLATAFORMA
     Route::post('/plataforma/movimiento', [PlataformaController::class, 'registrarMovimiento']);
 
-    // RUTAS PARA BITACORA
+    // Rutas para BITACORA
     Route::get('/bitacoras', [BitacoraController::class, 'index']);
     Route::post('/bitacoras', [BitacoraController::class, 'store']);
 
@@ -96,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/infracciones', [InfraccionController::class, 'store']);
 });
 
+// Rutas de setup (públicas, solo para desarrollo)
 Route::get('/setup-titan', function () {
     try {
         \Illuminate\Support\Facades\DB::table('roles')->updateOrInsert(
@@ -111,21 +114,16 @@ Route::get('/setup-titan', function () {
                 $table->string('intervalo')->nullable();
                 $table->text('observaciones')->nullable();
                 $table->string('tipo_evento'); // DESINCORPORACION, INCORPORACION, ACCIDENTE
-
-                // Desincorporacion / Incorporacion
                 $table->string('corrida')->nullable();
                 $table->string('hora_evento')->nullable();
                 $table->string('ubicacion_gps')->nullable();
                 $table->text('motivo_desincorporacion')->nullable();
-
-                // Accidentes
                 $table->string('accidente_dueno')->nullable();
                 $table->string('accidente_vehiculo')->nullable();
                 $table->string('accidente_placas')->nullable();
                 $table->boolean('accidente_seguro')->nullable();
                 $table->text('accidente_hechos')->nullable();
                 $table->string('firma_particular')->nullable();
-
                 $table->timestamps();
             });
         }
