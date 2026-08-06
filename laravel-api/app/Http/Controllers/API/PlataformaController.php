@@ -100,6 +100,21 @@ class PlataformaController extends Controller
                 'updated_at' => Carbon::now()
             ]);
 
+            // Registrar acción en la bitácora de cambios diaria
+            DB::table('bitacora_cambios_unidades')->insert([
+                'unidad_id' => $unidadId,
+                'usuario_id' => $usuarioId,
+                'fecha' => Carbon::today()->toDateString(),
+                'tipo_accion' => $tipoMovimiento,
+                'estatus_anterior' => $estatusAnterior,
+                'estatus_nuevo' => $estatusNuevo,
+                'detalles' => $tipoMovimiento === 'INCORPORACION'
+                    ? "INCORPORACIÓN - CONDUCTOR: " . strtoupper($request->conductor ?? 'SIN ASIGNAR') . ", RUTA: " . strtoupper($request->ruta ?? 'SIN RUTA')
+                    : "DESINCORPORACIÓN A " . strtoupper($estatusNuevo) . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : ""),
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now()
+            ]);
+
             DB::commit();
             return response()->json(['status' => 'success', 'message' => 'Movimiento registrado correctamente']);
 

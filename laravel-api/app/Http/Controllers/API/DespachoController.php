@@ -826,6 +826,21 @@ class DespachoController extends Controller
             ->where('id', $registroOperativo->id)
             ->update($updateData);
 
+        // Registrar acción en la bitácora de cambios
+        DB::table('bitacora_cambios_unidades')->insert([
+            'unidad_id' => $unidad->id,
+            'usuario_id' => auth()->id(),
+            'fecha' => Carbon::today()->toDateString(),
+            'tipo_accion' => 'CAMBIO_ESTATUS',
+            'estatus_anterior' => $registroOperativo->estatus ?? null,
+            'estatus_nuevo' => $nuevoEstatus,
+            'detalles' => ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento')
+                ? "CAMBIO DE ESTATUS DE " . strtoupper($registroOperativo->estatus ?? '') . " A " . strtoupper($nuevoEstatus) . ($motivoEstatus ? " POR MOTIVO: " . strtoupper($motivoEstatus) : "")
+                : "CAMBIO DE ESTATUS DE " . strtoupper($registroOperativo->estatus ?? '') . " A " . strtoupper($nuevoEstatus),
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now()
+        ]);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Estatus actualizado correctamente.',

@@ -13,11 +13,12 @@ class HistorialOperativoController extends Controller
      */
     public function getFechas()
     {
-        $fechas = DB::table('historial_operativo')
-            ->select('fecha_historial')
-            ->distinct()
-            ->orderBy('fecha_historial', 'desc')
-            ->pluck('fecha_historial');
+        $fechasOperativo = DB::table('historial_operativo')->select('fecha_historial as fecha')->distinct();
+        $fechasAcciones = DB::table('bitacora_cambios_unidades')->select('fecha')->distinct();
+
+        $fechas = $fechasOperativo->union($fechasAcciones)
+            ->orderBy('fecha', 'desc')
+            ->pluck('fecha');
 
         return response()->json($fechas);
     }
@@ -138,5 +139,31 @@ class HistorialOperativoController extends Controller
             ->pluck('fecha');
 
         return response()->json($fechas);
+    }
+
+    /**
+     * Obtiene el historial de acciones y cambios de una fecha.
+     */
+    public function getHistorialAcciones($fecha)
+    {
+        $registros = DB::table('bitacora_cambios_unidades')
+            ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+            ->where('bitacora_cambios_unidades.fecha', $fecha)
+            ->select(
+                'bitacora_cambios_unidades.id',
+                'unidades.numero_eco as economico',
+                'unidades.tipo as tipo_unidad',
+                'usuarios.nombre_completo as usuario_nombre',
+                'bitacora_cambios_unidades.tipo_accion',
+                'bitacora_cambios_unidades.estatus_anterior',
+                'bitacora_cambios_unidades.estatus_nuevo',
+                'bitacora_cambios_unidades.detalles',
+                'bitacora_cambios_unidades.created_at as hora'
+            )
+            ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+            ->get();
+
+        return response()->json($registros);
     }
 }
