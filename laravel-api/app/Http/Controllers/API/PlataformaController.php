@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Helpers\BitacoraHelper;
 
 class PlataformaController extends Controller
 {
@@ -101,19 +102,15 @@ class PlataformaController extends Controller
             ]);
 
             // Registrar acción en la bitácora de cambios diaria
-            DB::table('bitacora_cambios_unidades')->insert([
-                'unidad_id' => $unidadId,
-                'usuario_id' => $usuarioId,
-                'fecha' => Carbon::today()->toDateString(),
-                'tipo_accion' => $tipoMovimiento,
-                'estatus_anterior' => $estatusAnterior,
-                'estatus_nuevo' => $estatusNuevo,
-                'detalles' => $tipoMovimiento === 'INCORPORACION'
+            BitacoraHelper::registrarCambio(
+                $unidadId,
+                $tipoMovimiento,
+                $tipoMovimiento === 'INCORPORACION'
                     ? "INCORPORACIÓN - CONDUCTOR: " . strtoupper($request->conductor ?? 'SIN ASIGNAR') . ", RUTA: " . strtoupper($request->ruta ?? 'SIN RUTA')
                     : "DESINCORPORACIÓN A " . strtoupper($estatusNuevo) . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : ""),
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now()
-            ]);
+                $estatusAnterior,
+                $estatusNuevo
+            );
 
             DB::commit();
             return response()->json(['status' => 'success', 'message' => 'Movimiento registrado correctamente']);

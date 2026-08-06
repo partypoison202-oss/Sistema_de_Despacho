@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
-import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import './Historial.css';
@@ -9,9 +8,10 @@ import './Historial.css';
 export default function HistorialEncierro() {
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('inicio'); // 'inicio', 'cambios', 'fin'
   const dropdownRef = useRef(null);
 
-  // 1. Obtener listado de fechas únicas registradas en el historial (Cacheado por 5 minutos)
+  // 1. Obtener listado de fechas únicas (Cacheado por 5 minutos)
   const { data: fechas = [], isLoading: isLoadingFechas } = useQuery({
     queryKey: ['historial-fechas'],
     queryFn: async () => {
@@ -45,8 +45,8 @@ export default function HistorialEncierro() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 2. Obtener el historial para la fecha seleccionada (Cacheado por 5 minutos)
-  const { data: datos = [], isLoading: isLoadingDatos } = useQuery({
+  // 2. Obtener el historial estructurado (inicio, cambios, fin)
+  const { data: datos = { inicio: [], cambios: [], fin: [] }, isLoading: isLoadingDatos } = useQuery({
     queryKey: ['historial-encierro', selectedFecha],
     queryFn: async () => {
       const response = await fetch(`${API_BASE}/api/historial-operativo/encierro/${selectedFecha}`, {
@@ -69,29 +69,60 @@ export default function HistorialEncierro() {
     setIsDropdownOpen(false);
   };
 
+  const getActiveData = () => {
+    if (activeTab === 'inicio') return datos.inicio || [];
+    if (activeTab === 'cambios') return datos.cambios || [];
+    return datos.fin || [];
+  };
+
   const exportToExcel = () => {
-    if (!datos || datos.length === 0) return;
-    
-    const worksheetData = datos.map(d => ({
-      'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-      'ECO': d.economico || '',
-      'ESTATUS': d.estatus || '',
-      'MOTIVO DE ESTATUS (BAJA)': d.motivo_estatus || '',
-      'FALLA REPORTADA': d.falla || ''
-    }));
+    const activeData = getActiveData();
+    if (!activeData || activeData.length === 0) return;
+
+    let worksheetData;
+    if (activeTab === 'cambios') {
+      worksheetData = activeData.map(d => ({
+        'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+        'ECO': d.economico || '',
+        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
+        'MODIFICACIÓN': d.tipo_accion || '',
+        'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
+        'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
+        'DETALLES': d.detalles || '',
+        'USUARIO': d.usuario_nombre || 'SISTEMA'
+      }));
+    } else {
+      worksheetData = activeData.map(d => ({
+        'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
+        'ECO': d.economico || '',
+        'ESTATUS': d.estatus || '',
+        'MOTIVO DE ESTATUS (BAJA)': d.motivo_estatus || '',
+        'FALLA REPORTADA': d.falla || ''
+      }));
+    }
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    
-    // Auto-ajustar ancho de columnas
     const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
       wch: Math.max(key.length, ...worksheetData.map(row => String(row[key] || '').length)) + 2
     }));
     worksheet['!cols'] = colWidths;
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Historial_Encierro");
-    XLSX.writeFile(workbook, `Historial_Encierro_${selectedFecha}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Historial_${activeTab.toUpperCase()}`);
+    XLSX.writeFile(workbook, `Historial_Encierro_${activeTab.toUpperCase()}_${selectedFecha}.xlsx`);
   };
+
+  const formatearHora = (fechaStr) => {
+    if (!fechaStr) return '';
+    try {
+      const f = new Date(fechaStr);
+      return f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const activeData = getActiveData();
 
   return (
     <div className="historial-page">
@@ -99,12 +130,12 @@ export default function HistorialEncierro() {
 
       <main className="historial-content">
         <div className="historial-header">
-          <h2>Unidades Fuera de Servicio (Mantenimiento/Reserva)</h2>
+          <h2>Registro de Encierro (Bajas / Reservas / Mantenimiento)</h2>
           <div className="historial-filter">
             <label>Seleccionar Fecha:</label>
             <div className="custom-dropdown-container" ref={dropdownRef}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
                 onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
                 disabled={cargando}
@@ -134,11 +165,11 @@ export default function HistorialEncierro() {
                 </div>
               )}
             </div>
-            
-            <button 
-              className="export-excel-btn" 
+
+            <button
+              className="export-excel-btn"
               onClick={exportToExcel}
-              disabled={cargando || datos.length === 0}
+              disabled={cargando || activeData.length === 0}
               title="Descargar Historial en Excel"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -151,11 +182,76 @@ export default function HistorialEncierro() {
           </div>
         </div>
 
+        {/* Pestañas de Historial */}
+        <div className="historial-tabs">
+          <button
+            type="button"
+            className={`historial-tab-btn ${activeTab === 'inicio' ? 'active' : ''}`}
+            onClick={() => setActiveTab('inicio')}
+          >
+            Estado Inicial (Inicio)
+          </button>
+          <button
+            type="button"
+            className={`historial-tab-btn ${activeTab === 'cambios' ? 'active' : ''}`}
+            onClick={() => setActiveTab('cambios')}
+          >
+            Cambios en el Transcurso (Encierro)
+          </button>
+          <button
+            type="button"
+            className={`historial-tab-btn ${activeTab === 'fin' ? 'active' : ''}`}
+            onClick={() => setActiveTab('fin')}
+          >
+            Estado Final (Fin)
+          </button>
+        </div>
+
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
             <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
-            <h3 style={{ color: '#4b5563', margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>Cargando datos del historial...</h3>
-            <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Buscando registros en base de datos</p>
+            <h3 style={{ color: '#4b5563', margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>Cargando historial...</h3>
+            <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Buscando registros en la base de datos</p>
+          </div>
+        ) : activeTab === 'cambios' ? (
+          <div className="table-responsive">
+            <table className="historial-table">
+              <thead>
+                <tr>
+                  <th>HORA</th>
+                  <th>ECO</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>MODIFICACIÓN</th>
+                  <th>VALOR ANTERIOR</th>
+                  <th>VALOR NUEVO</th>
+                  <th>DETALLES DE LA ACCIÓN</th>
+                  <th>USUARIO</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeData.map((d, i) => (
+                  <tr key={d.id || i}>
+                    <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '-'}</td>
+                    <td>
+                      <span className={`estatus-badge estatus-accion`}>
+                        {d.tipo_accion}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior || 'N/A'}</td>
+                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo || 'N/A'}</td>
+                    <td style={{ maxWidth: '280px', wordBreak: 'break-word' }}>{d.detalles}</td>
+                    <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
+                  </tr>
+                ))}
+                {activeData.length === 0 && (
+                  <tr>
+                    <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay modificaciones registradas por Encierro en este día.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="table-responsive">
@@ -170,10 +266,10 @@ export default function HistorialEncierro() {
                 </tr>
               </thead>
               <tbody>
-                {datos.map((d, i) => (
+                {activeData.map((d, i) => (
                   <tr key={i}>
-                    <td>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
-                    <td>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
+                    <td style={{ fontWeight: '700' }}>{d.economico}</td>
                     <td>
                       <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
                         {d.estatus}
@@ -183,9 +279,9 @@ export default function HistorialEncierro() {
                     <td>{d.falla || '-'}</td>
                   </tr>
                 ))}
-                {datos.length === 0 && (
+                {activeData.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay unidades en mantenimiento/reserva para esta fecha.</td>
+                    <td colSpan="5" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay registros de encierro para este estado de la fecha seleccionada.</td>
                   </tr>
                 )}
               </tbody>
@@ -193,6 +289,44 @@ export default function HistorialEncierro() {
           </div>
         )}
       </main>
+
+      <style>{`
+        .historial-tabs {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 20px;
+          border-bottom: 2px solid #e5e7eb;
+          padding-bottom: 8px;
+        }
+        .historial-tab-btn {
+          padding: 8px 16px;
+          border: none;
+          background: none;
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #6b7280;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.2s;
+        }
+        .historial-tab-btn.active {
+          color: #6b1d33;
+        }
+        .historial-tab-btn.active::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background-color: #6b1d33;
+          border-radius: 2px;
+        }
+        .estatus-badge.estatus-accion {
+          background-color: #f3f4f6;
+          color: #374151;
+        }
+      `}</style>
     </div>
   );
 }

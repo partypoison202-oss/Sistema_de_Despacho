@@ -20,7 +20,6 @@ import HistorialGeneral from './pages/Historial/HistorialGeneral';
 import HistorialDespacho from './pages/Historial/HistorialDespacho';
 import HistorialEncierro from './pages/Historial/HistorialEncierro';
 import HistorialMantenimiento from './pages/Historial/HistorialMantenimiento';
-import HistorialAcciones from './pages/Historial/HistorialAcciones';
 import FleetSelection from './components/Checklist/FleetSelection';
 import CentroControl from './pages/CentroControl/CentroControl';
 import GlobalClock from './components/GlobalClock/GlobalClock';
@@ -181,11 +180,6 @@ function App() {
             </ProtectedRoute>
           } />
 
-          <Route path="/historial/acciones" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
-              <HistorialAcciones />
-            </ProtectedRoute>
-          } />
 
           {/* Rutas para Checklist (ADMIN, DESPACHO, ENCIERRO) */}
           <Route path="/checklist/menu" element={

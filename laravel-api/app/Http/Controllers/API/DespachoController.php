@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Helpers\BitacoraHelper;
 
 class DespachoController extends Controller
 {
@@ -580,7 +581,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select('informacion_operativa.id', 'informacion_operativa.numero_tarjeton')
+            ->select('informacion_operativa.id', 'informacion_operativa.numero_tarjeton', 'informacion_operativa.nombre_conductor', 'informacion_operativa.unidad_id')
             ->first();
 
         if (!$registro) {
@@ -606,6 +607,13 @@ class DespachoController extends Controller
                 'numero_tarjeton' => $tarjetonLimpio,
                 'nombre_conductor' => $conductor->nombre
             ]);
+
+        // Registrar acción en la bitácora de cambios
+        BitacoraHelper::registrarCambio(
+            $registro->unidad_id,
+            'CAMBIO_CONDUCTOR',
+            "CAMBIO DE CONDUCTOR - ANTERIOR: " . strtoupper($registro->nombre_conductor ?? 'SIN ASIGNAR') . " ({$registro->numero_tarjeton}), NUEVO: " . strtoupper($conductor->nombre) . " ({$tarjetonLimpio})"
+        );
 
         // 4. Actualizar disponibilidad de conductores
         if ($registro->numero_tarjeton && $registro->numero_tarjeton !== $tarjetonLimpio) {
@@ -646,7 +654,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select('informacion_operativa.id')
+            ->select('informacion_operativa.id', 'informacion_operativa.hora_programada', 'informacion_operativa.acople', 'informacion_operativa.unidad_id')
             ->first();
 
         if (!$registro) {
@@ -664,6 +672,12 @@ class DespachoController extends Controller
             ]);
 
         if ($actualizado !== false) {
+            // Registrar acción en la bitácora de cambios
+            BitacoraHelper::registrarCambio(
+                $registro->unidad_id,
+                'CAMBIO_HORAS',
+                "ACTUALIZÓ HORA PROGRAMADA (ANTERIOR: " . ($registro->hora_programada ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->hora_programada ?? 'SIN ASIGNAR') . ") Y ACOPLE (ANTERIOR: " . ($registro->acople ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->acople ?? 'SIN ASIGNAR') . ")"
+            );
             return response()->json([
                 'status' => 'success',
                 'message' => 'Horas actualizadas exitosamente',
@@ -827,19 +841,15 @@ class DespachoController extends Controller
             ->update($updateData);
 
         // Registrar acción en la bitácora de cambios
-        DB::table('bitacora_cambios_unidades')->insert([
-            'unidad_id' => $unidad->id,
-            'usuario_id' => auth()->id(),
-            'fecha' => Carbon::today()->toDateString(),
-            'tipo_accion' => 'CAMBIO_ESTATUS',
-            'estatus_anterior' => $registroOperativo->estatus ?? null,
-            'estatus_nuevo' => $nuevoEstatus,
-            'detalles' => ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento')
+        BitacoraHelper::registrarCambio(
+            $unidad->id,
+            'CAMBIO_ESTATUS',
+            ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento')
                 ? "CAMBIO DE ESTATUS DE " . strtoupper($registroOperativo->estatus ?? '') . " A " . strtoupper($nuevoEstatus) . ($motivoEstatus ? " POR MOTIVO: " . strtoupper($motivoEstatus) : "")
                 : "CAMBIO DE ESTATUS DE " . strtoupper($registroOperativo->estatus ?? '') . " A " . strtoupper($nuevoEstatus),
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now()
-        ]);
+            $registroOperativo->estatus ?? null,
+            $nuevoEstatus
+        );
 
         return response()->json([
             'status' => 'success',
@@ -876,7 +886,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->where(DB::raw('LOWER(informacion_operativa.tipo)'), $tipoNormalizado)
-            ->select('informacion_operativa.id')
+            ->select('informacion_operativa.id', 'informacion_operativa.ruta', 'informacion_operativa.unidad_id')
             ->first();
 
         if (!$operacion) {
@@ -891,6 +901,13 @@ class DespachoController extends Controller
             ->update([
                 'ruta' => $rutaLimpia,
             ]);
+
+        // Registrar acción en la bitácora de cambios
+        BitacoraHelper::registrarCambio(
+            $operacion->unidad_id,
+            'CAMBIO_RUTA',
+            "CAMBIO DE RUTA - ANTERIOR: " . strtoupper($operacion->ruta ?? 'SIN RUTA') . ", NUEVA: " . strtoupper($rutaLimpia)
+        );
 
         return response()->json([
             'status' => 'success',

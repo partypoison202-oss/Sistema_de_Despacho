@@ -36,6 +36,7 @@ class GuardarHistorialOperativo extends Command
         $datosInsertar = $registros->map(function ($registro) use ($fechaHistorial) {
             return [
                 'fecha_historial' => $fechaHistorial,
+                'momento'         => 'FIN',
                 'unidad_id'       => $registro->unidad_id,
                 'ruta'            => $registro->ruta,
                 'numero_tarjeton' => $registro->numero_tarjeton,
