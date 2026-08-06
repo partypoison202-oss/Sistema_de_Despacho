@@ -779,6 +779,7 @@ class DespachoController extends Controller
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;
+            $updateData['corrida'] = null;
 
             if ($registroOperativo->numero_tarjeton) {
                 DB::table('conductores')

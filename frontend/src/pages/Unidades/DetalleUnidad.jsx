@@ -754,6 +754,7 @@ export default function DetalleUnidad() {
             conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || prev.conductor),
             ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || prev.ruta),
             tarjeton: isClearFields ? '' : (data.tarjeton || prev.tarjeton),
+            corrida: isClearFields ? '' : (data.corrida || prev.corrida),
           };
         });
         setSelectedEstado(nuevoEstatus);
@@ -770,6 +771,7 @@ export default function DetalleUnidad() {
             conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || old.conductor),
             ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || old.ruta),
             tarjeton: isClearFields ? '' : (data.tarjeton || old.tarjeton),
+            corrida: isClearFields ? '' : (data.corrida || old.corrida),
             asignado: true
           };
         });
@@ -784,6 +786,7 @@ export default function DetalleUnidad() {
                 nombre_conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || u.nombre_conductor),
                 ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || u.ruta),
                 tarjeton: isClearFields ? '' : (data.tarjeton || u.tarjeton),
+                corrida: isClearFields ? '' : (data.corrida || u.corrida),
               };
             }
             return u;

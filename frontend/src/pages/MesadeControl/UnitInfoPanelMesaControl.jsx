@@ -111,6 +111,7 @@ export default function UnitInfoPanel({
   const [platConductorDropdown, setPlatConductorDropdown] = useState(false);
   const [platRuta, setPlatRuta] = useState('');
   const [platRutaDropdown, setPlatRutaDropdown] = useState(false);
+  const [platError, setPlatError] = useState('');
 
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
@@ -227,14 +228,16 @@ export default function UnitInfoPanel({
     setPlatEstatus('');
     setPlatConductor('');
     setPlatRuta('');
+    setPlatError('');
   };
 
   const handleConfirmarPlataforma = async () => {
     if (modalPlataformaVisible === 'INCORPORACION') {
       if (!platConductor || !platRuta) {
-        const Swal = (await import('sweetalert2')).default;
-        return Swal.fire('Error', 'Faltan datos de la incorporación.', 'error');
+        setPlatError('Faltan datos de la incorporación.');
+        return;
       }
+      setPlatError('');
       setGuardandoPerdida(true);
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -269,9 +272,10 @@ export default function UnitInfoPanel({
       }
     } else {
       if (!platMotivo || !platEstatus) {
-        const Swal = (await import('sweetalert2')).default;
-        return Swal.fire('Error', 'Debe ingresar un motivo y seleccionar un destino.', 'error');
+        setPlatError('Debe ingresar un motivo y seleccionar un destino.');
+        return;
       }
+      setPlatError('');
       setGuardandoPerdida(true);
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -294,6 +298,10 @@ export default function UnitInfoPanel({
           throw new Error(result.error || result.message || 'Error al desincorporar unidad');
         }
         if (typeof onUpdate === 'function') onUpdate();
+        
+        datosOperativos.conductor = null;
+        datosOperativos.ruta = null;
+
         setModalPlataformaVisible(null);
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({ icon: 'success', title: 'Éxito', text: `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`, confirmButtonColor: '#6b1d33' });
@@ -1140,6 +1148,12 @@ export default function UnitInfoPanel({
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {platError && (
+              <div style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '1rem', textAlign: 'center', fontWeight: '500' }}>
+                ⚠️ {platError}
               </div>
             )}
 
