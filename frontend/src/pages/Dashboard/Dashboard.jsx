@@ -92,8 +92,7 @@ export default function Dashboard() {
             const unidadEncontrada = unidades.find((unidad) => {
               const valorEco = unidad.numero_eco !== undefined ? unidad.numero_eco : unidad.eco;
               const numeroEcoUnidad = normalizarNumeroEco(valorEco ?? '');
-              const isOperacion = (unidad.estatus || '').toLowerCase().trim().includes('operaci');
-              return numeroEcoUnidad === eco && isOperacion;
+              return numeroEcoUnidad === eco;
             });
 
             return unidadEncontrada ? { modulo, unidad: unidadEncontrada } : null;
@@ -106,6 +105,16 @@ export default function Dashboard() {
 
       const coincidencia = resultados.find(Boolean);
       if (coincidencia) {
+        const isOperacion = (coincidencia.unidad.estatus || '').toLowerCase().trim().includes('operaci');
+        if (!isOperacion) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Unidad no disponible',
+            text: `La unidad ${eco} no se puede procesar porque no está en operación.`,
+            confirmButtonColor: '#601a2a',
+          });
+          return;
+        }
         navigate(`/transporte/${coincidencia.modulo.id}?eco=${eco}`);
         return;
       }
