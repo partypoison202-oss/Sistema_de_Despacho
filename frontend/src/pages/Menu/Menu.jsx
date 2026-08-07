@@ -9,6 +9,7 @@ const menuItems = [
   {
     id: 'despacho',
     redirectTo: '/dashboard',
+    roles: ['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -24,6 +25,7 @@ const menuItems = [
   {
     id: 'general',
     redirectTo: '/general',
+    roles: ['ADMINISTRADOR', 'GENERAL'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -38,6 +40,7 @@ const menuItems = [
   {
     id: 'encierro',
     redirectTo: '/encierro/dashboard', 
+    roles: ['ADMINISTRADOR', 'ENCIERRO'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="3" width="15" height="13" rx="2" />
@@ -52,7 +55,7 @@ const menuItems = [
   {
     id: 'capturista',
     redirectTo: '/cargar-excel', 
-    roles: ['ADMINISTRADOR', 'CAPTURISTA', 'RELEVOS'],
+    roles: ['ADMINISTRADOR', 'PROGRAMACION'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -66,7 +69,7 @@ const menuItems = [
   {
     id: 'relevos',
     redirectTo: '/cargar-excel',
-    roles: ['ADMINISTRADOR', 'CAPTURISTA', 'RELEVOS'],
+    roles: ['ADMINISTRADOR', 'PROGRAMACION'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 2.1l4 4-4 4" />
@@ -81,6 +84,7 @@ const menuItems = [
   {
     id: 'mantenimiento',
     redirectTo: '/mantenimiento',
+    roles: ['ADMINISTRADOR', 'MANTENIMIENTO'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
@@ -92,6 +96,7 @@ const menuItems = [
   {
     id: 'centro',
     redirectTo: '/centro-control',
+    roles: ['ADMINISTRADOR', 'CENTRO_CONTROL'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -106,6 +111,7 @@ const menuItems = [
   {
     id: 'historial',
     redirectTo: '/historial', 
+    roles: ['ADMINISTRADOR', 'DESPACHO', 'GENERAL'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 3v18h18" />
@@ -118,6 +124,7 @@ const menuItems = [
   {
     id: 'titan',
     redirectTo: '/titan/dashboard', 
+    roles: ['ADMINISTRADOR', 'TITAN'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -146,6 +153,7 @@ const menuItems = [
   {
     id: 'mesa-control',          // antes 'plataforma'
     redirectTo: '/mesa-control', // antes '/dashboard'
+    roles: ['ADMINISTRADOR', 'PLATAFORMA'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -180,7 +188,7 @@ export default function Menu() {
 
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION', 'GESTOR_OPERADORES', 'RELEVOS', 'REVELOS', 'CAPTURISTA'].includes(user.role?.codigo)) {
+    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION'].includes(user.role?.codigo)) {
       navigate('/');
     }
   }, [user, navigate]);
@@ -220,7 +228,9 @@ export default function Menu() {
 
       <main className="dashboard-main">
         <div className="dashboard-welcome">
-          <h2 className="dashboard-heading">Menú administrativo</h2>
+          <h2 className="dashboard-heading">
+            {user?.role?.codigo === 'ADMINISTRADOR' ? 'Menú administrativo' : 'Menú de programación'}
+          </h2>
         </div>
 
         <div className="dashboard-grid">

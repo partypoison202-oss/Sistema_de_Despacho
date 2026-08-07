@@ -4,9 +4,10 @@ import { headerConfig } from '../../config/header';
 import { AuthContext } from '../../context/AuthContext';
 import AjustesModal from './AjustesModal';
 import UserAvatar from '../UserAvatar/UserAvatar';
+import Swal from 'sweetalert2';
 import './Header.css';
 
-export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
+export default function Header({ title, eyebrow, hideLogos, hideBackButton = false, hasUnsavedChanges = false, onSaveAndExit = null }) {
   const { user, logout } = useContext(AuthContext);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showAjustes, setShowAjustes] = useState(false);
@@ -25,6 +26,37 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleConfirmExit = (onConfirm) => {
+    if (hasUnsavedChanges) {
+      Swal.fire({
+        title: 'Cambios sin guardar',
+        text: 'Tienes cambios pendientes en la programación operativa. ¿Qué deseas hacer antes de salir?',
+        icon: 'warning',
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonColor: '#1e7145',
+        denyButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Guardar y salir',
+        denyButtonText: 'Descartar y salir',
+        cancelButtonText: 'Permanecer aquí'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          if (onSaveAndExit) {
+            const saved = await onSaveAndExit();
+            if (saved) onConfirm();
+          } else {
+            onConfirm();
+          }
+        } else if (result.isDenied) {
+          onConfirm();
+        }
+      });
+    } else {
+      onConfirm();
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
@@ -41,6 +73,11 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       return;
     }
 
+    if (location.pathname === '/cargar-excel') {
+      navigate('/menu');
+      return;
+    }
+
     navigate(-1);
   };
 
@@ -50,7 +87,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       return;
     }
     const role = user.role?.codigo;
-    if (role === 'ADMINISTRADOR' || role === 'CAPTURISTA' || role === 'RELEVOS') {
+    if (role === 'ADMINISTRADOR' || role === 'PROGRAMACION') {
       navigate('/menu');
     } else if (role === 'SISTEMAS') {
       navigate('/cargar-excel');
@@ -83,7 +120,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
 
   let showBackButton = false;
   if (!hideBackButton && user && location.pathname !== '/') {
-    if (user.role?.codigo === 'ADMINISTRADOR') {
+    if (user.role?.codigo === 'ADMINISTRADOR' || user.role?.codigo === 'PROGRAMACION') {
       showBackButton = location.pathname !== '/menu';
     } else {
       const isDashboard = location.pathname === '/dashboard' ||
@@ -107,7 +144,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             <button
               type="button"
               className="app-header__back-btn"
-              onClick={handleBackClick}
+              onClick={() => handleConfirmExit(handleBackClick)}
               title="Regresar"
             >
               <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -119,7 +156,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             <button
               type="button"
               className="app-header__brand"
-              onClick={handleHomeClick}
+              onClick={() => handleConfirmExit(handleHomeClick)}
               aria-label="Ir al inicio"
               style={{ cursor: 'pointer' }}
             >
@@ -137,7 +174,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
           <button
             type="button"
             className="app-header__brand"
-            onClick={handleHomeClick}
+            onClick={() => handleConfirmExit(handleHomeClick)}
             aria-label="Ir al inicio"
             style={{ cursor: 'pointer' }}
           >
@@ -176,21 +213,25 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   </button>
                   {['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'].includes(user.role.codigo) && (
                     <button className="profile-menu-btn" onClick={() => {
-                      setShowProfileMenu(false);
-                      navigate('/operadores');
+                      handleConfirmExit(() => {
+                        setShowProfileMenu(false);
+                        navigate('/operadores');
+                      });
                     }}>
                       Gestión de Operadores
                     </button>
                   )}
                   {user.role.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {
-                      setShowProfileMenu(false);
-                      navigate('/usuarios');
+                      handleConfirmExit(() => {
+                        setShowProfileMenu(false);
+                        navigate('/usuarios');
+                      });
                     }}>
                       Gestión de Usuarios
                     </button>
                   )}
-                  <button className="profile-menu-btn logout-btn" onClick={handleLogout}>
+                  <button className="profile-menu-btn logout-btn" onClick={() => handleConfirmExit(handleLogout)}>
                     Cerrar Sesión
                   </button>
                 </div>

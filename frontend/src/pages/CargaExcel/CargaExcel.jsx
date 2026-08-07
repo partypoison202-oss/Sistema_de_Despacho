@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { useNavigate, useBlocker } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -256,44 +256,7 @@ export default function CargaExcel() {
     setIsSaving(false);
   };
 
-  // 3. Bloquear navegación interna si hay cambios sin guardar
-  const blocker = useBlocker(({ currentValue, nextLocation }) => {
-    return hasChanges && currentValue.pathname !== nextLocation.pathname;
-  });
 
-  useEffect(() => {
-    if (blocker.state === 'blocked') {
-      Swal.fire({
-        title: 'Cambios sin guardar',
-        text: 'Tienes cambios pendientes en la programación operativa. ¿Qué deseas hacer antes de salir?',
-        icon: 'warning',
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonColor: '#1e7145',
-        denyButtonColor: '#dc2626',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Guardar y salir',
-        denyButtonText: 'Descartar y salir',
-        cancelButtonText: 'Permanecer aquí'
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          setIsSaving(true);
-          const guardadoExitoso = await handleSaveChangesDirectly();
-          setIsSaving(false);
-          if (guardadoExitoso) {
-            blocker.proceed();
-          } else {
-            blocker.reset();
-          }
-        } else if (result.isDenied) {
-          setHasChanges(false);
-          blocker.proceed();
-        } else {
-          blocker.reset();
-        }
-      });
-    }
-  }, [blocker.state, hasChanges, previewData]);
 
   // 4. Bloquear recarga/cierre del navegador si hay cambios sin guardar
   useEffect(() => {
@@ -392,7 +355,7 @@ export default function CargaExcel() {
 
   return (
     <div className="excel-layout">
-      <Header />
+      <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
       <main className="excel-main-content">
         <div className="excel-top-bar">
           <div className="excel-title-section">

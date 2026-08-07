@@ -164,9 +164,9 @@ class ConductorController extends Controller
     {
         $this->ensureColumnsExist();
 
-        // El capturista no puede dar de baja a operadores
-        if ($request->user() && $request->user()->role && $request->user()->role->codigo === 'CAPTURISTA') {
-            return response()->json(['message' => 'El capturista no tiene permiso para dar de baja operadores.'], 403);
+        // El rol de Programación no puede dar de baja a operadores
+        if ($request->user() && $request->user()->role && $request->user()->role->codigo === 'PROGRAMACION') {
+            return response()->json(['message' => 'El rol de Programación no tiene permiso para dar de baja operadores.'], 403);
         }
 
         $conductor = Conductor::findOrFail($id);
