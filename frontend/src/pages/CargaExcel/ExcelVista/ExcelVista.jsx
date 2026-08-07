@@ -17,16 +17,16 @@ const HEADER_TRANSLATIONS = {
 
 const EXCLUDED_KEYS = ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS', 'HORA_PROGRAMADA'];
 
-export default function ExcelPreview({ 
-  data = [], 
+export default function ExcelPreview({
+  data = [],
   catalogUnidades = [],
   catalogConductores = [],
   catalogRutasObj = { troncales: [], alimentadoras: [] },
   onUpdate,
-  onClear, 
-  onSave,        
-  hasChanges,    
-  isSaving       
+  onClear,
+  onSave,
+  hasChanges,
+  isSaving
 }) {
   const { user } = useContext(AuthContext);
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
@@ -87,7 +87,7 @@ export default function ExcelPreview({
   // 2. Filtrar los datos en base al término de búsqueda y tecnología seleccionada
   const filteredData = sortedData.filter(fila => {
     if (!fila) return false;
-    
+
     if (selectedTech) {
       const type = String(fila.TIPO_DE_UNIDAD || '').toUpperCase();
       const normalizedType = type === 'URBANUSS' ? 'URBANUS' : type;
@@ -178,7 +178,7 @@ export default function ExcelPreview({
             />
           </div>
           <span className="registro-count-badge">
-            {filteredData.length === (data || []).length 
+            {filteredData.length === (data || []).length
               ? `${(data || []).length} registros`
               : `${filteredData.length} de ${(data || []).length} encontrados`
             }
@@ -258,8 +258,8 @@ export default function ExcelPreview({
                               }}
                               disabled={isRowDisabled}
                               className={`edit-input dropdown-trigger ${isOpen ? 'active-trigger' : ''}`}
-                              style={{ 
-                                textAlign: 'center', 
+                              style={{
+                                textAlign: 'center',
                                 height: '34px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -277,17 +277,17 @@ export default function ExcelPreview({
                             </button>
                             {isOpen && createPortal(
                               <>
-                                <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
+                                <div
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
                                   onClick={(e) => { e.stopPropagation(); setActiveTimePickerRow(null); }}
                                 />
-                                <div className="ios-time-picker-popover" style={{ 
-                                  position: 'fixed', 
-                                  top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`, 
+                                <div className="ios-time-picker-popover" style={{
+                                  position: 'fixed',
+                                  top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
                                   bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
-                                  left: `${dropdownCoords.left}px`, 
-                                  transform: 'translateX(-50%)', 
-                                  zIndex: 9999, 
+                                  left: `${dropdownCoords.left}px`,
+                                  transform: 'translateX(-50%)',
+                                  zIndex: 9999,
                                   width: '220px',
                                   marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
                                   marginTop: dropdownCoords.openUp ? '0' : '0.4rem'
@@ -313,8 +313,8 @@ export default function ExcelPreview({
                         const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUS' || fila.TIPO_DE_UNIDAD === 'URBANUSS';
                         const availableRoutes = isTroncal ? (catalogRutasObj.troncales || []) : (catalogRutasObj.alimentadoras || []);
                         const isRutaOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'RUTA';
-                        
-                        const filteredRoutes = availableRoutes.filter(r => 
+
+                        const filteredRoutes = availableRoutes.filter(r =>
                           r.toLowerCase().includes(dropdownSearch.toLowerCase())
                         );
 
@@ -341,13 +341,13 @@ export default function ExcelPreview({
                             </button>
                             {isRutaOpen && createPortal(
                               <>
-                                <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
+                                <div
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
                                   onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
                                 />
-                                <div 
-                                  className="dropdown-menu" 
-                                  style={{ 
+                                <div
+                                  className="dropdown-menu"
+                                  style={{
                                     position: 'fixed',
                                     top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
                                     bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
@@ -416,14 +416,14 @@ export default function ExcelPreview({
 
                       if (h === 'TARJETON') {
                         const isTarjetonOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON';
-                        
+
                         const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUS' || fila.TIPO_DE_UNIDAD === 'URBANUSS';
-                        
+
                         const filteredDrivers = (catalogConductores || []).filter(c => {
                           if (isTroncal && String(c.tipo_tarjeton).toUpperCase() !== 'C') return false;
-                          
+
                           return String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
-                                 String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
+                            String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
                         });
 
                         return (
@@ -449,13 +449,13 @@ export default function ExcelPreview({
                             </button>
                             {isTarjetonOpen && createPortal(
                               <>
-                                <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
+                                <div
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
                                   onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
                                 />
-                                <div 
-                                  className="dropdown-menu" 
-                                  style={{ 
+                                <div
+                                  className="dropdown-menu"
+                                  style={{
                                     position: 'fixed',
                                     top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
                                     bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
@@ -578,13 +578,13 @@ export default function ExcelPreview({
                             </button>
                             {isEstatusOpen && createPortal(
                               <>
-                                <div 
-                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }} 
+                                <div
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
                                   onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
                                 />
-                                <div 
-                                  className="dropdown-menu" 
-                                  style={{ 
+                                <div
+                                  className="dropdown-menu"
+                                  style={{
                                     position: 'fixed',
                                     top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
                                     bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
@@ -636,11 +636,11 @@ export default function ExcelPreview({
                       return (
                         <td key={h} className={`cell-${h.toLowerCase()}`}>
                           {isReadOnly ? (
-                            <div style={{ 
-                              padding: '0.45rem 0.6rem', 
-                              fontSize: '0.875rem', 
-                              color: h === 'ECONOMICO' ? '#111827' : '#4b5563', 
-                              fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal', 
+                            <div style={{
+                              padding: '0.45rem 0.6rem',
+                              fontSize: '0.875rem',
+                              color: h === 'ECONOMICO' ? '#111827' : '#4b5563',
+                              fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
                               textAlign: h === 'CORRIDAS' ? 'center' : (h === 'ECONOMICO' ? 'center' : 'left')
                             }}>
                               {fila[h] ?? ''}
@@ -666,7 +666,7 @@ export default function ExcelPreview({
                                 className={`edit-input edit-text-input ${h === 'CORRIDAS' ? 'text-center' : ''}`}
                                 placeholder=""
                                 maxLength={h === 'CORRIDAS' ? 2 : undefined}
-                                style={{ 
+                                style={{
                                   paddingRight: h === 'CORRIDAS' ? '0' : '8px',
                                   cursor: isRowDisabled ? 'not-allowed' : 'text',
                                   opacity: isRowDisabled ? 0.6 : 1,
@@ -694,7 +694,7 @@ export default function ExcelPreview({
             <span className="pulsing-dot"></span>
             Tienes cambios sin guardar en esta sesión
           </div>
-          <button 
+          <button
             className="btn-excel-sincronizar save-changes-btn"
             onClick={onSave}
             disabled={isSaving}

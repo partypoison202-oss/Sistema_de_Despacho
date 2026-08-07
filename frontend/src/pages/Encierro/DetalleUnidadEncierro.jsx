@@ -1,5 +1,5 @@
 // src/pages/Encierro/DetalleUnidadEncierro.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 const LiveClockAcople = ({ horaCongelada }) => {
@@ -30,7 +30,7 @@ const LiveClockAcople = ({ horaCongelada }) => {
     const parpadeo = ahora.getSeconds() % 2 === 0;
     separador = parpadeo ? ':' : ' ';
   }
-  
+
   const horaMostrada = `${horas12}${separador}${minutos}${separador}${segundos} ${ampm}`;
 
   return (
@@ -105,7 +105,7 @@ export default function DetalleUnidadEncierro() {
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [lightboxDibujo, setLightboxDibujo] = useState(null);
   const [observaciones, setObservaciones] = useState('');
-  
+
   const [acopleCongelado, setAcopleCongelado] = useState(null);
   const [guardandoAcople, setGuardandoAcople] = useState(false);
 
@@ -461,7 +461,7 @@ export default function DetalleUnidadEncierro() {
       const matchNumeros = selectedOption ? selectedOption.match(/\d+/) : null;
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
       if (!numeroLimpio) return;
-      
+
       const payload = {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
@@ -469,9 +469,9 @@ export default function DetalleUnidadEncierro() {
         acople: horaCapturada
       };
       if (observaciones !== null) {
-          payload.observaciones = observaciones;
+        payload.observaciones = observaciones;
       }
-      
+
       const res = await fetch(`${API_BASE}/api/despacho/actualizar-horas`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1125,10 +1125,10 @@ export default function DetalleUnidadEncierro() {
 
       <main className="main-content">
         <div className="unit-control-panel">
-          <LocalSearchBar 
-            unidades={unidadesList} 
-            onSelectUnit={handleSelectUnit} 
-            moduleName={configActual?.title || 'esta sección'} 
+          <LocalSearchBar
+            unidades={unidadesList}
+            onSelectUnit={handleSelectUnit}
+            moduleName={configActual?.title || 'esta sección'}
           />
           <div className="unit-control-panel__selectors">
             {/* ✅ NUEVO: contenedor con flex y gap para los dos selectores */}
@@ -1173,7 +1173,7 @@ export default function DetalleUnidadEncierro() {
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
-                    Unidades por salir en ruta {selectedRuta}
+                    Unidades en ruta {selectedRuta} por salir:
                   </span>
                   <button
                     type="button"
@@ -1530,7 +1530,7 @@ export default function DetalleUnidadEncierro() {
                         </div>
                       </div>
 
-                      <LiveClockAcople 
+                      <LiveClockAcople
                         key={selectedOption || 'none'}
                         horaCongelada={acopleCongelado}
                       />
@@ -1567,13 +1567,13 @@ export default function DetalleUnidadEncierro() {
                             const horas24 = String(now.getHours()).padStart(2, '0');
                             const minutos = String(now.getMinutes()).padStart(2, '0');
                             const segundos = String(now.getSeconds()).padStart(2, '0');
-                            
+
                             const ampm = parseInt(horas24, 10) >= 12 ? 'P.M.' : 'A.M.';
                             const horas12 = String(parseInt(horas24, 10) % 12 || 12).padStart(2, '0');
-                            
+
                             const horaParaGuardar = `${horas24}:${minutos}:${segundos}`;
                             const stringCongelado = `${horas24}:${minutos}:${segundos}`; // LiveClock parses 24h
-                            
+
                             await handleGuardarAcople(horaParaGuardar, observaciones);
                             setAcopleCongelado(stringCongelado);
                             setGuardandoAcople(false);
