@@ -880,7 +880,7 @@ export default function DetalleUnidadMantenimiento() {
 
                 <div className="dashboard-grid">
                   {/* CARD: SERVICIO ACTIVO */}
-                  <div className="info-card">
+                  <div className="info-card info-card--double">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -930,7 +930,7 @@ export default function DetalleUnidadMantenimiento() {
 
                   {/* CARD: INSPECCIÓN */}
                   {isInspeccion && (
-                    <div className="info-card">
+                    <div className="info-card info-card--double">
                       <div className="info-card__header">
                         <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1018,7 +1018,7 @@ export default function DetalleUnidadMantenimiento() {
 
                   {/* CARD: CHECKLIST - (sin cambios relevantes) */}
                   {!isInspeccion && (
-                    <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column', marginTop: '1.5rem' }}>
+                    <div className="info-card" style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column' }}>
                       <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                           <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
