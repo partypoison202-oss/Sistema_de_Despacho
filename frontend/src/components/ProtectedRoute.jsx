@@ -22,9 +22,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
   if (allowedRoles && !allowedRoles.includes(user.role.codigo)) {
     // Mapeo de roles a rutas de redirección
     const roleRedirectMap = {
-      CAPTURISTA: '/cargar-excel',
-      RELEVOS: '/cargar-excel',
-      REVELOS: '/cargar-excel',
+      CAPTURISTA: '/menu',
+      RELEVOS: '/menu',
+      REVELOS: '/menu',
       GESTOR_OPERADORES: '/operadores',
       ENCIERRO: '/encierro/dashboard',
       GENERAL: '/general',

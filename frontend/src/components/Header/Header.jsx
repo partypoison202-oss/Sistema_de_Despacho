@@ -50,7 +50,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       return;
     }
     const role = user.role?.codigo;
-    if (role === 'ADMINISTRADOR') {
+    if (role === 'ADMINISTRADOR' || role === 'CAPTURISTA' || role === 'RELEVOS') {
       navigate('/menu');
     } else if (role === 'SISTEMAS') {
       navigate('/cargar-excel');

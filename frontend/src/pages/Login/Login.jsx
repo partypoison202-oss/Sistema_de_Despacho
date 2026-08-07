@@ -181,7 +181,7 @@ export default function Login() {
     if (rol === 'ADMINISTRADOR') {
       navigate('/menu');
     } else if (rol === 'CAPTURISTA' || rol === 'RELEVOS') {
-      navigate('/cargar-excel');
+      navigate('/menu');
     } else if (rol === 'GESTOR_OPERADORES') {
       navigate('/operadores');
     } else if (rol === 'ENCIERRO') {

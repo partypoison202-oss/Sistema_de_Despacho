@@ -52,7 +52,7 @@ const menuItems = [
   {
     id: 'capturista',
     redirectTo: '/cargar-excel', 
-    roles: ['ADMINISTRADOR', 'CAPTURISTA'],
+    roles: ['ADMINISTRADOR', 'CAPTURISTA', 'RELEVOS'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -66,7 +66,7 @@ const menuItems = [
   {
     id: 'relevos',
     redirectTo: '/cargar-excel',
-    roles: ['ADMINISTRADOR', 'RELEVOS'],
+    roles: ['ADMINISTRADOR', 'CAPTURISTA', 'RELEVOS'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 2.1l4 4-4 4" />

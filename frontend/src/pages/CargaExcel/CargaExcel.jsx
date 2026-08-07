@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useBlocker } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -204,8 +204,8 @@ export default function CargaExcel() {
     return t === 'URBANUSS' ? 'URBANUS' : t;
   };
 
-  // Guardar todos los cambios al backend
-  const handleSaveChanges = async () => {
+  // Guardar todos los cambios al backend directamente (retorna booleano)
+  const handleSaveChangesDirectly = async () => {
     // Validar que no haya registros incompletos (unidades sin economico)
     const tieneIncompletos = previewData.some(fila => !fila.ECONOMICO);
     if (tieneIncompletos) {
@@ -215,10 +215,9 @@ export default function CargaExcel() {
         text: 'Hay registros sin número económico. Por favor complétalos o elimínalos.',
         confirmButtonColor: '#6b1d33'
       });
-      return;
+      return false;
     }
 
-    setIsSaving(true);
     try {
       const response = await fetch(`${API_BASE}/api/despacho/actualizar`, {
         method: 'POST',
@@ -238,6 +237,7 @@ export default function CargaExcel() {
       });
       // Invalidar cache para forzar la recarga de datos frescos
       queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+      return true;
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -245,10 +245,68 @@ export default function CargaExcel() {
         text: error.message,
         confirmButtonColor: '#6b1d33'
       });
-    } finally {
-      setIsSaving(false);
+      return false;
     }
   };
+
+  // Guardar todos los cambios al backend
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    await handleSaveChangesDirectly();
+    setIsSaving(false);
+  };
+
+  // 3. Bloquear navegación interna si hay cambios sin guardar
+  const blocker = useBlocker(({ currentValue, nextLocation }) => {
+    return hasChanges && currentValue.pathname !== nextLocation.pathname;
+  });
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      Swal.fire({
+        title: 'Cambios sin guardar',
+        text: 'Tienes cambios pendientes en la programación operativa. ¿Qué deseas hacer antes de salir?',
+        icon: 'warning',
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonColor: '#1e7145',
+        denyButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Guardar y salir',
+        denyButtonText: 'Descartar y salir',
+        cancelButtonText: 'Permanecer aquí'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          setIsSaving(true);
+          const guardadoExitoso = await handleSaveChangesDirectly();
+          setIsSaving(false);
+          if (guardadoExitoso) {
+            blocker.proceed();
+          } else {
+            blocker.reset();
+          }
+        } else if (result.isDenied) {
+          setHasChanges(false);
+          blocker.proceed();
+        } else {
+          blocker.reset();
+        }
+      });
+    }
+  }, [blocker.state, hasChanges, previewData]);
+
+  // 4. Bloquear recarga/cierre del navegador si hay cambios sin guardar
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = 'Tienes cambios sin guardar en la programación operativa.';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
 
   // Exportar los datos actuales a un archivo Excel (.xlsx) con formato
   const handleExportExcel = () => {
