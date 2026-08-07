@@ -915,9 +915,6 @@ class DespachoController extends Controller
     /**
      * Guarda la información de mantenimiento (combustible, adblue, cincho) en la tabla unidades.
      */
-    /**
-     * Guarda la información de mantenimiento (combustible, adblue, cincho) en la tabla unidades.
-     */
     public function guardarMantenimiento(Request $request)
     {
         try {
