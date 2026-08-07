@@ -1,11 +1,13 @@
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY package.json package-lock.json ./
-RUN npm ci --only=production || npm install --production
+COPY --chown=node:node package.json package-lock.json ./
+RUN npm ci --only=production --ignore-scripts
 
-COPY . .
+COPY --chown=node:node . .
+
+USER node
 
 EXPOSE 4000
 

@@ -25,13 +25,13 @@ WORKDIR /var/www/html
 
 # Copiar archivos de dependencias e instalar composer
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --no-scripts --prefer-dist || composer install --no-interaction --prefer-dist
+RUN composer install --no-dev --no-interaction --no-scripts --prefer-dist --no-autoloader
 
 # Copiar resto del código fuente del proyecto
-COPY . .
+COPY --chown=www-data:www-data . .
 
 # Permisos para storage y bootstrap/cache
-RUN chmod -R 777 storage bootstrap/cache \
+RUN chmod -R 775 storage bootstrap/cache \
  && chmod +x docker-entrypoint.sh
 
 EXPOSE 8000

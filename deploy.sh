@@ -23,7 +23,7 @@ git pull origin main
 # Paso 2: Instalación de dependencias del frontend y compilación con Vite
 echo -e "${BLUE}📦 2. Instalando dependencias y compilando Frontend (Vite)...${NC}"
 cd frontend
-npm install
+npm ci --ignore-scripts
 npm run build
 cd ..
 
@@ -42,7 +42,7 @@ php artisan migrate --force
 
 # Paso 6: Asignación de permisos en storage y bootstrap/cache
 echo -e "${BLUE}🔐 6. Asignando permisos críticos a storage y bootstrap/cache...${NC}"
-chmod -R 777 storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
 
 cd ..
 

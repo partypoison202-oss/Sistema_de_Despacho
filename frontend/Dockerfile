@@ -3,10 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci || npm install
+COPY --chown=node:node package.json package-lock.json ./
+RUN npm ci --ignore-scripts
 
-COPY . .
+COPY --chown=node:node . .
 
 # Argumentos de compilación opcionales
 ARG VITE_API_BASE

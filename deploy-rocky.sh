@@ -48,7 +48,7 @@ docker compose ps
 
 echo ""
 echo -e "${BLUE}🌐 Acceso al sistema:${NC}"
-echo -e "   Frontend React (Nginx): http://$(hostname -I | awk '{print $1}')"
-echo -e "   API Laravel:           http://$(hostname -I | awk '{print $1}'):8000"
-echo -e "   Microservicio Node:    http://$(hostname -I | awk '{print $1}'):4000"
+echo -e "   Frontend React (Nginx): https://$(hostname -I | awk '{print $1}')"
+echo -e "   API Laravel:           https://$(hostname -I | awk '{print $1}'):8000"
+echo -e "   Microservicio Node:    https://$(hostname -I | awk '{print $1}'):4000"
 echo ""
