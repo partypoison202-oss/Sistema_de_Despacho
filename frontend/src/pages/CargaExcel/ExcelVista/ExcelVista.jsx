@@ -655,6 +655,11 @@ export default function ExcelPreview({
                                   let val = e.target.value;
                                   if (h === 'CORRIDAS') {
                                     val = val.replace(/\D/g, '').substring(0, 2);
+                                    if (val !== '') {
+                                      const num = parseInt(val, 10);
+                                      if (num < 1) val = '1';
+                                      else if (num > 20) val = '20';
+                                    }
                                   }
                                   onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, val);
                                 }}
