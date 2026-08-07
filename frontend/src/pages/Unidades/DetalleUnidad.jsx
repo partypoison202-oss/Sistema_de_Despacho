@@ -100,6 +100,7 @@ export default function DetalleUnidad() {
       display: formatearEco(u.numero_eco),
       estado: u.estatus || 'operacion',
       horaSalida: u.hora_salida || '',
+      ruta: u.ruta || null,
     }));
   };
 
@@ -134,32 +135,13 @@ export default function DetalleUnidad() {
     refetchInterval: 30000,
   });
 
-  // ✅ NUEVO: unidades de la ruta alimentadora seleccionada
-  const {
-    data: unidadesPorRutaList = [],
-    isLoading: cargandoUnidadesPorRuta,
-  } = useQuery({
-    queryKey: ['unidades-por-ruta', tipoTransporte, selectedRuta],
-    queryFn: async () => {
-      const token = getToken();
-      if (!token || !selectedRuta) return [];
-      const res = await fetch(
-        `${API_BASE}/api/despacho/unidades-por-ruta/${tipoTransporte}/${encodeURIComponent(selectedRuta)}`,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-      );
-      if (!res.ok) throw new Error('Error al obtener unidades de la ruta');
-      const data = await res.json();
-      const lista = Array.isArray(data) ? data : (data.unidades || []);
-      return lista.map((u) => ({
-        eco: String(u.numero_eco ?? u.eco ?? '').padStart(3, '0'),
-        tarjeton: String(u.tarjeton ?? '').trim(),
-        display: formatearEco(u.numero_eco ?? u.eco),
-        estado: u.estatus || u.estado || 'operacion',
-      }));
-    },
-    enabled: !!selectedRuta && esAlimentadora,
-    staleTime: 30000,
-  });
+  // ✅ NUEVO: unidades de la ruta alimentadora seleccionada derivadas localmente
+  const unidadesPorRutaList = useMemo(() => {
+    if (!selectedRuta) return [];
+    return unidadesList.filter(u => u.ruta === selectedRuta);
+  }, [unidadesList, selectedRuta]);
+
+  const cargandoUnidadesPorRuta = false;
 
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);

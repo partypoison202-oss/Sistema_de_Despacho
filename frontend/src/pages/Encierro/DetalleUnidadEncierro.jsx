@@ -305,6 +305,7 @@ export default function DetalleUnidadEncierro() {
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
+      ruta: u.ruta || null,
     }));
   };
 
@@ -316,29 +317,13 @@ export default function DetalleUnidadEncierro() {
 
   const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
 
-  // ✅ NUEVO: unidades de la ruta seleccionada
-  const { data: unidadesPorRutaList = [], isLoading: cargandoUnidadesPorRuta } = useQuery({
-    queryKey: ['unidades-por-ruta-encierro', tipoTransporte, selectedRuta],
-    queryFn: async () => {
-      const token = getToken();
-      if (!token || !selectedRuta) return [];
-      const res = await fetch(
-        `${API_BASE}/api/despacho/unidades-por-ruta/${tipoTransporte}/${encodeURIComponent(selectedRuta)}`,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-      );
-      if (!res.ok) throw new Error('Error al obtener unidades de la ruta');
-      const data = await res.json();
-      const lista = Array.isArray(data) ? data : (data.unidades || []);
-      return lista.map((u) => ({
-        eco: String(u.numero_eco ?? u.eco ?? '').padStart(3, '0'),
-        tarjeton: String(u.tarjeton ?? '').trim(),
-        display: formatearEco(u.numero_eco ?? u.eco),
-        estado: (u.estatus || u.estado || 'operacion').toLowerCase(),
-      }));
-    },
-    enabled: !!selectedRuta && esAlimentadora,
-    staleTime: 30000,
-  });
+  // ✅ NUEVO: unidades de la ruta seleccionada derivadas localmente
+  const unidadesPorRutaList = useMemo(() => {
+    if (!selectedRuta) return [];
+    return unidadesList.filter(u => u.ruta === selectedRuta);
+  }, [unidadesList, selectedRuta]);
+
+  const cargandoUnidadesPorRuta = false;
 
   // ✅ NUEVO: función para seleccionar ruta
   const handleSelectRuta = (ruta) => {
