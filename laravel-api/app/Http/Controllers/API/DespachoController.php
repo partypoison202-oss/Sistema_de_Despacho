@@ -318,7 +318,8 @@ class DespachoController extends Controller
                 'informacion_operativa.motivo',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.hora_salida',
+                'informacion_operativa.observaciones'
             )
             ->first();
 
@@ -346,6 +347,7 @@ class DespachoController extends Controller
                 'hora_programada' => $info->hora_programada,
                 'acople'    => $info->acople,
                 'hora_salida' => $info->hora_salida,
+                'observaciones' => $info->observaciones,
                 // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
@@ -620,7 +622,8 @@ class DespachoController extends Controller
             'numero_eco' => 'required|string',
             'hora_programada' => 'nullable|string',
             'acople' => 'nullable|string',
-            'hora_salida' => 'nullable|string'
+            'hora_salida' => 'nullable|string',
+            'observaciones' => 'nullable|string|max:150'
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
@@ -647,6 +650,10 @@ class DespachoController extends Controller
 
         if ($request->has('hora_salida')) {
             $updateData['hora_salida'] = $request->hora_salida;
+        }
+
+        if ($request->has('observaciones')) {
+            $updateData['observaciones'] = $request->observaciones;
         }
 
         $actualizado = DB::table('informacion_operativa')
