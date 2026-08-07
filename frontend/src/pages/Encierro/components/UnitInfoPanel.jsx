@@ -189,6 +189,13 @@ export default function UnitInfoPanel({
           {selectedOption ? 'Hora actual al seleccionar la unidad' : 'Selecciona una unidad para mostrar la hora'}
         </p>
       </div>
+
+      <div className="data-item">
+        <h3 className="data-item__label">Corrida</h3>
+        <p className="data-item__value" style={{ fontWeight: '600' }}>
+          {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+        </p>
+      </div>
     </div>
   );
 }

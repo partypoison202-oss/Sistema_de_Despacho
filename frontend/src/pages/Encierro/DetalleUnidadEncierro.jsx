@@ -1,6 +1,55 @@
 // src/pages/Encierro/DetalleUnidadEncierro.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+
+const LiveClockAcople = ({ horaCongelada }) => {
+  const [ahora, setAhora] = useState(new Date());
+
+  useEffect(() => {
+    if (horaCongelada) return;
+    const t = setInterval(() => setAhora(new Date()), 1000);
+    return () => clearInterval(t);
+  }, [horaCongelada]);
+
+  let horas12, minutos, segundos, ampm, separador;
+
+  if (horaCongelada) {
+    const partes = horaCongelada.split(':');
+    const h24 = parseInt(partes[0], 10);
+    ampm = h24 >= 12 ? 'P.M.' : 'A.M.';
+    horas12 = String(h24 % 12 || 12).padStart(2, '0');
+    minutos = partes[1];
+    segundos = partes[2];
+    separador = ':';
+  } else {
+    const horas24 = ahora.getHours();
+    ampm = horas24 >= 12 ? 'P.M.' : 'A.M.';
+    horas12 = String(horas24 % 12 || 12).padStart(2, '0');
+    minutos = String(ahora.getMinutes()).padStart(2, '0');
+    segundos = String(ahora.getSeconds()).padStart(2, '0');
+    const parpadeo = ahora.getSeconds() % 2 === 0;
+    separador = parpadeo ? ':' : ' ';
+  }
+  
+  const horaMostrada = `${horas12}${separador}${minutos}${separador}${segundos} ${ampm}`;
+
+  return (
+    <div className="info-card__item">
+      <span className="info-card__label">Hora de Acople</span>
+      <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: '0.25rem' }}>
+        <div className="badge-display badge-display--gold" style={{ flex: 1 }}>
+          <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="badge-display__text">
+            {horaMostrada}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { encierroModules } from '../../config/encierroModules';
 import Header from '../../components/Header/Header';
@@ -59,9 +108,11 @@ export default function DetalleUnidadEncierro() {
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
   const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
-  const [descargandoPDF, setDescargandoPDF] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
+  
+  const [acopleCongelado, setAcopleCongelado] = useState(null);
+  const [guardandoAcople, setGuardandoAcople] = useState(false);
 
   // Estados para el Modal de Cambio de Estatus a Operación
   const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
@@ -147,7 +198,9 @@ export default function DetalleUnidadEncierro() {
     if (!valor) {
       setPerdidaCiclos('');
       setPerdidaMotivo('');
+      setDropdownMotivoOpen(false);
       setDropdownCiclosOpen(false);
+
       await handleSavePerdida(null, null);
     }
   };
@@ -424,6 +477,40 @@ export default function DetalleUnidadEncierro() {
     }
   };
 
+  const handleGuardarAcople = async (horaCapturada) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const matchNumeros = selectedOption ? selectedOption.match(/\d+/) : null;
+      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+      if (!numeroLimpio) return;
+      
+      const payload = {
+        tipo: tipoTransporte,
+        numero_eco: numeroLimpio,
+        hora_programada: datosOperativos.hora_programada || null,
+        acople: horaCapturada
+      };
+      
+      const res = await fetch(`${API_BASE}/api/despacho/actualizar-horas`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'success') {
+          setDatosOperativos(prev => ({ ...prev, acople: horaCapturada }));
+          const Swal = (await import('sweetalert2')).default;
+          Swal.fire({
+            icon: 'success', title: 'Guardado', text: 'Hora de acople registrada.', confirmButtonColor: '#601a2a', timer: 1500, showConfirmButton: false
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleSelectUnit = async (unidad) => {
     const unidadSeleccionada =
       typeof unidad === 'object' && unidad !== null
@@ -438,6 +525,8 @@ export default function DetalleUnidadEncierro() {
     setSelectedEstado(unidadSeleccionada ? unidadSeleccionada.estado : null);
     setOpenDropdown(null);
     setCargandoDatos(true);
+    setAcopleCongelado(null);
+    setGuardandoAcople(false);
 
     // Capturar la hora de interacción
     const now = new Date();
@@ -476,6 +565,9 @@ export default function DetalleUnidadEncierro() {
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
           ciclo: resultado.ciclo || '',
           motivo: resultado.motivo || '',
+          corrida: resultado.corridas || '',
+          acople: resultado.acople || '',
+          hora_programada: resultado.hora_programada || '',
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
       } else {
@@ -487,6 +579,9 @@ export default function DetalleUnidadEncierro() {
           estatus: 'operacion',
           ciclo: '',
           motivo: '',
+          corrida: '',
+          acople: '',
+          hora_programada: '',
         });
       }
     } catch (error) {
@@ -496,7 +591,10 @@ export default function DetalleUnidadEncierro() {
         ruta: 'No se pudo obtener',
         tarjeton: '',
         hora_encierro: '',
-        estatus: 'operacion'
+        estatus: 'operacion',
+        corrida: '',
+        acople: '',
+        hora_programada: ''
       });
     } finally {
       setCargandoDatos(false);
@@ -1413,6 +1511,21 @@ export default function DetalleUnidadEncierro() {
                           </div>
                         )}
                       </div>
+
+                      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                        <span className="info-card__label">Corrida</span>
+                        <div className="info-card__value-wrapper">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <p className="info-card__value">
+                              {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'Sin corrida')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
 
@@ -1435,6 +1548,11 @@ export default function DetalleUnidadEncierro() {
                           </span>
                         </div>
                       </div>
+
+                      <LiveClockAcople 
+                        key={selectedOption || 'none'}
+                        horaCongelada={acopleCongelado}
+                      />
 
                       <div className="info-card__item">
                         <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
@@ -1628,10 +1746,57 @@ export default function DetalleUnidadEncierro() {
                             {guardandoPerdida && (
                               <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
                             )}
-                            GUARDAR
+                            GUARDAR CORRIDAS
                           </button>
                         </div>
                       )}
+
+                      <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">
+                        <button
+                          type="button"
+                          disabled={cargandoDatos || !selectedOption || guardandoAcople || !!acopleCongelado}
+                          onClick={async () => {
+                            setGuardandoAcople(true);
+                            const now = new Date();
+                            const horas24 = String(now.getHours()).padStart(2, '0');
+                            const minutos = String(now.getMinutes()).padStart(2, '0');
+                            const segundos = String(now.getSeconds()).padStart(2, '0');
+                            
+                            const ampm = parseInt(horas24, 10) >= 12 ? 'P.M.' : 'A.M.';
+                            const horas12 = String(parseInt(horas24, 10) % 12 || 12).padStart(2, '0');
+                            
+                            const horaParaGuardar = `${horas24}:${minutos}:${segundos}`;
+                            const stringCongelado = `${horas24}:${minutos}:${segundos}`; // LiveClock parses 24h
+                            
+                            await handleGuardarAcople(horaParaGuardar);
+                            setAcopleCongelado(stringCongelado);
+                            setGuardandoAcople(false);
+                          }}
+                          className="interactive-input"
+                          style={{
+                            width: '100%',
+                            padding: '0 1.5rem',
+                            height: '2.5rem',
+                            background: '#601a2a',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '0.5rem',
+                            fontWeight: 700,
+                            fontSize: '0.95rem',
+                            cursor: (cargandoDatos || !selectedOption || guardandoAcople || !!acopleCongelado) ? 'not-allowed' : 'pointer',
+                            opacity: (cargandoDatos || !selectedOption || guardandoAcople || !!acopleCongelado) ? 0.6 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          {guardandoAcople && (
+                            <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                          )}
+                          {acopleCongelado ? 'VALIDADO' : 'VALIDAR'}
+                        </button>
+                      </div>
 
                     </div>
                   </div>
