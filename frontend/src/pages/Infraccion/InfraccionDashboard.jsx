@@ -1029,6 +1029,14 @@ const InfraccionDashboard = () => {
                           <div
                             style={{ position: 'fixed', inset: 0, zIndex: 998 }}
                             onClick={(e) => { e.stopPropagation(); setShowTimePicker(false); }}
+                            role="button"
+                            tabIndex={-1}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                setShowTimePicker(false);
+                              }
+                            }}
                           />
                           <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 999, width: '100%' }}>
                             <IOSTimePicker

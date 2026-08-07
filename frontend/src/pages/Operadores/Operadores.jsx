@@ -105,9 +105,18 @@ function StatusDropdown({ value, onChange }) {
             <div
               key={opt.value}
               className={`status-dropdown-item ${opt.class} ${value === opt.value ? 'active' : ''}`}
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 onChange(opt.value);
                 setIsOpen(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }
               }}
             >
               {opt.label}

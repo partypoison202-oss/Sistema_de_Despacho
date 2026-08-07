@@ -848,8 +848,14 @@ export default function ReportesTitanes() {
 
       {/* ---------- Modal de detalle (dashboard) ---------- */}
       {tipoModal && (
-        <div className="rt-modal-overlay" onClick={cerrarModal}>
-          <div className="rt-modal rt-modal--dashboard" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="rt-modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) cerrarModal(); }}
+          role="button"
+          tabIndex={-1}
+          onKeyDown={(e) => { if (e.key === 'Escape') cerrarModal(); }}
+        >
+          <div className="rt-modal rt-modal--dashboard">
             <div className="rt-modal__header">
               <h3>
                 {tituloModal} — {titanActual?.nombre}
@@ -1087,7 +1093,10 @@ export default function ReportesTitanes() {
       {firmaModalUrl && (
         <div
           className="rt-firma-modal-overlay"
-          onClick={() => setFirmaModalUrl(null)}
+          onClick={(e) => { if (e.target === e.currentTarget) setFirmaModalUrl(null); }}
+          role="button"
+          tabIndex={-1}
+          onKeyDown={(e) => { if (e.key === 'Escape') setFirmaModalUrl(null); }}
           style={{
             position: 'fixed',
             top: 0,
@@ -1103,7 +1112,6 @@ export default function ReportesTitanes() {
         >
           <div
             className="rt-firma-modal"
-            onClick={(e) => e.stopPropagation()}
             style={{
               background: '#fff',
               padding: '20px',

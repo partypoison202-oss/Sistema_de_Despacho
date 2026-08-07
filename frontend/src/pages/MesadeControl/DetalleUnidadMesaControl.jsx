@@ -1162,6 +1162,8 @@ export default function DetalleUnidadMesaControl() {
                           }}
                           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#4a1020')}
                           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#6b1d33')}
+                          onFocus={(e) => (e.currentTarget.style.backgroundColor = '#4a1020')}
+                          onBlur={(e) => (e.currentTarget.style.backgroundColor = '#6b1d33')}
                           onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
                           onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                         >
@@ -1191,6 +1193,8 @@ export default function DetalleUnidadMesaControl() {
                           }}
                           onMouseOver={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
                           onMouseOut={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
+                          onFocus={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
+                          onBlur={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
                           onMouseDown={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
                           onMouseUp={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
                         >
@@ -1351,6 +1355,9 @@ export default function DetalleUnidadMesaControl() {
                                                 alt="Evidencia"
                                                 className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-90 transition-opacity"
                                                 onClick={() => setLightboxDibujo(val.foto)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxDibujo(val.foto); } }}
+                                                role="button"
+                                                tabIndex={0}
                                                 title="Clic para ampliar"
                                               />
                                             )}
@@ -1361,6 +1368,9 @@ export default function DetalleUnidadMesaControl() {
                                                 alt={`Evidencia ${fIdx + 1}`}
                                                 className="h-12 w-12 rounded-lg object-cover border border-slate-100 shadow-sm cursor-zoom-in hover:opacity-90 transition-opacity"
                                                 onClick={() => setLightboxDibujo(imgUrl)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxDibujo(imgUrl); } }}
+                                                role="button"
+                                                tabIndex={0}
                                                 title="Clic para ampliar"
                                               />
                                             ))}
@@ -1386,6 +1396,9 @@ export default function DetalleUnidadMesaControl() {
                                   className="w-full rounded-lg object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
                                   style={{ aspectRatio: '5/3' }}
                                   onClick={() => setLightboxDibujo(recentChecklist.dibujo)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxDibujo(recentChecklist.dibujo); } }}
+                                  role="button"
+                                  tabIndex={0}
                                   title="Clic para ampliar"
                                 />
                               </div>
@@ -1414,8 +1427,14 @@ export default function DetalleUnidadMesaControl() {
       </main>
 
       {modalEstatusOpen && (
-        <div className="custom-modal-overlay" onClick={() => setModalEstatusOpen(false)}>
-          <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="custom-modal-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setModalEstatusOpen(false); }}
+          role="button"
+          tabIndex={-1}
+          onKeyDown={(e) => { if (e.key === 'Escape') setModalEstatusOpen(false); }}
+        >
+          <div className="custom-modal-content">
             <h2 className="custom-modal-title">Asignar Conductor y Ruta</h2>
             
             <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
@@ -1563,7 +1582,10 @@ export default function DetalleUnidadMesaControl() {
       {lightboxDibujo && createPortal(
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setLightboxDibujo(null)}
+          onClick={(e) => { if (e.target === e.currentTarget) setLightboxDibujo(null); }}
+          role="button"
+          tabIndex={-1}
+          onKeyDown={(e) => { if (e.key === 'Escape') setLightboxDibujo(null); }}
         >
           <button
             className="absolute top-4 right-4 text-white/70 hover:text-white transition"
@@ -1577,7 +1599,6 @@ export default function DetalleUnidadMesaControl() {
             src={lightboxDibujo}
             alt="Vista ampliada"
             className="max-w-[92vw] max-h-[90vh] rounded-xl shadow-2xl object-contain"
-            onClick={(e) => e.stopPropagation()}
           />
         </div>,
         document.body

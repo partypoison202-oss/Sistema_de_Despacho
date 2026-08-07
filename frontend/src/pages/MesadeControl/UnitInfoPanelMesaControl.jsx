@@ -772,6 +772,14 @@ export default function UnitInfoPanel({
                     <div
                       style={{ position: 'fixed', inset: 0, zIndex: 999 }}
                       onClick={(e) => { e.stopPropagation(); setDropdownHoraOpen(false); }}
+                      role="button"
+                      tabIndex={-1}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation();
+                          setDropdownHoraOpen(false);
+                        }
+                      }}
                     />
                     <IOSTimePicker
                       value={formHoraProgramada}
@@ -1040,8 +1048,14 @@ export default function UnitInfoPanel({
 
       {/* REACT MODAL PARA PLATAFORMA */}
       {modalPlataformaVisible && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setModalPlataformaVisible(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setModalPlataformaVisible(null); }}
+          role="button"
+          tabIndex={-1}
+          onKeyDown={(e) => { if (e.key === 'Escape') setModalPlataformaVisible(null); }}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up">
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 'Desincorporar Unidad'}
             </h2>
@@ -1189,7 +1203,7 @@ export default function UnitInfoPanel({
                 onClick={handleConfirmarPlataforma}
                 disabled={guardandoPerdida}
                 style={{
-                  flex: 1, border: 'none', background: modalPlataformaVisible === 'INCORPORACION' ? '#c29b53' : '#c29b53', color: 'white', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
+                  flex: 1, border: 'none', background: '#c29b53', color: 'white', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
                 }}
               >
                 {guardandoPerdida ? 'GUARDANDO...' : modalPlataformaVisible === 'INCORPORACION' ? 'INCORPORAR' : 'DESINCORPORAR'}
