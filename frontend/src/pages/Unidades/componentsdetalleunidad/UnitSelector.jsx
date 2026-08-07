@@ -51,7 +51,7 @@ export default function UnitSelector({
     });
   };
 
-  const displayValue = (selectedEstado === estado && selectedOption) ? selectedOption : titulo;
+  const displayValue = titulo;
 
   // Si se pasa totalProgramadas, mostrar "pendientes / total"
   // Si no se pasa, mostrar solo el contador actual (comportamiento anterior)
