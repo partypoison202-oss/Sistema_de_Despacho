@@ -1,5 +1,5 @@
 // src/pages/Unidades/DetalleUnidad.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
@@ -99,6 +99,7 @@ export default function DetalleUnidad() {
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: formatearEco(u.numero_eco),
       estado: u.estatus || 'operacion',
+      horaSalida: u.hora_salida || '',
     }));
   };
 
@@ -162,12 +163,24 @@ export default function DetalleUnidad() {
 
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);
+    if (estado === 'operacion') {
+      filtradas = filtradas.filter((u) => !u.horaSalida);
+    }
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
       filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
     }
     return filtradas;
   };
+
+  const unidadesDisponiblesBusqueda = useMemo(
+    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.horaSalida),
+    [unidadesList]
+  );
+  const totalProgramadasOperacion = useMemo(
+    () => unidadesList.filter((u) => u.estado === 'operacion').length,
+    [unidadesList]
+  );
 
   const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
   const conductoresDisponibles = dbConductores.filter(c => 
@@ -249,6 +262,16 @@ export default function DetalleUnidad() {
       return;
     }
 
+    if (unidadSeleccionada.horaSalida) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Unidad ya validada',
+        text: `${unidadSeleccionada.display} ya fue validada y no está disponible en el selector.`,
+        confirmButtonColor: '#601a2a',
+      });
+      return;
+    }
+
     const ecoSeleccionado = unidadSeleccionada.display;
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(unidadSeleccionada.estado);
@@ -281,6 +304,18 @@ export default function DetalleUnidad() {
       });
 
       if (resultado.status === 'success') {
+        if (resultado.hora_salida) {
+          Swal.fire({
+            icon: 'info',
+            title: 'Unidad ya validada',
+            text: `${ecoSeleccionado} ya fue validada y no está disponible en el selector.`,
+            confirmButtonColor: '#601a2a',
+          });
+          setSelectedOption(null);
+          setSelectedEstado(null);
+          setCargandoDatos(false);
+          return;
+        }
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
@@ -336,6 +371,10 @@ export default function DetalleUnidad() {
       (unidad) => String(unidad.tarjeton ?? '').trim() === valor
     );
     if (unidadEncontrada) {
+      if (unidadEncontrada.horaSalida) {
+        setMensajeBusqueda('Esta unidad ya fue validada y no está disponible para despacho.');
+        return;
+      }
       setTarjetonBusqueda(unidadEncontrada.tarjeton || valor);
       await handleSelectUnit(unidadEncontrada);
       return;
@@ -560,6 +599,69 @@ export default function DetalleUnidad() {
       }
     } catch (error) {
       console.error('Error al guardar horas:', error);
+      throw error;
+    }
+  };
+
+  const handleValidarDespacho = async (payload) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate('/login');
+        return { success: false };
+      }
+
+      const matchNumeros = selectedOption.match(/\d+/);
+      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+
+      const respuesta = await fetch(`${API_BASE}/api/despacho/validar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tipo: tipoTransporte,
+          numero_eco: numeroLimpio,
+          ...payload,
+        }),
+      });
+
+      const resultado = await respuesta.json();
+      if (respuesta.ok && resultado.status === 'success') {
+        setDatosOperativos((prev) => ({
+          ...prev,
+          horaSalida: resultado.hora_salida,
+          ruta: resultado.ruta ?? prev.ruta,
+          tarjeton: resultado.tarjeton ?? prev.tarjeton,
+          conductor: resultado.conductor ?? prev.conductor,
+          horaProgramada: payload.hora_programada ?? prev.horaProgramada,
+          acople: payload.acople ?? prev.acople,
+          ciclo: payload.ciclo ?? prev.ciclo,
+          motivo: payload.motivo ?? prev.motivo,
+          falla: payload.falla ?? prev.falla,
+        }));
+
+        queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) =>
+          old.map((u) =>
+            u.eco === numeroLimpio ? { ...u, horaSalida: resultado.hora_salida } : u
+          )
+        );
+
+        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
+        queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
+        queryClient.invalidateQueries(['conductores-list']);
+        fetchConductores();
+
+        setSelectedOption(null);
+        setSelectedEstado(null);
+        setTarjetonBusqueda('');
+        setFallaTexto('');
+
+        return { success: true, horaSalida: resultado.hora_salida };
+      }
+
+      throw new Error(resultado.message || 'Error al validar el despacho.');
+    } catch (error) {
+      console.error('Error al validar despacho:', error);
       throw error;
     }
   };
@@ -968,7 +1070,7 @@ export default function DetalleUnidad() {
       <main className="main-content">
         <div className="unit-control-panel">
           <LocalSearchBar 
-            unidades={unidadesList} 
+            unidades={unidadesDisponiblesBusqueda} 
             onSelectUnit={handleSelectUnit} 
             moduleName={configActual?.title || 'esta sección'} 
           />
@@ -982,6 +1084,7 @@ export default function DetalleUnidad() {
                 estado="operacion"
                 titulo="Operación"
                 unidades={unidadesPorEstado('operacion')}
+                totalProgramadas={totalProgramadasOperacion}
                 cargandoUnidades={cargandoUnidades}
                 configActual={configActual}
                 onSelectUnit={handleSelectUnit}
@@ -1084,6 +1187,7 @@ export default function DetalleUnidad() {
                 handleSaveTarjeton={handleSaveTarjeton}
                 handleSaveRuta={handleSaveRuta}
                 handleSaveHoras={handleSaveHoras}
+                handleValidarDespacho={handleValidarDespacho}
                 handleCambiarEstatus={handleCambiarEstatus}
                 cambiandoEstatus={cambiandoEstatus}
                 conductoresDisponibles={conductoresDisponibles}

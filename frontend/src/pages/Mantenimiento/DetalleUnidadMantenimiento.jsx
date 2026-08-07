@@ -23,7 +23,7 @@ export default function DetalleUnidadMantenimiento() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // ── Migración de localStorage: limpiar datos con esquema viejo para evitar pantalla en blanco ──
+  // ── Migración de localStorage: limpiar datos con esquema viejo ──
   useEffect(() => {
     try {
       const keysToDelete = [];
@@ -33,7 +33,6 @@ export default function DetalleUnidadMantenimiento() {
           const raw = localStorage.getItem(key);
           if (raw) {
             const parsed = JSON.parse(raw);
-            // Si tiene el esquema viejo (kilometraje sin sufijo), marcar para eliminar
             if ('kilometraje' in parsed || 'fechaUltimaCarga' in parsed) {
               keysToDelete.push(key);
             }
@@ -49,21 +48,22 @@ export default function DetalleUnidadMantenimiento() {
     }
   }, []);
 
-
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
 
+  // <-- NUEVO: agregamos motivo_estatus al estado
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
     ruta: 'Seleccione una unidad...',
     tarjeton: '',
     estatus: 'operacion',
+    motivo_estatus: null, // <-- NUEVO
   });
 
-  const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false); // kept for compatibility
+  const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false);
 
   // Check List states
   const [showChecklist, setShowChecklist] = useState(false);
@@ -73,7 +73,7 @@ export default function DetalleUnidadMantenimiento() {
   const [lightboxDibujo, setLightboxDibujo] = useState(null);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
 
-  // Modal de asignación (requerido para pasar a Operación)
+  // Modal de asignación
   const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
   const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
   const [modalEstatusConductor, setModalEstatusConductor] = useState('');
@@ -98,10 +98,7 @@ export default function DetalleUnidadMantenimiento() {
     return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
   };
 
-  // ---- Persistencia en Backend ----
-  // Se ha eliminado el localStorage en favor de la base de datos
-
-  // Cerrar dropdowns del modal al hacer clic fuera
+  // Cerrar dropdowns del modal
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (modalConductorRef.current && !modalConductorRef.current.contains(e.target)) {
@@ -115,7 +112,7 @@ export default function DetalleUnidadMantenimiento() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ── Conductores (React Query con caché de 30 min) ───────────────────────
+  // ── Conductores (React Query) ──
   const { data: dbConductores = [] } = useQuery({
     queryKey: ['mantenimiento-conductores'],
     queryFn: async () => {
@@ -135,10 +132,10 @@ export default function DetalleUnidadMantenimiento() {
           }))
         : [];
     },
-    staleTime: 30 * 60 * 1000, // 30 minutos
+    staleTime: 30 * 60 * 1000,
   });
 
-  // ── Rutas disponibles (React Query con caché de 30 min) ─────────────────
+  // ── Rutas ──
   const { data: _rutasData } = useQuery({
     queryKey: ['mantenimiento-rutas'],
     queryFn: async () => {
@@ -149,11 +146,10 @@ export default function DetalleUnidadMantenimiento() {
       if (!res.ok) return { troncales: [], alimentadoras: [] };
       return res.json();
     },
-    staleTime: 30 * 60 * 1000, // 30 minutos
+    staleTime: 30 * 60 * 1000,
     enabled: !!configActual,
   });
 
-  // Seleccionar el subconjunto de rutas según el tipo de transporte
   useEffect(() => {
     if (!_rutasData) return;
     if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
@@ -167,7 +163,7 @@ export default function DetalleUnidadMantenimiento() {
     (c) => c.estado_servicio === 'disponible' || c.estado_servicio === 'falta'
   );
 
-  // ── Lista de unidades — queryKey unificado con el prefetch del dashboard ─
+  // ── Lista de unidades ──
   const fetchUnidades = async () => {
     const token = getToken();
     if (!token) {
@@ -195,20 +191,17 @@ export default function DetalleUnidadMantenimiento() {
   };
 
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
-    // Mismo queryKey que Mantenimiento.jsx usa en prefetchQuery → los datos
-    // descargados en el dashboard se reutilizan aquí sin nueva petición.
     queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
-    staleTime: 60 * 1000, // 60 s — igual que el prefetch del dashboard
+    staleTime: 60 * 1000,
     refetchInterval: 30000,
   });
 
-  // ── Prefetch de detalles en background al cargar la lista ────────────────
+  // ── Prefetch de detalles ──
   useEffect(() => {
     if (!unidadesList.length) return;
     const token = getToken();
     if (!token) return;
-    // Pre-cachear las primeras 30 unidades para que la selección sea instantánea
     const unidadesAPrecalentar = unidadesList.slice(0, 30);
     unidadesAPrecalentar.forEach((u) => {
       queryClient.prefetchQuery({
@@ -221,7 +214,7 @@ export default function DetalleUnidadMantenimiento() {
           if (!res.ok) return null;
           return res.json();
         },
-        staleTime: 30 * 1000, // 30 s
+        staleTime: 30 * 1000,
       });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -276,11 +269,11 @@ export default function DetalleUnidadMantenimiento() {
   }, [selectedOption]);
 
   const handleHacerCheckList = () => setShowChecklist(true);
-
   const handleRevisarCheckList = () => {
     if (recentChecklist) setViewingChecklist(true);
   };
 
+  // ── Seleccionar unidad ──
   const handleSelectUnit = async (unidad) => {
     const unidadSeleccionada =
       typeof unidad === 'object' && unidad !== null
@@ -313,8 +306,6 @@ export default function DetalleUnidadMantenimiento() {
       }
 
       const url = `${API_BASE}/api/unidades/detalle/${tipoTransporte}/${numeroLimpio}`;
-      // Si el detalle ya está en caché (precalentado), se usa sin ir a red.
-      // Solo va a red si el dato tiene más de 30 s de antigüedad.
       const resultado = await queryClient.fetchQuery({
         queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio],
         queryFn: async () => {
@@ -327,7 +318,7 @@ export default function DetalleUnidadMantenimiento() {
           if (!res.ok) throw new Error('Error en peticion');
           return res.json();
         },
-        staleTime: 30 * 1000, // 30 s — usa caché si ya fue precalentado
+        staleTime: 30 * 1000,
       });
 
       if (resultado.status === 'success') {
@@ -336,6 +327,7 @@ export default function DetalleUnidadMantenimiento() {
           ruta: resultado.ruta || 'Sin ruta',
           tarjeton: resultado.tarjeton || '',
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
+          motivo_estatus: resultado.motivo_estatus || null, // <-- NUEVO: obtener motivo
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
       } else {
@@ -344,10 +336,9 @@ export default function DetalleUnidadMantenimiento() {
           ruta: 'Sin ruta',
           tarjeton: '',
           estatus: 'operacion',
+          motivo_estatus: null,
         });
       }
-
-      // El mantenimiento se delega al componente FuelInspection que hace su propio fetch.
     } catch (error) {
       console.error('Error detallado en la petición:', error.message, error.stack);
       setDatosOperativos({
@@ -355,15 +346,14 @@ export default function DetalleUnidadMantenimiento() {
         ruta: 'No se pudo obtener',
         tarjeton: '',
         estatus: 'operacion',
+        motivo_estatus: null,
       });
     } finally {
       setCargandoDatos(false);
     }
   };
 
-  // FuelInspection handles its own state and submit logic
-
-  // Permite llegar con ?eco=### desde la búsqueda del Dashboard de Mantenimiento
+  // ── Efecto para eco desde query string ──
   useEffect(() => {
     const ecoDesdeRuta = searchParams.get('eco');
     if (!ecoDesdeRuta || !unidadesList.length) return;
@@ -384,10 +374,17 @@ export default function DetalleUnidadMantenimiento() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, unidadesList]);
 
-  // ---- Cambio de estatus (Movilidad y Estatus) ----
+  // ── Cambio de estatus (Movilidad y Estatus) ──
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;
-    if (datosOperativos.estatus === nuevoEstatus) return;
+
+    // <-- MODIFICADO: Si ya está en el mismo estado y no es mantenimiento, no hacer nada
+    if (datosOperativos.estatus === nuevoEstatus && nuevoEstatus !== 'mantenimiento') {
+      return;
+    }
+
+    // <-- NUEVO: detectar si es el mismo estatus (para mantenimiento)
+    const esMismoEstatus = datosOperativos.estatus === nuevoEstatus;
 
     let payloadUpdate = {
       numero_eco: null,
@@ -396,6 +393,7 @@ export default function DetalleUnidadMantenimiento() {
       motivo_estatus: null,
     };
 
+    // Si es operación, se requiere asignación
     if (nuevoEstatus === 'operacion') {
       const tieneConductor = datosOperativos.conductor && datosOperativos.conductor !== 'No asignado' && datosOperativos.tarjeton;
       const tieneRuta = datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta';
@@ -415,20 +413,13 @@ export default function DetalleUnidadMantenimiento() {
       }
     }
 
-    const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
+    // Determinar si requiere motivo (reserva, mantenimiento o actualización de motivo en mantenimiento)
+    const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento' || esMismoEstatus;
 
-    const swalOptions = {
-      title: '¿Cambiar Estatus?',
-      text: `¿Seguro que deseas mover la unidad ${selectedOption} a ${nuevoEstatus.toUpperCase()}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#6b1d33',
-      cancelButtonColor: '#9ca3af',
-      confirmButtonText: 'Sí, cambiar',
-      cancelButtonText: 'Cancelar',
-    };
+    let motivoCapturado = null;
 
     if (requiereMotivo) {
+      // Configurar el Swal para seleccionar motivo (el mismo código existente)
       const motivosPredefinidos = [
         'FALTA DE OPERADOR',
         'MANTENIMIENTO',
@@ -439,157 +430,172 @@ export default function DetalleUnidadMantenimiento() {
         'OTRO'
       ];
 
-      swalOptions.html = `
-        <div style="text-align: left; margin-top: 0.5rem; position: relative;">
-          <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
-            Seleccione el motivo de ${nuevoEstatus.toUpperCase()}:
-          </label>
-          
-          <div style="position: relative;">
-            <button type="button" id="swal-motivo-trigger" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 1rem; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.88rem; font-weight: 700; color: #1f2937; cursor: pointer; outline: none; transition: all 0.2s ease;">
-              <span id="swal-motivo-trigger-text" style="text-transform: uppercase; color: #6b7280;">Seleccionar motivo</span>
-              <svg id="swal-motivo-arrow" style="width: 16px; height: 16px; color: #6b1d33; transition: transform 0.2s ease;" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7 10l5 5 5-5H7z" />
-              </svg>
-            </button>
+      const swalOptions = {
+        title: esMismoEstatus ? 'Actualizar motivo de Mantenimiento' : '¿Cambiar Estatus?',
+        text: esMismoEstatus
+          ? `La unidad ${selectedOption} ya está en MANTENIMIENTO. Puedes actualizar el motivo.`
+          : `¿Seguro que deseas mover la unidad ${selectedOption} a ${nuevoEstatus.toUpperCase()}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6b1d33',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Sí, cambiar',
+        cancelButtonText: 'Cancelar',
+        html: `
+          <div style="text-align: left; margin-top: 0.5rem; position: relative;">
+            <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
+              Seleccione el motivo de ${nuevoEstatus.toUpperCase()}:
+            </label>
+            
+            <div style="position: relative;">
+              <button type="button" id="swal-motivo-trigger" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 1rem; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.88rem; font-weight: 700; color: #1f2937; cursor: pointer; outline: none; transition: all 0.2s ease;">
+                <span id="swal-motivo-trigger-text" style="text-transform: uppercase; color: #6b7280;">Seleccionar motivo</span>
+                <svg id="swal-motivo-arrow" style="width: 16px; height: 16px; color: #6b1d33; transition: transform 0.2s ease;" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 10l5 5 5-5H7z" />
+                </svg>
+              </button>
 
-            <div id="swal-motivo-menu" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); z-index: 9999; max-height: 180px; overflow-y: auto;">
-              ${motivosPredefinidos.map(m => `
-                <div class="swal-motivo-item" data-value="${m}" style="padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: #4b5563; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s ease, color 0.2s ease;">
-                  ${m}
-                </div>
-              `).join('')}
+              <div id="swal-motivo-menu" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); z-index: 9999; max-height: 180px; overflow-y: auto;">
+                ${motivosPredefinidos.map(m => `
+                  <div class="swal-motivo-item" data-value="${m}" style="padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: #4b5563; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s ease, color 0.2s ease;">
+                    ${m}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <input type="hidden" id="swal-motivo-hidden" value="" />
+
+            <div id="swal-motivo-custom-container" style="display: none; margin-top: 0.75rem;">
+              <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="Escribe el motivo detallado..." maxlength="70" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem;"></textarea>
+              <div id="swal-motivo-counter" style="text-align: right; font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 4px;">0/70</div>
             </div>
           </div>
-          <input type="hidden" id="swal-motivo-hidden" value="" />
+        `,
+        didOpen: () => {
+          const popup = Swal.getPopup();
+          if (popup) popup.style.overflow = 'visible';
 
-          <div id="swal-motivo-custom-container" style="display: none; margin-top: 0.75rem;">
-            <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="Escribe el motivo detallado..." maxlength="70" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem;"></textarea>
-            <div id="swal-motivo-counter" style="text-align: right; font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 4px;">0/70</div>
-          </div>
-        </div>
-      `;
-
-      swalOptions.didOpen = () => {
-        const popup = Swal.getPopup();
-        if (popup) popup.style.overflow = 'visible';
-
-        const htmlContainer = Swal.getHtmlContainer();
-        if (htmlContainer) {
-          htmlContainer.style.overflow = 'visible';
-          htmlContainer.style.position = 'relative';
-          htmlContainer.style.zIndex = '100';
-        }
-
-        const actions = Swal.getActions();
-        if (actions) {
-          actions.style.position = 'relative';
-          actions.style.zIndex = '1';
-        }
-
-        const trigger = document.getElementById('swal-motivo-trigger');
-        const triggerText = document.getElementById('swal-motivo-trigger-text');
-        const arrow = document.getElementById('swal-motivo-arrow');
-        const menu = document.getElementById('swal-motivo-menu');
-        const hiddenInput = document.getElementById('swal-motivo-hidden');
-        const customContainer = document.getElementById('swal-motivo-custom-container');
-        const textarea = document.getElementById('swal-motivo-textarea');
-        const counter = document.getElementById('swal-motivo-counter');
-
-        let isOpen = false;
-
-        const toggleMenu = () => {
-          isOpen = !isOpen;
-          if (menu) menu.style.display = isOpen ? 'block' : 'none';
-          if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-          if (trigger) trigger.style.borderColor = isOpen ? '#6b1d33' : '#e5e7eb';
-        };
-
-        if (trigger) {
-          trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleMenu();
-          });
-        }
-
-        const items = document.querySelectorAll('.swal-motivo-item');
-        items.forEach(item => {
-          item.addEventListener('mouseenter', () => {
-            item.style.background = '#f9fafb';
-            item.style.color = '#1f2937';
-          });
-          item.addEventListener('mouseleave', () => {
-            item.style.background = 'none';
-            item.style.color = '#4b5563';
-          });
-          item.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const val = item.getAttribute('data-value');
-            if (hiddenInput) hiddenInput.value = val;
-            if (triggerText) {
-              triggerText.innerText = val;
-              triggerText.style.color = '#1f2937';
-            }
-            
-            toggleMenu();
-
-            if (val === 'OTRO') {
-              if (customContainer) customContainer.style.display = 'block';
-              if (textarea) textarea.focus();
-            } else {
-              if (customContainer) customContainer.style.display = 'none';
-              if (textarea) textarea.value = '';
-            }
-          });
-        });
-
-        document.addEventListener('click', (e) => {
-          if (isOpen && menu && trigger && !menu.contains(e.target) && !trigger.contains(e.target)) {
-            isOpen = false;
-            menu.style.display = 'none';
-            if (arrow) arrow.style.transform = 'rotate(0deg)';
-            if (trigger) trigger.style.borderColor = '#e5e7eb';
+          const htmlContainer = Swal.getHtmlContainer();
+          if (htmlContainer) {
+            htmlContainer.style.overflow = 'visible';
+            htmlContainer.style.position = 'relative';
+            htmlContainer.style.zIndex = '100';
           }
-        });
 
-        if (textarea) {
-          textarea.addEventListener('input', () => {
-            const len = textarea.value.length;
-            if (counter) {
-              counter.innerText = `${len}/70`;
-              counter.style.color = len >= 70 ? '#ef4444' : '#9ca3af';
+          const actions = Swal.getActions();
+          if (actions) {
+            actions.style.position = 'relative';
+            actions.style.zIndex = '1';
+          }
+
+          const trigger = document.getElementById('swal-motivo-trigger');
+          const triggerText = document.getElementById('swal-motivo-trigger-text');
+          const arrow = document.getElementById('swal-motivo-arrow');
+          const menu = document.getElementById('swal-motivo-menu');
+          const hiddenInput = document.getElementById('swal-motivo-hidden');
+          const customContainer = document.getElementById('swal-motivo-custom-container');
+          const textarea = document.getElementById('swal-motivo-textarea');
+          const counter = document.getElementById('swal-motivo-counter');
+
+          let isOpen = false;
+
+          const toggleMenu = () => {
+            isOpen = !isOpen;
+            if (menu) menu.style.display = isOpen ? 'block' : 'none';
+            if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (trigger) trigger.style.borderColor = isOpen ? '#6b1d33' : '#e5e7eb';
+          };
+
+          if (trigger) {
+            trigger.addEventListener('click', (e) => {
+              e.stopPropagation();
+              toggleMenu();
+            });
+          }
+
+          const items = document.querySelectorAll('.swal-motivo-item');
+          items.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+              item.style.background = '#f9fafb';
+              item.style.color = '#1f2937';
+            });
+            item.addEventListener('mouseleave', () => {
+              item.style.background = 'none';
+              item.style.color = '#4b5563';
+            });
+            item.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const val = item.getAttribute('data-value');
+              if (hiddenInput) hiddenInput.value = val;
+              if (triggerText) {
+                triggerText.innerText = val;
+                triggerText.style.color = '#1f2937';
+              }
+              
+              toggleMenu();
+
+              if (val === 'OTRO') {
+                if (customContainer) customContainer.style.display = 'block';
+                if (textarea) textarea.focus();
+              } else {
+                if (customContainer) customContainer.style.display = 'none';
+                if (textarea) textarea.value = '';
+              }
+            });
+          });
+
+          document.addEventListener('click', (e) => {
+            if (isOpen && menu && trigger && !menu.contains(e.target) && !trigger.contains(e.target)) {
+              isOpen = false;
+              menu.style.display = 'none';
+              if (arrow) arrow.style.transform = 'rotate(0deg)';
+              if (trigger) trigger.style.borderColor = '#e5e7eb';
             }
           });
-        }
-      };
 
-      swalOptions.preConfirm = () => {
-        const hiddenInput = document.getElementById('swal-motivo-hidden');
-        const textarea = document.getElementById('swal-motivo-textarea');
+          if (textarea) {
+            textarea.addEventListener('input', () => {
+              const len = textarea.value.length;
+              if (counter) {
+                counter.innerText = `${len}/70`;
+                counter.style.color = len >= 70 ? '#ef4444' : '#9ca3af';
+              }
+            });
+          }
+        },
+        preConfirm: () => {
+          const hiddenInput = document.getElementById('swal-motivo-hidden');
+          const textarea = document.getElementById('swal-motivo-textarea');
 
-        const val = hiddenInput ? hiddenInput.value : '';
-        if (!val) {
-          Swal.showValidationMessage('Debe seleccionar un motivo.');
-          return false;
-        }
-
-        if (val === 'OTRO') {
-          const customVal = textarea ? textarea.value.trim() : '';
-          if (!customVal) {
-            Swal.showValidationMessage('Por favor escriba el motivo en el cuadro de texto.');
+          const val = hiddenInput ? hiddenInput.value : '';
+          if (!val) {
+            Swal.showValidationMessage('Debe seleccionar un motivo.');
             return false;
           }
-          return customVal;
-        }
 
-        return val;
+          if (val === 'OTRO') {
+            const customVal = textarea ? textarea.value.trim() : '';
+            if (!customVal) {
+              Swal.showValidationMessage('Por favor escriba el motivo en el cuadro de texto.');
+              return false;
+            }
+            return customVal;
+          }
+
+          return val;
+        }
       };
+
+      const confirmacion = await Swal.fire(swalOptions);
+      if (!confirmacion.isConfirmed) return;
+      motivoCapturado = confirmacion.value || null;
     }
 
-    const confirmacion = await Swal.fire(swalOptions);
-    if (!confirmacion.isConfirmed) return;
-
-    const motivoCapturado = requiereMotivo ? (confirmacion.value || null) : null;
+    // Si es mismo estatus, mantener el estatus actual en el payload
+    if (esMismoEstatus) {
+      payloadUpdate.estatus = datosOperativos.estatus;
+    }
+    payloadUpdate.motivo_estatus = motivoCapturado;
 
     setCambiandoEstatus(true);
     try {
@@ -606,7 +612,6 @@ export default function DetalleUnidadMantenimiento() {
         body: JSON.stringify({
           ...payloadUpdate,
           numero_eco: numeroLimpio,
-          motivo_estatus: motivoCapturado,
         }),
       });
 
@@ -616,30 +621,34 @@ export default function DetalleUnidadMantenimiento() {
         Swal.fire({
           icon: 'success',
           title: 'Estatus Actualizado',
-          text: `La unidad ${selectedOption} ahora está en ${nuevoEstatus.toUpperCase()}`,
+          text: `La unidad ${selectedOption} ahora está en ${payloadUpdate.estatus.toUpperCase()}${payloadUpdate.motivo_estatus ? ` (Motivo: ${payloadUpdate.motivo_estatus})` : ''}`,
           confirmButtonColor: '#c5a059',
           timer: 2000,
           showConfirmButton: false,
         });
+
         setDatosOperativos((prev) => {
-          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
+          const isClearFields = payloadUpdate.estatus === 'reserva' || payloadUpdate.estatus === 'mantenimiento';
           return {
             ...prev,
-            estatus: nuevoEstatus,
+            estatus: payloadUpdate.estatus,
+            motivo_estatus: payloadUpdate.motivo_estatus || null, // <-- NUEVO: actualizar motivo
             conductor: isClearFields ? 'No reportado hoy' : prev.conductor,
             ruta: isClearFields ? 'Sin ruta' : prev.ruta,
             tarjeton: isClearFields ? '' : prev.tarjeton,
           };
         });
-        setSelectedEstado(nuevoEstatus);
-        fetchConductores();
+        setSelectedEstado(payloadUpdate.estatus);
+        // fetchConductores(); // si es necesario
 
+        // Actualizar cachés
         queryClient.setQueryData(['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio], (old) => {
           if (!old) return old;
-          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
+          const isClearFields = payloadUpdate.estatus === 'reserva' || payloadUpdate.estatus === 'mantenimiento';
           return {
             ...old,
-            estatus: nuevoEstatus,
+            estatus: payloadUpdate.estatus,
+            motivo_estatus: payloadUpdate.motivo_estatus || null,
             conductor: isClearFields ? 'No reportado hoy' : old.conductor,
             ruta: isClearFields ? 'Sin ruta' : old.ruta,
             tarjeton: isClearFields ? '' : old.tarjeton,
@@ -650,10 +659,11 @@ export default function DetalleUnidadMantenimiento() {
         queryClient.setQueryData(['unidades-list-mantenimiento', tipoTransporte], (old = []) =>
           old.map((u) => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-              const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
+              const isClearFields = payloadUpdate.estatus === 'reserva' || payloadUpdate.estatus === 'mantenimiento';
               return {
                 ...u,
-                estado: nuevoEstatus,
+                estado: payloadUpdate.estatus,
+                motivo_estatus: payloadUpdate.motivo_estatus || null,
                 nombre_conductor: isClearFields ? 'No reportado hoy' : u.nombre_conductor,
                 ruta: isClearFields ? 'Sin ruta' : u.ruta,
                 tarjeton: isClearFields ? '' : u.tarjeton,
@@ -721,15 +731,17 @@ export default function DetalleUnidadMantenimiento() {
           conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || prev.conductor),
           ruta: modalEstatusRuta || data.ruta_asignada || prev.ruta,
           tarjeton: modalEstatusConductor || data.tarjeton || prev.tarjeton,
+          motivo_estatus: null, // <-- NUEVO: al pasar a operación, limpiar motivo
         }));
         setSelectedEstado(modalEstatusNuevo);
-        fetchConductores();
+        // fetchConductores();
 
         queryClient.setQueryData(['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio], (old) => {
           if (!old) return old;
           return {
             ...old,
             estatus: modalEstatusNuevo,
+            motivo_estatus: null,
             conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || old.conductor),
             ruta: modalEstatusRuta || data.ruta_asignada || old.ruta,
             tarjeton: modalEstatusConductor || data.tarjeton || old.tarjeton,
@@ -743,6 +755,7 @@ export default function DetalleUnidadMantenimiento() {
               return {
                 ...u,
                 estado: modalEstatusNuevo,
+                motivo_estatus: null,
                 nombre_conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor),
                 ruta: modalEstatusRuta || data.ruta_asignada || u.ruta,
                 tarjeton: modalEstatusConductor || data.tarjeton || u.tarjeton,
@@ -773,8 +786,6 @@ export default function DetalleUnidadMantenimiento() {
     );
   }
 
-  // Helper para renderizar el bloque de "días desde la última carga"
-  // (Solo una vez, la definición correcta)
   const renderAlertaDias = (fecha) => {
     if (!fecha) return null;
     const dias = Math.floor((Date.now() - new Date(fecha)) / 86400000);
@@ -864,7 +875,7 @@ export default function DetalleUnidadMantenimiento() {
                 </div>
 
                 <div className="dashboard-grid">
-                  {/* CARD: SERVICIO ACTIVO (solo lectura) */}
+                  {/* CARD: SERVICIO ACTIVO */}
                   <div className="info-card">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -913,7 +924,7 @@ export default function DetalleUnidadMantenimiento() {
                     </div>
                   </div>
 
-                  {/* CARD: INSPECCIÓN — componente FuelInspection */}
+                  {/* CARD: INSPECCIÓN */}
                   <div className="info-card">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -972,11 +983,33 @@ export default function DetalleUnidadMantenimiento() {
                           );
                         })}
                       </div>
+
+                      {/* <-- NUEVO: Mostrar motivo si está en mantenimiento */}
+                      {datosOperativos.estatus === 'mantenimiento' && datosOperativos.motivo_estatus && (
+                        <div style={{
+                          marginTop: '1rem',
+                          padding: '0.5rem 1rem',
+                          backgroundColor: '#fef3c7',
+                          border: '1px solid #f59e0b',
+                          borderRadius: '0.5rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          color: '#92400e',
+                        }}>
+                          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Motivo: <span style={{ textTransform: 'capitalize' }}>{datosOperativos.motivo_estatus}</span></span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* CARD: CHECKLIST */}
+                {/* CARD: CHECKLIST - (sin cambios relevantes) */}
                 <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column', marginTop: '1.5rem' }}>
                   <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>

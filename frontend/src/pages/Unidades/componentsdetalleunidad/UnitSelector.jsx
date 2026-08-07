@@ -11,6 +11,7 @@ export default function UnitSelector({
   estado,
   titulo,
   unidades,
+  totalProgramadas,   // ← NUEVO: total de unidades programadas (sin filtrar por hora_salida)
   cargandoUnidades,
   configActual,
   onSelectUnit,
@@ -52,11 +53,15 @@ export default function UnitSelector({
 
   const displayValue = (selectedEstado === estado && selectedOption) ? selectedOption : titulo;
 
+  // Si se pasa totalProgramadas, mostrar "pendientes / total"
+  // Si no se pasa, mostrar solo el contador actual (comportamiento anterior)
+  const mostrarDoble = totalProgramadas !== undefined && totalProgramadas !== null;
+
   return (
     <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', overflow: 'visible' }}>
       <div style={{ position: 'relative', display: 'inline-block' }}>
-        <button 
-          onClick={toggleDropdown} 
+        <button
+          onClick={toggleDropdown}
           className={`dropdown-trigger ${selectedEstado === estado ? 'dropdown-trigger--active' : ''} ${isOpen ? 'dropdown-trigger--open' : ''}`}
         >
           <div className="dropdown-trigger__icon-container">
@@ -71,28 +76,57 @@ export default function UnitSelector({
           </div>
         </button>
 
-        {/* Burbuja siempre visible */}
+        {/* Burbuja de contador */}
         {!cargandoUnidades && (
-          <span
-            style={{
-              position: 'absolute',
-              top: '-8px',
-              right: '-8px',
-              backgroundColor: '#6b1d33',
-              color: 'var(--tw-color-white)',
-              borderRadius: '50%',
-              padding: unidades.length > 9 ? '2px 5px' : '2px 6px',
-              fontSize: '0.7rem',
-              fontWeight: 'bold',
-              minWidth: '18px',
-              textAlign: 'center',
-              lineHeight: '1.3',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-              border: '2px solid #ffffff',
-            }}
-          >
-            {unidades.length}
-          </span>
+          mostrarDoble ? (
+            // Burbuja con dos valores: pendientes / total
+            <span
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                backgroundColor: '#6b1d33',
+                color: '#ffffff',
+                borderRadius: '12px',
+                padding: '2px 7px',
+                fontSize: '0.68rem',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap',
+                lineHeight: '1.4',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                border: '2px solid #ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              <span>{unidades.length}</span>
+              <span style={{ opacity: 0.6, fontWeight: 400 }}>/</span>
+              <span style={{ opacity: 0.75 }}>{totalProgramadas}</span>
+            </span>
+          ) : (
+            // Burbuja simple (comportamiento anterior)
+            <span
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                backgroundColor: '#6b1d33',
+                color: '#ffffff',
+                borderRadius: '50%',
+                padding: unidades.length > 9 ? '2px 5px' : '2px 6px',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                minWidth: '18px',
+                textAlign: 'center',
+                lineHeight: '1.3',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                border: '2px solid #ffffff',
+              }}
+            >
+              {unidades.length}
+            </span>
+          )
         )}
       </div>
 

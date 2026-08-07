@@ -25,6 +25,7 @@ export default function UnitInfoPanel({
   handleSaveTarjeton,
   handleSaveRuta,
   handleSaveHoras,
+  handleValidarDespacho,
   handleCambiarEstatus,
   cambiandoEstatus,
   conductoresDisponibles,
@@ -52,6 +53,7 @@ export default function UnitInfoPanel({
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const [guardandoSalida, setGuardandoSalida] = useState(false);
+  const [guardandoValidacion, setGuardandoValidacion] = useState(false);
 
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
 
@@ -60,26 +62,36 @@ export default function UnitInfoPanel({
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
   }, [datosOperativos]);
 
-  // AUTOMÁTICO: hora de salida en tiempo real
+  // ============================================================
+  // RELOJ DE HORA DE SALIDA (se detiene si ya hay hora fija)
+  // ============================================================
   useEffect(() => {
     let intervalId;
-    
+
     const updateTime = () => {
       const ahora = new Date();
       const horas = String(ahora.getHours()).padStart(2, '0');
       const minutos = String(ahora.getMinutes()).padStart(2, '0');
       const showColon = ahora.getSeconds() % 2 === 0;
-      
+
       setFormHoraSalida(
         <span>
-          {horas}<span style={{ visibility: showColon ? 'visible' : 'hidden' }}>:</span>{minutos}
+          {horas}
+          <span style={{ visibility: showColon ? 'visible' : 'hidden' }}>:</span>
+          {minutos}
         </span>
       );
     };
 
-    if (selectedOption) {
+    // Si ya hay una hora de salida fija (desde el padre o BD), la mostramos sin reloj
+    if (datosOperativos.horaSalida && datosOperativos.horaSalida !== '') {
+      // Mostramos la hora fija (formato HH:MM)
+      setFormHoraSalida(datosOperativos.horaSalida);
+      // No iniciamos el intervalo
+    } else if (selectedOption) {
+      // No hay hora fija, mostramos reloj en tiempo real
       updateTime();
-      intervalId = setInterval(updateTime, 1000); // actualiza cada 1 segundo
+      intervalId = setInterval(updateTime, 1000);
     } else {
       setFormHoraSalida('');
     }
@@ -87,7 +99,7 @@ export default function UnitInfoPanel({
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [selectedOption]);
+  }, [selectedOption, datosOperativos.horaSalida]);
 
   const calculateAcople = (timeStr) => {
     if (!timeStr) return '--:--';
@@ -102,7 +114,6 @@ export default function UnitInfoPanel({
   };
 
   const calculatedAcople = calculateAcople(formHoraProgramada);
-
 
   const [rutasOpciones, setRutasOpciones] = useState([]);
   const [formRuta, setFormRuta] = useState('');
@@ -130,6 +141,7 @@ export default function UnitInfoPanel({
     };
     fetchRutas();
   }, [configActual]);
+
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
   const navigate = useNavigate();
 
@@ -452,6 +464,59 @@ export default function UnitInfoPanel({
   const handleCancelRutaEdit = () => {
     setFormRuta(datosOperativos.ruta || '');
     setEditandoRuta(false);
+  };
+
+  const yaValidada = Boolean(datosOperativos.horaSalida);
+
+  const handleClickValidar = async () => {
+    if (!handleValidarDespacho || yaValidada || guardandoValidacion) return;
+
+    const confirmacion = await Swal.fire({
+      title: '¿Validar despacho?',
+      text: `Se guardarán todos los datos de ${selectedOption} y se fijará la hora de salida.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6b1d33',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Sí, validar',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!confirmacion.isConfirmed) return;
+
+    const ahora = new Date();
+    const horaSalida = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`;
+
+    setGuardandoValidacion(true);
+    try {
+      await handleValidarDespacho({
+        ruta: (formRuta || datosOperativos.ruta || '').trim(),
+        tarjeton: (formTarjeton || datosOperativos.tarjeton || '').trim() || null,
+        hora_programada: formHoraProgramada || datosOperativos.horaProgramada || null,
+        acople: calculatedAcople !== '--:--' ? calculatedAcople : (datosOperativos.acople || null),
+        hora_salida: horaSalida,
+        ciclo: huboCorridasPerdidas ? (perdidaCiclos || null) : null,
+        motivo: huboCorridasPerdidas ? (perdidaMotivo || null) : null,
+        falla: fallaTexto?.trim() || null,
+      });
+
+      await Swal.fire({
+        icon: 'success',
+        title: '¡Despacho validado!',
+        text: `Hora de salida registrada: ${horaSalida}`,
+        confirmButtonColor: '#c29b53',
+        timer: 2500,
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'No se pudo validar el despacho.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setGuardandoValidacion(false);
+    }
   };
 
   // ==================== JSX ====================
@@ -804,7 +869,6 @@ export default function UnitInfoPanel({
                       onChange={setFormHoraProgramada}
                       onClose={() => setDropdownHoraOpen(false)}
                       onSave={async () => {
-                        // Al guardar la hora programada no guardamos acople al backend, o si es necesario se le pasa calculatedAcople
                         if (handleSaveHoras) {
                           await handleSaveHoras(formHoraProgramada, calculatedAcople);
                         }
@@ -1069,6 +1133,71 @@ export default function UnitInfoPanel({
                     DESINCORPORAR
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Botón Validar Despacho */}
+            {!isPlataforma && !isReservaOrMantenimiento && handleValidarDespacho && (
+              <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                {yaValidada ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.5rem',
+                      background: '#f0fdf4',
+                      border: '1px solid #86efac',
+                      color: '#166534',
+                      fontWeight: 700,
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ width: '1.1rem', height: '1.1rem' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Despacho validado — Hora salida: {datosOperativos.horaSalida}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleClickValidar}
+                    disabled={guardandoValidacion || cargandoDatos}
+                    style={{
+                      width: '100%',
+                      padding: '0.85rem 1.5rem',
+                      borderRadius: '0.5rem',
+                      border: 'none',
+                      background: guardandoValidacion ? '#9ca3af' : '#6b1d33',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      cursor: guardandoValidacion || cargandoDatos ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      transition: 'background 0.2s',
+                      boxShadow: '0 2px 8px rgba(107, 29, 51, 0.3)',
+                    }}
+                  >
+                    {guardandoValidacion ? (
+                      <>
+                        <span className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white', margin: 0 }}></span>
+                        Validando...
+                      </>
+                    ) : (
+                      <>
+                        <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{ width: '1.1rem', height: '1.1rem' }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Validar
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>
