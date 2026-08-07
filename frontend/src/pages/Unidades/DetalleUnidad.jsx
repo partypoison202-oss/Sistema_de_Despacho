@@ -542,7 +542,7 @@ export default function DetalleUnidad() {
   };
 
   // Guardar Horas
-  const handleSaveHoras = async (horaProgramada, acople, horaSalida = null) => {
+  const handleSaveHoras = async (horaProgramada, acople, horaSalida = null, observaciones = null) => {
     try {
       const token = getToken();
       if (!token) throw new Error('No token');
@@ -559,6 +559,9 @@ export default function DetalleUnidad() {
       
       if (horaSalida !== null) {
           payload.hora_salida = horaSalida;
+      }
+      if (observaciones !== null) {
+          payload.observaciones = observaciones;
       }
 
       const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-horas`, {
@@ -1099,7 +1102,7 @@ export default function DetalleUnidad() {
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
-                    Unidades en ruta {selectedRuta}
+                    Unidades por salir en ruta {selectedRuta}
                   </span>
                   <button
                     type="button"
@@ -1123,7 +1126,7 @@ export default function DetalleUnidad() {
                     Cargando unidades de la ruta...
                   </div>
                 ) : unidadesPorRutaList.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No hay unidades en la ruta {selectedRuta}</div>
+                  <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {unidadesPorRutaList.map((unidad) => (

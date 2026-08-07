@@ -9,6 +9,60 @@ import Swal from 'sweetalert2';
 import IOSTimePicker from './IOSTimePicker';
 import { AuthContext } from '../../../context/AuthContext';
 
+const LiveClockSalida = ({ horaCongelada, onGuardar, disabled }) => {
+  const [ahora, setAhora] = useState(new Date());
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    if (horaCongelada) return;
+    const t = setInterval(() => setAhora(new Date()), 1000);
+    return () => clearInterval(t);
+  }, [horaCongelada]);
+
+  let horas12, minutos, segundos, ampm, separador;
+
+  if (horaCongelada) {
+    const partes = horaCongelada.split(':');
+    const h24 = parseInt(partes[0] || '0', 10);
+    ampm = h24 >= 12 ? 'P.M.' : 'A.M.';
+    horas12 = String(h24 % 12 || 12).padStart(2, '0');
+    minutos = String(partes[1] || '00').padStart(2, '0');
+    segundos = String(partes[2] || '00').padStart(2, '0');
+    separador = ':';
+  } else {
+    const horas24 = ahora.getHours();
+    ampm = horas24 >= 12 ? 'P.M.' : 'A.M.';
+    horas12 = String(horas24 % 12 || 12).padStart(2, '0');
+    minutos = String(ahora.getMinutes()).padStart(2, '0');
+    segundos = String(ahora.getSeconds()).padStart(2, '0');
+    const parpadeo = ahora.getSeconds() % 2 === 0;
+    separador = parpadeo ? ':' : ' ';
+  }
+  
+  const horaMostrada = `${horas12}${separador}${minutos}${separador}${segundos} ${ampm}`;
+  
+  const horas24Save = String(ahora.getHours()).padStart(2, '0');
+  const minutosSave = String(ahora.getMinutes()).padStart(2, '0');
+  const segundosSave = String(ahora.getSeconds()).padStart(2, '0');
+  const horaParaGuardar = `${horas24Save}:${minutosSave}:${segundosSave}`;
+
+  return (
+    <div className="info-card__item">
+      <span className="info-card__label">Hora de Salida</span>
+      <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: '0.25rem' }}>
+        <div className="badge-display badge-display--maroon" style={{ flex: 1, padding: '0.5rem 1rem' }}>
+          <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+            {horaMostrada}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function UnitInfoPanel({
   selectedOption,
   configActual,
@@ -46,33 +100,26 @@ export default function UnitInfoPanel({
   const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
+  const [salidaCongelada, setSalidaCongelada] = useState(null);
+
   const [formHoraProgramada, setFormHoraProgramada] = useState('');
-  const [formHoraSalida, setFormHoraSalida] = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
+  const [observaciones, setObservaciones] = useState('');
   const [guardandoSalida, setGuardandoSalida] = useState(false);
 
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
 
-  // Inicializar hora programada desde datosOperativos
+  // Inicializar hora programada y observaciones desde datosOperativos
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
+    setObservaciones(datosOperativos.observaciones || '');
   }, [datosOperativos]);
 
-  // AUTOMÁTICO: actualizar la hora de salida con la hora actual del sistema o usar la guardada
   useEffect(() => {
-    if (datosOperativos.hora_salida) {
-      setFormHoraSalida(datosOperativos.hora_salida);
-    } else if (selectedOption) {
-      const ahora = new Date();
-      const horas = String(ahora.getHours()).padStart(2, '0');
-      const minutos = String(ahora.getMinutes()).padStart(2, '0');
-      setFormHoraSalida(`${horas}:${minutos}`);
-    } else {
-      setFormHoraSalida('');
-    }
-  }, [selectedOption, datosOperativos.hora_salida]);
+    setSalidaCongelada(datosOperativos.hora_salida || null);
+  }, [datosOperativos.hora_salida, selectedOption]);
 
   const calculateAcople = (timeStr) => {
     if (!timeStr) return '--:--';
@@ -789,31 +836,58 @@ export default function UnitInfoPanel({
             </div>
 
             {/* 6. Hora de Salida (Manual confirm) */}
-            <div className="info-card__item">
-              <span className="info-card__label">Hora de Salida</span>
-              <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1, flex: 1 }}>
-                  <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                    {formHoraSalida || '--:--'}
-                  </span>
-                </div>
+            <LiveClockSalida
+              key={selectedOption || 'none'}
+              horaCongelada={salidaCongelada}
+              disabled={isPlataforma || isReservaOrMantenimiento}
+            />
 
-                <button
+            {/* Observaciones (Replaces Corridas Perdidas) */}
+            {!isPlataforma && (
+              <div className="info-card__item">
+                <span className="info-card__label">Observaciones</span>
+                <textarea
+                  className="interactive-input"
+                  maxLength={120}
+                  rows={2}
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  disabled={isPlataforma || isReservaOrMantenimiento || !!salidaCongelada}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    fontSize: '0.85rem',
+                    marginTop: '0.25rem',
+                    resize: 'none',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e5e7eb',
+                  }}
+                  placeholder="Escribe alguna observación (opcional)..."
+                />
+              </div>
+            )}
+
+            <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">
+               <button
                   type="button"
-                  disabled={guardandoSalida || isPlataforma || isReservaOrMantenimiento}
+                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada}
                   onClick={async () => {
                     setGuardandoSalida(true);
+                    const now = new Date();
+                    const horas24 = String(now.getHours()).padStart(2, '0');
+                    const minutos = String(now.getMinutes()).padStart(2, '0');
+                    const segundos = String(now.getSeconds()).padStart(2, '0');
+                    const horaParaGuardar = `${horas24}:${minutos}:${segundos}`;
+                    
                     try {
                       if (handleSaveHoras) {
-                        await handleSaveHoras(formHoraProgramada, calculatedAcople, formHoraSalida);
+                        await handleSaveHoras(formHoraProgramada, calculatedAcople, horaParaGuardar, observaciones);
+                        setSalidaCongelada(horaParaGuardar);
                         const Swal = (await import('sweetalert2')).default;
                         Swal.fire({
                           icon: 'success',
-                          title: 'Hora de Salida Guardada',
-                          text: `Se registró la salida a las ${formHoraSalida}`,
+                          title: 'Registro Guardado',
+                          text: `Se registró la salida a las ${horaParaGuardar}`,
                           confirmButtonColor: '#601a2a',
                           timer: 2000,
                           showConfirmButton: false,
@@ -825,208 +899,31 @@ export default function UnitInfoPanel({
                       setGuardandoSalida(false);
                     }
                   }}
+                  className="interactive-input"
                   style={{
+                    width: '100%',
+                    padding: '0 1.5rem',
+                    height: '2.5rem',
                     background: '#601a2a',
                     color: 'white',
                     border: 'none',
                     borderRadius: '0.5rem',
-                    padding: '0 0.85rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold',
-                    cursor: (guardandoSalida || isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
-                    opacity: (guardandoSalida || isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    cursor: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada) ? 'not-allowed' : 'pointer',
+                    opacity: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada) ? 0.6 : 1,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    gap: '0.5rem'
                   }}
                 >
-                  {guardandoSalida ? '...' : 'Guardar'}
+                  {guardandoSalida && (
+                    <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }}></span>
+                  )}
+                  {salidaCongelada ? 'VALIDADO' : 'VALIDAR'}
                 </button>
-              </div>
             </div>
-
-            {/* Toggle: ¿Hubo corridas perdidas? */}
-            {!isPlataforma && (
-              <div className="info-card__item">
-                <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
-                <div style={{
-                  display: 'flex',
-                  width: '100%',
-                  marginTop: '0.25rem',
-                  height: '2.3rem',
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                  border: '1px solid #e5e7eb'
-                }}>
-                  <button
-                    type="button"
-                    disabled={isPlataforma || isReservaOrMantenimiento}
-                    onClick={() => handleToggleCorridasPerdidas(true)}
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      background: huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
-                      color: huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
-                      opacity: (isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    SÍ
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isPlataforma || isReservaOrMantenimiento}
-                    onClick={() => handleToggleCorridasPerdidas(false)}
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      borderLeft: '1px solid #e5e7eb',
-                      background: !huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
-                      color: !huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
-                      opacity: (isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    NO
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Ciclos Perdidos y Motivo */}
-            {!isPlataforma && huboCorridasPerdidas && (
-              <>
-                <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownCiclosOpen ? 50 : 1 }}>
-                  <span className="info-card__label">Ciclos Perdidos</span>
-                  <button
-                    type="button"
-                    className="interactive-input"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0 0.85rem',
-                      marginTop: '0.25rem',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      background: 'var(--tw-color-white)',
-                      height: '2.3rem',
-                      fontSize: '0.85rem'
-                    }}
-                    onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
-                  >
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
-                      {perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' CICLOS' : 'SELECCIONAR'}
-                    </span>
-                    <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                    </svg>
-                  </button>
-
-                  {dropdownCiclosOpen && (
-                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                      <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                        <button
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                          onClick={() => {
-                            setPerdidaCiclos('');
-                            setDropdownCiclosOpen(false);
-                            handleSavePerdida('', perdidaMotivo);
-                          }}
-                        >
-                          SELECCIONAR
-                        </button>
-                        {ciclosOptions.map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
-                            onClick={() => {
-                              setPerdidaCiclos(opt.value);
-                              setDropdownCiclosOpen(false);
-                              handleSavePerdida(opt.value, perdidaMotivo);
-                            }}
-                          >
-                            {opt.label} CICLOS
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div ref={motivoRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownMotivoOpen ? 50 : 1 }}>
-                  <span className="info-card__label">Motivo (Obligatorio)</span>
-                  <button
-                    type="button"
-                    className="interactive-input"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0 0.85rem',
-                      marginTop: '0.25rem',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      background: 'var(--tw-color-white)',
-                      height: '2.3rem',
-                      fontSize: '0.85rem'
-                    }}
-                    onClick={() => setDropdownMotivoOpen(!dropdownMotivoOpen)}
-                  >
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
-                      {perdidaMotivo || 'SELECCIONAR MOTIVO'}
-                    </span>
-                    <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                    </svg>
-                  </button>
-                  {dropdownMotivoOpen && (
-                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                      <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                        <button
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                          onClick={() => {
-                            setPerdidaMotivo('');
-                            setDropdownMotivoOpen(false);
-                            handleSavePerdida(perdidaCiclos, '');
-                          }}
-                        >
-                          SELECCIONAR MOTIVO
-                        </button>
-                        {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map((motivo) => (
-                          <button
-                            key={motivo}
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaMotivo === motivo ? 'bold' : 'normal' }}
-                            onClick={() => {
-                              setPerdidaMotivo(motivo);
-                              setDropdownMotivoOpen(false);
-                              handleSavePerdida(perdidaCiclos, motivo);
-                            }}
-                          >
-                            {motivo}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
             {/* INCORPORAR / DESINCORPORAR para PLATAFORMA */}
             {isPlataforma && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', width: '100%' }}>
