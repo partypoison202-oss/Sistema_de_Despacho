@@ -63,6 +63,9 @@ export default function DetalleUnidadMantenimiento() {
     tarjeton: '',
     estatus: 'operacion',
     motivo_estatus: null, // <-- NUEVO
+    horaSalida: null,
+    horaProgramada: null,
+    horaDespacho: null,
   });
 
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false);
@@ -320,16 +323,21 @@ export default function DetalleUnidadMantenimiento() {
           if (!res.ok) throw new Error('Error en peticion');
           return res.json();
         },
-        staleTime: 30 * 1000,
+        staleTime: 0,
+        cacheTime: 0,
       });
 
       if (resultado.status === 'success') {
+        const horaDespacho = resultado.hora_salida || resultado.hora_programada || resultado.acople || null;
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
           tarjeton: resultado.tarjeton || '',
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
           motivo_estatus: resultado.motivo_estatus || null, // <-- NUEVO: obtener motivo
+          horaSalida: resultado.hora_salida || null,
+          horaProgramada: resultado.hora_programada || null,
+          horaDespacho,
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
       } else {
@@ -339,6 +347,9 @@ export default function DetalleUnidadMantenimiento() {
           tarjeton: '',
           estatus: 'operacion',
           motivo_estatus: null,
+          horaSalida: null,
+          horaProgramada: null,
+          horaDespacho: null,
         });
       }
     } catch (error) {
@@ -349,6 +360,7 @@ export default function DetalleUnidadMantenimiento() {
         tarjeton: '',
         estatus: 'operacion',
         motivo_estatus: null,
+        horaSalida: null,
       });
     } finally {
       setCargandoDatos(false);
@@ -874,6 +886,40 @@ export default function DetalleUnidadMantenimiento() {
                     <div>
                       <div className="dashboard-header-card__eyebrow">{configActual.title}</div>
                       <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
+                      <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {datosOperativos.horaDespacho ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '9999px',
+                            backgroundColor: '#ecfdf5',
+                            color: '#166534',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                          }}>
+                            <span>Despacho realizado</span>
+                            <span style={{ color: '#14532d', fontWeight: 600 }}>
+                              ({datosOperativos.horaDespacho})
+                            </span>
+                          </span>
+                        ) : (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '9999px',
+                            backgroundColor: '#f8fafc',
+                            color: '#475569',
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                          }}>
+                            <span>Despacho pendiente</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -952,7 +998,7 @@ export default function DetalleUnidadMantenimiento() {
                         <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                         </svg>
-                        <h3 className="info-card__title">Movilidad y Estatus</h3>
+                        <h3 className="info-card__title">Encierro Operativo</h3>
                       </div>
                       <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">

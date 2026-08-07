@@ -331,6 +331,21 @@ class DespachoController extends Controller
             )
             ->first();
 
+        $horaSalidaLegacy = null;
+        if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
+            $registroBitacora = DB::table('bitacora_cambios_unidades')
+                ->where('unidad_id', $unidadBase->id)
+                ->where('tipo_accion', 'VALIDAR_DESPACHO')
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($registroBitacora && !empty($registroBitacora->detalles)) {
+                if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
+                    $horaSalidaLegacy = strtoupper($matches[1]);
+                }
+            }
+        }
+
         if ($info) {
             $estatus = strtolower(trim($info->estatus ?? 'operacion'));
             if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
