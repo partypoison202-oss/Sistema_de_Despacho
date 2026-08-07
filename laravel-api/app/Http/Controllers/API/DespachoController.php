@@ -26,7 +26,8 @@ class DespachoController extends Controller
         $unidadesExcel = $request->input('unidades');
         $fechaHoy = Carbon::today()->toDateString();
 
-        DB::table('conductores')->where('estado_servicio', 'en_servicio')->update(['estado_servicio' => 'disponible']);
+        // Al iniciar una importación masiva, liberar todos los conductores
+        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
 
         // Pre-cargar todas las unidades en memoria
         $todasLasUnidades = DB::table('unidades')
@@ -200,8 +201,7 @@ class DespachoController extends Controller
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.falla',
-                'informacion_operativa.corridas',
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.corridas'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -219,7 +219,6 @@ class DespachoController extends Controller
                     'nombre_conductor' => $unidad->nombre_conductor,
                     'falla' => $unidad->falla,
                     'corridas' => $unidad->corridas,
-                    'hora_salida' => $unidad->hora_salida,
                 ];
             });
 
@@ -319,8 +318,7 @@ class DespachoController extends Controller
                 'informacion_operativa.motivo',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida',
-                'informacion_operativa.motivo_estatus'
+                'informacion_operativa.hora_salida'
             )
             ->first();
 
@@ -348,8 +346,7 @@ class DespachoController extends Controller
                 'hora_programada' => $info->hora_programada,
                 'acople'    => $info->acople,
                 'hora_salida' => $info->hora_salida,
-                'motivo_estatus'  => $info->motivo_estatus, 
-                // Campos de mantenimiento
+                // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -368,7 +365,7 @@ class DespachoController extends Controller
                 'hora_programada' => null,
                 'acople'    => null,
                 'hora_salida' => null,
-                // Campos de mantenimiento aunque no esté asignado operativamente
+                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -381,9 +378,6 @@ class DespachoController extends Controller
     /**
      * Actualiza los registros de informacion_operativa para el día actual
      * a partir de los datos enviados desde la vista previa.
-     *
-     * IMPORTANTE: hora_salida se establece a NULL en cada actualización para
-     * reincorporar unidades al ciclo de despacho del día siguiente.
      */
     public function actualizar(Request $request)
     {
@@ -404,7 +398,7 @@ class DespachoController extends Controller
         $creados = 0;
         $errores = [];
 
-        DB::table('conductores')->where('estado_servicio', 'en_servicio')->update(['estado_servicio' => 'disponible']);
+        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
 
         foreach ($unidadesReq as $fila) {
             $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
@@ -442,11 +436,7 @@ class DespachoController extends Controller
                 'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
                 'hora_programada'  => $horaSalidaVal === '' ? null : $horaSalidaVal,
                 'tipo'             => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
-                'estatus'          => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
-                // FIX: limpiar hora_salida para reincorporar la unidad al ciclo
-                // de despacho. Cuando el capturista guarda la programación del
-                // día siguiente, todas las unidades deben quedar disponibles.
-                'hora_salida'      => null,
+                'estatus'          => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
             ];
 
             if ($registroId) {
@@ -464,7 +454,7 @@ class DespachoController extends Controller
                     $data['unidad_id'] = $unidad->id;
                     $data['estatus'] = trim((string) ($fila['ESTATUS'] ?? 'operacion'));
                     $data['fecha_registro'] = now();
-
+                    
                     DB::table('informacion_operativa')->insert($data);
                     $creados++;
                 } catch (\Exception $e) {
@@ -513,6 +503,7 @@ class DespachoController extends Controller
 
         $tipoNormalizado = strtolower(trim($request->tipo));
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
+        $fechaHoy = Carbon::today()->toDateString();
 
         $registro = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -663,6 +654,7 @@ class DespachoController extends Controller
             ->update($updateData);
 
         if ($actualizado !== false) {
+            // Registrar acción en la bitácora de cambios
             BitacoraHelper::registrarCambio(
                 $registro->unidad_id,
                 'CAMBIO_HORAS',
@@ -684,144 +676,8 @@ class DespachoController extends Controller
     }
 
     /**
-     * Valida el despacho de una unidad: guarda todos los campos operativos
-     * y fija la hora de salida al momento de la validación.
-     */
-    public function validarDespacho(Request $request)
-    {
-        $request->validate([
-            'tipo' => 'required|string',
-            'numero_eco' => 'required|string',
-            'hora_salida' => 'required|string',
-            'ruta' => 'nullable|string',
-            'tarjeton' => 'nullable|string',
-            'hora_programada' => 'nullable|string',
-            'acople' => 'nullable|string',
-            'ciclo' => 'nullable|string|max:10',
-            'motivo' => 'nullable|string|max:50',
-            'falla' => 'nullable|string|max:50',
-        ]);
-
-        $tipoNormalizado = strtolower(trim($request->tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
-        $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
-
-        $registro = DB::table('informacion_operativa')
-            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->where('unidades.numero_eco', $numeroEcoClean)
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select(
-                'informacion_operativa.id',
-                'informacion_operativa.unidad_id',
-                'informacion_operativa.hora_salida',
-                'informacion_operativa.numero_tarjeton',
-                'informacion_operativa.ruta'
-            )
-            ->first();
-
-        if (!$registro) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unidad no encontrada en el registro operativo',
-            ], 404);
-        }
-
-        if (!empty($registro->hora_salida)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Esta unidad ya fue validada.',
-            ], 422);
-        }
-
-        $updateData = [
-            'hora_salida' => trim($request->hora_salida),
-        ];
-
-        if ($request->has('ruta')) {
-            $updateData['ruta'] = trim((string) $request->ruta);
-        }
-        if ($request->has('hora_programada')) {
-            $updateData['hora_programada'] = $request->hora_programada;
-        }
-        if ($request->has('acople')) {
-            $updateData['acople'] = $request->acople;
-        }
-        if ($request->has('ciclo')) {
-            $updateData['ciclo'] = $request->ciclo;
-        }
-        if ($request->has('motivo')) {
-            $updateData['motivo'] = $request->motivo;
-        }
-        if ($request->has('falla')) {
-            $updateData['falla'] = $request->falla;
-        }
-
-        $conductorNombre = null;
-        if ($request->filled('tarjeton')) {
-            $tarjetonLimpio = trim($request->tarjeton);
-            $conductor = DB::table('conductores')
-                ->where('tarjeton', $tarjetonLimpio)
-                ->first();
-
-            if (!$conductor) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "El tarjetón {$tarjetonLimpio} no está registrado en el catálogo de conductores.",
-                ], 422);
-            }
-
-            DB::table('informacion_operativa')
-                ->where('numero_tarjeton', $tarjetonLimpio)
-                ->where('id', '!=', $registro->id)
-                ->update([
-                    'numero_tarjeton' => null,
-                    'nombre_conductor' => null,
-                ]);
-
-            $updateData['numero_tarjeton'] = $tarjetonLimpio;
-            $updateData['nombre_conductor'] = $conductor->nombre;
-            $conductorNombre = $conductor->nombre;
-
-            if ($registro->numero_tarjeton && $registro->numero_tarjeton !== $tarjetonLimpio) {
-                DB::table('conductores')
-                    ->where('tarjeton', $registro->numero_tarjeton)
-                    ->update(['estado_servicio' => 'disponible']);
-            }
-
-            DB::table('conductores')
-                ->where('tarjeton', $tarjetonLimpio)
-                ->update(['estado_servicio' => 'en_servicio']);
-        }
-
-        DB::table('informacion_operativa')
-            ->where('id', $registro->id)
-            ->update($updateData);
-
-        BitacoraHelper::registrarCambio(
-            $registro->unidad_id,
-            'VALIDAR_DESPACHO',
-            'DESPACHO VALIDADO - HORA SALIDA: ' . strtoupper(trim($request->hora_salida))
-        );
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Despacho validado correctamente.',
-            'hora_salida' => trim($request->hora_salida),
-            'conductor' => $conductorNombre,
-            'tarjeton' => $updateData['numero_tarjeton'] ?? $registro->numero_tarjeton,
-            'ruta' => $updateData['ruta'] ?? $registro->ruta,
-        ], 200);
-    }
-
-    /**
      * Obtiene todos los registros de información operativa del día actual,
      * formateados para la tabla de vista previa del Capturista.
-     *
-     * IMPORTANTE: se incluye hora_salida para que el capturista pueda ver
-     * qué unidades ya fueron despachadas y para que actualizar() pueda
-     * limpiarla correctamente al guardar la programación del día siguiente.
      */
     public function obtenerDatosHoy()
     {
@@ -839,10 +695,7 @@ class DespachoController extends Controller
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
                 'informacion_operativa.motivo_estatus',
-                'informacion_operativa.hora_programada',
-                // FIX: incluir hora_salida para que el capturista pueda
-                // ver el estado real de despacho de cada unidad.
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.hora_programada'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
@@ -850,21 +703,19 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
-                'TIPO_DE_UNIDAD'   => $reg->tipo,
-                'RUTA'             => $reg->ruta,
-                'ECONOMICO'        => $reg->numero_eco,
-                'TARJETON'         => $reg->numero_tarjeton,
+                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'RUTA' => $reg->ruta,
+                'ECONOMICO' => $reg->numero_eco,
+                'TARJETON' => $reg->numero_tarjeton,
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
-                'ESTATUS'          => $reg->estatus,
-                'FALLA'            => $reg->falla,
-                'CORRIDAS'         => $reg->corridas,
-                'CICLO'            => $reg->ciclo,
-                'MOTIVO'           => $reg->motivo,
-                'MOTIVO_ESTATUS'   => $reg->motivo_estatus,
-                'HORA_DE_ACOPLE'   => $reg->hora_programada,
-                'HORA_PROGRAMADA'  => $reg->hora_programada,
-                // FIX: exponer hora_salida al capturista
-                'HORA_SALIDA'      => $reg->hora_salida,
+                'ESTATUS' => $reg->estatus,
+                'FALLA' => $reg->falla,
+                'CORRIDAS' => $reg->corridas,
+                'CICLO' => $reg->ciclo,
+                'MOTIVO' => $reg->motivo,
+                'MOTIVO_ESTATUS' => $reg->motivo_estatus,
+                'HORA_DE_ACOPLE' => $reg->hora_programada,
+                'HORA_PROGRAMADA' => $reg->hora_programada
             ];
         });
 
@@ -925,14 +776,9 @@ class DespachoController extends Controller
             $updateData['corrida'] = null;
 
             if ($registroOperativo->numero_tarjeton) {
-                $nuevoEstadoConductor = 'disponible';
-                if ($motivoEstatus && strtoupper(trim($motivoEstatus)) === 'FALTA DE OPERADOR') {
-                    $nuevoEstadoConductor = 'falta';
-                }
-
                 DB::table('conductores')
                     ->where('tarjeton', $registroOperativo->numero_tarjeton)
-                    ->update(['estado_servicio' => $nuevoEstadoConductor]);
+                    ->update(['estado_servicio' => 'disponible']);
             }
         } else {
             $allInputs = $request->all();
@@ -942,7 +788,7 @@ class DespachoController extends Controller
             if (array_key_exists('numero_tarjeton', $allInputs)) {
                 $tarjetonLimpio = trim((string)$request->numero_tarjeton);
                 $updateData['numero_tarjeton'] = $tarjetonLimpio;
-
+                
                 if ($tarjetonLimpio) {
                     DB::table('informacion_operativa')
                         ->where('numero_tarjeton', $tarjetonLimpio)
@@ -952,7 +798,7 @@ class DespachoController extends Controller
                             'nombre_conductor' => null
                         ]);
                 }
-
+                
                 if ($registroOperativo->numero_tarjeton && $registroOperativo->numero_tarjeton !== $tarjetonLimpio) {
                     DB::table('conductores')
                         ->where('tarjeton', $registroOperativo->numero_tarjeton)
@@ -974,6 +820,7 @@ class DespachoController extends Controller
             ->where('id', $registroOperativo->id)
             ->update($updateData);
 
+        // Registrar acción en la bitácora de cambios
         BitacoraHelper::registrarCambio(
             $unidad->id,
             'CAMBIO_ESTATUS',
@@ -1040,6 +887,7 @@ class DespachoController extends Controller
                 'ruta' => $rutaLimpia,
             ]);
 
+        // Registrar acción en la bitácora de cambios
         BitacoraHelper::registrarCambio(
             $operacion->unidad_id,
             'CAMBIO_RUTA',
@@ -1064,6 +912,9 @@ class DespachoController extends Controller
         return response()->json($unidades, 200);
     }
 
+    /**
+     * Guarda la información de mantenimiento (combustible, adblue, cincho) en la tabla unidades.
+     */
     /**
      * Guarda la información de mantenimiento (combustible, adblue, cincho) en la tabla unidades.
      */
