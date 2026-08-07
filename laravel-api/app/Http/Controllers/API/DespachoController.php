@@ -171,8 +171,9 @@ class DespachoController extends Controller
         foreach ($conteos as $item) {
             if (!empty($item->tipo)) {
                 $tipo = strtolower(trim($item->tipo));
-                if ($tipo === 'urbanus') {
-                    $tipo = 'urbanuss';
+                // Normalizar 'urbanuss' → 'urbanus' para que coincida con el id del módulo en el frontend
+                if ($tipo === 'urbanuss') {
+                    $tipo = 'urbanus';
                 }
                 if (isset($resultado[$tipo])) {
                     $resultado[$tipo] += (int)$item->total;
