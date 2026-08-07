@@ -180,7 +180,7 @@ export default function Login() {
     const rol = user.role?.codigo;
     if (rol === 'ADMINISTRADOR') {
       navigate('/menu');
-    } else if (rol === 'PROGRAMACION') {
+    } else if (rol === 'PROGRAMACION' || rol === 'PARQUE_VEHICULAR') {
       navigate('/menu');
     } else if (rol === 'GESTOR_OPERADORES') {
       navigate('/operadores');

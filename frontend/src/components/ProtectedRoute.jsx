@@ -23,6 +23,7 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     // Mapeo de roles a rutas de redirección
     const roleRedirectMap = {
       PROGRAMACION: '/menu',
+      PARQUE_VEHICULAR: '/menu',
       GESTOR_OPERADORES: '/operadores',
       ENCIERRO: '/encierro/dashboard',
       GENERAL: '/general',

@@ -1,6 +1,6 @@
 // src/pages/Mantenimiento/Mantenimiento.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
@@ -13,6 +13,8 @@ export default function Mantenimiento() {
   const [busquedaEco, setBusquedaEco] = useState('');
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isInspeccion = location.pathname.startsWith('/inspeccion');
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -136,8 +138,8 @@ export default function Mantenimiento() {
 
       const coincidencia = resultados.find(Boolean);
       if (coincidencia) {
-        // Ajusta la ruta destino según cómo manejes el mantenimiento por unidad
-        navigate(`/mantenimiento/${coincidencia.modulo.id}?eco=${eco}`);
+        // Ajusta la ruta destino según cómo manejes el mantenimiento/inspección por unidad
+        navigate(`${isInspeccion ? '/inspeccion' : '/mantenimiento'}/${coincidencia.modulo.id}?eco=${eco}`);
         return;
       }
 
@@ -183,9 +185,13 @@ export default function Mantenimiento() {
         <Header />
         <main className="mantenimiento__main">
           <p className="mantenimiento__eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
-          <h1 className="mantenimiento__title text-gray-900 dark:text-white">Mantenimiento de Unidades</h1>
+          <h1 className="mantenimiento__title text-gray-900 dark:text-white">
+            {isInspeccion ? 'Inspección de Unidades' : 'Mantenimiento de Unidades'}
+          </h1>
           <p className="mantenimiento__subtitle text-gray-500 dark:text-gray-300">
-            Toque la imagen del transporte para comenzar el mantenimiento
+            {isInspeccion
+              ? 'Toque la imagen del transporte para comenzar la inspección'
+              : 'Toque la imagen del transporte para comenzar el mantenimiento'}
           </p>
 
           <form className="mantenimiento__search" onSubmit={handleBuscarUnidad}>
@@ -212,7 +218,7 @@ export default function Mantenimiento() {
                 title={modulo.title}
                 subtitle={modulo.subtitle}
                 image={modulo.image}
-                route={`/mantenimiento/${modulo.id}`}
+                route={`${isInspeccion ? '/inspeccion' : '/mantenimiento'}/${modulo.id}`}
                 cantidad={conteos[modulo.id] || 0}
                 cargando={cargando}
               />

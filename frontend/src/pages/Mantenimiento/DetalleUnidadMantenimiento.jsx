@@ -1,7 +1,7 @@
 // src/pages/Mantenimiento/DetalleUnidadMantenimiento.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
@@ -21,6 +21,8 @@ export default function DetalleUnidadMantenimiento() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const isInspeccion = location.pathname.startsWith('/inspeccion');
   const queryClient = useQueryClient();
 
   // ── Migración de localStorage: limpiar datos con esquema viejo ──
@@ -781,7 +783,7 @@ export default function DetalleUnidadMantenimiento() {
   if (!configActual) {
     return (
       <div className="p-8">
-        Transporte no encontrado. <button onClick={() => navigate('/mantenimiento')}>Volver</button>
+        Transporte no encontrado. <button onClick={() => navigate(isInspeccion ? '/inspeccion' : '/mantenimiento')}>Volver</button>
       </div>
     );
   }
@@ -809,7 +811,9 @@ export default function DetalleUnidadMantenimiento() {
     <div className="layout-container">
       <Header
         title={selectedOption || 'Seleccione Unidad'}
-        eyebrow={`${configActual.title} / Inspección — Detalle de Unidad`}
+        eyebrow={isInspeccion 
+          ? `${configActual.title} / Inspección — Detalle de Unidad` 
+          : `${configActual.title} / Mantenimiento — Detalle de Unidad`}
       />
 
       <main className="main-content">
@@ -925,165 +929,172 @@ export default function DetalleUnidadMantenimiento() {
                   </div>
 
                   {/* CARD: INSPECCIÓN */}
-                  <div className="info-card">
-                    <div className="info-card__header">
-                      <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <h3 className="info-card__title">Inspección</h3>
+                  {isInspeccion && (
+                    <div className="info-card">
+                      <div className="info-card__header">
+                        <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h3 className="info-card__title">Inspección</h3>
+                      </div>
+                      <FuelInspection
+                        eco={selectedOption}
+                        tipoTransporte={tipoTransporte}
+                        token={getToken()}
+                      />
                     </div>
-                    <FuelInspection
-                      eco={selectedOption}
-                      tipoTransporte={tipoTransporte}
-                      token={getToken()}
-                    />
-                  </div>
+                  )}
 
                   {/* CARD: MOVILIDAD Y ESTATUS */}
-                  <div className="info-card info-card--double">
-                    <div className="info-card__header">
-                      <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                      </svg>
-                      <h3 className="info-card__title">Movilidad y Estatus</h3>
-                    </div>
-                    <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                        {[
-                          { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
-                          { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
-                          { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' },
-                        ].map((st) => {
-                          const isActive = datosOperativos.estatus === st.id;
-                          return (
-                            <button
-                              key={st.id}
-                              onClick={() => handleCambiarEstatus(st.id)}
-                              disabled={cambiandoEstatus}
-                              style={{
-                                padding: '1rem 0.5rem',
-                                borderRadius: '0.75rem',
-                                border: `2px solid ${isActive ? st.color : 'transparent'}`,
-                                backgroundColor: isActive ? st.bgActive : 'var(--tw-color-gray-100)',
-                                color: isActive ? st.color : 'var(--tw-color-gray-500)',
-                                fontWeight: isActive ? 700 : 500,
-                                fontSize: '0.85rem',
-                                cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.2s',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                opacity: cambiandoEstatus && !isActive ? 0.5 : 1,
-                              }}
-                            >
-                              <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? st.color : 'var(--tw-color-gray-300)' }}></div>
-                              {st.label}
-                            </button>
-                          );
-                        })}
+                  {!isInspeccion && (
+                    <div className="info-card info-card--double">
+                      <div className="info-card__header">
+                        <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <h3 className="info-card__title">Movilidad y Estatus</h3>
                       </div>
-
-                      {/* <-- NUEVO: Mostrar motivo si está en mantenimiento */}
-                      {datosOperativos.estatus === 'mantenimiento' && datosOperativos.motivo_estatus && (
-                        <div style={{
-                          marginTop: '1rem',
-                          padding: '0.5rem 1rem',
-                          backgroundColor: '#fef3c7',
-                          border: '1px solid #f59e0b',
-                          borderRadius: '0.5rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: '0.85rem',
-                          fontWeight: '600',
-                          color: '#92400e',
-                        }}>
-                          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>Motivo: <span style={{ textTransform: 'capitalize' }}>{datosOperativos.motivo_estatus}</span></span>
+                      <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                          {[
+                            { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
+                            { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
+                            { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' },
+                          ].map((st) => {
+                            const isActive = datosOperativos.estatus === st.id;
+                            return (
+                              <button
+                                key={st.id}
+                                onClick={() => handleCambiarEstatus(st.id)}
+                                disabled={cambiandoEstatus}
+                                style={{
+                                  padding: '1rem 0.5rem',
+                                  borderRadius: '0.75rem',
+                                  border: `2px solid ${isActive ? st.color : 'transparent'}`,
+                                  backgroundColor: isActive ? st.bgActive : 'var(--tw-color-gray-100)',
+                                  color: isActive ? st.color : 'var(--tw-color-gray-500)',
+                                  fontWeight: isActive ? 700 : 500,
+                                  fontSize: '0.85rem',
+                                  cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: '0.35rem',
+                                  opacity: cambiandoEstatus && !isActive ? 0.5 : 1,
+                                }}
+                              >
+                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? st.color : 'var(--tw-color-gray-300)' }}></div>
+                                {st.label}
+                              </button>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
 
-                {/* CARD: CHECKLIST - (sin cambios relevantes) */}
-                <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column', marginTop: '1.5rem' }}>
-                  <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 className="info-card__title">Check List</h3>
+                        {/* <-- NUEVO: Mostrar motivo si está en mantenimiento */}
+                        {datosOperativos.estatus === 'mantenimiento' && datosOperativos.motivo_estatus && (
+                          <div style={{
+                            marginTop: '1rem',
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#fef3c7',
+                            border: '1px solid #f59e0b',
+                            borderRadius: '0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.85rem',
+                            fontWeight: '600',
+                            color: '#92400e',
+                          }}>
+                            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Motivo: <span style={{ textTransform: 'capitalize' }}>{datosOperativos.motivo_estatus}</span></span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {hasCompletedChecklist && (
-                      <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--state-green-light)', color: 'var(--state-green-text)', padding: '0.35rem 0.75rem', borderRadius: '9999px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        Realizado
-                      </span>
-                    )}
-                  </div>
-                  <div className="info-card__body" style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem', flex: 1, paddingBottom: '0.5rem', alignItems: 'stretch' }}>
-                    {!hasCompletedChecklist ? (
-                      <button
-                        onClick={handleHacerCheckList}
-                        className="interactive-input"
-                        style={{
-                          flex: 1,
-                          borderRadius: '0.75rem',
-                          border: 'none',
-                          backgroundColor: '#6b1d33',
-                          color: 'white',
-                          fontSize: '1.25rem',
-                          fontWeight: '800',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 4px 10px -2px rgba(107, 29, 51, 0.4)',
-                          transition: 'transform 0.1s, background-color 0.2s',
-                          padding: '1rem',
-                        }}
-                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#4a1020')}
-                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#6b1d33')}
-                        onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
-                        onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                      >
-                        Hacer Check list
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleRevisarCheckList}
-                        disabled={!recentChecklist}
-                        className="interactive-input"
-                        style={{
-                          flex: 1,
-                          borderRadius: '0.75rem',
-                          border: 'none',
-                          backgroundColor: !recentChecklist ? '#9ca3af' : '#c29b53',
-                          color: 'white',
-                          fontSize: '1.25rem',
-                          fontWeight: '800',
-                          cursor: !recentChecklist ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 4px 10px -2px rgba(194, 155, 83, 0.4)',
-                          transition: 'transform 0.1s, background-color 0.2s',
-                          padding: '1rem',
-                          opacity: !recentChecklist ? 0.6 : 1,
-                        }}
-                        onMouseOver={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
-                        onMouseOut={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
-                        onMouseDown={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
-                        onMouseUp={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
-                      >
-                        Revisar check list
-                      </button>
-                    )}
-                  </div>
+                  )}
+
+                  {/* CARD: CHECKLIST - (sin cambios relevantes) */}
+                  {!isInspeccion && (
+                    <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column', marginTop: '1.5rem' }}>
+                      <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <h3 className="info-card__title">Check List</h3>
+                        </div>
+                        {hasCompletedChecklist && (
+                          <span style={{ fontSize: '0.75rem', backgroundColor: 'var(--state-green-light)', color: 'var(--state-green-text)', padding: '0.35rem 0.75rem', borderRadius: '9999px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            Realizado
+                          </span>
+                        )}
+                      </div>
+                      <div className="info-card__body" style={{ display: 'flex', flexDirection: 'row', gap: '1.5rem', flex: 1, paddingBottom: '0.5rem', alignItems: 'stretch' }}>
+                        {!hasCompletedChecklist ? (
+                          <button
+                            onClick={handleHacerCheckList}
+                            className="interactive-input"
+                            style={{
+                              flex: 1,
+                              borderRadius: '0.75rem',
+                              border: 'none',
+                              backgroundColor: '#6b1d33',
+                              color: 'white',
+                              fontSize: '1.25rem',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 4px 10px -2px rgba(107, 29, 51, 0.4)',
+                              transition: 'transform 0.1s, background-color 0.2s',
+                              padding: '1rem',
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#4a1020')}
+                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#6b1d33')}
+                            onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
+                            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                          >
+                            Hacer Check list
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleRevisarCheckList}
+                            disabled={!recentChecklist}
+                            className="interactive-input"
+                            style={{
+                              flex: 1,
+                              borderRadius: '0.75rem',
+                              border: 'none',
+                              backgroundColor: !recentChecklist ? '#9ca3af' : '#c29b53',
+                              color: 'white',
+                              fontSize: '1.25rem',
+                              fontWeight: '800',
+                              cursor: !recentChecklist ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 4px 10px -2px rgba(194, 155, 83, 0.4)',
+                              transition: 'transform 0.1s, background-color 0.2s',
+                              padding: '1rem',
+                              opacity: !recentChecklist ? 0.6 : 1,
+                            }}
+                            onMouseOver={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#a88344')}
+                            onMouseOut={(e) => !(!recentChecklist) && (e.currentTarget.style.backgroundColor = '#c29b53')}
+                            onMouseDown={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
+                            onMouseUp={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
+                          >
+                            Revisar check list
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {showChecklist && !hasCompletedChecklist && (
                     <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
                       <ChecklistForm

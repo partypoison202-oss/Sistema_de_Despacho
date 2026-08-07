@@ -40,7 +40,7 @@ const menuItems = [
   {
     id: 'encierro',
     redirectTo: '/encierro/dashboard', 
-    roles: ['ADMINISTRADOR', 'ENCIERRO'],
+    roles: ['ADMINISTRADOR', 'ENCIERRO', 'PARQUE_VEHICULAR'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="3" width="15" height="13" rx="2" />
@@ -84,7 +84,7 @@ const menuItems = [
   {
     id: 'mantenimiento',
     redirectTo: '/mantenimiento',
-    roles: ['ADMINISTRADOR', 'MANTENIMIENTO'],
+    roles: ['ADMINISTRADOR', 'MANTENIMIENTO', 'PARQUE_VEHICULAR'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
@@ -179,6 +179,19 @@ const menuItems = [
     ),
     label: 'GESTIÓN DE OPERADORES',
     color: 'gold',
+  },
+  {
+    id: 'inspeccion',
+    redirectTo: '/inspeccion',
+    roles: ['ADMINISTRADOR', 'PARQUE_VEHICULAR'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    ),
+    label: 'INSPECCIÓN',
+    color: 'teal',
   }
 ];
 
@@ -188,7 +201,7 @@ export default function Menu() {
 
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION'].includes(user.role?.codigo)) {
+    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'PARQUE_VEHICULAR'].includes(user.role?.codigo)) {
       navigate('/');
     }
   }, [user, navigate]);
@@ -229,7 +242,11 @@ export default function Menu() {
       <main className="dashboard-main">
         <div className="dashboard-welcome">
           <h2 className="dashboard-heading">
-            {user?.role?.codigo === 'ADMINISTRADOR' ? 'Menú administrativo' : 'Menú de programación'}
+            {user?.role?.codigo === 'ADMINISTRADOR'
+              ? 'Menú administrativo'
+              : user?.role?.codigo === 'PARQUE_VEHICULAR'
+                ? 'Menú de parque vehicular'
+                : 'Menú de programación'}
           </h2>
         </div>
 

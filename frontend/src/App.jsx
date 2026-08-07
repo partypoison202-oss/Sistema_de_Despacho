@@ -110,7 +110,7 @@ function App() {
           {/* ==================================================== */}
 
           <Route path="/menu" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'PARQUE_VEHICULAR']}>
               <Menu />
             </ProtectedRoute>
           } />
@@ -208,13 +208,13 @@ function App() {
 
           {/* Rutas protegidas para ENCIERRO */}
           <Route path="/encierro/dashboard" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'PARQUE_VEHICULAR']}>
               <DashboardEncierro />
             </ProtectedRoute>
           } />
 
           <Route path="/encierro/transporte/:tipoTransporte" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'PARQUE_VEHICULAR']}>
               <DetalleUnidadEncierro />
             </ProtectedRoute>
           } />
@@ -244,13 +244,26 @@ function App() {
 
           {/* Rutas protegidas para MANTENIMIENTO (solo ADMIN y MANTENIMIENTO) */}
           <Route path="/mantenimiento" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'PARQUE_VEHICULAR']}>
               <Mantenimiento />
             </ProtectedRoute>
           } />
 
           <Route path="/mantenimiento/:tipoTransporte" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'PARQUE_VEHICULAR']}>
+              <DetalleUnidadMantenimiento />
+            </ProtectedRoute>
+          } />
+
+          {/* Nuevas rutas para Inspección (ADMIN y PARQUE_VEHICULAR) */}
+          <Route path="/inspeccion" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PARQUE_VEHICULAR']}>
+              <Mantenimiento />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/inspeccion/:tipoTransporte" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PARQUE_VEHICULAR']}>
               <DetalleUnidadMantenimiento />
             </ProtectedRoute>
           } />

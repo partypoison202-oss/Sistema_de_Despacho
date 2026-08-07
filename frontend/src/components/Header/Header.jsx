@@ -78,6 +78,11 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       return;
     }
 
+    if (location.pathname === '/mantenimiento' || location.pathname === '/encierro/dashboard' || location.pathname === '/inspeccion') {
+      navigate('/menu');
+      return;
+    }
+
     navigate(-1);
   };
 
@@ -87,7 +92,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       return;
     }
     const role = user.role?.codigo;
-    if (role === 'ADMINISTRADOR' || role === 'PROGRAMACION') {
+    if (role === 'ADMINISTRADOR' || role === 'PROGRAMACION' || role === 'PARQUE_VEHICULAR') {
       navigate('/menu');
     } else if (role === 'SISTEMAS') {
       navigate('/cargar-excel');
@@ -120,7 +125,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
 
   let showBackButton = false;
   if (!hideBackButton && user && location.pathname !== '/') {
-    if (user.role?.codigo === 'ADMINISTRADOR' || user.role?.codigo === 'PROGRAMACION') {
+    if (user.role?.codigo === 'ADMINISTRADOR' || user.role?.codigo === 'PROGRAMACION' || user.role?.codigo === 'PARQUE_VEHICULAR') {
       showBackButton = location.pathname !== '/menu';
     } else {
       const isDashboard = location.pathname === '/dashboard' ||
@@ -129,7 +134,9 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                           location.pathname === '/cargar-excel' ||
                           location.pathname === '/general' ||
                           location.pathname === '/titan/dashboard' ||
-                          location.pathname === '/infraccion/dashboard';
+                          location.pathname === '/infraccion/dashboard' ||
+                          location.pathname === '/mantenimiento' ||
+                          location.pathname === '/inspeccion';
       showBackButton = !isDashboard;
     }
   }
