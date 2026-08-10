@@ -266,8 +266,6 @@ export default function DetalleUnidadEncierro() {
   ];
 
   const configActual = encierroModules.find(m => m.id === tipoTransporte);
-  const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
-
   const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
   const extraerNumeroEco = (valor) => {
