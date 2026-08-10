@@ -5,9 +5,8 @@ import SignaturePad from '../../components/SignaturePad/SignaturePad';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import API_BASE from '../../config/api';
-import { AuthContext } from '../../context/AuthContext';
-import { generarPDFAmonestacion } from '../../utils/generarPDFAmonestacion';
-import { generarPDFInfraccion } from '../../utils/generarPDFInfraccion';
+import { AuthContext } from "../../context/AuthContext";
+import { generarPDFInfraccion } from "../../utils/generarPDFInfraccion";
 import './Infraccion.css';
 
 const UMA_VALOR_2026 = 108.57; // Valor de referencia UMA para cálculo visual en pesos
