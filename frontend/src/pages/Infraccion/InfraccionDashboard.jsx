@@ -683,22 +683,22 @@ const InfraccionDashboard = () => {
                     <label className="form-label">Municipio *</label>
                     <input
                       type="text"
-                      required
-                      placeholder="Ej. Pachuca de Soto"
+                      readOnly
+                      placeholder="Obteniendo ubicación (GPS)..."
                       value={infMunicipio}
-                      onChange={(e) => setInfMunicipio(e.target.value)}
-                      className="infraccion-input"
+                      className="infraccion-input disabled-input"
+                      style={{ backgroundColor: '#f1f5f9' }}
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Ubicación Exacta *</label>
                     <input
                       type="text"
-                      required
-                      placeholder="Ej. Av. Revolución esq. Allende, Carril Confinado Troncal"
+                      readOnly
+                      placeholder="Obteniendo ubicación (GPS)..."
                       value={infUbicacionExacta}
-                      onChange={(e) => setInfUbicacionExacta(e.target.value)}
-                      className="infraccion-input"
+                      className="infraccion-input disabled-input"
+                      style={{ backgroundColor: '#f1f5f9' }}
                     />
                   </div>
                 </div>
