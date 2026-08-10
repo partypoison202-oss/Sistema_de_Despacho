@@ -266,6 +266,7 @@ export default function DetalleUnidadEncierro() {
   ];
 
   const configActual = encierroModules.find(m => m.id === tipoTransporte);
+  const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
 
   const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
@@ -298,50 +299,34 @@ export default function DetalleUnidadEncierro() {
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
+      ruta: u.ruta || null,
+      acople: String(u.acople ?? '').trim(),
+      horaSalida: String(u.hora_salida ?? '').trim(),
     }));
   };
 
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
     queryKey: ['unidades-list-encierro', tipoTransporte],
     queryFn: fetchUnidades,
+    staleTime: 60000,
     refetchInterval: 30000,
   });
 
   const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
+  // ✅ NUEVO: unidades de la ruta seleccionada derivadas localmente
+  const unidadesPorRutaList = useMemo(() => {
+    if (!selectedRuta) return [];
+    return unidadesList.filter((u) => u.ruta === selectedRuta && !u.acople);
+  }, [unidadesList, selectedRuta]);
 
-  // ✅ NUEVO: unidades de la ruta seleccionada
-  const { data: unidadesPorRutaList = [], isLoading: cargandoUnidadesPorRuta } = useQuery({
-    queryKey: ['unidades-por-ruta-encierro', tipoTransporte, selectedRuta],
-    queryFn: async () => {
-      const token = getToken();
-      if (!token || !selectedRuta) return [];
-      const res = await fetch(
-        `${API_BASE}/api/despacho/unidades-por-ruta/${tipoTransporte}/${encodeURIComponent(selectedRuta)}`,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-      );
-      if (!res.ok) throw new Error('Error al obtener unidades de la ruta');
-      const data = await res.json();
-      const lista = Array.isArray(data) ? data : (data.unidades || []);
-      return lista.map((u) => ({
-        eco: String(u.numero_eco ?? u.eco ?? '').padStart(3, '0'),
-        tarjeton: String(u.tarjeton ?? '').trim(),
-        display: formatearEco(u.numero_eco ?? u.eco),
-        estado: (u.estatus || u.estado || 'operacion').toLowerCase(),
-      }));
-    },
-    enabled: !!selectedRuta && esAlimentadora,
-    staleTime: 30000,
-  });
+  const totalProgramadasOperacion = useMemo(
+    () => unidadesList.filter((u) => u.estado === 'operacion').length,
+    [unidadesList]
+  );
 
-  // ✅ NUEVO: función para seleccionar ruta
-  const handleSelectRuta = (ruta) => {
-    setSelectedRuta(ruta);
-    setOpenDropdown(null);
-  };
 
-  // ✅ NUEVO: modificación de unidadesPorEstado para filtrar por ruta
   const unidadesPorEstado = (estado) => {
-    let filtradas = unidadesList.filter((u) => u.estado === estado);
+    let filtradas = unidadesList.filter((u) => u.estado === estado && !u.acople);
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
       filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
@@ -403,6 +388,10 @@ export default function DetalleUnidadEncierro() {
         unidad.eco === ecoNormalizado ||
         unidad.display === formatearEco(ecoNormalizado)
     );
+
+    if (unidadEncontrada && unidadEncontrada.acople) {
+      return;
+    }
 
     if (unidadEncontrada && selectedOption !== unidadEncontrada.display) {
       handleSelectUnit(unidadEncontrada);
@@ -496,6 +485,12 @@ export default function DetalleUnidadEncierro() {
         const data = await res.json();
         if (data.status === 'success') {
           setDatosOperativos(prev => ({ ...prev, acople: horaCapturada }));
+          queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (oldUnidades = []) => {
+            const ecoNum = String(numeroLimpio).padStart(3, '0');
+            return oldUnidades.map((u) =>
+              u.eco === ecoNum ? { ...u, acople: horaCapturada } : u
+            );
+          });
           const Swal = (await import('sweetalert2')).default;
           Swal.fire({
             icon: 'success', title: 'Guardado', text: 'Hora de desincorporación registrada.', confirmButtonColor: '#601a2a', timer: 1500, showConfirmButton: false
@@ -516,6 +511,16 @@ export default function DetalleUnidadEncierro() {
     const ecoSeleccionado = unidadSeleccionada
       ? formatearEco(unidadSeleccionada.eco)
       : formatearEco(extraerNumeroEco(unidad));
+
+    if (unidadSeleccionada?.acople) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Unidad ya validada',
+        text: `${ecoSeleccionado} ya fue validada y no está disponible en el selector.`,
+        confirmButtonColor: '#601a2a',
+      });
+      return;
+    }
 
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(unidadSeleccionada ? unidadSeleccionada.estado : null);
@@ -1156,6 +1161,7 @@ export default function DetalleUnidadEncierro() {
                 estado="operacion"
                 titulo="Operación"
                 unidades={unidadesPorEstado('operacion')}
+                totalProgramadas={totalProgramadasOperacion}
                 cargandoUnidades={cargandoUnidades}
                 configActual={configActual}
                 onSelectUnit={handleSelectUnit}
