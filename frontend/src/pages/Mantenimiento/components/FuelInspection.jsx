@@ -297,7 +297,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       Swal.fire({
         icon: 'warning',
         title: 'Sin datos',
-        text: 'Por favor ingresa al menos un dato de inspección para poder guardar.',
+        text: 'Por favor ingresa al menos un dato de carga de combustible para poder guardar.',
         confirmButtonColor: '#c5a059',
       });
       return;
@@ -366,7 +366,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
 
         Swal.fire({
           icon: 'success',
-          title: 'Inspección Guardada',
+          title: 'Registro Guardado',
           text: 'Los datos se guardaron correctamente en el servidor.',
           confirmButtonColor: '#c5a059',
           timer: 2200,

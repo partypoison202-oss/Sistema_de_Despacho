@@ -110,7 +110,7 @@ function App() {
           {/* ==================================================== */}
 
           <Route path="/menu" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'PARQUE_VEHICULAR']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'CARGA_DE_COMBUSTIBLE']}>
               <Menu />
             </ProtectedRoute>
           } />
@@ -208,13 +208,13 @@ function App() {
 
           {/* Rutas protegidas para ENCIERRO */}
           <Route path="/encierro/dashboard" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'PARQUE_VEHICULAR']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
               <DashboardEncierro />
             </ProtectedRoute>
           } />
 
           <Route path="/encierro/transporte/:tipoTransporte" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'PARQUE_VEHICULAR']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
               <DetalleUnidadEncierro />
             </ProtectedRoute>
           } />
@@ -244,26 +244,26 @@ function App() {
 
           {/* Rutas protegidas para MANTENIMIENTO (solo ADMIN y MANTENIMIENTO) */}
           <Route path="/mantenimiento" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'PARQUE_VEHICULAR']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
               <Mantenimiento />
             </ProtectedRoute>
           } />
 
           <Route path="/mantenimiento/:tipoTransporte" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'PARQUE_VEHICULAR']}>
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
               <DetalleUnidadMantenimiento />
             </ProtectedRoute>
           } />
 
-          {/* Nuevas rutas para Inspección (ADMIN y PARQUE_VEHICULAR) */}
-          <Route path="/inspeccion" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PARQUE_VEHICULAR']}>
+          {/* Nuevas rutas para Carga de Combustible (ADMIN y CARGA_DE_COMBUSTIBLE) */}
+          <Route path="/carga-combustible" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
               <Mantenimiento />
             </ProtectedRoute>
           } />
 
-          <Route path="/inspeccion/:tipoTransporte" element={
-            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PARQUE_VEHICULAR']}>
+          <Route path="/carga-combustible/:tipoTransporte" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
               <DetalleUnidadMantenimiento />
             </ProtectedRoute>
           } />

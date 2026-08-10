@@ -411,7 +411,7 @@ class HistorialOperativoController extends Controller
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.role_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
-            ->whereIn('roles.codigo', ['MANTENIMIENTO', 'ADMINISTRADOR', 'PARQUE_VEHICULAR'])
+            ->whereIn('roles.codigo', ['MANTENIMIENTO', 'ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE'])
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',

@@ -14,7 +14,7 @@ export default function Mantenimiento() {
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const isInspeccion = location.pathname.startsWith('/inspeccion');
+  const isInspeccion = location.pathname.startsWith('/carga-combustible');
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export default function Mantenimiento() {
       const coincidencia = resultados.find(Boolean);
       if (coincidencia) {
         // Ajusta la ruta destino según cómo manejes el mantenimiento/inspección por unidad
-        navigate(`${isInspeccion ? '/inspeccion' : '/mantenimiento'}/${coincidencia.modulo.id}?eco=${eco}`);
+        navigate(`${isInspeccion ? '/carga-combustible' : '/mantenimiento'}/${coincidencia.modulo.id}?eco=${eco}`);
         return;
       }
 
@@ -186,11 +186,11 @@ export default function Mantenimiento() {
         <main className="mantenimiento__main">
           <p className="mantenimiento__eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
           <h1 className="mantenimiento__title text-gray-900 dark:text-white">
-            {isInspeccion ? 'Inspección de Unidades' : 'Mantenimiento de Unidades'}
+            {isInspeccion ? 'Carga de Combustible' : 'Mantenimiento de Unidades'}
           </h1>
           <p className="mantenimiento__subtitle text-gray-500 dark:text-gray-300">
             {isInspeccion
-              ? 'Toque la imagen del transporte para comenzar la inspección'
+              ? 'Toque la imagen del transporte para comenzar la carga de combustible'
               : 'Toque la imagen del transporte para comenzar el mantenimiento'}
           </p>
 
@@ -218,7 +218,7 @@ export default function Mantenimiento() {
                 title={modulo.title}
                 subtitle={modulo.subtitle}
                 image={modulo.image}
-                route={`${isInspeccion ? '/inspeccion' : '/mantenimiento'}/${modulo.id}`}
+                route={`${isInspeccion ? '/carga-combustible' : '/mantenimiento'}/${modulo.id}`}
                 cantidad={conteos[modulo.id] || 0}
                 cargando={cargando}
               />

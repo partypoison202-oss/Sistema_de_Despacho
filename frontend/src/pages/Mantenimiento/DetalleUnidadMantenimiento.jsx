@@ -22,7 +22,7 @@ export default function DetalleUnidadMantenimiento() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const isInspeccion = location.pathname.startsWith('/inspeccion');
+  const isInspeccion = location.pathname.startsWith('/carga-combustible');
   const queryClient = useQueryClient();
 
   // ── Migración de localStorage: limpiar datos con esquema viejo ──
@@ -795,7 +795,7 @@ export default function DetalleUnidadMantenimiento() {
   if (!configActual) {
     return (
       <div className="p-8">
-        Transporte no encontrado. <button onClick={() => navigate(isInspeccion ? '/inspeccion' : '/mantenimiento')}>Volver</button>
+        Transporte no encontrado. <button onClick={() => navigate(isInspeccion ? '/carga-combustible' : '/mantenimiento')}>Volver</button>
       </div>
     );
   }
@@ -824,7 +824,7 @@ export default function DetalleUnidadMantenimiento() {
       <Header
         title={selectedOption || 'Seleccione Unidad'}
         eyebrow={isInspeccion 
-          ? `${configActual.title} / Inspección — Detalle de Unidad` 
+          ? `${configActual.title} / Carga de Combustible — Detalle de Unidad` 
           : `${configActual.title} / Mantenimiento — Detalle de Unidad`}
       />
 
@@ -981,7 +981,7 @@ export default function DetalleUnidadMantenimiento() {
                         <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <h3 className="info-card__title">Inspección</h3>
+                        <h3 className="info-card__title">Carga de Combustible</h3>
                       </div>
                       <FuelInspection
                         eco={selectedOption}
