@@ -171,7 +171,15 @@ class DespachoController extends Controller
         foreach ($conteos as $item) {
             if (!empty($item->tipo)) {
                 $tipo = strtolower(trim($item->tipo));
-                $resultado[$tipo] = (int)$item->total;
+                // Normalizar 'urbanuss' → 'urbanus' para que coincida con el id del módulo en el frontend
+                if ($tipo === 'urbanuss') {
+                    $tipo = 'urbanus';
+                }
+                if (isset($resultado[$tipo])) {
+                    $resultado[$tipo] += (int)$item->total;
+                } else {
+                    $resultado[$tipo] = (int)$item->total;
+                }
             }
         }
 
@@ -322,6 +330,21 @@ class DespachoController extends Controller
                 'informacion_operativa.observaciones'
             )
             ->first();
+
+        $horaSalidaLegacy = null;
+        if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
+            $registroBitacora = DB::table('bitacora_cambios_unidades')
+                ->where('unidad_id', $unidadBase->id)
+                ->where('tipo_accion', 'VALIDAR_DESPACHO')
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($registroBitacora && !empty($registroBitacora->detalles)) {
+                if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
+                    $horaSalidaLegacy = strtoupper($matches[1]);
+                }
+            }
+        }
 
         if ($info) {
             $estatus = strtolower(trim($info->estatus ?? 'operacion'));
@@ -919,9 +942,6 @@ class DespachoController extends Controller
         return response()->json($unidades, 200);
     }
 
-    /**
-     * Guarda la información de mantenimiento (combustible, adblue, cincho) en la tabla unidades.
-     */
     /**
      * Guarda la información de mantenimiento (combustible, adblue, cincho) en la tabla unidades.
      */

@@ -78,7 +78,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       return;
     }
 
-    if (location.pathname === '/mantenimiento' || location.pathname === '/encierro/dashboard' || location.pathname === '/inspeccion') {
+    if (location.pathname === '/mantenimiento' || location.pathname === '/encierro/dashboard' || location.pathname === '/carga-combustible') {
       navigate('/menu');
       return;
     }
@@ -92,7 +92,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       return;
     }
     const role = user.role?.codigo;
-    if (role === 'ADMINISTRADOR' || role === 'PROGRAMACION' || role === 'PARQUE_VEHICULAR') {
+    if (role === 'ADMINISTRADOR' || role === 'PROGRAMACION' || role === 'CARGA_DE_COMBUSTIBLE') {
       navigate('/menu');
     } else if (role === 'SISTEMAS') {
       navigate('/cargar-excel');
@@ -125,7 +125,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
 
   let showBackButton = false;
   if (!hideBackButton && user && location.pathname !== '/') {
-    if (user.role?.codigo === 'ADMINISTRADOR' || user.role?.codigo === 'PROGRAMACION' || user.role?.codigo === 'PARQUE_VEHICULAR') {
+    if (user.role?.codigo === 'ADMINISTRADOR' || user.role?.codigo === 'PROGRAMACION' || user.role?.codigo === 'CARGA_DE_COMBUSTIBLE') {
       showBackButton = location.pathname !== '/menu';
     } else {
       const isDashboard = location.pathname === '/dashboard' ||
@@ -136,7 +136,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                           location.pathname === '/titan/dashboard' ||
                           location.pathname === '/infraccion/dashboard' ||
                           location.pathname === '/mantenimiento' ||
-                          location.pathname === '/inspeccion';
+                          location.pathname === '/carga-combustible';
       showBackButton = !isDashboard;
     }
   }

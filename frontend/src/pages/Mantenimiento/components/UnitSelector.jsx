@@ -15,7 +15,7 @@ export default function UnitSelector({
 }) {
   const toggleDropdown = () => setIsOpen(!isOpen);
 
-  const displayValue = (selectedEstado === estado && selectedOption) ? selectedOption : titulo;
+  const displayValue = titulo;
 
   return (
     <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
