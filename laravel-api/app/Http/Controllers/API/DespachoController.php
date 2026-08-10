@@ -1000,8 +1000,10 @@ class DespachoController extends Controller
                     'nivel_combustible'  => $request->nivel_combustible === '' ? null : $request->nivel_combustible,
                     'nivel_adblue'       => $request->nivel_adblue === '' ? null : $request->nivel_adblue,
                     'numero_cincho'      => $request->numero_cincho === '' ? null : $request->numero_cincho,
+                    'numero_cincho_adblue' => $request->numero_cincho_adblue === '' ? null : $request->numero_cincho_adblue,
                     'fecha_ultima_carga' => $request->fecha_ultima_carga === '' ? null : $request->fecha_ultima_carga,
                     'kilometraje'        => $request->kilometraje === '' ? null : $request->kilometraje,
+                    'odometro'           => $request->odometro === '' ? null : $request->odometro,
                 ]);
 
             DB::table('historial_mantenimiento')->insert([
@@ -1010,8 +1012,10 @@ class DespachoController extends Controller
                 'nivel_combustible'  => $request->nivel_combustible === '' ? null : $request->nivel_combustible,
                 'nivel_adblue'       => $request->nivel_adblue === '' ? null : $request->nivel_adblue,
                 'numero_cincho'      => $request->numero_cincho === '' ? null : $request->numero_cincho,
+                'numero_cincho_adblue' => $request->numero_cincho_adblue === '' ? null : $request->numero_cincho_adblue,
                 'fecha_ultima_carga' => $request->fecha_ultima_carga === '' ? null : $request->fecha_ultima_carga,
                 'kilometraje'        => $request->kilometraje === '' ? null : $request->kilometraje,
+                'odometro'           => $request->odometro === '' ? null : $request->odometro,
                 'fecha_registro'     => now(),
                 'created_at'         => now(),
                 'updated_at'         => now(),
@@ -1049,8 +1053,10 @@ class DespachoController extends Controller
                 'nivel_combustible'  => null,
                 'nivel_adblue'       => null,
                 'numero_cincho'      => null,
+                'numero_cincho_adblue' => null,
                 'fecha_ultima_carga' => null,
                 'kilometraje'        => null,
+                'odometro'           => null,
             ], 200);
         }
 
@@ -1059,8 +1065,10 @@ class DespachoController extends Controller
             'nivel_combustible'  => $unidad->nivel_combustible,
             'nivel_adblue'       => $unidad->nivel_adblue,
             'numero_cincho'      => $unidad->numero_cincho,
+            'numero_cincho_adblue' => $unidad->numero_cincho_adblue ?? null,
             'fecha_ultima_carga' => $unidad->fecha_ultima_carga,
             'kilometraje'        => $unidad->kilometraje ?? null,
+            'odometro'           => $unidad->odometro ?? null,
         ], 200);
     }
 

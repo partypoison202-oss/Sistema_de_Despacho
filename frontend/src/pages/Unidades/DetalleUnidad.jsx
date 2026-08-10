@@ -100,7 +100,6 @@ export default function DetalleUnidad() {
       display: formatearEco(u.numero_eco),
       estado: u.estatus || 'operacion',
       horaSalida: u.hora_salida || '',
-      ruta: u.ruta || null,
     }));
   };
 
@@ -135,13 +134,32 @@ export default function DetalleUnidad() {
     refetchInterval: 30000,
   });
 
-  // ✅ NUEVO: unidades de la ruta alimentadora seleccionada derivadas localmente
-  const unidadesPorRutaList = useMemo(() => {
-    if (!selectedRuta) return [];
-    return unidadesList.filter(u => u.ruta === selectedRuta);
-  }, [unidadesList, selectedRuta]);
-
-  const cargandoUnidadesPorRuta = false;
+  // ✅ NUEVO: unidades de la ruta alimentadora seleccionada
+  const {
+    data: unidadesPorRutaList = [],
+    isLoading: cargandoUnidadesPorRuta,
+  } = useQuery({
+    queryKey: ['unidades-por-ruta', tipoTransporte, selectedRuta],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token || !selectedRuta) return [];
+      const res = await fetch(
+        `${API_BASE}/api/despacho/unidades-por-ruta/${tipoTransporte}/${encodeURIComponent(selectedRuta)}`,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      );
+      if (!res.ok) throw new Error('Error al obtener unidades de la ruta');
+      const data = await res.json();
+      const lista = Array.isArray(data) ? data : (data.unidades || []);
+      return lista.map((u) => ({
+        eco: String(u.numero_eco ?? u.eco ?? '').padStart(3, '0'),
+        tarjeton: String(u.tarjeton ?? '').trim(),
+        display: formatearEco(u.numero_eco ?? u.eco),
+        estado: u.estatus || u.estado || 'operacion',
+      }));
+    },
+    enabled: !!selectedRuta && esAlimentadora,
+    staleTime: 30000,
+  });
 
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);
@@ -165,8 +183,8 @@ export default function DetalleUnidad() {
   );
 
   const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
-  const conductoresDisponibles = dbConductores.filter(c =>
-    (c.estado_servicio === 'disponible' || c.estado_servicio === 'falta') &&
+  const conductoresDisponibles = dbConductores.filter(c => 
+    (c.estado_servicio === 'disponible' || c.estado_servicio === 'falta') && 
     (!isTroncal || c.tipo_tarjeton === 'C')
   );
 
@@ -176,15 +194,15 @@ export default function DetalleUnidad() {
         const token = getToken();
         if (!token) return;
         const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
-          headers: { Authorization: `Bearer ${token}` }
+           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-          const data = await res.json();
-          if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
-            setRutasOpciones(data.troncales || []);
-          } else {
-            setRutasOpciones(data.alimentadoras || []);
-          }
+           const data = await res.json();
+            if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+              setRutasOpciones(data.troncales || []);
+            } else {
+              setRutasOpciones(data.alimentadoras || []);
+            }
         }
       } catch (err) {
         console.error('Error fetching rutas', err);
@@ -233,11 +251,11 @@ export default function DetalleUnidad() {
       typeof unidad === 'object' && unidad !== null
         ? unidad
         : unidadesList.find(
-          (item) =>
-            item.display === unidad ||
-            item.eco === unidad ||
-            String(item.tarjeton ?? '').trim() === String(unidad ?? '').trim()
-        ) || null;
+            (item) =>
+              item.display === unidad ||
+              item.eco === unidad ||
+              String(item.tarjeton ?? '').trim() === String(unidad ?? '').trim()
+          ) || null;
 
     if (!unidadSeleccionada) {
       console.warn('Unidad no encontrada:', unidad);
@@ -477,7 +495,7 @@ export default function DetalleUnidad() {
         fetchConductores();
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
-
+        
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({
           icon: 'success',
@@ -546,22 +564,22 @@ export default function DetalleUnidad() {
     try {
       const token = getToken();
       if (!token) throw new Error('No token');
-
+      
       const matchNumeros = selectedOption.match(/\d+/);
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-
+      
       const payload = {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
         hora_programada: horaProgramada,
         acople: acople,
       };
-
+      
       if (horaSalida !== null) {
-        payload.hora_salida = horaSalida;
+          payload.hora_salida = horaSalida;
       }
       if (observaciones !== null) {
-        payload.observaciones = observaciones;
+          payload.observaciones = observaciones;
       }
 
       const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-horas`, {
@@ -657,7 +675,7 @@ export default function DetalleUnidad() {
 
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;
-
+    
     if (datosOperativos.estatus === nuevoEstatus) return;
 
     const Swal = (await import('sweetalert2')).default;
@@ -777,7 +795,7 @@ export default function DetalleUnidad() {
               triggerText.innerText = val;
               triggerText.style.color = '#1f2937';
             }
-
+            
             toggleMenu();
 
             if (val === 'OTRO') {
@@ -852,7 +870,7 @@ export default function DetalleUnidad() {
     if (nuevoEstatus === 'operacion') {
       const tieneConductor = datosOperativos.conductor && datosOperativos.conductor !== 'No asignado' && datosOperativos.tarjeton;
       const tieneRuta = datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta';
-
+      
       if (!tieneConductor || !tieneRuta) {
         setModalEstatusNuevo(nuevoEstatus);
         setModalEstatusConductor(tieneConductor ? String(datosOperativos.tarjeton).trim() : '');
@@ -888,7 +906,7 @@ export default function DetalleUnidad() {
           timer: 2000,
           showConfirmButton: false,
         });
-
+        
         setDatosOperativos((prev) => {
           const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
           return {
@@ -991,7 +1009,7 @@ export default function DetalleUnidad() {
           timer: 2000,
           showConfirmButton: false,
         });
-
+        
         setDatosOperativos((prev) => ({
           ...prev,
           estatus: modalEstatusNuevo,
@@ -1054,10 +1072,10 @@ export default function DetalleUnidad() {
       />
       <main className="main-content">
         <div className="unit-control-panel">
-          <LocalSearchBar
-            unidades={unidadesDisponiblesBusqueda}
-            onSelectUnit={handleSelectUnit}
-            moduleName={configActual?.title || 'esta sección'}
+          <LocalSearchBar 
+            unidades={unidadesDisponiblesBusqueda} 
+            onSelectUnit={handleSelectUnit} 
+            moduleName={configActual?.title || 'esta sección'} 
           />
           <div className="unit-control-panel__selectors">
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -1102,7 +1120,7 @@ export default function DetalleUnidad() {
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
-                    Unidades en ruta{selectedRuta} por salir:
+                    Unidades por salir en ruta {selectedRuta}
                   </span>
                   <button
                     type="button"
@@ -1126,7 +1144,7 @@ export default function DetalleUnidad() {
                     Cargando unidades de la ruta...
                   </div>
                 ) : unidadesPorRutaList.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No hay unidades en la ruta {selectedRuta} por salir</div>
+                  <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {unidadesPorRutaList.map((unidad) => (

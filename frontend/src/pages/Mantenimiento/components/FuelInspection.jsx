@@ -157,31 +157,6 @@ function FuelBlock({
       )}
 
       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-        <span className="info-card__label">Última Carga</span>
-        <div className="mt-1 relative z-50">
-          <AppleDatePicker
-            value={fechaValue}
-            onChange={onFechaChange}
-            placeholder={registroAnterior?.fecha_ultima_carga ? formatDate(registroAnterior.fecha_ultima_carga) : "Seleccionar fecha"}
-          />
-        </div>
-        {showDias && dias !== null && (
-          <span
-            style={{
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              marginTop: '0.35rem',
-              display: 'block',
-              color: alerta ? '#ef4444' : '#10b981',
-            }}
-          >
-            {dias === 0 ? 'Hoy' : `Hace ${dias} día${dias > 1 ? 's' : ''}`}{' '}
-            {alerta && '⚠️ revisar carga'}
-          </span>
-        )}
-      </div>
-
-      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
         <span className="info-card__label">Litros Cargados</span>
         <input
           type="text"
@@ -201,6 +176,43 @@ function FuelBlock({
           }
         />
       </div>
+
+      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+        <span className="info-card__label">Última Carga</span>
+        <div className="mt-1 relative z-50">
+          <input
+            type="text"
+            className="interactive-input"
+            disabled
+            style={{
+              padding: '0 0.85rem',
+              height: '2.3rem',
+              fontSize: '0.9rem',
+              width: '100%',
+              backgroundColor: '#f3f4f6',
+              color: '#6b7280',
+              cursor: 'not-allowed',
+              textAlign: 'center',
+              fontWeight: '600'
+            }}
+            value={fechaValue ? formatDate(fechaValue) : formatDate(new Date().toISOString().split('T')[0])}
+          />
+        </div>
+        {showDias && dias !== null && (
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              marginTop: '0.35rem',
+              display: 'block',
+              color: alerta ? '#ef4444' : '#10b981',
+            }}
+          >
+            {dias === 0 ? 'Hoy' : `Hace ${dias} día${dias > 1 ? 's' : ''}`}{' '}
+            {alerta && '⚠️ revisar carga'}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -217,13 +229,15 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
   const [form, setForm] = useState({
     nivelGasolina: '',
     kilometrajeGasolina: '',
-    fechaUltimaCargaGasolina: '',
+    fechaUltimaCargaGasolina: new Date().toISOString().split('T')[0],
     litrosGasolina: '',
     nivelAdblue: '',
     kilometrajeAdblue: '',
-    fechaUltimaCargaAdblue: '',
+    fechaUltimaCargaAdblue: new Date().toISOString().split('T')[0],
     litrosAdblue: '',
     numeroCincho: '',
+    numeroCinchoAdblue: '',
+    odometro: '',
   });
   const [guardando, setGuardando] = useState(false);
 
@@ -253,13 +267,15 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     const baseVacia = {
       nivelGasolina: '',
       kilometrajeGasolina: '',
-      fechaUltimaCargaGasolina: '',
+      fechaUltimaCargaGasolina: new Date().toISOString().split('T')[0],
       litrosGasolina: '',
       nivelAdblue: '',
       kilometrajeAdblue: '',
-      fechaUltimaCargaAdblue: '',
+      fechaUltimaCargaAdblue: new Date().toISOString().split('T')[0],
       litrosAdblue: '',
       numeroCincho: '',
+      numeroCinchoAdblue: '',
+      odometro: '',
     };
 
     if (!registroAnterior || registroAnterior.status === 'error') {
@@ -287,10 +303,10 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
   const handleGuardar = async () => {
     if (!ecoLimpio) return;
 
-    const { nivelGasolina, nivelAdblue, numeroCincho, fechaUltimaCargaGasolina, fechaUltimaCargaAdblue, kilometrajeGasolina } = form;
+    const { nivelGasolina, nivelAdblue, numeroCincho, numeroCinchoAdblue, fechaUltimaCargaGasolina, fechaUltimaCargaAdblue, kilometrajeGasolina, odometro } = form;
 
     // 1. Al menos un dato (incluye el kilometraje: '0' es válido para una unidad nueva)
-    const hayDato = nivelGasolina || nivelAdblue || numeroCincho ||
+    const hayDato = nivelGasolina || nivelAdblue || numeroCincho || numeroCinchoAdblue || odometro ||
                     fechaUltimaCargaGasolina || fechaUltimaCargaAdblue ||
                     (kilometrajeGasolina !== '' && kilometrajeGasolina !== undefined);
     if (!hayDato) {
@@ -344,7 +360,9 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         nivel_combustible: form.nivelGasolina !== '' ? form.nivelGasolina : null,
         nivel_adblue: form.nivelAdblue !== '' ? form.nivelAdblue : null,
         numero_cincho: form.numeroCincho !== '' ? form.numeroCincho : (registroAnterior?.numero_cincho || null),
+        numero_cincho_adblue: form.numeroCinchoAdblue !== '' ? form.numeroCinchoAdblue : (registroAnterior?.numero_cincho_adblue || null),
         kilometraje: kmActual !== null ? String(kmActual) : (registroAnterior?.kilometraje ?? null),
+        odometro: form.odometro !== '' ? form.odometro : (registroAnterior?.odometro ?? null),
         fecha_ultima_carga: form.fechaUltimaCargaGasolina !== '' ? form.fechaUltimaCargaGasolina 
                           : (form.fechaUltimaCargaAdblue !== '' ? form.fechaUltimaCargaAdblue : (registroAnterior?.fecha_ultima_carga ?? null)),
       };
@@ -433,6 +451,40 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         />
       </div>
 
+      {/* ── Odómetro (Oculto para vagonetas) ── */}
+      {tipoTransporte?.toLowerCase() !== 'vagoneta' && (
+        <div className="info-card__item" style={{ marginBottom: '1.25rem', background: '#fafafa', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <span className="info-card__label" style={{ margin: 0, fontSize: '0.9rem' }}>Odómetro</span>
+            {registroAnterior?.odometro && (
+              <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                Anterior: <span style={{ color: '#6b1d33', fontWeight: 700 }}>{Number(registroAnterior.odometro).toLocaleString('es-MX')}</span>
+              </span>
+            )}
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            className="interactive-input"
+            style={{
+              padding: '0 0.85rem',
+              height: '2.3rem',
+              fontSize: '0.9rem',
+              width: '100%',
+              textAlign: 'center',
+              letterSpacing: '0.05em',
+              fontWeight: '600'
+            }}
+            placeholder={registroAnterior?.odometro ? Number(registroAnterior.odometro).toLocaleString('es-MX') : "Ej: 125000"}
+            value={form.odometro || ''}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, '').substring(0, 7);
+              set('odometro', v);
+            }}
+          />
+        </div>
+      )}
+
       {/* ── Dos medidores ── */}
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
         {/* Gasolina / Diésel */}
@@ -473,29 +525,54 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         )}
       </div>
 
-      {/* ── Número de Cincho ── */}
-      <div className="info-card__item" style={{ marginTop: '1.25rem' }}>
-        <span className="info-card__label">Número de Cincho</span>
-        <input
-          type="text"
-          className="interactive-input"
-          style={{
-            marginTop: '0.35rem',
-            padding: '0 0.85rem',
-            height: '2.5rem',
-            fontSize: '0.9rem',
-            width: '100%',
-            textTransform: 'uppercase',
-            maxWidth: '18ch',
-          }}
-          placeholder={registroAnterior?.numero_cincho ? registroAnterior.numero_cincho : "Ej: AB123"}
-          maxLength={10}
-          value={form.numeroCincho || ''}
-          onChange={(e) =>
-            set('numeroCincho', e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())
-          }
-        />
-      </div>
+      {/* ── Cinchos (Ocultos para vagonetas) ── */}
+      {tipoTransporte?.toLowerCase() !== 'vagoneta' && (
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginTop: '1.25rem' }}>
+          <div className="info-card__item" style={{ flex: 1, marginTop: 0 }}>
+            <span className="info-card__label">Número de Cincho ({combustibleLabel})</span>
+            <input
+              type="text"
+              className="interactive-input"
+              style={{
+                marginTop: '0.35rem',
+                padding: '0 0.85rem',
+                height: '2.5rem',
+                fontSize: '0.9rem',
+                width: '100%',
+                textTransform: 'uppercase',
+              }}
+              placeholder={registroAnterior?.numero_cincho ? registroAnterior.numero_cincho : "Ej: AB123"}
+              maxLength={10}
+              value={form.numeroCincho || ''}
+              onChange={(e) =>
+                set('numeroCincho', e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())
+              }
+            />
+          </div>
+
+          <div className="info-card__item" style={{ flex: 1, marginTop: 0 }}>
+            <span className="info-card__label">Número de Cincho (AdBlue)</span>
+            <input
+              type="text"
+              className="interactive-input"
+              style={{
+                marginTop: '0.35rem',
+                padding: '0 0.85rem',
+                height: '2.5rem',
+                fontSize: '0.9rem',
+                width: '100%',
+                textTransform: 'uppercase',
+              }}
+              placeholder={registroAnterior?.numero_cincho_adblue ? registroAnterior.numero_cincho_adblue : "Ej: XY987"}
+              maxLength={10}
+              value={form.numeroCinchoAdblue || ''}
+              onChange={(e) =>
+                set('numeroCinchoAdblue', e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())
+              }
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── Botón Guardar ── */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
