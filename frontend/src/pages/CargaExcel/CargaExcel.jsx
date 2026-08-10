@@ -212,15 +212,6 @@ export default function CargaExcel() {
     setHasChanges(true);
   };
 
-  // Wrapper que traduce el índice de la fila VISIBLE (filtrada) al índice
-  // real dentro de previewData, para que ExcelPreview pueda seguir usando
-  // índices 0..n de la lista que efectivamente está mostrando.
-  const handleUpdateRecordVisible = (visibleIndex, field, value) => {
-    const originalIndex = registrosVisibles[visibleIndex]?.originalIndex;
-    if (originalIndex === undefined) return;
-    return handleUpdateRecord(originalIndex, field, value);
-  };
-
   // Guardar todos los cambios al backend directamente (retorna booleano)
   const handleSaveChangesDirectly = async () => {
     // Validar que no haya registros incompletos (unidades sin economico)
@@ -422,12 +413,11 @@ export default function CargaExcel() {
           </div>
         ) : (
           <ExcelPreview
-            data={registrosVisibles.map(r => r.fila)}
+            data={registrosVisibles.map(r => ({ ...r.fila, __originalIndex: r.originalIndex }))}
             catalogUnidades={catalogUnidades}
             catalogConductores={catalogConductores}
             catalogRutasObj={catalogRutasObj}
-            onUpdate={handleUpdateRecordVisible}
-
+            onUpdate={handleUpdateRecord}
             onSave={handleSaveChanges}
             hasChanges={hasChanges}
             isSaving={isSaving}
