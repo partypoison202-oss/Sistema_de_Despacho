@@ -35,7 +35,7 @@ const LiveClockAcople = ({ horaCongelada }) => {
 
   return (
     <div className="info-card__item">
-      <span className="info-card__label">Hora de Acople</span>
+      <span className="info-card__label">Hora de Desincorporación</span>
       <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: '0.25rem' }}>
         <div className="badge-display badge-display--gold" style={{ flex: 1 }}>
           <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -498,7 +498,7 @@ export default function DetalleUnidadEncierro() {
           setDatosOperativos(prev => ({ ...prev, acople: horaCapturada }));
           const Swal = (await import('sweetalert2')).default;
           Swal.fire({
-            icon: 'success', title: 'Guardado', text: 'Hora de acople registrada.', confirmButtonColor: '#601a2a', timer: 1500, showConfirmButton: false
+            icon: 'success', title: 'Guardado', text: 'Hora de desincorporación registrada.', confirmButtonColor: '#601a2a', timer: 1500, showConfirmButton: false
           });
         }
       }
@@ -1265,122 +1265,7 @@ export default function DetalleUnidadEncierro() {
                     </div>
 
                     <div className="info-card__body">
-                      <div className="info-card__item">
-                        <span className="info-card__label">Conductor Asignado</span>
-                        <div className="info-card__value-wrapper">
-                          <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                            {cargandoDatos ? 'Buscando...' : (datosOperativos.conductor || 'No asignado')}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                        <span className="info-card__label">Ruta Asignada</span>
-                        {editandoRuta ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                            <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
-                              <button
-                                type="button"
-                                className="interactive-input"
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '0 0.85rem',
-                                  cursor: guardandoRuta ? 'not-allowed' : 'pointer',
-                                  textAlign: 'left',
-                                  background: 'var(--tw-color-white)',
-                                  height: '2.3rem',
-                                  fontSize: '0.85rem',
-                                  width: '100%',
-                                  fontWeight: 'bold',
-                                  opacity: guardandoRuta ? 0.7 : 1
-                                }}
-                                onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
-                              >
-                                {guardandoRuta ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
-                                    <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <span>{formRuta || 'SELECCIONAR'}</span>
-                                    <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
-                                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                                    </svg>
-                                  </>
-                                )}
-                              </button>
-
-                              {dropdownRutaOpen && (
-                                <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                                  <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                                    <button
-                                      type="button"
-                                      className="dropdown-menu__item"
-                                      style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                                      onClick={() => {
-                                        setFormRuta('');
-                                        setDropdownRutaOpen(false);
-                                      }}
-                                    >
-                                      SELECCIONAR
-                                    </button>
-                                    {rutasOpciones.map((r, i) => (
-                                      <button
-                                        key={i}
-                                        type="button"
-                                        className="dropdown-menu__item"
-                                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
-                                        onClick={() => {
-                                          setFormRuta(r);
-                                          setDropdownRutaOpen(false);
-                                          handleConfirmRuta(r);
-                                        }}
-                                      >
-                                        {r}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              <p className="info-card__value">
-                                {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
-                              </p>
-                            </div>
-                            {!cargandoDatos && (
-                              <button
-                                onClick={() => {
-                                  setFormRuta(datosOperativos.ruta || '');
-                                  setEditandoRuta(true);
-                                  setDropdownRutaOpen(true);
-                                }}
-                                title="Modificar Ruta"
-                                style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                              >
-                                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                      <div className="info-card__item" >
                         <span className="info-card__label">Número de Tarjetón</span>
                         {editandoTarjeton ? (
                           <div ref={tarjetonRef} style={{ position: 'relative', width: '100%' }}>
@@ -1504,6 +1389,121 @@ export default function DetalleUnidadEncierro() {
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                               </svg>
                             </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                        <span className="info-card__label">Conductor Asignado</span>
+                        <div className="info-card__value-wrapper">
+                          <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                            {cargandoDatos ? 'Buscando...' : (datosOperativos.conductor || 'No asignado')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+                        <span className="info-card__label">Ruta Asignada</span>
+                        {editandoRuta ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
+                            <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
+                              <button
+                                type="button"
+                                className="interactive-input"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '0 0.85rem',
+                                  cursor: guardandoRuta ? 'not-allowed' : 'pointer',
+                                  textAlign: 'left',
+                                  background: 'var(--tw-color-white)',
+                                  height: '2.3rem',
+                                  fontSize: '0.85rem',
+                                  width: '100%',
+                                  fontWeight: 'bold',
+                                  opacity: guardandoRuta ? 0.7 : 1
+                                }}
+                                onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
+                              >
+                                {guardandoRuta ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
+                                    <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <span>{formRuta || 'SELECCIONAR'}</span>
+                                    <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem' }} fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                                    </svg>
+                                  </>
+                                )}
+                              </button>
+
+                              {dropdownRutaOpen && (
+                                <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                                  <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                                    <button
+                                      type="button"
+                                      className="dropdown-menu__item"
+                                      style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                                      onClick={() => {
+                                        setFormRuta('');
+                                        setDropdownRutaOpen(false);
+                                      }}
+                                    >
+                                      SELECCIONAR
+                                    </button>
+                                    {rutasOpciones.map((r, i) => (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        className="dropdown-menu__item"
+                                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
+                                        onClick={() => {
+                                          setFormRuta(r);
+                                          setDropdownRutaOpen(false);
+                                          handleConfirmRuta(r);
+                                        }}
+                                      >
+                                        {r}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <p className="info-card__value">
+                                {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
+                              </p>
+                            </div>
+                            {!cargandoDatos && (
+                              <button
+                                onClick={() => {
+                                  setFormRuta(datosOperativos.ruta || '');
+                                  setEditandoRuta(true);
+                                  setDropdownRutaOpen(true);
+                                }}
+                                title="Modificar Ruta"
+                                style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
+                              >
+                                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
