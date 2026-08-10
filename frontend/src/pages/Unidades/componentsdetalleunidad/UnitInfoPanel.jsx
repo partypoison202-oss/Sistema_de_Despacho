@@ -512,20 +512,6 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Servicio Activo</h3>
           </div>
           <div className="info-card__body">
-
-            {/* 1. Conductor Asignado */}
-            <div className="info-card__item">
-              <span className="info-card__label">Conductor Asignado</span>
-              <div className="info-card__value-wrapper">
-                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
-                </p>
-              </div>
-            </div>
-
             {/* 2. Número de Tarjetón (Editable) */}
             <div className="info-card__item">
               <span className="info-card__label">Número de Tarjetón</span>
@@ -651,15 +637,15 @@ export default function UnitInfoPanel({
               )}
             </div>
 
-            {/* 3. Corrida */}
+            {/* 1. Conductor Asignado */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-              <span className="info-card__label">Corrida</span>
+              <span className="info-card__label">Conductor Asignado</span>
               <div className="info-card__value-wrapper">
                 <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
                 </p>
               </div>
             </div>
@@ -752,7 +738,20 @@ export default function UnitInfoPanel({
                   </div>
                 </div>
               )}
+
+            {/* 3. Corrida */}
+            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+              <span className="info-card__label">Corrida</span>
+              <div className="info-card__value-wrapper">
+                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                </svg>
+                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+                </p>
+              </div>
             </div>
+</div>
           </div>
         </div>
 
