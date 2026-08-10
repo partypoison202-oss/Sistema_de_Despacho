@@ -1382,18 +1382,6 @@ export default function DetalleUnidadEncierro() {
                                 {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
                               </p>
                             </div>
-                            <button
-                              onClick={() => {
-                                setEditandoTarjeton(true);
-                                setDropdownTarjetonOpen(true);
-                              }}
-                              title="Asignar Conductor por Tarjetón"
-                              style={{ background: 'transparent', color: 'var(--tw-color-gray-400)', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                            >
-                              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
                           </div>
                         )}
                       </div>
