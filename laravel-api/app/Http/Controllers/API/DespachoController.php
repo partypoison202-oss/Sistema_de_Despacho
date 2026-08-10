@@ -89,7 +89,8 @@ class DespachoController extends Controller
 
             $horaAcople = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
 
-            $registrosParaInsertar[] = [
+            // Usamos unidad_id como clave para sobrescribir duplicados si existen en el mismo Excel
+            $registrosParaInsertar[$unidad->id] = [
                 'unidad_id' => $unidad->id,
                 'ruta' => trim((string) ($fila['RUTA'] ?? '')),
                 'numero_tarjeton' => $tarjetonLimpio,
