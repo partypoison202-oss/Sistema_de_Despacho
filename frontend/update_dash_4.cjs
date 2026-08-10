@@ -653,10 +653,8 @@ const InfraccionDashboard = () => {
                   </div>
                 </div>
 
-          {/* ========================================================================= */}
-          {/* CASO B: FORMULARIO DE INFRACCIÓN                                          */}
-          {/* ========================================================================= */}
-          
+
+
             <form className="infraccion-card-form" onSubmit={handleSubmitInfraccion}>
               <div className="infraccion-header-title">
                 <h2>BOLETA DE INFRACCIÓN POR REINCIDENCIA</h2>
@@ -1173,7 +1171,6 @@ const InfraccionDashboard = () => {
                 </button>
               </div>
             </form>
-          
         </div>
       </main>
     </div>
