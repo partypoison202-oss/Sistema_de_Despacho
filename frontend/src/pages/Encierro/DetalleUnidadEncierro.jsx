@@ -1532,7 +1532,7 @@ export default function DetalleUnidadEncierro() {
                     </div>
                     <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       <div className="info-card__item">
-                        <span className="info-card__label">Hora Encierro</span>
+                        <span className="info-card__label">Hora de Salida Programada</span>
                         <div className="badge-display badge-display--gold">
                           <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
