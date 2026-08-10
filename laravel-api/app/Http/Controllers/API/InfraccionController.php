@@ -38,9 +38,7 @@ class InfraccionController extends Controller
                 $table->dateTime('fecha_expedicion');
                 $table->string('hora_intervencion', 20);
                 $table->string('municipio', 100)->default('Pachuca de Soto');
-                $table->string('calle', 150);
-                $table->string('numero', 50)->nullable();
-                $table->string('colonia', 100);
+                $table->string('ubicacion_exacta', 255);
 
                 // Imágenes (Evidencia)
                 $table->string('imagen_1', 255)->nullable();
@@ -126,9 +124,7 @@ class InfraccionController extends Controller
             'fecha_expedicion' => 'required|date',
             'hora_intervencion' => 'required|string|max:20',
             'municipio' => 'required|string|max:100',
-            'calle' => 'required|string|max:150',
-            'numero' => 'nullable|string|max:50',
-            'colonia' => 'required|string|max:100',
+            'ubicacion_exacta' => 'required|string|max:255',
 
             'imagen_1' => 'nullable|file|mimes:jpg,jpeg,png|max:10240',
             'imagen_2' => 'nullable|file|mimes:jpg,jpeg,png|max:10240',
@@ -181,9 +177,7 @@ class InfraccionController extends Controller
             'fecha_expedicion' => $request->fecha_expedicion,
             'hora_intervencion' => $request->hora_intervencion,
             'municipio' => $request->municipio,
-            'calle' => $request->calle,
-            'numero' => $request->numero,
-            'colonia' => $request->colonia,
+            'ubicacion_exacta' => $request->ubicacion_exacta,
             
             'imagen_1' => $img1,
             'imagen_2' => $img2,
