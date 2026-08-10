@@ -607,6 +607,7 @@ const InfraccionDashboard = () => {
                 </button>
               </div>
             </div>
+          </div>
 
             {checkingPlaca && (
               <div className="placa-checking-box">
@@ -1177,7 +1178,8 @@ const InfraccionDashboard = () => {
                 </button>
               </div>
             </form>
-          
+          </>
+        )}
         </div>
       </main>
     </div>
