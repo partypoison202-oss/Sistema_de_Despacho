@@ -129,6 +129,7 @@ const InfraccionDashboard = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [infMunicipio, setInfMunicipio] = useState('Pachuca de Soto');
   const [infUbicacionExacta, setInfUbicacionExacta] = useState('');
+  const [infPlaca, setInfPlaca] = useState('');
   const [imagenes, setImagenes] = useState([]);
 
   // Vehículo Infracción
@@ -312,6 +313,7 @@ const InfraccionDashboard = () => {
     });
     setInfMunicipio('Pachuca de Soto');
     setInfUbicacionExacta('');
+    setInfPlaca('');
     setInfEntidad('Hidalgo');
     setInfMarca('');
     setInfSubmarca('');
