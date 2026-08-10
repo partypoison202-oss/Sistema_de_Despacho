@@ -1138,11 +1138,8 @@ export default function DetalleUnidadMantenimiento() {
                           </button>
                         )}
                       </div>
-                    </div>
-                  )}
-
-                  {showChecklist && !hasCompletedChecklist && (
-                    <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+                    {showChecklist && !hasCompletedChecklist && (
+                      <div style={{ padding: '0 0.5rem 1rem 0.5rem', marginTop: '1rem', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
                       <ChecklistForm
                         origen="mantenimiento"
                         inline={true}
@@ -1367,6 +1364,8 @@ export default function DetalleUnidadMantenimiento() {
                       </div>
                     );
                   })()}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

@@ -1124,7 +1124,7 @@ export default function DetalleUnidadMesaControl() {
                   </div>
 
                   {/* Checklist */}
-                  <div className="info-card info-card--double" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="info-card" style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column' }}>
                     <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
