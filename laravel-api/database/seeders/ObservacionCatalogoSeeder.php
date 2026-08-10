@@ -24,8 +24,8 @@ class ObservacionCatalogoSeeder extends Seeder
             ["clave" => 9, "descripcion" => "SIN SEGURO DE PUERTAS"],
             ["clave" => 10, "descripcion" => "SPIA"],
             ["clave" => 11, "descripcion" => "DESPROGRAMADO MOVITEC"],
-            ["clave" => 12, "descripcion" => "PANTALLA DE CONDUCTOR APAGADAS"],
-            ["clave" => 13, "descripcion" => "CAMARA DAÑADA"],
+            ["clave" => 12, "descripcion" => "PANTALLA DE CONDUCTOR APAGADA"],
+            ["clave" => 13, "descripcion" => "CÁMARA DAÑADA"],
             ["clave" => 14, "descripcion" => "LUCES FRONTALES"],
             ["clave" => 15, "descripcion" => "INTERMITENTE FUNDIDA"],
             ["clave" => 16, "descripcion" => "TORRETA FUNDIDA"],
@@ -34,16 +34,16 @@ class ObservacionCatalogoSeeder extends Seeder
             ["clave" => 19, "descripcion" => "GRAFITIS"],
             ["clave" => 20, "descripcion" => "VOLANTE VIBRA"],
             ["clave" => 21, "descripcion" => "DAÑO EN ASIENTOS"],
-            ["clave" => 22, "descripcion" => "ALINEACION"],
+            ["clave" => 22, "descripcion" => "ALINEACIÓN"],
             ["clave" => 23, "descripcion" => "PARABRISAS DAÑADO"],
             ["clave" => 24, "descripcion" => "FALTA DE TORNILLO"],
-            ["clave" => 25, "descripcion" => "DAÑO CONECCION USB"],
+            ["clave" => 25, "descripcion" => "DAÑO CONEXIÓN USB"],
             ["clave" => 26, "descripcion" => "ESCOBETILLA INFERIOR DE PUERTA"],
-            ["clave" => 27, "descripcion" => "NO FUNSIONA NIVEL DE DISEL"],
+            ["clave" => 27, "descripcion" => "NO FUNCIONA NIVEL DE DIÉSEL"],
             ["clave" => 28, "descripcion" => "BALATAS DELANTERAS"],
-            ["clave" => 29, "descripcion" => "ESTETICA"],
+            ["clave" => 29, "descripcion" => "ESTÉTICA"],
             ["clave" => 30, "descripcion" => "LLANTA PONCHADA"],
-            ["clave" => 31, "descripcion" => "NO FUNSIONA CLAXON"]
+            ["clave" => 31, "descripcion" => "NO FUNCIONA CLAXON"]
         ];
 
         foreach ($observaciones as $obs) {
