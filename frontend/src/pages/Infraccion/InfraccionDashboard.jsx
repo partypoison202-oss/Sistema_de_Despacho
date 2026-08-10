@@ -244,7 +244,7 @@ const InfraccionDashboard = () => {
   };
 
   const handlePlacasChange = (e) => {
-    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9-\sÑÁÉÍÓÚ]/g, '');
     setPlacas(val);
   };
 
@@ -586,14 +586,14 @@ const InfraccionDashboard = () => {
           <div className="plate-verification-card">
             <div className="plate-verification-header">
               <span className="step-tag">PASO 1</span>
-              <h4>VALIDAR PLACAS DEL VEHÍCULO EN CARRIL TRONCAL</h4>
+              <h4>BUSCAR VEHÍCULO O INFRACTOR</h4>
             </div>
 
             <div className="plate-input-wrapper">
               <div className="input-with-button">
                 <input
                   type="text"
-                  placeholder="Escriba las placas (ej. HNK-123-A)"
+                  placeholder="Escriba la placa o el nombre del infractor..."
                   value={placas}
                   onChange={handlePlacasChange}
                   className="plate-main-input uppercase-input"
@@ -604,7 +604,7 @@ const InfraccionDashboard = () => {
                   onClick={() => verificarPlaca(placas)}
                   disabled={checkingPlaca || !placas.trim()}
                 >
-                  {checkingPlaca ? 'Verificando...' : 'Verificar Placas'}
+                  {checkingPlaca ? 'Buscando...' : 'Buscar Historial'}
                 </button>
               </div>
             </div>

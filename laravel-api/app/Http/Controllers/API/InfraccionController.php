@@ -14,7 +14,11 @@ class InfraccionController extends Controller
     public function checkPlaca($placa)
     {
         $this->ensureTableExists();
-        $infraccion = Infraccion::where('placas', strtoupper(trim($placa)))->latest()->first();
+        $searchTerm = strtoupper(trim($placa));
+        $infraccion = Infraccion::where('placas', $searchTerm)
+            ->orWhere('conductor_nombre', 'like', "%{$searchTerm}%")
+            ->latest()
+            ->first();
         return response()->json([
             'has_infraccion' => $infraccion ? true : false,
             'latest' => $infraccion
