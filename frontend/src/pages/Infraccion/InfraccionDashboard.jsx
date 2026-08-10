@@ -204,39 +204,37 @@ const InfraccionDashboard = () => {
 
   
   useEffect(() => {
-    if (placaStatus && !checkingPlaca) {
-      if (navigator.geolocation) {
-        setInfUbicacionExacta('Obteniendo ubicación...');
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            try {
-              const { latitude, longitude } = position.coords;
-              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-              const data = await res.json();
-              if (data && data.address) {
-                const calle = data.address.road || '';
-                const num = data.address.house_number || 'S/N';
-                const col = data.address.suburb || data.address.neighbourhood || '';
-                const mpo = data.address.city || data.address.town || data.address.municipality || 'Pachuca de Soto';
-                
-                setInfMunicipio(mpo);
-                setInfUbicacionExacta(`${calle} ${num}, ${col}`.trim());
-              } else {
-                setInfUbicacionExacta('Ubicación no encontrada');
-              }
-            } catch (err) {
-              setInfUbicacionExacta('Error al obtener ubicación');
+    if (navigator.geolocation) {
+      setInfUbicacionExacta('Obteniendo ubicación (GPS)...');
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+            const data = await res.json();
+            if (data && data.address) {
+              const calle = data.address.road || '';
+              const num = data.address.house_number || 'S/N';
+              const col = data.address.suburb || data.address.neighbourhood || '';
+              const mpo = data.address.city || data.address.town || data.address.municipality || 'Pachuca de Soto';
+              
+              setInfMunicipio(mpo);
+              setInfUbicacionExacta(`${calle} ${num}, ${col}`.trim());
+            } else {
+              setInfUbicacionExacta('Ubicación no encontrada');
             }
-          },
-          (err) => {
-            setInfUbicacionExacta('Permiso de ubicación denegado');
+          } catch (err) {
+            setInfUbicacionExacta('Error al obtener ubicación');
           }
-        );
-      } else {
-        setInfUbicacionExacta('Geolocalización no soportada');
-      }
+        },
+        (err) => {
+          setInfUbicacionExacta('Permiso de ubicación denegado');
+        }
+      );
+    } else {
+      setInfUbicacionExacta('Geolocalización no soportada');
     }
-  }, [placaStatus, checkingPlaca]);
+  }, []);
 
 
   const verificarPlaca = async (placaVal) => {
