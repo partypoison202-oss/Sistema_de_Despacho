@@ -318,6 +318,11 @@ export default function DetalleUnidadEncierro() {
   }, [unidadesList, selectedRuta]);
   const cargandoUnidadesPorRuta = false;
 
+  // ✅ NUEVO: función para seleccionar ruta
+  const handleSelectRuta = (ruta) => {
+    setSelectedRuta(ruta);
+    setOpenDropdown(null);
+  };
   const totalProgramadasOperacion = useMemo(
     () => unidadesList.filter((u) => u.estado === 'operacion').length,
     [unidadesList]
