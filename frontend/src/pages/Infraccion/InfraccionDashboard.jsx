@@ -652,6 +652,9 @@ const InfraccionDashboard = () => {
                     </div>
                   </div>
                 </div>
+              </>
+            )}
+
 
           {/* ========================================================================= */}
           {/* CASO B: FORMULARIO DE INFRACCIÓN                                          */}
