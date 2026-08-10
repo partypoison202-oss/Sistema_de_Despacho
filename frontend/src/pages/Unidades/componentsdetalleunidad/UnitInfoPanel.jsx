@@ -529,7 +529,7 @@ export default function UnitInfoPanel({
             {/* 2. Número de Tarjetón (Editable) */}
             <div className="info-card__item">
               <span className="info-card__label">Número de Tarjetón</span>
-              {!isPlataforma && !isReservaOrMantenimiento ? (
+              {false ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
                   <div ref={tarjetonRef} style={{ position: 'relative', width: '100%', zIndex: dropdownTarjetonOpen ? 50 : 1 }}>
                     <div
@@ -667,7 +667,7 @@ export default function UnitInfoPanel({
             {/* 4. Ruta Asignada */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Ruta Asignada</span>
-              {!isPlataforma && !isReservaOrMantenimiento ? (
+              {false ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
                   <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
                     <button
