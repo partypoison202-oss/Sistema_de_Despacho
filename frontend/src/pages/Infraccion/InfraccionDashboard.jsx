@@ -202,6 +202,43 @@ const InfraccionDashboard = () => {
     }
   }, [placas]);
 
+  
+  useEffect(() => {
+    if (placaStatus && !checkingPlaca) {
+      if (navigator.geolocation) {
+        setInfUbicacionExacta('Obteniendo ubicación...');
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const { latitude, longitude } = position.coords;
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+              const data = await res.json();
+              if (data && data.address) {
+                const calle = data.address.road || '';
+                const num = data.address.house_number || 'S/N';
+                const col = data.address.suburb || data.address.neighbourhood || '';
+                const mpo = data.address.city || data.address.town || data.address.municipality || 'Pachuca de Soto';
+                
+                setInfMunicipio(mpo);
+                setInfUbicacionExacta(`${calle} ${num}, ${col}`.trim());
+              } else {
+                setInfUbicacionExacta('Ubicación no encontrada');
+              }
+            } catch (err) {
+              setInfUbicacionExacta('Error al obtener ubicación');
+            }
+          },
+          (err) => {
+            setInfUbicacionExacta('Permiso de ubicación denegado');
+          }
+        );
+      } else {
+        setInfUbicacionExacta('Geolocalización no soportada');
+      }
+    }
+  }, [placaStatus, checkingPlaca]);
+
+
   const verificarPlaca = async (placaVal) => {
     if (!placaVal.trim()) return;
     setCheckingPlaca(true);
@@ -303,26 +340,26 @@ const InfraccionDashboard = () => {
   };
 
   // -------------------------------------------------------------
-  // GUARDAR ACTA DE AMONESTACIÓN
+  // GUARDAR BOLETA DE INFRACCIÓN
   // -------------------------------------------------------------
-  const handleSubmitAmonestacion = async (e) => {
+  const handleSubmitInfraccion = async (e) => {
     e.preventDefault();
 
-    if (!firmaInspector) {
+    if (!infFirmaInspector) {
       Swal.fire({
         icon: 'warning',
         title: 'Firma del inspector requerida',
-        text: 'Por favor, estampe su firma como inspector de transporte antes de guardar.',
+        text: 'Por favor estampe su firma como inspector autorizado antes de emitir la boleta de infracción.',
         confirmButtonColor: '#601a2a'
       });
       return;
     }
 
-    if (!conductorNegoFirmar && !firmaConductor) {
+    if (!infNegoFirmar && !infFirmaConductor) {
       Swal.fire({
         icon: 'warning',
-        title: 'Firma del conductor pendiente',
-        text: 'Por favor recolecte la firma del conductor o marque la casilla si se negó a firmar.',
+        title: 'Firma de la persona infractora pendiente',
+        text: 'Por favor recolecte la firma de la persona infractora o marque la casilla de negativa a recibir.',
         confirmButtonColor: '#601a2a'
       });
       return;
@@ -331,52 +368,51 @@ const InfraccionDashboard = () => {
     setSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('fecha_expedicion', infFechaExpedicion);
-      formData.append('hora_intervencion', infHoraIntervencion);
-      formData.append('municipio', infMunicipio);
-      formData.append('ubicacion_exacta', infUbicacionExacta);
-      
-      formData.append('placas', placas);
-      formData.append('entidad_federativa', infEntidad);
-      formData.append('marca', infMarca);
-      formData.append('submarca', infSubmarca);
-      formData.append('modelo', infModelo);
-      formData.append('color', infColor);
-      formData.append('niv_vin', infNivVin);
-      formData.append('tipo_vehiculo', infTipoVehiculo);
-      
-      formData.append('conductor_nombre', infConductorNombre);
-      formData.append('conductor_domicilio', infConductorDomicilio);
-      formData.append('licencia_numero', infLicenciaNumero);
-      formData.append('licencia_tipo', infLicenciaTipo);
-      formData.append('licencia_estado', infLicenciaEstado);
-      formData.append('calidad_conductor', infCalidadConductor);
-      
-      formData.append('motivacion_hecho', infMotivacionHecho);
-      formData.append('descripcion_hechos', infDescripcionHechos);
-      
-      formData.append('sancion_uma', infSancionUma || '0');
-      formData.append('garantia_tipo', infGarantiaRetenida ? (infGarantiaObservaciones || 'Detención') : 'Ninguna');
-      formData.append('garantia_observaciones', infGarantiaObservaciones);
-      
-      formData.append('inspector_gafete', infInspectorGafete);
-      formData.append('firma_inspector', infFirmaInspector);
-      
-      formData.append('conductor_nego_firmar', infNegoFirmar ? '1' : '0');
-      formData.append('recibio_nombre', infRecibioNombre);
-      formData.append('firma_conductor', infFirmaConductor);
+      const payload = {
+        amonestacion_id: placaStatus?.latest?.id || null,
+        fecha_expedicion: infFechaExpedicion,
+        hora_intervencion: infHoraIntervencion,
+        municipio: infMunicipio,
+        ubicacion_exacta: infUbicacionExacta,
 
-      if (imagenes[0]) formData.append('imagen_1', imagenes[0]);
-      if (imagenes[1]) formData.append('imagen_2', imagenes[1]);
-      if (imagenes[2]) formData.append('imagen_3', imagenes[2]);
+        placas,
+        entidad_federativa: infEntidad,
+        marca: infMarca,
+        submarca: infSubmarca,
+        modelo: infModelo,
+        color: infColor,
+        niv_vin: infNivVin,
+        tipo_vehiculo: infTipoVehiculo,
+
+        conductor_nombre: infConductorNombre,
+        conductor_domicilio: infConductorDomicilio,
+        licencia_numero: infLicenciaNumero,
+        licencia_tipo: infLicenciaTipo,
+        licencia_estado: infLicenciaEstado,
+        calidad_conductor: infCalidadConductor,
+
+        motivacion_hecho: infMotivacionHecho,
+        descripcion_hechos: infDescripcionHechos,
+
+        sancion_uma: parseFloat(infSancionUma) || 0,
+        garantia_tipo: infGarantiaRetenida ? 'Detención del Vehículo (Grúa / Depósito Vehicular)' : 'Otra Garantía',
+        garantia_observaciones: infGarantiaObservaciones,
+
+        inspector_gafete: infInspectorGafete,
+        firma_inspector: infFirmaInspector,
+
+        conductor_nego_firmar: Boolean(infNegoFirmar),
+        recibio_nombre: infNegoFirmar ? null : (infRecibioNombre || infConductorNombre),
+        firma_conductor: infNegoFirmar ? null : infFirmaConductor,
+      };
 
       const res = await fetch(`${API_BASE}/api/infracciones`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
         },
-        body: formData
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -647,11 +683,25 @@ const InfraccionDashboard = () => {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Municipio *</label>
-                    <input type="text" readOnly value={infMunicipio} className="infraccion-input disabled-input" style={{ backgroundColor: '#f1f5f9' }} />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Pachuca de Soto"
+                      value={infMunicipio}
+                      onChange={(e) => setInfMunicipio(e.target.value)}
+                      className="infraccion-input"
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Ubicación Exacta *</label>
-                    <input type="text" readOnly value={infUbicacionExacta} className="infraccion-input disabled-input" style={{ backgroundColor: '#f1f5f9' }} />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Av. Revolución esq. Allende, Carril Confinado Troncal"
+                      value={infUbicacionExacta}
+                      onChange={(e) => setInfUbicacionExacta(e.target.value)}
+                      className="infraccion-input"
+                    />
                   </div>
                 </div>
               </div>
