@@ -209,7 +209,9 @@ class DespachoController extends Controller
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.falla',
-                'informacion_operativa.corridas'
+                'informacion_operativa.corridas',
+                'informacion_operativa.acople',
+                'informacion_operativa.hora_salida'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -227,6 +229,8 @@ class DespachoController extends Controller
                     'nombre_conductor' => $unidad->nombre_conductor,
                     'falla' => $unidad->falla,
                     'corridas' => $unidad->corridas,
+                    'acople' => $unidad->acople,
+                    'hora_salida' => $unidad->hora_salida,
                 ];
             });
 
@@ -330,6 +334,21 @@ class DespachoController extends Controller
                 'informacion_operativa.observaciones'
             )
             ->first();
+
+        $horaSalidaLegacy = null;
+        if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
+            $registroBitacora = DB::table('bitacora_cambios_unidades')
+                ->where('unidad_id', $unidadBase->id)
+                ->where('tipo_accion', 'VALIDAR_DESPACHO')
+                ->orderByDesc('created_at')
+                ->first();
+
+            if ($registroBitacora && !empty($registroBitacora->detalles)) {
+                if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
+                    $horaSalidaLegacy = strtoupper($matches[1]);
+                }
+            }
+        }
 
         $horaSalidaLegacy = null;
         if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {

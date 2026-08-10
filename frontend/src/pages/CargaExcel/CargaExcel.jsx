@@ -87,6 +87,24 @@ export default function CargaExcel() {
     }
   }, [serverData, hasChanges]);
 
+  const trimString = (str) => {
+    return String(str ?? '').trim();
+  };
+
+  const normalizarTipoUnidad = (tipo) => {
+    if (!tipo) return 'URBANUS';
+    let t = tipo.toString().trim().toUpperCase();
+    return t === 'URBANUSS' ? 'URBANUS' : t;
+  };
+
+  // Solo se muestran en la tabla los registros cuyo ESTATUS sea "operacion".
+  // Se conserva el índice original de previewData para que las actualizaciones
+  // (handleUpdateRecord) sigan apuntando al registro correcto, aunque la tabla
+  // esté filtrada.
+  const registrosVisibles = previewData
+    .map((fila, originalIndex) => ({ fila, originalIndex }))
+    .filter(({ fila }) => trimString(fila.ESTATUS).toLowerCase() === 'operacion');
+
   // Actualizar un campo específico de un registro
   const handleUpdateRecord = async (index, field, value) => {
     const updatedData = [...previewData];
@@ -194,14 +212,13 @@ export default function CargaExcel() {
     setHasChanges(true);
   };
 
-  const trimString = (str) => {
-    return String(str ?? '').trim();
-  };
-
-  const normalizarTipoUnidad = (tipo) => {
-    if (!tipo) return 'URBANUS';
-    let t = tipo.toString().trim().toUpperCase();
-    return t === 'URBANUSS' ? 'URBANUS' : t;
+  // Wrapper que traduce el índice de la fila VISIBLE (filtrada) al índice
+  // real dentro de previewData, para que ExcelPreview pueda seguir usando
+  // índices 0..n de la lista que efectivamente está mostrando.
+  const handleUpdateRecordVisible = (visibleIndex, field, value) => {
+    const originalIndex = registrosVisibles[visibleIndex]?.originalIndex;
+    if (originalIndex === undefined) return;
+    return handleUpdateRecord(originalIndex, field, value);
   };
 
   // Guardar todos los cambios al backend directamente (retorna booleano)
@@ -272,6 +289,10 @@ export default function CargaExcel() {
   }, [hasChanges]);
 
   // Exportar los datos actuales a un archivo Excel (.xlsx) con formato
+  // Nota: exporta TODOS los registros (todos los estatus), no solo "operacion",
+  // para conservar en el archivo el respaldo completo de mantenimiento/reserva/etc.
+  // Si prefieres exportar solo lo visible en pantalla, cambia `previewData` por
+  // `registrosVisibles.map(r => r.fila)` en las líneas marcadas abajo.
   const handleExportExcel = () => {
     if (!previewData || previewData.length === 0) {
       Swal.fire({
@@ -401,11 +422,11 @@ export default function CargaExcel() {
           </div>
         ) : (
           <ExcelPreview
-            data={previewData}
+            data={registrosVisibles.map(r => r.fila)}
             catalogUnidades={catalogUnidades}
             catalogConductores={catalogConductores}
             catalogRutasObj={catalogRutasObj}
-            onUpdate={handleUpdateRecord}
+            onUpdate={handleUpdateRecordVisible}
 
             onSave={handleSaveChanges}
             hasChanges={hasChanges}

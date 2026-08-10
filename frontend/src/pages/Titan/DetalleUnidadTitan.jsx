@@ -38,6 +38,12 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   const [accSeguro, setAccSeguro] = useState(false);
   const [accHechos, setAccHechos] = useState('');
 
+  const [accVictima, setAccVictima] = useState('');
+  const [accEdad, setAccEdad] = useState('');
+  const [accGenero, setAccGenero] = useState('');
+  const GENDER_OPTIONS = ['Masculino', 'Femenino'];
+  const ACCIDENT_PERSONAL_TYPES = ['ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
+
   // Firma del particular (canvas)
   const firmaCanvasRef = useRef(null);
   const firmaCtxRef = useRef(null);
@@ -179,6 +185,9 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     setAccPlacas('');
     setAccSeguro(false);
     setAccHechos('');
+    setAccVictima('');
+    setAccEdad('');
+    setAccGenero('');
     setUbicacionGPS('');
     setFirmaVacia(true);
   };
@@ -269,13 +278,22 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
       }
 
       if (ACCIDENT_TYPES.includes(activeTab)) {
-        formData.append('accidente_dueno', accDueno);
-        formData.append('accidente_vehiculo', accVehiculo);
-        formData.append('accidente_placas', accPlacas);
-        formData.append('accidente_seguro', accSeguro ? 'true' : 'false');
-        formData.append('accidente_hechos', accHechos);
-        formData.append('ubicacion_gps', ubicacionGPS);
-        formData.append('hora_evento', horaEvento);
+        if (ACCIDENT_PERSONAL_TYPES.includes(activeTab)) {
+          formData.append('accidente_dueno', accVictima);
+          formData.append('accidente_edad', accEdad);
+          formData.append('accidente_genero', accGenero);
+          formData.append('accidente_hechos', accHechos);
+          formData.append('ubicacion_gps', ubicacionGPS);
+          formData.append('hora_evento', horaEvento);
+        } else {
+          formData.append('accidente_dueno', accDueno);
+          formData.append('accidente_vehiculo', accVehiculo);
+          formData.append('accidente_placas', accPlacas);
+          formData.append('accidente_seguro', accSeguro ? 'true' : 'false');
+          formData.append('accidente_hechos', accHechos);
+          formData.append('ubicacion_gps', ubicacionGPS);
+          formData.append('hora_evento', horaEvento);
+        }
 
         const firmaBlob = await getFirmaBlob();
         if (firmaBlob) {
@@ -556,24 +574,49 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
               {ACCIDENT_TYPES.includes(activeTab) && (
                 <>
-                  <div className="form-group">
-                    <label>Dueño del Particular</label>
-                    <input type="text" value={accDueno} onChange={(e) => setAccDueno(e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label>Tipo de Vehículo Particular</label>
-                    <input type="text" value={accVehiculo} onChange={(e) => setAccVehiculo(e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label>Placas</label>
-                    <input type="text" value={accPlacas} onChange={(e) => setAccPlacas(e.target.value)} />
-                  </div>
-                  <div className="form-group checkbox-group">
-                    <label>
-                      <input type="checkbox" checked={accSeguro} onChange={(e) => setAccSeguro(e.target.checked)} />
-                      ¿Cuenta con seguro?
-                    </label>
-                  </div>
+                  {ACCIDENT_PERSONAL_TYPES.includes(activeTab) ? (
+                    <>
+                      <div className="form-group">
+                        <label>NOMBRE DE LA VÍCTIMA</label>
+                        <input type="text" value={accVictima} onChange={(e) => setAccVictima(e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label>EDAD</label>
+                        <input type="number" min="0" value={accEdad} onChange={(e) => setAccEdad(e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label>GÉNERO</label>
+                        <select value={accGenero} onChange={(e) => setAccGenero(e.target.value)} className="form-group-select">
+                          <option value="">Selecciona un género...</option>
+                          {GENDER_OPTIONS.map((genero) => (
+                            <option key={genero} value={genero}>{genero}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="form-group">
+                        <label>Dueño del Particular</label>
+                        <input type="text" value={accDueno} onChange={(e) => setAccDueno(e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label>Tipo de Vehículo Particular</label>
+                        <input type="text" value={accVehiculo} onChange={(e) => setAccVehiculo(e.target.value)} />
+                      </div>
+                      <div className="form-group">
+                        <label>Placas</label>
+                        <input type="text" value={accPlacas} onChange={(e) => setAccPlacas(e.target.value)} />
+                      </div>
+                      <div className="form-group checkbox-group">
+                        <label>
+                          <input type="checkbox" checked={accSeguro} onChange={(e) => setAccSeguro(e.target.checked)} />
+                          ¿Cuenta con seguro?
+                        </label>
+                      </div>
+                    </>
+                  )}
+
                   <div className="form-group">
                     <label>Hechos <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
                     <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>

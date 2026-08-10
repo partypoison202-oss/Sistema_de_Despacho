@@ -64,6 +64,8 @@ const marcarVistos = async (ids) => {
   });
 };
 
+const ACCIDENT_PERSONAL_TYPES = ['ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
+
 const formatFecha = (fecha) => {
   if (!fecha) return 'N/A';
   try {
@@ -267,6 +269,8 @@ export default function ReportesTitanes() {
           r.ubicacion_evento,
           r.accidente_dueno,
           r.accidente_vehiculo,
+          r.accidente_edad,
+          r.accidente_genero,
           r.accidente_placas,
         ];
         return campos.some((c) => c && String(c).toLowerCase().includes(q));
@@ -386,13 +390,22 @@ export default function ReportesTitanes() {
           campos.push(['Motivo de desincorporación', r.motivo_desincorporacion || 'N/A']);
         }
         if (tipoModal === 'ACCIDENTE') {
-          campos.push(
-            ['Dueño del particular', r.accidente_dueno || 'N/A'],
-            ['Vehículo', r.accidente_vehiculo || 'N/A'],
-            ['Placas', r.accidente_placas || 'N/A'],
-            ['¿Cuenta con seguro?', r.accidente_seguro === 'true' ? 'Sí' : 'No'],
-            ['Hechos', r.accidente_hechos || 'N/A']
-          );
+          if (ACCIDENT_PERSONAL_TYPES.includes(r.tipo_evento)) {
+            campos.push(
+              ['Nombre de la víctima', r.accidente_dueno || 'N/A'],
+              ['Edad', r.accidente_edad || 'N/A'],
+              ['Género', r.accidente_genero || 'N/A'],
+              ['Hechos', r.accidente_hechos || 'N/A']
+            );
+          } else {
+            campos.push(
+              ['Dueño del particular', r.accidente_dueno || 'N/A'],
+              ['Vehículo', r.accidente_vehiculo || 'N/A'],
+              ['Placas', r.accidente_placas || 'N/A'],
+              ['¿Cuenta con seguro?', r.accidente_seguro === 'true' ? 'Sí' : 'No'],
+              ['Hechos', r.accidente_hechos || 'N/A']
+            );
+          }
           if (r.firma_particular_url) {
             campos.push(['Firma del particular', 'Ver en el reporte digital']);
           }
@@ -1041,22 +1054,41 @@ export default function ReportesTitanes() {
 
                     {tipoModal === 'ACCIDENTE' && (
                       <>
-                        <p>
-                          <strong>Dueño del particular:</strong> {r.accidente_dueno || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Vehículo:</strong> {r.accidente_vehiculo || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Placas:</strong> {r.accidente_placas || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>¿Cuenta con seguro?:</strong>{' '}
-                          {r.accidente_seguro === 'true' ? 'Sí' : 'No'}
-                        </p>
-                        <p>
-                          <strong>Hechos:</strong> {r.accidente_hechos || 'N/A'}
-                        </p>
+                        {ACCIDENT_PERSONAL_TYPES.includes(r.tipo_evento) ? (
+                          <>
+                            <p>
+                              <strong>NOMBRE DE LA VÍCTIMA:</strong> {r.accidente_dueno || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>EDAD:</strong> {r.accidente_edad || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>GÉNERO:</strong> {r.accidente_genero || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Hechos:</strong> {r.accidente_hechos || 'N/A'}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p>
+                              <strong>Dueño del particular:</strong> {r.accidente_dueno || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Vehículo:</strong> {r.accidente_vehiculo || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Placas:</strong> {r.accidente_placas || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>¿Cuenta con seguro?:</strong>{' '}
+                              {r.accidente_seguro === 'true' ? 'Sí' : 'No'}
+                            </p>
+                            <p>
+                              <strong>Hechos:</strong> {r.accidente_hechos || 'N/A'}
+                            </p>
+                          </>
+                        )}
                         {/* Firma del particular con botón para visualizar */}
                         {r.firma_particular_url && (
                           <div className="rt-reporte-item__firma">
