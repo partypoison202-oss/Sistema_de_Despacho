@@ -525,31 +525,31 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         )}
       </div>
 
-      {/* ── Cinchos ── */}
-      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginTop: '1.25rem' }}>
-        <div className="info-card__item" style={{ flex: 1, marginTop: 0 }}>
-          <span className="info-card__label">Número de Cincho ({combustibleLabel})</span>
-          <input
-            type="text"
-            className="interactive-input"
-            style={{
-              marginTop: '0.35rem',
-              padding: '0 0.85rem',
-              height: '2.5rem',
-              fontSize: '0.9rem',
-              width: '100%',
-              textTransform: 'uppercase',
-            }}
-            placeholder={registroAnterior?.numero_cincho ? registroAnterior.numero_cincho : "Ej: AB123"}
-            maxLength={10}
-            value={form.numeroCincho || ''}
-            onChange={(e) =>
-              set('numeroCincho', e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())
-            }
-          />
-        </div>
+      {/* ── Cinchos (Ocultos para vagonetas) ── */}
+      {tipoTransporte?.toLowerCase() !== 'vagoneta' && (
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginTop: '1.25rem' }}>
+          <div className="info-card__item" style={{ flex: 1, marginTop: 0 }}>
+            <span className="info-card__label">Número de Cincho ({combustibleLabel})</span>
+            <input
+              type="text"
+              className="interactive-input"
+              style={{
+                marginTop: '0.35rem',
+                padding: '0 0.85rem',
+                height: '2.5rem',
+                fontSize: '0.9rem',
+                width: '100%',
+                textTransform: 'uppercase',
+              }}
+              placeholder={registroAnterior?.numero_cincho ? registroAnterior.numero_cincho : "Ej: AB123"}
+              maxLength={10}
+              value={form.numeroCincho || ''}
+              onChange={(e) =>
+                set('numeroCincho', e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())
+              }
+            />
+          </div>
 
-        {tipoTransporte?.toLowerCase() !== 'vagoneta' && (
           <div className="info-card__item" style={{ flex: 1, marginTop: 0 }}>
             <span className="info-card__label">Número de Cincho (AdBlue)</span>
             <input
@@ -571,8 +571,8 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
               }
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Botón Guardar ── */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
