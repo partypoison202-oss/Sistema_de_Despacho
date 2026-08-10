@@ -316,6 +316,7 @@ export default function DetalleUnidadEncierro() {
     if (!selectedRuta) return [];
     return unidadesList.filter((u) => u.ruta === selectedRuta && !u.acople);
   }, [unidadesList, selectedRuta]);
+  const cargandoUnidadesPorRuta = false;
 
   const totalProgramadasOperacion = useMemo(
     () => unidadesList.filter((u) => u.estado === 'operacion').length,
