@@ -482,9 +482,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
         const len = path.points.length;
         if (len >= 2) {
             ctx.beginPath();
@@ -496,7 +493,6 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
             ctx.lineJoin = 'round';
             ctx.stroke();
         }
-        ctx.restore();
     };
 
     const stopDraw = (e) => {
@@ -640,22 +636,7 @@ const DrawingCanvas = forwardRef(function DrawingCanvas({ onSave, tipoUnidad }, 
                     </div>
                 )}
 
-                <div className="mx-1 h-5 w-px bg-gray-200" />
 
-                <button
-                    type="button"
-                    onClick={toggleMode}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${mode === 'eraser'
-                        ? 'border-red-300 bg-red-50 text-red-600'
-                        : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
-                        }`}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 4l6 6-8 8-6-6 8-8z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h16" />
-                    </svg>
-                    {mode === 'eraser' ? 'Goma activa' : 'Goma'}
-                </button>
 
                 <div className="ml-auto flex gap-1.5">
                     <button
@@ -1137,9 +1118,9 @@ export default function ChecklistForm({
     }
 
     return (
-        <div className={inline ? "inline-checklist" : "layout-container"}>
+        <div className={inline ? "inline-checklist w-full" : "layout-container"}>
             {!hideTop && <Header hideBackButton={false} />}
-            <main className={inline ? "py-2" : "main-content relative"}>
+            <main className={inline ? "w-full py-2" : "main-content relative"}>
                 {!hideTop && (
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="flex items-center gap-2 text-xl font-semibold text-guinda-700 uppercase">
