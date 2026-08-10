@@ -11,6 +11,7 @@ const HEADER_TRANSLATIONS = {
   TARJETON: 'Tarjetón',
   NOMBRE_CONDUCTOR: 'Conductor',
   ESTATUS: 'Estatus',
+  HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
   HORA_DE_ACOPLE: 'Hora Programada',
   CORRIDAS: 'Corrida',
 };
@@ -40,13 +41,18 @@ export default function ExcelPreview({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTech, setSelectedTech] = useState('');
   const [activeTimePickerRow, setActiveTimePickerRow] = useState(null);
+  const [activeTimePickerField, setActiveTimePickerField] = useState(null);
   const [tempTime, setTempTime] = useState('00:00');
   const [openDropdown, setOpenDropdown] = useState({ rowIndex: null, field: null });
   const [dropdownSearch, setDropdownSearch] = useState('');
   const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
 
   // Las cabeceras del editor directo
-  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS', 'HORA_DE_ACOPLE'];
+  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS'];
+  if (isRelevos) {
+    headers.push('HORA_PROGRAMADA');
+  }
+  headers.push('HORA_DE_ACOPLE');
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUS', 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
@@ -114,7 +120,7 @@ export default function ExcelPreview({
     setOpenDropdown({ rowIndex, field });
   };
 
-  const handleOpenTimePicker = (e, originalIndex, currentValue) => {
+  const handleOpenTimePicker = (e, originalIndex, field, currentValue) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const openUp = spaceBelow < 250;
@@ -126,6 +132,7 @@ export default function ExcelPreview({
     });
     setTempTime(currentValue || '00:00');
     setActiveTimePickerRow(originalIndex);
+    setActiveTimePickerField(field);
     setOpenDropdown({ rowIndex: null, field: null });
   };
 
@@ -136,6 +143,7 @@ export default function ExcelPreview({
       if (target && target.classList && target.classList.contains('table-wrapper')) {
         setOpenDropdown({ rowIndex: null, field: null });
         setActiveTimePickerRow(null);
+        setActiveTimePickerField(null);
       }
     };
     window.addEventListener('scroll', handleScroll, true);
@@ -206,7 +214,7 @@ export default function ExcelPreview({
               </tr>
             ) : (
               filteredData.map((fila, index) => {
-                const originalIndex = data.indexOf(fila);
+                const originalIndex = fila.__originalIndex ?? data.indexOf(fila);
                 const rawRowStatus = String(fila.ESTATUS || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 const isRowDisabled = rawRowStatus.includes('mantenimiento') || rawRowStatus.includes('reserva');
                 const isBottomRow = filteredData.length > 1 && (filteredData.length - index <= 2);
@@ -216,8 +224,8 @@ export default function ExcelPreview({
                     {headers.map(h => {
                       const isReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR';
 
-                      // ── REVELOS: sólo texto plano, excepto TARJETON ──────────────
-                      if (isRelevos && h !== 'TARJETON') {
+                      // ── REVELOS: sólo texto plano, excepto TARJETON y HORA_PROGRAMADA ──────────────
+                      if (isRelevos && h !== 'TARJETON' && h !== 'HORA_PROGRAMADA') {
                         // Para ESTATUS usamos la traducción; para HORA_DE_ACOPLE valor por defecto; resto directo
                         let displayValue = fila[h] ?? '';
                         if (h === 'ESTATUS') {
@@ -243,17 +251,18 @@ export default function ExcelPreview({
                       }
                       // ── Fin bloque REVELOS ───────────────────────────────────────
 
-                      if (h === 'HORA_DE_ACOPLE') {
-                        const isOpen = activeTimePickerRow === originalIndex;
+                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_PROGRAMADA') {
+                        const isOpen = activeTimePickerRow === originalIndex && activeTimePickerField === h;
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <button
                               type="button"
                               onClick={(e) => {
                                 if (!isOpen) {
-                                  handleOpenTimePicker(e, originalIndex, fila[h]);
+                                  handleOpenTimePicker(e, originalIndex, h, fila[h]);
                                 } else {
                                   setActiveTimePickerRow(null);
+                                  setActiveTimePickerField(null);
                                 }
                               }}
                               disabled={isRowDisabled}
@@ -279,7 +288,7 @@ export default function ExcelPreview({
                               <>
                                 <div
                                   style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
-                                  onClick={(e) => { e.stopPropagation(); setActiveTimePickerRow(null); }}
+                                  onClick={(e) => { e.stopPropagation(); setActiveTimePickerRow(null); setActiveTimePickerField(null); }}
                                 />
                                 <div className="ios-time-picker-popover" style={{
                                   position: 'fixed',
@@ -295,10 +304,11 @@ export default function ExcelPreview({
                                   <IOSTimePicker
                                     value={tempTime}
                                     onChange={setTempTime}
-                                    onClose={() => setActiveTimePickerRow(null)}
+                                    onClose={() => { setActiveTimePickerRow(null); setActiveTimePickerField(null); }}
                                     onSave={async (finalTime) => {
-                                      onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, finalTime);
+                                      onUpdate && onUpdate(originalIndex, h, finalTime);
                                       setActiveTimePickerRow(null);
+                                      setActiveTimePickerField(null);
                                     }}
                                   />
                                 </div>
@@ -374,7 +384,7 @@ export default function ExcelPreview({
                                       type="button"
                                       className="dropdown-menu__item dropdown-menu__item--none"
                                       onClick={() => {
-                                        onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, '');
+                                        onUpdate && onUpdate(originalIndex, h, '');
                                         setOpenDropdown({ rowIndex: null, field: null });
                                       }}
                                     >
@@ -391,7 +401,7 @@ export default function ExcelPreview({
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
                                             onClick={() => {
-                                              onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, r);
+                                              onUpdate && onUpdate(originalIndex, h, r);
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
                                           >
@@ -483,7 +493,7 @@ export default function ExcelPreview({
                                       type="button"
                                       className="dropdown-menu__item dropdown-menu__item--none"
                                       onClick={() => {
-                                        onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, '');
+                                        onUpdate && onUpdate(originalIndex, h, '');
                                         setOpenDropdown({ rowIndex: null, field: null });
                                       }}
                                     >
@@ -500,7 +510,7 @@ export default function ExcelPreview({
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
                                             onClick={() => {
-                                              onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, String(c.tarjeton).trim());
+                                              onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
                                           >
@@ -611,7 +621,7 @@ export default function ExcelPreview({
                                             fontWeight: isSelected ? '700' : '600'
                                           }}
                                           onClick={() => {
-                                            onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, key);
+                                            onUpdate && onUpdate(originalIndex, h, key);
                                             setOpenDropdown({ rowIndex: null, field: null });
                                           }}
                                         >
@@ -661,7 +671,7 @@ export default function ExcelPreview({
                                       else if (num > 20) val = '20';
                                     }
                                   }
-                                  onUpdate && onUpdate(originalIndex !== -1 ? originalIndex : index, h, val);
+                                  onUpdate && onUpdate(originalIndex, h, val);
                                 }}
                                 className={`edit-input edit-text-input ${h === 'CORRIDAS' ? 'text-center' : ''}`}
                                 placeholder=""

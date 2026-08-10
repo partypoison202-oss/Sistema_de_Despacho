@@ -470,7 +470,7 @@ class DespachoController extends Controller
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-            $horaSalidaVal = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
+            $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
 
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
@@ -823,7 +823,7 @@ class DespachoController extends Controller
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;
-            $updateData['corrida'] = null;
+            $updateData['corridas'] = null;
 
             if ($registroOperativo->numero_tarjeton) {
                 DB::table('conductores')
