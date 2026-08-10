@@ -12,7 +12,6 @@ use App\Http\Controllers\API\TitanController;
 use App\Http\Controllers\API\TitanReporteController;
 use App\Http\Controllers\API\HistorialOperativoController;
 use App\Http\Controllers\API\BitacoraController;
-use App\Http\Controllers\API\AmonestacionController;
 use App\Http\Controllers\API\InfraccionController;
 use App\Http\Controllers\ObservacionCatalogoController;
 
@@ -94,9 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bitacoras', [BitacoraController::class, 'store']);
 
     // RUTAS PARA AMONESTACIONES E INFRACCIONES
-    Route::get('/amonestaciones/check/{placa}', [AmonestacionController::class, 'checkPlaca']);
-    Route::get('/amonestaciones', [AmonestacionController::class, 'index']);
-    Route::post('/amonestaciones', [AmonestacionController::class, 'store']);
+    Route::get('/infracciones/check/{placa}', [InfraccionController::class, 'checkPlaca']);
     Route::get('/infracciones', [InfraccionController::class, 'index']);
     Route::post('/infracciones', [InfraccionController::class, 'store']);
 });

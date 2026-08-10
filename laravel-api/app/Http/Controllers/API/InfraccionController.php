@@ -11,6 +11,16 @@ use Illuminate\Support\Facades\DB;
 
 class InfraccionController extends Controller
 {
+    public function checkPlaca($placa)
+    {
+        $this->ensureTableExists();
+        $infraccion = Infraccion::where('placas', strtoupper(trim($placa)))->latest()->first();
+        return response()->json([
+            'has_infraccion' => $infraccion ? true : false,
+            'latest' => $infraccion
+        ]);
+    }
+
     /**
      * Garantizar que la tabla 'infracciones' exista dinámicamente.
      */
@@ -20,13 +30,18 @@ class InfraccionController extends Controller
             Schema::create('infracciones', function (Blueprint $table) {
                 $table->id();
                 $table->string('folio', 50)->unique();
-                $table->unsignedBigInteger('amonestacion_id')->nullable();
-
                 // 1. Lugar, Fecha y Hora
                 $table->dateTime('fecha_expedicion');
                 $table->string('hora_intervencion', 20);
                 $table->string('municipio', 100)->default('Pachuca de Soto');
-                $table->string('ubicacion_exacta', 255);
+                $table->string('calle', 150);
+                $table->string('numero', 50)->nullable();
+                $table->string('colonia', 100);
+
+                // Imágenes (Evidencia)
+                $table->string('imagen_1', 255)->nullable();
+                $table->string('imagen_2', 255)->nullable();
+                $table->string('imagen_3', 255)->nullable();
 
                 // 2. Datos del Vehículo Infractor
                 $table->string('placas', 20)->index();
@@ -107,7 +122,13 @@ class InfraccionController extends Controller
             'fecha_expedicion' => 'required|date',
             'hora_intervencion' => 'required|string|max:20',
             'municipio' => 'required|string|max:100',
-            'ubicacion_exacta' => 'required|string|max:255',
+            'calle' => 'required|string|max:150',
+            'numero' => 'nullable|string|max:50',
+            'colonia' => 'required|string|max:100',
+
+            'imagen_1' => 'nullable|file|mimes:jpg,jpeg,png|max:10240',
+            'imagen_2' => 'nullable|file|mimes:jpg,jpeg,png|max:10240',
+            'imagen_3' => 'nullable|file|mimes:jpg,jpeg,png|max:10240',
 
             'placas' => 'required|string|max:20',
             'entidad_federativa' => 'required|string|max:100',
@@ -147,13 +168,22 @@ class InfraccionController extends Controller
         $countYear = Infraccion::whereYear('created_at', $year)->count() + 1;
         $folio = sprintf('INF-%s-%04d', $year, $countYear);
 
+        $img1 = $request->file('imagen_1') ? $request->file('imagen_1')->store('infracciones', 'public') : null;
+        $img2 = $request->file('imagen_2') ? $request->file('imagen_2')->store('infracciones', 'public') : null;
+        $img3 = $request->file('imagen_3') ? $request->file('imagen_3')->store('infracciones', 'public') : null;
+
         $infraccion = Infraccion::create([
             'folio' => $folio,
-            'amonestacion_id' => $request->amonestacion_id ?? null,
             'fecha_expedicion' => $request->fecha_expedicion,
             'hora_intervencion' => $request->hora_intervencion,
             'municipio' => $request->municipio,
-            'ubicacion_exacta' => $request->ubicacion_exacta,
+            'calle' => $request->calle,
+            'numero' => $request->numero,
+            'colonia' => $request->colonia,
+            
+            'imagen_1' => $img1,
+            'imagen_2' => $img2,
+            'imagen_3' => $img3,
 
             'placas' => strtoupper(trim($request->placas)),
             'entidad_federativa' => $request->entidad_federativa,
