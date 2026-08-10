@@ -512,7 +512,21 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Servicio Activo</h3>
           </div>
           <div className="info-card__body">
-            {/* 1. Número de Tarjetón (Editable) */}
+
+            {/* 1. Conductor Asignado */}
+            <div className="info-card__item">
+              <span className="info-card__label">Conductor Asignado</span>
+              <div className="info-card__value-wrapper">
+                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Número de Tarjetón (Editable) */}
             <div className="info-card__item">
               <span className="info-card__label">Número de Tarjetón</span>
               {!isPlataforma && !isReservaOrMantenimiento ? (
@@ -637,20 +651,20 @@ export default function UnitInfoPanel({
               )}
             </div>
 
-            {/* 2. Conductor Asignado */}
+            {/* 3. Corrida */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-              <span className="info-card__label">Conductor Asignado</span>
+              <span className="info-card__label">Corrida</span>
               <div className="info-card__value-wrapper">
                 <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                 </svg>
                 <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
+                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
                 </p>
               </div>
             </div>
 
-            {/* 3. Ruta Asignada */}
+            {/* 4. Ruta Asignada */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Ruta Asignada</span>
               {!isPlataforma && !isReservaOrMantenimiento ? (
@@ -739,19 +753,6 @@ export default function UnitInfoPanel({
                 </div>
               )}
             </div>
-
-            {/* 4. Corrida */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-              <span className="info-card__label">Corrida</span>
-              <div className="info-card__value-wrapper">
-                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -771,8 +772,7 @@ export default function UnitInfoPanel({
               <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
-                  disabled={isPlataforma || isReservaOrMantenimiento}
-                  onClick={() => { setDropdownHoraOpen(!dropdownHoraOpen); }}
+                  disabled={true}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -783,7 +783,7 @@ export default function UnitInfoPanel({
                     width: '100%',
                     padding: '0.5rem 0.5rem 0.5rem 2.2rem',
                     outline: 'none',
-                    cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
+                    cursor: 'default',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'
@@ -792,9 +792,6 @@ export default function UnitInfoPanel({
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
                     {formHoraProgramada || '--:--'}
                   </span>
-                  <svg className={`arrow-icon ${dropdownHoraOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
                 </button>
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -824,7 +821,7 @@ export default function UnitInfoPanel({
 
             {/* 5. Hora de Acople (+30 min) */}
             <div className="info-card__item">
-              <span className="info-card__label">Hora de Acople (+30m)</span>
+              <span className="info-card__label">Hora de Acople</span>
               <div className="badge-display badge-display--gray" style={{ padding: '0.5rem 1rem', opacity: 1, border: '1px solid #e5e7eb', background: '#f9fafb' }}>
                 <svg className="badge-display__icon" style={{ color: '#6b7280' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

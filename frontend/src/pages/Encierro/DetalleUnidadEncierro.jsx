@@ -1540,7 +1540,7 @@ export default function DetalleUnidadEncierro() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="badge-display__text">
-                            {cargandoDatos ? '...' : (horaEncierroCapturada || datosOperativos.hora_encierro || '--:--')}
+                            {cargandoDatos ? '...' : (datosOperativos.hora_programada || '--:--')}
                           </span>
                         </div>
                       </div>
