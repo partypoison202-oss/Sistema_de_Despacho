@@ -974,12 +974,19 @@ const InfraccionDashboard = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Tipo de Licencia</label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Tipo A / Tipo B"
+                    <CustomSelect
                       value={infLicenciaTipo}
-                      onChange={(e) => setInfLicenciaTipo(e.target.value)}
-                      className="infraccion-input"
+                      onChange={setInfLicenciaTipo}
+                      options={[
+                        'Tipo A (Servicio Público / Colectivo)',
+                        'Tipo B (Chofer / Carga)',
+                        'Tipo C (Servicio Particular)',
+                        'Tipo D (Motociclista)',
+                        'Chofer (Hidalgo)',
+                        'Automovilista (Hidalgo)',
+                        'Otro'
+                      ]}
+                      placeholder="SELECCIONAR"
                     />
                   </div>
                   <div className="form-group">
