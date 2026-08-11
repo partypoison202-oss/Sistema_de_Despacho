@@ -114,6 +114,7 @@ const TitanHistorico = () => {
   };
 
   const mapCenter = [20.1011, -98.7591]; // Default to Pachuca
+  const SHOW_MAP = false; // Toggle para activar el mapa en versiones futuras
 
   return (
     <div className="titan-historico-container">
@@ -148,29 +149,31 @@ const TitanHistorico = () => {
         </form>
       </div>
 
-      <div style={{ height: '350px', marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', zIndex: 0, position: 'relative' }}>
-        <MapContainer center={mapCenter} zoom={12} style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          {reportes.map(r => {
-            const coords = getCoordinates(r.ubicacion_gps);
-            if (!coords) return null;
-            return (
-              <Marker key={r.id} position={coords} icon={getMarkerIcon(r.tipo_evento)}>
-                <Popup>
-                  <div style={{ padding: '4px' }}>
-                    <strong style={{ fontSize: '13px' }}>{r.tipo_evento.replace('_', ' ')}</strong><br/>
-                    ECO {r.numero_economico}<br/>
-                    {formatDate(r.created_at)}
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-        </MapContainer>
-      </div>
+      {SHOW_MAP && (
+        <div style={{ height: '350px', marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', zIndex: 0, position: 'relative' }}>
+          <MapContainer center={mapCenter} zoom={12} style={{ height: '100%', width: '100%' }}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {reportes.map(r => {
+              const coords = getCoordinates(r.ubicacion_gps);
+              if (!coords) return null;
+              return (
+                <Marker key={r.id} position={coords} icon={getMarkerIcon(r.tipo_evento)}>
+                  <Popup>
+                    <div style={{ padding: '4px' }}>
+                      <strong style={{ fontSize: '13px' }}>{r.tipo_evento.replace('_', ' ')}</strong><br/>
+                      ECO {r.numero_economico}<br/>
+                      {formatDate(r.created_at)}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
+        </div>
+      )}
 
       <div className="titan-historico-list">
         {cargando ? (
