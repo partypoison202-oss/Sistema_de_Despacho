@@ -1,70 +1,110 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
 import { AuthContext } from '../../context/AuthContext';
-import '../CentroControl/CentroControl.css';
 import './Titan.css';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 
+/* ─────────────────────────────────────────────────────────────
+   Constantes / catálogos
+   ───────────────────────────────────────────────────────────── */
+const ACCIDENT_TYPES   = ['ACCIDENTE', 'CHOQUE', 'ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
+const PERSONAL_TYPES   = ['ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];   // víctima personal
+const CODIGO_MED       = ['CODIGO_AMBAR', 'CODIGO_ROJO'];                  // requieren campos médicos extendidos
+const DESINC_INC       = ['DESINCORPORACION', 'INCORPORACION'];
+const NARANJA_TYPES    = ['CODIGO_NARANJA'];
+
+const GENDER_OPTIONS   = ['Masculino', 'Femenino', 'No binario', 'Prefiero no especificar'];
+const UBI_OPTS         = ['TALLER', 'BASE SUR', 'BASE NORTE', 'VÍA PÚBLICA', 'OTRO'];
+const AUTORIDADES      = [
+  'POLICÍA ESTATAL', 'POLICÍA MUNICIPAL', 'POLICÍA DE GÉNERO', 'POLICÍA FEDERAL',
+  'MINISTERIO PÚBLICO', 'OTRA',
+];
+const ASISTENCIA_OPTS  = ['AMBULANCIA', 'POLICÍA', 'BOMBEROS', 'PROTECCIÓN CIVIL', 'CRUZ ROJA'];
+const ESTATUS_LEGAL    = ['CHOQUE', 'CORRALÓN PENDIENTE', 'LIBERADO', 'EN PROCESO'];
+const ESTACIONES       = [
+  'TERMINAL NORTE', 'CENTRAL DE AUTOBUSES', 'MUNICIPIO LIBRE', 'ESTADIO HIDALGO',
+  'MERCADO BENITO JUÁREZ', 'PLAZA DE LA PAZ', 'PRESIDENCIA MUNICIPAL',
+  'UAEH - CIUDAD UNIVERSITARIA', 'HOSPITAL GENERAL', 'CLÍNICA IMSS',
+  'PARQUE HIDALGO', 'TERMINAL SUR', 'OTRA',
+];
+
+/* ─────────────────────────────────────────────────────────────
+   Componente principal
+   ───────────────────────────────────────────────────────────── */
 const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) => {
   const { user } = useContext(AuthContext);
-  const [unidades, setUnidades] = useState(model?.units || []);
+  const navigate = useNavigate();
+
+  /* ── Unidad ─────────────────────────────────── */
   const [selectedUnidad, setSelectedUnidad] = useState(null);
 
-  // General Form State
-  const [intervalo, setIntervalo] = useState('');
+  /* ── Estado general ─────────────────────────── */
+  const [activeTab,     setActiveTab]     = useState('');
+  const [intervalo,     setIntervalo]     = useState('');
   const [observaciones, setObservaciones] = useState('');
-  const [fotos, setFotos] = useState([]);
-  const [previewFotos, setPreviewFotos] = useState([]);
-
-  // Tabs State
-  const [activeTab, setActiveTab] = useState('');
-  const ACCIDENT_TYPES = ['ACCIDENTE', 'CHOQUE', 'ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
-  const opcionesUbicacionEvento = ['TALLER', 'BASE SUR', 'BASE NORTE', 'VIA PUBLICA', 'OTRO'];
-
-  // Event Specific State
-  const [corrida, setCorrida] = useState('');
-  const [horaEvento, setHoraEvento] = useState('');
+  const [ubicacionGPS,  setUbicacionGPS]  = useState('');
+  const [horaEvento,    setHoraEvento]    = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
-  const [ubicacionGPS, setUbicacionGPS] = useState('');
-  const [ubicacionEvento, setUbicacionEvento] = useState('');
-  const [motivoDesincorporacion, setMotivoDesincorporacion] = useState('');
 
-  const [accDueno, setAccDueno] = useState('');
-  const [accVehiculo, setAccVehiculo] = useState('');
-  const [accPlacas, setAccPlacas] = useState('');
-  const [accSeguro, setAccSeguro] = useState(false);
-  const [accHechos, setAccHechos] = useState('');
+  /* ── Desincorporación / Incorporación ───────── */
+  const [corrida,               setCorrida]               = useState('');
+  const [ubicacionEvento,       setUbicacionEvento]       = useState('');
+  const [motivoDesincorporacion,setMotivoDesincorporacion]= useState('');
 
+  /* ── Accidente / Choque (vehículo particular) ── */
+  const [accDueno,   setAccDueno]   = useState('');
+  const [accVehiculo,setAccVehiculo]= useState('');
+  const [accPlacas,  setAccPlacas]  = useState('');
+  const [accSeguro,  setAccSeguro]  = useState(false);
+
+  /* ── Campos comunes: víctima + hechos ────────── */
   const [accVictima, setAccVictima] = useState('');
-  const [accEdad, setAccEdad] = useState('');
-  const [accGenero, setAccGenero] = useState('');
-  const GENDER_OPTIONS = ['Masculino', 'Femenino'];
-  const ACCIDENT_PERSONAL_TYPES = ['ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
+  const [accEdad,    setAccEdad]    = useState('');
+  const [accGenero,  setAccGenero]  = useState('');
+  const [accHechos,  setAccHechos]  = useState('');
 
-  // Firma del particular (canvas)
-  const firmaCanvasRef = useRef(null);
-  const firmaCtxRef = useRef(null);
-  const isDrawingRef = useRef(false);
-  const [firmaVacia, setFirmaVacia] = useState(true);
+  /* ── Código Ámbar / Rojo — campos médicos ────── */
+  const [lesionadosCantidad,   setLesionadosCantidad]   = useState('');
+  const [nombresAfectados,     setNombresAfectados]     = useState('');
+  const [asistenciaSitio,      setAsistenciaSitio]      = useState([]);  // array
+  const [diagnosticoPreliminar,setDiagnosticoPreliminar]= useState('');
+  const [ameritaTraslado,      setAmeritaTraslado]      = useState(null); // true | false | null
+  const [estatusLegal,         setEstatusLegal]         = useState('');
 
+  /* ── Código Naranja (Acoso) ──────────────────── */
+  const [narNombre,           setNarNombre]           = useState('');
+  const [narAnonimo,          setNarAnonimo]          = useState(false);
+  const [narEdad,             setNarEdad]             = useState('');
+  const [narGenero,           setNarGenero]           = useState('');
+  const [narEstacion,         setNarEstacion]         = useState('');
+  const [narRuta,             setNarRuta]             = useState('');
+  const [narRelato,           setNarRelato]           = useState('');
+  const [narAutoridad,        setNarAutoridad]        = useState('');
+  const [narPuestoDisposicion,setNarPuestoDisposicion]= useState(null);
+  const [narMotivo,           setNarMotivo]           = useState('');
+
+  /* ── Fotos + Firma ───────────────────────────── */
+  const [fotos,       setFotos]       = useState([]);
+  const [previewFotos,setPreviewFotos]= useState([]);
+  const firmaCanvasRef  = useRef(null);
+  const firmaCtxRef     = useRef(null);
+  const isDrawingRef    = useRef(false);
+  const [firmaVacia, setFirmaVacia]   = useState(true);
+
+  /* ── UI ──────────────────────────────────────── */
   const [guardando, setGuardando] = useState(false);
 
-  // ---------- Funciones de firma (con useCallback para estabilidad) ----------
+  /* ─── Firma helpers ─── */
   const getFirmaCoords = useCallback((e) => {
     const canvas = firmaCanvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
-
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
+    const rect   = canvas.getBoundingClientRect();
+    const cx = e.touches?.length > 0 ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches?.length > 0 ? e.touches[0].clientY : e.clientY;
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
+      x: (cx - rect.left) * (canvas.width  / rect.width),
+      y: (cy - rect.top)  * (canvas.height / rect.height),
     };
   }, []);
 
@@ -98,662 +138,659 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   const initFirmaCanvas = useCallback(() => {
     const canvas = firmaCanvasRef.current;
     if (!canvas) return;
-
     const rect = canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-
+    if (!rect.width || !rect.height) return;
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.round(rect.width * ratio);
+    canvas.width  = Math.round(rect.width  * ratio);
     canvas.height = Math.round(rect.height * ratio);
-
     const ctx = canvas.getContext('2d');
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.lineWidth = 2 * ratio;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.lineWidth   = 2 * ratio;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
     ctx.strokeStyle = '#1f1f1f';
     firmaCtxRef.current = ctx;
   }, []);
 
-  // Limpiar firma
   const limpiarFirma = useCallback(() => {
     const canvas = firmaCanvasRef.current;
-    const ctx = firmaCtxRef.current;
+    const ctx    = firmaCtxRef.current;
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setFirmaVacia(true);
   }, []);
 
-  // Obtener blob de la firma
-  const getFirmaBlob = useCallback(() => {
-    return new Promise((resolve) => {
-      const canvas = firmaCanvasRef.current;
-      if (!canvas || firmaVacia) {
-        resolve(null);
-        return;
-      }
-      canvas.toBlob((blob) => resolve(blob), 'image/png');
-    });
-  }, [firmaVacia]);
+  const getFirmaBlob = useCallback(() => new Promise((resolve) => {
+    const canvas = firmaCanvasRef.current;
+    if (!canvas || firmaVacia) { resolve(null); return; }
+    canvas.toBlob((blob) => resolve(blob), 'image/png');
+  }), [firmaVacia]);
 
-  // ---------- Effect para inicializar canvas y eventos táctiles ----------
+  /* ─── Effect: canvas táctil ─── */
+  const needsFirma = [...ACCIDENT_TYPES, ...NARANJA_TYPES].includes(activeTab);
   useEffect(() => {
-    if (!ACCIDENT_TYPES.includes(activeTab)) return;
-
+    if (!needsFirma) return;
     const canvas = firmaCanvasRef.current;
     if (!canvas) return;
-
     initFirmaCanvas();
-
     canvas.addEventListener('touchstart', handleFirmaStart, { passive: false });
-    canvas.addEventListener('touchmove', handleFirmaMove, { passive: false });
-    canvas.addEventListener('touchend', handleFirmaEnd, { passive: false });
-
-    const resizeObserver = new ResizeObserver(() => {
-      initFirmaCanvas();
-    });
-    resizeObserver.observe(canvas);
-
+    canvas.addEventListener('touchmove',  handleFirmaMove,  { passive: false });
+    canvas.addEventListener('touchend',   handleFirmaEnd,   { passive: false });
+    const ro = new ResizeObserver(initFirmaCanvas);
+    ro.observe(canvas);
     return () => {
       canvas.removeEventListener('touchstart', handleFirmaStart);
-      canvas.removeEventListener('touchmove', handleFirmaMove);
-      canvas.removeEventListener('touchend', handleFirmaEnd);
-      resizeObserver.disconnect();
+      canvas.removeEventListener('touchmove',  handleFirmaMove);
+      canvas.removeEventListener('touchend',   handleFirmaEnd);
+      ro.disconnect();
     };
-  }, [activeTab, initFirmaCanvas, handleFirmaStart, handleFirmaMove, handleFirmaEnd]);
+  }, [activeTab, needsFirma, initFirmaCanvas, handleFirmaStart, handleFirmaMove, handleFirmaEnd]);
 
-  // ---------- Resto del componente ----------
+  /* ─── Preselect unidad ─── */
   useEffect(() => {
     if (preselectedUnidad && (!selectedUnidad || selectedUnidad.id !== preselectedUnidad.id)) {
       handleSelectUnidad(preselectedUnidad);
     }
   }, [preselectedUnidad]);
 
+  const resetForm = () => {
+    setIntervalo('');  setObservaciones(''); setFotos([]); setPreviewFotos([]);
+    setActiveTab(''); setHoraEvento('');
+    setCorrida(''); setUbicacionEvento(''); setMotivoDesincorporacion('');
+    setAccDueno(''); setAccVehiculo(''); setAccPlacas(''); setAccSeguro(false);
+    setAccVictima(''); setAccEdad(''); setAccGenero(''); setAccHechos('');
+    setLesionadosCantidad(''); setNombresAfectados('');
+    setAsistenciaSitio([]); setDiagnosticoPreliminar('');
+    setAmeritaTraslado(null); setEstatusLegal('');
+    setNarNombre(''); setNarAnonimo(false); setNarEdad(''); setNarGenero('');
+    setNarEstacion(''); setNarRuta(''); setNarRelato('');
+    setNarAutoridad(''); setNarPuestoDisposicion(null); setNarMotivo('');
+    setUbicacionGPS(''); setFirmaVacia(true);
+  };
+
   const handleSelectUnidad = (u) => {
     setSelectedUnidad(u);
     setCorrida(u.corrida || '');
     setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-    setIntervalo('');
-    setObservaciones('');
-    setFotos([]);
-    setPreviewFotos([]);
-    setActiveTab('');
+    resetForm();
     getGPSLocation();
-    setMotivoDesincorporacion('');
-    setAccDueno('');
-    setAccVehiculo('');
-    setAccPlacas('');
-    setAccSeguro(false);
-    setAccHechos('');
-    setAccVictima('');
-    setAccEdad('');
-    setAccGenero('');
-    setUbicacionGPS('');
-    setFirmaVacia(true);
   };
 
   const getGPSLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-            const data = await res.json();
-            if (data && data.display_name) {
-              setUbicacionGPS(data.display_name);
-            } else {
-              setUbicacionGPS(`${lat}, ${lon}`);
-            }
-          } catch (error) {
-            console.error('Error reverse geocoding:', error);
-            setUbicacionGPS(`${lat}, ${lon}`);
-          }
-        },
-        (error) => {
-          Swal.fire('Error', 'No se pudo obtener la ubicación GPS. Verifica los permisos del navegador.', 'error');
+    if (!navigator.geolocation) {
+      setUbicacionGPS('GPS no disponible en este navegador');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`);
+          const d = await r.json();
+          setUbicacionGPS(d?.display_name || `${coords.latitude}, ${coords.longitude}`);
+        } catch {
+          setUbicacionGPS(`${coords.latitude}, ${coords.longitude}`);
         }
-      );
-    } else {
-      Swal.fire('Error', 'La geolocalización no es soportada por este navegador.', 'error');
+      },
+      () => setUbicacionGPS('No se pudo obtener ubicación GPS')
+    );
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if ([...ACCIDENT_TYPES, ...NARANJA_TYPES].includes(tab)) {
+      setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
     }
   };
 
   const handleFotoChange = (e) => {
-    const maxFotos = ACCIDENT_TYPES.includes(activeTab) ? 10 : 5;
-    const files = Array.from(e.target.files);
-
+    const maxFotos = 10;
+    const files    = Array.from(e.target.files);
     if (fotos.length + files.length > maxFotos) {
-      Swal.fire('Atención', `Solo puedes subir un máximo de ${maxFotos} fotos para este tipo de reporte.`, 'warning');
+      Swal.fire('Atención', `Máximo ${maxFotos} fotos por reporte.`, 'warning');
       return;
     }
-
-    const newFotos = [...fotos, ...files];
-    setFotos(newFotos);
-
-    const newPreviews = files.map((f) => URL.createObjectURL(f));
-    setPreviewFotos([...previewFotos, ...newPreviews]);
+    setFotos([...fotos, ...files]);
+    setPreviewFotos([...previewFotos, ...files.map((f) => URL.createObjectURL(f))]);
   };
 
-  const removeFoto = (index) => {
-    const newFotos = fotos.filter((_, i) => i !== index);
-    const newPreviews = previewFotos.filter((_, i) => i !== index);
-    setFotos(newFotos);
-    setPreviewFotos(newPreviews);
+  const removeFoto = (i) => {
+    setFotos(fotos.filter((_, idx) => idx !== i));
+    setPreviewFotos(previewFotos.filter((_, idx) => idx !== i));
   };
 
+  const toggleAsistencia = (op) => {
+    setAsistenciaSitio((prev) =>
+      prev.includes(op) ? prev.filter((x) => x !== op) : [...prev, op]
+    );
+  };
+
+  /* ─── Submit ─── */
   const handleSubmit = async () => {
     if (!selectedUnidad) return;
-
-    if (!activeTab) {
-      Swal.fire('Atención', 'Debes seleccionar un tipo de reporte válido.', 'warning');
-      return;
-    }
+    if (!activeTab) { Swal.fire('Atención', 'Selecciona un tipo de reporte.', 'warning'); return; }
 
     if (activeTab === 'DESINCORPORACION' && !motivoDesincorporacion.trim()) {
-      Swal.fire('Atención', 'El motivo de desincorporación es requerido.', 'warning');
-      return;
+      Swal.fire('Atención', 'El motivo de desincorporación es requerido.', 'warning'); return;
     }
-
-    if ((activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') && !ubicacionEvento) {
-      Swal.fire('Atención', 'Debes seleccionar la ubicación del evento.', 'warning');
-      return;
+    if (DESINC_INC.includes(activeTab) && !ubicacionEvento) {
+      Swal.fire('Atención', 'Selecciona la ubicación del evento.', 'warning'); return;
+    }
+    if (NARANJA_TYPES.includes(activeTab) && !narRelato.trim()) {
+      Swal.fire('Atención', 'El relato de los hechos es requerido.', 'warning'); return;
     }
 
     setGuardando(true);
-
     try {
-      const formData = new FormData();
-      formData.append('unidad_id', selectedUnidad.id);
-      formData.append('intervalo', intervalo);
-      formData.append('observaciones', observaciones);
-      formData.append('tipo_evento', activeTab);
+      const fd = new FormData();
+      fd.append('unidad_id',   selectedUnidad.id);
+      fd.append('intervalo',   intervalo);
+      fd.append('observaciones', observaciones);
+      fd.append('tipo_evento', activeTab);
+      fd.append('ubicacion_gps', ubicacionGPS);
+      fd.append('hora_evento', horaEvento);
 
-      if (activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') {
-        formData.append('corrida', corrida);
-        formData.append('hora_evento', horaEvento);
-        formData.append('ubicacion_evento', ubicacionEvento);
-        if (activeTab === 'DESINCORPORACION') formData.append('motivo_desincorporacion', motivoDesincorporacion);
+      if (DESINC_INC.includes(activeTab)) {
+        fd.append('corrida',          corrida);
+        fd.append('ubicacion_evento', ubicacionEvento);
+        if (activeTab === 'DESINCORPORACION') fd.append('motivo_desincorporacion', motivoDesincorporacion);
       }
 
       if (ACCIDENT_TYPES.includes(activeTab)) {
-        if (ACCIDENT_PERSONAL_TYPES.includes(activeTab)) {
-          formData.append('accidente_dueno', accVictima);
-          formData.append('accidente_edad', accEdad);
-          formData.append('accidente_genero', accGenero);
-          formData.append('accidente_hechos', accHechos);
-          formData.append('ubicacion_gps', ubicacionGPS);
-          formData.append('hora_evento', horaEvento);
+        if (PERSONAL_TYPES.includes(activeTab)) {
+          fd.append('accidente_dueno',  accVictima);
+          fd.append('accidente_edad',   accEdad);
+          fd.append('accidente_genero', accGenero);
         } else {
-          formData.append('accidente_dueno', accDueno);
-          formData.append('accidente_vehiculo', accVehiculo);
-          formData.append('accidente_placas', accPlacas);
-          formData.append('accidente_seguro', accSeguro ? 'true' : 'false');
-          formData.append('accidente_hechos', accHechos);
-          formData.append('ubicacion_gps', ubicacionGPS);
-          formData.append('hora_evento', horaEvento);
+          fd.append('accidente_dueno',    accDueno);
+          fd.append('accidente_vehiculo', accVehiculo);
+          fd.append('accidente_placas',   accPlacas);
+          fd.append('accidente_seguro',   accSeguro ? 'true' : 'false');
+        }
+        fd.append('accidente_hechos', accHechos);
+
+        if (CODIGO_MED.includes(activeTab)) {
+          fd.append('lesionados_cantidad',    lesionadosCantidad);
+          fd.append('nombres_afectados',      nombresAfectados);
+          fd.append('asistencia_sitio',       JSON.stringify(asistenciaSitio));
+          fd.append('diagnostico_preliminar', diagnosticoPreliminar);
+          if (ameritaTraslado !== null) fd.append('amerita_traslado', ameritaTraslado ? 'true' : 'false');
+          fd.append('estatus_legal', estatusLegal);
         }
 
         const firmaBlob = await getFirmaBlob();
-        if (firmaBlob) {
-          formData.append('firma_particular', firmaBlob, 'firma_particular.png');
-        }
+        if (firmaBlob) fd.append('firma_particular', firmaBlob, 'firma_particular.png');
       }
 
-      // IMPORTANTE: usar 'fotos[]' (no 'fotos[0]', 'fotos[1]'...) para que
-      // Laravel arme correctamente el array y la validación 'fotos.*' funcione.
-      fotos.forEach((foto) => {
-        formData.append('fotos[]', foto);
-      });
+      if (NARANJA_TYPES.includes(activeTab)) {
+        fd.append('usuario_anonimo',          narAnonimo ? 'true' : 'false');
+        fd.append('accidente_dueno',          narAnonimo ? 'USUARIO/USUARIA NO IDENTIFICADO/A' : narNombre);
+        fd.append('accidente_edad',           narEdad);
+        fd.append('accidente_genero',         narGenero);
+        fd.append('accidente_hechos',         narRelato);
+        fd.append('estacion_hecho',           narEstacion);
+        fd.append('ruta_hecho',               narRuta);
+        fd.append('autoridad_interviniente',  narAutoridad);
+        if (narPuestoDisposicion !== null) fd.append('puesto_disposicion', narPuestoDisposicion ? 'true' : 'false');
+        if (narPuestoDisposicion === false)  fd.append('motivo_no_disposicion', narMotivo);
+        const firmaBlob = await getFirmaBlob();
+        if (firmaBlob) fd.append('firma_particular', firmaBlob, 'firma_particular.png');
+      }
 
-      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-      const response = await fetch(`${API_BASE}/api/titan/reporte`, {
+      fotos.forEach((f) => fd.append('fotos[]', f));
+
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res   = await fetch(`${API_BASE}/api/titan/reporte`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al guardar el reporte');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al guardar el reporte');
       }
 
-      Swal.fire({
-        icon: 'success',
-        title: '¡Reporte Guardado!',
-        text: 'La información se ha registrado correctamente.',
-        confirmButtonColor: '#601a2a',
-      }).then(() => {
-        if (onSuccess) onSuccess();
-      });
-
-    } catch (error) {
-      console.error(error);
-      Swal.fire('Error', error.message, 'error');
+      await Swal.fire({ icon: 'success', title: '¡Reporte Guardado!', text: 'La información se registró correctamente.', confirmButtonColor: '#601a2a' });
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', err.message, 'error');
     } finally {
       setGuardando(false);
     }
   };
 
+  /* ─────────────────────────────────────────────────────────────
+     JSX
+     ───────────────────────────────────────────────────────────── */
+  if (!selectedUnidad) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: 50 }}>
+        <h2 className="titan-subtitle">Cargando datos de la unidad...</h2>
+        <p style={{ color: '#6b7280' }}>Si la pantalla no carga, intenta seleccionar nuevamente.</p>
+      </div>
+    );
+  }
+
+  const needsAccidentFirma = ACCIDENT_TYPES.includes(activeTab) || NARANJA_TYPES.includes(activeTab);
+
   return (
-    <div style={{ paddingBottom: '80px', width: '100%' }}>
-      {!selectedUnidad ? (
-        <div style={{ textAlign: 'center', marginTop: '50px' }}>
-          <h2 className="titan-subtitle">Cargando datos de la unidad...</h2>
-          <p style={{ color: 'var(--tw-color-gray-500)' }}>Si la pantalla no carga, por favor intenta seleccionar nuevamente.</p>
+    <div style={{ paddingBottom: 80, width: '100%' }}>
+      <div className="titan-form-container">
+        {/* Contraer */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <button className="titan-btn-cancel" onClick={onCancel}>
+            <svg className="titan-btn-cancel-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+            </svg>
+            Contraer Formulario
+          </button>
         </div>
-      ) : (
-        <div className="titan-form-container">
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-            <button className="titan-btn-cancel" onClick={onCancel}>
-              <svg className="titan-btn-cancel-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path>
-              </svg>
-              Contraer Formulario
-            </button>
-          </div>
 
-          {/* Saludo y ubicación del Titan */}
-          <div
-            className="titan-saludo-wrapper"
-            style={{
-              marginBottom: '16px',
-              padding: '14px 16px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #601a2a 0%, #7a2439 100%)',
-              boxShadow: '0 2px 8px rgba(96, 26, 42, 0.25)',
-            }}
-          >
-            <p
-              className="titan-saludo-texto"
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                fontSize: '17px',
-                color: '#ffffff',
-                letterSpacing: '0.2px',
-              }}
-            >
-              Hola, {user?.nombre_completo || 'Usuario'} 
+        {/* Saludo GPS */}
+        <div className="titan-saludo-wrapper">
+          <p className="titan-saludo-texto">Hola, {user?.nombre_completo || 'Usuario'}</p>
+          <div className="titan-saludo-ubicacion">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0d9de" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+            </svg>
+            <p style={{ margin: 0, fontSize: 13, color: '#f0d9de', lineHeight: 1.4 }}>
+              {ubicacionGPS || 'Obteniendo ubicación...'}
             </p>
-            <div
-              className="titan-saludo-ubicacion"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                marginTop: '6px',
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#f0d9de"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ flexShrink: 0 }}
-              >
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '13px',
-                  color: '#f0d9de',
-                  lineHeight: 1.4,
-                }}
-              >
-                {ubicacionGPS || 'Obteniendo ubicación...'}
-              </p>
+          </div>
+        </div>
+
+        {/* Card unidad */}
+        <div className="titan-header-info">
+          <div>
+            <h3>Unidad {selectedUnidad.numero_economico}</h3>
+            <div className="titan-info-grid">
+              <p><strong>Ruta</strong><span>{selectedUnidad.ruta || 'N/A'}</span></p>
+              <p><strong>Tarjetón</strong><span>{selectedUnidad.numero_tarjeton || 'N/A'}</span></p>
+              <p><strong>Conductor</strong><span>{selectedUnidad.nombre_conductor || 'N/A'}</span></p>
             </div>
           </div>
+        </div>
 
-          {/* Header guinda de la unidad */}
-          <div className="titan-header-info">
-            <div>
-              <h3>Unidad {selectedUnidad.numero_economico}</h3>
-              <div className="titan-info-grid">
-                <p>
-                  <strong>Ruta</strong>
-                  <span>{selectedUnidad.ruta || 'N/A'}</span>
-                </p>
-                <p>
-                  <strong>Tarjetón</strong>
-                  <span>{selectedUnidad.numero_tarjeton || 'N/A'}</span>
-                </p>
-                <p>
-                  <strong>Conductor</strong>
-                  <span>{selectedUnidad.nombre_conductor || 'N/A'}</span>
-                </p>
-              </div>
-            </div>
+        {/* Información general */}
+        <div className="titan-section">
+          <h4>Información General</h4>
+          <div className="form-group">
+            <label>Intervalo</label>
+            <input type="text" value={intervalo} onChange={(e) => setIntervalo(e.target.value)} placeholder="Ej. 10 min" />
           </div>
-
-          {/* Información General */}
-          <div className="titan-section">
-            <h4>Información General</h4>
-            <div className="form-group">
-              <label>Intervalo</label>
-              <input type="text" value={intervalo} onChange={(e) => setIntervalo(e.target.value)} placeholder="Ej. 10 min" />
-            </div>
-            <div className="form-group">
-              <label>Observaciones</label>
-              <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows="3" placeholder="Detalles de supervisión..."></textarea>
-            </div>
+          <div className="form-group">
+            <label>Observaciones generales</label>
+            <textarea value={observaciones} onChange={(e) => setObservaciones(e.target.value)} rows="3" placeholder="Detalles de supervisión..." />
           </div>
+        </div>
 
-          {/* Tabs de eventos */}
-          <div className="titan-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {/* Pestañas */}
+        <div className="titan-tabs" style={{ flexWrap: 'wrap', gap: 6 }}>
+          {[
+            { key: 'DESINCORPORACION', label: 'Desincorporación' },
+            { key: 'INCORPORACION',    label: 'Incorporación' },
+            { key: 'ACCIDENTE',        label: 'Accidente' },
+            { key: 'CHOQUE',           label: 'Choque' },
+            { key: 'ATROPELLADO',      label: 'Atropellado' },
+            { key: 'CODIGO_AMBAR',     label: '🟡 Código Ámbar' },
+            { key: 'CODIGO_ROJO',      label: '🔴 Código Rojo' },
+            { key: 'CODIGO_NARANJA',   label: '🟠 Código Naranja' },
+          ].map(({ key, label }) => (
             <button
-              className={`titan-tab ${activeTab === 'DESINCORPORACION' ? 'active' : ''}`}
-              onClick={() => setActiveTab('DESINCORPORACION')}
+              key={key}
+              className={`titan-tab ${activeTab === key ? 'active' : ''} titan-tab--${key.toLowerCase().replace('_', '-')}`}
+              onClick={() => handleTabChange(key)}
             >
-              Desincorporación
+              {label}
             </button>
-            <button
-              className={`titan-tab ${activeTab === 'INCORPORACION' ? 'active' : ''}`}
-              onClick={() => setActiveTab('INCORPORACION')}
-            >
-              Incorporación
-            </button>
-            <button
-              className={`titan-tab ${activeTab === 'ACCIDENTE' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('ACCIDENTE');
-                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-              }}
-            >
-              Accidente
-            </button>
-            <button
-              className={`titan-tab ${activeTab === 'CHOQUE' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('CHOQUE');
-                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-              }}
-            >
-              Choque
-            </button>
-            <button
-              className={`titan-tab ${activeTab === 'ATROPELLADO' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('ATROPELLADO');
-                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-              }}
-            >
-              Atropellado
-            </button>
-            <button
-              className={`titan-tab ${activeTab === 'CODIGO_AMBAR' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('CODIGO_AMBAR');
-                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-              }}
-            >
-              Código Ámbar
-            </button>
-            <button
-              className={`titan-tab ${activeTab === 'CODIGO_ROJO' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('CODIGO_ROJO');
-                setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
-              }}
-            >
-              Código Rojo
-            </button>
-          </div>
+          ))}
+        </div>
 
-          {activeTab && (
-            <div className="titan-section active-tab-content">
-              {(activeTab === 'DESINCORPORACION' || activeTab === 'INCORPORACION') && (
-                <>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Corrida</label>
-                      <input type="text" value={corrida} onChange={(e) => setCorrida(e.target.value)} />
-                    </div>
-                    <div className="form-group" style={{ position: 'relative' }}>
-                      <label>Hora</label>
-                      <button
-                        type="button"
-                        onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)}
-                        className="form-group-time-trigger"
-                      >
-                        <span>{horaEvento || '--:--'}</span>
-                        <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                        </svg>
-                      </button>
+        {/* Contenido dinámico según tab */}
+        {activeTab && (
+          <div className="titan-section active-tab-content">
 
-                      {dropdownHoraOpen && (
-                        <>
-                          <div
-                            style={{ position: 'fixed', inset: 0, zIndex: 998 }}
-                            onClick={() => setDropdownHoraOpen(false)}
-                          />
-                          <IOSTimePicker
-                            value={horaEvento}
-                            onChange={setHoraEvento}
-                            onClose={() => setDropdownHoraOpen(false)}
-                            onSave={() => setDropdownHoraOpen(false)}
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
-
+            {/* ── Desincorporación / Incorporación ── */}
+            {DESINC_INC.includes(activeTab) && (
+              <>
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Ubicación <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
-                    <select
-                      value={ubicacionEvento}
-                      onChange={(e) => setUbicacionEvento(e.target.value)}
-                      className="form-group-select"
-                    >
-                      <option value="">Selecciona una ubicación...</option>
-                      {opcionesUbicacionEvento.map((opcion) => (
-                        <option key={opcion} value={opcion}>{opcion}</option>
-                      ))}
-                    </select>
+                    <label>Corrida</label>
+                    <input type="text" value={corrida} onChange={(e) => setCorrida(e.target.value)} />
                   </div>
-
-                  {activeTab === 'DESINCORPORACION' && (
-                    <div className="form-group">
-                      <label>Motivo <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
-                      <textarea value={motivoDesincorporacion} onChange={(e) => setMotivoDesincorporacion(e.target.value)} rows="4" placeholder="Describe el motivo de la desincorporación..."></textarea>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {ACCIDENT_TYPES.includes(activeTab) && (
-                <>
-                  {ACCIDENT_PERSONAL_TYPES.includes(activeTab) ? (
-                    <>
-                      <div className="form-group">
-                        <label>NOMBRE DE LA VÍCTIMA</label>
-                        <input type="text" value={accVictima} onChange={(e) => setAccVictima(e.target.value)} />
-                      </div>
-                      <div className="form-group">
-                        <label>EDAD</label>
-                        <input type="number" min="0" value={accEdad} onChange={(e) => setAccEdad(e.target.value)} />
-                      </div>
-                      <div className="form-group">
-                        <label>GÉNERO</label>
-                        <select value={accGenero} onChange={(e) => setAccGenero(e.target.value)} className="form-group-select">
-                          <option value="">Selecciona un género...</option>
-                          {GENDER_OPTIONS.map((genero) => (
-                            <option key={genero} value={genero}>{genero}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="form-group">
-                        <label>Dueño del Particular</label>
-                        <input type="text" value={accDueno} onChange={(e) => setAccDueno(e.target.value)} />
-                      </div>
-                      <div className="form-group">
-                        <label>Tipo de Vehículo Particular</label>
-                        <input type="text" value={accVehiculo} onChange={(e) => setAccVehiculo(e.target.value)} />
-                      </div>
-                      <div className="form-group">
-                        <label>Placas</label>
-                        <input type="text" value={accPlacas} onChange={(e) => setAccPlacas(e.target.value)} />
-                      </div>
-                      <div className="form-group checkbox-group">
-                        <label>
-                          <input type="checkbox" checked={accSeguro} onChange={(e) => setAccSeguro(e.target.checked)} />
-                          ¿Cuenta con seguro?
-                        </label>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="form-group">
-                    <label>Hechos <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
-                    <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>
-                  </div>
-
                   <div className="form-group" style={{ position: 'relative' }}>
-                    <label>Hora del accidente</label>
-                    <button
-                      type="button"
-                      onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)}
-                      className="form-group-time-trigger"
-                    >
+                    <label>Hora</label>
+                    <button type="button" onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)} className="form-group-time-trigger">
                       <span>{horaEvento || '--:--'}</span>
-                      <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
+                      <svg style={{ width: 12, height: 12 }} fill="currentColor" viewBox="0 0 24 24">
                         <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                       </svg>
                     </button>
-
                     {dropdownHoraOpen && (
                       <>
-                        <div
-                          style={{ position: 'fixed', inset: 0, zIndex: 998 }}
-                          onClick={() => setDropdownHoraOpen(false)}
-                        />
-                        <IOSTimePicker
-                          value={horaEvento}
-                          onChange={setHoraEvento}
-                          onClose={() => setDropdownHoraOpen(false)}
-                          onSave={() => setDropdownHoraOpen(false)}
-                        />
+                        <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setDropdownHoraOpen(false)} />
+                        <IOSTimePicker value={horaEvento} onChange={setHoraEvento} onClose={() => setDropdownHoraOpen(false)} onSave={() => setDropdownHoraOpen(false)} />
                       </>
                     )}
                   </div>
-
+                </div>
+                <div className="form-group">
+                  <label>Ubicación <span style={{ color: '#dc2626' }}>*</span></label>
+                  <select value={ubicacionEvento} onChange={(e) => setUbicacionEvento(e.target.value)} className="form-group-select">
+                    <option value="">Selecciona una ubicación...</option>
+                    {UBI_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                {activeTab === 'DESINCORPORACION' && (
                   <div className="form-group">
-                    <label>Firma de particular</label>
-                    <div
-                      className="titan-firma-wrapper"
-                      style={{
-                        position: 'relative',
-                        width: '100%',
-                        height: '180px',
-                        border: '2px dashed var(--brand-maroon-text, #601a2a)',
-                        borderRadius: '8px',
-                        backgroundColor: '#ffffff',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <canvas
-                        ref={firmaCanvasRef}
-                        className="titan-firma-canvas"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'block',
-                          cursor: 'crosshair',
-                          touchAction: 'none',
-                        }}
-                        onMouseDown={handleFirmaStart}
-                        onMouseMove={handleFirmaMove}
-                        onMouseUp={handleFirmaEnd}
-                        onMouseLeave={handleFirmaEnd}
-                      />
-                      {firmaVacia && (
-                        <span
-                          className="titan-firma-placeholder"
-                          style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            color: '#9ca3af',
-                            fontSize: '14px',
-                            pointerEvents: 'none',
-                            userSelect: 'none',
-                          }}
-                        >
-                          Firma aquí con el dedo o el mouse
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                      <button
-                        type="button"
-                        className="titan-btn-cancel"
-                        onClick={limpiarFirma}
-                      >
-                        Limpiar firma
-                      </button>
-                    </div>
+                    <label>Motivo <span style={{ color: '#dc2626' }}>*</span></label>
+                    <textarea value={motivoDesincorporacion} onChange={(e) => setMotivoDesincorporacion(e.target.value)} rows="4" placeholder="Describe el motivo..." />
                   </div>
+                )}
+              </>
+            )}
 
-                </>
-              )}
+            {/* ── Accidente / Choque (vehículo particular) ── */}
+            {['ACCIDENTE', 'CHOQUE'].includes(activeTab) && (
+              <>
+                <div className="form-group">
+                  <label>Dueño del Particular</label>
+                  <input type="text" value={accDueno} onChange={(e) => setAccDueno(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Tipo de Vehículo</label>
+                  <input type="text" value={accVehiculo} onChange={(e) => setAccVehiculo(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Placas</label>
+                  <input type="text" value={accPlacas} onChange={(e) => setAccPlacas(e.target.value)} />
+                </div>
+                <div className="form-group checkbox-group">
+                  <label>
+                    <input type="checkbox" checked={accSeguro} onChange={(e) => setAccSeguro(e.target.checked)} />
+                    ¿Cuenta con seguro?
+                  </label>
+                </div>
+              </>
+            )}
 
-              {/* Evidencia fotográfica */}
-              <div className="form-group" style={{ marginTop: '20px' }}>
-                <label>Evidencia Fotográfica (Máx. {ACCIDENT_TYPES.includes(activeTab) ? 10 : 5})</label>
+            {/* ── Personal: víctima (ATROPELLADO, CÓDIGO ÁMBAR, CÓDIGO ROJO) ── */}
+            {PERSONAL_TYPES.includes(activeTab) && (
+              <>
+                <div className="form-group">
+                  <label>Nombre de la Víctima</label>
+                  <input type="text" value={accVictima} onChange={(e) => setAccVictima(e.target.value)} />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Edad</label>
+                    <input type="number" min="0" value={accEdad} onChange={(e) => setAccEdad(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>Género</label>
+                    <select value={accGenero} onChange={(e) => setAccGenero(e.target.value)} className="form-group-select">
+                      <option value="">Selecciona...</option>
+                      {GENDER_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
 
-                <label className="titan-file-upload">
-                  <input type="file" multiple accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                  </svg>
-                  <span>Haz clic aquí para seleccionar imágenes</span>
-                </label>
+            {/* ── Hechos (todos los tipos de accidente) ── */}
+            {ACCIDENT_TYPES.includes(activeTab) && (
+              <>
+                <div className="form-group">
+                  <label>Hechos / Descripción <span style={{ color: '#dc2626' }}>*</span></label>
+                  <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="5" placeholder="Describe a detalle los hechos..." />
+                </div>
 
-                <div className="titan-fotos-preview">
-                  {previewFotos.map((src, idx) => (
-                    <div key={idx} className="titan-foto-item">
-                      <img src={src} alt="Preview" />
-                      <button
-                        type="button"
-                        className="titan-foto-item__remove"
-                        onClick={() => removeFoto(idx)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                {/* Hora del accidente */}
+                <div className="form-group" style={{ position: 'relative' }}>
+                  <label>Hora del accidente</label>
+                  <button type="button" onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)} className="form-group-time-trigger">
+                    <span>{horaEvento || '--:--'}</span>
+                    <svg style={{ width: 12, height: 12 }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {dropdownHoraOpen && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setDropdownHoraOpen(false)} />
+                      <IOSTimePicker value={horaEvento} onChange={setHoraEvento} onClose={() => setDropdownHoraOpen(false)} onSave={() => setDropdownHoraOpen(false)} />
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Código Ámbar / Rojo: campos médicos extendidos ── */}
+            {CODIGO_MED.includes(activeTab) && (
+              <div className="titan-seccion-medica">
+                <h4 className="titan-seccion-medica__titulo">
+                  {activeTab === 'CODIGO_AMBAR' ? '🟡' : '🔴'} Información Médica y Legal
+                </h4>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Número de Lesionados</label>
+                    <input type="number" min="0" value={lesionadosCantidad} onChange={(e) => setLesionadosCantidad(e.target.value)} placeholder="0" />
+                  </div>
+                  <div className="form-group">
+                    <label>Estatus Legal</label>
+                    <select value={estatusLegal} onChange={(e) => setEstatusLegal(e.target.value)} className="form-group-select">
+                      <option value="">Selecciona...</option>
+                      {ESTATUS_LEGAL.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Nombres de los Afectados</label>
+                  <textarea value={nombresAfectados} onChange={(e) => setNombresAfectados(e.target.value)} rows="2" placeholder="Escribe los nombres separados por coma..." />
+                </div>
+
+                <div className="form-group">
+                  <label>Asistencia en Sitio</label>
+                  <div className="titan-checkboxes-grid">
+                    {ASISTENCIA_OPTS.map((op) => (
+                      <label key={op} className="titan-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={asistenciaSitio.includes(op)}
+                          onChange={() => toggleAsistencia(op)}
+                        />
+                        {op}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Diagnóstico Preliminar</label>
+                  <textarea value={diagnosticoPreliminar} onChange={(e) => setDiagnosticoPreliminar(e.target.value)} rows="3" placeholder="Diagnóstico médico preliminar en sitio..." />
+                </div>
+
+                <div className="form-group">
+                  <label>Amerita Traslado</label>
+                  <div className="titan-radio-group">
+                    {[{ val: true, label: 'Sí' }, { val: false, label: 'No' }].map(({ val, label }) => (
+                      <label key={label} className="titan-radio-item">
+                        <input
+                          type="radio"
+                          name="amerita_traslado"
+                          checked={ameritaTraslado === val}
+                          onChange={() => setAmeritaTraslado(val)}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Botón Reportar */}
-              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  className="centro-btn centro-btn--primary"
-                  onClick={handleSubmit}
-                  disabled={guardando}
-                >
-                  {guardando ? 'Guardando...' : 'Reportar Evento'}
-                </button>
+            {/* ── Código Naranja (Acoso) ── */}
+            {NARANJA_TYPES.includes(activeTab) && (
+              <div className="titan-seccion-naranja">
+                <h4 className="titan-seccion-naranja__titulo">🟠 Reporte de Acoso / Código Naranja</h4>
+
+                {/* Usuario afectado */}
+                <div className="form-group checkbox-group" style={{ marginBottom: 8 }}>
+                  <label>
+                    <input type="checkbox" checked={narAnonimo} onChange={(e) => setNarAnonimo(e.target.checked)} />
+                    Usuario/Usuaria no identificado/a (anónimo)
+                  </label>
+                </div>
+
+                {!narAnonimo && (
+                  <div className="form-group">
+                    <label>Nombre del Usuario Afectado</label>
+                    <input type="text" value={narNombre} onChange={(e) => setNarNombre(e.target.value)} placeholder="Nombre completo..." />
+                  </div>
+                )}
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Edad</label>
+                    <input type="number" min="0" value={narEdad} onChange={(e) => setNarEdad(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label>Género</label>
+                    <select value={narGenero} onChange={(e) => setNarGenero(e.target.value)} className="form-group-select">
+                      <option value="">Selecciona...</option>
+                      {GENDER_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Ubicación del hecho */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Estación del Hecho</label>
+                    <select value={narEstacion} onChange={(e) => setNarEstacion(e.target.value)} className="form-group-select">
+                      <option value="">Selecciona estación...</option>
+                      {ESTACIONES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Ruta</label>
+                    <input type="text" value={narRuta} onChange={(e) => setNarRuta(e.target.value)} placeholder="Ej. RA1, TRONCAL..." />
+                  </div>
+                </div>
+
+                {/* Relato */}
+                <div className="form-group">
+                  <label>Relato de Hechos <span style={{ color: '#dc2626' }}>*</span></label>
+                  <textarea value={narRelato} onChange={(e) => setNarRelato(e.target.value)} rows="5" placeholder="Describe detalladamente los hechos ocurridos..." />
+                </div>
+
+                {/* Autoridad */}
+                <div className="form-group">
+                  <label>Autoridad Interviniente</label>
+                  <select value={narAutoridad} onChange={(e) => setNarAutoridad(e.target.value)} className="form-group-select">
+                    <option value="">Selecciona...</option>
+                    {AUTORIDADES.map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+
+                {/* Puesto a Disposición */}
+                <div className="form-group">
+                  <label>Puesto a Disposición</label>
+                  <div className="titan-radio-group">
+                    {[{ val: true, label: 'Sí' }, { val: false, label: 'No' }].map(({ val, label }) => (
+                      <label key={label} className="titan-radio-item">
+                        <input
+                          type="radio"
+                          name="puesto_disposicion"
+                          checked={narPuestoDisposicion === val}
+                          onChange={() => setNarPuestoDisposicion(val)}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {narPuestoDisposicion === false && (
+                  <div className="form-group">
+                    <label>Motivo de no puesta a disposición <span style={{ color: '#dc2626' }}>*</span></label>
+                    <textarea value={narMotivo} onChange={(e) => setNarMotivo(e.target.value)} rows="3" placeholder="Explica el motivo..." />
+                  </div>
+                )}
+
+                {/* Hora del evento */}
+                <div className="form-group" style={{ position: 'relative' }}>
+                  <label>Hora del evento</label>
+                  <button type="button" onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)} className="form-group-time-trigger">
+                    <span>{horaEvento || '--:--'}</span>
+                    <svg style={{ width: 12, height: 12 }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {dropdownHoraOpen && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 998 }} onClick={() => setDropdownHoraOpen(false)} />
+                      <IOSTimePicker value={horaEvento} onChange={setHoraEvento} onClose={() => setDropdownHoraOpen(false)} onSave={() => setDropdownHoraOpen(false)} />
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Firma (accidentes + naranja) ── */}
+            {needsAccidentFirma && (
+              <div className="form-group" style={{ marginTop: 20 }}>
+                <label>Firma del Particular / Afectado (opcional)</label>
+                <div className="titan-firma-wrapper">
+                  <canvas
+                    ref={firmaCanvasRef}
+                    style={{ width: '100%', height: '100%', display: 'block', cursor: 'crosshair', touchAction: 'none' }}
+                    onMouseDown={handleFirmaStart}
+                    onMouseMove={handleFirmaMove}
+                    onMouseUp={handleFirmaEnd}
+                    onMouseLeave={handleFirmaEnd}
+                  />
+                  {firmaVacia && (
+                    <span className="titan-firma-placeholder">Firma aquí con el dedo o el mouse</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button type="button" className="titan-btn-cancel" onClick={limpiarFirma}>Limpiar firma</button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Evidencia fotográfica ── */}
+            <div className="form-group" style={{ marginTop: 20 }}>
+              <label>Evidencia Fotográfica (Máx. 10)</label>
+              <label className="titan-file-upload">
+                <input type="file" multiple accept="image/*" onChange={handleFotoChange} style={{ display: 'none' }} />
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Haz clic aquí para seleccionar imágenes</span>
+              </label>
+              <div className="titan-fotos-preview">
+                {previewFotos.map((src, idx) => (
+                  <div key={idx} className="titan-foto-item">
+                    <img src={src} alt="Preview" />
+                    <button type="button" className="titan-foto-item__remove" onClick={() => removeFoto(idx)}>×</button>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* ── Botón reportar ── */}
+            <div style={{ marginTop: 32, display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="centro-btn centro-btn--primary" onClick={handleSubmit} disabled={guardando}>
+                {guardando ? 'Guardando...' : 'Reportar Evento'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

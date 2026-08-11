@@ -25,11 +25,9 @@ class TitanController extends Controller
                     'informacion_operativa.hora_programada',
                     'informacion_operativa.corridas as corrida'
                 )
-                // Filter exclusively by OPERACION
                 ->whereRaw('LOWER(informacion_operativa.estatus) LIKE ?', ['%operaci%'])
                 ->get();
 
-            // Group by model (tipo_transporte)
             $grouped = [];
             foreach ($unidades as $u) {
                 $tipo = $u->tipo_transporte ?? 'OTROS';
@@ -42,10 +40,10 @@ class TitanController extends Controller
             $response = [];
             foreach ($grouped as $tipo => $units) {
                 $response[] = [
-                    'id' => strtolower(str_replace(' ', '_', $tipo)),
-                    'label' => strtoupper($tipo),
-                    'operacion' => count($units),
-                    'units' => $units
+                    'id'       => strtolower(str_replace(' ', '_', $tipo)),
+                    'label'    => strtoupper($tipo),
+                    'operacion'=> count($units),
+                    'units'    => $units,
                 ];
             }
 
@@ -57,98 +55,216 @@ class TitanController extends Controller
         }
     }
 
+    /**
+     * Devuelve el histórico completo de todos los reportes Titán,
+     * con soporte de filtros: tipo_evento, fecha_desde, fecha_hasta, titan_id.
+     */
+    public function getAllReportes(Request $request)
+    {
+        try {
+            $query = DB::table('reportes_titan')
+                ->join('unidades', 'reportes_titan.unidad_id', '=', 'unidades.id')
+                ->join('usuarios', 'reportes_titan.usuario_id', '=', 'usuarios.id')
+                ->select(
+                    'reportes_titan.*',
+                    'unidades.numero_eco as numero_economico',
+                    'usuarios.nombre_completo as nombre_titan'
+                )
+                ->orderBy('reportes_titan.created_at', 'desc');
+
+            if ($request->filled('tipo_evento')) {
+                $query->where('reportes_titan.tipo_evento', $request->tipo_evento);
+            }
+
+            if ($request->filled('fecha_desde')) {
+                $query->whereDate('reportes_titan.created_at', '>=', $request->fecha_desde);
+            }
+
+            if ($request->filled('fecha_hasta')) {
+                $query->whereDate('reportes_titan.created_at', '<=', $request->fecha_hasta);
+            }
+
+            if ($request->filled('titan_id')) {
+                $query->where('reportes_titan.usuario_id', $request->titan_id);
+            }
+
+            $reportes = $query->get();
+
+            // Adjuntar fotos
+            $reporteIds = $reportes->pluck('id')->filter()->values();
+            $fotos = collect();
+            if ($reporteIds->isNotEmpty()) {
+                $fotos = DB::table('reportes_titan_fotos')
+                    ->whereIn('reporte_titan_id', $reporteIds)
+                    ->get()
+                    ->groupBy('reporte_titan_id');
+            }
+
+            $data = $reportes->map(function ($r) use ($fotos) {
+                $r->fotos = isset($fotos[$r->id])
+                    ? $fotos[$r->id]->map(function ($f) {
+                        return !empty($f->ruta_foto) ? asset('storage/' . $f->ruta_foto) : null;
+                    })->filter()->values()
+                    : [];
+
+                if (!empty($r->firma_particular_url)) {
+                    $r->firma_particular_url = asset($r->firma_particular_url);
+                }
+
+                // Decodificar asistencia_sitio JSON si existe
+                if (!empty($r->asistencia_sitio)) {
+                    $decoded = json_decode($r->asistencia_sitio, true);
+                    $r->asistencia_sitio = is_array($decoded) ? $decoded : [$r->asistencia_sitio];
+                } else {
+                    $r->asistencia_sitio = [];
+                }
+
+                return $r;
+            });
+
+            // Conteos por tipo para el resumen
+            $conteos = [
+                'DESINCORPORACION' => 0,
+                'INCORPORACION'    => 0,
+                'ACCIDENTE'        => 0,
+                'CHOQUE'           => 0,
+                'ATROPELLADO'      => 0,
+                'CODIGO_AMBAR'     => 0,
+                'CODIGO_ROJO'      => 0,
+                'CODIGO_NARANJA'   => 0,
+            ];
+            foreach ($reportes as $r) {
+                $tipo = $r->tipo_evento ?? '';
+                if (array_key_exists($tipo, $conteos)) {
+                    $conteos[$tipo]++;
+                }
+            }
+
+            return response()->json([
+                'reportes' => $data,
+                'total'    => $data->count(),
+                'conteos'  => $conteos,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en getAllReportes Titan: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al obtener el histórico: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function guardarReporte(Request $request)
     {
         try {
             $validated = $request->validate([
-                'unidad_id' => 'required|integer',
-                'intervalo' => 'nullable|string',
-                'observaciones' => 'nullable|string',
-                'tipo_evento' => 'required|string',
-                'corrida' => 'nullable|string',
-                'hora_evento' => 'nullable|string',
-                'ubicacion_gps' => 'nullable|string',
-                'ubicacion_evento' => 'nullable|string',
-                'motivo_desincorporacion' => 'nullable|string',
-                'accidente_dueno' => 'nullable|string',
-                'accidente_vehiculo' => 'nullable|string',
-                'accidente_edad' => 'nullable|string',
-                'accidente_placas' => 'nullable|string',
-                'accidente_seguro' => 'nullable',
-                'accidente_hechos' => 'nullable|string',
-                'accidente_genero' => 'nullable|string',
-                'firma_particular' => 'nullable|image|mimes:png,jpg,jpeg|max:5120',
-                'fotos' => 'nullable|array',
-                'fotos.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120'
+                'unidad_id'              => 'required|integer',
+                'intervalo'              => 'nullable|string',
+                'observaciones'          => 'nullable|string',
+                'tipo_evento'            => 'required|string',
+                'corrida'                => 'nullable|string',
+                'hora_evento'            => 'nullable|string',
+                'ubicacion_gps'          => 'nullable|string',
+                'ubicacion_evento'       => 'nullable|string',
+                'motivo_desincorporacion'=> 'nullable|string',
+                'accidente_dueno'        => 'nullable|string',
+                'accidente_vehiculo'     => 'nullable|string',
+                'accidente_edad'         => 'nullable|string',
+                'accidente_placas'       => 'nullable|string',
+                'accidente_seguro'       => 'nullable',
+                'accidente_hechos'       => 'nullable|string',
+                'accidente_genero'       => 'nullable|string',
+                // Campos extendidos Código Ámbar / Rojo
+                'lesionados_cantidad'    => 'nullable|integer',
+                'nombres_afectados'      => 'nullable|string',
+                'asistencia_sitio'       => 'nullable|string',   // JSON string
+                'diagnostico_preliminar' => 'nullable|string',
+                'amerita_traslado'       => 'nullable',
+                'estatus_legal'          => 'nullable|string',
+                // Campos Código Naranja
+                'usuario_anonimo'        => 'nullable',
+                'estacion_hecho'         => 'nullable|string',
+                'ruta_hecho'             => 'nullable|string',
+                'autoridad_interviniente'=> 'nullable|string',
+                'puesto_disposicion'     => 'nullable',
+                'motivo_no_disposicion'  => 'nullable|string',
+                // Archivos
+                'firma_particular'       => 'nullable|image|mimes:png,jpg,jpeg|max:5120',
+                'fotos'                  => 'nullable|array',
+                'fotos.*'               => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             ]);
 
             DB::beginTransaction();
 
-            // Normalizar accidente_seguro a string 'true'/'false' para Postgres
-            $seguro = $request->input('accidente_seguro');
-            if (is_bool($seguro)) {
-                $seguro = $seguro ? 'true' : 'false';
-            } elseif (is_numeric($seguro)) {
-                $seguro = (int) $seguro ? 'true' : 'false';
-            } elseif ($seguro === null) {
-                $seguro = null;
-            }
+            // Normalizar booleanos que vienen como string del FormData
+            $normalizeBool = function ($val) {
+                if (is_bool($val))  return $val;
+                if ($val === 'true'  || $val === '1' || $val === 1)  return true;
+                if ($val === 'false' || $val === '0' || $val === 0)  return false;
+                return null;
+            };
 
-            // Guardar firma del particular (si viene)
             $rutaFirma = null;
             if ($request->hasFile('firma_particular')) {
                 $rutaFirma = $request->file('firma_particular')->store('titan/firmas', 'public');
             }
 
-            // Guardar reporte
             $reporteId = DB::table('reportes_titan')->insertGetId([
-                'unidad_id' => $validated['unidad_id'],
-                'usuario_id' => auth()->id() ?? 1,
-                'intervalo' => $validated['intervalo'] ?? null,
-                'observaciones' => $validated['observaciones'] ?? null,
-                'tipo_evento' => $validated['tipo_evento'],
-                'corrida' => $validated['corrida'] ?? null,
-                'hora_evento' => $validated['hora_evento'] ?? null,
-                'ubicacion_gps' => $validated['ubicacion_gps'] ?? null,
-                'ubicacion_evento' => $validated['ubicacion_evento'] ?? null,
+                'unidad_id'               => $validated['unidad_id'],
+                'usuario_id'              => auth()->id() ?? 1,
+                'intervalo'               => $validated['intervalo']               ?? null,
+                'observaciones'           => $validated['observaciones']           ?? null,
+                'tipo_evento'             => $validated['tipo_evento'],
+                'corrida'                 => $validated['corrida']                 ?? null,
+                'hora_evento'             => $validated['hora_evento']             ?? null,
+                'ubicacion_gps'           => $validated['ubicacion_gps']           ?? null,
+                'ubicacion_evento'        => $validated['ubicacion_evento']        ?? null,
                 'motivo_desincorporacion' => $validated['motivo_desincorporacion'] ?? null,
-                'accidente_dueno' => $validated['accidente_dueno'] ?? null,
-                'accidente_vehiculo' => $validated['accidente_vehiculo'] ?? null,
-                'accidente_edad' => $validated['accidente_edad'] ?? null,
-                'accidente_genero' => $validated['accidente_genero'] ?? null,
-                'accidente_placas' => $validated['accidente_placas'] ?? null,
-                'accidente_seguro' => $seguro,
-                'accidente_hechos' => $validated['accidente_hechos'] ?? null,
-                'firma_particular_url' => $rutaFirma,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'accidente_dueno'         => $validated['accidente_dueno']         ?? null,
+                'accidente_vehiculo'      => $validated['accidente_vehiculo']      ?? null,
+                'accidente_edad'          => $validated['accidente_edad']          ?? null,
+                'accidente_genero'        => $validated['accidente_genero']        ?? null,
+                'accidente_placas'        => $validated['accidente_placas']        ?? null,
+                'accidente_seguro'        => $normalizeBool($request->input('accidente_seguro')),
+                'accidente_hechos'        => $validated['accidente_hechos']        ?? null,
+                'firma_particular_url'    => $rutaFirma,
+                // Nuevos campos
+                'lesionados_cantidad'     => isset($validated['lesionados_cantidad']) ? (int)$validated['lesionados_cantidad'] : null,
+                'nombres_afectados'       => $validated['nombres_afectados']       ?? null,
+                'asistencia_sitio'        => $validated['asistencia_sitio']        ?? null,
+                'diagnostico_preliminar'  => $validated['diagnostico_preliminar']  ?? null,
+                'amerita_traslado'        => $normalizeBool($request->input('amerita_traslado')),
+                'estatus_legal'           => $validated['estatus_legal']           ?? null,
+                'usuario_anonimo'         => $normalizeBool($request->input('usuario_anonimo')),
+                'estacion_hecho'          => $validated['estacion_hecho']          ?? null,
+                'ruta_hecho'              => $validated['ruta_hecho']              ?? null,
+                'autoridad_interviniente' => $validated['autoridad_interviniente'] ?? null,
+                'puesto_disposicion'      => $normalizeBool($request->input('puesto_disposicion')),
+                'motivo_no_disposicion'   => $validated['motivo_no_disposicion']   ?? null,
+                'created_at'              => now(),
+                'updated_at'              => now(),
             ]);
 
-            // Guardar fotos (el frontend debe enviar el campo como fotos[])
             if ($request->hasFile('fotos')) {
                 foreach ($request->file('fotos') as $foto) {
-                    if (!$foto->isValid()) {
-                        continue;
-                    }
+                    if (!$foto->isValid()) continue;
                     $rutaFoto = $foto->store('titan/fotos', 'public');
                     DB::table('reportes_titan_fotos')->insert([
                         'reporte_titan_id' => $reporteId,
-                        'ruta_foto' => $rutaFoto,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'ruta_foto'        => $rutaFoto,
+                        'created_at'       => now(),
+                        'updated_at'       => now(),
                     ]);
                 }
             }
 
             DB::commit();
             return response()->json([
-                'message' => 'Reporte guardado exitosamente',
-                'reporte_id' => $reporteId
+                'message'    => 'Reporte guardado exitosamente',
+                'reporte_id' => $reporteId,
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error en guardarReporte: ' . $e->getMessage());
+            \Log::error('Error en guardarReporte Titan: ' . $e->getMessage());
             return response()->json(['error' => 'Error al guardar el reporte: ' . $e->getMessage()], 500);
         }
     }

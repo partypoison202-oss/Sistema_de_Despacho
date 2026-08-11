@@ -569,3 +569,321 @@
   color: inherit;
 }
 
+
+/* ============================================================
+   NUEVOS ESTILOS - TITÁN (Dashboard & Histórico)
+   ============================================================ */
+
+/* --- Toggles de Vista --- */
+.titan-view-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+.titan-toggle-btn {
+  padding: 10px 24px;
+  border-radius: 9999px;
+  border: 1px solid var(--tw-color-gray-200, #e5e7eb);
+  background: white;
+  color: var(--tw-color-gray-500, #6b7280);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.titan-toggle-btn:hover {
+  background: var(--tw-color-gray-50, #f9fafb);
+  color: var(--tw-color-gray-900, #111827);
+}
+.titan-toggle-btn.active {
+  background: var(--brand-maroon-text, #601a2a);
+  color: white;
+  border-color: var(--brand-maroon-text, #601a2a);
+  box-shadow: 0 4px 10px rgba(96, 26, 42, 0.2);
+}
+
+/* --- Histórico --- */
+.titan-historico-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeInUp 0.4s ease-out;
+}
+.titan-historico-filters {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+.historico-filters-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.filter-group label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--brand-gold-text, #9a7a2e);
+}
+.titan-input-date {
+  padding: 11px 14px;
+  border: 1.5px solid var(--tw-color-gray-200, #e5e7eb);
+  border-radius: 0.6rem;
+  font-size: 0.95rem;
+  outline: none;
+  font-family: inherit;
+}
+.filter-actions {
+  display: flex;
+  gap: 10px;
+}
+.historico-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid var(--tw-color-gray-100, #f3f4f6);
+}
+.historico-card-header {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background: var(--tw-color-gray-50, #f9fafb);
+  transition: background 0.2s;
+}
+.historico-card-header:hover {
+  background: #f3f4f6;
+}
+.historico-card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.historico-card-title h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--tw-color-gray-900, #111827);
+}
+.historico-badge {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: white;
+}
+.badge-desincorporacion { background: #6b7280; }
+.badge-incorporacion { background: #10b981; }
+.badge-accidente { background: #3b82f6; }
+.badge-choque { background: #f59e0b; }
+.badge-atropellado { background: #ef4444; }
+.badge-codigo_ambar { background: #f59e0b; color: #fff; }
+.badge-codigo_rojo { background: #dc2626; }
+.badge-codigo_naranja { background: #f97316; }
+
+.historico-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--tw-color-gray-500, #6b7280);
+  font-weight: 600;
+}
+.historico-card-body {
+  padding: 20px;
+  border-top: 1px solid var(--tw-color-gray-100, #f3f4f6);
+  animation: slideUp 0.3s ease-out;
+}
+.historico-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.historico-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.historico-field--full {
+  grid-column: 1 / -1;
+}
+.historico-field strong {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--brand-gold-text, #9a7a2e);
+}
+.historico-field span {
+  font-size: 0.95rem;
+  color: var(--tw-color-gray-800, #1f2937);
+}
+
+.historico-fotos {
+  margin-top: 24px;
+}
+.historico-fotos-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.historico-foto-link img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+.historico-firma {
+  margin-top: 24px;
+}
+.historico-firma-img {
+  max-width: 250px;
+  height: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-top: 8px;
+  background: white;
+}
+
+/* --- Dashboard Stats --- */
+.titan-stats-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeInUp 0.4s ease-out;
+}
+.titan-stats-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+.stat-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 4px solid var(--brand-maroon-text, #601a2a);
+}
+.stat-card--ambar { border-bottom-color: #f59e0b; }
+.stat-card--rojo { border-bottom-color: #dc2626; }
+.stat-card--naranja { border-bottom-color: #f97316; }
+
+.stat-card-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--tw-color-gray-500, #6b7280);
+  margin-bottom: 8px;
+}
+.stat-card-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--tw-color-gray-900, #111827);
+  line-height: 1;
+}
+.titan-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+}
+.titan-chart-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.titan-chart-card h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--tw-color-gray-800, #1f2937);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* --- Nuevos Tabs (Naranja/Ambar/Rojo) --- */
+.titan-tab--codigo-ambar { color: #d97706; }
+.titan-tab--codigo-ambar.active { background: rgba(245, 158, 11, 0.1); border-bottom-color: #f59e0b; color: #d97706;}
+.titan-tab--codigo-ambar.active::after { background: #f59e0b; }
+
+.titan-tab--codigo-rojo { color: #dc2626; }
+.titan-tab--codigo-rojo.active { background: rgba(220, 38, 38, 0.1); border-bottom-color: #dc2626; color: #dc2626;}
+.titan-tab--codigo-rojo.active::after { background: #dc2626; }
+
+.titan-tab--codigo-naranja { color: #f97316; }
+.titan-tab--codigo-naranja.active { background: rgba(249, 115, 22, 0.1); border-bottom-color: #f97316; color: #f97316;}
+.titan-tab--codigo-naranja.active::after { background: #f97316; }
+
+/* --- Checkboxes & Radios Grid --- */
+.titan-checkboxes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+.titan-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #374151;
+  cursor: pointer;
+}
+.titan-radio-group {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+.titan-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.titan-seccion-medica, .titan-seccion-naranja {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  margin-top: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.titan-seccion-medica__titulo {
+  color: #dc2626;
+  font-weight: 800;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+}
+.titan-seccion-naranja__titulo {
+  color: #ea580c;
+  font-weight: 800;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+}
