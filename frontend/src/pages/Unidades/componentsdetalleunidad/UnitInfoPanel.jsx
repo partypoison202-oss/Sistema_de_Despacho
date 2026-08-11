@@ -109,13 +109,39 @@ export default function UnitInfoPanel({
   const [observaciones, setObservaciones] = useState('');
   const [guardandoSalida, setGuardandoSalida] = useState(false);
 
+  const observacionesRef = useRef(null);
+  const observacionesInputRef = useRef(null);
+  const [obsDropdownPos, setObsDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const [observacionesCatalogo, setObservacionesCatalogo] = useState([]);
+  const [dropdownObservacionesOpen, setDropdownObservacionesOpen] = useState(false);
+  const [formObservaciones, setFormObservaciones] = useState('');
+
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
 
   // Inicializar hora programada y observaciones desde datosOperativos
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
     setObservaciones(datosOperativos.observaciones || '');
+    setFormObservaciones(datosOperativos.observaciones || '');
   }, [datosOperativos]);
+
+  useEffect(() => {
+    const fetchObservacionesCatalogo = async () => {
+      try {
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        const res = await fetch(`${API_BASE}/api/observaciones-catalogo`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setObservacionesCatalogo(data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching observaciones catalogo', err);
+      }
+    };
+    fetchObservacionesCatalogo();
+  }, []);
 
   useEffect(() => {
     setSalidaCongelada(datosOperativos.hora_salida || null);
@@ -840,26 +866,123 @@ export default function UnitInfoPanel({
 
             {/* Observaciones (Replaces Corridas Perdidas) */}
             {!isPlataforma && (
-              <div className="info-card__item">
+              <div className="info-card__item" ref={observacionesRef} style={{ position: 'relative' }}>
                 <span className="info-card__label">Observaciones</span>
-                <textarea
+                <div
+                  ref={observacionesInputRef}
                   className="interactive-input"
-                  maxLength={120}
-                  rows={2}
-                  value={observaciones}
-                  onChange={(e) => setObservaciones(e.target.value)}
-                  disabled={isPlataforma || isReservaOrMantenimiento || !!salidaCongelada}
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0 0.85rem',
+                    background: 'var(--tw-color-white)',
+                    height: '2.3rem',
                     width: '100%',
-                    padding: '0.5rem',
-                    fontSize: '0.85rem',
                     marginTop: '0.25rem',
-                    resize: 'none',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #e5e7eb',
+                    fontWeight: 'normal',
+                    borderColor: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : undefined,
+                    opacity: (isPlataforma || isReservaOrMantenimiento || !!salidaCongelada) ? 0.6 : 1,
+                    pointerEvents: (isPlataforma || isReservaOrMantenimiento || !!salidaCongelada) ? 'none' : 'auto'
                   }}
-                  placeholder="Escribe alguna observación (opcional)..."
-                />
+                >
+                  <input
+                    type="text"
+                    placeholder="Buscar observación..."
+                    value={formObservaciones}
+                    onChange={(e) => {
+                      setFormObservaciones(e.target.value);
+                      setObservaciones(e.target.value);
+                      const rect = observacionesInputRef.current?.getBoundingClientRect();
+                      if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+                      setDropdownObservacionesOpen(true);
+                    }}
+                    onFocus={() => {
+                      const rect = observacionesInputRef.current?.getBoundingClientRect();
+                      if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+                      setDropdownObservacionesOpen(true);
+                    }}
+                    onBlur={() => setTimeout(() => setDropdownObservacionesOpen(false), 150)}
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      background: 'transparent',
+                      width: '100%',
+                      fontSize: '0.85rem',
+                      color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit',
+                    }}
+                  />
+                  <svg
+                    onClick={() => {
+                      const next = !dropdownObservacionesOpen;
+                      if (next) {
+                        const rect = observacionesInputRef.current?.getBoundingClientRect();
+                        if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+                      }
+                      setDropdownObservacionesOpen(next);
+                    }}
+                    style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownObservacionesOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
+                    fill="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                  </svg>
+                </div>
+                {dropdownObservacionesOpen && createPortal(
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: obsDropdownPos.top,
+                      left: obsDropdownPos.left,
+                      width: obsDropdownPos.width,
+                      background: 'white',
+                      border: '1px solid rgba(226, 232, 240, 0.8)',
+                      borderRadius: '0.875rem',
+                      boxShadow: '0 12px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                      overflow: 'hidden',
+                      maxHeight: '8rem',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {observacionesCatalogo
+                      .filter(obs => `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase()))
+                      .map(obs => {
+                        const label = `${obs.clave} - ${obs.descripcion}`;
+                        return (
+                          <button
+                            key={obs.clave}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setFormObservaciones(label);
+                              setObservaciones(label);
+                              setDropdownObservacionesOpen(false);
+                            }}
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '0.6rem 1rem',
+                              fontSize: '0.85rem',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: '#374151',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    {observacionesCatalogo.filter(obs => `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase())).length === 0 && (
+                      <div style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#9ca3af', textAlign: 'center' }}>Sin resultados</div>
+                    )}
+                  </div>,
+                  document.body
+                )}
               </div>
             )}
 

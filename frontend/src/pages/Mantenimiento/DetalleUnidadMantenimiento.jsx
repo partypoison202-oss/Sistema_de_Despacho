@@ -60,6 +60,7 @@ export default function DetalleUnidadMantenimiento() {
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
     ruta: 'Seleccione una unidad...',
+    corrida: '',
     tarjeton: '',
     estatus: 'operacion',
     motivo_estatus: null, // <-- NUEVO
@@ -332,6 +333,7 @@ export default function DetalleUnidadMantenimiento() {
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
+          corrida: resultado.corrida || resultado.corridas || '',
           tarjeton: resultado.tarjeton || '',
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
           motivo_estatus: resultado.motivo_estatus || null, // <-- NUEVO: obtener motivo
@@ -344,6 +346,7 @@ export default function DetalleUnidadMantenimiento() {
         setDatosOperativos({
           conductor: 'No reportado hoy',
           ruta: 'Sin ruta',
+          corrida: '',
           tarjeton: '',
           estatus: 'operacion',
           motivo_estatus: null,
@@ -936,6 +939,18 @@ export default function DetalleUnidadMantenimiento() {
 
                     <div className="info-card__body">
                       <div className="info-card__item">
+                        <span className="info-card__label">Número de Tarjetón</span>
+                        <div className="info-card__value-wrapper">
+                          <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
+                          </svg>
+                          <p className="info-card__value">
+                            {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
                         <span className="info-card__label">Conductor Asignado</span>
                         <div className="info-card__value-wrapper">
                           <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -961,13 +976,14 @@ export default function DetalleUnidadMantenimiento() {
                       </div>
 
                       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
-                        <span className="info-card__label">Número de Tarjetón</span>
+                        <span className="info-card__label">Corrida</span>
                         <div className="info-card__value-wrapper">
                           <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6.75 6.75 0 100-13.5 6.75 6.75 0 000 13.5z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v3.375l2.25 1.125" />
                           </svg>
                           <p className="info-card__value">
-                            {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                            {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
                           </p>
                         </div>
                       </div>

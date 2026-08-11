@@ -57,10 +57,11 @@ import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
-import RutaSelector from '../Unidades/componentsdetalleunidad/RutaSelector'; // ✅ IMPORTADO
+import RutaSelector from '../../components/RutaSelector/RutaSelectorUnified'; // ✅ IMPORTADO
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { normalizeRuta, normalizeRutaClave } from '../../utils/rutaUtils';
 
 export default function DetalleUnidadEncierro() {
   const { tipoTransporte } = useParams();
@@ -72,6 +73,7 @@ export default function DetalleUnidadEncierro() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
   const [selectedRuta, setSelectedRuta] = useState(null); // ✅ NUEVO
+  const [selectedTroncal, setSelectedTroncal] = useState(null); // ✅ NUEVO
 
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
@@ -93,6 +95,7 @@ export default function DetalleUnidadEncierro() {
 
   // Estados para Ruta (edición interactiva)
   const [rutasOpciones, setRutasOpciones] = useState([]);
+  const [troncalesOpciones] = useState(['T01', 'T02', 'T04', 'T05']);
   const [editandoRuta, setEditandoRuta] = useState(false);
   const [formRuta, setFormRuta] = useState('');
   const [guardandoRuta, setGuardandoRuta] = useState(false);
@@ -127,33 +130,37 @@ export default function DetalleUnidadEncierro() {
   const motivoRef = useRef(null);
   const modalConductorRef = useRef(null);
   const modalRutaRef = useRef(null);
+  const observacionesRef = useRef(null);
+  const observacionesInputRef = useRef(null);
+  const [obsDropdownPos, setObsDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const [observacionesCatalogo, setObservacionesCatalogo] = useState([]);
+  const [dropdownObservacionesOpen, setDropdownObservacionesOpen] = useState(false);
+  const [formObservaciones, setFormObservaciones] = useState('');
 
   useEffect(() => {
     setObservaciones(datosOperativos.observaciones || '');
+    setFormObservaciones(datosOperativos.observaciones || '');
   }, [datosOperativos]);
 
+  
+
   useEffect(() => {
-    const fetchRutas = async () => {
+    const fetchObservacionesCatalogo = async () => {
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+        const res = await fetch(`${API_BASE}/api/observaciones-catalogo`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();
-          const configActual = encierroModules.find((m) => m.id === tipoTransporte);
-          if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
-            setRutasOpciones(data.troncales || []);
-          } else {
-            setRutasOpciones(data.alimentadoras || []);
-          }
+          setObservacionesCatalogo(data || []);
         }
       } catch (err) {
-        console.error('Error fetching rutas', err);
+        console.error('Error fetching observaciones catalogo', err);
       }
     };
-    fetchRutas();
-  }, [tipoTransporte]);
+    fetchObservacionesCatalogo();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -274,6 +281,11 @@ export default function DetalleUnidadEncierro() {
     return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
   };
 
+  const formatObservacionClave = (clave) => {
+    const claveStr = String(clave ?? '');
+    return /^\d$/.test(claveStr) ? claveStr.padStart(2, '0') : claveStr;
+  };
+
   const fetchUnidades = async () => {
     const token = getToken();
     if (!token) {
@@ -292,13 +304,14 @@ export default function DetalleUnidadEncierro() {
     }
     if (!respuesta.ok) throw new Error('Error al obtener la lista de unidades');
     const datos = await respuesta.json();
+    console.debug('[Encierro] fetchUnidades: muestra ejemplo de datos:', Array.isArray(datos) ? datos.slice(0,5) : datos);
     return (Array.isArray(datos) ? datos : []).map((u) => ({
       eco: String(u.numero_eco ?? '').padStart(3, '0'),
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
       ruta: u.ruta || null,
-      acople: String(u.acople ?? '').trim(),
+      acople: Boolean(Number(u.acople ?? 0)),
       horaSalida: String(u.hora_salida ?? '').trim(),
     }));
   };
@@ -310,17 +323,66 @@ export default function DetalleUnidadEncierro() {
     refetchInterval: 30000,
   });
 
+  useEffect(() => {
+    const fetchRutas = async () => {
+      try {
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        const configActual = encierroModules.find((m) => m.id === tipoTransporte);
+        if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+          setRutasOpciones(troncalesOpciones);
+          return;
+        }
+        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const alimentadorasFromApi = data.alimentadoras && data.alimentadoras.length ? data.alimentadoras : [];
+          if (alimentadorasFromApi.length) {
+            setRutasOpciones(alimentadorasFromApi);
+          } else {
+            // derive from unidadesList if API empty
+            const derived = Array.from(new Set(unidadesList.map(u => normalizeRuta(u.ruta)).filter(Boolean)));
+            setRutasOpciones(derived);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching rutas', err);
+      }
+    };
+    fetchRutas();
+  }, [tipoTransporte, troncalesOpciones, unidadesList]);
+
   const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
+  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
   // ✅ NUEVO: unidades de la ruta seleccionada derivadas localmente
   const unidadesPorRutaList = useMemo(() => {
     if (!selectedRuta) return [];
-    return unidadesList.filter((u) => u.ruta === selectedRuta && !u.acople);
+    const rutaSeleccionada = normalizeRutaClave(selectedRuta);
+    return unidadesList.filter((u) => {
+      const rutaUnidad = normalizeRutaClave(u.ruta);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+    });
   }, [unidadesList, selectedRuta]);
+  const unidadesPorTroncalList = useMemo(() => {
+    if (!selectedTroncal) return [];
+    const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
+    return unidadesList.filter((u) => {
+      const rutaUnidad = normalizeRutaClave(u.ruta);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+    });
+  }, [unidadesList, selectedTroncal]);
   const cargandoUnidadesPorRuta = false;
 
   // ✅ NUEVO: función para seleccionar ruta
   const handleSelectRuta = (ruta) => {
     setSelectedRuta(ruta);
+    setSelectedTroncal(null);
+    setOpenDropdown(null);
+  };
+  const handleSelectTroncal = (ruta) => {
+    setSelectedTroncal(ruta);
+    setSelectedRuta(null);
     setOpenDropdown(null);
   };
   const totalProgramadasOperacion = useMemo(
@@ -334,6 +396,10 @@ export default function DetalleUnidadEncierro() {
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
       filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
+    }
+    if (selectedTroncal && isTroncal) {
+      const ecosEnTroncal = unidadesPorTroncalList.map((u) => u.eco);
+      filtradas = filtradas.filter((u) => ecosEnTroncal.includes(u.eco));
     }
     return filtradas;
   };
@@ -1184,6 +1250,20 @@ export default function DetalleUnidadEncierro() {
                   onSelectRuta={handleSelectRuta}
                 />
               )}
+
+              {/* ✅ NUEVO: selector TRONCAL para URBANUSS */}
+              {isTroncal && (
+                <RutaSelector
+                  isOpen={openDropdown === 'troncal'}
+                  setIsOpen={(open) => setOpenDropdown(open ? 'troncal' : null)}
+                  selectedRuta={selectedTroncal}
+                  titulo="TRONCAL"
+                  rutas={troncalesOpciones}
+                  cargandoRutas={false}
+                  configActual={configActual}
+                  onSelectRuta={handleSelectTroncal}
+                />
+              )}
             </div>
 
             {/* ✅ NUEVO: lista de unidades de la ruta seleccionada */}
@@ -1248,6 +1328,63 @@ export default function DetalleUnidadEncierro() {
                 )}
               </div>
             )}
+
+            {isTroncal && selectedTroncal && (
+              <div className="ruta-unidades-panel" style={{ width: '100%', marginTop: '1rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
+                    Unidades por salir en troncal {selectedTroncal}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTroncal(null)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#6b1d33',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Limpiar filtro
+                  </button>
+                </div>
+
+                {unidadesPorTroncalList.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {unidadesPorTroncalList.map((unidad) => (
+                      <button
+                        key={unidad.display}
+                        type="button"
+                        onClick={() => handleSelectUnit(unidad)}
+                        className="dropdown-menu__item"
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
+                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {unidad.display}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="info-panel">
@@ -1277,7 +1414,7 @@ export default function DetalleUnidadEncierro() {
                     <div className="info-card__body">
                       <div className="info-card__item" >
                         <span className="info-card__label">Número de Tarjetón</span>
-                        {editandoTarjeton ? (
+                        {false ? (
                           <div ref={tarjetonRef} style={{ position: 'relative', width: '100%' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%', position: 'relative' }}>
                               {guardandoTarjeton ? (
@@ -1405,7 +1542,7 @@ export default function DetalleUnidadEncierro() {
 
                       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
                         <span className="info-card__label">Ruta Asignada</span>
-                        {editandoRuta ? (
+                        {false ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
                             <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
                               <button
@@ -1487,21 +1624,7 @@ export default function DetalleUnidadEncierro() {
                                 {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
                               </p>
                             </div>
-                            {!cargandoDatos && (
-                              <button
-                                onClick={() => {
-                                  setFormRuta(datosOperativos.ruta || '');
-                                  setEditandoRuta(true);
-                                  setDropdownRutaOpen(true);
-                                }}
-                                title="Modificar Ruta"
-                                style={{ background: 'transparent', color: '#c29b53', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
-                              >
-                                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                              </button>
-                            )}
+
                           </div>
                         )}
                       </div>
@@ -1548,26 +1671,122 @@ export default function DetalleUnidadEncierro() {
                         horaCongelada={acopleCongelado}
                       />
 
-                      <div className="info-card__item">
+                      <div className="info-card__item" ref={observacionesRef} style={{ position: 'relative' }}>
                         <span className="info-card__label">Observaciones</span>
-                        <textarea
+                        <div
+                          ref={observacionesInputRef}
                           className="interactive-input"
-                          maxLength={120}
-                          rows={2}
-                          value={observaciones}
-                          onChange={(e) => setObservaciones(e.target.value)}
-                          disabled={cargandoDatos || !selectedOption || !!acopleCongelado}
                           style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0 0.85rem',
+                            background: 'var(--tw-color-white)',
+                            height: '2.3rem',
                             width: '100%',
-                            padding: '0.5rem',
-                            fontSize: '0.85rem',
                             marginTop: '0.25rem',
-                            resize: 'none',
-                            borderRadius: '0.5rem',
-                            border: '1px solid #e5e7eb',
+                            fontWeight: 'normal',
+                            borderColor: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : undefined,
+                            opacity: (cargandoDatos || !selectedOption || !!acopleCongelado) ? 0.6 : 1,
+                            pointerEvents: (cargandoDatos || !selectedOption || !!acopleCongelado) ? 'none' : 'auto'
                           }}
-                          placeholder="Escribe alguna observación (opcional)..."
-                        />
+                        >
+                          <input
+                            type="text"
+                            placeholder="Buscar observación..."
+                            value={formObservaciones}
+                            onChange={(e) => {
+                              setFormObservaciones(e.target.value);
+                              setObservaciones(e.target.value);
+                              const rect = observacionesInputRef.current?.getBoundingClientRect();
+                              if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+                              setDropdownObservacionesOpen(true);
+                            }}
+                            onFocus={() => {
+                              const rect = observacionesInputRef.current?.getBoundingClientRect();
+                              if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+                              setDropdownObservacionesOpen(true);
+                            }}
+                            onBlur={() => setTimeout(() => setDropdownObservacionesOpen(false), 150)}
+                            style={{
+                              border: 'none',
+                              outline: 'none',
+                              background: 'transparent',
+                              width: '100%',
+                              fontSize: '0.85rem',
+                              color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit',
+                            }}
+                          />
+                          <svg
+                            onClick={() => {
+                              const next = !dropdownObservacionesOpen;
+                              if (next) {
+                                const rect = observacionesInputRef.current?.getBoundingClientRect();
+                                if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
+                              }
+                              setDropdownObservacionesOpen(next);
+                            }}
+                            style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownObservacionesOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
+                            fill="currentColor" viewBox="0 0 24 24"
+                          >
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
+                        </div>
+                        {dropdownObservacionesOpen && createPortal(
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: obsDropdownPos.top,
+                              left: obsDropdownPos.left,
+                              width: obsDropdownPos.width,
+                              background: 'white',
+                              border: '1px solid rgba(226, 232, 240, 0.8)',
+                              borderRadius: '0.875rem',
+                              boxShadow: '0 12px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                              zIndex: 9999,
+                              overflow: 'hidden',
+                              maxHeight: '8rem',
+                              overflowY: 'auto',
+                            }}
+                          >
+                            {observacionesCatalogo
+                              .filter(obs => {
+                                const label = `${formatObservacionClave(obs.clave)} - ${obs.descripcion}`;
+                                return label.toLowerCase().includes(formObservaciones.toLowerCase());
+                              })
+                              .map(obs => {
+                                const label = `${formatObservacionClave(obs.clave)} - ${obs.descripcion}`;
+                                return (
+                                  <button
+                                    key={obs.clave}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      setFormObservaciones(label);
+                                      setObservaciones(label);
+                                      setDropdownObservacionesOpen(false);
+                                    }}
+                                    style={{
+                                      display: 'block',
+                                      width: '100%',
+                                      textAlign: 'left',
+                                      padding: '0.6rem 1rem',
+                                      fontSize: '0.85rem',
+                                      background: 'transparent',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      color: '#374151',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                          </div>,
+                          document.body
+                        )}
                       </div>
 
                       <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">

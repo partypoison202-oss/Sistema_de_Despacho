@@ -4,7 +4,6 @@ import Header from '../../components/Header/Header';
 import SignaturePad from '../../components/SignaturePad/SignaturePad';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
-import CameraModal from '../../components/CameraModal';
 import API_BASE from '../../config/api';
 import { AuthContext } from "../../context/AuthContext";
 import { generarPDFInfraccion } from "../../utils/generarPDFInfraccion";
@@ -130,45 +129,7 @@ const InfraccionDashboard = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [infMunicipio, setInfMunicipio] = useState('Pachuca de Soto');
   const [infUbicacionExacta, setInfUbicacionExacta] = useState('');
-  const [infPlaca, setInfPlaca] = useState('');
   const [imagenes, setImagenes] = useState([]);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const [zoomedImage, setZoomedImage] = useState(null);
-  const fileInputRef = useRef(null);
-  const galleryInputRef = useRef(null);
-
-  const base64ToFile = async (dataUrl, filename) => {
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    return new File([blob], filename, { type: 'image/jpeg' });
-  };
-
-  const addPhotoFile = (file) => {
-    setImagenes((prev) => {
-      if (prev.length >= 5) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Límite alcanzado',
-          text: 'Máximo 5 imágenes permitidas.',
-          confirmButtonColor: '#601a2a'
-        });
-        return prev.slice(0, 5);
-      }
-      return [...prev, file];
-    });
-  };
-
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    files.forEach(file => addPhotoFile(file));
-  };
-
-  const handleCaptureCamera = async (dataUrl) => {
-    const file = await base64ToFile(dataUrl, `captura_${Date.now()}.jpg`);
-    addPhotoFile(file);
-  };
-
 
   // Vehículo Infracción
   const [infEntidad, setInfEntidad] = useState('Hidalgo');
@@ -241,94 +202,39 @@ const InfraccionDashboard = () => {
     }
   }, [placas]);
 
-  
-  useEffect(() => {
-    if (navigator.geolocation) {
-      setInfUbicacionExacta('Obteniendo ubicación (GPS)...');
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const { latitude, longitude } = position.coords;
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-            const data = await res.json();
-            if (data && data.address) {
-              const calle = data.address.road || '';
-              const num = data.address.house_number || 'S/N';
-              const col = data.address.suburb || data.address.neighbourhood || '';
-              const mpo = data.address.city || data.address.town || data.address.municipality || 'Pachuca de Soto';
-              
-              setInfMunicipio(mpo);
-              setInfUbicacionExacta(`${calle} ${num}, ${col}`.trim());
-            } else {
-              setInfUbicacionExacta('Ubicación no encontrada');
-            }
-          } catch (err) {
-            setInfUbicacionExacta('Error al obtener ubicación');
-          }
-        },
-        (err) => {
-          setInfUbicacionExacta('Permiso de ubicación denegado');
-        }
-      );
-    } else {
-      setInfUbicacionExacta('Geolocalización no soportada');
-    }
-  }, []);
-
-
-    const verificarPlaca = async (placaVal) => {
+  const verificarPlaca = async (placaVal) => {
     if (!placaVal.trim()) return;
     setCheckingPlaca(true);
     try {
-      const res = await fetch(`${API_BASE}/api/infracciones/check/${encodeURIComponent(placaVal)}`, {
+      const res = await fetch(`${API_BASE}/api/amonestaciones/check/${encodeURIComponent(placaVal)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setPlacaStatus(data);
 
+        // Auto-llenar campos si ya existen antecedentes en la base de datos
         if (data.latest) {
           const prev = data.latest;
-          const searchTerm = placaVal.toUpperCase().trim();
-          
-          // Clasificamos si el término buscado es placa o nombre
-          const isPlacaSearch = /^[A-Z0-9-]+$/.test(searchTerm) && searchTerm.length <= 10;
+          setEntidadFederativa(prev.entidad_federativa || 'Hidalgo');
+          setMarca(prev.marca || '');
+          setModelo(prev.modelo || '');
+          setColor(prev.color || '');
+          setConductorNombre(prev.conductor_nombre || '');
+          setRecibioNombre(prev.conductor_nombre || '');
+          if (prev.inspector_gafete) setInspectorGafete(prev.inspector_gafete);
 
-          if (isPlacaSearch) {
-            // Llenar VEHÍCULO y PLACA
-            setInfPlaca(prev.placas || searchTerm);
-            setInfEntidad(prev.entidad_federativa || 'Hidalgo');
-            setInfMarca(prev.marca || '');
-            setInfModelo(prev.modelo || '');
-            setInfColor(prev.color || '');
-            setInfSubmarca(prev.submarca || '');
-            setInfNivVin(prev.niv_vin || '');
-            setInfTipoVehiculo(prev.tipo_vehiculo || 'Particular');
-            
-            // NO limpiamos conductor para permitir búsquedas cruzadas
-          } else {
-            // Llenar CONDUCTOR (Nombre Completo)
-            const nombreCompleto = prev.conductor_nombre || '';
-            setInfConductorNombre(nombreCompleto);
-            setInfRecibioNombre(nombreCompleto);
-            
-            setInfConductorDomicilio(prev.conductor_domicilio || '');
-            setInfLicenciaNumero(prev.licencia_numero || '');
-            setInfLicenciaTipo(prev.licencia_tipo || '');
-            setInfLicenciaEstado(prev.licencia_estado || 'Hidalgo');
-            setInfCalidadConductor(prev.calidad_conductor || 'Conductora');
-            if (prev.inspector_gafete) setInfInspectorGafete(prev.inspector_gafete);
-            
-            // NO limpiamos vehículo para permitir búsquedas cruzadas
-          }
-        } else {
-          // Si no hay antecedentes, al menos rellenamos la placa si el término parece placa
-          const searchTerm = placaVal.toUpperCase().trim();
-          const isPlacaSearch = /^[A-Z0-9-]+$/.test(searchTerm) && searchTerm.length <= 10;
-          if (isPlacaSearch) {
-            setInfPlaca(searchTerm);
-          }
+          setInfEntidad(prev.entidad_federativa || 'Hidalgo');
+          setInfMarca(prev.marca || '');
+          setInfModelo(prev.modelo || '');
+          setInfColor(prev.color || '');
+          setInfConductorNombre(prev.conductor_nombre || '');
+          setInfRecibioNombre(prev.conductor_nombre || '');
+          if (prev.inspector_gafete) setInfInspectorGafete(prev.inspector_gafete);
         }
+
+        // Sugerir formulario predeterminado pero permitiendo libre selección al usuario
+        setTipoFormulario(data.has_amonestacion ? 'infraccion' : 'amonestacion');
       }
     } catch (_err) {
       console.error('Error al verificar placa:', _err);
@@ -371,7 +277,6 @@ const InfraccionDashboard = () => {
     });
     setInfMunicipio('Pachuca de Soto');
     setInfUbicacionExacta('');
-    setInfPlaca('');
     setInfEntidad('Hidalgo');
     setInfMarca('');
     setInfSubmarca('');
@@ -398,26 +303,26 @@ const InfraccionDashboard = () => {
   };
 
   // -------------------------------------------------------------
-  // GUARDAR BOLETA DE INFRACCIÓN
+  // GUARDAR ACTA DE AMONESTACIÓN
   // -------------------------------------------------------------
-  const handleSubmitInfraccion = async (e) => {
+  const handleSubmitAmonestacion = async (e) => {
     e.preventDefault();
 
-    if (!infFirmaInspector) {
+    if (!firmaInspector) {
       Swal.fire({
         icon: 'warning',
         title: 'Firma del inspector requerida',
-        text: 'Por favor estampe su firma como inspector autorizado antes de emitir la boleta de infracción.',
+        text: 'Por favor, estampe su firma como inspector de transporte antes de guardar.',
         confirmButtonColor: '#601a2a'
       });
       return;
     }
 
-    if (!infNegoFirmar && !infFirmaConductor) {
+    if (!conductorNegoFirmar && !firmaConductor) {
       Swal.fire({
         icon: 'warning',
-        title: 'Firma de la persona infractora pendiente',
-        text: 'Por favor recolecte la firma de la persona infractora o marque la casilla de negativa a recibir.',
+        title: 'Firma del conductor pendiente',
+        text: 'Por favor recolecte la firma del conductor o marque la casilla si se negó a firmar.',
         confirmButtonColor: '#601a2a'
       });
       return;
@@ -426,51 +331,52 @@ const InfraccionDashboard = () => {
     setSubmitting(true);
 
     try {
-      const payload = {
-        amonestacion_id: placaStatus?.latest?.id || null,
-        fecha_expedicion: infFechaExpedicion,
-        hora_intervencion: infHoraIntervencion,
-        municipio: infMunicipio,
-        ubicacion_exacta: infUbicacionExacta,
+      const formData = new FormData();
+      formData.append('fecha_expedicion', infFechaExpedicion);
+      formData.append('hora_intervencion', infHoraIntervencion);
+      formData.append('municipio', infMunicipio);
+      formData.append('ubicacion_exacta', infUbicacionExacta);
+      
+      formData.append('placas', placas);
+      formData.append('entidad_federativa', infEntidad);
+      formData.append('marca', infMarca);
+      formData.append('submarca', infSubmarca);
+      formData.append('modelo', infModelo);
+      formData.append('color', infColor);
+      formData.append('niv_vin', infNivVin);
+      formData.append('tipo_vehiculo', infTipoVehiculo);
+      
+      formData.append('conductor_nombre', infConductorNombre);
+      formData.append('conductor_domicilio', infConductorDomicilio);
+      formData.append('licencia_numero', infLicenciaNumero);
+      formData.append('licencia_tipo', infLicenciaTipo);
+      formData.append('licencia_estado', infLicenciaEstado);
+      formData.append('calidad_conductor', infCalidadConductor);
+      
+      formData.append('motivacion_hecho', infMotivacionHecho);
+      formData.append('descripcion_hechos', infDescripcionHechos);
+      
+      formData.append('sancion_uma', infSancionUma || '0');
+      formData.append('garantia_tipo', infGarantiaRetenida ? (infGarantiaObservaciones || 'Detención') : 'Ninguna');
+      formData.append('garantia_observaciones', infGarantiaObservaciones);
+      
+      formData.append('inspector_gafete', infInspectorGafete);
+      formData.append('firma_inspector', infFirmaInspector);
+      
+      formData.append('conductor_nego_firmar', infNegoFirmar ? '1' : '0');
+      formData.append('recibio_nombre', infRecibioNombre);
+      formData.append('firma_conductor', infFirmaConductor);
 
-        placas,
-        entidad_federativa: infEntidad,
-        marca: infMarca,
-        submarca: infSubmarca,
-        modelo: infModelo,
-        color: infColor,
-        niv_vin: infNivVin,
-        tipo_vehiculo: infTipoVehiculo,
-
-        conductor_nombre: infConductorNombre,
-        conductor_domicilio: infConductorDomicilio,
-        licencia_numero: infLicenciaNumero,
-        licencia_tipo: infLicenciaTipo,
-        licencia_estado: infLicenciaEstado,
-        calidad_conductor: infCalidadConductor,
-
-        motivacion_hecho: infMotivacionHecho,
-        descripcion_hechos: infDescripcionHechos,
-
-        sancion_uma: parseFloat(infSancionUma) || 0,
-        garantia_tipo: infGarantiaRetenida ? 'Detención del Vehículo (Grúa / Depósito Vehicular)' : 'Otra Garantía',
-        garantia_observaciones: infGarantiaObservaciones,
-
-        inspector_gafete: infInspectorGafete,
-        firma_inspector: infFirmaInspector,
-
-        conductor_nego_firmar: Boolean(infNegoFirmar),
-        recibio_nombre: infNegoFirmar ? null : (infRecibioNombre || infConductorNombre),
-        firma_conductor: infNegoFirmar ? null : infFirmaConductor,
-      };
+      if (imagenes[0]) formData.append('imagen_1', imagenes[0]);
+      if (imagenes[1]) formData.append('imagen_2', imagenes[1]);
+      if (imagenes[2]) formData.append('imagen_3', imagenes[2]);
 
       const res = await fetch(`${API_BASE}/api/infracciones`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const data = await res.json();
@@ -662,62 +568,6 @@ const InfraccionDashboard = () => {
                 </p>
               </div>
 
-              
-              {/* BOTÓN DE CÁMARA (ESTILO CHECKLIST) */}
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', margin: '1rem 0 1.5rem 0', background: '#f8fafc', padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCamera(true)}
-                  style={{
-                    background: '#991b1b',
-                    color: '#ffffff',
-                    border: 'none',
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    flexShrink: 0
-                  }}
-                  title="Tomar Foto"
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </button>
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Evidencia fotográfica (Máx 5)</span>
-
-                {imagenes.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPhotoModal(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      background: '#f1f5f9',
-                      color: '#1e293b',
-                      border: '1px solid #cbd5e1',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      marginLeft: 'auto'
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" style={{ marginRight: '4px' }}>
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                    Ver ({imagenes.length})
-                  </button>
-                )}
-              </div>
-  
               {/* 1. LUGAR, FECHA Y HORA DE EMISIÓN */}
               <div className="section-block section-infraccion">
                 <div className="section-block-title">
@@ -797,25 +647,11 @@ const InfraccionDashboard = () => {
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label className="form-label">Municipio *</label>
-                    <input
-                      type="text"
-                      readOnly
-                      placeholder="Obteniendo ubicación (GPS)..."
-                      value={infMunicipio}
-                      className="infraccion-input disabled-input"
-                      style={{ backgroundColor: '#f1f5f9' }}
-                    />
+                    <input type="text" readOnly value={infMunicipio} className="infraccion-input disabled-input" style={{ backgroundColor: '#f1f5f9' }} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Ubicación Exacta *</label>
-                    <input
-                      type="text"
-                      readOnly
-                      placeholder="Obteniendo ubicación (GPS)..."
-                      value={infUbicacionExacta}
-                      className="infraccion-input disabled-input"
-                      style={{ backgroundColor: '#f1f5f9' }}
-                    />
+                    <input type="text" readOnly value={infUbicacionExacta} className="infraccion-input disabled-input" style={{ backgroundColor: '#f1f5f9' }} />
                   </div>
                 </div>
               </div>
@@ -852,10 +688,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Nissan"
                       value={infMarca}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '');
-                        setInfMarca(val.charAt(0).toUpperCase() + val.slice(1));
-                      }}
+                      onChange={(e) => setInfMarca(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -868,10 +701,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. Versa / Sedan"
                       value={infSubmarca}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '');
-                        setInfSubmarca(val.charAt(0).toUpperCase() + val.slice(1));
-                      }}
+                      onChange={(e) => setInfSubmarca(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -882,7 +712,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. 2022"
                       value={infModelo}
-                      onChange={(e) => setInfModelo(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                      onChange={(e) => setInfModelo(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -893,10 +723,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Plata / Blanco"
                       value={infColor}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^a-zA-Z\s-]/g, '');
-                        setInfColor(val.charAt(0).toUpperCase() + val.slice(1));
-                      }}
+                      onChange={(e) => setInfColor(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -909,7 +736,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. 3N1AB7AP0KY123456"
                       value={infNivVin}
-                      onChange={(e) => setInfNivVin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 17))}
+                      onChange={(e) => setInfNivVin(e.target.value.toUpperCase())}
                       className="infraccion-input uppercase-input"
                     />
                   </div>
@@ -940,10 +767,9 @@ const InfraccionDashboard = () => {
                       placeholder="Nombre completo"
                       value={infConductorNombre}
                       onChange={(e) => {
-                        const newVal = e.target.value;
-                        setInfConductorNombre(newVal);
-                        if (!infNegoFirmar && (!infRecibioNombre || infRecibioNombre === infConductorNombre)) {
-                          setInfRecibioNombre(newVal);
+                        setInfConductorNombre(e.target.value);
+                        if (!infNegoFirmar && !infRecibioNombre) {
+                          setInfRecibioNombre(e.target.value);
                         }
                       }}
                       className="infraccion-input"
@@ -965,7 +791,7 @@ const InfraccionDashboard = () => {
                     type="text"
                     placeholder="Calle, Número, Colonia, Municipio, Estado"
                     value={infConductorDomicilio}
-                    onChange={(e) => setInfConductorDomicilio(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,.\-#/]/g, ''))}
+                    onChange={(e) => setInfConductorDomicilio(e.target.value)}
                     className="infraccion-input"
                   />
                 </div>
@@ -977,25 +803,18 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. LIC-987654"
                       value={infLicenciaNumero}
-                      onChange={(e) => setInfLicenciaNumero(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                      onChange={(e) => setInfLicenciaNumero(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Tipo de Licencia</label>
-                    <CustomSelect
+                    <input
+                      type="text"
+                      placeholder="Ej. Tipo A / Tipo B"
                       value={infLicenciaTipo}
-                      onChange={setInfLicenciaTipo}
-                      options={[
-                        'Tipo A (Servicio Público / Colectivo)',
-                        'Tipo B (Chofer / Carga)',
-                        'Tipo C (Servicio Particular)',
-                        'Tipo D (Motociclista)',
-                        'Chofer (Hidalgo)',
-                        'Automovilista (Hidalgo)',
-                        'Otro'
-                      ]}
-                      placeholder="SELECCIONAR"
+                      onChange={(e) => setInfLicenciaTipo(e.target.value)}
+                      className="infraccion-input"
                     />
                   </div>
                   <div className="form-group">
@@ -1004,7 +823,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. Hidalgo"
                       value={infLicenciaEstado}
-                      onChange={(e) => setInfLicenciaEstado(e.target.value.toUpperCase().replace(/[^A-Z\s]/g, ''))}
+                      onChange={(e) => setInfLicenciaEstado(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -1163,6 +982,43 @@ const InfraccionDashboard = () => {
               </div>
 
               
+                {/* 8. ANEXO FOTOGRÁFICO */}
+                <div className="section-block section-infraccion">
+                  <div className="section-block-title">
+                    <span className="section-number red">8</span>
+                    <h3>ANEXO FOTOGRÁFICO DE EVIDENCIA (MÁX 3)</h3>
+                  </div>
+                  <div className="form-group full-width" style={{ marginTop: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                    <label style={{ fontWeight: 'bold', color: '#334155', marginBottom: '0.5rem', display: 'block' }}>Subir Fotografías</label>
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*;capture=camera" 
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files);
+                        if(files.length > 3) {
+                          alert('Máximo 3 imágenes permitidas.');
+                          setImagenes(files.slice(0, 3));
+                        } else {
+                          setImagenes(files);
+                        }
+                      }}
+                      style={{ marginBottom: '1rem' }}
+                    />
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      {imagenes.map((file, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: '120px', height: '120px' }}>
+                          <img 
+                            src={URL.createObjectURL(file)} 
+                            alt={`Preview ${idx}`} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 {/* 7. OBSERVACIONES Y FIRMA DE LA PERSONA INFRACTORA */}
               <div className="section-block section-infraccion">
                 <div className="section-block-title">
@@ -1208,7 +1064,7 @@ const InfraccionDashboard = () => {
                         type="text"
                         placeholder="Nombre completo"
                         value={infRecibioNombre}
-                        onChange={(e) => setInfRecibioNombre(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''))}
+                        onChange={(e) => setInfRecibioNombre(e.target.value)}
                         className="infraccion-input"
                       />
                     </div>
@@ -1246,187 +1102,6 @@ const InfraccionDashboard = () => {
             </form>
           
         </div>
-
-        {/* Inputs ocultos para fallbacks de CameraModal */}
-        <input
-          id="camera-input-fallback"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          ref={fileInputRef}
-          className="hidden"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-
-        <input
-          id="gallery-input"
-          type="file"
-          accept="image/*"
-          ref={galleryInputRef}
-          className="hidden"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-
-        <CameraModal
-          isOpen={showCamera}
-          onClose={() => setShowCamera(false)}
-          onCapture={handleCaptureCamera}
-          fallbackTrigger={() => fileInputRef.current?.click()}
-          galleryTrigger={() => galleryInputRef.current?.click()}
-        />
-
-        {/* Lightbox / Modal para ver las fotos tomadas */}
-        {showPhotoModal && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            zIndex: 9999,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '20px'
-          }}>
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: '500px',
-              padding: '20px',
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '15px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>Fotos Tomadas</h3>
-                <button 
-                  type="button" 
-                  onClick={() => setShowPhotoModal(false)}
-                  style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
-                >
-                  &times;
-                </button>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
-                {imagenes.map((file, idx) => (
-                  <div key={idx} style={{ position: 'relative', width: '100%', aspectRatio: '1/1' }}>
-                    <img 
-                      src={URL.createObjectURL(file)} 
-                      alt={`Preview ${idx}`} 
-                      onClick={() => setZoomedImage(URL.createObjectURL(file))}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'zoom-in' }} 
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const copy = [...imagenes];
-                        copy.splice(idx, 1);
-                        setImagenes(copy);
-                        if (copy.length === 0) setShowPhotoModal(false);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        background: 'rgba(239, 68, 68, 0.9)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '20px',
-                        height: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }}
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <button 
-                type="button"
-                onClick={() => setShowPhotoModal(false)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  background: '#64748b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                Cerrar Vista
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Overlay de zoom para la foto elegida */}
-        {zoomedImage && (
-          <div 
-            onClick={() => setZoomedImage(null)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.95)',
-              zIndex: 10000,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              cursor: 'zoom-out',
-              padding: '10px'
-            }}
-          >
-            <div style={{ position: 'relative', maxWidth: '100vw', maxHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <img 
-                src={zoomedImage} 
-                alt="Zoomed evidence" 
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                  borderRadius: '4px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setZoomedImage(null)}
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}
-              >
-                &times;
-              </button>
-            </div>
-          </div>
-        )}
-
       </main>
     </div>
   );

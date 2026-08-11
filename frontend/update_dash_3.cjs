@@ -4,10 +4,10 @@ import Header from '../../components/Header/Header';
 import SignaturePad from '../../components/SignaturePad/SignaturePad';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
-import CameraModal from '../../components/CameraModal';
 import API_BASE from '../../config/api';
-import { AuthContext } from "../../context/AuthContext";
-import { generarPDFInfraccion } from "../../utils/generarPDFInfraccion";
+import { AuthContext } from '../../context/AuthContext';
+import { generarPDFAmonestacion } from '../../utils/generarPDFAmonestacion';
+import { generarPDFInfraccion } from '../../utils/generarPDFInfraccion';
 import './Infraccion.css';
 
 const UMA_VALOR_2026 = 108.57; // Valor de referencia UMA para cálculo visual en pesos
@@ -130,45 +130,6 @@ const InfraccionDashboard = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [infMunicipio, setInfMunicipio] = useState('Pachuca de Soto');
   const [infUbicacionExacta, setInfUbicacionExacta] = useState('');
-  const [infPlaca, setInfPlaca] = useState('');
-  const [imagenes, setImagenes] = useState([]);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const [zoomedImage, setZoomedImage] = useState(null);
-  const fileInputRef = useRef(null);
-  const galleryInputRef = useRef(null);
-
-  const base64ToFile = async (dataUrl, filename) => {
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    return new File([blob], filename, { type: 'image/jpeg' });
-  };
-
-  const addPhotoFile = (file) => {
-    setImagenes((prev) => {
-      if (prev.length >= 5) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Límite alcanzado',
-          text: 'Máximo 5 imágenes permitidas.',
-          confirmButtonColor: '#601a2a'
-        });
-        return prev.slice(0, 5);
-      }
-      return [...prev, file];
-    });
-  };
-
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    files.forEach(file => addPhotoFile(file));
-  };
-
-  const handleCaptureCamera = async (dataUrl) => {
-    const file = await base64ToFile(dataUrl, `captura_${Date.now()}.jpg`);
-    addPhotoFile(file);
-  };
-
 
   // Vehículo Infracción
   const [infEntidad, setInfEntidad] = useState('Hidalgo');
@@ -241,94 +202,39 @@ const InfraccionDashboard = () => {
     }
   }, [placas]);
 
-  
-  useEffect(() => {
-    if (navigator.geolocation) {
-      setInfUbicacionExacta('Obteniendo ubicación (GPS)...');
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const { latitude, longitude } = position.coords;
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-            const data = await res.json();
-            if (data && data.address) {
-              const calle = data.address.road || '';
-              const num = data.address.house_number || 'S/N';
-              const col = data.address.suburb || data.address.neighbourhood || '';
-              const mpo = data.address.city || data.address.town || data.address.municipality || 'Pachuca de Soto';
-              
-              setInfMunicipio(mpo);
-              setInfUbicacionExacta(`${calle} ${num}, ${col}`.trim());
-            } else {
-              setInfUbicacionExacta('Ubicación no encontrada');
-            }
-          } catch (err) {
-            setInfUbicacionExacta('Error al obtener ubicación');
-          }
-        },
-        (err) => {
-          setInfUbicacionExacta('Permiso de ubicación denegado');
-        }
-      );
-    } else {
-      setInfUbicacionExacta('Geolocalización no soportada');
-    }
-  }, []);
-
-
-    const verificarPlaca = async (placaVal) => {
+  const verificarPlaca = async (placaVal) => {
     if (!placaVal.trim()) return;
     setCheckingPlaca(true);
     try {
-      const res = await fetch(`${API_BASE}/api/infracciones/check/${encodeURIComponent(placaVal)}`, {
+      const res = await fetch(`${API_BASE}/api/amonestaciones/check/${encodeURIComponent(placaVal)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setPlacaStatus(data);
 
+        // Auto-llenar campos si ya existen antecedentes en la base de datos
         if (data.latest) {
           const prev = data.latest;
-          const searchTerm = placaVal.toUpperCase().trim();
-          
-          // Clasificamos si el término buscado es placa o nombre
-          const isPlacaSearch = /^[A-Z0-9-]+$/.test(searchTerm) && searchTerm.length <= 10;
+          setEntidadFederativa(prev.entidad_federativa || 'Hidalgo');
+          setMarca(prev.marca || '');
+          setModelo(prev.modelo || '');
+          setColor(prev.color || '');
+          setConductorNombre(prev.conductor_nombre || '');
+          setRecibioNombre(prev.conductor_nombre || '');
+          if (prev.inspector_gafete) setInspectorGafete(prev.inspector_gafete);
 
-          if (isPlacaSearch) {
-            // Llenar VEHÍCULO y PLACA
-            setInfPlaca(prev.placas || searchTerm);
-            setInfEntidad(prev.entidad_federativa || 'Hidalgo');
-            setInfMarca(prev.marca || '');
-            setInfModelo(prev.modelo || '');
-            setInfColor(prev.color || '');
-            setInfSubmarca(prev.submarca || '');
-            setInfNivVin(prev.niv_vin || '');
-            setInfTipoVehiculo(prev.tipo_vehiculo || 'Particular');
-            
-            // NO limpiamos conductor para permitir búsquedas cruzadas
-          } else {
-            // Llenar CONDUCTOR (Nombre Completo)
-            const nombreCompleto = prev.conductor_nombre || '';
-            setInfConductorNombre(nombreCompleto);
-            setInfRecibioNombre(nombreCompleto);
-            
-            setInfConductorDomicilio(prev.conductor_domicilio || '');
-            setInfLicenciaNumero(prev.licencia_numero || '');
-            setInfLicenciaTipo(prev.licencia_tipo || '');
-            setInfLicenciaEstado(prev.licencia_estado || 'Hidalgo');
-            setInfCalidadConductor(prev.calidad_conductor || 'Conductora');
-            if (prev.inspector_gafete) setInfInspectorGafete(prev.inspector_gafete);
-            
-            // NO limpiamos vehículo para permitir búsquedas cruzadas
-          }
-        } else {
-          // Si no hay antecedentes, al menos rellenamos la placa si el término parece placa
-          const searchTerm = placaVal.toUpperCase().trim();
-          const isPlacaSearch = /^[A-Z0-9-]+$/.test(searchTerm) && searchTerm.length <= 10;
-          if (isPlacaSearch) {
-            setInfPlaca(searchTerm);
-          }
+          setInfEntidad(prev.entidad_federativa || 'Hidalgo');
+          setInfMarca(prev.marca || '');
+          setInfModelo(prev.modelo || '');
+          setInfColor(prev.color || '');
+          setInfConductorNombre(prev.conductor_nombre || '');
+          setInfRecibioNombre(prev.conductor_nombre || '');
+          if (prev.inspector_gafete) setInfInspectorGafete(prev.inspector_gafete);
         }
+
+        // Sugerir formulario predeterminado pero permitiendo libre selección al usuario
+        setTipoFormulario(data.has_amonestacion ? 'infraccion' : 'amonestacion');
       }
     } catch (_err) {
       console.error('Error al verificar placa:', _err);
@@ -338,7 +244,7 @@ const InfraccionDashboard = () => {
   };
 
   const handlePlacasChange = (e) => {
-    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9-\sÑÁÉÍÓÚ]/g, '');
+    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     setPlacas(val);
   };
 
@@ -371,7 +277,6 @@ const InfraccionDashboard = () => {
     });
     setInfMunicipio('Pachuca de Soto');
     setInfUbicacionExacta('');
-    setInfPlaca('');
     setInfEntidad('Hidalgo');
     setInfMarca('');
     setInfSubmarca('');
@@ -426,51 +331,55 @@ const InfraccionDashboard = () => {
     setSubmitting(true);
 
     try {
-      const payload = {
-        amonestacion_id: placaStatus?.latest?.id || null,
-        fecha_expedicion: infFechaExpedicion,
-        hora_intervencion: infHoraIntervencion,
-        municipio: infMunicipio,
-        ubicacion_exacta: infUbicacionExacta,
+      const formData = new FormData();
+      formData.append('fecha_expedicion', infFechaExpedicion);
+      formData.append('hora_intervencion', infHoraIntervencion);
+      formData.append('municipio', infMunicipio);
+      formData.append('calle', infCalle);
+      formData.append('numero', infNumero);
+      formData.append('colonia', infColonia);
+      
+      formData.append('placas', placas);
+      formData.append('entidad_federativa', infEntidad);
+      formData.append('marca', infMarca);
+      formData.append('submarca', infSubmarca);
+      formData.append('modelo', infModelo);
+      formData.append('color', infColor);
+      formData.append('niv_vin', infNivVin);
+      formData.append('tipo_vehiculo', infTipoVehiculo);
+      
+      formData.append('conductor_nombre', infConductorNombre);
+      formData.append('conductor_domicilio', infConductorDomicilio);
+      formData.append('licencia_numero', infLicenciaNumero);
+      formData.append('licencia_tipo', infLicenciaTipo);
+      formData.append('licencia_estado', infLicenciaEstado);
+      formData.append('calidad_conductor', infCalidadConductor);
+      
+      formData.append('motivacion_hecho', infMotivacionHecho);
+      formData.append('descripcion_hechos', infDescripcionHechos);
+      
+      formData.append('sancion_uma', infSancionUma || '0');
+      formData.append('garantia_tipo', infGarantiaRetenida ? (infGarantiaObservaciones || 'Detención') : 'Ninguna');
+      formData.append('garantia_observaciones', infGarantiaObservaciones);
+      
+      formData.append('inspector_gafete', infInspectorGafete);
+      formData.append('firma_inspector', infFirmaInspector);
+      
+      formData.append('conductor_nego_firmar', infNegoFirmar ? 'true' : 'false');
+      formData.append('recibio_nombre', infRecibioNombre);
+      formData.append('firma_conductor', infFirmaConductor);
 
-        placas,
-        entidad_federativa: infEntidad,
-        marca: infMarca,
-        submarca: infSubmarca,
-        modelo: infModelo,
-        color: infColor,
-        niv_vin: infNivVin,
-        tipo_vehiculo: infTipoVehiculo,
-
-        conductor_nombre: infConductorNombre,
-        conductor_domicilio: infConductorDomicilio,
-        licencia_numero: infLicenciaNumero,
-        licencia_tipo: infLicenciaTipo,
-        licencia_estado: infLicenciaEstado,
-        calidad_conductor: infCalidadConductor,
-
-        motivacion_hecho: infMotivacionHecho,
-        descripcion_hechos: infDescripcionHechos,
-
-        sancion_uma: parseFloat(infSancionUma) || 0,
-        garantia_tipo: infGarantiaRetenida ? 'Detención del Vehículo (Grúa / Depósito Vehicular)' : 'Otra Garantía',
-        garantia_observaciones: infGarantiaObservaciones,
-
-        inspector_gafete: infInspectorGafete,
-        firma_inspector: infFirmaInspector,
-
-        conductor_nego_firmar: Boolean(infNegoFirmar),
-        recibio_nombre: infNegoFirmar ? null : (infRecibioNombre || infConductorNombre),
-        firma_conductor: infNegoFirmar ? null : infFirmaConductor,
-      };
+      if (imagenes[0]) formData.append('imagen_1', imagenes[0]);
+      if (imagenes[1]) formData.append('imagen_2', imagenes[1]);
+      if (imagenes[2]) formData.append('imagen_3', imagenes[2]);
 
       const res = await fetch(`${API_BASE}/api/infracciones`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Authorization': `Bearer ${token}`
+          // No set Content-Type, let the browser set boundary for multipart/form-data
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const data = await res.json();
@@ -578,14 +487,14 @@ const InfraccionDashboard = () => {
           <div className="plate-verification-card">
             <div className="plate-verification-header">
               <span className="step-tag">PASO 1</span>
-              <h4>BUSCAR VEHÍCULO O INFRACTOR</h4>
+              <h4>VALIDAR PLACAS DEL VEHÍCULO EN CARRIL TRONCAL</h4>
             </div>
 
             <div className="plate-input-wrapper">
               <div className="input-with-button">
                 <input
                   type="text"
-                  placeholder="Escriba la placa o el nombre del infractor..."
+                  placeholder="Escriba las placas (ej. HNK-123-A)"
                   value={placas}
                   onChange={handlePlacasChange}
                   className="plate-main-input uppercase-input"
@@ -596,7 +505,7 @@ const InfraccionDashboard = () => {
                   onClick={() => verificarPlaca(placas)}
                   disabled={checkingPlaca || !placas.trim()}
                 >
-                  {checkingPlaca ? 'Buscando...' : 'Buscar'}
+                  {checkingPlaca ? 'Verificando...' : 'Verificar Placas'}
                 </button>
               </div>
             </div>
@@ -627,15 +536,11 @@ const InfraccionDashboard = () => {
                       </svg>
                     )}
                     <div className="status-hero-content">
-                      <div className={`status-hero-badge ${placaStatus.has_amonestacion ? 'red' : 'green'}`}>
-                        {placaStatus.has_amonestacion
-                          ? `ANTECEDENTES DETECTADOS (${placaStatus.total_amonestaciones} AMONESTACIÓN/ES)`
-                          : 'SIN ANTECEDENTES REGISTRADOS'}
+                      <div className="status-hero-badge red">
+                        'INFRACCIÓN DE TRÁNSITO'
                       </div>
                       <h3>
-                        {placaStatus.has_amonestacion
-                          ? `HISTORIAL REGISTRADO — PLACAS ${placaStatus.placa}`
-                          : `VEHÍCULO SIN ANTECEDENTES — PLACAS ${placaStatus.placa}`}
+                        `REGISTRO DE INFRACCIÓN — PLACAS ${placaStatus.placa}`
                       </h3>
                       <p>
                         {placaStatus.has_amonestacion
@@ -645,16 +550,320 @@ const InfraccionDashboard = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* ── SELECTOR DE PROCEDIMIENTO ── */}
+                <div className="procedure-selector-container">
+                  <label className="procedure-selector-label">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.4rem', verticalAlign: 'middle' }}>
+                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    Seleccione el tipo de procedimiento a registrar:
+                  </label>
+                  <div className="procedure-selector-grid">
+
+                    {/* Botón: Acta de Amonestación */}
+                    <button
+                      type="button"
+                      onClick={() => setTipoFormulario('amonestacion')}
+                      className={`btn-procedure-option ${tipoFormulario === 'amonestacion' ? 'active-amonestacion' : ''}`}
+                    >
+                      <span className="proc-icon-wrap amonestacion-icon-wrap">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                      </span>
+                      <span className="proc-label">Acta de Amonestación</span>
+                    </button>
+
+                    {/* Botón: Boleta de Infracción */}
+                    <button
+                      type="button"
+                      onClick={() => setTipoFormulario('infraccion')}
+                      className={`btn-procedure-option ${tipoFormulario === 'infraccion' ? 'active-infraccion' : ''}`}
+                    >
+                      <span className="proc-icon-wrap infraccion-icon-wrap">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                      </span>
+                      <span className="proc-label">Boleta de Infracción</span>
+                    </button>
+
+                  </div>
+                </div>
               </>
             )}
           </div>
 
+          {/* ========================================================================= */}
+          {/* CASO A: FORMULARIO DE AMONESTACIÓN                                        */}
+          {/* ========================================================================= */}
+          {tipoFormulario === 'amonestacion' && (
+            <form className="amonestacion-card-form" onSubmit={handleSubmitAmonestacion}>
+              <div className="amonestacion-header-title">
+                <h2>ACTA DE AMONESTACIÓN</h2>
+                <p className="subtitle-legal">
+                  Invasión de Carril Exclusivo Troncal (URBANUSS) • Secretaría de Movilidad y Transporte del Estado de Hidalgo
+                </p>
+              </div>
+
+              {/* Encabezado: Fecha y Lugar */}
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label font-semibold">Fecha del Acta</label>
+                  <AppleDatePicker
+                    value={fechaAmonestacion}
+                    onChange={(val) => setFechaAmonestacion(val)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label font-semibold">Lugar (Ciudad, Estado de Hidalgo)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Pachuca de Soto, Estado de Hidalgo"
+                    value={lugarAmonestacion}
+                    onChange={(e) => setLugarAmonestacion(e.target.value)}
+                    className="infraccion-input"
+                  />
+                </div>
+              </div>
+
+              {/* SECCIÓN 1: DATOS DEL VEHÍCULO INFRACTOR */}
+              <div className="section-block">
+                <div className="section-block-title">
+                  <span className="section-number">1</span>
+                  <h3>DATOS DEL VEHÍCULO INFRACTOR</h3>
+                </div>
+
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Placas de Circulación *</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={15}
+                      placeholder="Ej. HNK-123-A"
+                      value={placas}
+                      onChange={handlePlacasChange}
+                      className="infraccion-input uppercase-input highlight-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Entidad Federativa *</label>
+                    <CustomSelect
+                      value={entidadFederativa}
+                      onChange={setEntidadFederativa}
+                      options={ENTIDADES}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Marca *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Nissan, Chevrolet..."
+                      value={marca}
+                      onChange={(e) => setMarca(e.target.value)}
+                      className="infraccion-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid-3">
+                  <div className="form-group">
+                    <label className="form-label">Modelo *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Versa 2022"
+                      value={modelo}
+                      onChange={(e) => setModelo(e.target.value)}
+                      className="infraccion-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Color *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. Blanco / Plata"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="infraccion-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Nombre de la persona conductora *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nombre completo"
+                      value={conductorNombre}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setConductorNombre(val);
+                        setRecibioNombre(val);
+                      }}
+                      className="infraccion-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Identificación Oficial (Licencia / INE)</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Licencia No. LIC-987654 / Clave Elector"
+                    value={conductorIdentificacion}
+                    onChange={(e) => setConductorIdentificacion(e.target.value)}
+                    className="infraccion-input"
+                  />
+                </div>
+              </div>
+
+              {/* SECCIÓN 2: DATOS DE LA PERSONA INSPECTORA */}
+              <div className="section-block">
+                <div className="section-block-title">
+                  <span className="section-number">2</span>
+                  <h3>DATOS DE LA PERSONA INSPECTORA DE TRANSPORTE QUE EMITE LA PRESENTE</h3>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Nombre del Inspector (Usuario en Sesión)</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={user?.nombre_completo || 'INSPECTOR EN SESIÓN'}
+                      className="infraccion-input disabled-input font-bold"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">No. Gafete / Credencial *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. GAF-2026-042"
+                      value={inspectorGafete}
+                      onChange={(e) => setInspectorGafete(e.target.value)}
+                      className="infraccion-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Adscripción</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="Dirección Jurídica del SITMAH"
+                    className="infraccion-input disabled-input"
+                  />
+                </div>
+
+                <div className="signature-section-wrapper">
+                  <SignaturePad
+                    label="Firma de la persona inspectora del transporte *"
+                    onSave={(base64) => setFirmaInspector(base64)}
+                    onClear={() => setFirmaInspector('')}
+                    height={150}
+                  />
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: NOTIFICACIÓN DE LA PRESENTE ACTA */}
+              <div className="section-block">
+                <div className="section-block-title">
+                  <span className="section-number">3</span>
+                  <h3>RECIBÍ NOTIFICACIÓN DE LA PRESENTE ACTA</h3>
+                </div>
+
+                <div className="checkbox-negativa-card">
+                  <label className="checkbox-custom-container">
+                    <input
+                      type="checkbox"
+                      checked={conductorNegoFirmar}
+                      onChange={(e) => {
+                        const val = Boolean(e.target.checked);
+                        setConductorNegoFirmar(val);
+                        if (val) setFirmaConductor('');
+                      }}
+                    />
+                    <span className="checkmark"></span>
+                    <span className="checkbox-text-legal">
+                      <b>La persona conductora se negó a firmar o a recibir copia de la presente acta.</b>
+                      <br />
+                      <small style={{ color: '#6b7280', fontSize: '0.825rem' }}>
+                        (Artículos 258 y 260 de la Ley de Movilidad y Transporte para el Estado de Hidalgo y Art. 49 de su Reglamento).
+                      </small>
+                    </span>
+                  </label>
+                </div>
+
+                {conductorNegoFirmar ? (
+                  <div className="negativa-notice-box">
+                    <span className="notice-icon">ℹ️</span>
+                    <div>
+                      <strong>Acta asentada con negativa de firma</strong>
+                      <p>Al haberse negado a firmar la persona conductora, el acta adquiere validez plena conforme a la Ley de Movilidad.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="driver-signature-block">
+                    <div className="form-group">
+                      <label className="form-label">Nombre de la persona conductora que recibe</label>
+                      <input
+                        type="text"
+                        placeholder="Nombre del conductor"
+                        value={recibioNombre}
+                        onChange={(e) => setRecibioNombre(e.target.value)}
+                        className="infraccion-input"
+                      />
+                    </div>
+
+                    <div className="signature-section-wrapper">
+                      <SignaturePad
+                        label="Firma de la persona conductora *"
+                        onSave={(base64) => setFirmaConductor(base64)}
+                        onClear={() => setFirmaConductor('')}
+                        height={150}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="amonestacion-form-actions">
+                <button
+                  type="button"
+                  className="btn-cancel-form"
+                  onClick={resetForm}
+                  disabled={submitting}
+                >
+                  Limpiar Formulario
+                </button>
+                <button
+                  type="submit"
+                  className="btn-submit-form"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Guardando Acta...' : 'Guardar y Registrar Acta'}
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* ========================================================================= */}
           {/* CASO B: FORMULARIO DE INFRACCIÓN                                          */}
           {/* ========================================================================= */}
-          
-            <form className="infraccion-card-form" onSubmit={handleSubmitInfraccion}>
+          <form className="infraccion-card-form" onSubmit={handleSubmitInfraccion}>
               <div className="infraccion-header-title">
                 <h2>BOLETA DE INFRACCIÓN POR REINCIDENCIA</h2>
                 <p className="subtitle-legal">
@@ -662,62 +871,6 @@ const InfraccionDashboard = () => {
                 </p>
               </div>
 
-              
-              {/* BOTÓN DE CÁMARA (ESTILO CHECKLIST) */}
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', margin: '1rem 0 1.5rem 0', background: '#f8fafc', padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCamera(true)}
-                  style={{
-                    background: '#991b1b',
-                    color: '#ffffff',
-                    border: 'none',
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    flexShrink: 0
-                  }}
-                  title="Tomar Foto"
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </button>
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Evidencia fotográfica (Máx 5)</span>
-
-                {imagenes.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPhotoModal(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      background: '#f1f5f9',
-                      color: '#1e293b',
-                      border: '1px solid #cbd5e1',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      marginLeft: 'auto'
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" style={{ marginRight: '4px' }}>
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                    Ver ({imagenes.length})
-                  </button>
-                )}
-              </div>
-  
               {/* 1. LUGAR, FECHA Y HORA DE EMISIÓN */}
               <div className="section-block section-infraccion">
                 <div className="section-block-title">
@@ -799,22 +952,22 @@ const InfraccionDashboard = () => {
                     <label className="form-label">Municipio *</label>
                     <input
                       type="text"
-                      readOnly
-                      placeholder="Obteniendo ubicación (GPS)..."
+                      required
+                      placeholder="Ej. Pachuca de Soto"
                       value={infMunicipio}
-                      className="infraccion-input disabled-input"
-                      style={{ backgroundColor: '#f1f5f9' }}
+                      onChange={(e) => setInfMunicipio(e.target.value)}
+                      className="infraccion-input"
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Ubicación Exacta *</label>
                     <input
                       type="text"
-                      readOnly
-                      placeholder="Obteniendo ubicación (GPS)..."
+                      required
+                      placeholder="Ej. Av. Revolución esq. Allende, Carril Confinado Troncal"
                       value={infUbicacionExacta}
-                      className="infraccion-input disabled-input"
-                      style={{ backgroundColor: '#f1f5f9' }}
+                      onChange={(e) => setInfUbicacionExacta(e.target.value)}
+                      className="infraccion-input"
                     />
                   </div>
                 </div>
@@ -852,10 +1005,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Nissan"
                       value={infMarca}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '');
-                        setInfMarca(val.charAt(0).toUpperCase() + val.slice(1));
-                      }}
+                      onChange={(e) => setInfMarca(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -868,10 +1018,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. Versa / Sedan"
                       value={infSubmarca}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '');
-                        setInfSubmarca(val.charAt(0).toUpperCase() + val.slice(1));
-                      }}
+                      onChange={(e) => setInfSubmarca(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -882,7 +1029,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. 2022"
                       value={infModelo}
-                      onChange={(e) => setInfModelo(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                      onChange={(e) => setInfModelo(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -893,10 +1040,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Plata / Blanco"
                       value={infColor}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^a-zA-Z\s-]/g, '');
-                        setInfColor(val.charAt(0).toUpperCase() + val.slice(1));
-                      }}
+                      onChange={(e) => setInfColor(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -909,7 +1053,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. 3N1AB7AP0KY123456"
                       value={infNivVin}
-                      onChange={(e) => setInfNivVin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 17))}
+                      onChange={(e) => setInfNivVin(e.target.value.toUpperCase())}
                       className="infraccion-input uppercase-input"
                     />
                   </div>
@@ -940,10 +1084,9 @@ const InfraccionDashboard = () => {
                       placeholder="Nombre completo"
                       value={infConductorNombre}
                       onChange={(e) => {
-                        const newVal = e.target.value;
-                        setInfConductorNombre(newVal);
-                        if (!infNegoFirmar && (!infRecibioNombre || infRecibioNombre === infConductorNombre)) {
-                          setInfRecibioNombre(newVal);
+                        setInfConductorNombre(e.target.value);
+                        if (!infNegoFirmar && !infRecibioNombre) {
+                          setInfRecibioNombre(e.target.value);
                         }
                       }}
                       className="infraccion-input"
@@ -965,7 +1108,7 @@ const InfraccionDashboard = () => {
                     type="text"
                     placeholder="Calle, Número, Colonia, Municipio, Estado"
                     value={infConductorDomicilio}
-                    onChange={(e) => setInfConductorDomicilio(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,.\-#/]/g, ''))}
+                    onChange={(e) => setInfConductorDomicilio(e.target.value)}
                     className="infraccion-input"
                   />
                 </div>
@@ -977,25 +1120,18 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. LIC-987654"
                       value={infLicenciaNumero}
-                      onChange={(e) => setInfLicenciaNumero(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                      onChange={(e) => setInfLicenciaNumero(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Tipo de Licencia</label>
-                    <CustomSelect
+                    <input
+                      type="text"
+                      placeholder="Ej. Tipo A / Tipo B"
                       value={infLicenciaTipo}
-                      onChange={setInfLicenciaTipo}
-                      options={[
-                        'Tipo A (Servicio Público / Colectivo)',
-                        'Tipo B (Chofer / Carga)',
-                        'Tipo C (Servicio Particular)',
-                        'Tipo D (Motociclista)',
-                        'Chofer (Hidalgo)',
-                        'Automovilista (Hidalgo)',
-                        'Otro'
-                      ]}
-                      placeholder="SELECCIONAR"
+                      onChange={(e) => setInfLicenciaTipo(e.target.value)}
+                      className="infraccion-input"
                     />
                   </div>
                   <div className="form-group">
@@ -1004,7 +1140,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. Hidalgo"
                       value={infLicenciaEstado}
-                      onChange={(e) => setInfLicenciaEstado(e.target.value.toUpperCase().replace(/[^A-Z\s]/g, ''))}
+                      onChange={(e) => setInfLicenciaEstado(e.target.value)}
                       className="infraccion-input"
                     />
                   </div>
@@ -1162,8 +1298,7 @@ const InfraccionDashboard = () => {
                 </div>
               </div>
 
-              
-                {/* 7. OBSERVACIONES Y FIRMA DE LA PERSONA INFRACTORA */}
+              {/* 7. OBSERVACIONES Y FIRMA DE LA PERSONA INFRACTORA */}
               <div className="section-block section-infraccion">
                 <div className="section-block-title">
                   <span className="section-number red">7</span>
@@ -1208,7 +1343,7 @@ const InfraccionDashboard = () => {
                         type="text"
                         placeholder="Nombre completo"
                         value={infRecibioNombre}
-                        onChange={(e) => setInfRecibioNombre(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''))}
+                        onChange={(e) => setInfRecibioNombre(e.target.value)}
                         className="infraccion-input"
                       />
                     </div>
@@ -1244,189 +1379,8 @@ const InfraccionDashboard = () => {
                 </button>
               </div>
             </form>
-          
+          )}
         </div>
-
-        {/* Inputs ocultos para fallbacks de CameraModal */}
-        <input
-          id="camera-input-fallback"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          ref={fileInputRef}
-          className="hidden"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-
-        <input
-          id="gallery-input"
-          type="file"
-          accept="image/*"
-          ref={galleryInputRef}
-          className="hidden"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
-
-        <CameraModal
-          isOpen={showCamera}
-          onClose={() => setShowCamera(false)}
-          onCapture={handleCaptureCamera}
-          fallbackTrigger={() => fileInputRef.current?.click()}
-          galleryTrigger={() => galleryInputRef.current?.click()}
-        />
-
-        {/* Lightbox / Modal para ver las fotos tomadas */}
-        {showPhotoModal && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            zIndex: 9999,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '20px'
-          }}>
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: '500px',
-              padding: '20px',
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '15px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>Fotos Tomadas</h3>
-                <button 
-                  type="button" 
-                  onClick={() => setShowPhotoModal(false)}
-                  style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
-                >
-                  &times;
-                </button>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
-                {imagenes.map((file, idx) => (
-                  <div key={idx} style={{ position: 'relative', width: '100%', aspectRatio: '1/1' }}>
-                    <img 
-                      src={URL.createObjectURL(file)} 
-                      alt={`Preview ${idx}`} 
-                      onClick={() => setZoomedImage(URL.createObjectURL(file))}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'zoom-in' }} 
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const copy = [...imagenes];
-                        copy.splice(idx, 1);
-                        setImagenes(copy);
-                        if (copy.length === 0) setShowPhotoModal(false);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        right: '4px',
-                        background: 'rgba(239, 68, 68, 0.9)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '20px',
-                        height: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }}
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <button 
-                type="button"
-                onClick={() => setShowPhotoModal(false)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  background: '#64748b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                Cerrar Vista
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Overlay de zoom para la foto elegida */}
-        {zoomedImage && (
-          <div 
-            onClick={() => setZoomedImage(null)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.95)',
-              zIndex: 10000,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              cursor: 'zoom-out',
-              padding: '10px'
-            }}
-          >
-            <div style={{ position: 'relative', maxWidth: '100vw', maxHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <img 
-                src={zoomedImage} 
-                alt="Zoomed evidence" 
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                  borderRadius: '4px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setZoomedImage(null)}
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}
-              >
-                &times;
-              </button>
-            </div>
-          </div>
-        )}
-
       </main>
     </div>
   );

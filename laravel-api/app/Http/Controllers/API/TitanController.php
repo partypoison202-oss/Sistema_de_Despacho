@@ -172,14 +172,18 @@ class TitanController extends Controller
                 'accidente_seguro'       => 'nullable',
                 'accidente_hechos'       => 'nullable|string',
                 'accidente_genero'       => 'nullable|string',
-                // Campos extendidos Código Ámbar / Rojo
+                // Campos de main
+                'accidente_hecho_tipo' => 'nullable|string',
+                'accidente_favor_de_quien' => 'nullable|string',
+                'accidente_cantidades_dinero' => 'nullable|string',
+                // Campos extendidos Código Ámbar / Rojo (HEAD)
                 'lesionados_cantidad'    => 'nullable|integer',
                 'nombres_afectados'      => 'nullable|string',
                 'asistencia_sitio'       => 'nullable|string',   // JSON string
                 'diagnostico_preliminar' => 'nullable|string',
                 'amerita_traslado'       => 'nullable',
                 'estatus_legal'          => 'nullable|string',
-                // Campos Código Naranja
+                // Campos Código Naranja (HEAD)
                 'usuario_anonimo'        => 'nullable',
                 'estacion_hecho'         => 'nullable|string',
                 'ruta_hecho'             => 'nullable|string',
@@ -224,9 +228,16 @@ class TitanController extends Controller
                 'accidente_genero'        => $validated['accidente_genero']        ?? null,
                 'accidente_placas'        => $validated['accidente_placas']        ?? null,
                 'accidente_seguro'        => $normalizeBool($request->input('accidente_seguro')),
+                'accidente_hecho_tipo'    => $validated['accidente_hecho_tipo']    ?? null,
+                'accidente_favor_de_quien'=> $validated['accidente_favor_de_quien']?? null,
+                'accidente_cantidades_dinero' => $validated['accidente_cantidades_dinero'] ?? null,
                 'accidente_hechos'        => $validated['accidente_hechos']        ?? null,
+                'accidente_hubo_fallecidos' => $validated['accidente_hubo_fallecidos'] ?? null,
+                'accidente_fallecidos_cantidad' => $validated['accidente_fallecidos_cantidad'] ?? null,
+                'accidente_fallecidos_nombres' => $validated['accidente_fallecidos_nombres'] ?? null,
+                'accidente_hora_fallecimiento' => $validated['accidente_hora_fallecimiento'] ?? null,
+                'accidente_hora_asistencia_cemefo' => $validated['accidente_hora_asistencia_cemefo'] ?? null,
                 'firma_particular_url'    => $rutaFirma,
-                // Nuevos campos
                 'lesionados_cantidad'     => isset($validated['lesionados_cantidad']) ? (int)$validated['lesionados_cantidad'] : null,
                 'nombres_afectados'       => $validated['nombres_afectados']       ?? null,
                 'asistencia_sitio'        => $validated['asistencia_sitio']        ?? null,

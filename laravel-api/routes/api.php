@@ -12,8 +12,8 @@ use App\Http\Controllers\API\TitanController;
 use App\Http\Controllers\API\TitanReporteController;
 use App\Http\Controllers\API\HistorialOperativoController;
 use App\Http\Controllers\API\BitacoraController;
-use App\Http\Controllers\API\AmonestacionController;
 use App\Http\Controllers\API\InfraccionController;
+use App\Http\Controllers\ObservacionCatalogoController;
 
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -21,6 +21,7 @@ Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 
 // Rutas que requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/observaciones-catalogo', [ObservacionCatalogoController::class, 'index']);
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
@@ -93,9 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bitacoras', [BitacoraController::class, 'store']);
 
     // RUTAS PARA AMONESTACIONES E INFRACCIONES
-    Route::get('/amonestaciones/check/{placa}', [AmonestacionController::class, 'checkPlaca']);
-    Route::get('/amonestaciones', [AmonestacionController::class, 'index']);
-    Route::post('/amonestaciones', [AmonestacionController::class, 'store']);
+    Route::get('/infracciones/check/{placa}', [InfraccionController::class, 'checkPlaca']);
     Route::get('/infracciones', [InfraccionController::class, 'index']);
     Route::post('/infracciones', [InfraccionController::class, 'store']);
 });

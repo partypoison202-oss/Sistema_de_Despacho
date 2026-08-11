@@ -5,7 +5,7 @@ import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import UnitSelector from './componentsdetalleunidad/UnitSelector';
-import RutaSelector from './componentsdetalleunidad/RutaSelector';
+import RutaSelector from '../../components/RutaSelector/RutaSelectorUnified';
 import UnitInfoPanel from './componentsdetalleunidad/UnitInfoPanel';
 
 import './DetalleUnidad.css';
@@ -13,6 +13,7 @@ import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CONDUCTORES from '../../data/conductores';
 import Swal from 'sweetalert2';
+import { normalizeRuta, normalizeRutaClave } from '../../utils/rutaUtils';
 
 export default function DetalleUnidad() {
   const { tipoTransporte } = useParams();
@@ -39,6 +40,7 @@ export default function DetalleUnidad() {
 
   // ✅ NUEVO: estado del selector de rutas (alimentadoras)
   const [selectedRuta, setSelectedRuta] = useState(null);
+  const [selectedTroncal, setSelectedTroncal] = useState(null);
 
   const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
   const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
@@ -68,8 +70,10 @@ export default function DetalleUnidad() {
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
 
   // ✅ NUEVO: sólo las alimentadoras (zafiro, orion, vagoneta...) muestran el selector de rutas.
-  // Las troncales (urbanus / urbanuss) usan rutas distintas y no aplican aquí.
+  // Las troncales usan un selector TRONCAL fijo en URBANUSS.
   const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
+  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
+  const troncalesOpciones = ['T01', 'T02', 'T04', 'T05'];
 
   // Utilidades
   const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -94,12 +98,15 @@ export default function DetalleUnidad() {
     }
     if (!respuesta.ok) throw new Error('Error al obtener lista de unidades');
     const datos = await respuesta.json();
+    console.debug('[Despacho] fetchUnidades: muestra ejemplo de datos:', Array.isArray(datos) ? datos.slice(0,5) : datos);
     return (Array.isArray(datos) ? datos : []).map((u) => ({
       eco: String(u.numero_eco ?? '').padStart(3, '0'),
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: formatearEco(u.numero_eco),
-      estado: u.estatus || 'operacion',
-      horaSalida: u.hora_salida || '',
+      estado: String(u.estatus ?? 'operacion').trim().toLowerCase(),
+      ruta: String(u.ruta ?? '').trim(),
+      acople: Boolean(Number(u.acople ?? 0)),
+      horaSalida: String(u.hora_salida ?? '').trim(),
     }));
   };
 
@@ -161,20 +168,35 @@ export default function DetalleUnidad() {
     staleTime: 30000,
   });
 
+  // ✅ NUEVO: unidades de la troncal seleccionada, derivadas localmente (mismo patrón que Encierro)
+  const unidadesPorTroncalList = useMemo(() => {
+    if (!selectedTroncal) return [];
+    const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
+    return unidadesList.filter((u) => {
+      const rutaUnidad = normalizeRutaClave(u.ruta);
+      // Filtrar por troncal y excluir unidades acopladas (consistente con Encierro)
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+    });
+  }, [unidadesList, selectedTroncal]);
+
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);
     if (estado === 'operacion') {
-      filtradas = filtradas.filter((u) => !u.horaSalida);
+      filtradas = filtradas.filter((u) => !u.acople && !u.horaSalida);
     }
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
+      filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
+    }
+    if (selectedTroncal && isTroncal) {
+      const ecosEnRuta = unidadesPorTroncalList.map((u) => u.eco);
       filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
     }
     return filtradas;
   };
 
   const unidadesDisponiblesBusqueda = useMemo(
-    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.horaSalida),
+    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.acople && !u.horaSalida),
     [unidadesList]
   );
   const totalProgramadasOperacion = useMemo(
@@ -182,7 +204,12 @@ export default function DetalleUnidad() {
     [unidadesList]
   );
 
-  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
+  const handleSelectTroncal = (ruta) => {
+    setSelectedTroncal(ruta);
+    setSelectedRuta(null);
+    setOpenDropdown(null);
+  };
+
   const conductoresDisponibles = dbConductores.filter(c => 
     (c.estado_servicio === 'disponible' || c.estado_servicio === 'falta') && 
     (!isTroncal || c.tipo_tarjeton === 'C')
@@ -199,9 +226,17 @@ export default function DetalleUnidad() {
         if (res.ok) {
            const data = await res.json();
             if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
-              setRutasOpciones(data.troncales || []);
+              setRutasOpciones(data.troncales && data.troncales.length ? data.troncales : troncalesOpciones);
             } else {
-              setRutasOpciones(data.alimentadoras || []);
+              // fallback: use alimentadoras from API, or derive from unidadesList if empty
+              const alimentadorasFromApi = data.alimentadoras && data.alimentadoras.length ? data.alimentadoras : [];
+              if (alimentadorasFromApi.length) {
+                setRutasOpciones(alimentadorasFromApi);
+              } else {
+                // derive unique rutas (normalized) from unidadesList
+                const derived = Array.from(new Set(unidadesList.map(u => normalizeRuta(u.ruta)).filter(Boolean)));
+                setRutasOpciones(derived);
+              }
             }
         }
       } catch (err) {
@@ -211,7 +246,7 @@ export default function DetalleUnidad() {
     if (configActual) {
       fetchRutas();
     }
-  }, [configActual]);
+  }, [configActual, unidadesList]);
 
   useEffect(() => {
     const ecoDesdeRuta = searchParams.get('eco');
@@ -240,6 +275,7 @@ export default function DetalleUnidad() {
   // ✅ NUEVO: seleccionar una ruta alimentadora desde el dropdown de rutas
   const handleSelectRuta = (ruta) => {
     setSelectedRuta(ruta);
+    setSelectedTroncal(null);
     // Al cambiar de ruta, limpiamos la unidad seleccionada previamente
     // para evitar confusión entre el filtro por ruta y la unidad activa.
     setOpenDropdown(null);
@@ -262,7 +298,7 @@ export default function DetalleUnidad() {
       return;
     }
 
-    if (unidadSeleccionada.horaSalida) {
+    if (unidadSeleccionada.horaSalida || unidadSeleccionada.acople) {
       queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
         prev ? prev.filter((u) => u.eco !== String(unidadSeleccionada.eco).padStart(3, '0')) : []
       );
@@ -302,7 +338,7 @@ export default function DetalleUnidad() {
       });
 
       if (resultado.status === 'success') {
-        if (resultado.hora_salida) {
+        if (resultado.hora_salida || resultado.acople) {
           queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
             prev ? prev.filter((u) => u.eco !== numeroLimpio) : []
           );
@@ -366,7 +402,7 @@ export default function DetalleUnidad() {
       (unidad) => String(unidad.tarjeton ?? '').trim() === valor
     );
     if (unidadEncontrada) {
-      if (unidadEncontrada.horaSalida) {
+      if (unidadEncontrada.horaSalida || unidadEncontrada.acople) {
         setMensajeBusqueda('Esta unidad ya fue validada y no está disponible para despacho.');
         return;
       }
@@ -1101,6 +1137,20 @@ export default function DetalleUnidad() {
                   onSelectRuta={handleSelectRuta}
                 />
               )}
+
+              {/* ✅ NUEVO: selector TRONCAL para URBANUSS */}
+              {isTroncal && (
+                <RutaSelector
+                  isOpen={openDropdown === 'troncal'}
+                  setIsOpen={(open) => setOpenDropdown(open ? 'troncal' : null)}
+                  selectedRuta={selectedTroncal}
+                  titulo="TRONCAL"
+                  rutas={troncalesOpciones}
+                  cargandoRutas={false}
+                  configActual={configActual}
+                  onSelectRuta={handleSelectTroncal}
+                />
+              )}
             </div>
 
             {/* ✅ NUEVO: lista de unidades de la ruta seleccionada */}
@@ -1143,6 +1193,64 @@ export default function DetalleUnidad() {
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {unidadesPorRutaList.map((unidad) => (
+                      <button
+                        key={unidad.display}
+                        type="button"
+                        onClick={() => handleSelectUnit(unidad)}
+                        className="dropdown-menu__item"
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
+                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {unidad.display}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ✅ NUEVO: lista de unidades de la troncal seleccionada */}
+            {isTroncal && selectedTroncal && (
+              <div className="ruta-unidades-panel" style={{ width: '100%', marginTop: '1rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
+                    Unidades por salir en troncal {selectedTroncal}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTroncal(null)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#6b1d33',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Limpiar filtro
+                  </button>
+                </div>
+
+                {unidadesPorTroncalList.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {unidadesPorTroncalList.map((unidad) => (
                       <button
                         key={unidad.display}
                         type="button"

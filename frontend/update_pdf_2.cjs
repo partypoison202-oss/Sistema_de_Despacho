@@ -301,10 +301,15 @@ export const generarPDFInfraccion = async (datos = {}, accion = 'download') => {
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(71, 85, 105);
-    doc.text('Ubicación exacta:', margin + 3, y + 14.5);
+    doc.text('Ubicación:', margin + 3, y + 14.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(15, 23, 42);
-    doc.text(toTitleCase(datos.ubicacion_exacta || datos.lugar || 'Carril Confinado Troncal (URBANUSS)'), margin + 26, y + 14.5);
+    
+    const calle = datos.calle || '';
+    const num = datos.numero || 'S/N';
+    const col = datos.colonia || '';
+    const dirTexto = toTitleCase(`${calle} ${num}, Col. ${col}`).trim();
+    doc.text(dirTexto || 'Carril Confinado Troncal (URBANUSS)', margin + 17, y + 14.5);
 
     y += 18;
 
@@ -647,74 +652,6 @@ export const generarPDFInfraccion = async (datos = {}, accion = 'download') => {
     // Acciones de salida
     const cleanFolio = (datos.folio || 'BI-2026-0001').replace(/[/\\?%*:|"<>]/g, '_');
     const filename = `${cleanFolio}.pdf`;
-
-    // ── ANEXO FOTOGRÁFICO ──────────────────────────────────────────
-    if (datos.imagenes && datos.imagenes.length > 0) {
-      let currentIdxOnPage = 0;
-      for (let i = 0; i < datos.imagenes.length; i++) {
-        if (i >= 5) break; // max 5
-        const imgFile = datos.imagenes[i];
-        if (!imgFile) continue;
-
-        try {
-          // Convert file to base64 if it's a File object (which it is from the form)
-          const base64Data = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(imgFile);
-          });
-          
-          if (base64Data) {
-            const imgObj = await loadImage(base64Data);
-            if (imgObj) {
-              const opt = getOptimizedImage(imgObj, 600); // 600 max w for crispness
-              if (opt) {
-                // Si es la primera imagen en una página, añadimos página e imprimimos header
-                if (currentIdxOnPage % 4 === 0) {
-                  doc.addPage();
-                  // Dibujar encabezado
-                  doc.setFillColor(96, 26, 42);
-                  doc.roundedRect(margin, margin, contentW, 10, 1.5, 1.5, 'F');
-                  doc.setTextColor(255, 255, 255);
-                  doc.setFont('helvetica', 'bold');
-                  doc.setFontSize(11);
-                  doc.text('ANEXO FOTOGRÁFICO DE EVIDENCIA', pageW / 2, margin + 6.5, { align: 'center' });
-                }
-
-                // Cálculo de posiciones en la cuadrícula de 2x2
-                const col = currentIdxOnPage % 2;
-                const row = Math.floor((currentIdxOnPage % 4) / 2);
-                
-                const cellW = 90;
-                const cellH = 65;
-                const gapX = 8;
-                const gapY = 8;
-                const startY = margin + 10 + 10; // Espacio debajo del encabezado
-
-                // Ajuste proporcional de la imagen dentro de la celda de 90x65
-                let targetW = cellW;
-                let targetH = targetW / opt.aspect;
-                if (targetH > cellH) {
-                  targetH = cellH;
-                  targetW = targetH * opt.aspect;
-                }
-
-                const cellX = margin + col * (cellW + gapX);
-                const cellY = startY + row * (cellH + gapY);
-                const imgX = cellX + (cellW - targetW) / 2;
-                const imgY = cellY + (cellH - targetH) / 2;
-
-                doc.addImage(opt.dataUrl, 'PNG', imgX, imgY, targetW, targetH);
-                currentIdxOnPage++;
-              }
-            }
-          }
-        } catch(e) {
-            console.error("Error drawing image to pdf:", e);
-        }
-      }
-    }
 
     if (accion === 'open' || accion === 'print') {
       const pdfBlob = doc.output('blob');
