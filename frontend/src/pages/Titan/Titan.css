@@ -923,18 +923,34 @@
   user-select: none;
 }
 
+.titan-saludo-wrapper {
+  background: var(--brand-maroon-bg, #601a2a);
+  color: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 20px -5px rgba(96, 26, 42, 0.35);
+}
+
+.titan-saludo-ubicacion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .titan-saludo-ubicacion svg {
-  stroke: #6b1d33 !important; /* Guinda para el icono GPS */
+  stroke: #ffffff !important;
 }
 
 .titan-saludo-ubicacion p {
-  color: #4b5563 !important; /* Texto de GPS en gris oscuro para que sea legible en fondo blanco */
-  font-weight: 600;
+  color: #f3f4f6 !important;
+  font-weight: 500;
 }
 
 .titan-saludo-texto {
-  color: #111827; /* Gris muy oscuro casi negro */
-  font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 4px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.4rem;
+  margin: 0;
 }
