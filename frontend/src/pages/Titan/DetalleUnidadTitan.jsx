@@ -439,9 +439,9 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
             { key: 'ACCIDENTE',        label: 'Accidente' },
             { key: 'CHOQUE',           label: 'Choque' },
             { key: 'ATROPELLADO',      label: 'Atropellado' },
-            { key: 'CODIGO_AMBAR',     label: '🟡 Código Ámbar' },
-            { key: 'CODIGO_ROJO',      label: '🔴 Código Rojo' },
-            { key: 'CODIGO_NARANJA',   label: '🟠 Código Naranja' },
+            { key: 'CODIGO_AMBAR',     label: 'Código Ámbar' },
+            { key: 'CODIGO_ROJO',      label: 'Código Rojo' },
+            { key: 'CODIGO_NARANJA',   label: 'Código Naranja' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -575,7 +575,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
             {CODIGO_MED.includes(activeTab) && (
               <div className="titan-seccion-medica">
                 <h4 className="titan-seccion-medica__titulo">
-                  {activeTab === 'CODIGO_AMBAR' ? '🟡' : '🔴'} Información Médica y Legal
+                  Información Médica y Legal
                 </h4>
 
                 <div className="form-row">
