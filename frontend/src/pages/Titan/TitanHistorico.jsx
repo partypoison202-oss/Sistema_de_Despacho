@@ -1,6 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import API_BASE from '../../config/api';
+
+// Fix para los iconos de leaflet en react
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// Custom icons per event type (optional, using default with colors if possible, but standard is fine)
+const getMarkerIcon = (tipo) => {
+  // We can just use the default blue marker for everything, or create custom divIcons. 
+  // For simplicity and stability, we use a custom colored DivIcon based on the event type.
+  let color = '#6b7280';
+  switch (tipo) {
+    case 'INCORPORACION': color = '#10b981'; break;
+    case 'ACCIDENTE': color = '#3b82f6'; break;
+    case 'CHOQUE': color = '#f59e0b'; break;
+    case 'ATROPELLADO': color = '#ef4444'; break;
+    case 'CODIGO_AMBAR': color = '#f59e0b'; break;
+    case 'CODIGO_ROJO': color = '#dc2626'; break;
+    case 'CODIGO_NARANJA': color = '#f97316'; break;
+    default: break;
+  }
+  
+  return new L.DivIcon({
+    className: 'custom-leaflet-marker',
+    html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+  });
+};
 
 const TitanHistorico = () => {
   const [reportes, setReportes] = useState([]);
@@ -9,7 +44,7 @@ const TitanHistorico = () => {
     tipo_evento: '',
     fecha_desde: '',
     fecha_hasta: '',
-    titan_id: '' // Opcional si se quisiera filtrar por titán específico
+    titan_id: ''
   });
   const [expandedId, setExpandedId] = useState(null);
 
@@ -52,7 +87,6 @@ const TitanHistorico = () => {
 
   const clearFilters = () => {
     setFiltros({ tipo_evento: '', fecha_desde: '', fecha_hasta: '', titan_id: '' });
-    // fetchHistorico will be called manually or via effect if we attach it, but better manual to ensure state reset first.
     setTimeout(fetchHistorico, 0); 
   };
 
@@ -64,6 +98,22 @@ const TitanHistorico = () => {
       hour: '2-digit', minute: '2-digit'
     });
   };
+
+  // Helper para parsear la lat/lng guardada (formato: "Direccion|lat,lng" o "lat,lng")
+  const getCoordinates = (ubicacionStr) => {
+    if (!ubicacionStr) return null;
+    let parts = ubicacionStr.split('|');
+    let coordsStr = parts.length > 1 ? parts[1] : parts[0];
+    let latLng = coordsStr.split(',');
+    if (latLng.length === 2) {
+      let lat = parseFloat(latLng[0]);
+      let lng = parseFloat(latLng[1]);
+      if (!isNaN(lat) && !isNaN(lng)) return [lat, lng];
+    }
+    return null;
+  };
+
+  const mapCenter = [20.1011, -98.7591]; // Default to Pachuca
 
   return (
     <div className="titan-historico-container">
@@ -96,6 +146,30 @@ const TitanHistorico = () => {
             <button type="button" className="titan-btn-cancel" onClick={clearFilters}>Limpiar</button>
           </div>
         </form>
+      </div>
+
+      <div style={{ height: '350px', marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', zIndex: 0, position: 'relative' }}>
+        <MapContainer center={mapCenter} zoom={12} style={{ height: '100%', width: '100%' }}>
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          {reportes.map(r => {
+            const coords = getCoordinates(r.ubicacion_gps);
+            if (!coords) return null;
+            return (
+              <Marker key={r.id} position={coords} icon={getMarkerIcon(r.tipo_evento)}>
+                <Popup>
+                  <div style={{ padding: '4px' }}>
+                    <strong style={{ fontSize: '13px' }}>{r.tipo_evento.replace('_', ' ')}</strong><br/>
+                    ECO {r.numero_economico}<br/>
+                    {formatDate(r.created_at)}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MapContainer>
       </div>
 
       <div className="titan-historico-list">
@@ -139,7 +213,7 @@ const TitanHistorico = () => {
                     )}
                     {r.ubicacion_gps && (
                       <div className="historico-field historico-field--full">
-                        <strong>GPS:</strong> <span>{r.ubicacion_gps}</span>
+                        <strong>GPS:</strong> <span>{r.ubicacion_gps.split('|')[0]}</span>
                       </div>
                     )}
                     {r.observaciones && (

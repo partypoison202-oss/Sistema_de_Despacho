@@ -887,3 +887,47 @@
   margin-bottom: 20px;
   font-size: 1.1rem;
 }
+
+/* --- REFINAMIENTOS UI/UX: LABELS Y FIRMA --- */
+.form-group label, 
+.titan-section label {
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #6a1b29 !important; /* Guinda institucional */
+  border: none !important;
+  font-size: 0.85rem;
+}
+
+.titan-firma-wrapper {
+  background-color: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.5rem;
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titan-firma-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #d1d5db;
+  font-size: 1.2rem;
+  font-weight: 700;
+  pointer-events: none;
+  text-align: center;
+  user-select: none;
+}
+
+.titan-saludo-ubicacion svg {
+  stroke: #ffffff !important;
+}
+
+.titan-saludo-ubicacion p {
+  color: #f3f4f6 !important; /* Texto de GPS en alto contraste gris claro / casi blanco */
+  font-weight: 600;
+}

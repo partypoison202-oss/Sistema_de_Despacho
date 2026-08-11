@@ -223,12 +223,13 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     }
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
+        const latLng = `${coords.latitude},${coords.longitude}`;
         try {
           const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`);
           const d = await r.json();
-          setUbicacionGPS(d?.display_name || `${coords.latitude}, ${coords.longitude}`);
+          setUbicacionGPS(d?.display_name ? `${d.display_name}|${latLng}` : latLng);
         } catch {
-          setUbicacionGPS(`${coords.latitude}, ${coords.longitude}`);
+          setUbicacionGPS(latLng);
         }
       },
       () => setUbicacionGPS('No se pudo obtener ubicación GPS')
@@ -275,8 +276,13 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     if (DESINC_INC.includes(activeTab) && !ubicacionEvento) {
       Swal.fire('Atención', 'Selecciona la ubicación del evento.', 'warning'); return;
     }
-    if (NARANJA_TYPES.includes(activeTab) && !narRelato.trim()) {
-      Swal.fire('Atención', 'El relato de los hechos es requerido.', 'warning'); return;
+    if (NARANJA_TYPES.includes(activeTab)) {
+      if (!narRelato.trim()) {
+        Swal.fire('Atención', 'El relato de los hechos es requerido.', 'warning'); return;
+      }
+      if (narPuestoDisposicion === false && !narMotivo.trim()) {
+        Swal.fire('Atención', 'El motivo de no puesta a disposición es requerido.', 'warning'); return;
+      }
     }
 
     setGuardando(true);
@@ -394,8 +400,8 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0d9de" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
             </svg>
-            <p style={{ margin: 0, fontSize: 13, color: '#f0d9de', lineHeight: 1.4 }}>
-              {ubicacionGPS || 'Obteniendo ubicación...'}
+            <p style={{ margin: 0, fontSize: 13, color: '#f3f4f6', lineHeight: 1.4 }}>
+              {ubicacionGPS ? ubicacionGPS.split('|')[0] : 'Obteniendo ubicación...'}
             </p>
           </div>
         </div>

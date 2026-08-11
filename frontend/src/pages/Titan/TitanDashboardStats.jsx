@@ -73,11 +73,13 @@ const TitanDashboardStats = () => {
 
   return (
     <div className="titan-stats-container">
-      <div className="titan-stats-summary">
-        <div className="stat-card">
-          <div className="stat-card-title">Total Eventos</div>
-          <div className="stat-card-value">{total}</div>
+      <div className="titan-stats-summary" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+        <div className="stat-card" style={{ gridColumn: '1 / -1', borderBottomColor: '#1f2937' }}>
+          <div className="stat-card-title" style={{ fontSize: '1rem' }}>Total General de Eventos</div>
+          <div className="stat-card-value" style={{ fontSize: '3rem' }}>{total}</div>
         </div>
+        
+        {/* Códigos Críticos */}
         <div className="stat-card stat-card--ambar">
           <div className="stat-card-title">Código Ámbar</div>
           <div className="stat-card-value">{conteos['CODIGO_AMBAR'] || 0}</div>
@@ -89,6 +91,28 @@ const TitanDashboardStats = () => {
         <div className="stat-card stat-card--naranja">
           <div className="stat-card-title">Código Naranja</div>
           <div className="stat-card-value">{conteos['CODIGO_NARANJA'] || 0}</div>
+        </div>
+
+        {/* Otros Eventos */}
+        <div className="stat-card" style={{ borderBottomColor: COLORS['ACCIDENTE'] }}>
+          <div className="stat-card-title">Accidentes</div>
+          <div className="stat-card-value">{conteos['ACCIDENTE'] || 0}</div>
+        </div>
+        <div className="stat-card" style={{ borderBottomColor: COLORS['CHOQUE'] }}>
+          <div className="stat-card-title">Choques</div>
+          <div className="stat-card-value">{conteos['CHOQUE'] || 0}</div>
+        </div>
+        <div className="stat-card" style={{ borderBottomColor: COLORS['ATROPELLADO'] }}>
+          <div className="stat-card-title">Atropellados</div>
+          <div className="stat-card-value">{conteos['ATROPELLADO'] || 0}</div>
+        </div>
+        <div className="stat-card" style={{ borderBottomColor: COLORS['DESINCORPORACION'] }}>
+          <div className="stat-card-title">Desincorporaciones</div>
+          <div className="stat-card-value">{conteos['DESINCORPORACION'] || 0}</div>
+        </div>
+        <div className="stat-card" style={{ borderBottomColor: COLORS['INCORPORACION'] }}>
+          <div className="stat-card-title">Incorporaciones</div>
+          <div className="stat-card-value">{conteos['INCORPORACION'] || 0}</div>
         </div>
       </div>
 
