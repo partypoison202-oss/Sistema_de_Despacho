@@ -924,10 +924,17 @@
 }
 
 .titan-saludo-ubicacion svg {
-  stroke: #ffffff !important;
+  stroke: #6b1d33 !important; /* Guinda para el icono GPS */
 }
 
 .titan-saludo-ubicacion p {
-  color: #f3f4f6 !important; /* Texto de GPS en alto contraste gris claro / casi blanco */
+  color: #4b5563 !important; /* Texto de GPS en gris oscuro para que sea legible en fondo blanco */
   font-weight: 600;
+}
+
+.titan-saludo-texto {
+  color: #111827; /* Gris muy oscuro casi negro */
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
 }

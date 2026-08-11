@@ -397,10 +397,10 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
         <div className="titan-saludo-wrapper">
           <p className="titan-saludo-texto">Hola, {user?.nombre_completo || 'Usuario'}</p>
           <div className="titan-saludo-ubicacion">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f0d9de" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
             </svg>
-            <p style={{ margin: 0, fontSize: 13, color: '#f3f4f6', lineHeight: 1.4 }}>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.4 }}>
               {ubicacionGPS ? ubicacionGPS.split('|')[0] : 'Obteniendo ubicación...'}
             </p>
           </div>
