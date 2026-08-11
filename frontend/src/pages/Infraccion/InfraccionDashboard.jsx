@@ -4,6 +4,7 @@ import Header from '../../components/Header/Header';
 import SignaturePad from '../../components/SignaturePad/SignaturePad';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import CameraModal from '../../components/CameraModal';
 import API_BASE from '../../config/api';
 import { AuthContext } from "../../context/AuthContext";
 import { generarPDFInfraccion } from "../../utils/generarPDFInfraccion";
@@ -132,6 +133,42 @@ const InfraccionDashboard = () => {
   const [infPlaca, setInfPlaca] = useState('');
   const [imagenes, setImagenes] = useState([]);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState(null);
+  const fileInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+
+  const base64ToFile = async (dataUrl, filename) => {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: 'image/jpeg' });
+  };
+
+  const addPhotoFile = (file) => {
+    setImagenes((prev) => {
+      if (prev.length >= 5) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Límite alcanzado',
+          text: 'Máximo 5 imágenes permitidas.',
+          confirmButtonColor: '#601a2a'
+        });
+        return prev.slice(0, 5);
+      }
+      return [...prev, file];
+    });
+  };
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(file => addPhotoFile(file));
+  };
+
+  const handleCaptureCamera = async (dataUrl) => {
+    const file = await base64ToFile(dataUrl, `captura_${Date.now()}.jpg`);
+    addPhotoFile(file);
+  };
+
 
   // Vehículo Infracción
   const [infEntidad, setInfEntidad] = useState('Hidalgo');
@@ -239,39 +276,59 @@ const InfraccionDashboard = () => {
   }, []);
 
 
-  const verificarPlaca = async (placaVal) => {
+    const verificarPlaca = async (placaVal) => {
     if (!placaVal.trim()) return;
     setCheckingPlaca(true);
     try {
-      const res = await fetch(`${API_BASE}/api/amonestaciones/check/${encodeURIComponent(placaVal)}`, {
+      const res = await fetch(`${API_BASE}/api/infracciones/check/${encodeURIComponent(placaVal)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setPlacaStatus(data);
 
-        // Auto-llenar campos si ya existen antecedentes en la base de datos
         if (data.latest) {
           const prev = data.latest;
-          setEntidadFederativa(prev.entidad_federativa || 'Hidalgo');
-          setMarca(prev.marca || '');
-          setModelo(prev.modelo || '');
-          setColor(prev.color || '');
-          setConductorNombre(prev.conductor_nombre || '');
-          setRecibioNombre(prev.conductor_nombre || '');
-          if (prev.inspector_gafete) setInspectorGafete(prev.inspector_gafete);
+          const searchTerm = placaVal.toUpperCase().trim();
+          
+          // Clasificamos si el término buscado es placa o nombre
+          const isPlacaSearch = /^[A-Z0-9-]+$/.test(searchTerm) && searchTerm.length <= 10;
 
-          setInfEntidad(prev.entidad_federativa || 'Hidalgo');
-          setInfMarca(prev.marca || '');
-          setInfModelo(prev.modelo || '');
-          setInfColor(prev.color || '');
-          setInfConductorNombre(prev.conductor_nombre || '');
-          setInfRecibioNombre(prev.conductor_nombre || '');
-          if (prev.inspector_gafete) setInfInspectorGafete(prev.inspector_gafete);
+          if (isPlacaSearch) {
+            // Llenar VEHÍCULO y PLACA
+            setInfPlaca(prev.placas || searchTerm);
+            setInfEntidad(prev.entidad_federativa || 'Hidalgo');
+            setInfMarca(prev.marca || '');
+            setInfModelo(prev.modelo || '');
+            setInfColor(prev.color || '');
+            setInfSubmarca(prev.submarca || '');
+            setInfNivVin(prev.niv_vin || '');
+            setInfTipoVehiculo(prev.tipo_vehiculo || 'Particular');
+            
+            // NO limpiamos conductor para permitir búsquedas cruzadas
+          } else {
+            // Llenar CONDUCTOR (Nombre Completo)
+            const nombreCompleto = prev.conductor_nombre || '';
+            setInfConductorNombre(nombreCompleto);
+            setInfRecibioNombre(nombreCompleto);
+            
+            setInfConductorDomicilio(prev.conductor_domicilio || '');
+            setInfLicenciaNumero(prev.licencia_numero || '');
+            setInfLicenciaTipo(prev.licencia_tipo || '');
+            setInfLicenciaEstado(prev.licencia_estado || 'Hidalgo');
+            setInfCalidadConductor(prev.calidad_conductor || 'Conductora');
+            if (prev.inspector_gafete) setInfInspectorGafete(prev.inspector_gafete);
+            
+            // NO limpiamos vehículo para permitir búsquedas cruzadas
+          }
+        } else {
+          // Si no hay antecedentes, al menos rellenamos la placa si el término parece placa
+          const searchTerm = placaVal.toUpperCase().trim();
+          const isPlacaSearch = /^[A-Z0-9-]+$/.test(searchTerm) && searchTerm.length <= 10;
+          if (isPlacaSearch) {
+            setInfPlaca(searchTerm);
+          }
         }
-
-        // Sugerir formulario predeterminado pero permitiendo libre selección al usuario
-        setTipoFormulario(data.has_amonestacion ? 'infraccion' : 'amonestacion');
       }
     } catch (_err) {
       console.error('Error al verificar placa:', _err);
@@ -605,6 +662,62 @@ const InfraccionDashboard = () => {
                 </p>
               </div>
 
+              
+              {/* BOTÓN DE CÁMARA (ESTILO CHECKLIST) */}
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', margin: '1rem 0 1.5rem 0', background: '#f8fafc', padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCamera(true)}
+                  style={{
+                    background: '#991b1b',
+                    color: '#ffffff',
+                    border: 'none',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    flexShrink: 0
+                  }}
+                  title="Tomar Foto"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                </button>
+                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b' }}>Evidencia fotográfica (Máx 5)</span>
+
+                {imagenes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoModal(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: '#f1f5f9',
+                      color: '#1e293b',
+                      border: '1px solid #cbd5e1',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      marginLeft: 'auto'
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" style={{ marginRight: '4px' }}>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Ver ({imagenes.length})
+                  </button>
+                )}
+              </div>
+  
               {/* 1. LUGAR, FECHA Y HORA DE EMISIÓN */}
               <div className="section-block section-infraccion">
                 <div className="section-block-title">
@@ -818,9 +931,10 @@ const InfraccionDashboard = () => {
                       placeholder="Nombre completo"
                       value={infConductorNombre}
                       onChange={(e) => {
-                        setInfConductorNombre(e.target.value);
-                        if (!infNegoFirmar && !infRecibioNombre) {
-                          setInfRecibioNombre(e.target.value);
+                        const newVal = e.target.value;
+                        setInfConductorNombre(newVal);
+                        if (!infNegoFirmar && (!infRecibioNombre || infRecibioNombre === infConductorNombre)) {
+                          setInfRecibioNombre(newVal);
                         }
                       }}
                       className="infraccion-input"
@@ -1116,6 +1230,187 @@ const InfraccionDashboard = () => {
             </form>
           
         </div>
+
+        {/* Inputs ocultos para fallbacks de CameraModal */}
+        <input
+          id="camera-input-fallback"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={fileInputRef}
+          className="hidden"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+
+        <input
+          id="gallery-input"
+          type="file"
+          accept="image/*"
+          ref={galleryInputRef}
+          className="hidden"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+
+        <CameraModal
+          isOpen={showCamera}
+          onClose={() => setShowCamera(false)}
+          onCapture={handleCaptureCamera}
+          fallbackTrigger={() => fileInputRef.current?.click()}
+          galleryTrigger={() => galleryInputRef.current?.click()}
+        />
+
+        {/* Lightbox / Modal para ver las fotos tomadas */}
+        {showPhotoModal && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            zIndex: 9999,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '20px'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '500px',
+              padding: '20px',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '15px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>Fotos Tomadas</h3>
+                <button 
+                  type="button" 
+                  onClick={() => setShowPhotoModal(false)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
+                >
+                  &times;
+                </button>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px', maxHeight: '300px', overflowY: 'auto' }}>
+                {imagenes.map((file, idx) => (
+                  <div key={idx} style={{ position: 'relative', width: '100%', aspectRatio: '1/1' }}>
+                    <img 
+                      src={URL.createObjectURL(file)} 
+                      alt={`Preview ${idx}`} 
+                      onClick={() => setZoomedImage(URL.createObjectURL(file))}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'zoom-in' }} 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copy = [...imagenes];
+                        copy.splice(idx, 1);
+                        setImagenes(copy);
+                        if (copy.length === 0) setShowPhotoModal(false);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        background: 'rgba(239, 68, 68, 0.9)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '20px',
+                        height: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => setShowPhotoModal(false)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  background: '#64748b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Cerrar Vista
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Overlay de zoom para la foto elegida */}
+        {zoomedImage && (
+          <div 
+            onClick={() => setZoomedImage(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.95)',
+              zIndex: 10000,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              cursor: 'zoom-out',
+              padding: '10px'
+            }}
+          >
+            <div style={{ position: 'relative', maxWidth: '100vw', maxHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <img 
+                src={zoomedImage} 
+                alt="Zoomed evidence" 
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setZoomedImage(null)}
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
