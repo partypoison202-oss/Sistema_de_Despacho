@@ -161,8 +161,52 @@ Route::get('/setup-plataforma', function () {
                 $table->string('conductor_asignado')->nullable();
                 $table->string('ruta_asignada')->nullable();
                 $table->text('motivo')->nullable();
+                $table->string('unidad_reemplazo')->nullable();
+                $table->string('tarjeton_reemplazo')->nullable();
+                $table->string('conductor_reemplazo')->nullable();
+                $table->string('ruta_reemplazo')->nullable();
+                $table->string('corrida_reemplazo')->nullable();
+                $table->string('corridas_perdidas_reemplazo')->nullable();
+                $table->string('corrida_perdida_otro')->nullable();
                 $table->timestamps();
             });
+        } else {
+            $table = 'plataforma_movimientos';
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'unidad_reemplazo')) {
+                \Illuminate\Support\Facades\Schema::table($table, function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('unidad_reemplazo')->nullable();
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'tarjeton_reemplazo')) {
+                \Illuminate\Support\Facades\Schema::table($table, function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('tarjeton_reemplazo')->nullable();
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'conductor_reemplazo')) {
+                \Illuminate\Support\Facades\Schema::table($table, function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('conductor_reemplazo')->nullable();
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'ruta_reemplazo')) {
+                \Illuminate\Support\Facades\Schema::table($table, function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('ruta_reemplazo')->nullable();
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'corrida_reemplazo')) {
+                \Illuminate\Support\Facades\Schema::table($table, function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('corrida_reemplazo')->nullable();
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'corridas_perdidas_reemplazo')) {
+                \Illuminate\Support\Facades\Schema::table($table, function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('corridas_perdidas_reemplazo')->nullable();
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'corrida_perdida_otro')) {
+                \Illuminate\Support\Facades\Schema::table($table, function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('corrida_perdida_otro')->nullable();
+                });
+            }
         }
 
         return response()->json(['message' => 'PLATAFORMA setup completed successfully']);

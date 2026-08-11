@@ -28,6 +28,7 @@ export default function UnitInfoPanel({
   handleCambiarEstatus,
   cambiandoEstatus,
   conductoresDisponibles,
+  unidadesReserva = [],
   onUpdate,
 }) {
   const { user } = useContext(AuthContext);
@@ -74,9 +75,14 @@ export default function UnitInfoPanel({
   }, [selectedOption]);
 
   const [rutasOpciones, setRutasOpciones] = useState([]);
+  const [rutaOptionsByType, setRutaOptionsByType] = useState({ troncales: [], alimentadoras: [] });
   const [formRuta, setFormRuta] = useState('');
   const [guardandoRuta, setGuardandoRuta] = useState(false);
   const [dropdownRutaOpen, setDropdownRutaOpen] = useState(false);
+
+  const corridasPerdidasOptions = useMemo(() => [
+    '1/2', '1', '1 1/2', '2', '2 1/2', '3', '3 1/2', '4', '4 1/2', '5', '5 1/2', '6', '6 1/2', '7', '7 1/2', '8', '8 1/2', '9', '9 1/2', '10', 'OTRO'
+  ], []);
 
   useEffect(() => {
     const fetchRutas = async () => {
@@ -87,6 +93,10 @@ export default function UnitInfoPanel({
         });
         if (res.ok) {
           const data = await res.json();
+          setRutaOptionsByType({
+            troncales: data.troncales || [],
+            alimentadoras: data.alimentadoras || [],
+          });
           if (configActual?.id === 'urbanus') {
             setRutasOpciones(data.troncales || []);
           } else {
@@ -99,6 +109,7 @@ export default function UnitInfoPanel({
     };
     fetchRutas();
   }, [configActual]);
+
   const [guardandoPerdida, setGuardandoPerdida] = useState(false);
   const navigate = useNavigate();
 
@@ -112,6 +123,29 @@ export default function UnitInfoPanel({
   const [platRuta, setPlatRuta] = useState('');
   const [platRutaDropdown, setPlatRutaDropdown] = useState(false);
   const [platError, setPlatError] = useState('');
+
+  const [reemplazoActivo, setReemplazoActivo] = useState(false);
+  const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
+  const [searchReserva, setSearchReserva] = useState('');
+  const [rutaTipoSeleccionada, setRutaTipoSeleccionada] = useState(configActual?.id === 'urbanus' || configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
+  const [reemplazoForm, setReemplazoForm] = useState({
+    unidadNuevaEco: '',
+    tarjeton: '',
+    conductorNombre: '',
+    ruta: '',
+    corrida: '',
+    corridaPerdida: '',
+    corridaPerdidaOtro: '',
+  });
+
+  const unidadesReservaFiltradas = useMemo(() => {
+    const filtro = searchReserva.trim().toLowerCase();
+    if (!filtro) return unidadesReserva || [];
+    return (unidadesReserva || []).filter((u) =>
+      `${u.display} ${u.eco} ${u.tarjeton}`.toLowerCase().includes(filtro) ||
+      String(u.tarjeton).toLowerCase().includes(filtro)
+    );
+  }, [searchReserva, unidadesReserva]);
 
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
@@ -229,6 +263,70 @@ export default function UnitInfoPanel({
     setPlatConductor('');
     setPlatRuta('');
     setPlatError('');
+    setReemplazoActivo(false);
+    setUnidadReemplazoSeleccionada(null);
+    setSearchReserva('');
+    setReemplazoForm({
+      unidadNuevaEco: '',
+      tarjeton: '',
+      conductorNombre: '',
+      ruta: '',
+      corrida: datosOperativos.corrida || '',
+      corridaPerdida: datosOperativos.ciclo || '',
+      corridaPerdidaOtro: datosOperativos.motivo || '',
+    });
+  };
+
+  const handleToggleReemplazo = () => {
+    const nuevo = !reemplazoActivo;
+    setReemplazoActivo(nuevo);
+    if (nuevo) {
+      setUnidadReemplazoSeleccionada(null);
+      setSearchReserva('');
+      setReemplazoForm((prev) => ({
+        ...prev,
+        unidadNuevaEco: '',
+        tarjeton: datosOperativos.tarjeton || '',
+        conductorNombre: datosOperativos.conductor || '',
+        ruta: datosOperativos.ruta || '',
+        corrida: datosOperativos.corrida || '',
+        corridaPerdida: datosOperativos.ciclo || '',
+        corridaPerdidaOtro: datosOperativos.corridaPerdidaOtro || '',
+      }));
+    }
+  };
+
+  const handleSelectReservaUnit = (unidad) => {
+    setUnidadReemplazoSeleccionada(unidad);
+    const disponible = conductoresDisponibles.find((c) => c.tarjeton === unidad.tarjeton);
+    setReemplazoForm((prev) => ({
+      ...prev,
+      unidadNuevaEco: unidad.display || `ECO${String(unidad.eco).padStart(3, '0')}`,
+      tarjeton: disponible ? unidad.tarjeton : '',
+      conductorNombre: disponible ? disponible.nombre : prev.conductorNombre,
+    }));
+  };
+
+  const handleTarjetonSelect = (tarjeton) => {
+    const conductor = conductoresDisponibles.find((c) => String(c.tarjeton) === String(tarjeton));
+    setReemplazoForm((prev) => ({
+      ...prev,
+      tarjeton,
+      conductorNombre: conductor ? conductor.nombre : prev.conductorNombre,
+    }));
+  };
+
+  const handleRutaTipoChange = (tipo) => {
+    setRutaTipoSeleccionada(tipo);
+    setReemplazoForm((prev) => ({ ...prev, ruta: '' }));
+  };
+
+  const handleCorridaPerdidaChange = (value) => {
+    setReemplazoForm((prev) => ({
+      ...prev,
+      corridaPerdida: value,
+      corridaPerdidaOtro: value === 'OTRO' ? prev.corridaPerdidaOtro : '',
+    }));
   };
 
   const handleConfirmarPlataforma = async () => {
@@ -275,6 +373,10 @@ export default function UnitInfoPanel({
         setPlatError('Debe ingresar un motivo y seleccionar un destino.');
         return;
       }
+      if (reemplazoActivo && (!reemplazoForm.unidadNuevaEco || !reemplazoForm.tarjeton || !reemplazoForm.ruta)) {
+        setPlatError('Completa la unidad en reserva, tarjetón disponible y ruta para el reemplazo.');
+        return;
+      }
       setPlatError('');
       setGuardandoPerdida(true);
       try {
@@ -285,7 +387,15 @@ export default function UnitInfoPanel({
           tipo: configActual.id,
           tipo_movimiento: 'DESINCORPORACION',
           motivo: platMotivo,
-          estatus_nuevo: platEstatus.toUpperCase()
+          estatus_nuevo: platEstatus.toUpperCase(),
+          reemplazo_activo: reemplazoActivo ? 1 : 0,
+          unidad_reemplazo: reemplazoForm.unidadNuevaEco || null,
+          tarjeton_reemplazo: reemplazoForm.tarjeton || null,
+          conductor_reemplazo: reemplazoForm.conductorNombre || null,
+          ruta_reemplazo: reemplazoForm.ruta || null,
+          corrida_reemplazo: reemplazoForm.corrida || null,
+          corridas_perdidas_reemplazo: reemplazoForm.corridaPerdida || null,
+          corrida_perdida_otro: reemplazoForm.corridaPerdidaOtro || null,
         };
         const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
           method: 'POST',
@@ -502,7 +612,7 @@ export default function UnitInfoPanel({
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
+                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
                           <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                           </svg>
@@ -756,7 +866,7 @@ export default function UnitInfoPanel({
                     justifyContent: 'space-between'
                   }}
                 >
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                  <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                     {formHoraProgramada || '--:--'}
                   </span>
                   <svg className={`arrow-icon ${dropdownHoraOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
@@ -888,7 +998,7 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                   >
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                    <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' CICLOS' : 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
@@ -950,7 +1060,7 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setDropdownMotivoOpen(!dropdownMotivoOpen)}
                   >
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                    <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {perdidaMotivo || 'SELECCIONAR MOTIVO'}
                     </span>
                     <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
@@ -1055,7 +1165,7 @@ export default function UnitInfoPanel({
           tabIndex={-1}
           onKeyDown={(e) => { if (e.key === 'Escape') setModalPlataformaVisible(null); }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up">
+          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', overflowX: 'hidden', minWidth: '22rem' }}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 'Desincorporar Unidad'}
             </h2>
@@ -1071,7 +1181,7 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setPlatConductorDropdown(!platConductorDropdown)}
                   >
-                    <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                    <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
                     </span>
                     <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
@@ -1109,7 +1219,7 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setPlatRutaDropdown(!platRutaDropdown)}
                   >
-                    <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                    <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {platRuta || 'Seleccione una ruta...'}
                     </span>
                     <svg className={`arrow-icon ${platRutaDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platRutaDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
@@ -1142,6 +1252,186 @@ export default function UnitInfoPanel({
 
             {modalPlataformaVisible === 'DESINCORPORACION' && (
               <div className="flex flex-col gap-4">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={reemplazoActivo}
+                    onChange={handleToggleReemplazo}
+                    style={{ width: '1rem', height: '1rem' }}
+                  />
+                  Reemplazar unidad original por una unidad en reserva
+                </label>
+
+                {reemplazoActivo && (
+                  <div style={{ display: 'grid', gap: '1rem', padding: '1rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc' }}>
+                    <div style={{ display: 'grid', gap: '0.85rem' }}>
+                      <span className="info-card__label">Unidad original</span>
+                      <div style={{ padding: '0.95rem 1rem', borderRadius: '0.75rem', background: 'white', border: '1px solid #d1d5db', minHeight: '3rem', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ overflowWrap: 'anywhere', lineHeight: 1.3, color: '#0b162c' }}>{selectedOption}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '0.85rem' }}>
+                      <span className="info-card__label">Buscar unidad en reserva</span>
+                      <input
+                        type="text"
+                        value={searchReserva}
+                        onChange={(e) => setSearchReserva(e.target.value)}
+                        placeholder="Buscar ECO o tarjetón en reserva"
+                        className="interactive-input"
+                        style={{ width: '100%', padding: '1rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', minWidth: '0' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '0.5rem', maxHeight: '220px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                      {unidadesReservaFiltradas.length ? (
+                        unidadesReservaFiltradas.map((unidad) => (
+                          <button
+                            key={unidad.eco}
+                            type="button"
+                            onClick={() => handleSelectReservaUnit(unidad)}
+                            style={{
+                              width: '100%', textAlign: 'left', padding: '0.95rem 1rem', borderRadius: '0.75rem',
+                              border: unidadReemplazoSeleccionada?.eco === unidad.eco ? '2px solid #6b1d33' : '1px solid #e5e7eb',
+                              backgroundColor: unidadReemplazoSeleccionada?.eco === unidad.eco ? '#f8eef0' : 'white',
+                              cursor: 'pointer',
+                              minHeight: '3.1rem',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, overflowWrap: 'anywhere', lineHeight: 1.3, display: 'block', width: '100%' }}>{unidad.display}</span>
+                              <span style={{ color: '#6b7280', flexShrink: 0, marginLeft: '0.5rem' }}>{unidad.tarjeton || 'Sin tarjetón'}</span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <span style={{ color: '#6b7280', fontSize: '0.95rem' }}>No se encontraron unidades en reserva.</span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '0.95rem' }}>
+                      <div style={{ display: 'grid', gap: '0.25rem' }}>
+                        <span className="info-card__label">Nuevo ECO</span>
+                        <select
+                          value={unidadReemplazoSeleccionada?.eco || ''}
+                          onChange={(e) => {
+                            const unidad = unidadesReserva.find((u) => String(u.eco) === String(e.target.value));
+                            if (unidad) handleSelectReservaUnit(unidad);
+                          }}
+                          className="interactive-input"
+                          style={{ width: '100%', minHeight: '3rem', height: 'auto', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: '#f8fafc', minWidth: '0', boxSizing: 'border-box', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                        >
+                          <option value="">Seleccione una unidad de reserva</option>
+                          {unidadesReservaFiltradas.map((unidad) => (
+                            <option key={unidad.eco} value={unidad.eco}>
+                              {unidad.display} {unidad.tarjeton ? `(${unidad.tarjeton})` : '(Sin tarjetón)'}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '0.25rem' }}>
+                        <span className="info-card__label">Tarjetón (disponible)</span>
+                        <select
+                          value={reemplazoForm.tarjeton}
+                          onChange={(e) => handleTarjetonSelect(e.target.value)}
+                          className="interactive-input"
+                          style={{ width: '100%', minHeight: '3rem', height: 'auto', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', boxSizing: 'border-box', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                        >
+                          <option value="">Seleccione un tarjetón</option>
+                          {conductoresDisponibles.map((c) => (
+                            <option key={c.id} value={c.tarjeton}>
+                              {c.tarjeton} — {c.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '0.25rem' }}>
+                        <span className="info-card__label">Conductor</span>
+                        <input
+                          type="text"
+                          value={reemplazoForm.conductorNombre}
+                          onChange={(e) => setReemplazoForm((prev) => ({ ...prev, conductorNombre: e.target.value }))}
+                          placeholder="Nombre del conductor"
+                          className="interactive-input"
+                          style={{ width: '100%', minHeight: '3rem', height: 'auto', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '0.35rem' }}>
+                        <span className="info-card__label">Tipo de ruta</span>
+                        <select
+                          value={rutaTipoSeleccionada}
+                          onChange={(e) => handleRutaTipoChange(e.target.value)}
+                          className="interactive-input"
+                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', minWidth: '0' }}
+                        >
+                          <option value="troncales">Troncales</option>
+                          <option value="alimentadoras">Alimentadoras</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '0.25rem' }}>
+                        <span className="info-card__label">Ruta</span>
+                        <select
+                          value={reemplazoForm.ruta}
+                          onChange={(e) => setReemplazoForm((prev) => ({ ...prev, ruta: e.target.value }))}
+                          className="interactive-input"
+                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', minWidth: '0', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
+                        >
+                          <option value="">Seleccione una ruta</option>
+                          {rutaOptionsByType[rutaTipoSeleccionada].map((ruta) => (
+                            <option key={ruta} value={ruta}>{ruta}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '0.25rem' }}>
+                        <span className="info-card__label">Corrida</span>
+                        <input
+                          type="text"
+                          value={reemplazoForm.corrida}
+                          onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corrida: e.target.value }))}
+                          placeholder="Ej. 123"
+                          className="interactive-input"
+                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', minWidth: '0' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gap: '0.25rem' }}>
+                        <span className="info-card__label">Corridas Perdidas</span>
+                        <select
+                          value={reemplazoForm.corridaPerdida}
+                          onChange={(e) => handleCorridaPerdidaChange(e.target.value)}
+                          className="interactive-input"
+                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', minWidth: '0' }}
+                        >
+                          <option value="">Seleccione una opción</option>
+                          {corridasPerdidasOptions.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {reemplazoForm.corridaPerdida === 'OTRO' && (
+                        <div style={{ display: 'grid', gap: '0.25rem' }}>
+                          <span className="info-card__label">Especifique corridas perdidas</span>
+                          <input
+                            type="text"
+                            value={reemplazoForm.corridaPerdidaOtro}
+                            onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corridaPerdidaOtro: e.target.value }))}
+                            placeholder="Escribe aquí"
+                            className="interactive-input"
+                            style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', minWidth: '0' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <textarea
                   className="interactive-input"
                   style={{ width: '100%', height: '100px', resize: 'none', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', fontSize: '0.9rem', color: '#0b162c', fontWeight: 500 }}
@@ -1159,7 +1449,7 @@ export default function UnitInfoPanel({
                     }}
                     onClick={() => setPlatEstatusDropdown(!platEstatusDropdown)}
                   >
-                    <span style={{ fontWeight: 600, color: platEstatus ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
+                    <span style={{ fontWeight: 600, color: platEstatus ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {platEstatus || 'Destino de la unidad...'}
                     </span>
                     <svg className={`arrow-icon ${platEstatusDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platEstatusDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">

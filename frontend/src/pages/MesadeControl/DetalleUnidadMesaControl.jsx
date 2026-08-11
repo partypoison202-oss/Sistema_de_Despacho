@@ -141,7 +141,7 @@ export default function DetalleUnidadMesaControl() {
 
   const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
   const conductoresDisponibles = dbConductores.filter(c => 
-    (c.estado_servicio === 'disponible' || c.estado_servicio === 'falta') && 
+    c.estado_servicio === 'disponible' && 
     (!isTroncal || c.tipo_tarjeton === 'C')
   );
 
@@ -1072,6 +1072,7 @@ export default function DetalleUnidadMesaControl() {
                   handleCambiarEstatus={handleCambiarEstatus}
                   cambiandoEstatus={cambiandoEstatus}
                   conductoresDisponibles={conductoresDisponibles}
+                  unidadesReserva={unidadesPorEstado('reserva')}
                 />
 
                 {/* NUEVOS APARTADOS: MOVILIDAD Y ESTATUS + CHECKLIST */}

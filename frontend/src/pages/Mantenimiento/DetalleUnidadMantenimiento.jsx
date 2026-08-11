@@ -1,5 +1,5 @@
 // src/pages/Mantenimiento/DetalleUnidadMantenimiento.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
@@ -7,8 +7,6 @@ import Header from '../../components/Header/Header';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import UnitSelector from './components/UnitSelector';
-import AppleDatePicker from './components/AppleDatePicker';
-import FuelGaugeSelector from './components/FuelGaugeSelector';
 import FuelInspection from './components/FuelInspection';
 import ChecklistForm from '../CheckList/CheckList';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
@@ -61,6 +59,8 @@ export default function DetalleUnidadMantenimiento() {
     conductor: 'Seleccione una unidad...',
     ruta: 'Seleccione una unidad...',
     corrida: '',
+    corridasPerdidas: '',
+    corridaPerdidaOtro: '',
     tarjeton: '',
     estatus: 'operacion',
     motivo_estatus: null, // <-- NUEVO
@@ -69,7 +69,19 @@ export default function DetalleUnidadMantenimiento() {
     horaDespacho: null,
   });
 
-  const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false);
+  const [reemplazoActivo, setReemplazoActivo] = useState(false);
+  const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
+  const [searchReserva, setSearchReserva] = useState('');
+  const [rutaTipoSeleccionada, setRutaTipoSeleccionada] = useState('troncales');
+  const [reemplazoForm, setReemplazoForm] = useState({
+    unidadNuevaEco: '',
+    tarjeton: '',
+    conductorNombre: '',
+    ruta: '',
+    corrida: '',
+    corridaPerdida: '',
+    corridaPerdidaOtro: '',
+  });
 
   // Check List states
   const [showChecklist, setShowChecklist] = useState(false);
@@ -92,9 +104,6 @@ export default function DetalleUnidadMantenimiento() {
   const modalRutaRef = useRef(null);
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
-  
-  const isDiesel = ['urbanus', 'urbanuss', 'zafiro', 'orion'].includes(tipoTransporte?.toLowerCase());
-  const combustibleLabel = isDiesel ? 'Diésel' : 'Gasolina';
 
   const getToken = () => (localStorage.getItem('token') || sessionStorage.getItem('token'));
   const formatearEco = (valor) => `ECO${String(valor ?? '').padStart(3, '0')}`;
@@ -169,6 +178,31 @@ export default function DetalleUnidadMantenimiento() {
     (c) => c.estado_servicio === 'disponible' || c.estado_servicio === 'falta'
   );
 
+  const conductoresSoloDisponibles = dbConductores.filter(
+    (c) => c.estado_servicio === 'disponible'
+  );
+
+  const rutaOptionsByType = useMemo(() => ({
+    troncales: _rutasData?.troncales || [],
+    alimentadoras: _rutasData?.alimentadoras || [],
+  }), [_rutasData]);
+
+  const corridasPerdidasOptions = useMemo(() => [
+    '1/2', '1', '1 1/2', '2', '2 1/2', '3', '3 1/2', '4', '4 1/2', '5', '5 1/2', '6', '6 1/2', '7', '7 1/2', '8', '8 1/2', '9', '9 1/2', '10', 'OTRO'
+  ], []);
+
+  const unidadesReserva = unidadesPorEstado('reserva');
+
+  const unidadesReservaFiltradas = useMemo(() => {
+    const filtro = searchReserva.trim().toLowerCase();
+    if (!filtro) return unidadesReserva;
+    return unidadesReserva.filter((u) =>
+      `${u.display} ${u.eco} ${u.tarjeton}`.toLowerCase().includes(filtro) || u.tarjeton.toLowerCase().includes(filtro)
+    );
+  }, [searchReserva, unidadesReserva]);
+
+  const mostrarReemplazo = selectedOption && ['mantenimiento', 'reserva'].includes(selectedEstado);
+
   // ── Lista de unidades ──
   const fetchUnidades = async () => {
     const token = getToken();
@@ -237,6 +271,85 @@ export default function DetalleUnidadMantenimiento() {
       if (found) return found.nombre;
     }
     return val;
+  };
+
+  const handleToggleReemplazo = () => {
+    const nuevoEstado = !reemplazoActivo;
+    setReemplazoActivo(nuevoEstado);
+    if (nuevoEstado) {
+      setRutaTipoSeleccionada(configActual?.id === 'urbanus' || configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
+      setReemplazoForm((prev) => ({
+        ...prev,
+        unidadNuevaEco: '',
+        tarjeton: datosOperativos.tarjeton || '',
+        conductorNombre: getConductorDisplay() || '',
+        ruta: datosOperativos.ruta || '',
+        corrida: datosOperativos.corrida || '',
+        corridaPerdida: datosOperativos.corridasPerdidas || '',
+        corridaPerdidaOtro: datosOperativos.corridaPerdidaOtro || '',
+      }));
+    }
+  };
+
+  const handleSelectReservaUnit = (unidad) => {
+    setUnidadReemplazoSeleccionada(unidad);
+    setReemplazoForm((prev) => ({
+      ...prev,
+      unidadNuevaEco: unidad.display || `ECO${String(unidad.eco).padStart(3, '0')}`,
+    }));
+  };
+
+  const handleTarjetonSelect = (tarjeton) => {
+    const conductor = conductoresSoloDisponibles.find((c) => c.tarjeton === tarjeton);
+    setReemplazoForm((prev) => ({
+      ...prev,
+      tarjeton,
+      conductorNombre: conductor ? conductor.nombre : prev.conductorNombre,
+    }));
+  };
+
+  const handleApplyReplacement = () => {
+    if (!reemplazoForm.unidadNuevaEco || !reemplazoForm.tarjeton || !reemplazoForm.ruta) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Datos incompletos',
+        text: 'Selecciona unidad en reserva, tarjetón disponible y ruta.',
+        confirmButtonColor: '#601a2a',
+      });
+      return;
+    }
+
+    setDatosOperativos((prev) => ({
+      ...prev,
+      conductor: reemplazoForm.conductorNombre || prev.conductor,
+      tarjeton: reemplazoForm.tarjeton,
+      ruta: reemplazoForm.ruta,
+      corrida: reemplazoForm.corrida,
+      corridasPerdidas: reemplazoForm.corridaPerdida,
+      corridaPerdidaOtro: reemplazoForm.corridaPerdidaOtro,
+    }));
+    setSelectedOption(reemplazoForm.unidadNuevaEco);
+    setUnidadReemplazoSeleccionada(null);
+    setReemplazoActivo(false);
+    Swal.fire({
+      icon: 'success',
+      title: 'Reemplazo aplicado',
+      text: `La unidad original se reemplazó por ${reemplazoForm.unidadNuevaEco}.`,
+      confirmButtonColor: '#6b1d33',
+    });
+  };
+
+  const handleRutaTipoChange = (tipo) => {
+    setRutaTipoSeleccionada(tipo);
+    setReemplazoForm((prev) => ({ ...prev, ruta: '' }));
+  };
+
+  const handleCorridaPerdidaChange = (value) => {
+    setReemplazoForm((prev) => ({
+      ...prev,
+      corridaPerdida: value,
+      corridaPerdidaOtro: value === 'OTRO' ? prev.corridaPerdidaOtro : '',
+    }));
   };
 
   const checkHistory = async (ecoNumber) => {
@@ -989,6 +1102,206 @@ export default function DetalleUnidadMantenimiento() {
                       </div>
                     </div>
                   </div>
+
+                  {mostrarReemplazo && (
+                    <div className="info-card info-card--double" style={{ paddingBottom: '1.5rem' }}>
+                      <div className="info-card__header" style={{ alignItems: 'flex-start' }}>
+                        <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div>
+                          <h3 className="info-card__title">Reemplazo de unidad</h3>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+                            Si desincorporas esta unidad, selecciona una unidad en reserva y ajusta los datos.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="info-card__body" style={{ display: 'grid', gap: '1rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={reemplazoActivo}
+                            onChange={handleToggleReemplazo}
+                            style={{ width: '1rem', height: '1rem' }}
+                          />
+                          Reemplazar unidad original por otra en reserva
+                        </label>
+
+                        {reemplazoActivo && (
+                          <>
+                            <div style={{ display: 'grid', gap: '0.75rem' }}>
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Unidad original</span>
+                                <div style={{ padding: '0.9rem 1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid #e5e7eb' }}>
+                                  {selectedOption}
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Buscar unidad en reserva</span>
+                                <input
+                                  type="text"
+                                  value={searchReserva}
+                                  onChange={(e) => setSearchReserva(e.target.value)}
+                                  placeholder="Buscar ECO o tarjetón en reserva"
+                                  className="interactive-input"
+                                  style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db' }}
+                                />
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', padding: '0.5rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#ffffff' }}>
+                              {unidadesReservaFiltradas.length ? (
+                                unidadesReservaFiltradas.slice(0, 10).map((unidad) => (
+                                  <button
+                                    key={unidad.eco}
+                                    type="button"
+                                    onClick={() => handleSelectReservaUnit(unidad)}
+                                    style={{
+                                      width: '100%', textAlign: 'left', padding: '0.85rem 0.9rem', borderRadius: '0.75rem', border: unidadReemplazoSeleccionada?.eco === unidad.eco ? '2px solid #6b1d33' : '1px solid #e5e7eb',
+                                      backgroundColor: unidadReemplazoSeleccionada?.eco === unidad.eco ? '#f8eef0' : 'white',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                                      <span style={{ fontWeight: 700 }}>{unidad.display}</span>
+                                      <span style={{ color: '#6b7280' }}>{unidad.tarjeton}</span>
+                                    </div>
+                                  </button>
+                                ))
+                              ) : (
+                                <span style={{ color: '#6b7280', fontSize: '0.95rem' }}>No se encontraron unidades en reserva.</span>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'grid', gap: '0.95rem' }}>
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Nuevo eco</span>
+                                <input
+                                  type="text"
+                                  value={reemplazoForm.unidadNuevaEco}
+                                  readOnly
+                                  placeholder="Seleccione una unidad de reserva"
+                                  className="interactive-input"
+                                  style={{ padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: '#f8fafc' }}
+                                />
+                              </div>
+
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Tarjetón (disponible)</span>
+                                <select
+                                  value={reemplazoForm.tarjeton}
+                                  onChange={(e) => handleTarjetonSelect(e.target.value)}
+                                  className="interactive-input"
+                                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white' }}
+                                >
+                                  <option value="">Seleccione un tarjetón</option>
+                                  {conductoresSoloDisponibles.map((c) => (
+                                    <option key={c.id} value={c.tarjeton}>
+                                      {c.tarjeton} — {c.nombre}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Conductor</span>
+                                <input
+                                  type="text"
+                                  value={reemplazoForm.conductorNombre}
+                                  onChange={(e) => setReemplazoForm((prev) => ({ ...prev, conductorNombre: e.target.value }))}
+                                  placeholder="Nombre del conductor"
+                                  className="interactive-input"
+                                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db' }}
+                                />
+                              </div>
+
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Tipo de ruta</span>
+                                <select
+                                  value={rutaTipoSeleccionada}
+                                  onChange={(e) => handleRutaTipoChange(e.target.value)}
+                                  className="interactive-input"
+                                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white' }}
+                                >
+                                  <option value="troncales">Troncales</option>
+                                  <option value="alimentadoras">Alimentadoras</option>
+                                </select>
+                              </div>
+
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Ruta</span>
+                                <select
+                                  value={reemplazoForm.ruta}
+                                  onChange={(e) => setReemplazoForm((prev) => ({ ...prev, ruta: e.target.value }))}
+                                  className="interactive-input"
+                                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white' }}
+                                >
+                                  <option value="">Seleccione una ruta</option>
+                                  {rutaOptionsByType[rutaTipoSeleccionada].map((ruta) => (
+                                    <option key={ruta} value={ruta}>{ruta}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Corrida</span>
+                                <input
+                                  type="text"
+                                  value={reemplazoForm.corrida}
+                                  onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corrida: e.target.value }))}
+                                  placeholder="Ej. 123"
+                                  className="interactive-input"
+                                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db' }}
+                                />
+                              </div>
+
+                              <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                <span className="info-card__label">Corridas Perdidas</span>
+                                <select
+                                  value={reemplazoForm.corridaPerdida}
+                                  onChange={(e) => handleCorridaPerdidaChange(e.target.value)}
+                                  className="interactive-input"
+                                  style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white' }}
+                                >
+                                  <option value="">Seleccione una opción</option>
+                                  {corridasPerdidasOptions.map((option) => (
+                                    <option key={option} value={option}>{option}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {reemplazoForm.corridaPerdida === 'OTRO' && (
+                                <div style={{ display: 'grid', gap: '0.25rem' }}>
+                                  <span className="info-card__label">Especifique corridas perdidas</span>
+                                  <input
+                                    type="text"
+                                    value={reemplazoForm.corridaPerdidaOtro}
+                                    onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corridaPerdidaOtro: e.target.value }))}
+                                    placeholder="Escribe aquí"
+                                    className="interactive-input"
+                                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db' }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleApplyReplacement}
+                              disabled={!reemplazoForm.unidadNuevaEco || !reemplazoForm.tarjeton || !reemplazoForm.ruta}
+                              style={{
+                                width: '100%', padding: '0.95rem 1rem', borderRadius: '0.85rem', backgroundColor: reemplazoForm.unidadNuevaEco && reemplazoForm.tarjeton && reemplazoForm.ruta ? '#6b1d33' : '#9ca3af',
+                                color: 'white', border: 'none', cursor: reemplazoForm.unidadNuevaEco && reemplazoForm.tarjeton && reemplazoForm.ruta ? 'pointer' : 'not-allowed', fontWeight: 700,
+                              }}
+                            >
+                              Aplicar reemplazo
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* CARD: INSPECCIÓN */}
                   {isInspeccion && (

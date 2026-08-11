@@ -21,6 +21,13 @@ class PlataformaController extends Controller
             'ruta' => 'nullable|string',
             'motivo' => 'nullable|string',
             'estatus_nuevo' => 'nullable|string|in:RESERVA,MANTENIMIENTO,PATIO NORTE',
+            'unidad_reemplazo' => 'nullable|string',
+            'tarjeton_reemplazo' => 'nullable|string',
+            'conductor_reemplazo' => 'nullable|string',
+            'ruta_reemplazo' => 'nullable|string',
+            'corrida_reemplazo' => 'nullable|string',
+            'corridas_perdidas_reemplazo' => 'nullable|string',
+            'corrida_perdida_otro' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -97,6 +104,13 @@ class PlataformaController extends Controller
                 'conductor_asignado' => $request->conductor,
                 'ruta_asignada' => $request->ruta,
                 'motivo' => $request->motivo,
+                'unidad_reemplazo' => $request->unidad_reemplazo,
+                'tarjeton_reemplazo' => $request->tarjeton_reemplazo,
+                'conductor_reemplazo' => $request->conductor_reemplazo,
+                'ruta_reemplazo' => $request->ruta_reemplazo,
+                'corrida_reemplazo' => $request->corrida_reemplazo,
+                'corridas_perdidas_reemplazo' => $request->corridas_perdidas_reemplazo,
+                'corrida_perdida_otro' => $request->corrida_perdida_otro,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now()
             ]);
