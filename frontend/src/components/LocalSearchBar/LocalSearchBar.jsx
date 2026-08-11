@@ -19,23 +19,22 @@ export default function LocalSearchBar({ unidades = [], onSelectUnit, moduleName
       return;
     }
 
-    const isNumberOnly = /^\d+$/.test(searchTerm);
-    const ecoBuscar = isNumberOnly ? normalizarNumeroEco(searchTerm) : searchTerm;
-
     // Buscar la unidad en la lista de unidades del componente padre
     const encontrada = unidades.find(u => {
       const valorEco = u.numero_eco !== undefined ? u.numero_eco : u.eco;
+      const ecoUnidad = normalizarNumeroEco(valorEco);
+      const ruta = u.ruta_asignada || u.ruta || u.ruta_nombre || '';
+      const rutaNormalizada = ruta.toString().trim().toUpperCase();
       
-      // Coincidencia exacta por ECO
-      if (isNumberOnly && normalizarNumeroEco(valorEco) === ecoBuscar) {
+      // Coincidencia exacta por ECO (Ej. si usuario tecleó '7' o '007' o 'ECO007')
+      const searchAsEco = normalizarNumeroEco(searchTerm);
+      if (searchAsEco && ecoUnidad === searchAsEco) {
         return true;
       }
       
-      // Coincidencia por Ruta o texto parcial en el ECO
-      const ruta = u.ruta_asignada || u.ruta || u.ruta_nombre || '';
-      if (!isNumberOnly) {
-        if (ruta.toUpperCase().includes(searchTerm)) return true;
-        if (String(valorEco).toUpperCase().includes(searchTerm)) return true;
+      // Coincidencia EXACTA por Ruta (Ej. si usuario tecleó 'T01', no queremos que 'T' haga match con 'T01')
+      if (rutaNormalizada === searchTerm) {
+        return true;
       }
       
       return false;
