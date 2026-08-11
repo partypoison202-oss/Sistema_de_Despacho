@@ -221,7 +221,7 @@ export default function Login() {
             </h1>
             <div className="login-split__brand-divider" />
             <p className="login-split__brand-subtitle">
-                Gestión de Flota · Sitmah
+                SITMAH
             </p>
         </div>
 
@@ -324,7 +324,7 @@ export default function Login() {
               </form>
               
               <p className="login__footer-text">
-                  Gestión de Flota · Sitmah &copy; {new Date().getFullYear()}
+                  SITMAH &copy; {new Date().getFullYear()}
               </p>
             </div>
           </main>
