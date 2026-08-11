@@ -650,22 +650,9 @@ export const generarPDFInfraccion = async (datos = {}, accion = 'download') => {
 
     // ── ANEXO FOTOGRÁFICO ──────────────────────────────────────────
     if (datos.imagenes && datos.imagenes.length > 0) {
-      doc.addPage();
-      
-      // Header for Anexo Fotográfico
-      let yAnexo = margin;
-      doc.setFillColor(96, 26, 42);
-      doc.roundedRect(margin, yAnexo, contentW, 10, 1.5, 1.5, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('ANEXO FOTOGRÁFICO DE EVIDENCIA', pageW / 2, yAnexo + 6, { align: 'center' });
-
-      yAnexo += 15;
-
-      // Draw Images
+      let currentIdxOnPage = 0;
       for (let i = 0; i < datos.imagenes.length; i++) {
-        if (i >= 3) break; // max 3
+        if (i >= 5) break; // max 5
         const imgFile = datos.imagenes[i];
         if (!imgFile) continue;
 
@@ -683,24 +670,43 @@ export const generarPDFInfraccion = async (datos = {}, accion = 'download') => {
             if (imgObj) {
               const opt = getOptimizedImage(imgObj, 600); // 600 max w for crispness
               if (opt) {
-                let targetW = contentW;
-                let targetH = targetW / opt.aspect;
+                // Si es la primera imagen en una página, añadimos página e imprimimos header
+                if (currentIdxOnPage % 4 === 0) {
+                  doc.addPage();
+                  // Dibujar encabezado
+                  doc.setFillColor(96, 26, 42);
+                  doc.roundedRect(margin, margin, contentW, 10, 1.5, 1.5, 'F');
+                  doc.setTextColor(255, 255, 255);
+                  doc.setFont('helvetica', 'bold');
+                  doc.setFontSize(11);
+                  doc.text('ANEXO FOTOGRÁFICO DE EVIDENCIA', pageW / 2, margin + 6.5, { align: 'center' });
+                }
+
+                // Cálculo de posiciones en la cuadrícula de 2x2
+                const col = currentIdxOnPage % 2;
+                const row = Math.floor((currentIdxOnPage % 4) / 2);
                 
-                // If it overflows the page, limit the height
-                if (targetH > 80) { // arbitrary max height per photo
-                    targetH = 80;
-                    targetW = targetH * opt.aspect;
+                const cellW = 90;
+                const cellH = 65;
+                const gapX = 8;
+                const gapY = 8;
+                const startY = margin + 10 + 10; // Espacio debajo del encabezado
+
+                // Ajuste proporcional de la imagen dentro de la celda de 90x65
+                let targetW = cellW;
+                let targetH = targetW / opt.aspect;
+                if (targetH > cellH) {
+                  targetH = cellH;
+                  targetW = targetH * opt.aspect;
                 }
 
-                // Check if we need a new page for this photo
-                if (yAnexo + targetH > 280) {
-                    doc.addPage();
-                    yAnexo = margin;
-                }
+                const cellX = margin + col * (cellW + gapX);
+                const cellY = startY + row * (cellH + gapY);
+                const imgX = cellX + (cellW - targetW) / 2;
+                const imgY = cellY + (cellH - targetH) / 2;
 
-                const centerX = margin + (contentW - targetW) / 2;
-                doc.addImage(opt.dataUrl, 'PNG', centerX, yAnexo, targetW, targetH);
-                yAnexo += targetH + 10;
+                doc.addImage(opt.dataUrl, 'PNG', imgX, imgY, targetW, targetH);
+                currentIdxOnPage++;
               }
             }
           }

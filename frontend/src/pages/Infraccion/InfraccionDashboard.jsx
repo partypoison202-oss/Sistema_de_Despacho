@@ -852,7 +852,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Nissan"
                       value={infMarca}
-                      onChange={(e) => setInfMarca(e.target.value)}
+                      onChange={(e) => setInfMarca(e.target.value.toUpperCase().replace(/[^A-Z0-9\s-]/g, ''))}
                       className="infraccion-input"
                     />
                   </div>
@@ -865,7 +865,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. Versa / Sedan"
                       value={infSubmarca}
-                      onChange={(e) => setInfSubmarca(e.target.value)}
+                      onChange={(e) => setInfSubmarca(e.target.value.toUpperCase().replace(/[^A-Z0-9\s-]/g, ''))}
                       className="infraccion-input"
                     />
                   </div>
@@ -876,7 +876,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. 2022"
                       value={infModelo}
-                      onChange={(e) => setInfModelo(e.target.value)}
+                      onChange={(e) => setInfModelo(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
                       className="infraccion-input"
                     />
                   </div>
@@ -887,7 +887,7 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Plata / Blanco"
                       value={infColor}
-                      onChange={(e) => setInfColor(e.target.value)}
+                      onChange={(e) => setInfColor(e.target.value.toUpperCase().replace(/[^A-Z\s-]/g, ''))}
                       className="infraccion-input"
                     />
                   </div>
@@ -900,7 +900,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. 3N1AB7AP0KY123456"
                       value={infNivVin}
-                      onChange={(e) => setInfNivVin(e.target.value.toUpperCase())}
+                      onChange={(e) => setInfNivVin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 17))}
                       className="infraccion-input uppercase-input"
                     />
                   </div>
@@ -956,7 +956,7 @@ const InfraccionDashboard = () => {
                     type="text"
                     placeholder="Calle, Número, Colonia, Municipio, Estado"
                     value={infConductorDomicilio}
-                    onChange={(e) => setInfConductorDomicilio(e.target.value)}
+                    onChange={(e) => setInfConductorDomicilio(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s,.\-#/]/g, ''))}
                     className="infraccion-input"
                   />
                 </div>
@@ -968,7 +968,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. LIC-987654"
                       value={infLicenciaNumero}
-                      onChange={(e) => setInfLicenciaNumero(e.target.value)}
+                      onChange={(e) => setInfLicenciaNumero(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                       className="infraccion-input"
                     />
                   </div>
@@ -988,7 +988,7 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. Hidalgo"
                       value={infLicenciaEstado}
-                      onChange={(e) => setInfLicenciaEstado(e.target.value)}
+                      onChange={(e) => setInfLicenciaEstado(e.target.value.toUpperCase().replace(/[^A-Z\s]/g, ''))}
                       className="infraccion-input"
                     />
                   </div>
@@ -1192,7 +1192,7 @@ const InfraccionDashboard = () => {
                         type="text"
                         placeholder="Nombre completo"
                         value={infRecibioNombre}
-                        onChange={(e) => setInfRecibioNombre(e.target.value)}
+                        onChange={(e) => setInfRecibioNombre(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, ''))}
                         className="infraccion-input"
                       />
                     </div>
