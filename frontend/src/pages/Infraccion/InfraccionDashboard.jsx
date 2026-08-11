@@ -131,6 +131,7 @@ const InfraccionDashboard = () => {
   const [infUbicacionExacta, setInfUbicacionExacta] = useState('');
   const [infPlaca, setInfPlaca] = useState('');
   const [imagenes, setImagenes] = useState([]);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   // Vehículo Infracción
   const [infEntidad, setInfEntidad] = useState('Hidalgo');
@@ -1032,43 +1033,6 @@ const InfraccionDashboard = () => {
               </div>
 
               
-                {/* 8. ANEXO FOTOGRÁFICO */}
-                <div className="section-block section-infraccion">
-                  <div className="section-block-title">
-                    <span className="section-number red">8</span>
-                    <h3>ANEXO FOTOGRÁFICO DE EVIDENCIA (MÁX 3)</h3>
-                  </div>
-                  <div className="form-group full-width" style={{ marginTop: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                    <label style={{ fontWeight: 'bold', color: '#334155', marginBottom: '0.5rem', display: 'block' }}>Subir Fotografías</label>
-                    <input 
-                      type="file" 
-                      multiple 
-                      accept="image/*;capture=camera" 
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files);
-                        if(files.length > 3) {
-                          alert('Máximo 3 imágenes permitidas.');
-                          setImagenes(files.slice(0, 3));
-                        } else {
-                          setImagenes(files);
-                        }
-                      }}
-                      style={{ marginBottom: '1rem' }}
-                    />
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                      {imagenes.map((file, idx) => (
-                        <div key={idx} style={{ position: 'relative', width: '120px', height: '120px' }}>
-                          <img 
-                            src={URL.createObjectURL(file)} 
-                            alt={`Preview ${idx}`} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
                 {/* 7. OBSERVACIONES Y FIRMA DE LA PERSONA INFRACTORA */}
               <div className="section-block section-infraccion">
                 <div className="section-block-title">

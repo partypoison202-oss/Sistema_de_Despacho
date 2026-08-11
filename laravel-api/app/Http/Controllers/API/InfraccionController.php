@@ -44,6 +44,8 @@ class InfraccionController extends Controller
                 $table->string('imagen_1', 255)->nullable();
                 $table->string('imagen_2', 255)->nullable();
                 $table->string('imagen_3', 255)->nullable();
+                $table->string('imagen_4', 255)->nullable();
+                $table->string('imagen_5', 255)->nullable();
 
                 // 2. Datos del Vehículo Infractor
                 $table->string('placas', 20)->index();
@@ -171,6 +173,8 @@ class InfraccionController extends Controller
         $img1 = $request->file('imagen_1') ? $request->file('imagen_1')->store('infracciones', 'public') : null;
         $img2 = $request->file('imagen_2') ? $request->file('imagen_2')->store('infracciones', 'public') : null;
         $img3 = $request->file('imagen_3') ? $request->file('imagen_3')->store('infracciones', 'public') : null;
+        $img4 = $request->file('imagen_4') ? $request->file('imagen_4')->store('infracciones', 'public') : null;
+        $img5 = $request->file('imagen_5') ? $request->file('imagen_5')->store('infracciones', 'public') : null;
 
         $infraccion = Infraccion::create([
             'folio' => $folio,
@@ -182,6 +186,8 @@ class InfraccionController extends Controller
             'imagen_1' => $img1,
             'imagen_2' => $img2,
             'imagen_3' => $img3,
+            'imagen_4' => $img4,
+            'imagen_5' => $img5,
 
             'placas' => strtoupper(trim($request->placas)),
             'entidad_federativa' => $request->entidad_federativa,
