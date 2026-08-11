@@ -22,21 +22,56 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
   // Tabs State
   const [activeTab, setActiveTab] = useState('');
   const ACCIDENT_TYPES = ['ACCIDENTE', 'CHOQUE', 'ATROPELLADO', 'CODIGO_AMBAR', 'CODIGO_ROJO'];
+  const ACCIDENTES_WITH_HECHOS = ['ACCIDENTE', 'CHOQUE', 'ATROPELLADO'];
   const opcionesUbicacionEvento = ['TALLER', 'BASE SUR', 'BASE NORTE', 'VIA PUBLICA', 'OTRO'];
 
   // Event Specific State
   const [corrida, setCorrida] = useState('');
   const [horaEvento, setHoraEvento] = useState('');
+  const [horaFinEvento, setHoraFinEvento] = useState('');
+  const [activeHoraField, setActiveHoraField] = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [ubicacionGPS, setUbicacionGPS] = useState('');
   const [ubicacionEvento, setUbicacionEvento] = useState('');
   const [motivoDesincorporacion, setMotivoDesincorporacion] = useState('');
+
+  const handleHoraPickerChange = useCallback((value) => {
+    if (activeHoraField === 'horaFinEvento') {
+      setHoraFinEvento(value);
+    } else {
+      setHoraEvento(value);
+    }
+  }, [activeHoraField]);
 
   const [accDueno, setAccDueno] = useState('');
   const [accVehiculo, setAccVehiculo] = useState('');
   const [accPlacas, setAccPlacas] = useState('');
   const [accSeguro, setAccSeguro] = useState(false);
   const [accHechos, setAccHechos] = useState('');
+  const [accHechoTipo, setAccHechoTipo] = useState('');
+  const [accFavorDeQuien, setAccFavorDeQuien] = useState('');
+  const [accCantidadesDinero, setAccCantidadesDinero] = useState('');
+  const [accTipoChoque, setAccTipoChoque] = useState('');
+  const [accApoyo, setAccApoyo] = useState('');
+  const [accPaseMedicoPaciente, setAccPaseMedicoPaciente] = useState('');
+  const [accPaseMedicoNumero, setAccPaseMedicoNumero] = useState('');
+  const [accPaseMedicoObservaciones, setAccPaseMedicoObservaciones] = useState('');
+  const [accHuboFallecidos, setAccHuboFallecidos] = useState('');
+  const [accFallecidosCantidad, setAccFallecidosCantidad] = useState('1');
+  const [accFallecidosNombres, setAccFallecidosNombres] = useState(['']);
+  const [accHoraFallecimiento, setAccHoraFallecimiento] = useState('');
+  const [accHoraAsistenciaCemefo, setAccHoraAsistenciaCemefo] = useState('');
+  const ACCIDENT_HECHO_OPTIONS = ['CONVENIO', 'PAGO EN EFECTIVO', 'ORDEN REPARACION'];
+
+  const handleFallecidoNombreChange = useCallback((index, value) => {
+    setAccFallecidosNombres((prev) => {
+      const updated = Array.isArray(prev) ? [...prev] : [''];
+      updated[index] = value;
+      return updated;
+    });
+  }, []);
+  const TIPO_CHOQUE_OPTIONS = ['ALCANCE', 'CHOQUE FRONTAL', 'CHOQUE LATERAL', 'ROCE', 'CHOQUE MULTIPLE'];
+  const APOYO_OPTIONS = ['SSV (SECRETARIA DE SEGURIDAD PUBLICA)', 'POLICIA ESTATAL', 'CRUZ ROJA', 'BOMBEROS', 'BOMBEROS VOLUNTARIOS', 'CLINICA', 'PASES MEDICOS'];
 
   const [accVictima, setAccVictima] = useState('');
   const [accEdad, setAccEdad] = useState('');
@@ -173,6 +208,8 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     setSelectedUnidad(u);
     setCorrida(u.corrida || '');
     setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+    setHoraFinEvento('');
+    setActiveHoraField('');
     setIntervalo('');
     setObservaciones('');
     setFotos([]);
@@ -185,6 +222,19 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     setAccPlacas('');
     setAccSeguro(false);
     setAccHechos('');
+    setAccHechoTipo('');
+    setAccFavorDeQuien('');
+    setAccCantidadesDinero('');
+    setAccTipoChoque('');
+    setAccApoyo('');
+    setAccPaseMedicoPaciente('');
+    setAccPaseMedicoNumero('');
+    setAccPaseMedicoObservaciones('');
+    setAccHuboFallecidos('');
+    setAccFallecidosCantidad('1');
+    setAccFallecidosNombres(['']);
+    setAccHoraFallecimiento('');
+    setAccHoraAsistenciaCemefo('');
     setAccVictima('');
     setAccEdad('');
     setAccGenero('');
@@ -293,6 +343,27 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
           formData.append('accidente_hechos', accHechos);
           formData.append('ubicacion_gps', ubicacionGPS);
           formData.append('hora_evento', horaEvento);
+        }
+
+        formData.append('accidente_hecho_tipo', accHechoTipo);
+        formData.append('accidente_favor_de_quien', accFavorDeQuien);
+        formData.append('accidente_cantidades_dinero', accCantidadesDinero);
+        formData.append('accidente_tipo_choque', accTipoChoque);
+        formData.append('accidente_apoyo', accApoyo);
+        formData.append('accidente_pase_medico_paciente', accPaseMedicoPaciente);
+        formData.append('accidente_pase_medico_numero', accPaseMedicoNumero);
+        formData.append('accidente_pase_medico_observaciones', accPaseMedicoObservaciones);
+        formData.append('accidente_hubo_fallecidos', accHuboFallecidos);
+        formData.append('accidente_fallecidos_cantidad', accFallecidosCantidad);
+        formData.append('accidente_fallecidos_nombres', Array.isArray(accFallecidosNombres) ? accFallecidosNombres.filter(Boolean).join('; ') : accFallecidosNombres);
+        formData.append('accidente_hora_fallecimiento', accHoraFallecimiento);
+        formData.append('accidente_hora_asistencia_cemefo', accHoraAsistenciaCemefo);
+        if (activeTab === 'ACCIDENTE') {
+          formData.append('hora_fin_accidente', horaFinEvento);
+        }
+        if (activeTab === 'ACCIDENTE') {
+          formData.append('hora_inicio_accidente', horaEvento);
+          formData.append('hora_fin_accidente', horaFinEvento);
         }
 
         const firmaBlob = await getFirmaBlob();
@@ -608,6 +679,44 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                         <label>Placas</label>
                         <input type="text" value={accPlacas} onChange={(e) => setAccPlacas(e.target.value)} />
                       </div>
+                      {activeTab === 'CHOQUE' && (
+                        <>
+                          <div className="form-group">
+                            <label>Tipo de Choque</label>
+                            <select value={accTipoChoque} onChange={(e) => setAccTipoChoque(e.target.value)} className="form-group-select">
+                              <option value="">Selecciona un tipo de choque...</option>
+                              {TIPO_CHOQUE_OPTIONS.map((tipo) => (
+                                <option key={tipo} value={tipo}>{tipo}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Se ocupó apoyo</label>
+                            <select value={accApoyo} onChange={(e) => setAccApoyo(e.target.value)} className="form-group-select">
+                              <option value="">Selecciona una opción...</option>
+                              {APOYO_OPTIONS.map((opcion) => (
+                                <option key={opcion} value={opcion}>{opcion}</option>
+                              ))}
+                            </select>
+                          </div>
+                          {accApoyo === 'PASES MEDICOS' && (
+                            <div className="form-group" style={{ paddingLeft: '8px', borderLeft: '3px solid #601a2a' }}>
+                              <div className="form-group">
+                                <label>Paciente</label>
+                                <input type="text" value={accPaseMedicoPaciente} onChange={(e) => setAccPaseMedicoPaciente(e.target.value)} placeholder="Nombre del paciente" />
+                              </div>
+                              <div className="form-group">
+                                <label>Número de pase médico</label>
+                                <input type="text" value={accPaseMedicoNumero} onChange={(e) => setAccPaseMedicoNumero(e.target.value)} placeholder="Número o folio del pase" />
+                              </div>
+                              <div className="form-group">
+                                <label>Observaciones del pase médico</label>
+                                <textarea value={accPaseMedicoObservaciones} onChange={(e) => setAccPaseMedicoObservaciones(e.target.value)} rows="3" placeholder="Notas del pase médico" />
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                       <div className="form-group checkbox-group">
                         <label>
                           <input type="checkbox" checked={accSeguro} onChange={(e) => setAccSeguro(e.target.checked)} />
@@ -617,37 +726,176 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
                     </>
                   )}
 
-                  <div className="form-group">
-                    <label>Hechos <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
-                    <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>
-                  </div>
+                  {ACCIDENTES_WITH_HECHOS.includes(activeTab) && (
+                    <>
+                      <div className="form-group">
+                        <label>¿HUBO FALLECIDOS?</label>
+                        <select value={accHuboFallecidos} onChange={(e) => setAccHuboFallecidos(e.target.value)} className="form-group-select">
+                          <option value="">Selecciona una opción...</option>
+                          <option value="SI">SI</option>
+                          <option value="NO">NO</option>
+                        </select>
+                      </div>
 
-                  <div className="form-group" style={{ position: 'relative' }}>
-                    <label>Hora del accidente</label>
-                    <button
-                      type="button"
-                      onClick={() => setDropdownHoraOpen(!dropdownHoraOpen)}
-                      className="form-group-time-trigger"
-                    >
-                      <span>{horaEvento || '--:--'}</span>
-                      <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                      </svg>
-                    </button>
+                      {accHuboFallecidos === 'SI' && (
+                        <div style={{ paddingLeft: '8px', borderLeft: '3px solid #601a2a' }}>
+                          <div className="form-group">
+                            <label>¿Cuántos?</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={accFallecidosCantidad}
+                              onChange={(e) => {
+                                const cantidad = e.target.value;
+                                setAccFallecidosCantidad(cantidad);
+                                const parsed = parseInt(cantidad, 10);
+                                setAccFallecidosNombres((prev) => {
+                                  const current = Array.isArray(prev) ? [...prev] : [''];
+                                  if (!parsed || parsed <= 0) {
+                                    return [''];
+                                  }
+                                  if (current.length < parsed) {
+                                    return [...current, ...Array(parsed - current.length).fill('')];
+                                  }
+                                  return current.slice(0, parsed);
+                                });
+                              }}
+                              placeholder="Cantidad de fallecidos"
+                            />
+                          </div>
+                          {Array.from({ length: Math.max(1, Number(accFallecidosCantidad) || 1) }).map((_, index) => (
+                            <div className="form-group" key={index}>
+                              <label>{`Nombre del fallecido ${index + 1}`}</label>
+                              <input
+                                type="text"
+                                value={accFallecidosNombres[index] || ''}
+                                onChange={(e) => handleFallecidoNombreChange(index, e.target.value)}
+                                placeholder="Nombre y apellidos"
+                              />
+                            </div>
+                          ))}
+                          <div className="form-group">
+                            <label>Hora de fallecimiento</label>
+                            <input type="time" value={accHoraFallecimiento} onChange={(e) => setAccHoraFallecimiento(e.target.value)} />
+                          </div>
+                          <div className="form-group">
+                            <label>Hora de asistencia de CEMEFO</label>
+                            <input type="time" value={accHoraAsistenciaCemefo} onChange={(e) => setAccHoraAsistenciaCemefo(e.target.value)} />
+                          </div>
+                        </div>
+                      )}
 
-                    {dropdownHoraOpen && (
+                      <div className="form-group">
+                        <label>Hechos <span style={{ color: 'var(--state-red-text, #dc2626)' }}>*</span></label>
+                        <textarea value={accHechos} onChange={(e) => setAccHechos(e.target.value)} rows="6" placeholder="Describe a detalle los hechos ocurridos..."></textarea>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Acuerdo</label>
+                        <select value={accHechoTipo} onChange={(e) => setAccHechoTipo(e.target.value)} className="form-group-select">
+                          <option value="">Selecciona un tipo de acuerdo...</option>
+                          {ACCIDENT_HECHO_OPTIONS.map((opcion) => (
+                            <option key={opcion} value={opcion}>{opcion}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {accHechoTipo && (
+                        <>
+                          <div className="form-group">
+                            <label>A favor de quién</label>
+                            <input type="text" value={accFavorDeQuien} onChange={(e) => setAccFavorDeQuien(e.target.value)} placeholder="Escribe la persona o entidad beneficiaria" />
+                          </div>
+
+                          <div className="form-group">
+                            <label>Cantidades de dinero</label>
+                            <input type="text" value={accCantidadesDinero} onChange={(e) => setAccCantidadesDinero(e.target.value)} placeholder="Ej. $1,000 / $2,500" />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  <div style={{ position: 'relative' }}>
+                    {activeTab === 'ACCIDENTE' ? (
                       <>
-                        <div
-                          style={{ position: 'fixed', inset: 0, zIndex: 998 }}
-                          onClick={() => setDropdownHoraOpen(false)}
-                        />
-                        <IOSTimePicker
-                          value={horaEvento}
-                          onChange={setHoraEvento}
-                          onClose={() => setDropdownHoraOpen(false)}
-                          onSave={() => setDropdownHoraOpen(false)}
-                        />
+                        <div className="form-group" style={{ position: 'relative' }}>
+                          <label>Hora de inicio de accidente</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveHoraField('horaEvento');
+                              setDropdownHoraOpen(true);
+                            }}
+                            className="form-group-time-trigger"
+                          >
+                            <span>{horaEvento || '--:--'}</span>
+                            <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen && activeHoraField === 'horaEvento' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                            </svg>
+                          </button>
+                          {dropdownHoraOpen && activeHoraField === 'horaEvento' && (
+                            <IOSTimePicker
+                              key="horaEvento"
+                              value={horaEvento}
+                              onChange={handleHoraPickerChange}
+                              onClose={() => setDropdownHoraOpen(false)}
+                              onSave={() => setDropdownHoraOpen(false)}
+                            />
+                          )}
+                        </div>
+                        <div className="form-group" style={{ position: 'relative' }}>
+                          <label>Hora de fin de accidente</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveHoraField('horaFinEvento');
+                              setDropdownHoraOpen(true);
+                            }}
+                            className="form-group-time-trigger"
+                          >
+                            <span>{horaFinEvento || '--:--'}</span>
+                            <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen && activeHoraField === 'horaFinEvento' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                            </svg>
+                          </button>
+                          {dropdownHoraOpen && activeHoraField === 'horaFinEvento' && (
+                            <IOSTimePicker
+                              key="horaFinEvento"
+                              value={horaFinEvento}
+                              onChange={handleHoraPickerChange}
+                              onClose={() => setDropdownHoraOpen(false)}
+                              onSave={() => setDropdownHoraOpen(false)}
+                            />
+                          )}
+                        </div>
                       </>
+                    ) : (
+                      <div className="form-group" style={{ position: 'relative' }}>
+                        <label>Hora del accidente</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveHoraField('horaEvento');
+                            setDropdownHoraOpen(true);
+                          }}
+                          className="form-group-time-trigger"
+                        >
+                          <span>{horaEvento || '--:--'}</span>
+                          <svg style={{ width: '12px', height: '12px', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: 'var(--brand-maroon-text)' }} fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
+                        </button>
+                        {dropdownHoraOpen && activeHoraField === 'horaEvento' && (
+                          <IOSTimePicker
+                            key="horaEventoSingle"
+                            value={horaEvento}
+                            onChange={handleHoraPickerChange}
+                            onClose={() => setDropdownHoraOpen(false)}
+                            onSave={() => setDropdownHoraOpen(false)}
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
 

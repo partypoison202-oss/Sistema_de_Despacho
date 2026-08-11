@@ -57,10 +57,11 @@ import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
-import RutaSelector from '../Unidades/componentsdetalleunidad/RutaSelector'; // ✅ IMPORTADO
+import RutaSelector from '../../components/RutaSelector/RutaSelectorUnified'; // ✅ IMPORTADO
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { normalizeRuta, normalizeRutaClave } from '../../utils/rutaUtils';
 
 export default function DetalleUnidadEncierro() {
   const { tipoTransporte } = useParams();
@@ -72,6 +73,7 @@ export default function DetalleUnidadEncierro() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
   const [selectedRuta, setSelectedRuta] = useState(null); // ✅ NUEVO
+  const [selectedTroncal, setSelectedTroncal] = useState(null); // ✅ NUEVO
 
   const [datosOperativos, setDatosOperativos] = useState({
     conductor: 'Seleccione una unidad...',
@@ -93,6 +95,7 @@ export default function DetalleUnidadEncierro() {
 
   // Estados para Ruta (edición interactiva)
   const [rutasOpciones, setRutasOpciones] = useState([]);
+  const [troncalesOpciones] = useState(['T01', 'T02', 'T04', 'T05']);
   const [editandoRuta, setEditandoRuta] = useState(false);
   const [formRuta, setFormRuta] = useState('');
   const [guardandoRuta, setGuardandoRuta] = useState(false);
@@ -139,28 +142,7 @@ export default function DetalleUnidadEncierro() {
     setFormObservaciones(datosOperativos.observaciones || '');
   }, [datosOperativos]);
 
-  useEffect(() => {
-    const fetchRutas = async () => {
-      try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const configActual = encierroModules.find((m) => m.id === tipoTransporte);
-          if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
-            setRutasOpciones(data.troncales || []);
-          } else {
-            setRutasOpciones(data.alimentadoras || []);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching rutas', err);
-      }
-    };
-    fetchRutas();
-  }, [tipoTransporte]);
+  
 
   useEffect(() => {
     const fetchObservacionesCatalogo = async () => {
@@ -299,6 +281,11 @@ export default function DetalleUnidadEncierro() {
     return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
   };
 
+  const formatObservacionClave = (clave) => {
+    const claveStr = String(clave ?? '');
+    return /^\d$/.test(claveStr) ? claveStr.padStart(2, '0') : claveStr;
+  };
+
   const fetchUnidades = async () => {
     const token = getToken();
     if (!token) {
@@ -317,13 +304,14 @@ export default function DetalleUnidadEncierro() {
     }
     if (!respuesta.ok) throw new Error('Error al obtener la lista de unidades');
     const datos = await respuesta.json();
+    console.debug('[Encierro] fetchUnidades: muestra ejemplo de datos:', Array.isArray(datos) ? datos.slice(0,5) : datos);
     return (Array.isArray(datos) ? datos : []).map((u) => ({
       eco: String(u.numero_eco ?? '').padStart(3, '0'),
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
       ruta: u.ruta || null,
-      acople: String(u.acople ?? '').trim(),
+      acople: Boolean(Number(u.acople ?? 0)),
       horaSalida: String(u.hora_salida ?? '').trim(),
     }));
   };
@@ -335,17 +323,66 @@ export default function DetalleUnidadEncierro() {
     refetchInterval: 30000,
   });
 
+  useEffect(() => {
+    const fetchRutas = async () => {
+      try {
+        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+        const configActual = encierroModules.find((m) => m.id === tipoTransporte);
+        if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+          setRutasOpciones(troncalesOpciones);
+          return;
+        }
+        const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const alimentadorasFromApi = data.alimentadoras && data.alimentadoras.length ? data.alimentadoras : [];
+          if (alimentadorasFromApi.length) {
+            setRutasOpciones(alimentadorasFromApi);
+          } else {
+            // derive from unidadesList if API empty
+            const derived = Array.from(new Set(unidadesList.map(u => normalizeRuta(u.ruta)).filter(Boolean)));
+            setRutasOpciones(derived);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching rutas', err);
+      }
+    };
+    fetchRutas();
+  }, [tipoTransporte, troncalesOpciones, unidadesList]);
+
   const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
+  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
   // ✅ NUEVO: unidades de la ruta seleccionada derivadas localmente
   const unidadesPorRutaList = useMemo(() => {
     if (!selectedRuta) return [];
-    return unidadesList.filter((u) => u.ruta === selectedRuta && !u.acople);
+    const rutaSeleccionada = normalizeRutaClave(selectedRuta);
+    return unidadesList.filter((u) => {
+      const rutaUnidad = normalizeRutaClave(u.ruta);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+    });
   }, [unidadesList, selectedRuta]);
+  const unidadesPorTroncalList = useMemo(() => {
+    if (!selectedTroncal) return [];
+    const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
+    return unidadesList.filter((u) => {
+      const rutaUnidad = normalizeRutaClave(u.ruta);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+    });
+  }, [unidadesList, selectedTroncal]);
   const cargandoUnidadesPorRuta = false;
 
   // ✅ NUEVO: función para seleccionar ruta
   const handleSelectRuta = (ruta) => {
     setSelectedRuta(ruta);
+    setSelectedTroncal(null);
+    setOpenDropdown(null);
+  };
+  const handleSelectTroncal = (ruta) => {
+    setSelectedTroncal(ruta);
+    setSelectedRuta(null);
     setOpenDropdown(null);
   };
   const totalProgramadasOperacion = useMemo(
@@ -359,6 +396,10 @@ export default function DetalleUnidadEncierro() {
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
       filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
+    }
+    if (selectedTroncal && isTroncal) {
+      const ecosEnTroncal = unidadesPorTroncalList.map((u) => u.eco);
+      filtradas = filtradas.filter((u) => ecosEnTroncal.includes(u.eco));
     }
     return filtradas;
   };
@@ -1209,6 +1250,20 @@ export default function DetalleUnidadEncierro() {
                   onSelectRuta={handleSelectRuta}
                 />
               )}
+
+              {/* ✅ NUEVO: selector TRONCAL para URBANUSS */}
+              {isTroncal && (
+                <RutaSelector
+                  isOpen={openDropdown === 'troncal'}
+                  setIsOpen={(open) => setOpenDropdown(open ? 'troncal' : null)}
+                  selectedRuta={selectedTroncal}
+                  titulo="TRONCAL"
+                  rutas={troncalesOpciones}
+                  cargandoRutas={false}
+                  configActual={configActual}
+                  onSelectRuta={handleSelectTroncal}
+                />
+              )}
             </div>
 
             {/* ✅ NUEVO: lista de unidades de la ruta seleccionada */}
@@ -1251,6 +1306,63 @@ export default function DetalleUnidadEncierro() {
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {unidadesPorRutaList.map((unidad) => (
+                      <button
+                        key={unidad.display}
+                        type="button"
+                        onClick={() => handleSelectUnit(unidad)}
+                        className="dropdown-menu__item"
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
+                          padding: '0.5rem 1rem',
+                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
+                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {unidad.display}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isTroncal && selectedTroncal && (
+              <div className="ruta-unidades-panel" style={{ width: '100%', marginTop: '1rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
+                    Unidades por salir en troncal {selectedTroncal}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTroncal(null)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#6b1d33',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Limpiar filtro
+                  </button>
+                </div>
+
+                {unidadesPorTroncalList.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {unidadesPorTroncalList.map((unidad) => (
                       <button
                         key={unidad.display}
                         type="button"
@@ -1638,9 +1750,12 @@ export default function DetalleUnidadEncierro() {
                             }}
                           >
                             {observacionesCatalogo
-                              .filter(obs => `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase()))
+                              .filter(obs => {
+                                const label = `${formatObservacionClave(obs.clave)} - ${obs.descripcion}`;
+                                return label.toLowerCase().includes(formObservaciones.toLowerCase());
+                              })
                               .map(obs => {
-                                const label = `${obs.clave} - ${obs.descripcion}`;
+                                const label = `${formatObservacionClave(obs.clave)} - ${obs.descripcion}`;
                                 return (
                                   <button
                                     key={obs.clave}

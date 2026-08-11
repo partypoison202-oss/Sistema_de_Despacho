@@ -12,7 +12,7 @@ const HEADER_TRANSLATIONS = {
   NOMBRE_CONDUCTOR: 'Conductor',
   ESTATUS: 'Estatus',
   HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
-  HORA_DE_ACOPLE: 'Hora Programada',
+  HORA_DE_ACOPLE: 'HORA DE ENTRADA PROGRAMADA',
   CORRIDAS: 'Corrida',
 };
 
@@ -50,9 +50,11 @@ export default function ExcelPreview({
   // Las cabeceras del editor directo
   const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS'];
   if (isRelevos) {
+    headers.push('HORA_DE_ACOPLE');
     headers.push('HORA_PROGRAMADA');
+  } else {
+    headers.push('HORA_DE_ACOPLE');
   }
-  headers.push('HORA_DE_ACOPLE');
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUS', 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
