@@ -263,12 +263,10 @@ export default function DetalleUnidad() {
     }
 
     if (unidadSeleccionada.horaSalida) {
-      Swal.fire({
-        icon: 'info',
-        title: 'Unidad ya validada',
-        text: `${unidadSeleccionada.display} ya fue validada y no está disponible en el selector.`,
-        confirmButtonColor: '#601a2a',
-      });
+      queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
+        prev ? prev.filter((u) => u.eco !== String(unidadSeleccionada.eco).padStart(3, '0')) : []
+      );
+      setOpenDropdown(null);
       return;
     }
 
@@ -305,12 +303,9 @@ export default function DetalleUnidad() {
 
       if (resultado.status === 'success') {
         if (resultado.hora_salida) {
-          Swal.fire({
-            icon: 'info',
-            title: 'Unidad ya validada',
-            text: `${ecoSeleccionado} ya fue validada y no está disponible en el selector.`,
-            confirmButtonColor: '#601a2a',
-          });
+          queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
+            prev ? prev.filter((u) => u.eco !== numeroLimpio) : []
+          );
           setSelectedOption(null);
           setSelectedEstado(null);
           setCargandoDatos(false);
