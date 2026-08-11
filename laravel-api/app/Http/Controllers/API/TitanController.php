@@ -176,6 +176,11 @@ class TitanController extends Controller
                 'accidente_hecho_tipo' => 'nullable|string',
                 'accidente_favor_de_quien' => 'nullable|string',
                 'accidente_cantidades_dinero' => 'nullable|string',
+                'accidente_hubo_fallecidos' => 'nullable|string',
+                'accidente_fallecidos_cantidad' => 'nullable|string',
+                'accidente_fallecidos_nombres' => 'nullable|string',
+                'accidente_hora_fallecimiento' => 'nullable|string',
+                'accidente_hora_asistencia_cemefo' => 'nullable|string',
                 // Campos extendidos Código Ámbar / Rojo (HEAD)
                 'lesionados_cantidad'    => 'nullable|integer',
                 'nombres_afectados'      => 'nullable|string',
