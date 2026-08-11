@@ -82,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas para TITAN
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);
+    Route::get('/titan/historico', [TitanController::class, 'getAllReportes']);
     Route::post('/titan/reporte', [TitanController::class, 'guardarReporte']);
     Route::get('/titan/{usuarioId}/reportes', [TitanReporteController::class, 'reportesPorTitan']);
 

@@ -5,6 +5,8 @@ import API_BASE from '../../config/api';
 import '../CentroControl/CentroControl.css';
 import './Titan.css';
 import DetalleUnidadTitan from './DetalleUnidadTitan';
+import TitanHistorico from './TitanHistorico';
+import TitanDashboardStats from './TitanDashboardStats';
 
 const modelsConfig = [
   { id: 'urbanus', label: 'URBANUSS', subtitle: 'UNIDADES TIPO AUTOBÚS', color: 'maroon', image: '/images/urbanu.webp' },
@@ -24,6 +26,9 @@ const DashboardTitan = () => {
   // States for unified page
   const [activeModel, setActiveModel] = useState(null);
   const [activeUnidad, setActiveUnidad] = useState(null);
+
+  // View toggle state: 'registro' | 'historico' | 'dashboard'
+  const [currentView, setCurrentView] = useState('registro');
 
   const fetchUnidades = async (silent = false) => {
     try {
@@ -80,6 +85,7 @@ const DashboardTitan = () => {
       setBusquedaEco('');
       setExpandedModel(null);
       setBuscandoUnidad(false);
+      setCurrentView('registro'); // Ensure it switches to registro view
     } else {
       Swal.fire({
         icon: 'info',
@@ -91,11 +97,17 @@ const DashboardTitan = () => {
     }
   };
 
-  return (
-    <div className="centro-control-container" onClick={() => setExpandedModel(null)}>
-      <Header title="TITÁN - Unidades en Operación" />
-
-      <main className="centro-control-main">
+  const renderContent = () => {
+    if (currentView === 'historico') {
+      return <TitanHistorico />;
+    }
+    if (currentView === 'dashboard') {
+      return <TitanDashboardStats />;
+    }
+    
+    // Default view: Registro
+    return (
+      <>
         {!activeUnidad && (
           <div className="centro-welcome" style={{ marginBottom: '50px' }}>
             <p className="centro-eyebrow">Visión general de la flota</p>
@@ -253,6 +265,7 @@ const DashboardTitan = () => {
                                 setActiveModel(m);
                                 setActiveUnidad(u);
                                 setExpandedModel(null);
+                                setCurrentView('registro');
                               }}
                             >
                               ECO{u.numero_economico}
@@ -285,6 +298,40 @@ const DashboardTitan = () => {
             />
           </div>
         )}
+      </>
+    );
+  };
+
+  return (
+    <div className="centro-control-container" onClick={() => setExpandedModel(null)}>
+      <Header title="TITÁN - Unidades en Operación" />
+
+      <main className="centro-control-main">
+        {/* Toggle para alternar vistas */}
+        <div className="titan-view-toggle">
+          <button 
+            className={`titan-toggle-btn ${currentView === 'registro' ? 'active' : ''}`}
+            onClick={() => setCurrentView('registro')}
+          >
+            Nuevo Registro
+          </button>
+          <button 
+            className={`titan-toggle-btn ${currentView === 'historico' ? 'active' : ''}`}
+            onClick={() => setCurrentView('historico')}
+          >
+            Histórico
+          </button>
+          <button 
+            className={`titan-toggle-btn ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
+          >
+            Dashboard
+          </button>
+        </div>
+
+        <div className="titan-view-content">
+          {renderContent()}
+        </div>
       </main>
     </div>
   );

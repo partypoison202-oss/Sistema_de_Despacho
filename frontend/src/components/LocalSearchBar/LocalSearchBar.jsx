@@ -7,33 +7,48 @@ export default function LocalSearchBar({ unidades = [], onSelectUnit, moduleName
 
   const normalizarNumeroEco = (eco) => {
     if (!eco) return '';
-    const num = parseInt(eco.replace(/\D/g, ''), 10);
+    const num = parseInt(eco.toString().replace(/\D/g, ''), 10);
     return isNaN(num) ? '' : num.toString().padStart(3, '0');
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    const ecoBuscar = normalizarNumeroEco(localSearch);
+    const searchTerm = localSearch.trim().toUpperCase();
     
-    if (!ecoBuscar || ecoBuscar === '000') {
+    if (!searchTerm) {
       return;
     }
 
     // Buscar la unidad en la lista de unidades del componente padre
     const encontrada = unidades.find(u => {
       const valorEco = u.numero_eco !== undefined ? u.numero_eco : u.eco;
-      return normalizarNumeroEco(valorEco) === ecoBuscar;
+      const ecoUnidad = normalizarNumeroEco(valorEco);
+      const ruta = u.ruta_asignada || u.ruta || u.ruta_nombre || '';
+      const rutaNormalizada = ruta.toString().trim().toUpperCase();
+      
+      // Coincidencia exacta por ECO (Ej. si usuario tecleó '7' o '007' o 'ECO007')
+      const searchAsEco = normalizarNumeroEco(searchTerm);
+      if (searchAsEco && ecoUnidad === searchAsEco) {
+        return true;
+      }
+      
+      // Coincidencia EXACTA por Ruta (Ej. si usuario tecleó 'T01', no queremos que 'T' haga match con 'T01')
+      if (rutaNormalizada === searchTerm) {
+        return true;
+      }
+      
+      return false;
     });
 
     if (encontrada) {
       // Simular que el usuario seleccionó la unidad
-      onSelectUnit(encontrada.display || `ECO${ecoBuscar}`);
+      onSelectUnit(encontrada.display || `ECO${normalizarNumeroEco(encontrada.numero_eco !== undefined ? encontrada.numero_eco : encontrada.eco)}`);
       setLocalSearch('');
     } else {
       Swal.fire({
         icon: 'info',
         title: 'No se encontró',
-        text: `No existe la unidad ${ecoBuscar} en la sección de ${moduleName}.`,
+        text: `No existe la unidad o ruta "${searchTerm}" en la sección de ${moduleName}.`,
         confirmButtonColor: '#601a2a',
       });
     }
@@ -47,9 +62,9 @@ export default function LocalSearchBar({ unidades = [], onSelectUnit, moduleName
       <input
         type="text"
         className="local-search-input"
-        placeholder={`Buscar ECO en ${moduleName}...`}
+        placeholder={`Buscar ECO o Ruta en ${moduleName}...`}
         value={localSearch}
-        onChange={(e) => setLocalSearch(e.target.value.replace(/\D/g, '').substring(0, 3))}
+        onChange={(e) => setLocalSearch(e.target.value.toUpperCase())}
       />
     </form>
   );
