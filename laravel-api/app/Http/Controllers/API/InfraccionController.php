@@ -88,6 +88,16 @@ class InfraccionController extends Controller
 
                 $table->timestamps();
             });
+        } else {
+            // Asegurar que si la tabla ya existe (de versiones previas), se agreguen las nuevas columnas
+            Schema::table('infracciones', function (Blueprint $table) {
+                if (!Schema::hasColumn('infracciones', 'imagen_4')) {
+                    $table->string('imagen_4', 255)->nullable();
+                }
+                if (!Schema::hasColumn('infracciones', 'imagen_5')) {
+                    $table->string('imagen_5', 255)->nullable();
+                }
+            });
         }
     }
 

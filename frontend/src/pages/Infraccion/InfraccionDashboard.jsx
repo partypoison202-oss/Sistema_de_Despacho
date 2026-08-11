@@ -852,7 +852,10 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Nissan"
                       value={infMarca}
-                      onChange={(e) => setInfMarca(e.target.value.toUpperCase().replace(/[^A-Z0-9\s-]/g, ''))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '');
+                        setInfMarca(val.charAt(0).toUpperCase() + val.slice(1));
+                      }}
                       className="infraccion-input"
                     />
                   </div>
@@ -865,7 +868,10 @@ const InfraccionDashboard = () => {
                       type="text"
                       placeholder="Ej. Versa / Sedan"
                       value={infSubmarca}
-                      onChange={(e) => setInfSubmarca(e.target.value.toUpperCase().replace(/[^A-Z0-9\s-]/g, ''))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^a-zA-Z0-9\s-]/g, '');
+                        setInfSubmarca(val.charAt(0).toUpperCase() + val.slice(1));
+                      }}
                       className="infraccion-input"
                     />
                   </div>
@@ -887,7 +893,10 @@ const InfraccionDashboard = () => {
                       required
                       placeholder="Ej. Plata / Blanco"
                       value={infColor}
-                      onChange={(e) => setInfColor(e.target.value.toUpperCase().replace(/[^A-Z\s-]/g, ''))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^a-zA-Z\s-]/g, '');
+                        setInfColor(val.charAt(0).toUpperCase() + val.slice(1));
+                      }}
                       className="infraccion-input"
                     />
                   </div>
