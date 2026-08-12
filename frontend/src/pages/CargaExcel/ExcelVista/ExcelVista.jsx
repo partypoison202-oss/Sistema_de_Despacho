@@ -10,6 +10,8 @@ const HEADER_TRANSLATIONS = {
   ECONOMICO: 'Económico',
   TARJETON: 'Tarjetón',
   NOMBRE_CONDUCTOR: 'Conductor',
+  TARJETON_MANIOBRISTA: 'Tarjetón Maniobrista',
+  NOMBRE_MANIOBRISTA: 'Maniobrista',
   ESTATUS: 'Estatus',
   HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
   HORA_DE_ACOPLE: 'HORA DE ENTRADA PROGRAMADA',
@@ -22,6 +24,7 @@ export default function ExcelPreview({
   data = [],
   catalogUnidades = [],
   catalogConductores = [],
+  catalogManiobristas = [],
   catalogRutasObj = { troncales: [], alimentadoras: [] },
   onUpdate,
   onClear,
@@ -48,7 +51,7 @@ export default function ExcelPreview({
   const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
 
   // Las cabeceras del editor directo
-  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS'];
+  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'TARJETON_MANIOBRISTA', 'NOMBRE_MANIOBRISTA', 'ESTATUS'];
   if (isRelevos) {
     headers.push('HORA_DE_ACOPLE');
     headers.push('HORA_PROGRAMADA');
@@ -505,6 +508,137 @@ export default function ExcelPreview({
                                       <div className="dropdown-menu-no-results">Sin coincidencias</div>
                                     ) : (
                                       filteredDrivers.map((c, idx) => {
+                                        const isSelected = String(fila[h]).trim() === String(c.tarjeton).trim();
+                                        return (
+                                          <button
+                                            key={idx}
+                                            type="button"
+                                            className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
+                                            onClick={() => {
+                                              onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
+                                              setOpenDropdown({ rowIndex: null, field: null });
+                                            }}
+                                          >
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
+                                              <span>{c.tarjeton}</span>
+                                              <span style={{
+                                                fontSize: '0.65rem',
+                                                padding: '0.2rem 0.5rem',
+                                                borderRadius: '1rem',
+                                                backgroundColor: c.estado_servicio === 'en_servicio'
+                                                  ? 'rgba(239, 68, 68, 0.1)'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? 'rgba(220, 38, 38, 0.15)'
+                                                    : 'rgba(34, 197, 94, 0.1)',
+                                                color: c.estado_servicio === 'en_servicio'
+                                                  ? '#ef4444'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? '#dc2626'
+                                                    : '#22c55e',
+                                                fontWeight: '700',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.02em',
+                                                lineHeight: '1'
+                                              }}>
+                                                {c.estado_servicio === 'en_servicio'
+                                                  ? 'Servicio'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? 'Falta'
+                                                    : 'Disponible'}
+                                              </span>
+                                            </span>
+                                            {isSelected && (
+                                              <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </div>
+                              </>,
+                              document.body
+                            )}
+                          </td>
+                        );
+                      }
+                      if (h === 'TARJETON_MANIOBRISTA') {
+                        const isTarjetonManiobristaOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON_MANIOBRISTA';
+
+                        const filteredManiobristas = (catalogManiobristas || []).filter(c => {
+                          return String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
+                            String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
+                        });
+
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                if (isTarjetonManiobristaOpen) {
+                                  setOpenDropdown({ rowIndex: null, field: null });
+                                } else {
+                                  setActiveTimePickerRow(null);
+                                  handleOpenDropdown(e, originalIndex, 'TARJETON_MANIOBRISTA');
+                                }
+                              }}
+                              disabled={isRowDisabled}
+                              className={`edit-input dropdown-trigger ${isTarjetonManiobristaOpen ? 'active-trigger' : ''}`}
+                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
+                            >
+                              <span>{fila[h] ? String(fila[h]) : 'Selecciona...'}</span>
+                              <svg style={{ transform: isTarjetonManiobristaOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                              </svg>
+                            </button>
+                            {isTarjetonManiobristaOpen && createPortal(
+                              <>
+                                <div
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+                                  onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
+                                />
+                                <div
+                                  className="dropdown-menu"
+                                  style={{
+                                    position: 'fixed',
+                                    top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
+                                    bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
+                                    left: `${dropdownCoords.left}px`,
+                                    right: 'auto',
+                                    width: `${dropdownCoords.width}px`,
+                                    minWidth: '130px',
+                                    marginTop: dropdownCoords.openUp ? '0' : '0.4rem',
+                                    marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
+                                    zIndex: 9999
+                                  }}
+                                >
+                                  <div className="dropdown-menu-search-container">
+                                    <input
+                                      type="text"
+                                      placeholder="Buscar maniobrista..."
+                                      value={dropdownSearch}
+                                      onChange={(e) => setDropdownSearch(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="dropdown-menu-search-input"
+                                    />
+                                  </div>
+                                  <div className="dropdown-menu__scroll">
+                                    <button
+                                      type="button"
+                                      className="dropdown-menu__item dropdown-menu__item--none"
+                                      onClick={() => {
+                                        onUpdate && onUpdate(originalIndex, h, '');
+                                        setOpenDropdown({ rowIndex: null, field: null });
+                                      }}
+                                    >
+                                      NINGUNO
+                                    </button>
+                                    {filteredManiobristas.length === 0 ? (
+                                      <div className="dropdown-menu-no-results">Sin coincidencias</div>
+                                    ) : (
+                                      filteredManiobristas.map((c, idx) => {
                                         const isSelected = String(fila[h]).trim() === String(c.tarjeton).trim();
                                         return (
                                           <button

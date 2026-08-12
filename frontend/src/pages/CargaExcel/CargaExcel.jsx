@@ -29,23 +29,26 @@ export default function CargaExcel() {
   // 1. Obtener y cachear Catálogos usando React Query (Cache de larga duración)
   const fetchCatalogos = async () => {
     const headers = getAuthHeaders();
-    const [resUnidades, resConductores, resRutas] = await Promise.all([
+    const [resUnidades, resConductores, resRutas, resManiobristas] = await Promise.all([
       fetch(`${API_BASE}/api/despacho/catalogo/unidades`, { headers }),
       fetch(`${API_BASE}/api/conductores`, { headers }),
-      fetch(`${API_BASE}/api/despacho/rutas`, { headers })
+      fetch(`${API_BASE}/api/despacho/rutas`, { headers }),
+      fetch(`${API_BASE}/api/maniobristas`, { headers })
     ]);
 
-    if (!resUnidades.ok || !resConductores.ok || !resRutas.ok) {
+    if (!resUnidades.ok || !resConductores.ok || !resRutas.ok || !resManiobristas.ok) {
       throw new Error('Error al cargar catálogos');
     }
 
     const unidades = await resUnidades.json();
     const conductores = await resConductores.json();
     const rutas = await resRutas.json();
+    const maniobristas = await resManiobristas.json();
 
     return {
       unidades: Array.isArray(unidades) ? unidades : [],
       conductores: Array.isArray(conductores) ? conductores : [],
+      maniobristas: Array.isArray(maniobristas) ? maniobristas : [],
       rutasObj: rutas || { troncales: [], alimentadoras: [] }
     };
   };
@@ -58,6 +61,7 @@ export default function CargaExcel() {
 
   const catalogUnidades = catalogos?.unidades || [];
   const catalogConductores = catalogos?.conductores || [];
+  const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
   // 2. Cargar datos de la BD en tiempo real (Polling cada 8 segundos)
@@ -197,6 +201,64 @@ export default function CargaExcel() {
         updatedData[index]['TARJETON'] = valStr;
         updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
       }
+    } else if (field === 'TARJETON_MANIOBRISTA') {
+      if (valStr === '') {
+        updatedData[index]['TARJETON_MANIOBRISTA'] = '';
+        updatedData[index]['NOMBRE_MANIOBRISTA'] = '';
+        setPreviewData(updatedData);
+        setHasChanges(true);
+        return;
+      }
+
+      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.TARJETON_MANIOBRISTA) === valStr);
+      const newManiobristaCatalog = catalogManiobristas.find(m => trimString(m.tarjeton) === valStr);
+      const newManiobristaName = newManiobristaCatalog ? newManiobristaCatalog.nombre : '';
+
+      if (newManiobristaCatalog && newManiobristaCatalog.estado_servicio === 'falta') {
+        const confirm = await Swal.fire({
+          title: 'Confirmar asignación',
+          text: `El maniobrista ${newManiobristaName} está en estatus de FALTA. ¿Deseas asignarlo a la unidad ${updatedData[index]['ECONOMICO']} y cambiar su estatus a en servicio?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#c5a059',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, asignar',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (!confirm.isConfirmed) return;
+        newManiobristaCatalog.estado_servicio = 'en_servicio';
+      }
+
+      if (existingRowIndex !== -1) {
+        const existingRow = updatedData[existingRowIndex];
+        const currentUnitManiobristaTarjeton = updatedData[index]['TARJETON_MANIOBRISTA'];
+        const currentUnitManiobristaName = updatedData[index]['NOMBRE_MANIOBRISTA'];
+
+        const confirm = await Swal.fire({
+          title: 'Maniobrista en servicio',
+          text: `El maniobrista ${newManiobristaName} ya está asignado a la unidad ${existingRow.ECONOMICO}. ¿Deseas hacer el cambio?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#c5a059',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, hacer cambio',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (confirm.isConfirmed) {
+          updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
+          updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
+          updatedData[existingRowIndex]['TARJETON_MANIOBRISTA'] = currentUnitManiobristaTarjeton;
+          updatedData[existingRowIndex]['NOMBRE_MANIOBRISTA'] = currentUnitManiobristaName;
+          setPreviewData(updatedData);
+          setHasChanges(true);
+        }
+        return;
+      } else {
+        updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
+        updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
+      }
     } else if (field === 'ECONOMICO') {
       const shortcutEco = valStr ? valStr.padStart(3, '0') : '';
       const unidad = catalogUnidades.find(u => trimString(u.numero_eco) === shortcutEco || trimString(u.numero_eco) === valStr);
@@ -295,8 +357,8 @@ export default function CargaExcel() {
       return;
     }
 
-    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'CORRIDAS'];
-    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Programada', 'Corrida'];
+    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'TARJETON_MANIOBRISTA', 'NOMBRE_MANIOBRISTA', 'HORA_DE_ACOPLE', 'CORRIDAS'];
+    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Tarjetón Maniobrista', 'Nombre Maniobrista', 'Hora Programada', 'Corrida'];
 
     // Construir array de arrays: encabezados + filas de datos
     const datosHoja = [
@@ -416,6 +478,7 @@ export default function CargaExcel() {
             data={registrosVisibles.map(r => ({ ...r.fila, __originalIndex: r.originalIndex }))}
             catalogUnidades={catalogUnidades}
             catalogConductores={catalogConductores}
+            catalogManiobristas={catalogManiobristas}
             catalogRutasObj={catalogRutasObj}
             onUpdate={handleUpdateRecord}
             onSave={handleSaveChanges}

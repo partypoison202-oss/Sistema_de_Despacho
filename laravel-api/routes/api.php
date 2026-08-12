@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
     Route::post('/despacho/actualizar-adicionales', [DespachoController::class, 'actualizarAdicionales']);
     Route::post('/despacho/actualizar-tarjeton', [DespachoController::class, 'actualizarTarjeton']);
+    Route::post('/despacho/actualizar-tarjeton-maniobrista', [DespachoController::class, 'actualizarTarjetonManiobrista']);
     Route::post('/despacho/actualizar-horas', [DespachoController::class, 'actualizarHoras']);
     Route::post('/despacho/validar', [DespachoController::class, 'validarDespacho']);
     Route::get('/despacho/catalogo/unidades', [DespachoController::class, 'obtenerCatalogoUnidades']);

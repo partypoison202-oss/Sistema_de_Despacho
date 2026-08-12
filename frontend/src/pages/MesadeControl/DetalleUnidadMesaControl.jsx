@@ -454,6 +454,75 @@ export default function DetalleUnidadMesaControl() {
     }
   };
 
+  const handleSaveTarjetonManiobrista = async (nuevoTarjeton) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+      const matchNumeros = selectedOption.match(/\d+/);
+      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+      const payload = {
+        tipo: tipoTransporte,
+        numero_eco: numeroLimpio,
+        tarjeton: nuevoTarjeton,
+      };
+      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-tarjeton-maniobrista`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const resultado = await respuesta.json();
+      if (respuesta.ok && resultado.status === 'success') {
+        setDatosOperativos((prev) => ({
+          ...prev,
+          tarjeton_maniobrista: resultado.tarjeton,
+          nombre_maniobrista: resultado.maniobrista,
+        }));
+        queryClient.invalidateQueries(['maniobristas-list']);
+        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
+        
+        const Swal = (await import('sweetalert2')).default;
+        if (nuevoTarjeton === '') {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Maniobrista Removido!',
+                text: 'Se removió el maniobrista de esta unidad.',
+                confirmButtonColor: 'var(--tw-color-gray-300)',
+                timer: 2000,
+            });
+        } else {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Maniobrista Asignado!',
+                text: `Se asignó al maniobrista: ${resultado.maniobrista}`,
+                confirmButtonColor: 'var(--tw-color-gray-300)',
+                timer: 2000,
+            });
+        }
+      } else {
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de Asignación',
+          text: resultado.message || 'Error al actualizar el tarjetón del maniobrista',
+          confirmButtonColor: '#601a2a',
+        });
+      }
+    } catch (error) {
+      console.error('Error al guardar tarjetón maniobrista:', error);
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor',
+        confirmButtonColor: '#601a2a',
+      });
+    }
+  };
+
   const handleSaveRuta = async (nuevaRuta) => {
     try {
       const token = getToken();
@@ -1157,12 +1226,15 @@ export default function DetalleUnidadMesaControl() {
                   handleSaveFalla={handleSaveFalla}
                   handleCancelFalla={handleCancelFalla}
                   handleSaveTarjeton={handleSaveTarjeton}
+                  handleSaveTarjetonManiobrista={handleSaveTarjetonManiobrista}
                   handleSaveRuta={handleSaveRuta}
                   handleSaveHoras={handleSaveHoras}
                   handleCambiarEstatus={handleCambiarEstatus}
                   cambiandoEstatus={cambiandoEstatus}
                   conductoresDisponibles={conductoresDisponibles}
+                  maniobristasDisponibles={maniobristasDisponibles}
                   unidadesReserva={unidadesPorEstado('reserva')}
+                  onUpdate={handleSelectUnit}
                 />
 
                 {/* NUEVOS APARTADOS: MOVILIDAD Y ESTATUS + CHECKLIST */}

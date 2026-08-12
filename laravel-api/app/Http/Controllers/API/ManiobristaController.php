@@ -34,6 +34,7 @@ class ManiobristaController extends Controller
         $this->ensureColumnsExist();
 
         $query = Maniobrista::query();
+        $conductoresQuery = \App\Models\Conductor::query()->where('estado_servicio', 'maniobrista');
 
         // Filtrar sólo operadores activos (no dados de baja) por defecto
         if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
@@ -41,16 +42,26 @@ class ManiobristaController extends Controller
                 $q->where('estatus', 'activo')
                   ->orWhereNull('estatus');
             });
+            $conductoresQuery->where(function ($q) {
+                $q->where('estatus', 'activo')
+                  ->orWhereNull('estatus');
+            });
         }
+
+        $maniobristasDb = $query->get();
+        $conductoresDb = $conductoresQuery->get();
+
+        // Combinar ambas colecciones
+        $todos = $maniobristasDb->concat($conductoresDb);
 
         // Obtener todos los tarjetones asignados en tiempo real en despacho
         $asignaciones = DB::table('informacion_operativa')
-            ->whereNotNull('numero_tarjeton')
-            ->where('numero_tarjeton', '!=', '')
-            ->pluck('numero_tarjeton')
+            ->whereNotNull('tarjeton_maniobrista')
+            ->where('tarjeton_maniobrista', '!=', '')
+            ->pluck('tarjeton_maniobrista')
             ->toArray();
 
-        $maniobristas = $query->get()->map(function ($c) use ($asignaciones) {
+        $maniobristas = $todos->map(function ($c) use ($asignaciones) {
             $tarjetonClean = trim($c->tarjeton ?? '');
             $estaAsignado = false;
             foreach ($asignaciones as $t) {
@@ -65,7 +76,7 @@ class ManiobristaController extends Controller
                 $c->estado_servicio = $estaAsignado ? 'en_servicio' : ($c->estado_servicio ?? 'disponible');
             }
             return $c;
-        });
+        })->values();
 
         return response()->json($maniobristas);
     }
@@ -144,9 +155,9 @@ class ManiobristaController extends Controller
             // desvincular al maniobrista de la unidad
             if ($nuevoEstado !== 'en_servicio') {
                 DB::table('informacion_operativa')
-                    ->where('numero_tarjeton', $maniobrista->tarjeton)
+                    ->where('tarjeton_maniobrista', $maniobrista->tarjeton)
                     ->update([
-                        'numero_tarjeton' => null,
+                        'tarjeton_maniobrista' => null,
                         'nombre_maniobrista' => null
                     ]);
             }

@@ -209,6 +209,8 @@ class DespachoController extends Controller
                 'informacion_operativa.estatus',
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
+                'informacion_operativa.tarjeton_maniobrista',
+                'informacion_operativa.nombre_maniobrista',
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
                 'informacion_operativa.acople',
@@ -435,15 +437,21 @@ class DespachoController extends Controller
             return trim($c->tarjeton);
         });
 
+        $maniobristasMap = DB::table('maniobristas')->select('tarjeton', 'nombre')->get()->keyBy(function ($m) {
+            return trim($m->tarjeton);
+        });
+
         $infoOperativaIds = DB::table('informacion_operativa')->pluck('id', 'unidad_id')->all();
 
         $unidadesProcesadasIds = [];
         $tarjetonesEnServicio = [];
+        $maniobristasEnServicio = [];
         $actualizados = 0;
         $creados = 0;
         $errores = [];
 
         DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+        DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
 
         foreach ($unidadesReq as $fila) {
             $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
@@ -457,6 +465,7 @@ class DespachoController extends Controller
 
             $unidadesProcesadasIds[] = $unidad->id;
 
+            // Procesar Conductor
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
             if ($tarjetonVal !== '') {
@@ -469,19 +478,34 @@ class DespachoController extends Controller
                 }
             }
 
+            // Procesar Maniobrista
+            $tarjetonManiobristaVal = trim((string) ($fila['TARJETON_MANIOBRISTA'] ?? ''));
+            $maniobristaNombre = '';
+            if ($tarjetonManiobristaVal !== '') {
+                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal);
+                if ($maniobristaCatalog) {
+                    $maniobristaNombre = $maniobristaCatalog->nombre;
+                    $maniobristasEnServicio[] = $tarjetonManiobristaVal;
+                } else {
+                    $maniobristaNombre = trim((string) ($fila['NOMBRE_MANIOBRISTA'] ?? ''));
+                }
+            }
+
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
 
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
             $data = [
-                'ruta'             => (string) ($fila['RUTA'] ?? ''),
-                'numero_tarjeton'  => $tarjetonVal,
-                'nombre_conductor' => $conductorNombre,
-                'corridas'         => $corridasVal === '' ? null : (int)$corridasVal,
-                'hora_programada'  => $horaSalidaVal === '' ? null : $horaSalidaVal,
-                'tipo'             => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
-                'estatus'          => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
+                'ruta'                 => (string) ($fila['RUTA'] ?? ''),
+                'numero_tarjeton'      => $tarjetonVal,
+                'nombre_conductor'     => $conductorNombre,
+                'tarjeton_maniobrista' => $tarjetonManiobristaVal,
+                'nombre_maniobrista'   => $maniobristaNombre,
+                'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
+                'hora_programada'      => $horaSalidaVal === '' ? null : $horaSalidaVal,
+                'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
+                'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
             ];
 
             if ($registroId) {
@@ -512,6 +536,12 @@ class DespachoController extends Controller
         if (!empty($tarjetonesEnServicio)) {
             DB::table('conductores')
                 ->whereIn('tarjeton', array_unique($tarjetonesEnServicio))
+                ->update(['estado_servicio' => 'en_servicio']);
+        }
+
+        if (!empty($maniobristasEnServicio)) {
+            DB::table('maniobristas')
+                ->whereIn('tarjeton', array_unique($maniobristasEnServicio))
                 ->update(['estado_servicio' => 'en_servicio']);
         }
 
@@ -737,8 +767,10 @@ class DespachoController extends Controller
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.ruta',
-                'informacion_operativa.numero_tarjeton',
+                'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.nombre_conductor',
+                'informacion_operativa.tarjeton_maniobrista',
+                'informacion_operativa.nombre_maniobrista',
                 'informacion_operativa.estatus',
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
@@ -756,8 +788,10 @@ class DespachoController extends Controller
                 'TIPO_DE_UNIDAD' => $reg->tipo,
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
-                'TARJETON' => $reg->numero_tarjeton,
+                'TARJETON' => $reg->tarjeton,
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
+                'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
+                'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,

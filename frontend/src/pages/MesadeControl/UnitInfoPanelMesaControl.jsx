@@ -23,11 +23,13 @@ export default function UnitInfoPanel({
   handleSaveFalla,
   handleCancelFalla,
   handleSaveTarjeton,
+  handleSaveTarjetonManiobrista,
   handleSaveRuta,
   handleSaveHoras,
   handleCambiarEstatus,
   cambiandoEstatus,
   conductoresDisponibles,
+  maniobristasDisponibles = [],
   unidadesReserva = [],
   onUpdate,
 }) {
@@ -36,7 +38,9 @@ export default function UnitInfoPanel({
 
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
+  const [formTarjetonManiobrista, setFormTarjetonManiobrista] = useState('');
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
+  const [guardandoTarjetonManiobrista, setGuardandoTarjetonManiobrista] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
   const [viewingChecklist, setViewingChecklist] = useState(false);
@@ -52,6 +56,7 @@ export default function UnitInfoPanel({
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [dropdownAcopleOpen, setDropdownAcopleOpen] = useState(false);
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
+  const [dropdownTarjetonManiobristaOpen, setDropdownTarjetonManiobristaOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
 
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
@@ -150,6 +155,7 @@ export default function UnitInfoPanel({
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
   const tarjetonRef = useRef(null);
+  const tarjetonManiobristaRef = useRef(null);
   const motivoRef = useRef(null);
 
   useEffect(() => {
@@ -168,6 +174,9 @@ export default function UnitInfoPanel({
       }
       if (tarjetonRef.current && !tarjetonRef.current.contains(e.target)) {
         setDropdownTarjetonOpen(false);
+      }
+      if (tarjetonManiobristaRef.current && !tarjetonManiobristaRef.current.contains(e.target)) {
+        setDropdownTarjetonManiobristaOpen(false);
       }
       if (motivoRef.current && !motivoRef.current.contains(e.target)) {
         setDropdownMotivoOpen(false);
@@ -504,6 +513,23 @@ export default function UnitInfoPanel({
     }
   };
 
+  const handleConfirmTarjetonManiobrista = async (overrideValue = null) => {
+    const val = typeof overrideValue === 'string' ? overrideValue : formTarjetonManiobrista;
+    if (val === datosOperativos.tarjeton_maniobrista) {
+      setDropdownTarjetonManiobristaOpen(false);
+      return;
+    }
+    setGuardandoTarjetonManiobrista(true);
+    try {
+      await handleSaveTarjetonManiobrista(val.trim());
+      setDropdownTarjetonManiobristaOpen(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGuardandoTarjetonManiobrista(false);
+    }
+  };
+
   const handleCancelTarjetonEdit = () => {
     setFormTarjeton(datosOperativos.tarjeton || '');
     setEditandoTarjeton(false);
@@ -567,7 +593,6 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Servicio Activo</h3>
           </div>
           <div className="info-card__body">
-            {/* Conductor Asignado */}
             <div className="info-card__item">
               <span className="info-card__label">Conductor Asignado</span>
               <div className="info-card__value-wrapper">
@@ -576,6 +601,19 @@ export default function UnitInfoPanel({
                 </svg>
                 <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
                   {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
+                </p>
+              </div>
+            </div>
+
+            {/* Maniobrista Asignado (NUEVO) */}
+            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+              <span className="info-card__label">Maniobrista Asignado</span>
+              <div className="info-card__value-wrapper">
+                <svg className="info-card__item-icon" fill="none" stroke="#d97706" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                  {cargandoDatos ? 'Buscando...' : (datosOperativos.nombre_maniobrista || 'No asignado')}
                 </p>
               </div>
             </div>
@@ -814,6 +852,166 @@ export default function UnitInfoPanel({
                     </svg>
                     <p className="info-card__value">
                       {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Número de Tarjetón Maniobrista (Editable) */}
+            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+              <span className="info-card__label">Número de Tarjetón Maniobrista</span>
+              {!isPlataforma && !isReservaOrMantenimiento ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
+                  <div ref={tarjetonManiobristaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownTarjetonManiobristaOpen ? 50 : 1 }}>
+                    <div
+                      className="interactive-input"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 0.85rem',
+                        background: 'var(--tw-color-white)',
+                        height: '2.3rem',
+                        width: '100%',
+                        fontWeight: 'bold',
+                        opacity: guardandoTarjetonManiobrista ? 0.7 : 1,
+                        borderColor: dropdownTarjetonManiobristaOpen ? 'var(--brand-maroon-text)' : undefined,
+                      }}
+                    >
+                      {guardandoTarjetonManiobrista ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
+                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal', fontSize: '0.85rem' }}>Guardando...</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <input
+                            type="text"
+                            placeholder={datosOperativos.tarjeton_maniobrista ? String(datosOperativos.tarjeton_maniobrista) : "Buscar o escribir maniobrista..."}
+                            value={formTarjetonManiobrista}
+                            onChange={(e) => {
+                              setFormTarjetonManiobrista(e.target.value);
+                              setDropdownTarjetonManiobristaOpen(true);
+                            }}
+                            onFocus={() => setDropdownTarjetonManiobristaOpen(true)}
+                            style={{
+                              border: 'none',
+                              outline: 'none',
+                              background: 'transparent',
+                              width: '100%',
+                              fontSize: '0.85rem',
+                              fontWeight: 'bold',
+                              color: dropdownTarjetonManiobristaOpen ? 'var(--brand-maroon-text)' : 'inherit',
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleConfirmTarjetonManiobrista();
+                                setDropdownTarjetonManiobristaOpen(false);
+                              } else if (e.key === 'Escape') {
+                                setFormTarjetonManiobrista('');
+                                setDropdownTarjetonManiobristaOpen(false);
+                              }
+                            }}
+                          />
+                          <svg
+                            onClick={() => setDropdownTarjetonManiobristaOpen(!dropdownTarjetonManiobristaOpen)}
+                            className={`arrow-icon ${dropdownTarjetonManiobristaOpen ? 'dropdown-trigger__arrow--open' : ''}`}
+                            style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownTarjetonManiobristaOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownTarjetonManiobristaOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
+                            fill="currentColor" viewBox="0 0 24 24"
+                          >
+                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    {dropdownTarjetonManiobristaOpen && !guardandoTarjetonManiobrista && (
+                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                          <button
+                            type="button"
+                            className="dropdown-menu__item"
+                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
+                            onClick={() => {
+                              setFormTarjetonManiobrista('');
+                              setDropdownTarjetonManiobristaOpen(false);
+                              handleConfirmTarjetonManiobrista('');
+                            }}
+                          >
+                            REMOVER MANIOBRISTA
+                          </button>
+                          {(maniobristasDisponibles || [])
+                            .filter(c => {
+                              const search = formTarjetonManiobrista.toLowerCase().trim();
+                              const currentTarjeton = String(datosOperativos.tarjeton_maniobrista || '').toLowerCase().trim();
+                              if (search === currentTarjeton || search === '') {
+                                return true;
+                              }
+                              return c.nombre.toLowerCase().includes(search) || c.tarjeton.toLowerCase().includes(search);
+                            })
+                            .map((c) => (
+                              <button
+                                key={c.tarjeton}
+                                type="button"
+                                className="dropdown-menu__item"
+                                style={{
+                                  padding: '0.6rem 1rem',
+                                  fontSize: '0.85rem',
+                                  background: 'var(--tw-color-white)',
+                                  color: 'var(--tw-color-gray-800)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'flex-start',
+                                  gap: '0.15rem'
+                                }}
+                                onClick={async () => {
+                                  if (c.estado_servicio === 'falta') {
+                                    const confirm = await Swal.fire({
+                                      title: 'Maniobrista en Falta',
+                                      text: `El maniobrista ${c.nombre} está en estatus de FALTA. ¿Deseas asignarlo a esta unidad y cambiar su estatus a EN SERVICIO?`,
+                                      icon: 'warning',
+                                      showCancelButton: true,
+                                      confirmButtonColor: '#c5a059',
+                                      cancelButtonColor: '#6b7280',
+                                      confirmButtonText: 'Sí, asignar',
+                                      cancelButtonText: 'Cancelar'
+                                    });
+                                    if (!confirm.isConfirmed) return;
+                                  }
+                                  setFormTarjetonManiobrista(String(c.tarjeton));
+                                  setDropdownTarjetonManiobristaOpen(false);
+                                  handleConfirmTarjetonManiobrista(String(c.tarjeton));
+                                }}
+                              >
+                                <span>{c.tarjeton} - {c.nombre}</span>
+                                {c.estado_servicio === 'falta' && (
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    padding: '0.15rem 0.4rem',
+                                    borderRadius: '4px',
+                                    backgroundColor: '#fee2e2',
+                                    color: '#b91c1c',
+                                    fontWeight: '700'
+                                  }}>
+                                    FALTA
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <svg className="info-card__item-icon" fill="none" stroke="#d97706" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
+                    </svg>
+                    <p className="info-card__value">
+                      {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton_maniobrista || 'No asignado')}
                     </p>
                   </div>
                 </div>
