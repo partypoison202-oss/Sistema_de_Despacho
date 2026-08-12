@@ -320,14 +320,14 @@ export default function ExcelPreview({
                               className={`edit-input dropdown-trigger ${isOpen ? 'active-trigger' : ''}`}
                               style={{
                                 textAlign: 'center',
-                                height: '34px',
+                                height: '52px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 width: '80px',
                                 margin: '0 auto',
                                 fontWeight: '600',
-                                borderRadius: '6px',
+                                borderRadius: '14px',
                                 cursor: isRowDisabled ? 'not-allowed' : 'pointer',
                                 opacity: isRowDisabled ? 0.6 : 1
                               }}
