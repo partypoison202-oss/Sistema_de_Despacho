@@ -129,7 +129,7 @@ function StatusDropdown({ value, onChange }) {
   );
 }
 
-export default function Maniobristas() {
+export default function Operadores() {
   const { user } = useContext(AuthContext);
   const [maniobristas, setManiobristas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +157,7 @@ export default function Maniobristas() {
     };
   };
 
-  // Validación en tiempo real para el nombre del maniobrista: solo letras, acentos, ñ y espacios
+  // Validación en tiempo real para el nombre del operador: solo letras, acentos, ñ y espacios
   const handleNombreChange = (e) => {
     const val = e.target.value.toUpperCase();
     const filtered = val.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
@@ -247,7 +247,7 @@ export default function Maniobristas() {
 
   const handleOpenEditModal = (c) => {
     setSelectedManiobrista(c);
-    setNombre(c.nombre || '');
+    setNombre(c.nombre);
     setTipoTarjeton('MANIOBRISTA');
     setShowEditModal(true);
   };
@@ -388,7 +388,7 @@ export default function Maniobristas() {
       <main className="maniobristas-main-content">
         <div className="maniobristas-top-bar">
           <div className="maniobristas-title-section">
-            <h1>Catálogo de Maniobristas / Maniobristas</h1>
+            <h1>Catálogo de Maniobristas</h1>
             <p className="maniobristas-subtitle">
               Administra el alta y edición de maniobristas. El tarjetón se genera automáticamente.
             </p>
@@ -455,7 +455,7 @@ export default function Maniobristas() {
                         <td className="maniobrista-nombre">{c.nombre}</td>
                         <td>
                           <span className="tipo-badge">
-                            TIPO {c.tipo_tarjeton || 'B'}
+                            {c.tipo_tarjeton || 'MANIOBRISTA'}
                           </span>
                         </td>
                         <td>
