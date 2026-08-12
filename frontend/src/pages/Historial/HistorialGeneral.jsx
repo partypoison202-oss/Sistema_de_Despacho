@@ -5,6 +5,132 @@ import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import './Historial.css';
 
+const processResumenData = (inicio, cambios, fin) => {
+  const resumenMap = {};
+
+  (inicio || []).forEach(row => {
+    const eco = row.economico;
+    if (!eco) return;
+    resumenMap[eco] = {
+      economico: eco,
+      tipo: row.tipo || '',
+      rutas: new Set(row.ruta ? [row.ruta] : []),
+      conductores: new Set(row.nombre_conductor ? [row.nombre_conductor] : []),
+      estatuses: new Set(row.estatus ? [row.estatus] : []),
+      corridas: new Set(row.corridas !== null && row.corridas !== undefined ? [row.corridas] : []),
+      acoples: new Set(row.hora_acople ? [row.hora_acople] : []),
+      motivos: new Set(row.motivo || row.motivo_estatus || row.falla ? [row.motivo || row.motivo_estatus || row.falla] : [])
+    };
+  });
+
+  (cambios || []).forEach(change => {
+    const eco = change.economico;
+    if (!eco) return;
+
+    if (!resumenMap[eco]) {
+      resumenMap[eco] = {
+        economico: eco,
+        tipo: change.tipo_unidad || '',
+        rutas: new Set(),
+        conductores: new Set(),
+        estatuses: new Set(),
+        corridas: new Set(),
+        acoples: new Set(),
+        motivos: new Set()
+      };
+    }
+
+    const item = resumenMap[eco];
+    if (change.estatus_anterior) item.estatuses.add(change.estatus_anterior);
+    if (change.estatus_nuevo) item.estatuses.add(change.estatus_nuevo);
+
+    if (change.detalles) {
+      const condMatch = change.detalles.match(/CONDUCTOR:\s*([^,\-\n\(\)]+)/i);
+      if (condMatch && condMatch[1]) {
+        const condName = condMatch[1].trim();
+        if (condName && condName !== 'SIN ASIGNAR') {
+          item.conductores.add(condName);
+        }
+      }
+
+      const rutaMatch = change.detalles.match(/(?:RUTA|NUEVA):\s*([^,\-\n\(\)]+)/i);
+      if (rutaMatch && rutaMatch[1]) {
+        const rName = rutaMatch[1].trim();
+        if (rName && rName !== 'SIN RUTA' && !rName.includes('HORA') && !rName.includes('ESTATUS')) {
+          item.rutas.add(rName);
+        }
+      }
+
+      const motivoMatch = change.detalles.match(/(?:MOTIVO|FALLA):\s*([^,\-\n\(\)]+)/i);
+      if (motivoMatch && motivoMatch[1]) {
+        const motVal = motivoMatch[1].trim();
+        if (motVal) item.motivos.add(motVal);
+      }
+    }
+  });
+
+  (fin || []).forEach(row => {
+    const eco = row.economico;
+    if (!eco) return;
+
+    if (!resumenMap[eco]) {
+      resumenMap[eco] = {
+        economico: eco,
+        tipo: row.tipo || '',
+        rutas: new Set(),
+        conductores: new Set(),
+        estatuses: new Set(),
+        corridas: new Set(),
+        acoples: new Set(),
+        motivos: new Set()
+      };
+    }
+
+    const item = resumenMap[eco];
+    if (row.ruta) item.rutas.add(row.ruta);
+    if (row.nombre_conductor) item.conductores.add(row.nombre_conductor);
+    if (row.estatus) item.estatuses.add(row.estatus);
+    if (row.corridas !== null && row.corridas !== undefined) item.corridas.add(row.corridas);
+    if (row.hora_acople) item.acoples.add(row.hora_acople);
+    
+    const mot = row.motivo || row.motivo_estatus || row.falla;
+    if (mot) item.motivos.add(mot);
+  });
+
+  return Object.values(resumenMap).map(item => {
+    return {
+      economico: item.economico,
+      tipo: item.tipo,
+      rutas: Array.from(item.rutas).join(', ') || '-',
+      conductores: Array.from(item.conductores).join(', ') || 'SIN ASIGNAR',
+      estatuses: Array.from(item.estatuses).map(e => {
+        const lower = String(e).toLowerCase();
+        if (lower === 'operacion' || lower === 'operación') return 'Operación';
+        if (lower === 'mantenimiento') return 'Mantenimiento';
+        if (lower === 'reserva') return 'Reserva';
+        return e;
+      }).join(', ') || '-',
+      corridas: Array.from(item.corridas).join(', ') || '-',
+      acoples: Array.from(item.acoples).join(', ') || '-',
+      motivos: Array.from(item.motivos).join(', ') || '-'
+    };
+  }).sort((a, b) => {
+    const customSortOrder = ['URBANUS', 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
+    const typeA = String(a.tipo || '').toUpperCase();
+    const typeB = String(b.tipo || '').toUpperCase();
+    let idxA = customSortOrder.indexOf(typeA);
+    if (idxA === -1) idxA = 999;
+    let idxB = customSortOrder.indexOf(typeB);
+    if (idxB === -1) idxB = 999;
+
+    if (idxA !== idxB) return idxA - idxB;
+
+    const ecoA = parseInt(a.economico || '0', 10);
+    const ecoB = parseInt(b.economico || '0', 10);
+    return ecoA - ecoB;
+  });
+};
+
 export default function HistorialGeneral() {
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -72,6 +198,7 @@ export default function HistorialGeneral() {
   const getActiveData = () => {
     if (activeTab === 'inicio') return datos.inicio || [];
     if (activeTab === 'cambios') return datos.cambios || [];
+    if (activeTab === 'resumen') return processResumenData(datos.inicio, datos.cambios, datos.fin);
     return datos.fin || [];
   };
 
@@ -90,6 +217,17 @@ export default function HistorialGeneral() {
         'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
         'DETALLES': d.detalles || '',
         'USUARIO': d.usuario_nombre || 'SISTEMA'
+      }));
+    } else if (activeTab === 'resumen') {
+      worksheetData = activeData.map(d => ({
+        'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
+        'ECO': d.economico || '',
+        'RUTAS': d.rutas || '',
+        'OPERADORES': d.conductores || '',
+        'ESTATUS': d.estatuses || '',
+        'HORAS ACOPLE': d.acoples || '',
+        'CORRIDAS': d.corridas || '',
+        'OBSERVACIONES / MOTIVOS': d.motivos || ''
       }));
     } else {
       worksheetData = activeData.map(d => ({
@@ -204,6 +342,13 @@ export default function HistorialGeneral() {
           </button>
           <button
             type="button"
+            className={`historial-tab-btn ${activeTab === 'resumen' ? 'active' : ''}`}
+            onClick={() => setActiveTab('resumen')}
+          >
+            Resumen de Cambios Diarios
+          </button>
+          <button
+            type="button"
             className={`historial-tab-btn ${activeTab === 'fin' ? 'active' : ''}`}
             onClick={() => setActiveTab('fin')}
           >
@@ -218,18 +363,18 @@ export default function HistorialGeneral() {
             <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Buscando registros en la base de datos</p>
           </div>
         ) : activeTab === 'cambios' ? (
-          <div className="table-responsive">
-            <table className="historial-table">
+          <div className="table-responsive" style={{ overflowX: 'auto' }}>
+            <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
               <thead>
                 <tr>
-                  <th>HORA</th>
-                  <th>ECO</th>
-                  <th>TIPO UNIDAD</th>
-                  <th>MODIFICACIÓN</th>
-                  <th>VALOR ANTERIOR</th>
-                  <th>VALOR NUEVO</th>
-                  <th>DETALLES DE LA ACCIÓN</th>
-                  <th>USUARIO</th>
+                  <th style={{ minWidth: '100px' }}>HORA</th>
+                  <th style={{ minWidth: '80px' }}>ECO</th>
+                  <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
+                  <th style={{ minWidth: '180px' }}>MODIFICACIÓN</th>
+                  <th style={{ minWidth: '140px' }}>VALOR ANTERIOR</th>
+                  <th style={{ minWidth: '140px' }}>VALOR NUEVO</th>
+                  <th style={{ minWidth: '350px' }}>DETALLES DE LA ACCIÓN</th>
+                  <th style={{ minWidth: '150px' }}>USUARIO</th>
                 </tr>
               </thead>
               <tbody>
@@ -245,7 +390,7 @@ export default function HistorialGeneral() {
                     </td>
                     <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior || 'N/A'}</td>
                     <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo || 'N/A'}</td>
-                    <td style={{ maxWidth: '280px', wordBreak: 'break-word' }}>{d.detalles}</td>
+                    <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', paddingRight: '1rem' }}>{d.detalles}</td>
                     <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                   </tr>
                 ))}
@@ -257,20 +402,56 @@ export default function HistorialGeneral() {
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="table-responsive">
-            <table className="historial-table">
+        ) : activeTab === 'resumen' ? (
+          <div className="table-responsive" style={{ overflowX: 'auto' }}>
+            <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
               <thead>
                 <tr>
-                  <th>TIPO UNIDAD</th>
-                  <th>ECO</th>
-                  <th>RUTA</th>
-                  <th>TARJETÓN</th>
-                  <th>CONDUCTOR</th>
-                  <th>ESTATUS</th>
-                  <th>HORA ACOPLE</th>
-                  <th>CORRIDAS</th>
-                  <th>OBSERVACIONES / MOTIVO</th>
+                  <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
+                  <th style={{ minWidth: '80px' }}>ECO</th>
+                  <th style={{ minWidth: '180px' }}>RUTAS</th>
+                  <th style={{ minWidth: '220px' }}>OPERADORES</th>
+                  <th style={{ minWidth: '160px' }}>ESTATUS</th>
+                  <th style={{ minWidth: '130px' }}>HORAS ACOPLE</th>
+                  <th style={{ minWidth: '110px' }}>CORRIDAS</th>
+                  <th style={{ minWidth: '250px' }}>OBSERVACIONES / MOTIVOS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeData.map((d, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
+                    <td style={{ fontWeight: '700' }}>{d.economico}</td>
+                    <td>{d.rutas}</td>
+                    <td style={{ fontWeight: '600', color: '#1e3a8a' }}>{d.conductores}</td>
+                    <td>{d.estatuses}</td>
+                    <td className="text-center">{d.acoples}</td>
+                    <td className="text-center">{d.corridas}</td>
+                    <td>{d.motivos}</td>
+                  </tr>
+                ))}
+                {activeData.length === 0 && (
+                  <tr>
+                    <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay datos suficientes para generar el resumen de hoy.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="table-responsive" style={{ overflowX: 'auto' }}>
+            <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
+              <thead>
+                <tr>
+                  <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
+                  <th style={{ minWidth: '80px' }}>ECO</th>
+                  <th style={{ minWidth: '130px' }}>RUTA</th>
+                  <th style={{ minWidth: '110px' }}>TARJETÓN</th>
+                  <th style={{ minWidth: '200px' }}>CONDUCTOR</th>
+                  <th style={{ minWidth: '140px' }}>ESTATUS</th>
+                  <th style={{ minWidth: '130px' }}>HORA ACOPLE</th>
+                  <th style={{ minWidth: '110px' }}>CORRIDAS</th>
+                  <th style={{ minWidth: '220px' }}>OBSERVACIONES / MOTIVO</th>
                 </tr>
               </thead>
               <tbody>
