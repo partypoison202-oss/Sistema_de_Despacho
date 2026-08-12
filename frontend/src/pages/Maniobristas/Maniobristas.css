@@ -1,0 +1,660 @@
+.maniobristas-layout {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  font-family: inherit;
+}
+
+.maniobristas-main-content {
+  flex: 1;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem;
+}
+
+.maniobristas-top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .maniobristas-top-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.maniobristas-title-section h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.maniobristas-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+.btn-add-operador {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.6rem;
+  border: none;
+  background: var(--color-maroon, #6b1d33);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(107, 29, 51, 0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-add-operador:hover {
+  background: #521526;
+  transform: translateY(-1px);
+}
+
+.maniobristas-filter-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f1f5f9;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #cbd5e1;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.9rem;
+  color: #1e293b;
+  outline: none;
+}
+
+.maniobristas-table-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.maniobristas-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.maniobristas-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+
+}
+
+.maniobristas-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.9rem;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.maniobristas-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.tarjeton-badge {
+  display: inline-block;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.375rem;
+  border: 1px solid #bfdbfe;
+}
+
+.conductor-nombre {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.tipo-badge {
+  display: inline-block;
+  background: #fdf4ff;
+  color: #a21caf;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.375rem;
+  border: 1px solid #f5d0fe;
+}
+
+.servicio-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.servicio-badge.en-servicio {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.servicio-badge.disponible {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+/* CONTENEDOR DEL DROPDOWN DE ESTADO DE SERVICIO */
+.status-dropdown-container {
+  position: relative;
+  display: inline-block;
+  width: 140px;
+}
+
+/* TRIGGER (BOTÓN PRINCIPAL) */
+.status-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  outline: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+}
+
+.status-dropdown-trigger .arrow-icon {
+  margin-left: 0.35rem;
+  transition: transform 0.2s ease;
+  width: 14px;
+  height: 14px;
+}
+
+.status-dropdown-trigger.open .arrow-icon {
+  transform: rotate(180deg);
+}
+
+/* COLORES DEL TRIGGER SEGÚN ESTATUS */
+.status-dropdown-trigger.en_servicio {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+.status-dropdown-trigger.en_servicio:hover {
+  background-color: #bbf7d0;
+}
+
+.status-dropdown-trigger.disponible {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+.status-dropdown-trigger.disponible:hover {
+  background-color: #bae6fd;
+}
+
+.status-dropdown-trigger.falta {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+.status-dropdown-trigger.falta:hover {
+  background-color: #fecaca;
+}
+
+
+
+/* MENÚ DESPLEGABLE */
+.status-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  margin-top: 0.25rem;
+  overflow: hidden;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+/* OPCIONES DEL DROPDOWN */
+.status-dropdown-item {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+/* COLORES Y COMPORTAMIENTO HOVER DE LAS OPCIONES */
+.status-dropdown-item.en_servicio {
+  color: #15803d;
+  background-color: transparent;
+}
+.status-dropdown-item.en_servicio:hover, 
+.status-dropdown-item.en_servicio.active {
+  background-color: #dcfce7;
+}
+
+.status-dropdown-item.disponible {
+  color: #0369a1;
+  background-color: transparent;
+}
+.status-dropdown-item.disponible:hover,
+.status-dropdown-item.disponible.active {
+  background-color: #e0f2fe;
+}
+
+.status-dropdown-item.falta {
+  color: #b91c1c;
+  background-color: transparent;
+}
+.status-dropdown-item.falta:hover,
+.status-dropdown-item.falta.active {
+  background-color: #fee2e2;
+}
+
+
+
+/* ALINEACIÓN SIMÉTRICA Y PERFECTA DE BOTONES DE ACCIÓN */
+.actions-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 95px;
+  height: 32px;
+  padding: 0 0.75rem;
+  border-radius: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn-action.edit {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.btn-action.edit:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.btn-action.baja {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.btn-action.baja:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.maniobristas-loading {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.empty-table-cell {
+  text-align: center;
+  padding: 3rem !important;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ============================================================
+   DISEÑO DE VENTANAS MODALES Y VALIDACOINES DE CAMPOS
+   ============================================================ */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.25rem;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 0.85rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.modal-header-title h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.modal-header-title p {
+  font-size: 0.825rem;
+  color: #64748b;
+  margin: 0.2rem 0 0 0;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.6rem;
+  color: #94a3b8;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  margin-top: -0.2rem;
+  transition: color 0.15s ease;
+}
+
+.close-btn:hover {
+  color: #334155;
+}
+
+.modal-form {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.modal-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.88rem;
+  color: #1e293b;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: #6b1d33;
+  box-shadow: 0 0 0 3px rgba(107, 29, 51, 0.12);
+}
+
+.disabled-input {
+  background: #f1f5f9;
+  color: #475569;
+  cursor: not-allowed;
+  font-family: monospace;
+  font-weight: 700;
+  border-color: #e2e8f0;
+}
+
+/* ============================================================
+   DISEÑO EXACTO DE LISTA DESPLEGABLE PERSONALIZADA (ESTATUS MODAL STYLE)
+   ============================================================ */
+
+.custom-dropdown-container {
+  position: relative;
+  width: 100%;
+}
+
+.custom-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 44px;
+  padding: 0 1rem;
+  background: #ffffff;
+  border: 1.5px solid #6b1d33;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #3b4559;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.custom-dropdown-trigger:focus,
+.custom-dropdown-trigger.open {
+  box-shadow: 0 0 0 3px rgba(107, 29, 51, 0.15);
+}
+
+.custom-dropdown-trigger .selected-text {
+  text-transform: uppercase;
+  color: #3b4559;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.custom-dropdown-trigger .arrow-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.custom-dropdown-trigger .arrow-icon.open {
+  transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 9999;
+  overflow: hidden;
+  animation: dropdownFade 0.15s ease-out;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-dropdown-item {
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #3b4559;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  text-transform: uppercase;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.custom-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.custom-dropdown-item:hover {
+  background-color: #f8fafc;
+  color: #6b1d33;
+}
+
+.custom-dropdown-item.active {
+  background-color: #fdf4ff;
+  color: #6b1d33;
+  font-weight: 800;
+}
+
+/* CAJA INFORMATIVA ESTILIZADA (SIN EMOJI) */
+.form-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.6rem;
+  color: #475569;
+  font-size: 0.825rem;
+  line-height: 1.4;
+}
+
+.info-icon {
+  color: var(--color-maroon, #6b1d33);
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-cancel {
+  height: 2.5rem;
+  padding: 0 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.btn-save {
+  height: 2.5rem;
+  padding: 0 1.35rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: var(--color-maroon, #6b1d33);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(107, 29, 51, 0.2);
+  transition: all 0.15s ease;
+}
+
+.btn-save:hover {
+  background: #521526;
+}

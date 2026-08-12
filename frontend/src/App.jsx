@@ -33,6 +33,7 @@ import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import ReportesTitanes from './pages/CentroControl/ReporteTitanes/ReporteTitanes';
 import HistorialReportesTitanes from './pages/Historial/HistorialReportesTitanes';
 import Operadores from './pages/Operadores/Operadores';
+import Maniobristas from './pages/Maniobristas/Maniobristas';
 import InfraccionDashboard from './pages/Infraccion/InfraccionDashboard';
 
 // ========== NUEVOS IMPORTS PARA MESA DE CONTROL ==========
@@ -133,6 +134,12 @@ function App() {
           <Route path="/operadores" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
               <Operadores />
+            </ProtectedRoute>
+          } />
+          {/* Ruta protegida para Maniobristas (ADMIN, GESTOR_OPERADORES y DESPACHO) */}
+          <Route path="/maniobristas" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
+              <Maniobristas />
             </ProtectedRoute>
           } />
 

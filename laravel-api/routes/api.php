@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReporteController;
 use App\Http\Controllers\API\ConductorController;
+use App\Http\Controllers\API\ManiobristaController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\API\PlataformaController;
 use App\Http\Controllers\API\TitanController;
@@ -53,6 +54,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores', [ConductorController::class, 'store']);
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
+
+    // Gestión de Maniobristas
+    Route::get('/maniobristas', [ManiobristaController::class, 'index']);
+    Route::post('/maniobristas', [ManiobristaController::class, 'store']);
+    Route::put('/maniobristas/{id}', [ManiobristaController::class, 'update']);
+    Route::post('/maniobristas/{id}/baja', [ManiobristaController::class, 'baja']);
 
     // Rutas de Unidades
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);
