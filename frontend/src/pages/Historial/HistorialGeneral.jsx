@@ -7,15 +7,36 @@ import './Historial.css';
 
 const processResumenData = (inicio, cambios, fin) => {
   const resumenMap = {};
+  const nameToTarjeton = {};
+
+  (inicio || []).forEach(row => {
+    if (row.nombre_conductor && row.numero_tarjeton) {
+      nameToTarjeton[row.nombre_conductor.toUpperCase().trim()] = row.numero_tarjeton.trim();
+    }
+  });
+  (fin || []).forEach(row => {
+    if (row.nombre_conductor && row.numero_tarjeton) {
+      nameToTarjeton[row.nombre_conductor.toUpperCase().trim()] = row.numero_tarjeton.trim();
+    }
+  });
+
+  const getTarjeton = (name) => {
+    if (!name) return '';
+    const cleanName = name.toUpperCase().trim();
+    return nameToTarjeton[cleanName] || name;
+  };
 
   (inicio || []).forEach(row => {
     const eco = row.economico;
     if (!eco) return;
+    
+    const initialTarjeton = row.numero_tarjeton || getTarjeton(row.nombre_conductor);
+
     resumenMap[eco] = {
       economico: eco,
       tipo: row.tipo || '',
       rutas: new Set(row.ruta ? [row.ruta] : []),
-      conductores: new Set(row.nombre_conductor ? [row.nombre_conductor] : []),
+      conductores: new Set(initialTarjeton ? [initialTarjeton] : []),
       estatuses: new Set(row.estatus ? [row.estatus] : []),
       corridas: new Set(row.corridas !== null && row.corridas !== undefined ? [row.corridas] : []),
       acoples: new Set(row.hora_acople ? [row.hora_acople] : []),
@@ -49,7 +70,8 @@ const processResumenData = (inicio, cambios, fin) => {
       if (condMatch && condMatch[1]) {
         const condName = condMatch[1].trim();
         if (condName && condName !== 'SIN ASIGNAR') {
-          item.conductores.add(condName);
+          const tarj = getTarjeton(condName);
+          if (tarj) item.conductores.add(tarj);
         }
       }
 
@@ -88,7 +110,10 @@ const processResumenData = (inicio, cambios, fin) => {
 
     const item = resumenMap[eco];
     if (row.ruta) item.rutas.add(row.ruta);
-    if (row.nombre_conductor) item.conductores.add(row.nombre_conductor);
+
+    const finalTarjeton = row.numero_tarjeton || getTarjeton(row.nombre_conductor);
+    if (finalTarjeton) item.conductores.add(finalTarjeton);
+
     if (row.estatus) item.estatuses.add(row.estatus);
     if (row.corridas !== null && row.corridas !== undefined) item.corridas.add(row.corridas);
     if (row.hora_acople) item.acoples.add(row.hora_acople);
@@ -223,7 +248,7 @@ export default function HistorialGeneral() {
         'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
         'ECO': d.economico || '',
         'RUTAS': d.rutas || '',
-        'OPERADORES': d.conductores || '',
+        'TARJETONES': d.conductores || '',
         'ESTATUS': d.estatuses || '',
         'HORAS ACOPLE': d.acoples || '',
         'CORRIDAS': d.corridas || '',
@@ -410,7 +435,7 @@ export default function HistorialGeneral() {
                   <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
                   <th style={{ minWidth: '80px' }}>ECO</th>
                   <th style={{ minWidth: '180px' }}>RUTAS</th>
-                  <th style={{ minWidth: '220px' }}>OPERADORES</th>
+                  <th style={{ minWidth: '150px' }}>TARJETONES</th>
                   <th style={{ minWidth: '160px' }}>ESTATUS</th>
                   <th style={{ minWidth: '130px' }}>HORAS ACOPLE</th>
                   <th style={{ minWidth: '110px' }}>CORRIDAS</th>
