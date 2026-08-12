@@ -1,0 +1,189 @@
+.dashboard-bitacora-page {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  padding-bottom: 2rem;
+}
+
+.dashboard-bitacora-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.dashboard-bitacora-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.dashboard-bitacora-welcome .eyebrow {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.dashboard-bitacora-welcome .title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.dashboard-bitacora-welcome .subtitle {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  max-width: 600px;
+}
+
+.dashboard-bitacora-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.bitacora-date-picker {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+  outline: none;
+  color: #111827;
+  font-weight: 500;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.bitacora-btn-back {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bitacora-btn-back:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.dashboard-bitacora-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.bitacora-table-wrapper {
+  overflow-x: auto;
+}
+
+.bitacora-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.bitacora-table th {
+  background-color: #f9fafb;
+  padding: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bitacora-table td {
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.bitacora-table tr:last-child td {
+  border-bottom: none;
+}
+
+.bitacora-table tr:hover {
+  background-color: #f9fafb;
+}
+
+.bitacora-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-operacion {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.badge-reserva {
+  background-color: #fffbeb;
+  color: #b45309;
+}
+
+.badge-mantenimiento {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.badge-default {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.bitacora-empty {
+  padding: 3rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.bitacora-loading {
+  padding: 3rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #601a2a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.td-detalles {
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -53,9 +53,20 @@ export default function DetalleUnidadMesaControl() {
   const [modalEstatusRuta, setModalEstatusRuta] = useState('');
   const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
   const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
+  
+  // Estados para cambio de unidad en modal de estatus
+  const [cambioUnidadActivo, setCambioUnidadActivo] = useState(false);
+  const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
+  const [dropdownReemplazoEcoOpen, setDropdownReemplazoEcoOpen] = useState(false);
+  const [reemplazoForm, setReemplazoForm] = useState({ tarjeton: '', ruta: '', corrida: '' });
+  const [dropdownReemplazoTarjetonOpen, setDropdownReemplazoTarjetonOpen] = useState(false);
+  const [dropdownReemplazoRutaOpen, setDropdownReemplazoRutaOpen] = useState(false);
 
   const modalConductorRef = useRef(null);
   const modalRutaRef = useRef(null);
+  const ecoReemplazoRef = useRef(null);
+  const tarjetonReemplazoRef = useRef(null);
+  const rutaReemplazoRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -64,6 +75,15 @@ export default function DetalleUnidadMesaControl() {
       }
       if (modalRutaRef.current && !modalRutaRef.current.contains(e.target)) {
         setModalEstatusRutaDropdown(false);
+      }
+      if (ecoReemplazoRef.current && !ecoReemplazoRef.current.contains(e.target)) {
+        setDropdownReemplazoEcoOpen(false);
+      }
+      if (tarjetonReemplazoRef.current && !tarjetonReemplazoRef.current.contains(e.target)) {
+        setDropdownReemplazoTarjetonOpen(false);
+      }
+      if (rutaReemplazoRef.current && !rutaReemplazoRef.current.contains(e.target)) {
+        setDropdownReemplazoRutaOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -175,6 +195,13 @@ export default function DetalleUnidadMesaControl() {
   // Mostrar todos los maniobristas (no solo disponibles) para visualización en el panel
   const maniobristasDisponibles = dbManiobristas;
 
+  // Efecto para resetear campos cuando se selecciona una unidad de reemplazo
+  useEffect(() => {
+    if (unidadReemplazoSeleccionada) {
+      setDropdownReemplazoEcoOpen(false);
+    }
+  }, [unidadReemplazoSeleccionada]);
+
   const selectedEcoClean = selectedOption ? String(selectedOption.match(/\d+/)?.[0] || '').padStart(3, '0') : '';
 
   const { data: activeUnitData, refetch: refetchActiveUnit } = useQuery({
@@ -205,7 +232,7 @@ export default function DetalleUnidadMesaControl() {
           horaSalida: activeUnitData.hora_salida || '',
           estatus: activeUnitData.estatus || 'operacion',
           ciclo: activeUnitData.ciclo || '',
-          motivo: activeUnitData.motivo || '',
+          motivo: activeUnitData.motivo_estatus || activeUnitData.motivo || '',
           horaProgramada: activeUnitData.hora_programada || '',
           acople: activeUnitData.acople || '',
         });
@@ -658,293 +685,43 @@ export default function DetalleUnidadMesaControl() {
     
     if (datosOperativos.estatus === nuevoEstatus) return;
 
-    const Swal = (await import('sweetalert2')).default;
+    // Ir directo al modal sin Swal intermedio
+    setModalEstatusNuevo(nuevoEstatus);
+    setModalEstatusConductor(datosOperativos.tarjeton ? String(datosOperativos.tarjeton).trim() : '');
+    setModalEstatusRuta(datosOperativos.ruta ? datosOperativos.ruta : '');
+    setModalEstatusConductorDropdown(false);
+    setModalEstatusRutaDropdown(false);
+    // Resetear estados de cambio de unidad
+    setCambioUnidadActivo(false);
+    setUnidadReemplazoSeleccionada(null);
+    setDropdownReemplazoEcoOpen(false);
+    setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+    setDropdownReemplazoTarjetonOpen(false);
+    setDropdownReemplazoRutaOpen(false);
+    setModalEstatusOpen(true);
+  };
 
-    const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
-
-    const swalOptions = {
-      title: '¿Cambiar Estatus?',
-      text: `¿Seguro que deseas mover la unidad ${selectedOption} a ${nuevoEstatus.toUpperCase()}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#6b1d33',
-      cancelButtonColor: '#9ca3af',
-      confirmButtonText: 'Sí, cambiar',
-      cancelButtonText: 'Cancelar'
-    };
-
-    if (requiereMotivo) {
-      const motivosPredefinidos = [
-        'FALTA DE OPERADOR',
-        'MANTENIMIENTO',
-        'ACCIDENTE',
-        'FALTA DE COMBUSTIBLE',
-        'CONDICIONES CLIMATICAS',
-        'DESVIO OPERACIONAL',
-        'OTRO'
-      ];
-
-      swalOptions.html = `
-        <div style="text-align: left; margin-top: 0.5rem; position: relative;">
-          <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
-            Seleccione el motivo de ${nuevoEstatus.toUpperCase()}:
-          </label>
-          
-          <div style="position: relative;">
-            <button type="button" id="swal-motivo-trigger" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 1rem; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.88rem; font-weight: 700; color: #1f2937; cursor: pointer; outline: none; transition: all 0.2s ease;">
-              <span id="swal-motivo-trigger-text" style="text-transform: uppercase; color: #6b7280;">Seleccionar motivo</span>
-              <svg id="swal-motivo-arrow" style="width: 16px; height: 16px; color: #6b1d33; transition: transform 0.2s ease;" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7 10l5 5 5-5H7z" />
-              </svg>
-            </button>
-
-            <div id="swal-motivo-menu" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); z-index: 9999; max-height: 180px; overflow-y: auto;">
-              ${motivosPredefinidos.map(m => `
-                <div class="swal-motivo-item" data-value="${m}" style="padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: #4b5563; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s ease, color 0.2s ease;">
-                  ${m}
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          <input type="hidden" id="swal-motivo-hidden" value="" />
-
-          <div id="swal-motivo-custom-container" style="display: none; margin-top: 0.75rem;">
-            <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="Escribe el motivo detallado..." maxlength="70" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem;"></textarea>
-            <div id="swal-motivo-counter" style="text-align: right; font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 4px;">0/70</div>
-          </div>
-        </div>
-      `;
-
-      swalOptions.didOpen = () => {
-        const popup = Swal.getPopup();
-        if (popup) popup.style.overflow = 'visible';
-
-        const htmlContainer = Swal.getHtmlContainer();
-        if (htmlContainer) {
-          htmlContainer.style.overflow = 'visible';
-          htmlContainer.style.position = 'relative';
-          htmlContainer.style.zIndex = '100';
-        }
-
-        const actions = Swal.getActions();
-        if (actions) {
-          actions.style.position = 'relative';
-          actions.style.zIndex = '1';
-        }
-
-        const trigger = document.getElementById('swal-motivo-trigger');
-        const triggerText = document.getElementById('swal-motivo-trigger-text');
-        const arrow = document.getElementById('swal-motivo-arrow');
-        const menu = document.getElementById('swal-motivo-menu');
-        const hiddenInput = document.getElementById('swal-motivo-hidden');
-        const customContainer = document.getElementById('swal-motivo-custom-container');
-        const textarea = document.getElementById('swal-motivo-textarea');
-        const counter = document.getElementById('swal-motivo-counter');
-
-        let isOpen = false;
-
-        const toggleMenu = () => {
-          isOpen = !isOpen;
-          if (menu) menu.style.display = isOpen ? 'block' : 'none';
-          if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-          if (trigger) trigger.style.borderColor = isOpen ? '#6b1d33' : '#e5e7eb';
-        };
-
-        if (trigger) {
-          trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleMenu();
-          });
-        }
-
-        const items = document.querySelectorAll('.swal-motivo-item');
-        items.forEach(item => {
-          item.addEventListener('mouseenter', () => {
-            item.style.background = '#f9fafb';
-            item.style.color = '#1f2937';
-          });
-          item.addEventListener('mouseleave', () => {
-            item.style.background = 'none';
-            item.style.color = '#4b5563';
-          });
-          item.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const val = item.getAttribute('data-value');
-            if (hiddenInput) hiddenInput.value = val;
-            if (triggerText) {
-              triggerText.innerText = val;
-              triggerText.style.color = '#1f2937';
-            }
-            
-            toggleMenu();
-
-            if (val === 'OTRO') {
-              if (customContainer) customContainer.style.display = 'block';
-              if (textarea) textarea.focus();
-            } else {
-              if (customContainer) customContainer.style.display = 'none';
-              if (textarea) textarea.value = '';
-            }
-          });
-        });
-
-        document.addEventListener('click', (e) => {
-          if (isOpen && menu && trigger && !menu.contains(e.target) && !trigger.contains(e.target)) {
-            isOpen = false;
-            menu.style.display = 'none';
-            if (arrow) arrow.style.transform = 'rotate(0deg)';
-            if (trigger) trigger.style.borderColor = '#e5e7eb';
-          }
-        });
-
-        if (textarea) {
-          textarea.addEventListener('input', () => {
-            const len = textarea.value.length;
-            if (counter) {
-              counter.innerText = `${len}/70`;
-              counter.style.color = len >= 70 ? '#ef4444' : '#9ca3af';
-            }
-          });
-        }
-      };
-
-      swalOptions.preConfirm = () => {
-        const hiddenInput = document.getElementById('swal-motivo-hidden');
-        const textarea = document.getElementById('swal-motivo-textarea');
-
-        const val = hiddenInput ? hiddenInput.value : '';
-        if (!val) {
-          Swal.showValidationMessage('Debe seleccionar un motivo.');
-          return false;
-        }
-
-        if (val === 'OTRO') {
-          const customVal = textarea ? textarea.value.trim() : '';
-          if (!customVal) {
-            Swal.showValidationMessage('Por favor escriba el motivo en el cuadro de texto.');
-            return false;
-          }
-          return customVal;
-        }
-
-        return val;
-      };
-    }
-
-    const confirmacion = await Swal.fire(swalOptions);
-
-    if (!confirmacion.isConfirmed) return;
-
-    const motivoCapturado = requiereMotivo ? (confirmacion.value || null) : null;
-    const matchNumeros = selectedOption.match(/\d+/);
-    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-
-    let payloadUpdate = {
-      numero_eco: numeroLimpio,
-      tipo: tipoTransporte,
-      estatus: nuevoEstatus,
-      motivo_estatus: motivoCapturado
-    };
-
-    if (nuevoEstatus === 'operacion') {
-      const tieneConductor = datosOperativos.conductor && datosOperativos.conductor !== 'No asignado' && datosOperativos.tarjeton;
-      const tieneRuta = datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta';
-      
-      if (!tieneConductor || !tieneRuta) {
-        setModalEstatusNuevo(nuevoEstatus);
-        setModalEstatusConductor(tieneConductor ? String(datosOperativos.tarjeton).trim() : '');
-        setModalEstatusRuta(tieneRuta ? datosOperativos.ruta : '');
-        setModalEstatusConductorDropdown(false);
-        setModalEstatusRutaDropdown(false);
-        setModalEstatusOpen(true);
-        return;
-      } else {
-        payloadUpdate.nombre_conductor = datosOperativos.conductor;
-        payloadUpdate.numero_tarjeton = datosOperativos.tarjeton;
-        payloadUpdate.ruta = datosOperativos.ruta;
-      }
-    }
-
-    try {
-      setCambiandoEstatus(true);
-      const res = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(payloadUpdate),
-      });
-
-      const data = await res.json();
-      if (res.ok && (data.success || data.status === 'success')) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Estatus Actualizado',
-          text: `La unidad cambió a ${nuevoEstatus}.`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
-        
-        setDatosOperativos((prev) => {
-          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
-          return {
-            ...prev,
-            estatus: nuevoEstatus,
-            conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || prev.conductor),
-            ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || prev.ruta),
-            tarjeton: isClearFields ? '' : (data.tarjeton || prev.tarjeton),
-          };
-        });
-        setSelectedEstado(nuevoEstatus);
-        queryClient.invalidateQueries(['conductores-list']);
-        fetchConductores();
-
-        queryClient.setQueryData(['unidad-detalle', tipoTransporte, numeroLimpio], (old) => {
-          if (!old) return old;
-          const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
-          return {
-            ...old,
-            estatus: nuevoEstatus,
-            conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || old.conductor),
-            ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || old.ruta),
-            tarjeton: isClearFields ? '' : (data.tarjeton || old.tarjeton),
-            asignado: true
-          };
-        });
-
-        queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) => {
-          return old.map(u => {
-            if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-              const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
-              return {
-                ...u,
-                estatus: nuevoEstatus,
-                nombre_conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || u.nombre_conductor),
-                ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || u.ruta),
-                tarjeton: isClearFields ? '' : (data.tarjeton || u.tarjeton),
-              };
-            }
-            return u;
-          });
-        });
-
-        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
-        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
-        queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
-      } else {
-        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
-      }
-    } catch (error) {
-      console.error(error);
-      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
-    } finally {
-      setCambiandoEstatus(false);
-    }
+  const handleSelectReemplazoUnit = (unidad) => {
+    setUnidadReemplazoSeleccionada(unidad);
   };
 
   const confirmModalEstatus = async () => {
-    if (!modalEstatusConductor || !modalEstatusRuta) return;
+    // Validación según el tipo de cambio de estatus
+    if (modalEstatusNuevo === 'operacion') {
+      // Para OPERACIÓN, conductor y ruta son OBLIGATORIOS
+      if (!modalEstatusConductor || !modalEstatusRuta) {
+        Swal.fire('Error', 'Para cambiar a OPERACIÓN debe asignar conductor y ruta', 'error');
+        return;
+      }
+    }
+    
+    // Validación para cambio de unidad
+    if (cambioUnidadActivo) {
+      if (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()) {
+        Swal.fire('Error', 'Debe completar todos los campos para el cambio de unidad (ECO, Tarjetón, Ruta y Corrida)', 'error');
+        return;
+      }
+    }
 
     setModalEstatusOpen(false);
     setCambiandoEstatus(true);
@@ -960,7 +737,12 @@ export default function DetalleUnidadMesaControl() {
       motivo_estatus: null,
       nombre_conductor: foundConductor ? foundConductor.nombre : '',
       numero_tarjeton: modalEstatusConductor,
-      ruta: modalEstatusRuta
+      ruta: modalEstatusRuta,
+      cambio_unidad_activo: cambioUnidadActivo ? 1 : 0,
+      eco_reemplazo: cambioUnidadActivo ? unidadReemplazoSeleccionada.eco : null,
+      tarjeton_reemplazo: cambioUnidadActivo ? reemplazoForm.tarjeton : null,
+      ruta_reemplazo: cambioUnidadActivo ? reemplazoForm.ruta : null,
+      corrida_reemplazo: cambioUnidadActivo ? String(reemplazoForm.corrida || '') : null
     };
 
     try {
@@ -1291,6 +1073,23 @@ export default function DetalleUnidadMesaControl() {
                     </div>
                   </div>
 
+                  {/* Motivo de Mantenimiento */}
+                  {datosOperativos.estatus === 'mantenimiento' && (
+                    <div className="info-card">
+                      <div className="info-card__header">
+                        <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 className="info-card__title">Motivo de Mantenimiento</h3>
+                      </div>
+                      <div className="info-card__body">
+                        <p style={{ margin: 0, color: 'var(--tw-color-gray-700)', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                          {datosOperativos.motivo || 'Sin motivo registrado'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Checklist */}
                   <div className="info-card" style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column' }}>
                     <div className="info-card__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1603,134 +1402,350 @@ export default function DetalleUnidadMesaControl() {
           onKeyDown={(e) => { if (e.key === 'Escape') setModalEstatusOpen(false); }}
         >
           <div className="custom-modal-content">
-            <h2 className="custom-modal-title">Asignar Conductor y Ruta</h2>
+            <h2 className="custom-modal-title">
+              {modalEstatusNuevo === 'operacion' ? 'Asignar Conductor y Ruta' : 
+               modalEstatusNuevo === 'reserva' ? 'Cambiar a RESERVA' : 
+               'Cambiar a MANTENIMIENTO'}
+            </h2>
             
-            <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
-                Conductor Disponible
-              </label>
-              <div ref={modalConductorRef} style={{ position: 'relative', width: '100%' }}>
-                <button
-                  type="button"
-                  className="interactive-input"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
-                    border: modalEstatusConductorDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
-                    color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
-                  }}
-                  onClick={() => { setModalEstatusConductorDropdown(!modalEstatusConductorDropdown); setModalEstatusRutaDropdown(false); }}
-                >
-                  <span>
-                    {modalEstatusConductor
-                      ? (() => {
-                          const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
-                          return found ? `${found.nombre} (${found.id})` : 'Seleccione un conductor...';
-                        })()
-                      : 'Seleccione un conductor...'}
-                  </span>
-                  <svg
-                    className="arrow-icon"
-                    style={{
-                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
-                      transform: modalEstatusConductorDropdown ? 'rotate(180deg)' : 'none',
-                      color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'inherit'
-                    }}
-                    fill="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
-                </button>
-                {modalEstatusConductorDropdown && (
-                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
-                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                      <button
-                        type="button"
-                        className="dropdown-menu__item"
-                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                        onClick={() => { setModalEstatusConductor(''); setModalEstatusConductorDropdown(false); }}
-                      >
-                        Seleccione un conductor...
-                      </button>
-                      {(conductoresDisponibles || []).map(c => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                          onClick={() => { setModalEstatusConductor(c.id.toString()); setModalEstatusConductorDropdown(false); }}
-                        >
-                          {c.nombre} ({c.id})
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* Sección de Información Actual */}
+            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
+              <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+                <strong>ECO:</strong> {selectedOption}
+              </p>
+              {datosOperativos.conductor && (
+                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+                  <strong>Conductor:</strong> {datosOperativos.conductor}
+                </p>
+              )}
+              {datosOperativos.tarjeton && (
+                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+                  <strong>Tarjetón:</strong> {datosOperativos.tarjeton}
+                </p>
+              )}
+              {datosOperativos.ruta && (
+                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
+                  <strong>Ruta:</strong> {datosOperativos.ruta}
+                </p>
+              )}
             </div>
+            
+            {/* Checkbox para cambiar unidad */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer', marginBottom: '1.5rem', marginTop: '1rem', padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+              <input
+                type="checkbox"
+                checked={cambioUnidadActivo}
+                onChange={(e) => {
+                  setCambioUnidadActivo(e.target.checked);
+                  if (e.target.checked) {
+                    setReemplazoForm({ 
+                      tarjeton: datosOperativos.tarjeton || '', 
+                      ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '', 
+                      corrida: datosOperativos.corrida || '' 
+                    });
+                  } else {
+                    setUnidadReemplazoSeleccionada(null);
+                    setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+                    setDropdownReemplazoEcoOpen(false);
+                    setDropdownReemplazoTarjetonOpen(false);
+                    setDropdownReemplazoRutaOpen(false);
+                  }
+                }}
+                style={{ width: '1.25rem', height: '1.25rem', accentColor: '#6b1d33' }}
+              />
+              <span style={{ color: '#0f172a' }}>Cambiar de unidad</span>
+            </label>
 
-            <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
-                Ruta
-              </label>
-              <div ref={modalRutaRef} style={{ position: 'relative', width: '100%' }}>
-                <button
-                  type="button"
-                  className="interactive-input"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
-                    border: modalEstatusRutaDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
-                    color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
-                  }}
-                  onClick={() => { setModalEstatusRutaDropdown(!modalEstatusRutaDropdown); setModalEstatusConductorDropdown(false); }}
-                >
-                  <span>{modalEstatusRuta || 'Seleccione una ruta...'}</span>
-                  <svg
-                    className="arrow-icon"
-                    style={{
-                      transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
-                      transform: modalEstatusRutaDropdown ? 'rotate(180deg)' : 'none',
-                      color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'inherit'
-                    }}
-                    fill="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
-                </button>
-                {modalEstatusRutaDropdown && (
-                  <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
-                    <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                      <button
-                        type="button"
-                        className="dropdown-menu__item"
-                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                        onClick={() => { setModalEstatusRuta(''); setModalEstatusRutaDropdown(false); }}
+            {!cambioUnidadActivo ? (
+              <>
+                <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
+                    Conductor Disponible
+                  </label>
+                  <div ref={modalConductorRef} style={{ position: 'relative', width: '100%' }}>
+                    <button
+                      type="button"
+                      className="interactive-input"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
+                        border: modalEstatusConductorDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
+                        color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
+                      }}
+                      onClick={() => { setModalEstatusConductorDropdown(!modalEstatusConductorDropdown); setModalEstatusRutaDropdown(false); }}
+                    >
+                      <span>
+                        {modalEstatusConductor
+                          ? (() => {
+                              const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor || c.tarjeton === modalEstatusConductor);
+                              return found ? `${found.nombre} (${found.tarjeton})` : 'Seleccione un conductor...';
+                            })()
+                          : 'Seleccione un conductor...'}
+                      </span>
+                      <svg
+                        className="arrow-icon"
+                        style={{
+                          transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
+                          transform: modalEstatusConductorDropdown ? 'rotate(180deg)' : 'none',
+                          color: modalEstatusConductorDropdown ? 'var(--brand-maroon-text)' : 'inherit'
+                        }}
+                        fill="currentColor" viewBox="0 0 24 24"
                       >
-                        Seleccione una ruta...
-                      </button>
-                      {(rutasOpciones || []).map(r => (
-                        <button
-                          key={r}
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                          onClick={() => { setModalEstatusRuta(r); setModalEstatusRutaDropdown(false); }}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
+                        <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                      </svg>
+                    </button>
+                    {modalEstatusConductorDropdown && (
+                      <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                          <button
+                            type="button"
+                            className="dropdown-menu__item"
+                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                            onClick={() => { setModalEstatusConductor(''); setModalEstatusConductorDropdown(false); }}
+                          >
+                            Seleccione un conductor...
+                          </button>
+                          {(conductoresDisponibles || []).map(c => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="dropdown-menu__item"
+                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                              onClick={() => { setModalEstatusConductor(c.tarjeton); setModalEstatusConductorDropdown(false); }}
+                            >
+                              {c.nombre} ({c.tarjeton})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+
+                <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
+                    Ruta
+                  </label>
+                  <div ref={modalRutaRef} style={{ position: 'relative', width: '100%' }}>
+                    <button
+                      type="button"
+                      className="interactive-input"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.5rem', fontSize: '0.9rem', width: '100%', fontWeight: '600', borderRadius: '0.6rem',
+                        border: modalEstatusRutaDropdown ? '1.5px solid var(--brand-maroon-text)' : '1.5px solid var(--tw-color-gray-200)',
+                        color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'var(--tw-color-gray-900)'
+                      }}
+                      onClick={() => { setModalEstatusRutaDropdown(!modalEstatusRutaDropdown); setModalEstatusConductorDropdown(false); }}
+                    >
+                      <span>{modalEstatusRuta || 'Seleccione una ruta...'}</span>
+                      <svg
+                        className="arrow-icon"
+                        style={{
+                          transition: 'transform 0.2s', width: '0.75rem', height: '0.75rem',
+                          transform: modalEstatusRutaDropdown ? 'rotate(180deg)' : 'none',
+                          color: modalEstatusRutaDropdown ? 'var(--brand-maroon-text)' : 'inherit'
+                        }}
+                        fill="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                      </svg>
+                    </button>
+                    {modalEstatusRutaDropdown && (
+                      <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                          <button
+                            type="button"
+                            className="dropdown-menu__item"
+                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                            onClick={() => { setModalEstatusRuta(''); setModalEstatusRutaDropdown(false); }}
+                          >
+                            Seleccione una ruta...
+                          </button>
+                          {(rutasOpciones || []).map(r => (
+                            <button
+                              key={r}
+                              type="button"
+                              className="dropdown-menu__item"
+                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
+                              onClick={() => { setModalEstatusRuta(r); setModalEstatusRutaDropdown(false); }}
+                            >
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'grid', gap: '1.25rem', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc', marginBottom: '1.5rem' }}>
+                
+                {/* Número de ECO - Dropdown */}
+                <div style={{ display: 'grid', gap: '0.4rem', position: 'relative' }} ref={ecoReemplazoRef}>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>Número de ECO</span>
+                  <button
+                    type="button"
+                    className="interactive-input"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                    }}
+                    onClick={() => setDropdownReemplazoEcoOpen(!dropdownReemplazoEcoOpen)}
+                  >
+                    <span style={{ fontWeight: 600, color: unidadReemplazoSeleccionada ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
+                      {unidadReemplazoSeleccionada ? `ECO${String(unidadReemplazoSeleccionada.eco).padStart(3, '0')}` : 'Seleccione una unidad en reserva...'}
+                    </span>
+                    <svg className={`arrow-icon ${dropdownReemplazoEcoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownReemplazoEcoOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {dropdownReemplazoEcoOpen && (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                        {(unidadesList.filter(u => u.estado === 'reserva') || []).map(u => (
+                          <button
+                            key={u.eco}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: unidadReemplazoSeleccionada?.eco === u.eco ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => handleSelectReemplazoUnit(u)}
+                          >
+                            ECO{String(u.eco).padStart(3, '0')} {u.tarjeton ? `(${u.tarjeton})` : '(Sin tarjetón)'}
+                          </button>
+                        ))}
+                        {(!unidadesList.filter(u => u.estado === 'reserva') || unidadesList.filter(u => u.estado === 'reserva').length === 0) && (
+                          <span style={{ color: '#6b7280', fontSize: '0.9rem', padding: '0.75rem 1rem', display: 'block' }}>No hay unidades en reserva disponibles</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tarjetón - Dropdown */}
+                <div style={{ display: 'grid', gap: '0.4rem', position: 'relative' }} ref={tarjetonReemplazoRef}>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>Número de Tarjetón</span>
+                  <button
+                    type="button"
+                    className="interactive-input"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                    }}
+                    onClick={() => setDropdownReemplazoTarjetonOpen(!dropdownReemplazoTarjetonOpen)}
+                  >
+                    <span style={{ fontWeight: 600, color: reemplazoForm.tarjeton ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
+                      {reemplazoForm.tarjeton || 'Seleccione un tarjetón disponible...'}
+                    </span>
+                    <svg className={`arrow-icon ${dropdownReemplazoTarjetonOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownReemplazoTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {dropdownReemplazoTarjetonOpen && (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                        {(conductoresDisponibles || []).map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: reemplazoForm.tarjeton === c.tarjeton ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => {
+                              setReemplazoForm((prev) => ({ ...prev, tarjeton: c.tarjeton }));
+                              setDropdownReemplazoTarjetonOpen(false);
+                            }}
+                          >
+                            {c.tarjeton} — {c.nombre}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ruta Asignada - Dropdown */}
+                <div style={{ display: 'grid', gap: '0.4rem', position: 'relative' }} ref={rutaReemplazoRef}>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>Ruta Asignada</span>
+                  <button
+                    type="button"
+                    className="interactive-input"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                    }}
+                    onClick={() => setDropdownReemplazoRutaOpen(!dropdownReemplazoRutaOpen)}
+                  >
+                    <span style={{ fontWeight: 600, color: reemplazoForm.ruta ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
+                      {reemplazoForm.ruta || 'Seleccione una ruta...'}
+                    </span>
+                    <svg className={`arrow-icon ${dropdownReemplazoRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownReemplazoRutaOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {dropdownReemplazoRutaOpen && (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                        <button
+                          type="button"
+                          className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                          style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: !reemplazoForm.ruta ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                          onClick={() => {
+                            setReemplazoForm((prev) => ({ ...prev, ruta: '' }));
+                            setDropdownReemplazoRutaOpen(false);
+                          }}
+                        >
+                          Seleccione una ruta...
+                        </button>
+                        {(rutasOpciones || []).map(r => (
+                          <button
+                            key={r}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: reemplazoForm.ruta === r ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => {
+                              setReemplazoForm((prev) => ({ ...prev, ruta: r }));
+                              setDropdownReemplazoRutaOpen(false);
+                            }}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Corrida - Input editable */}
+                <div style={{ display: 'grid', gap: '0.4rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>Corrida</span>
+                  <input
+                    type="text"
+                    value={reemplazoForm.corrida}
+                    onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corrida: e.target.value }))}
+                    placeholder="Ej. 123"
+                    className="interactive-input"
+                    style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', minWidth: '0', fontSize: '0.9rem' }}
+                  />
+                </div>
+
               </div>
-            </div>
+            )}
 
             <div className="custom-modal-actions">
               <button
                 type="button"
                 className="custom-modal-btn-save"
                 onClick={confirmModalEstatus}
-                disabled={!modalEstatusConductor || !modalEstatusRuta}
-                style={{ opacity: (!modalEstatusConductor || !modalEstatusRuta) ? 0.5 : 1, cursor: (!modalEstatusConductor || !modalEstatusRuta) ? 'not-allowed' : 'pointer' }}
+                disabled={
+                  (modalEstatusNuevo === 'operacion' && (!modalEstatusConductor || !modalEstatusRuta)) ||
+                  (cambioUnidadActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()))
+                }
+                style={{ 
+                  opacity: (
+                    (modalEstatusNuevo === 'operacion' && (!modalEstatusConductor || !modalEstatusRuta)) ||
+                    (cambioUnidadActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()))
+                  ) ? 0.5 : 1, 
+                  cursor: (
+                    (modalEstatusNuevo === 'operacion' && (!modalEstatusConductor || !modalEstatusRuta)) ||
+                    (cambioUnidadActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()))
+                  ) ? 'not-allowed' : 'pointer' 
+                }}
               >
                 Guardar
               </button>

@@ -24,6 +24,7 @@ import FleetSelection from './components/Checklist/FleetSelection';
 import CentroControl from './pages/CentroControl/CentroControl';
 import GlobalClock from './components/GlobalClock/GlobalClock';
 import DetalleUnidades from './pages/CentroControl/Detalle/DetalleUnidades';
+import DashboardBitacora from './pages/CentroControl/DashboardBitacora';
 import PatioDashboard from './pages/Patio/PatioDashboard';
 import DashboardTitan from './pages/Titan/DashboardTitan';
 import DetalleUnidadTitan from './pages/Titan/DetalleUnidadTitan';
@@ -230,6 +231,12 @@ function App() {
           <Route path="/centro-control" element={
             <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
               <CentroControl />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/centro-control/bitacoras" element={
+            <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+              <DashboardBitacora />
             </ProtectedRoute>
           } />
 
