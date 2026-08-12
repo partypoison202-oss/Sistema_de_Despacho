@@ -12,6 +12,9 @@ use Carbon\Carbon;
 #[Description('Guarda un snapshot diario de la tabla informacion_operativa en historial_operativo')]
 class GuardarHistorialOperativo extends Command
 {
+    protected $signature = 'historial:guardar';
+    protected $description = 'Guarda un snapshot diario de la tabla informacion_operativa en historial_operativo';
+
     /**
      * Execute the console command.
      */
