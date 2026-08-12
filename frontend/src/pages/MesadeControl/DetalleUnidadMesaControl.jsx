@@ -136,6 +136,30 @@ export default function DetalleUnidadMesaControl() {
     refetchInterval: 5000,
   });
 
+  const { data: dbManiobristas = [] } = useQuery({
+    queryKey: ['maniobristas-list'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return [];
+      const res = await fetch(`${API_BASE}/api/maniobristas`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        return data.map(m => ({
+          id: m.tarjeton,
+          tarjeton: m.tarjeton,
+          nombre: m.nombre,
+          estado_servicio: m.estado_servicio,
+          tipo_tarjeton: m.tipo_tarjeton
+        }));
+      }
+      return [];
+    },
+    staleTime: 0,
+    refetchInterval: 5000,
+  });
+
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
@@ -143,6 +167,10 @@ export default function DetalleUnidadMesaControl() {
   const conductoresDisponibles = dbConductores.filter(c => 
     c.estado_servicio === 'disponible' && 
     (!isTroncal || c.tipo_tarjeton === 'C')
+  );
+
+  const maniobristasDisponibles = dbManiobristas.filter(m => 
+    m.estado_servicio === 'disponible'
   );
 
   const selectedEcoClean = selectedOption ? String(selectedOption.match(/\d+/)?.[0] || '').padStart(3, '0') : '';
@@ -1043,6 +1071,68 @@ export default function DetalleUnidadMesaControl() {
                       ))
                     ) : (
                       <div className="dropdown-menu__item dropdown-menu__item--empty">Sin reservas disponibles</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* MANIOBRISTAS (NUEVO) */}
+            <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === 'maniobristas' ? null : 'maniobristas')} 
+                  className={`dropdown-trigger ${openDropdown === 'maniobristas' ? 'dropdown-trigger--open' : ''}`}
+                >
+                  <div className="dropdown-trigger__icon-container" style={{ background: '#f59e0b20' }}>
+                    <svg className="dropdown-trigger__icon" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '2rem', height: '2rem' }}>
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <span className="dropdown-trigger__value" style={{ color: '#d97706' }}>MANIOBRISTAS</span>
+                  <div className={`dropdown-trigger__arrow ${openDropdown === 'maniobristas' ? 'dropdown-trigger__arrow--open' : ''}`}>
+                    <svg className="arrow-icon" fill="currentColor" viewBox="0 0 24 24" style={{ color: '#d97706' }}>
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </div>
+                </button>
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-8px',
+                    right: '-8px',
+                    backgroundColor: '#d97706',
+                    color: 'white',
+                    borderRadius: '50%',
+                    padding: maniobristasDisponibles.length > 9 ? '2px 5px' : '2px 6px',
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold',
+                    minWidth: '18px',
+                    textAlign: 'center',
+                    lineHeight: '1.3',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                    border: '2px solid #ffffff',
+                  }}
+                >
+                  {maniobristasDisponibles.length}
+                </span>
+              </div>
+              {openDropdown === 'maniobristas' && (
+                <div className="dropdown-menu">
+                  <div className="dropdown-menu__scroll">
+                    {maniobristasDisponibles.length > 0 ? (
+                      maniobristasDisponibles.map((m) => (
+                        <div key={m.tarjeton} className="dropdown-menu__item" style={{ cursor: 'default' }}>
+                          <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
+                            {m.tarjeton}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="dropdown-menu__item dropdown-menu__item--empty">Sin maniobristas disponibles</div>
                     )}
                   </div>
                 </div>

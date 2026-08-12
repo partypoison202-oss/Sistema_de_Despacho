@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('maniobristas', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 200);
-            $table->string('identificador', 50)->unique(); // instead of tarjeton
+            $table->string('tarjeton', 50)->unique();
+            $table->string('tipo_tarjeton', 50)->nullable();
             $table->string('estado_servicio', 50)->default('disponible'); // disponible, en_servicio, falta
             $table->string('estatus', 20)->default('ACTIVO'); // ACTIVO, BAJA
             $table->timestamps();

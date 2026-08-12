@@ -141,8 +141,13 @@ export default function Maniobristas() {
 
   // Form states
   const [nombre, setNombre] = useState('');
+  const [tipoTarjeton, setTipoTarjeton] = useState('B');
   const [submitting, setSubmitting] = useState(false);
 
+  const tipoOptions = [
+    { value: 'B', label: 'TIPO B' },
+    { value: 'C', label: 'TIPO C' }
+  ];
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -189,13 +194,14 @@ export default function Maniobristas() {
 
   const handleOpenAddModal = () => {
     setNombre('');
+    setTipoTarjeton('B');
     setShowAddModal(true);
   };
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     const nombreLimpio = nombre.trim();
-    if (!nombreLimpio) {
+    if (!nombreLimpio || !tipoTarjeton.trim()) {
       Swal.fire({
         icon: 'warning',
         title: 'Campos requeridos',
@@ -212,6 +218,7 @@ export default function Maniobristas() {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           nombre: nombreLimpio,
+          tipo_tarjeton: tipoTarjeton.trim()
         })
       });
 
@@ -222,7 +229,7 @@ export default function Maniobristas() {
       Swal.fire({
         icon: 'success',
         title: 'Maniobrista Registrado',
-        text: `El maniobrista se creó exitosamente con el Identificador Automático: ${data.maniobrista.identificador}`,
+        text: `El maniobrista se creó exitosamente con el Tarjetón Automático: ${data.maniobrista.tarjeton}`,
         confirmButtonColor: '#c5a059'
       });
       fetchManiobristas();
@@ -241,6 +248,7 @@ export default function Maniobristas() {
   const handleOpenEditModal = (c) => {
     setSelectedManiobrista(c);
     setNombre(c.nombre);
+    setTipoTarjeton(c.tipo_tarjeton === 'C' ? 'C' : 'B');
     setShowEditModal(true);
   };
 
@@ -264,6 +272,7 @@ export default function Maniobristas() {
         headers: getAuthHeaders(),
         body: JSON.stringify({
           nombre: nombreLimpio,
+          tipo_tarjeton: tipoTarjeton.trim()
         })
       });
 
@@ -293,7 +302,7 @@ export default function Maniobristas() {
   const handleDarDeBaja = async (c) => {
     const confirm = await Swal.fire({
       title: '¿Dar de baja al maniobrista?',
-      text: `El maniobrista ${c.nombre} (Identificador: ${c.identificador}) se marcará como BAJA en el sistema. No se eliminará de la base de datos.`,
+      text: `El maniobrista ${c.nombre} (Tarjetón: ${c.tarjeton}) se marcará como BAJA en el sistema. No se eliminará de la base de datos.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#6b1d33',
@@ -365,7 +374,8 @@ export default function Maniobristas() {
     const term = searchTerm.toLowerCase();
     return (
       (c.nombre && c.nombre.toLowerCase().includes(term)) ||
-      (c.identificador && c.identificador.toLowerCase().includes(term))
+      (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
+      (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
     );
   });
 
@@ -403,7 +413,7 @@ export default function Maniobristas() {
             </svg>
             <input
               type="text"
-              placeholder="Buscar por nombre o identificador..."
+              placeholder="Buscar por nombre, tarjetón o tipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -422,8 +432,9 @@ export default function Maniobristas() {
               <table className="maniobristas-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '130px' }}># Identificador</th>
+                    <th style={{ width: '130px' }}># Tarjetón</th>
                     <th>Nombre Completo del Maniobrista</th>
+                    <th style={{ width: '140px' }}>Tipo Tarjetón</th>
                     <th style={{ width: '160px' }}>Estado Servicio</th>
                     <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
                   </tr>
@@ -439,10 +450,14 @@ export default function Maniobristas() {
                     filteredManiobristas.map((c) => (
                       <tr key={c.id}>
                         <td>
-                          <span className="identificador-badge">{c.identificador}</span>
+                          <span className="tarjeton-badge">{c.tarjeton}</span>
                         </td>
                         <td className="maniobrista-nombre">{c.nombre}</td>
-
+                        <td>
+                          <span className="tipo-badge">
+                            TIPO {c.tipo_tarjeton || 'B'}
+                          </span>
+                        </td>
                         <td>
                           <StatusDropdown
                             value={c.estado_servicio}
@@ -518,7 +533,11 @@ export default function Maniobristas() {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Tipo de Tarjetón</label>
                 <CustomSelect
+                  value={tipoTarjeton}
+                  onChange={setTipoTarjeton}
+                  options={tipoOptions}
                 />
               </div>
 
@@ -558,16 +577,17 @@ export default function Maniobristas() {
             <div className="modal-header">
               <div className="modal-header-title">
                 <h2>Editar Maniobrista</h2>
+                <p>Modifica el nombre o tipo de tarjetón asignado</p>
               </div>
               <button className="close-btn" onClick={() => setShowEditModal(false)} aria-label="Cerrar">&times;</button>
             </div>
             <form onSubmit={handleEditSubmit} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Identificador Asignado (Automático)</label>
+                <label className="form-label">Tarjetón Asignado (Automático)</label>
                 <input
                   type="text"
                   disabled
-                  value={selectedManiobrista.identificador}
+                  value={selectedManiobrista.tarjeton}
                   className="modal-input disabled-input"
                 />
               </div>
@@ -590,7 +610,11 @@ export default function Maniobristas() {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Tipo de Tarjetón</label>
                 <CustomSelect
+                  value={tipoTarjeton}
+                  onChange={setTipoTarjeton}
+                  options={tipoOptions}
                 />
               </div>
 

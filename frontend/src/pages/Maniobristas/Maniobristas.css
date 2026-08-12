@@ -43,7 +43,7 @@
   margin-bottom: 0;
 }
 
-.btn-add-operador {
+.btn-add-maniobrista {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -59,7 +59,7 @@
   transition: all 0.2s ease;
 }
 
-.btn-add-operador:hover {
+.btn-add-maniobrista:hover {
   background: #521526;
   transform: translateY(-1px);
 }

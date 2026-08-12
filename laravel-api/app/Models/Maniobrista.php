@@ -13,7 +13,8 @@ class Maniobrista extends Model
 
     protected $fillable = [
         'nombre',
-        'identificador',
+        'tarjeton',
+        'tipo_tarjeton',
         'estado_servicio',
         'estatus'
     ];
