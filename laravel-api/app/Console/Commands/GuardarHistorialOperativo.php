@@ -12,12 +12,18 @@ use Carbon\Carbon;
 #[Description('Guarda un snapshot diario de la tabla informacion_operativa en historial_operativo')]
 class GuardarHistorialOperativo extends Command
 {
+    protected $signature = 'historial:guardar';
+    protected $description = 'Guarda un snapshot diario de la tabla informacion_operativa en historial_operativo';
+
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $fechaHistorial = Carbon::yesterday()->toDateString();
+        // El día acaba a las 22:00 e inicia a las 3:00 hrs.
+        // Si ejecutamos entre las 00:00 y las 02:59, guardamos el historial del día calendario anterior (ayer).
+        // Si ejecutamos a partir de las 03:00 (como las 22:05), guardamos el historial del día de hoy.
+        $fechaHistorial = Carbon::now()->hour < 3 ? Carbon::yesterday()->toDateString() : Carbon::today()->toDateString();
         
         // Verificar si ya se guardó para no duplicar
         $existe = DB::table('historial_operativo')->where('fecha_historial', $fechaHistorial)->exists();
@@ -41,6 +47,8 @@ class GuardarHistorialOperativo extends Command
                 'ruta'            => $registro->ruta,
                 'numero_tarjeton' => $registro->numero_tarjeton,
                 'nombre_conductor'=> $registro->nombre_conductor,
+                'tarjeton_maniobrista' => $registro->tarjeton_maniobrista ?? null,
+                'nombre_maniobrista' => $registro->nombre_maniobrista ?? null,
                 'tipo'            => $registro->tipo,
                 'estatus'         => $registro->estatus,
                 'falla'           => $registro->falla,

@@ -121,12 +121,21 @@ class DespachoController extends Controller
                 ->whereDate('fecha_registro', $fechaHoy)
                 ->delete();
 
+            // Eliminar el snapshot de inicio anterior para hoy para que se regenere con el nuevo Excel
+            DB::table('historial_operativo')
+                ->where('fecha_historial', $fechaHoy)
+                ->where('momento', 'INICIO')
+                ->delete();
+
             \Log::info('Delete ejecutado sin transacción');
 
             $chunks = array_chunk($registrosParaInsertar, 50);
             foreach ($chunks as $chunk) {
                 DB::table('informacion_operativa')->insert($chunk);
             }
+
+            // Forzar la creación inmediata del snapshot de INICIO con los nuevos datos
+            \App\Helpers\BitacoraHelper::ensureInicioSnapshot();
 
             \Log::info('Todos los registros insertados', [
                 'total' => count($registrosParaInsertar),
@@ -792,6 +801,69 @@ class DespachoController extends Controller
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
+                'ESTATUS' => $reg->estatus,
+                'FALLA' => $reg->falla,
+                'CORRIDAS' => $reg->corridas,
+                'CICLO' => $reg->ciclo,
+                'MOTIVO' => $reg->motivo,
+                'MOTIVO_ESTATUS' => $reg->motivo_estatus,
+                'HORA_DE_ACOPLE' => $reg->hora_programada,
+                'HORA_PROGRAMADA' => $reg->hora_programada
+            ];
+        });
+
+        return response()->json($formateados, 200);
+    }
+
+    /**
+     * Obtiene la programación de inicio para el día de hoy.
+     */
+    public function obtenerInicioHoy()
+    {
+        $fechaHoy = Carbon::today()->toDateString();
+
+        // Asegurar que exista el snapshot si se consulta
+        \App\Helpers\BitacoraHelper::ensureInicioSnapshot();
+
+        $columns = [
+            'unidades.numero_eco',
+            'historial_operativo.tipo',
+            'historial_operativo.ruta',
+            'historial_operativo.numero_tarjeton as tarjeton',
+            'historial_operativo.nombre_conductor',
+            'historial_operativo.estatus',
+            'historial_operativo.falla',
+            'historial_operativo.corridas',
+            'historial_operativo.ciclo',
+            'historial_operativo.motivo',
+            'historial_operativo.motivo_estatus',
+            'historial_operativo.hora_programada'
+        ];
+
+        $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
+        if ($hasManiobrista) {
+            $columns[] = 'historial_operativo.tarjeton_maniobrista';
+            $columns[] = 'historial_operativo.nombre_maniobrista';
+        }
+
+        $registros = DB::table('historial_operativo')
+            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->where('fecha_historial', $fechaHoy)
+            ->where('momento', 'INICIO')
+            ->select($columns)
+            ->orderBy('historial_operativo.tipo')
+            ->orderBy('unidades.numero_eco')
+            ->get();
+
+        $formateados = $registros->map(function ($reg) use ($hasManiobrista) {
+            return [
+                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'RUTA' => $reg->ruta,
+                'ECONOMICO' => $reg->numero_eco,
+                'TARJETON' => $reg->tarjeton,
+                'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
+                'TARJETON_MANIOBRISTA' => $hasManiobrista ? $reg->tarjeton_maniobrista : '',
+                'NOMBRE_MANIOBRISTA' => $hasManiobrista ? $reg->nombre_maniobrista : '',
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,

@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/despacho/rutas', [DespachoController::class, 'obtenerRutas']);
     Route::post('/despacho/actualizar-ruta', [DespachoController::class, 'actualizarRuta']);
     Route::get('/despacho/hoy', [DespachoController::class, 'obtenerDatosHoy']);
+    Route::get('/despacho/inicio-hoy', [DespachoController::class, 'obtenerInicioHoy']);
     Route::post('/despacho/importar', [DespachoController::class, 'importar']);
     Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
     Route::post('/despacho/actualizar-adicionales', [DespachoController::class, 'actualizarAdicionales']);
