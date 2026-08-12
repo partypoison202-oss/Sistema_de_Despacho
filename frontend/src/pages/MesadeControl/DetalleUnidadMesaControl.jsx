@@ -141,18 +141,21 @@ export default function DetalleUnidadMesaControl() {
     queryFn: async () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) return [];
-      const res = await fetch(`${API_BASE}/api/maniobristas`, {
+      const res = await fetch(`${API_BASE}/api/conductores`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
       if (Array.isArray(data)) {
-        return data.map(m => ({
-          id: m.tarjeton,
-          tarjeton: m.tarjeton,
-          nombre: m.nombre,
-          estado_servicio: m.estado_servicio,
-          tipo_tarjeton: m.tipo_tarjeton
-        }));
+        // Filtrar solo conductores con estado_servicio = 'maniobrista'
+        return data
+          .filter(m => m.estado_servicio === 'maniobrista')
+          .map(m => ({
+            id: m.tarjeton,
+            tarjeton: m.tarjeton,
+            nombre: m.nombre,
+            estado_servicio: m.estado_servicio,
+            tipo_tarjeton: m.tipo_tarjeton
+          }));
       }
       return [];
     },
@@ -169,9 +172,8 @@ export default function DetalleUnidadMesaControl() {
     (!isTroncal || c.tipo_tarjeton === 'C')
   );
 
-  const maniobristasDisponibles = dbManiobristas.filter(m => 
-    m.estado_servicio === 'disponible'
-  );
+  // Mostrar todos los maniobristas (no solo disponibles) para visualización en el panel
+  const maniobristasDisponibles = dbManiobristas;
 
   const selectedEcoClean = selectedOption ? String(selectedOption.match(/\d+/)?.[0] || '').padStart(3, '0') : '';
 
@@ -1195,13 +1197,16 @@ export default function DetalleUnidadMesaControl() {
                     {maniobristasDisponibles.length > 0 ? (
                       maniobristasDisponibles.map((m) => (
                         <div key={m.tarjeton} className="dropdown-menu__item" style={{ cursor: 'default' }}>
-                          <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', color: '#d97706' }}>
                             {m.tarjeton}
+                          </span>
+                          <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', marginTop: '2px' }}>
+                            {m.nombre}
                           </span>
                         </div>
                       ))
                     ) : (
-                      <div className="dropdown-menu__item dropdown-menu__item--empty">Sin maniobristas disponibles</div>
+                      <div className="dropdown-menu__item dropdown-menu__item--empty">Sin maniobristas asignados</div>
                     )}
                   </div>
                 </div>

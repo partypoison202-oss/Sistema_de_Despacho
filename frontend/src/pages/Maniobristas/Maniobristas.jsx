@@ -394,17 +394,6 @@ export default function Operadores() {
               Administra el alta y edición de maniobristas. El tarjetón se genera automáticamente.
             </p>
           </div>
-
-          <button
-            type="button"
-            className="btn-add-maniobrista"
-            onClick={handleOpenAddModal}
-          >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Agregar Maniobrista
-          </button>
         </div>
 
         <div className="maniobristas-filter-card">
