@@ -844,7 +844,7 @@ export default function UnitInfoPanel({
             </div>
 
             <div className="info-card__item">
-              <span className="info-card__label">Hora Programada</span>
+              <span className="info-card__label">Hora de arribo</span>
               <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
