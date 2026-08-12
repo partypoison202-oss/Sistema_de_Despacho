@@ -803,7 +803,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
             {/* ── Código Naranja (Acoso) ── */}
             {NARANJA_TYPES.includes(activeTab) && (
               <div className="titan-seccion-naranja">
-                <h4 className="titan-seccion-naranja__titulo">🟠 Reporte de Acoso / Código Naranja</h4>
+                <h4 className="titan-seccion-naranja__titulo">REPORTE DE ACOSO / CÓDIGO NARANJA</h4>
 
                 {/* Usuario afectado */}
                 <div className="form-group checkbox-group" style={{ marginBottom: 8 }}>
