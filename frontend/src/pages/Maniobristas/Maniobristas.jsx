@@ -141,12 +141,11 @@ export default function Maniobristas() {
 
   // Form states
   const [nombre, setNombre] = useState('');
-  const [tipoTarjeton, setTipoTarjeton] = useState('B');
+  const [tipoTarjeton, setTipoTarjeton] = useState('MANIOBRISTA');
   const [submitting, setSubmitting] = useState(false);
 
   const tipoOptions = [
-    { value: 'B', label: 'TIPO B' },
-    { value: 'C', label: 'TIPO C' }
+    { value: 'MANIOBRISTA', label: 'MANIOBRISTA' }
   ];
 
   const getAuthHeaders = () => {
@@ -248,7 +247,7 @@ export default function Maniobristas() {
   const handleOpenEditModal = (c) => {
     setSelectedManiobrista(c);
     setNombre(c.nombre);
-    setTipoTarjeton(c.tipo_tarjeton === 'C' ? 'C' : 'B');
+    setTipoTarjeton('MANIOBRISTA');
     setShowEditModal(true);
   };
 
@@ -455,7 +454,7 @@ export default function Maniobristas() {
                         <td className="maniobrista-nombre">{c.nombre}</td>
                         <td>
                           <span className="tipo-badge">
-                            TIPO {c.tipo_tarjeton || 'B'}
+                            {c.tipo_tarjeton || 'MANIOBRISTA'}
                           </span>
                         </td>
                         <td>

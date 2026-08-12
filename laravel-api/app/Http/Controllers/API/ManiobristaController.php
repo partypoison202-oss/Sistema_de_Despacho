@@ -94,12 +94,12 @@ class ManiobristaController extends Controller
             }
         }
         $nuevoNumero = $maxNum + 1;
-        $tarjetonGenerado = "TJ-" . $nuevoNumero;
+        $tarjetonGenerado = "MN-" . $nuevoNumero;
 
         // Asegurar unicidad si por algún motivo existe
         while (DB::table('maniobristas')->where('tarjeton', $tarjetonGenerado)->exists()) {
             $nuevoNumero++;
-            $tarjetonGenerado = "TJ-" . $nuevoNumero;
+            $tarjetonGenerado = "MN-" . $nuevoNumero;
         }
 
         $maniobrista = Maniobrista::create([
