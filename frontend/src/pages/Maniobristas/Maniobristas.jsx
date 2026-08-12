@@ -142,11 +142,12 @@ export default function Operadores() {
 
   // Form states
   const [nombre, setNombre] = useState('');
-  const [tipoTarjeton, setTipoTarjeton] = useState('MANIOBRISTA');
+  const [tipoTarjeton, setTipoTarjeton] = useState('B');
   const [submitting, setSubmitting] = useState(false);
 
   const tipoOptions = [
-    { value: 'MANIOBRISTA', label: 'MANIOBRISTA' }
+    { value: 'B', label: 'TIPO B' },
+    { value: 'C', label: 'TIPO C' }
   ];
 
   const getAuthHeaders = () => {
@@ -248,7 +249,7 @@ export default function Operadores() {
   const handleOpenEditModal = (c) => {
     setSelectedManiobrista(c);
     setNombre(c.nombre);
-    setTipoTarjeton('MANIOBRISTA');
+    setTipoTarjeton(c.tipo_tarjeton === 'C' ? 'C' : 'B');
     setShowEditModal(true);
   };
 
@@ -455,7 +456,7 @@ export default function Operadores() {
                         <td className="maniobrista-nombre">{c.nombre}</td>
                         <td>
                           <span className="tipo-badge">
-                            {c.tipo_tarjeton || 'MANIOBRISTA'}
+                            {c.tipo_tarjeton ? `TIPO ${c.tipo_tarjeton}` : 'TIPO B'}
                           </span>
                         </td>
                         <td>
