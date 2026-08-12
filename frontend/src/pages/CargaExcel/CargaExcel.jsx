@@ -16,7 +16,7 @@ export default function CargaExcel() {
   const [previewData, setPreviewData] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showInicioModal, setShowInicioModal] = useState(false);
+  const [verInicio, setVerInicio] = useState(false);
   const [inicioData, setInicioData] = useState([]);
   const [cargandoInicio, setCargandoInicio] = useState(false);
 
@@ -431,6 +431,10 @@ export default function CargaExcel() {
   };
 
   const handleVerInicio = async () => {
+    if (verInicio) {
+      setVerInicio(false);
+      return;
+    }
     setCargandoInicio(true);
     try {
       const response = await fetch(`${API_BASE}/api/despacho/inicio-hoy`, {
@@ -442,7 +446,7 @@ export default function CargaExcel() {
       }
       const data = await response.json();
       setInicioData(data);
-      setShowInicioModal(true);
+      setVerInicio(true);
     } catch (error) {
       console.error(error);
       Swal.fire({
@@ -479,24 +483,28 @@ export default function CargaExcel() {
                 padding: '0.65rem 1.25rem',
                 borderRadius: '0.6rem',
                 border: 'none',
-                background: 'var(--brand-gold-bg)',
+                background: verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)',
                 color: 'white',
                 fontWeight: 700,
                 fontSize: '0.9rem',
                 cursor: 'pointer',
                 transition: 'background 0.2s'
               }}
-              onMouseOver={(e) => e.currentTarget.style.background = '#b38f4d'}
-              onMouseOut={(e) => e.currentTarget.style.background = 'var(--brand-gold-bg)'}
+              onMouseOver={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary-hover)' : '#b38f4d'}
+              onMouseOut={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)'}
             >
               {cargandoInicio ? (
                 <span className="spinner-mini"></span>
+              ) : verInicio ? (
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
               ) : (
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                 </svg>
               )}
-              Ver Inicio del Día
+              {verInicio ? 'Volver a Edición' : 'Ver Inicio del Día'}
             </button>
             <button
               type="button"
@@ -535,7 +543,12 @@ export default function CargaExcel() {
           </div>
         ) : (
           <ExcelPreview
-            data={registrosVisibles.map(r => ({ ...r.fila, __originalIndex: r.originalIndex }))}
+            readOnly={verInicio}
+            data={
+              verInicio
+                ? inicioData
+                : registrosVisibles.map(r => ({ ...r.fila, __originalIndex: r.originalIndex }))
+            }
             catalogUnidades={catalogUnidades}
             catalogConductores={catalogConductores}
             catalogManiobristas={catalogManiobristas}
@@ -547,195 +560,6 @@ export default function CargaExcel() {
           />
         )}
       </main>
-
-      {showInicioModal && (
-        <InicioDiaModal
-          data={inicioData}
-          onClose={() => setShowInicioModal(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-function InicioDiaModal({ data, onClose }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTech, setSelectedTech] = useState('');
-
-  const customSortOrder = ['URBANUS', 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
-
-  const estatusTranslations = {
-    operacion: 'Operación',
-    mantenimiento: 'Mantenimiento',
-    reserva: 'Reserva'
-  };
-
-  const estatusColors = {
-    operacion: { bg: 'rgba(16, 185, 129, 0.08)', text: '#10b981', border: 'rgba(16, 185, 129, 0.2)' },
-    mantenimiento: { bg: 'rgba(239, 68, 68, 0.08)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' },
-    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' }
-  };
-
-  const sortedData = [...(data || [])].sort((a, b) => {
-    const typeA = String(a.TIPO_DE_UNIDAD || '').toUpperCase();
-    const typeB = String(b.TIPO_DE_UNIDAD || '').toUpperCase();
-
-    let indexA = customSortOrder.indexOf(typeA);
-    if (indexA === -1) indexA = 999;
-    let indexB = customSortOrder.indexOf(typeB);
-    if (indexB === -1) indexB = 999;
-
-    if (indexA !== indexB) {
-      return indexA - indexB;
-    }
-
-    const ecoA = parseInt(a.ECONOMICO || '0', 10);
-    const ecoB = parseInt(b.ECONOMICO || '0', 10);
-    return ecoA - ecoB;
-  });
-
-  const filteredData = sortedData.filter(fila => {
-    if (!fila) return false;
-
-    if (selectedTech) {
-      const rowTech = String(fila.TIPO_DE_UNIDAD || '').toUpperCase();
-      const targetTech = selectedTech.toUpperCase();
-      
-      if (targetTech === 'URBANUS') {
-        if (rowTech !== 'URBANUS' && rowTech !== 'URBANUSS') return false;
-      } else {
-        if (rowTech !== targetTech) return false;
-      }
-    }
-
-    if (searchTerm.trim() !== '') {
-      const s = searchTerm.toLowerCase();
-      const eco = String(fila.ECONOMICO || '').toLowerCase();
-      const ruta = String(fila.RUTA || '').toLowerCase();
-      const driver = String(fila.NOMBRE_CONDUCTOR || '').toLowerCase();
-      const tarjeton = String(fila.TARJETON || '').toLowerCase();
-
-      return eco.includes(s) || ruta.includes(s) || driver.includes(s) || tarjeton.includes(s);
-    }
-
-    return true;
-  });
-
-  return (
-    <div className="inicio-modal-overlay" onClick={onClose}>
-      <div className="inicio-modal-box" onClick={e => e.stopPropagation()}>
-        <div className="inicio-modal-header">
-          <h2>Programación de Inicio (Hoy)</h2>
-          <button type="button" className="inicio-modal-close-btn" onClick={onClose}>
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="inicio-modal-body">
-          <div className="inicio-filters-bar">
-            <input
-              type="text"
-              placeholder="Buscar por eco, ruta, conductor o tarjetón..."
-              className="inicio-search-input"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {['', 'URBANUS', 'ZAFIRO', 'VAGONETA', 'ORION'].map(tech => (
-                <button
-                  key={tech}
-                  type="button"
-                  onClick={() => setSelectedTech(tech)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    border: '1px solid var(--tw-color-gray-200)',
-                    background: selectedTech === tech ? 'var(--brand-maroon-bg)' : 'white',
-                    color: selectedTech === tech ? 'white' : 'var(--tw-color-gray-700)',
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {tech === '' ? 'Todos' : tech}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="inicio-table-wrapper table-responsive">
-            <table className="inicio-table">
-              <thead>
-                <tr>
-                  <th>Tipo Unidad</th>
-                  <th>Económico</th>
-                  <th>Ruta</th>
-                  <th>Corrida</th>
-                  <th>Tarjetón</th>
-                  <th>Conductor</th>
-                  <th>Tarjetón Maniobrista</th>
-                  <th>Maniobrista</th>
-                  <th>Estatus</th>
-                  <th>Hora Acople</th>
-                  <th>Hora Programada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredData.length === 0 ? (
-                  <tr>
-                    <td colSpan="11" style={{ textAlign: 'center', padding: '3rem', color: 'var(--tw-color-gray-500)' }}>
-                      No se encontraron registros de inicio hoy.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredData.map((row, idx) => {
-                    const est = String(row.ESTATUS || 'operacion').toLowerCase();
-                    const color = estatusColors[est] || estatusColors.operacion;
-                    return (
-                      <tr key={idx}>
-                        <td style={{ fontWeight: 600 }}>{row.TIPO_DE_UNIDAD || '-'}</td>
-                        <td style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{row.ECONOMICO || '-'}</td>
-                        <td>{row.RUTA || '-'}</td>
-                        <td>{row.CORRIDAS ?? '-'}</td>
-                        <td>{row.TARJETON || '-'}</td>
-                        <td>{row.NOMBRE_CONDUCTOR || '-'}</td>
-                        <td>{row.TARJETON_MANIOBRISTA || '-'}</td>
-                        <td>{row.NOMBRE_MANIOBRISTA || '-'}</td>
-                        <td>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.6rem',
-                            borderRadius: '30px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            background: color.bg,
-                            color: color.text,
-                            border: `1px solid ${color.border}`
-                          }}>
-                            {estatusTranslations[est] || est}
-                          </span>
-                        </td>
-                        <td>{row.HORA_DE_ACOPLE || '-'}</td>
-                        <td>{row.HORA_PROGRAMADA || '-'}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="inicio-modal-footer">
-          <button type="button" className="inicio-modal-btn-close" onClick={onClose}>
-            Cerrar
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

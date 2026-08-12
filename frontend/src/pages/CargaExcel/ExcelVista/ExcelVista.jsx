@@ -30,7 +30,8 @@ export default function ExcelPreview({
   onClear,
   onSave,
   hasChanges,
-  isSaving
+  isSaving,
+  readOnly = false
 }) {
   const { user } = useContext(AuthContext);
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
@@ -159,8 +160,13 @@ export default function ExcelPreview({
     <div className="excel-table-card">
       <div className="excel-table-header">
         <div className="excel-table-header-left">
-          <h3>Programación Operativa Diaria</h3>
-          <p className="excel-table-subtitle">Captura, edita y concilia las unidades en ruta para el día de hoy</p>
+          <h3>{readOnly ? 'Programación de Inicio (Hoy)' : 'Programación Operativa Diaria'}</h3>
+          <p className="excel-table-subtitle">
+            {readOnly 
+              ? 'Consulta histórica de cómo inició la programación para el día de hoy (Solo Lectura)' 
+              : 'Captura, edita y concilia las unidades en ruta para el día de hoy'
+            }
+          </p>
         </div>
         <div className="excel-table-header-right">
           <div className="tech-filters-group">
@@ -227,6 +233,46 @@ export default function ExcelPreview({
                 return (
                   <tr key={originalIndex !== -1 ? originalIndex : index}>
                     {headers.map(h => {
+                      if (readOnly) {
+                        let displayValue = fila[h] ?? '';
+                        if (h === 'ESTATUS') {
+                          const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                          const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+                          displayValue = estatusTranslations[curSt] || fila[h];
+                          const color = estatusColors[curSt] || estatusColors.operacion;
+                          return (
+                            <td key={h} className={`cell-${h.toLowerCase()}`}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '0.25rem 0.6rem',
+                                borderRadius: '30px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                background: color.bg,
+                                color: color.text,
+                                border: `1px solid ${color.border}`
+                              }}>
+                                {displayValue}
+                              </span>
+                            </td>
+                          );
+                        }
+                        
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`}>
+                            <div style={{
+                              padding: '0.45rem 0.6rem',
+                              fontSize: '0.875rem',
+                              color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
+                              fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_PROGRAMADA') ? 'center' : 'left',
+                            }}>
+                              {displayValue}
+                            </div>
+                          </td>
+                        );
+                      }
+
                       const isReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR';
 
                       // ── REVELOS: sólo texto plano, excepto TARJETON y HORA_PROGRAMADA ──────────────
