@@ -76,7 +76,8 @@ function StatusDropdown({ value, onChange }) {
   const options = [
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
     { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
-    { value: 'falta', label: 'FALTA', class: 'falta' }
+    { value: 'falta', label: 'FALTA', class: 'falta' },
+    { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' }
   ];
 
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
@@ -246,7 +247,7 @@ export default function Maniobristas() {
 
   const handleOpenEditModal = (c) => {
     setSelectedManiobrista(c);
-    setNombre(c.nombre);
+    setNombre(c.nombre || '');
     setTipoTarjeton('MANIOBRISTA');
     setShowEditModal(true);
   };
@@ -454,7 +455,7 @@ export default function Maniobristas() {
                         <td className="maniobrista-nombre">{c.nombre}</td>
                         <td>
                           <span className="tipo-badge">
-                            {c.tipo_tarjeton || 'MANIOBRISTA'}
+                            TIPO {c.tipo_tarjeton || 'B'}
                           </span>
                         </td>
                         <td>
