@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -146,24 +147,26 @@ const InfraccionStats = () => {
                 attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               />
-              {filteredData.map(event => (
-                <Marker 
-                  key={event.id} 
-                  position={[event.lat, event.lng]}
-                  icon={event.tipo === 'ACCIDENTE' ? customIconRojo : customIconNaranja}
-                >
-                  <Popup>
-                    <div className="text-center">
-                      <strong className={`block uppercase ${event.tipo === 'ACCIDENTE' ? 'text-[#E63946]' : 'text-[#F4A261]'}`}>
-                        {event.tipo}
-                      </strong>
-                      <span className="text-gray-600 text-xs block">{event.fecha} - {event.hora}</span>
-                      <span className="font-bold text-gray-800 block mt-1">{event.tramo}</span>
-                      <span className="text-xs text-gray-500 block">Sentido: {event.sentido}</span>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+              <MarkerClusterGroup chunkedLoading>
+                {filteredData.map(event => (
+                  <Marker 
+                    key={event.id} 
+                    position={[event.lat, event.lng]}
+                    icon={event.tipo === 'ACCIDENTE' ? customIconRojo : customIconNaranja}
+                  >
+                    <Popup>
+                      <div className="text-center">
+                        <strong className={`block uppercase ${event.tipo === 'ACCIDENTE' ? 'text-[#E63946]' : 'text-[#F4A261]'}`}>
+                          {event.tipo}
+                        </strong>
+                        <span className="text-gray-600 text-xs block">{event.fecha} - {event.hora}</span>
+                        <span className="font-bold text-gray-800 block mt-1">{event.tramo}</span>
+                        <span className="text-xs text-gray-500 block">Sentido: {event.sentido}</span>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MarkerClusterGroup>
             </MapContainer>
           </div>
           <div className="flex gap-4 mt-3 text-xs text-gray-500 justify-center">

@@ -154,14 +154,20 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     const { x, y } = getFirmaCoords(e);
     ctx.lineTo(x, y);
     ctx.stroke();
-    if (firmaVacia) setFirmaVacia(false);
-  }, [getFirmaCoords, firmaVacia]);
+    // Optimize: Do not set state repeatedly during mousemove
+    if (firmaCanvasRef.current) {
+      firmaCanvasRef.current.dataset.hasFirma = 'true';
+    }
+  }, [getFirmaCoords]);
 
   const handleFirmaEnd = useCallback((e) => {
     if (!isDrawingRef.current) return;
     e.preventDefault();
     isDrawingRef.current = false;
-  }, []);
+    if (firmaVacia && firmaCanvasRef.current?.dataset?.hasFirma === 'true') {
+      setFirmaVacia(false);
+    }
+  }, [firmaVacia]);
 
   const initFirmaCanvas = useCallback(() => {
     const canvas = firmaCanvasRef.current;
@@ -185,6 +191,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     const ctx    = firmaCtxRef.current;
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    delete canvas.dataset.hasFirma;
     setFirmaVacia(true);
   }, []);
 
@@ -266,7 +273,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
   const getGPSLocation = () => {
     if (!navigator.geolocation) {
-      setUbicacionGPS('GPS no disponible en este navegador');
+      setUbicacionGPS(''); // Empty instead of string error to avoid backend NaN
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -280,11 +287,32 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
           setUbicacionGPS(latLng);
         }
       },
-      () => setUbicacionGPS('No se pudo obtener ubicación GPS')
+      () => setUbicacionGPS('') // Leave empty if permission denied
     );
   };
 
+  const resetFormPartial = () => {
+    setCorrida(''); setUbicacionEvento(''); setMotivoDesincorporacion('');
+    setAccDueno(''); setAccVehiculo(''); setAccPlacas(''); setAccSeguro(false);
+    setAccVictima(''); setAccEdad(''); setAccGenero(''); setAccHechos('');
+    setAccHechoTipo(''); setAccFavorDeQuien(''); setAccCantidadesDinero('');
+    setAccTipoChoque(''); setAccApoyo(''); setAccPaseMedicoPaciente('');
+    setAccPaseMedicoNumero(''); setAccPaseMedicoObservaciones('');
+    setAccHuboFallecidos(''); setAccFallecidosCantidad('1'); setAccFallecidosNombres(['']);
+    setAccHoraFallecimiento(''); setAccHoraAsistenciaCemefo('');
+    setLesionadosCantidad(''); setNombresAfectados('');
+    setAsistenciaSitio([]); setDiagnosticoPreliminar('');
+    setAmeritaTraslado(null); setEstatusLegal('');
+    setNarNombre(''); setNarAnonimo(false); setNarEdad(''); setNarGenero('');
+    setNarEstacion(''); setNarRuta(''); setNarRelato('');
+    setNarAutoridad(''); setNarPuestoDisposicion(null); setNarMotivo('');
+    limpiarFirma();
+  };
+
   const handleTabChange = (tab) => {
+    if (activeTab !== tab) {
+      resetFormPartial(); // Limpiar campos condicionales al cambiar de pestaña
+    }
     setActiveTab(tab);
     if ([...ACCIDENT_TYPES, ...NARANJA_TYPES].includes(tab)) {
       setHoraEvento(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }));
@@ -323,6 +351,9 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
     }
     if (DESINC_INC.includes(activeTab) && !ubicacionEvento) {
       Swal.fire('Atención', 'Selecciona la ubicación del evento.', 'warning'); return;
+    }
+    if (ACCIDENT_TYPES.includes(activeTab) && !accHechos.trim()) {
+      Swal.fire('Atención', 'El campo de Hechos / Descripción es requerido.', 'warning'); return;
     }
     if (NARANJA_TYPES.includes(activeTab)) {
       if (!narRelato.trim()) {
