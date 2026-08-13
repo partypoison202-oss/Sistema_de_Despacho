@@ -61,6 +61,19 @@ export default function UnitInfoPanel({
 
   const isReservaOrMantenimiento = ['reserva', 'mantenimiento'].includes((datosOperativos.estatus || '').toLowerCase());
 
+  // ⏰ Reloj en tiempo real para Hora de salida
+  const [liveTime, setLiveTime] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const now = new Date();
+      setLiveTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+
   // Inicializar hora programada desde datosOperativos
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
@@ -933,9 +946,6 @@ export default function UnitInfoPanel({
                   <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                     {formHoraProgramada || '--:--'}
                   </span>
-                  <svg className={`arrow-icon ${dropdownHoraOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
                 </button>
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -970,20 +980,17 @@ export default function UnitInfoPanel({
               </div>
             </div>)}
 
-            {/* ✅ NUEVO: Hora de salida (automática) */}
+            {/* ✅ Hora de salida - reloj en tiempo real */}
             {!isReservaOrMantenimiento && (<div className="info-card__item">
               <span className="info-card__label">Hora de salida</span>
               <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1 }}>
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                  {formAcople || '--:--'}
+                <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em' }}>
+                  {liveTime}
                 </span>
               </div>
-              <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.2rem', textAlign: 'center' }}>
-                (Se actualiza automáticamente al seleccionar la unidad)
-              </p>
             </div>)}
 
             {/* Toggle: ¿Hubo corridas perdidas? */}
