@@ -754,6 +754,19 @@ export default function UnitInfoPanel({
               )}
             </div>
 
+            {/* Corrida */}
+            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+              <span className="info-card__label">Corrida</span>
+              <div className="info-card__value-wrapper">
+                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                </svg>
+                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+                </p>
+              </div>
+            </div>
+
             {/* Número de Tarjetón (Editable) */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Número de Tarjetón</span>
@@ -918,18 +931,6 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Despacho</h3>
           </div>
           <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="info-card__item">
-              <span className="info-card__label">Corrida</span>
-              <div className="badge-display badge-display--maroon">
-                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-                <span className="badge-display__text">
-                  {cargandoDatos ? '...' : (datosOperativos.corrida || 'No asignada')}
-                </span>
-              </div>
-            </div>
-
             {!isReservaOrMantenimiento && (<div className="info-card__item">
               <span className="info-card__label">Hora de arribo</span>
               <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
