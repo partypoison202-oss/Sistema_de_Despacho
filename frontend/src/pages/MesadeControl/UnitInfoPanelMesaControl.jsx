@@ -61,15 +61,25 @@ export default function UnitInfoPanel({
 
   const isReservaOrMantenimiento = ['reserva', 'mantenimiento'].includes((datosOperativos.estatus || '').toLowerCase());
 
-  // ⏰ Reloj en tiempo real para Hora de salida
+  // ⏰ Reloj en tiempo real para Hora de salida (HH:MM:SS con parpadeo)
   const [liveTime, setLiveTime] = useState(() => {
     const now = new Date();
-    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    return {
+      h: String(now.getHours()).padStart(2, '0'),
+      m: String(now.getMinutes()).padStart(2, '0'),
+      s: String(now.getSeconds()).padStart(2, '0'),
+      blink: true,
+    };
   });
   useEffect(() => {
     const tick = setInterval(() => {
       const now = new Date();
-      setLiveTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+      setLiveTime({
+        h: String(now.getHours()).padStart(2, '0'),
+        m: String(now.getMinutes()).padStart(2, '0'),
+        s: String(now.getSeconds()).padStart(2, '0'),
+        blink: now.getSeconds() % 2 === 0,
+      });
     }, 1000);
     return () => clearInterval(tick);
   }, []);
@@ -987,8 +997,12 @@ export default function UnitInfoPanel({
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em' }}>
-                  {liveTime}
+                <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '1px' }}>
+                  <span>{liveTime.h}</span>
+                  <span style={{ opacity: liveTime.blink ? 1 : 0.15, transition: 'opacity 0.1s' }}>:</span>
+                  <span>{liveTime.m}</span>
+                  <span style={{ opacity: liveTime.blink ? 1 : 0.15, transition: 'opacity 0.1s' }}>:</span>
+                  <span>{liveTime.s}</span>
                 </span>
               </div>
             </div>)}
