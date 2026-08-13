@@ -51,7 +51,7 @@ export default function MenuCheckList() {
           <h2 className="dashboard-heading">Módulo de Check List</h2>
         </div>
 
-        <div className="dashboard-grid">
+        <div className="menu-dashboard-grid">
           {checklistMenuItems.map((item) => (
             <button
               key={item.id}

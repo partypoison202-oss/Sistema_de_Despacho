@@ -105,7 +105,7 @@ export default function MenuHistorial() {
           <h2 className="dashboard-heading">Seleccione un <span className="text-highlight">Historial</span></h2>
         </div>
 
-        <div className="dashboard-grid">
+        <div className="menu-dashboard-grid">
           {historialItems.map((item) => (
             <button
               key={item.id}

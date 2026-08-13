@@ -752,7 +752,7 @@ export default function HistorialCheckList() {
                 @media print {
                     .hide-on-print { display: none !important; }
                     .menu-page { background: white !important; padding: 0 !important; }
-                    header, .dashboard-grid, .bg-gray-50 { background: white !important; }
+                    header, .menu-dashboard-grid, .bg-gray-50 { background: white !important; }
                     .printable-section { border: none !important; box-shadow: none !important; }
                     .page-break-before { page-break-before: always; }
                 }

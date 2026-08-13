@@ -528,7 +528,7 @@ export default function UnitInfoPanel({
         </div>
       </div>
 
-      <div className="dashboard-grid">
+      <div className="detalle-dashboard-grid">
         {/* CARD 1: INFORMACIÓN DE TRABAJO */}
         <div className="info-card">
           <div className="info-card__header">

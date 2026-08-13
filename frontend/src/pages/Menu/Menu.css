@@ -53,7 +53,7 @@
 /* ════════════════════════════════
    GRID DE TARJETAS
 ════════════════════════════════ */
-.dashboard-grid {
+.menu-dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
@@ -211,7 +211,7 @@
    RESPONSIVE
 ════════════════════════════════ */
 @media (max-width: 640px) {
-  .dashboard-grid {
+  .menu-dashboard-grid {
     grid-template-columns: 1fr;
   }
 
