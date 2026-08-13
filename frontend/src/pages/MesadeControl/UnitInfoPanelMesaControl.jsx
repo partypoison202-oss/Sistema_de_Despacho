@@ -59,7 +59,7 @@ export default function UnitInfoPanel({
   const [dropdownTarjetonManiobristaOpen, setDropdownTarjetonManiobristaOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
 
-  const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
+  const isReservaOrMantenimiento = ['reserva', 'mantenimiento'].includes((datosOperativos.estatus || '').toLowerCase());
 
   // Inicializar hora programada desde datosOperativos
   useEffect(() => {
