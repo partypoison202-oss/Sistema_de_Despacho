@@ -1671,11 +1671,10 @@ export default function UnitInfoPanel({
                 {/* Si cambio de operador está activo, mostrar dropdown de operador disponible */}
                 {cambioOperadorActivo && (
                   <>
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }} ref={operadorRef}>
                       <div style={{ display: 'block', color: '#0b162c', fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.5rem' }}>Conductor Disponible:</div>
                       <button
                         type="button"
-                        ref={operadorRef}
                         onClick={() => setDropdownOperadorOpen(!dropdownOperadorOpen)}
                         style={{
                           width: '100%',
@@ -1731,11 +1730,10 @@ export default function UnitInfoPanel({
                     </div>
 
                     {/* Dropdown de motivo para cambio de operador */}
-                    <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }} ref={operadorMotivoRef}>
                       <div style={{ display: 'block', color: '#0b162c', fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.5rem' }}>Motivo:</div>
                       <button
                         type="button"
-                        ref={operadorMotivoRef}
                         onClick={() => setOperadorMotivoDropdown(!operadorMotivoDropdown)}
                         style={{
                           width: '100%',
