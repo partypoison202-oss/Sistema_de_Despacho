@@ -354,12 +354,7 @@ export default function UnitInfoPanel({
 
   const handleSelectReservaUnit = (unidad) => {
     setUnidadReemplazoSeleccionada(unidad);
-    // Pre-llenar tarjetón si la unidad tiene tarjetón disponible
-    const disponible = conductoresDisponibles.find((c) => c.tarjeton === unidad.tarjeton);
-    setReemplazoForm((prev) => ({
-      ...prev,
-      tarjeton: disponible ? unidad.tarjeton : '',
-    }));
+    // No sobrescribir el tarjetón aquí, ya que queremos conservar el de la unidad original (el conductor que se pasa a la unidad de reserva)
     setDropdownEcoOpen(false);
   };
 
