@@ -641,7 +641,8 @@ export default function UnitInfoPanel({
         </div>
       </div>
 
-      <div className="dashboard-grid">
+      {/* Se cambia a 2 columnas en desktop para que ocupe todo el ancho de la pantalla y no quede amontonado a la izquierda */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* CARD 1: INFORMACIÓN DE TRABAJO */}
         <div className="info-card">
           <div className="info-card__header">
