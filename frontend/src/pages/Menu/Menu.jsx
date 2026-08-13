@@ -12,11 +12,9 @@ const menuItems = [
     roles: ['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <polyline points="10 9 9 9 8 9" />
+        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+        <line x1="9" y1="3" x2="9" y2="18" />
+        <line x1="15" y1="6" x2="15" y2="21" />
       </svg>
     ),
     label: 'DESPACHO DASHBOARD',
@@ -43,10 +41,8 @@ const menuItems = [
     roles: ['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="1" y="3" width="15" height="13" rx="2" />
-        <path d="M16 8h4l3 5v3h-7V8z" />
-        <circle cx="5.5" cy="18.5" r="2.5" />
-        <circle cx="18.5" cy="18.5" r="2.5" />
+        <path d="M3 21V9l9-6 9 6v12" />
+        <path d="M9 21v-8h6v8" />
       </svg>
     ),
     label: 'ENCIERRO DASHBOARD',
@@ -99,10 +95,9 @@ const menuItems = [
     roles: ['ADMINISTRADOR', 'CENTRO_CONTROL'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
       </svg>
     ),
     label: 'CENTRO DE CONTROL',
@@ -114,8 +109,9 @@ const menuItems = [
     roles: ['ADMINISTRADOR', 'DESPACHO', 'GENERAL'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3v18h18" />
-        <path d="m19 9-5 5-4-4-3 3" />
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+        <path d="M3 3v5h5" />
+        <path d="M12 7v5l4 2" />
       </svg>
     ),
     label: 'HISTORIAL',
@@ -141,9 +137,10 @@ const menuItems = [
     roles: ['ADMINISTRADOR', 'INFRACCION'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 9v4" />
-        <path d="M12 17h.01" />
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="12" y1="12" x2="12" y2="16" />
+        <line x1="12" y1="20" x2="12.01" y2="20" />
       </svg>
     ),
     label: 'INFRACCIÓN',
@@ -171,10 +168,11 @@ const menuItems = [
     roles: ['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        <rect x="3" y="4" width="18" height="16" rx="2" ry="2" />
+        <circle cx="9" cy="10" r="2" />
+        <path d="M13 14c-2.7 0-4 1.3-4 1.3v1.7h8v-1.7s-1.3-1.3-4-1.3z" />
+        <line x1="15" y1="9" x2="19" y2="9" />
+        <line x1="15" y1="11" x2="19" y2="11" />
       </svg>
     ),
     label: 'GESTIÓN DE OPERADORES',
@@ -186,10 +184,17 @@ const menuItems = [
     roles: ['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
         <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        <circle cx="19" cy="11" r="2" />
+        <path d="M19 6v3" />
+        <path d="M19 13v3" />
+        <path d="M22 11h-1" />
+        <path d="M17 11h-1" />
+        <path d="M16.9 8.9l.7.7" />
+        <path d="M21.4 13.4l-.7-.7" />
+        <path d="M21.4 8.9l-.7.7" />
+        <path d="M16.9 13.4l.7-.7" />
       </svg>
     ),
     label: 'GESTIÓN DE MANIOBRISTAS',
