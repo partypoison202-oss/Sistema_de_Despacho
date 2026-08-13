@@ -665,8 +665,11 @@ export default function UnitInfoPanel({
             </div>
 
 
-            {/* Ruta Asignada */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+            {/* Ruta Asignada y Corrida - Lado a lado */}
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.85rem' }}>
+              
+              {/* Ruta Asignada */}
+              <div className="info-card__item" style={{ flex: 1.5, minWidth: 0 }}>
               <span className="info-card__label">Ruta Asignada</span>
               {!isPlataforma && !isReservaOrMantenimiento ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
@@ -697,7 +700,7 @@ export default function UnitInfoPanel({
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
+                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
                           <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                           </svg>
@@ -741,13 +744,13 @@ export default function UnitInfoPanel({
                   </div>
                 </div>
               ) : (
-                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
+                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1, height: '2.3rem', marginTop: '0.15rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <p className="info-card__value">
+                    <p className="info-card__value" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
                     </p>
                   </div>
@@ -756,17 +759,18 @@ export default function UnitInfoPanel({
             </div>
 
             {/* Corrida */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+            <div className="info-card__item" style={{ flex: 1, minWidth: 0 }}>
               <span className="info-card__label">Corrida</span>
-              <div className="info-card__value-wrapper">
+              <div className="info-card__value-wrapper" style={{ height: '2.3rem', marginTop: '0.15rem' }}>
                 <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                 </svg>
-                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
+                <p className="info-card__value" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
                 </p>
               </div>
             </div>
+          </div>
 
             {/* Número de Tarjetón (Editable) */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
