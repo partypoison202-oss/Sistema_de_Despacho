@@ -94,17 +94,10 @@
 }
 
 .tabla-faltantes__tabla {
-  width: 100% !important;
+  width: 100%;
   border-collapse: collapse;
   font-size: 0.88rem;
-  table-layout: auto;
 }
-
-.tabla-faltantes__tabla th:nth-child(1) { width: 15%; }
-.tabla-faltantes__tabla th:nth-child(2) { width: 15%; }
-.tabla-faltantes__tabla th:nth-child(3) { width: 20%; }
-.tabla-faltantes__tabla th:nth-child(4) { width: 20%; }
-.tabla-faltantes__tabla th:nth-child(5) { width: 30%; }
 
 .tabla-faltantes__tabla th,
 .tabla-faltantes__tabla td {
@@ -112,7 +105,6 @@
   border-bottom: 1px solid var(--ti-borde);
   text-align: left;
   vertical-align: middle;
-  word-wrap: break-word;
 }
 
 .tabla-faltantes__tabla thead th {

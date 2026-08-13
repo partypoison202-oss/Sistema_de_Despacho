@@ -195,4 +195,6 @@ body {
   width: 100%;
 }
 
+/* Fix global de tablas cortadas */
 .table-responsive { width: 100%; overflow-x: auto; }
+table { display: block; max-width: 100%; overflow-x: auto; white-space: nowrap; min-width: 100%; }

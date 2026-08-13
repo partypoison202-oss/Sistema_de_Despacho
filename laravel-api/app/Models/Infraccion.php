@@ -37,6 +37,7 @@ class Infraccion extends Model
         'licencia_tipo',
         'licencia_estado',
         'calidad_conductor',
+        'correo_infractor',
         'motivacion_hecho',
         'descripcion_hechos',
         'sancion_uma',

@@ -8,8 +8,6 @@ import CameraModal from '../../components/CameraModal';
 import API_BASE from '../../config/api';
 import { AuthContext } from "../../context/AuthContext";
 import { generarPDFInfraccion } from "../../utils/generarPDFInfraccion";
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import { useConfirmAction } from '../../hooks/useConfirmAction';
 import InfraccionStats from './components/InfraccionStats';
 import './Infraccion.css';
 
@@ -98,33 +96,13 @@ const CustomSelect = ({ value, onChange, options, placeholder = "SELECCIONAR", c
 
 const InfraccionDashboard = () => {
   const { token, user } = useContext(AuthContext);
-  const { confirmAction } = useConfirmAction();
   const [activeTab, setActiveTab] = useState('REGISTRO'); // REGISTRO | DASHBOARD
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  
-  // ====================== ESTADO GENERAL Y COMÚN ======================
+  // 1. Verificación de Placa previa (Paso 1)
   const [placas, setPlacas] = useState('');
   const [checkingPlaca, setCheckingPlaca] = useState(false);
   const [placaStatus, setPlacaStatus] = useState(null);
   const [tipoFormulario, setTipoFormulario] = useState(null); // 'amonestacion' | 'infraccion'
-
-  const isDirty = tipoFormulario !== null;
-  useUnsavedChanges(isDirty, null);
-
-  const handleResetClick = async () => {
-    if (isDirty) {
-      const confirmed = await confirmAction({
-        title: 'Limpiar formulario',
-        text: '¿Seguro que deseas descartar toda la información capturada?',
-        confirmButtonText: 'Sí, limpiar',
-        cancelButtonText: 'Cancelar'
-      });
-      if (!confirmed) return;
-    }
-    resetForm();
-  };
 
   // -------------------------------------------------------------
   // ESTADOS DEL FORMULARIO 1: ACTA DE AMONESTACIÓN (Primera Incursión)
@@ -205,6 +183,7 @@ const InfraccionDashboard = () => {
 
   // Conductor Infracción
   const [infConductorNombre, setInfConductorNombre] = useState('');
+  const [infCorreoInfractor, setInfCorreoInfractor] = useState('');
   const [infConductorDomicilio, setInfConductorDomicilio] = useState('');
   const [infLicenciaNumero, setInfLicenciaNumero] = useState('');
   const [infLicenciaTipo, setInfLicenciaTipo] = useState('');
@@ -224,6 +203,8 @@ const InfraccionDashboard = () => {
   const [infNegoFirmar, setInfNegoFirmar] = useState(false);
   const [infRecibioNombre, setInfRecibioNombre] = useState('');
   const [infFirmaConductor, setInfFirmaConductor] = useState('');
+
+  const [submitting, setSubmitting] = useState(false);
 
   // Catálogos
   const ENTIDADES = [
@@ -402,6 +383,7 @@ const InfraccionDashboard = () => {
     setInfNivVin('');
     setInfTipoVehiculo('Particular');
     setInfConductorNombre('');
+    setInfCorreoInfractor('');
     setInfConductorDomicilio('');
     setInfLicenciaNumero('');
     setInfLicenciaTipo('');
@@ -465,6 +447,7 @@ const InfraccionDashboard = () => {
         tipo_vehiculo: infTipoVehiculo,
 
         conductor_nombre: infConductorNombre,
+        correo_infractor: infCorreoInfractor,
         conductor_domicilio: infConductorDomicilio,
         licencia_numero: infLicenciaNumero,
         licencia_tipo: infLicenciaTipo,
@@ -525,6 +508,7 @@ const InfraccionDashboard = () => {
         niv_vin: infNivVin,
         tipo_vehiculo: infTipoVehiculo,
         conductor_nombre: infConductorNombre,
+        correo_infractor: infCorreoInfractor,
         conductor_domicilio: infConductorDomicilio,
         licencia_numero: infLicenciaNumero,
         licencia_tipo: infLicenciaTipo,
@@ -547,6 +531,23 @@ const InfraccionDashboard = () => {
       // Generar y descargar PDF automáticamente
       try {
         await generarPDFInfraccion(datosParaPDF, 'download');
+
+        // Enviar por correo si proporcionaron email
+        if (infCorreoInfractor) {
+          try {
+            const pdfBlob = await generarPDFInfraccion(datosParaPDF, 'blob');
+            const emailFormData = new FormData();
+            emailFormData.append('pdf_file', pdfBlob, `Boleta_Infraccion_${data.infraccion?.folio || 'INF'}.pdf`);
+            
+            await fetch(`${API_BASE}/api/infracciones/${data.infraccion.id}/send-email`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: emailFormData
+            });
+          } catch (emailErr) {
+            console.error('Error enviando PDF por correo:', emailErr);
+          }
+        }
       } catch (pdfErr) {
         console.error('Error generando PDF de infracción:', pdfErr);
       }
@@ -973,6 +974,16 @@ const InfraccionDashboard = () => {
                     />
                   </div>
                   <div className="form-group">
+                    <label className="form-label">Correo electrónico (Opcional)</label>
+                    <input
+                      type="email"
+                      placeholder="Para envío de boleta (ej. juan@gmail.com)"
+                      value={infCorreoInfractor}
+                      onChange={(e) => setInfCorreoInfractor(e.target.value)}
+                      className="infraccion-input"
+                    />
+                  </div>
+                  <div className="form-group">
                     <label className="form-label">Calidad con la que se ostenta *</label>
                     <CustomSelect
                       value={infCalidadConductor}
@@ -1253,7 +1264,7 @@ const InfraccionDashboard = () => {
                 <button
                   type="button"
                   className="btn-cancel-form"
-                  onClick={handleResetClick}
+                  onClick={resetForm}
                   disabled={submitting}
                 >
                   Limpiar Formulario

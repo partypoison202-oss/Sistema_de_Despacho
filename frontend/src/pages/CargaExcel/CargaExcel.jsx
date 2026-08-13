@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -331,18 +330,18 @@ export default function CargaExcel() {
 
 
 
-  // 4. Bloquear recarga/cierre del navegador y navegación interna si hay cambios sin guardar
-  useUnsavedChanges(hasChanges, async () => {
-    setIsSaving(true);
-    let success = true;
-    try {
-      await handleSaveChangesDirectly();
-    } catch (e) {
-      success = false;
-    }
-    setIsSaving(false);
-    return success;
-  });
+  // 4. Bloquear recarga/cierre del navegador si hay cambios sin guardar
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = 'Tienes cambios sin guardar en la programación operativa.';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
 
   // Exportar los datos actuales a un archivo Excel (.xlsx) con formato
   // Nota: exporta TODOS los registros (todos los estatus), no solo "operacion",
@@ -462,7 +461,7 @@ export default function CargaExcel() {
 
   return (
     <div className="excel-layout">
-      <Header />
+      <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
       <main className="excel-main-content">
         <div className="excel-top-bar">
           <div className="excel-title-section">

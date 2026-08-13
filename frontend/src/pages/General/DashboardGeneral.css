@@ -9,8 +9,6 @@
 
 .dashboard__main {
   flex: 1;
-  width: 100%;
-  box-sizing: border-box;
   max-width: 1123px;
   margin: 0 auto;
   padding: 2.5rem 1.5rem 4rem;
@@ -39,7 +37,7 @@
   margin: 0 0 2.5rem;
 }
 
-.dashboard-general__grid {
+.dashboard__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.5rem;
@@ -51,7 +49,7 @@
     font-size: 1.75rem;
   }
 
-  .dashboard-general__grid {
+  .dashboard__grid {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 1rem;
   }

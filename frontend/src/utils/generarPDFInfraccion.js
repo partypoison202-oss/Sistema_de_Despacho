@@ -720,6 +720,8 @@ export const generarPDFInfraccion = async (datos = {}, accion = 'download') => {
       const pdfBlob = doc.output('blob');
       const blobUrl = URL.createObjectURL(pdfBlob);
       window.open(blobUrl, '_blank');
+    } else if (accion === 'blob') {
+      return doc.output('blob');
     } else {
       doc.save(filename);
     }

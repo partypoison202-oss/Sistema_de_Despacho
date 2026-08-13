@@ -252,7 +252,7 @@ export default function Dashboard() {
             </button>
           </form>
 
-          <div className="dashboard-despacho__grid">
+          <div className="dashboard__grid">
             {transportModules.map((modulo) => (
               <TransportCard
                 key={modulo.id}

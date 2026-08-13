@@ -105,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // RUTAS PARA AMONESTACIONES E INFRACCIONES
     Route::get('/infracciones/check/{placa}', [InfraccionController::class, 'checkPlaca']);
+    Route::post('/infracciones/{id}/send-email', [InfraccionController::class, 'sendEmail']);
     Route::get('/infracciones', [InfraccionController::class, 'index']);
     Route::post('/infracciones', [InfraccionController::class, 'store']);
 });

@@ -247,7 +247,7 @@ export default function Dashboard() {
           Toque la imagen del transporte para ver la información de despacho
         </p>
 
-        <div className="dashboard-general__grid">
+        <div className="dashboard__grid">
           {transportModules.map((modulo) => (
             <TransportCard
               key={modulo.id}

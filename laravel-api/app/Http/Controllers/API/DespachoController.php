@@ -232,10 +232,6 @@ class DespachoController extends Controller
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            // Solo unidades programadas por el capturista (tienen hora_programada asignada)
-            ->whereNotNull('informacion_operativa.hora_programada')
-            // Excluir unidades ya validadas (con hora_salida registrada)
-            ->whereNull('informacion_operativa.hora_salida')
             ->select(
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',
@@ -244,8 +240,11 @@ class DespachoController extends Controller
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.tarjeton_maniobrista',
                 'informacion_operativa.nombre_maniobrista',
+                'informacion_operativa.tarjeton_maniobrista',
+                'informacion_operativa.nombre_maniobrista',
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
+                'informacion_operativa.acople',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida'
             )
@@ -259,20 +258,20 @@ class DespachoController extends Controller
                 }
                 return [
                     'numero_eco' => $unidad->numero_eco,
-                    'tarjeton'   => $unidad->tarjeton,
-                    'estatus'    => $estatus,
-                    'ruta'       => $unidad->ruta,
+                    'tarjeton' => $unidad->tarjeton,
+                    'estatus' => $estatus,
+                    'ruta' => $unidad->ruta,
                     'nombre_conductor' => $unidad->nombre_conductor,
-                    'falla'      => $unidad->falla,
-                    'corridas'   => $unidad->corridas,
-                    'acople'     => $unidad->acople,
+                    'falla' => $unidad->falla,
+                    'corridas' => $unidad->corridas,
+                    'acople' => $unidad->acople,
+                    'acople' => $unidad->acople,
                     'hora_salida' => $unidad->hora_salida,
                 ];
             });
 
         return response()->json($unidades, 200);
     }
-
 
     /**
      * Busca una unidad por número de tarjetón para el tipo indicado.

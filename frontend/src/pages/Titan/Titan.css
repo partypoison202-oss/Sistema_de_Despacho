@@ -582,13 +582,12 @@
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: 35px;
   margin-bottom: 30px;
 }
 .titan-toggle-btn {
   padding: 10px 24px;
-  border-radius: 0.65rem;
-  border: 1px solid var(--ti-borde, #eae3dd);
+  border-radius: 9999px;
+  border: 1px solid var(--tw-color-gray-200, #e5e7eb);
   background: white;
   color: var(--tw-color-gray-500, #6b7280);
   font-weight: 700;

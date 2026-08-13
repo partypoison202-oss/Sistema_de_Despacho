@@ -64,6 +64,7 @@ class InfraccionController extends Controller
                 $table->string('licencia_tipo', 50)->nullable();
                 $table->string('licencia_estado', 100)->nullable();
                 $table->string('calidad_conductor', 50)->default('Conductora');
+                $table->string('correo_infractor', 255)->nullable();
 
                 // 4. Motivación y Hechos
                 $table->string('motivacion_hecho', 100)->default('transitaba');
@@ -96,6 +97,9 @@ class InfraccionController extends Controller
                 }
                 if (!Schema::hasColumn('infracciones', 'imagen_5')) {
                     $table->string('imagen_5', 255)->nullable();
+                }
+                if (!Schema::hasColumn('infracciones', 'correo_infractor')) {
+                    $table->string('correo_infractor', 255)->nullable();
                 }
             });
         }
@@ -157,6 +161,7 @@ class InfraccionController extends Controller
             'licencia_tipo' => 'nullable|string|max:50',
             'licencia_estado' => 'nullable|string|max:100',
             'calidad_conductor' => 'required|string|max:50',
+            'correo_infractor' => 'nullable|email|max:255',
 
             'motivacion_hecho' => 'required|string|max:100',
             'descripcion_hechos' => 'nullable|string',
@@ -214,6 +219,7 @@ class InfraccionController extends Controller
             'licencia_tipo' => $request->licencia_tipo,
             'licencia_estado' => $request->licencia_estado,
             'calidad_conductor' => $request->calidad_conductor,
+            'correo_infractor' => $request->correo_infractor,
 
             'motivacion_hecho' => $request->motivacion_hecho,
             'descripcion_hechos' => $request->descripcion_hechos,
@@ -237,5 +243,34 @@ class InfraccionController extends Controller
             'message' => 'Boleta de Infracción registrada con éxito',
             'infraccion' => $infraccion
         ], 201);
+    }
+
+    /**
+     * Enviar la boleta de infracción por correo
+     */
+    public function sendEmail($id, Request $request)
+    {
+        $infraccion = Infraccion::findOrFail($id);
+
+        if (!$infraccion->correo_infractor) {
+            return response()->json(['message' => 'No hay correo registrado para esta infracción.'], 400);
+        }
+
+        $request->validate([
+            'pdf_file' => 'required|file|mimes:pdf',
+        ]);
+
+        $pdfFile = $request->file('pdf_file');
+        $pdfPath = $pdfFile->getRealPath();
+        $pdfName = 'Boleta_Infraccion_' . $infraccion->folio . '.pdf';
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($infraccion->correo_infractor)
+                // ->bcc('karina.navarrete@hidalgo.gob.mx')
+                ->send(new \App\Mail\InfraccionMail($infraccion, $pdfPath, $pdfName));
+            return response()->json(['message' => 'Correo enviado exitosamente.']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error al enviar correo: ' . $e->getMessage()], 500);
+        }
     }
 }
