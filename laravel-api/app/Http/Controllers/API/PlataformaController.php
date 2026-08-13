@@ -26,8 +26,6 @@ class PlataformaController extends Controller
             'conductor_reemplazo' => 'nullable|string',
             'ruta_reemplazo' => 'nullable|string',
             'corrida_reemplazo' => 'nullable|string',
-            'corridas_perdidas_reemplazo' => 'nullable|string',
-            'corrida_perdida_otro' => 'nullable|string',
             'cambio_operador_activo' => 'nullable|boolean',
             'numero_tarjeton_nuevo' => 'nullable|string',
             'numero_tarjeton' => 'nullable|string',
@@ -138,13 +136,6 @@ class PlataformaController extends Controller
                 'conductor_asignado' => $request->numero_tarjeton_nuevo ?? $request->numero_tarjeton ?? $request->conductor,
                 'ruta_asignada' => $request->ruta,
                 'motivo' => $request->motivo,
-                'unidad_reemplazo' => $request->unidad_reemplazo,
-                'tarjeton_reemplazo' => $request->tarjeton_reemplazo,
-                'conductor_reemplazo' => $request->conductor_reemplazo,
-                'ruta_reemplazo' => $request->ruta_reemplazo,
-                'corrida_reemplazo' => $request->corrida_reemplazo,
-                'corridas_perdidas_reemplazo' => $request->corridas_perdidas_reemplazo,
-                'corrida_perdida_otro' => $request->corrida_perdida_otro,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now()
             ]);

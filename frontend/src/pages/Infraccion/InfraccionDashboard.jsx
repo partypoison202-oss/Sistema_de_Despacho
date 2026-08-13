@@ -575,46 +575,8 @@ const InfraccionDashboard = () => {
           </div>
         </div>
 
-        <div className="infraccion-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', justifyContent: 'center', padding: '0 1rem' }}>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('REGISTRO')}
-            style={{ 
-              padding: '0.75rem 2rem', 
-              fontWeight: 'bold', 
-              borderRadius: '8px', 
-              border: '2px solid #6A1B29', 
-              background: activeTab === 'REGISTRO' ? '#6A1B29' : '#fff', 
-              color: activeTab === 'REGISTRO' ? '#fff' : '#6A1B29', 
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            REGISTRO DE BOLETA
-          </button>
-          <button 
-            type="button"
-            onClick={() => setActiveTab('DASHBOARD')}
-            style={{ 
-              padding: '0.75rem 2rem', 
-              fontWeight: 'bold', 
-              borderRadius: '8px', 
-              border: '2px solid #6A1B29', 
-              background: activeTab === 'DASHBOARD' ? '#6A1B29' : '#fff', 
-              color: activeTab === 'DASHBOARD' ? '#fff' : '#6A1B29', 
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            DASHBOARD
-          </button>
-        </div>
-
-        {activeTab === 'DASHBOARD' ? (
-          <InfraccionStats />
-        ) : (
-          <React.Fragment>
-            <div className="form-wrapper">
+        {/* Los tabs fueron removidos y el botón DASHBOARD se movió a Centro de Control */}
+        <div className="form-wrapper" style={{ marginTop: '1.5rem' }}>
           {/* TARJETA 1: PASO DE VALIDACIÓN DE PLACAS */}
           <div className="plate-verification-card">
             <div className="plate-verification-header">
@@ -1467,8 +1429,7 @@ const InfraccionDashboard = () => {
             </div>
           </div>
         )}
-          </React.Fragment>
-        )}
+
 
       </main>
     </div>

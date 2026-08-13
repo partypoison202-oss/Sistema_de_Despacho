@@ -29,6 +29,7 @@ const HistorialEncierro      = lazy(() => import('./pages/Historial/HistorialEnc
 const HistorialMantenimiento = lazy(() => import('./pages/Historial/HistorialMantenimiento'));
 const FleetSelection         = lazy(() => import('./components/Checklist/FleetSelection'));
 const CentroControl          = lazy(() => import('./pages/CentroControl/CentroControl'));
+const DashboardInfracciones  = lazy(() => import('./pages/CentroControl/DashboardInfracciones'));
 const DetalleUnidades        = lazy(() => import('./pages/CentroControl/Detalle/DetalleUnidades'));
 const DashboardBitacora      = lazy(() => import('./pages/CentroControl/DashboardBitacora'));
 const PatioDashboard         = lazy(() => import('./pages/Patio/PatioDashboard'));
@@ -247,6 +248,11 @@ function App() {
             <Route path="/centro-control" element={
               <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
                 <CentroControl />
+              </ProtectedRoute>
+            } />
+            <Route path="/centro-control/infracciones" element={
+              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+                <DashboardInfracciones />
               </ProtectedRoute>
             } />
             <Route path="/centro-control/bitacoras" element={

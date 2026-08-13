@@ -1431,30 +1431,32 @@ export default function DetalleUnidadMesaControl() {
             </div>
             
             {/* Checkbox para cambiar unidad */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer', marginBottom: '1.5rem', marginTop: '1rem', padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-              <input
-                type="checkbox"
-                checked={cambioUnidadActivo}
-                onChange={(e) => {
-                  setCambioUnidadActivo(e.target.checked);
-                  if (e.target.checked) {
-                    setReemplazoForm({ 
-                      tarjeton: datosOperativos.tarjeton || '', 
-                      ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '', 
-                      corrida: datosOperativos.corrida || '' 
-                    });
-                  } else {
-                    setUnidadReemplazoSeleccionada(null);
-                    setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
-                    setDropdownReemplazoEcoOpen(false);
-                    setDropdownReemplazoTarjetonOpen(false);
-                    setDropdownReemplazoRutaOpen(false);
-                  }
-                }}
-                style={{ width: '1.25rem', height: '1.25rem', accentColor: '#6b1d33' }}
-              />
-              <span style={{ color: '#0f172a' }}>Cambiar de unidad</span>
-            </label>
+            {datosOperativos.estatus === 'operacion' && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer', marginBottom: '1.5rem', marginTop: '1rem', padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                <input
+                  type="checkbox"
+                  checked={cambioUnidadActivo}
+                  onChange={(e) => {
+                    setCambioUnidadActivo(e.target.checked);
+                    if (e.target.checked) {
+                      setReemplazoForm({ 
+                        tarjeton: datosOperativos.tarjeton || '', 
+                        ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '', 
+                        corrida: datosOperativos.corrida || '' 
+                      });
+                    } else {
+                      setUnidadReemplazoSeleccionada(null);
+                      setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+                      setDropdownReemplazoEcoOpen(false);
+                      setDropdownReemplazoTarjetonOpen(false);
+                      setDropdownReemplazoRutaOpen(false);
+                    }
+                  }}
+                  style={{ width: '1.25rem', height: '1.25rem', accentColor: '#6b1d33' }}
+                />
+                <span style={{ color: '#0f172a' }}>Cambiar de unidad</span>
+              </label>
+            )}
 
             {!cambioUnidadActivo ? (
               <>

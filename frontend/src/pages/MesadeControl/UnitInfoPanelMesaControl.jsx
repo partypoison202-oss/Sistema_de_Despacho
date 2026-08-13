@@ -400,9 +400,9 @@ export default function UnitInfoPanel({
           estatus_nuevo: platEstatus.toUpperCase(),
           reemplazo_activo: reemplazoActivo ? 1 : 0,
           eco_reemplazo: reemplazoActivo ? unidadReemplazoSeleccionada.eco : null,
-          tarjeton_reemplazo: reemplazoActivo ? reemplazoForm.tarjeton : null,
-          ruta_reemplazo: reemplazoActivo ? reemplazoForm.ruta : null,
-          corrida_reemplazo: reemplazoActivo ? reemplazoForm.corrida : null,
+          tarjeton_reemplazo: reemplazoActivo && reemplazoForm.tarjeton != null ? String(reemplazoForm.tarjeton) : null,
+          ruta_reemplazo: reemplazoActivo && reemplazoForm.ruta != null ? String(reemplazoForm.ruta) : null,
+          corrida_reemplazo: reemplazoActivo && reemplazoForm.corrida != null ? String(reemplazoForm.corrida) : null,
         };
         successMessage = `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`;
         errorMessage = 'Error al desincorporar unidad';
@@ -416,7 +416,7 @@ export default function UnitInfoPanel({
           numero_eco: ecoNum,
           tipo: configActual.id,
           tipo_movimiento: 'ASIGNACION_CONDUCTOR',
-          numero_tarjeton: platConductor,
+          numero_tarjeton: platConductor != null ? String(platConductor) : null,
           motivo: platMotivo
         };
         successMessage = `Conductor asignado a ECO${ecoNum}.`;
@@ -434,7 +434,7 @@ export default function UnitInfoPanel({
             tipo: configActual.id,
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 1,
-            numero_tarjeton_nuevo: operadorReemplazoSeleccionado.id,
+            numero_tarjeton_nuevo: operadorReemplazoSeleccionado.id != null ? String(operadorReemplazoSeleccionado.id) : null,
             motivo: operadorMotivo
           };
           successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
@@ -770,151 +770,16 @@ export default function UnitInfoPanel({
             {/* Número de Tarjetón (Editable) */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Número de Tarjetón</span>
-              {!isPlataforma && !isReservaOrMantenimiento ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                  <div ref={tarjetonRef} style={{ position: 'relative', width: '100%', zIndex: dropdownTarjetonOpen ? 50 : 1 }}>
-                    <div
-                      className="interactive-input"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 0.85rem',
-                        background: 'var(--tw-color-white)',
-                        height: '2.3rem',
-                        width: '100%',
-                        fontWeight: 'bold',
-                        opacity: guardandoTarjeton ? 0.7 : 1,
-                        borderColor: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : undefined,
-                      }}
-                    >
-                      {guardandoTarjeton ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
-                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal', fontSize: '0.85rem' }}>Guardando...</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <input
-                            type="text"
-                            placeholder={datosOperativos.tarjeton ? String(datosOperativos.tarjeton) : "Buscar o escribir tarjetón..."}
-                            value={formTarjeton}
-                            onChange={(e) => {
-                              setFormTarjeton(e.target.value);
-                              setDropdownTarjetonOpen(true);
-                            }}
-                            onFocus={() => setDropdownTarjetonOpen(true)}
-                            style={{
-                              border: 'none',
-                              outline: 'none',
-                              background: 'transparent',
-                              width: '100%',
-                              fontSize: '0.85rem',
-                              fontWeight: 'bold',
-                              color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit',
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleConfirmTarjeton();
-                                setDropdownTarjetonOpen(false);
-                              } else if (e.key === 'Escape') {
-                                setFormTarjeton('');
-                                setDropdownTarjetonOpen(false);
-                              }
-                            }}
-                          />
-                          <svg
-                            onClick={() => setDropdownTarjetonOpen(!dropdownTarjetonOpen)}
-                            className={`arrow-icon ${dropdownTarjetonOpen ? 'dropdown-trigger__arrow--open' : ''}`}
-                            style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
-                            fill="currentColor" viewBox="0 0 24 24"
-                          >
-                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    {dropdownTarjetonOpen && !guardandoTarjeton && (
-                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                          <button
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                            onClick={() => {
-                              handleCancelTarjetonEdit();
-                              setDropdownTarjetonOpen(false);
-                            }}
-                          >
-                            CANCELAR
-                          </button>
-                          {(conductoresDisponibles || [])
-                            .filter(c => {
-                              const search = formTarjeton.toLowerCase().trim();
-                              const currentTarjeton = String(datosOperativos.tarjeton || '').toLowerCase().trim();
-                              if (search === currentTarjeton || search === '') {
-                                return true;
-                              }
-                              return c.nombre.toLowerCase().includes(search) || c.id.toString().includes(search);
-                            })
-                            .map((c) => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                className="dropdown-menu__item"
-                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', textAlign: 'left', fontWeight: 'normal', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                                onClick={async () => {
-                                  if (c.estado_servicio === 'falta') {
-                                    const confirm = await Swal.fire({
-                                      title: 'Confirmar asignación',
-                                      text: `El operador ${c.nombre} está en estatus de FALTA. ¿Deseas asignarlo a esta unidad y cambiar su estatus a EN SERVICIO?`,
-                                      icon: 'warning',
-                                      showCancelButton: true,
-                                      confirmButtonColor: '#c5a059',
-                                      cancelButtonColor: '#6b7280',
-                                      confirmButtonText: 'Sí, asignar',
-                                      cancelButtonText: 'Cancelar'
-                                    });
-                                    if (!confirm.isConfirmed) return;
-                                  }
-                                  setFormTarjeton(c.id.toString());
-                                  setDropdownTarjetonOpen(false);
-                                  handleConfirmTarjeton(c.id.toString());
-                                }}
-                              >
-                                <span>{c.id} - {c.nombre}</span>
-                                {c.estado_servicio === 'falta' && (
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    padding: '0.15rem 0.4rem',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#fee2e2',
-                                    color: '#b91c1c',
-                                    fontWeight: '700'
-                                  }}>
-                                    FALTA
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1, marginTop: '0.15rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
+                  </svg>
+                  <p className="info-card__value">
+                    {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                  </p>
                 </div>
-              ) : (
-                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
-                    </svg>
-                    <p className="info-card__value">
-                      {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
 
             {/* [Tarjetón Maniobrista eliminado - se maneja en módulo independiente] */}
@@ -1392,17 +1257,19 @@ export default function UnitInfoPanel({
 
             {modalPlataformaVisible === 'DESINCORPORACION' && (
               <div className="flex flex-col gap-4">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={reemplazoActivo}
-                    onChange={handleToggleReemplazo}
-                    style={{ width: '1rem', height: '1rem' }}
-                  />
-                  Reemplazar unidad original por una unidad en reserva
-                </label>
+                {!isReservaOrMantenimiento && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={reemplazoActivo}
+                      onChange={handleToggleReemplazo}
+                      style={{ width: '1rem', height: '1rem' }}
+                    />
+                    Reemplazar unidad original por una unidad en reserva
+                  </label>
+                )}
 
-                {reemplazoActivo && (
+                {!isReservaOrMantenimiento && reemplazoActivo && (
                   <div style={{ display: 'grid', gap: '1rem', padding: '1rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc' }}>
                     
                     {/* Número de ECO - Editable con dropdown */}
@@ -1445,44 +1312,19 @@ export default function UnitInfoPanel({
                       )}
                     </div>
 
-                    {/* Tarjetón - Editable con dropdown */}
-                    <div style={{ display: 'grid', gap: '0.25rem', position: 'relative' }} ref={tarjetonRef}>
+                    {/* Tarjetón - Solo lectura (No editable en reemplazo) */}
+                    <div style={{ display: 'grid', gap: '0.25rem' }}>
                       <span className="info-card__label">Número de Tarjetón</span>
-                      <button
-                        type="button"
+                      <div
                         className="interactive-input"
                         style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                          display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '0 0.85rem', background: '#f1f5f9', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem', opacity: 0.8
                         }}
-                        onClick={() => setDropdownTarjetonOpen(!dropdownTarjetonOpen)}
                       >
-                        <span style={{ fontWeight: 600, color: reemplazoForm.tarjeton ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                          {reemplazoForm.tarjeton || 'Seleccione un tarjetón disponible...'}
+                        <span style={{ fontWeight: 600, color: '#64748b', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3 }}>
+                          {reemplazoForm.tarjeton || 'Sin tarjetón'}
                         </span>
-                        <svg className={`arrow-icon ${dropdownTarjetonOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                        </svg>
-                      </button>
-                      {dropdownTarjetonOpen && (
-                        <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
-                          <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
-                            {(conductoresDisponibles || []).map(c => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                                style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: reemplazoForm.tarjeton === c.tarjeton ? 'bold' : '500', textAlign: 'left', width: '100%' }}
-                                onClick={() => {
-                                  setReemplazoForm((prev) => ({ ...prev, tarjeton: c.tarjeton }));
-                                  setDropdownTarjetonOpen(false);
-                                }}
-                              >
-                                {c.tarjeton} — {c.nombre}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
 
                     {/* Ruta Asignada - Editable con dropdown */}

@@ -348,9 +348,23 @@ export default function CentroControl() {
                 <polyline points="14 2 14 8 20 8" />
                 <line x1="16" y1="13" x2="8" y2="13" />
                 <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
               </svg>
               Bitácora
+            </button>
+
+            {/* ===== BOTÓN DASHBOARD INFRACCIONES ===== */}
+            <button
+              type="button"
+              className="centro-btn-plano"
+              onClick={() => navigate('/centro-control/infracciones')}
+              style={{ backgroundColor: '#6A1B29', color: '#fff' }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18" />
+                <rect x="7" y="10" width="4" height="8" />
+                <rect x="15" y="4" width="4" height="14" />
+              </svg>
+              DASHBOARD
             </button>
 
             {/* Botón Plano de Patio */}
