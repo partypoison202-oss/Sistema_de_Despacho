@@ -664,8 +664,11 @@ export default function UnitInfoPanel({
             </div>
 
 
-            {/* Ruta Asignada */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+            {/* Ruta Asignada y Corrida - Lado a lado */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.85rem' }}>
+              
+              {/* Ruta Asignada */}
+              <div className="info-card__item">
               <span className="info-card__label">Ruta Asignada</span>
               {!isPlataforma && !isReservaOrMantenimiento ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
@@ -755,7 +758,7 @@ export default function UnitInfoPanel({
             </div>
 
             {/* Corrida */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+            <div className="info-card__item">
               <span className="info-card__label">Corrida</span>
               <div className="info-card__value-wrapper">
                 <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -766,6 +769,7 @@ export default function UnitInfoPanel({
                 </p>
               </div>
             </div>
+          </div>
 
             {/* Número de Tarjetón (Editable) */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
