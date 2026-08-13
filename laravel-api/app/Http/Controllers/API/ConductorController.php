@@ -128,7 +128,19 @@ class ConductorController extends Controller
         $request->validate([
             'nombre' => 'sometimes|required|string|max:200',
             'tipo_tarjeton' => 'sometimes|required|string|max:50',
-            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista'
+            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista',
+            'ultima_capacitacion' => 'sometimes|nullable|date',
+            'proxima_capacitacion' => 'sometimes|nullable|date',
+            'accidentes_siniestros' => 'sometimes|integer|min:0',
+            'faltas' => 'sometimes|integer|min:0',
+            'retardos' => 'sometimes|integer|min:0',
+            'amonestaciones' => 'sometimes|integer|min:0',
+            'reconocimientos' => 'sometimes|integer|min:0',
+            'condicionamientos_juridicos' => 'sometimes|nullable|string|max:255',
+            'permutas' => 'sometimes|integer|min:0',
+            'permisos' => 'sometimes|integer|min:0',
+            'evaluacion' => 'sometimes|nullable|string|max:255',
+            'observaciones' => 'sometimes|nullable|string',
         ]);
 
         if ($request->has('nombre')) {
@@ -152,6 +164,27 @@ class ConductorController extends Controller
                         'numero_tarjeton' => null,
                         'nombre_conductor' => null
                     ]);
+            }
+        }
+
+        $kardexFields = [
+            'ultima_capacitacion',
+            'proxima_capacitacion',
+            'accidentes_siniestros',
+            'faltas',
+            'retardos',
+            'amonestaciones',
+            'reconocimientos',
+            'condicionamientos_juridicos',
+            'permutas',
+            'permisos',
+            'evaluacion',
+            'observaciones',
+        ];
+
+        foreach ($kardexFields as $field) {
+            if ($request->has($field)) {
+                $conductor->$field = $request->$field;
             }
         }
 

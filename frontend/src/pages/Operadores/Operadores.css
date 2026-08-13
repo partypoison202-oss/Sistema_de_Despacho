@@ -680,3 +680,40 @@
 .btn-save:hover {
   background: #521526;
 }
+
+/* ============================================================
+   KARDEX TAB STYLES
+   ============================================================ */
+.kardex-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  text-align: inherit;
+}
+
+.kardex-input:focus {
+  outline: none;
+  border-color: #6b1d33;
+  box-shadow: 0 0 0 2px rgba(107, 29, 51, 0.15);
+  background-color: #fff;
+}
+
+.kardex-table th {
+  text-align: left;
+}
+
+.kardex-table th.text-center,
+.kardex-table td.text-center {
+  text-align: center;
+}
+
+.kardex-table td {
+  padding: 0.55rem 0.75rem;
+}
