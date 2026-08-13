@@ -181,10 +181,13 @@ export default function Operadores() {
     }
   };
 
+  const [activeTab, setActiveTab] = useState('catalogo'); // 'catalogo' o 'kardex'
+  const [savingId, setSavingId] = useState(null);
+
   const fetchConductores = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/conductores`, {
+      const res = await fetch(`${API_BASE}/api/conductores?incluir_bajas=true`, {
         headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error('Error al cargar operadores');
@@ -201,6 +204,41 @@ export default function Operadores() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLocalFieldChange = (id, field, value) => {
+    setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const handleInlineUpdate = async (id, field, value) => {
+    setSavingId(id);
+    try {
+      const res = await fetch(`${API_BASE}/api/conductores/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          [field]: value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al guardar datos del Kardex');
+
+      setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: data.conductor[field] } : c));
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message,
+        confirmButtonColor: '#6b1d33'
+      });
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleBlurSave = (c, field) => {
+    handleInlineUpdate(c.id, field, c[field]);
   };
 
   useEffect(() => {
@@ -385,13 +423,24 @@ export default function Operadores() {
     }
   };
 
+  const getTarjetonNumber = (tarjeton) => {
+    if (!tarjeton) return 0;
+    const match = tarjeton.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+  };
+
   const filteredConductores = conductores.filter(c => {
+    if (activeTab === 'catalogo' && c.estatus === 'baja') {
+      return false;
+    }
     const term = searchTerm.toLowerCase();
     return (
       (c.nombre && c.nombre.toLowerCase().includes(term)) ||
       (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
       (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
     );
+  }).sort((a, b) => {
+    return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
   });
 
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
@@ -409,15 +458,56 @@ export default function Operadores() {
             </p>
           </div>
 
+          {activeTab === 'catalogo' && (
+            <button
+              type="button"
+              className="btn-add-operador"
+              onClick={handleOpenAddModal}
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Agregar Operador
+            </button>
+          )}
+        </div>
+
+        <div className="operadores-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
           <button
             type="button"
-            className="btn-add-operador"
-            onClick={handleOpenAddModal}
+            className={`tab-btn ${activeTab === 'catalogo' ? 'active' : ''}`}
+            onClick={() => setActiveTab('catalogo')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              color: activeTab === 'catalogo' ? '#6b1d33' : '#64748b',
+              borderBottom: activeTab === 'catalogo' ? '3px solid #6b1d33' : '3px solid transparent',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s'
+            }}
           >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Agregar Operador
+            Catálogo de Operadores
+          </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'kardex' ? 'active' : ''}`}
+            onClick={() => setActiveTab('kardex')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              color: activeTab === 'kardex' ? '#6b1d33' : '#64748b',
+              borderBottom: activeTab === 'kardex' ? '3px solid #6b1d33' : '3px solid transparent',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            Kardex de Operadores
           </button>
         </div>
 
@@ -441,7 +531,7 @@ export default function Operadores() {
             <span className="spinner"></span>
             <p>Cargando lista de operadores...</p>
           </div>
-        ) : (
+        ) : activeTab === 'catalogo' ? (
           <div className="operadores-table-card">
             <div className="table-responsive">
               <table className="operadores-table">
@@ -507,6 +597,182 @@ export default function Operadores() {
                               </button>
                             )}
                           </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="operadores-table-card">
+            <div className="table-responsive" style={{ overflowX: 'auto' }}>
+              <table className="operadores-table kardex-table" style={{ minWidth: '2700px', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '100px' }}>Tarjetón</th>
+                    <th style={{ width: '220px' }}>Nombre completo</th>
+                    <th style={{ width: '110px' }}>Estatus</th>
+                    <th style={{ width: '160px' }}>Última capacitación</th>
+                    <th style={{ width: '160px' }}>Próxima capacitación</th>
+                    <th style={{ width: '190px', textAlign: 'center' }}>Accidentes / Siniestros</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Faltas</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Retardos</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Amonestaciones</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Reconocimientos</th>
+                    <th style={{ width: '250px' }}>Condicionamientos jurídicos</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Permutas</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Permisos</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Evaluación</th>
+                    <th style={{ width: '300px' }}>Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredConductores.length === 0 ? (
+                    <tr>
+                      <td colSpan="15" className="empty-table-cell">
+                        No se encontraron operadores registrados.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredConductores.map((c) => (
+                      <tr key={c.id}>
+                        <td>
+                          <span className="tarjeton-badge">{c.tarjeton}</span>
+                        </td>
+                        <td className="conductor-nombre">{c.nombre}</td>
+                        <td>
+                          <span className={`estatus-badge ${c.estatus === 'baja' ? 'baja' : 'activo'}`} style={{
+                            display: 'inline-block',
+                            padding: '0.25rem 0.6rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            backgroundColor: c.estatus === 'baja' ? '#fee2e2' : '#dcfce7',
+                            color: c.estatus === 'baja' ? '#b91c1c' : '#15803d',
+                            textTransform: 'uppercase'
+                          }}>
+                            {c.estatus === 'baja' ? 'Baja' : 'Activo'}
+                          </span>
+                        </td>
+                        <td>
+                          <input
+                            type="date"
+                            className="kardex-input"
+                            value={c.ultima_capacitacion || ''}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'ultima_capacitacion', e.target.value)}
+                            onBlur={() => handleBlurSave(c, 'ultima_capacitacion')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="date"
+                            className="kardex-input"
+                            value={c.proxima_capacitacion || ''}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'proxima_capacitacion', e.target.value)}
+                            onBlur={() => handleBlurSave(c, 'proxima_capacitacion')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            className="kardex-input text-center"
+                            value={c.accidentes_siniestros ?? 0}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'accidentes_siniestros', parseInt(e.target.value, 10) || 0)}
+                            onBlur={() => handleBlurSave(c, 'accidentes_siniestros')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            className="kardex-input text-center"
+                            value={c.faltas ?? 0}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'faltas', parseInt(e.target.value, 10) || 0)}
+                            onBlur={() => handleBlurSave(c, 'faltas')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            className="kardex-input text-center"
+                            value={c.retardos ?? 0}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'retardos', parseInt(e.target.value, 10) || 0)}
+                            onBlur={() => handleBlurSave(c, 'retardos')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            className="kardex-input text-center"
+                            value={c.amonestaciones ?? 0}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'amonestaciones', parseInt(e.target.value, 10) || 0)}
+                            onBlur={() => handleBlurSave(c, 'amonestaciones')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            className="kardex-input text-center"
+                            value={c.reconocimientos ?? 0}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'reconocimientos', parseInt(e.target.value, 10) || 0)}
+                            onBlur={() => handleBlurSave(c, 'reconocimientos')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="kardex-input"
+                            value={c.condicionamientos_juridicos || ''}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'condicionamientos_juridicos', e.target.value)}
+                            onBlur={() => handleBlurSave(c, 'condicionamientos_juridicos')}
+                            placeholder="Sin especificar"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            className="kardex-input text-center"
+                            value={c.permutas ?? 0}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'permutas', parseInt(e.target.value, 10) || 0)}
+                            onBlur={() => handleBlurSave(c, 'permutas')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            min="0"
+                            className="kardex-input text-center"
+                            value={c.permisos ?? 0}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'permisos', parseInt(e.target.value, 10) || 0)}
+                            onBlur={() => handleBlurSave(c, 'permisos')}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="kardex-input text-center"
+                            value={c.evaluacion || ''}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'evaluacion', e.target.value)}
+                            onBlur={() => handleBlurSave(c, 'evaluacion')}
+                            placeholder="N/A"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="kardex-input"
+                            value={c.observaciones || ''}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'observaciones', e.target.value)}
+                            onBlur={() => handleBlurSave(c, 'observaciones')}
+                            placeholder="Añadir notas..."
+                          />
                         </td>
                       </tr>
                     ))

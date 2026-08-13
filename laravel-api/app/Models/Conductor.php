@@ -16,6 +16,18 @@ class Conductor extends Model
         'tarjeton',
         'tipo_tarjeton',
         'estado_servicio',
-        'estatus'
+        'estatus',
+        'ultima_capacitacion',
+        'proxima_capacitacion',
+        'accidentes_siniestros',
+        'faltas',
+        'retardos',
+        'amonestaciones',
+        'reconocimientos',
+        'condicionamientos_juridicos',
+        'permutas',
+        'permisos',
+        'evaluacion',
+        'observaciones'
     ];
 }
