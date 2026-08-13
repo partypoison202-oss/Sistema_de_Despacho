@@ -219,14 +219,24 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                     Ajustes
                   </button>
                   {['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'].includes(user.role.codigo) && (
-                    <button className="profile-menu-btn" onClick={() => {
-                      handleConfirmExit(() => {
-                        setShowProfileMenu(false);
-                        navigate('/operadores');
-                      });
-                    }}>
-                      Gestión de Operadores
-                    </button>
+                    <>
+                      <button className="profile-menu-btn" onClick={() => {
+                        handleConfirmExit(() => {
+                          setShowProfileMenu(false);
+                          navigate('/operadores');
+                        });
+                      }}>
+                        Gestión de Operadores
+                      </button>
+                      <button className="profile-menu-btn" onClick={() => {
+                        handleConfirmExit(() => {
+                          setShowProfileMenu(false);
+                          navigate('/maniobristas');
+                        });
+                      }}>
+                        Gestión de Maniobristas
+                      </button>
+                    </>
                   )}
                   {user.role.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {

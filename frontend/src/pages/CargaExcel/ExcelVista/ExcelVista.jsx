@@ -10,6 +10,8 @@ const HEADER_TRANSLATIONS = {
   ECONOMICO: 'Económico',
   TARJETON: 'Tarjetón',
   NOMBRE_CONDUCTOR: 'Conductor',
+  TARJETON_MANIOBRISTA: 'Tarjetón Maniobrista',
+  NOMBRE_MANIOBRISTA: 'Maniobrista',
   ESTATUS: 'Estatus',
   HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
   HORA_DE_ACOPLE: 'HORA DE ENTRADA PROGRAMADA',
@@ -22,12 +24,14 @@ export default function ExcelPreview({
   data = [],
   catalogUnidades = [],
   catalogConductores = [],
+  catalogManiobristas = [],
   catalogRutasObj = { troncales: [], alimentadoras: [] },
   onUpdate,
   onClear,
   onSave,
   hasChanges,
-  isSaving
+  isSaving,
+  readOnly = false
 }) {
   const { user } = useContext(AuthContext);
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
@@ -156,8 +160,13 @@ export default function ExcelPreview({
     <div className="excel-table-card">
       <div className="excel-table-header">
         <div className="excel-table-header-left">
-          <h3>Programación Operativa Diaria</h3>
-          <p className="excel-table-subtitle">Captura, edita y concilia las unidades en ruta para el día de hoy</p>
+          <h3>{readOnly ? 'Programación de Inicio (Hoy)' : 'Programación Operativa Diaria'}</h3>
+          <p className="excel-table-subtitle">
+            {readOnly 
+              ? 'Consulta histórica de cómo inició la programación para el día de hoy (Solo Lectura)' 
+              : 'Captura, edita y concilia las unidades en ruta para el día de hoy'
+            }
+          </p>
         </div>
         <div className="excel-table-header-right">
           <div className="tech-filters-group">
@@ -224,6 +233,46 @@ export default function ExcelPreview({
                 return (
                   <tr key={originalIndex !== -1 ? originalIndex : index}>
                     {headers.map(h => {
+                      if (readOnly) {
+                        let displayValue = fila[h] ?? '';
+                        if (h === 'ESTATUS') {
+                          const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                          const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+                          displayValue = estatusTranslations[curSt] || fila[h];
+                          const color = estatusColors[curSt] || estatusColors.operacion;
+                          return (
+                            <td key={h} className={`cell-${h.toLowerCase()}`}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '0.25rem 0.6rem',
+                                borderRadius: '30px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                background: color.bg,
+                                color: color.text,
+                                border: `1px solid ${color.border}`
+                              }}>
+                                {displayValue}
+                              </span>
+                            </td>
+                          );
+                        }
+                        
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`}>
+                            <div style={{
+                              padding: '0.45rem 0.6rem',
+                              fontSize: '0.875rem',
+                              color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
+                              fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_PROGRAMADA') ? 'center' : 'left',
+                            }}>
+                              {displayValue}
+                            </div>
+                          </td>
+                        );
+                      }
+
                       const isReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR';
 
                       // ── REVELOS: sólo texto plano, excepto TARJETON y HORA_PROGRAMADA ──────────────
@@ -271,13 +320,14 @@ export default function ExcelPreview({
                               className={`edit-input dropdown-trigger ${isOpen ? 'active-trigger' : ''}`}
                               style={{
                                 textAlign: 'center',
-                                height: '34px',
+                                height: '52px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                width: '100%',
+                                width: '80px',
+                                margin: '0 auto',
                                 fontWeight: '600',
-                                borderRadius: '6px',
+                                borderRadius: '14px',
                                 cursor: isRowDisabled ? 'not-allowed' : 'pointer',
                                 opacity: isRowDisabled ? 0.6 : 1
                               }}
@@ -505,6 +555,137 @@ export default function ExcelPreview({
                                       <div className="dropdown-menu-no-results">Sin coincidencias</div>
                                     ) : (
                                       filteredDrivers.map((c, idx) => {
+                                        const isSelected = String(fila[h]).trim() === String(c.tarjeton).trim();
+                                        return (
+                                          <button
+                                            key={idx}
+                                            type="button"
+                                            className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
+                                            onClick={() => {
+                                              onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
+                                              setOpenDropdown({ rowIndex: null, field: null });
+                                            }}
+                                          >
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
+                                              <span>{c.tarjeton}</span>
+                                              <span style={{
+                                                fontSize: '0.65rem',
+                                                padding: '0.2rem 0.5rem',
+                                                borderRadius: '1rem',
+                                                backgroundColor: c.estado_servicio === 'en_servicio'
+                                                  ? 'rgba(239, 68, 68, 0.1)'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? 'rgba(220, 38, 38, 0.15)'
+                                                    : 'rgba(34, 197, 94, 0.1)',
+                                                color: c.estado_servicio === 'en_servicio'
+                                                  ? '#ef4444'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? '#dc2626'
+                                                    : '#22c55e',
+                                                fontWeight: '700',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.02em',
+                                                lineHeight: '1'
+                                              }}>
+                                                {c.estado_servicio === 'en_servicio'
+                                                  ? 'Servicio'
+                                                  : c.estado_servicio === 'falta'
+                                                    ? 'Falta'
+                                                    : 'Disponible'}
+                                              </span>
+                                            </span>
+                                            {isSelected && (
+                                              <svg className="selected-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </div>
+                              </>,
+                              document.body
+                            )}
+                          </td>
+                        );
+                      }
+                      if (h === 'TARJETON_MANIOBRISTA') {
+                        const isTarjetonManiobristaOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON_MANIOBRISTA';
+
+                        const filteredManiobristas = (catalogManiobristas || []).filter(c => {
+                          return String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
+                            String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
+                        });
+
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                if (isTarjetonManiobristaOpen) {
+                                  setOpenDropdown({ rowIndex: null, field: null });
+                                } else {
+                                  setActiveTimePickerRow(null);
+                                  handleOpenDropdown(e, originalIndex, 'TARJETON_MANIOBRISTA');
+                                }
+                              }}
+                              disabled={isRowDisabled}
+                              className={`edit-input dropdown-trigger ${isTarjetonManiobristaOpen ? 'active-trigger' : ''}`}
+                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
+                            >
+                              <span>{fila[h] ? String(fila[h]) : 'Selecciona...'}</span>
+                              <svg style={{ transform: isTarjetonManiobristaOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                              </svg>
+                            </button>
+                            {isTarjetonManiobristaOpen && createPortal(
+                              <>
+                                <div
+                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+                                  onClick={(e) => { e.stopPropagation(); setOpenDropdown({ rowIndex: null, field: null }); }}
+                                />
+                                <div
+                                  className="dropdown-menu"
+                                  style={{
+                                    position: 'fixed',
+                                    top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
+                                    bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
+                                    left: `${dropdownCoords.left}px`,
+                                    right: 'auto',
+                                    width: `${dropdownCoords.width}px`,
+                                    minWidth: '130px',
+                                    marginTop: dropdownCoords.openUp ? '0' : '0.4rem',
+                                    marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
+                                    zIndex: 9999
+                                  }}
+                                >
+                                  <div className="dropdown-menu-search-container">
+                                    <input
+                                      type="text"
+                                      placeholder="Buscar maniobrista..."
+                                      value={dropdownSearch}
+                                      onChange={(e) => setDropdownSearch(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="dropdown-menu-search-input"
+                                    />
+                                  </div>
+                                  <div className="dropdown-menu__scroll">
+                                    <button
+                                      type="button"
+                                      className="dropdown-menu__item dropdown-menu__item--none"
+                                      onClick={() => {
+                                        onUpdate && onUpdate(originalIndex, h, '');
+                                        setOpenDropdown({ rowIndex: null, field: null });
+                                      }}
+                                    >
+                                      NINGUNO
+                                    </button>
+                                    {filteredManiobristas.length === 0 ? (
+                                      <div className="dropdown-menu-no-results">Sin coincidencias</div>
+                                    ) : (
+                                      filteredManiobristas.map((c, idx) => {
                                         const isSelected = String(fila[h]).trim() === String(c.tarjeton).trim();
                                         return (
                                           <button

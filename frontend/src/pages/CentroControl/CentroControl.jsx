@@ -8,8 +8,6 @@ import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
-import FormularioBitacora from './FormularioBitacora/FormularioBitacora';
-
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
 const modelsConfig = [
   { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanussfrenterealista.webp', color: 'maroon' },
@@ -26,7 +24,6 @@ export default function CentroControl() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingStats, setIsGeneratingStats] = useState(false);
-  const [isBitacoraOpen, setIsBitacoraOpen] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -344,16 +341,30 @@ export default function CentroControl() {
             <button
               type="button"
               className="centro-btn-plano centro-btn-plano--bitacora"
-              onClick={() => setIsBitacoraOpen(true)}
+              onClick={() => navigate('/centro-control/bitacoras')}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
                 <line x1="16" y1="13" x2="8" y2="13" />
                 <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
               </svg>
               Bitácora
+            </button>
+
+            {/* ===== BOTÓN DASHBOARD INFRACCIONES ===== */}
+            <button
+              type="button"
+              className="centro-btn-plano"
+              onClick={() => navigate('/centro-control/infracciones')}
+              style={{ backgroundColor: '#6A1B29', color: '#fff' }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3v18h18" />
+                <rect x="7" y="10" width="4" height="8" />
+                <rect x="15" y="4" width="4" height="14" />
+              </svg>
+              DASHBOARD
             </button>
 
             {/* Botón Plano de Patio */}
@@ -628,10 +639,6 @@ export default function CentroControl() {
           </section>
         </main>
       </div>
-
-      {isBitacoraOpen && (
-        <FormularioBitacora onClose={() => setIsBitacoraOpen(false)} />
-      )}
     </>
   );
 }

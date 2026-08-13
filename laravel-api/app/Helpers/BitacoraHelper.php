@@ -28,8 +28,10 @@ class BitacoraHelper
                 $registros = DB::table('informacion_operativa')->get();
 
                 if ($registros->isNotEmpty()) {
-                    $datosInsertar = $registros->map(function ($registro) use ($hoy) {
-                        return [
+                    $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
+
+                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista) {
+                        $item = [
                             'fecha_historial' => $hoy,
                             'momento'         => 'INICIO',
                             'unidad_id'       => $registro->unidad_id,
@@ -48,6 +50,13 @@ class BitacoraHelper
                             'created_at'      => Carbon::now(),
                             'updated_at'      => Carbon::now(),
                         ];
+
+                        if ($hasManiobrista) {
+                            $item['tarjeton_maniobrista'] = $registro->tarjeton_maniobrista ?? null;
+                            $item['nombre_maniobrista'] = $registro->nombre_maniobrista ?? null;
+                        }
+
+                        return $item;
                     })->toArray();
 
                     DB::table('historial_operativo')->insert($datosInsertar);

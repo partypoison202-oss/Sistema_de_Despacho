@@ -241,6 +241,14 @@
   background-color: #fecaca;
 }
 
+.status-dropdown-trigger.maniobrista {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+.status-dropdown-trigger.maniobrista:hover {
+  background-color: #fed7aa;
+}
+
 
 
 /* MENÚ DESPLEGABLE */
@@ -300,6 +308,15 @@
 .status-dropdown-item.falta:hover,
 .status-dropdown-item.falta.active {
   background-color: #fee2e2;
+}
+
+.status-dropdown-item.maniobrista {
+  color: #c2410c;
+  background-color: transparent;
+}
+.status-dropdown-item.maniobrista:hover,
+.status-dropdown-item.maniobrista.active {
+  background-color: #ffedd5;
 }
 
 

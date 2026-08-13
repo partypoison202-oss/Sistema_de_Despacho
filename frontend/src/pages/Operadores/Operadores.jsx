@@ -79,6 +79,21 @@ function StatusDropdown({ value, onChange }) {
     { value: 'falta', label: 'FALTA', class: 'falta' }
   ];
 
+  // Si el operador está marcado como maniobrista, mostrar badge de solo lectura
+  if (value === 'maniobrista') {
+    return (
+      <div className="status-dropdown-container" ref={dropdownRef}>
+        <div
+          className="status-dropdown-trigger maniobrista"
+          title="Este operador está gestionado como Maniobrista"
+          style={{ cursor: 'default', opacity: 0.85 }}
+        >
+          <span className="status-text">MANIOBRISTA</span>
+        </div>
+      </div>
+    );
+  }
+
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
 
   return (

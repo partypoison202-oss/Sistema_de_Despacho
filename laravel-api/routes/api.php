@@ -6,6 +6,7 @@ use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ReporteController;
 use App\Http\Controllers\API\ConductorController;
+use App\Http\Controllers\API\ManiobristaController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\API\PlataformaController;
 use App\Http\Controllers\API\TitanController;
@@ -37,10 +38,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/despacho/rutas', [DespachoController::class, 'obtenerRutas']);
     Route::post('/despacho/actualizar-ruta', [DespachoController::class, 'actualizarRuta']);
     Route::get('/despacho/hoy', [DespachoController::class, 'obtenerDatosHoy']);
+    Route::get('/despacho/inicio-hoy', [DespachoController::class, 'obtenerInicioHoy']);
     Route::post('/despacho/importar', [DespachoController::class, 'importar']);
     Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
     Route::post('/despacho/actualizar-adicionales', [DespachoController::class, 'actualizarAdicionales']);
     Route::post('/despacho/actualizar-tarjeton', [DespachoController::class, 'actualizarTarjeton']);
+    Route::post('/despacho/actualizar-tarjeton-maniobrista', [DespachoController::class, 'actualizarTarjetonManiobrista']);
     Route::post('/despacho/actualizar-horas', [DespachoController::class, 'actualizarHoras']);
     Route::post('/despacho/validar', [DespachoController::class, 'validarDespacho']);
     Route::get('/despacho/catalogo/unidades', [DespachoController::class, 'obtenerCatalogoUnidades']);
@@ -53,6 +56,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores', [ConductorController::class, 'store']);
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
+
+    // Gestión de Maniobristas
+    Route::get('/maniobristas', [ManiobristaController::class, 'index']);
+    Route::post('/maniobristas', [ManiobristaController::class, 'store']);
+    Route::put('/maniobristas/{id}', [ManiobristaController::class, 'update']);
+    Route::post('/maniobristas/{id}/baja', [ManiobristaController::class, 'baja']);
 
     // Rutas de Unidades
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);
@@ -79,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
+    Route::get('/bitacoras-diarias', [\App\Http\Controllers\API\BitacorasCentroController::class, 'getBitacoras']);
 
     // Rutas para TITAN
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);

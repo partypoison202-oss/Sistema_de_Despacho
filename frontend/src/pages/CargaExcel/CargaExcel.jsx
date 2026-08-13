@@ -16,6 +16,9 @@ export default function CargaExcel() {
   const [previewData, setPreviewData] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [verInicio, setVerInicio] = useState(false);
+  const [inicioData, setInicioData] = useState([]);
+  const [cargandoInicio, setCargandoInicio] = useState(false);
 
   // Helper para obtener el token de autenticación
   const getAuthHeaders = () => {
@@ -29,23 +32,26 @@ export default function CargaExcel() {
   // 1. Obtener y cachear Catálogos usando React Query (Cache de larga duración)
   const fetchCatalogos = async () => {
     const headers = getAuthHeaders();
-    const [resUnidades, resConductores, resRutas] = await Promise.all([
+    const [resUnidades, resConductores, resRutas, resManiobristas] = await Promise.all([
       fetch(`${API_BASE}/api/despacho/catalogo/unidades`, { headers }),
       fetch(`${API_BASE}/api/conductores`, { headers }),
-      fetch(`${API_BASE}/api/despacho/rutas`, { headers })
+      fetch(`${API_BASE}/api/despacho/rutas`, { headers }),
+      fetch(`${API_BASE}/api/maniobristas`, { headers })
     ]);
 
-    if (!resUnidades.ok || !resConductores.ok || !resRutas.ok) {
+    if (!resUnidades.ok || !resConductores.ok || !resRutas.ok || !resManiobristas.ok) {
       throw new Error('Error al cargar catálogos');
     }
 
     const unidades = await resUnidades.json();
     const conductores = await resConductores.json();
     const rutas = await resRutas.json();
+    const maniobristas = await resManiobristas.json();
 
     return {
       unidades: Array.isArray(unidades) ? unidades : [],
       conductores: Array.isArray(conductores) ? conductores : [],
+      maniobristas: Array.isArray(maniobristas) ? maniobristas : [],
       rutasObj: rutas || { troncales: [], alimentadoras: [] }
     };
   };
@@ -58,6 +64,7 @@ export default function CargaExcel() {
 
   const catalogUnidades = catalogos?.unidades || [];
   const catalogConductores = catalogos?.conductores || [];
+  const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
   // 2. Cargar datos de la BD en tiempo real (Polling cada 8 segundos)
@@ -102,8 +109,7 @@ export default function CargaExcel() {
   // (handleUpdateRecord) sigan apuntando al registro correcto, aunque la tabla
   // esté filtrada.
   const registrosVisibles = previewData
-    .map((fila, originalIndex) => ({ fila, originalIndex }))
-    .filter(({ fila }) => trimString(fila.ESTATUS).toLowerCase() === 'operacion');
+    .map((fila, originalIndex) => ({ fila, originalIndex }));
 
   // Actualizar un campo específico de un registro
   const handleUpdateRecord = async (index, field, value) => {
@@ -196,6 +202,64 @@ export default function CargaExcel() {
         // El conductor está libre, asignación normal
         updatedData[index]['TARJETON'] = valStr;
         updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
+      }
+    } else if (field === 'TARJETON_MANIOBRISTA') {
+      if (valStr === '') {
+        updatedData[index]['TARJETON_MANIOBRISTA'] = '';
+        updatedData[index]['NOMBRE_MANIOBRISTA'] = '';
+        setPreviewData(updatedData);
+        setHasChanges(true);
+        return;
+      }
+
+      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.TARJETON_MANIOBRISTA) === valStr);
+      const newManiobristaCatalog = catalogManiobristas.find(m => trimString(m.tarjeton) === valStr);
+      const newManiobristaName = newManiobristaCatalog ? newManiobristaCatalog.nombre : '';
+
+      if (newManiobristaCatalog && newManiobristaCatalog.estado_servicio === 'falta') {
+        const confirm = await Swal.fire({
+          title: 'Confirmar asignación',
+          text: `El maniobrista ${newManiobristaName} está en estatus de FALTA. ¿Deseas asignarlo a la unidad ${updatedData[index]['ECONOMICO']} y cambiar su estatus a en servicio?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#c5a059',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, asignar',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (!confirm.isConfirmed) return;
+        newManiobristaCatalog.estado_servicio = 'en_servicio';
+      }
+
+      if (existingRowIndex !== -1) {
+        const existingRow = updatedData[existingRowIndex];
+        const currentUnitManiobristaTarjeton = updatedData[index]['TARJETON_MANIOBRISTA'];
+        const currentUnitManiobristaName = updatedData[index]['NOMBRE_MANIOBRISTA'];
+
+        const confirm = await Swal.fire({
+          title: 'Maniobrista en servicio',
+          text: `El maniobrista ${newManiobristaName} ya está asignado a la unidad ${existingRow.ECONOMICO}. ¿Deseas hacer el cambio?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#c5a059',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, hacer cambio',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (confirm.isConfirmed) {
+          updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
+          updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
+          updatedData[existingRowIndex]['TARJETON_MANIOBRISTA'] = currentUnitManiobristaTarjeton;
+          updatedData[existingRowIndex]['NOMBRE_MANIOBRISTA'] = currentUnitManiobristaName;
+          setPreviewData(updatedData);
+          setHasChanges(true);
+        }
+        return;
+      } else {
+        updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
+        updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
       }
     } else if (field === 'ECONOMICO') {
       const shortcutEco = valStr ? valStr.padStart(3, '0') : '';
@@ -365,6 +429,36 @@ export default function CargaExcel() {
     XLSX.writeFile(workbook, `Despacho_Diario_${fecha}.xlsx`, { cellStyles: true });
   };
 
+  const handleVerInicio = async () => {
+    if (verInicio) {
+      setVerInicio(false);
+      return;
+    }
+    setCargandoInicio(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/despacho/inicio-hoy`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) {
+        throw new Error('Error al obtener datos de inicio');
+      }
+      const data = await response.json();
+      setInicioData(data);
+      setVerInicio(true);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo cargar la programación de inicio de hoy.',
+        confirmButtonColor: 'var(--color-maroon)'
+      });
+    } finally {
+      setCargandoInicio(false);
+    }
+  };
+
   return (
     <div className="excel-layout">
       <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
@@ -376,6 +470,41 @@ export default function CargaExcel() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={handleVerInicio}
+              disabled={cargandoInicio}
+              className="excel-export-btn"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '0.6rem',
+                border: 'none',
+                background: verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary-hover)' : '#b38f4d'}
+              onMouseOut={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)'}
+            >
+              {cargandoInicio ? (
+                <span className="spinner-mini"></span>
+              ) : verInicio ? (
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+              )}
+              {verInicio ? 'Volver a Edición' : 'Ver Inicio del Día'}
+            </button>
             <button
               type="button"
               onClick={handleExportExcel}
@@ -413,9 +542,15 @@ export default function CargaExcel() {
           </div>
         ) : (
           <ExcelPreview
-            data={registrosVisibles.map(r => ({ ...r.fila, __originalIndex: r.originalIndex }))}
+            readOnly={verInicio}
+            data={
+              verInicio
+                ? inicioData
+                : registrosVisibles.map(r => ({ ...r.fila, __originalIndex: r.originalIndex }))
+            }
             catalogUnidades={catalogUnidades}
             catalogConductores={catalogConductores}
+            catalogManiobristas={catalogManiobristas}
             catalogRutasObj={catalogRutasObj}
             onUpdate={handleUpdateRecord}
             onSave={handleSaveChanges}

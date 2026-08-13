@@ -23,11 +23,13 @@ export default function UnitInfoPanel({
   handleSaveFalla,
   handleCancelFalla,
   handleSaveTarjeton,
+  handleSaveTarjetonManiobrista,
   handleSaveRuta,
   handleSaveHoras,
   handleCambiarEstatus,
   cambiandoEstatus,
   conductoresDisponibles,
+  maniobristasDisponibles = [],
   unidadesReserva = [],
   onUpdate,
 }) {
@@ -36,7 +38,9 @@ export default function UnitInfoPanel({
 
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
   const [formTarjeton, setFormTarjeton] = useState('');
+  const [formTarjetonManiobrista, setFormTarjetonManiobrista] = useState('');
   const [guardandoTarjeton, setGuardandoTarjeton] = useState(false);
+  const [guardandoTarjetonManiobrista, setGuardandoTarjetonManiobrista] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const [hasCompletedChecklist, setHasCompletedChecklist] = useState(false);
   const [viewingChecklist, setViewingChecklist] = useState(false);
@@ -52,9 +56,33 @@ export default function UnitInfoPanel({
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [dropdownAcopleOpen, setDropdownAcopleOpen] = useState(false);
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
+  const [dropdownTarjetonManiobristaOpen, setDropdownTarjetonManiobristaOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
 
-  const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
+  const isReservaOrMantenimiento = ['reserva', 'mantenimiento'].includes((datosOperativos.estatus || '').toLowerCase());
+
+  // ⏰ Reloj en tiempo real para Hora de salida (HH:MM:SS con parpadeo)
+  const [liveTime, setLiveTime] = useState(() => {
+    const now = new Date();
+    return {
+      h: String(now.getHours()).padStart(2, '0'),
+      m: String(now.getMinutes()).padStart(2, '0'),
+      s: String(now.getSeconds()).padStart(2, '0'),
+      blink: true,
+    };
+  });
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const now = new Date();
+      setLiveTime({
+        h: String(now.getHours()).padStart(2, '0'),
+        m: String(now.getMinutes()).padStart(2, '0'),
+        s: String(now.getSeconds()).padStart(2, '0'),
+        blink: now.getSeconds() % 2 === 0,
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
 
   // Inicializar hora programada desde datosOperativos
   useEffect(() => {
@@ -126,31 +154,31 @@ export default function UnitInfoPanel({
 
   const [reemplazoActivo, setReemplazoActivo] = useState(false);
   const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
-  const [searchReserva, setSearchReserva] = useState('');
+  const [dropdownEcoOpen, setDropdownEcoOpen] = useState(false);
   const [rutaTipoSeleccionada, setRutaTipoSeleccionada] = useState(configActual?.id === 'urbanus' || configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
   const [reemplazoForm, setReemplazoForm] = useState({
-    unidadNuevaEco: '',
     tarjeton: '',
-    conductorNombre: '',
     ruta: '',
     corrida: '',
-    corridaPerdida: '',
-    corridaPerdidaOtro: '',
   });
 
-  const unidadesReservaFiltradas = useMemo(() => {
-    const filtro = searchReserva.trim().toLowerCase();
-    if (!filtro) return unidadesReserva || [];
-    return (unidadesReserva || []).filter((u) =>
-      `${u.display} ${u.eco} ${u.tarjeton}`.toLowerCase().includes(filtro) ||
-      String(u.tarjeton).toLowerCase().includes(filtro)
-    );
-  }, [searchReserva, unidadesReserva]);
+  // Estados para cambio de conductor en retiro
+  const [cambioOperadorActivo, setCambioOperadorActivo] = useState(false);
+  const [operadorReemplazoSeleccionado, setOperadorReemplazoSeleccionado] = useState(null);
+  const [dropdownOperadorOpen, setDropdownOperadorOpen] = useState(false);
+  const [operadorMotivo, setOperadorMotivo] = useState('');
+  const [operadorMotivoDropdown, setOperadorMotivoDropdown] = useState(false);
+
+  // useMemo para filtrar unidades removido - ya no necesario
 
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
   const tarjetonRef = useRef(null);
+  const tarjetonManiobristaRef = useRef(null);
   const motivoRef = useRef(null);
+  const ecoReemplazoRef = useRef(null);
+  const operadorRef = useRef(null);
+  const operadorMotivoRef = useRef(null);
 
   useEffect(() => {
     setPerdidaCiclos(datosOperativos.ciclo || '');
@@ -169,8 +197,20 @@ export default function UnitInfoPanel({
       if (tarjetonRef.current && !tarjetonRef.current.contains(e.target)) {
         setDropdownTarjetonOpen(false);
       }
+      if (tarjetonManiobristaRef.current && !tarjetonManiobristaRef.current.contains(e.target)) {
+        setDropdownTarjetonManiobristaOpen(false);
+      }
       if (motivoRef.current && !motivoRef.current.contains(e.target)) {
         setDropdownMotivoOpen(false);
+      }
+      if (ecoReemplazoRef.current && !ecoReemplazoRef.current.contains(e.target)) {
+        setDropdownEcoOpen(false);
+      }
+      if (operadorRef.current && !operadorRef.current.contains(e.target)) {
+        setDropdownOperadorOpen(false);
+      }
+      if (operadorMotivoRef.current && !operadorMotivoRef.current.contains(e.target)) {
+        setOperadorMotivoDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -265,55 +305,46 @@ export default function UnitInfoPanel({
     setPlatError('');
     setReemplazoActivo(false);
     setUnidadReemplazoSeleccionada(null);
-    setSearchReserva('');
+    setDropdownEcoOpen(false);
     setReemplazoForm({
-      unidadNuevaEco: '',
       tarjeton: '',
-      conductorNombre: '',
       ruta: '',
-      corrida: datosOperativos.corrida || '',
-      corridaPerdida: datosOperativos.ciclo || '',
-      corridaPerdidaOtro: datosOperativos.motivo || '',
+      corrida: '',
     });
+    setCambioOperadorActivo(false);
+    setOperadorReemplazoSeleccionado(null);
+    setDropdownOperadorOpen(false);
+    setOperadorMotivo('');
+    setOperadorMotivoDropdown(false);
   };
 
   const handleToggleReemplazo = () => {
     const nuevo = !reemplazoActivo;
     setReemplazoActivo(nuevo);
     if (nuevo) {
+      // Cargar datos de la unidad original
       setUnidadReemplazoSeleccionada(null);
-      setSearchReserva('');
-      setReemplazoForm((prev) => ({
-        ...prev,
-        unidadNuevaEco: '',
+      setReemplazoForm({
         tarjeton: datosOperativos.tarjeton || '',
-        conductorNombre: datosOperativos.conductor || '',
         ruta: datosOperativos.ruta || '',
         corrida: datosOperativos.corrida || '',
-        corridaPerdida: datosOperativos.ciclo || '',
-        corridaPerdidaOtro: datosOperativos.corridaPerdidaOtro || '',
-      }));
+      });
+    } else {
+      // Limpiar formulario
+      setUnidadReemplazoSeleccionada(null);
+      setReemplazoForm({
+        tarjeton: '',
+        ruta: '',
+        corrida: '',
+      });
     }
   };
 
-  const handleSelectReservaUnit = (unidad) => {
-    setUnidadReemplazoSeleccionada(unidad);
-    const disponible = conductoresDisponibles.find((c) => c.tarjeton === unidad.tarjeton);
-    setReemplazoForm((prev) => ({
-      ...prev,
-      unidadNuevaEco: unidad.display || `ECO${String(unidad.eco).padStart(3, '0')}`,
-      tarjeton: disponible ? unidad.tarjeton : '',
-      conductorNombre: disponible ? disponible.nombre : prev.conductorNombre,
-    }));
-  };
-
-  const handleTarjetonSelect = (tarjeton) => {
-    const conductor = conductoresDisponibles.find((c) => String(c.tarjeton) === String(tarjeton));
-    setReemplazoForm((prev) => ({
-      ...prev,
-      tarjeton,
-      conductorNombre: conductor ? conductor.nombre : prev.conductorNombre,
-    }));
+  const handleToggleCambioOperador = () => {
+    const nuevo = !cambioOperadorActivo;
+    setCambioOperadorActivo(nuevo);
+    setOperadorReemplazoSeleccionado(null);
+    setOperadorMotivo('');
   };
 
   const handleRutaTipoChange = (tipo) => {
@@ -321,107 +352,138 @@ export default function UnitInfoPanel({
     setReemplazoForm((prev) => ({ ...prev, ruta: '' }));
   };
 
-  const handleCorridaPerdidaChange = (value) => {
-    setReemplazoForm((prev) => ({
-      ...prev,
-      corridaPerdida: value,
-      corridaPerdidaOtro: value === 'OTRO' ? prev.corridaPerdidaOtro : '',
-    }));
+  const handleSelectReservaUnit = (unidad) => {
+    setUnidadReemplazoSeleccionada(unidad);
+    // No sobrescribir el tarjetón aquí, ya que queremos conservar el de la unidad original (el conductor que se pasa a la unidad de reserva)
+    setDropdownEcoOpen(false);
   };
 
+
   const handleConfirmarPlataforma = async () => {
-    if (modalPlataformaVisible === 'INCORPORACION') {
-      if (!platConductor || !platRuta) {
-        setPlatError('Faltan datos de la incorporación.');
-        return;
-      }
-      setPlatError('');
-      setGuardandoPerdida(true);
-      try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-        const ecoNum = selectedOption.replace(/\D/g, '');
-        const payload = {
+    try {
+      const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+      const ecoNum = selectedOption.replace(/\D/g, '');
+      let payload = {};
+      let successMessage = '';
+      let errorMessage = '';
+
+      if (modalPlataformaVisible === 'INCORPORACION') {
+        if (!platConductor || !platRuta) {
+          setPlatError('Faltan datos de la incorporación.');
+          return;
+        }
+        setPlatError('');
+        payload = {
           numero_eco: ecoNum,
           tipo: configActual.id,
           tipo_movimiento: 'INCORPORACION',
           conductor: platConductor,
           ruta: platRuta
         };
-        const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(payload)
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          console.error('❌ Error response:', result);
-          throw new Error(result.error || result.message || 'Error al incorporar unidad');
+        successMessage = `Unidad ECO${ecoNum} en operación.`;
+        errorMessage = 'Error al incorporar unidad';
+      } else if (modalPlataformaVisible === 'DESINCORPORACION') {
+        if (!platMotivo || !platEstatus) {
+          setPlatError('Debe ingresar un motivo y seleccionar un destino.');
+          return;
         }
-        if (typeof onUpdate === 'function') onUpdate();
-        setModalPlataformaVisible(null);
-        const Swal = (await import('sweetalert2')).default;
-        Swal.fire({ icon: 'success', title: 'Éxito', text: `Unidad ECO${ecoNum} en operación.`, confirmButtonColor: '#6b1d33' });
-      } catch (error) {
-        console.error(error);
-        const Swal = (await import('sweetalert2')).default;
-        Swal.fire('Error', error.message || 'Ocurrió un error al incorporar la unidad.', 'error');
-      } finally {
-        setGuardandoPerdida(false);
-      }
-    } else {
-      if (!platMotivo || !platEstatus) {
-        setPlatError('Debe ingresar un motivo y seleccionar un destino.');
-        return;
-      }
-      if (reemplazoActivo && (!reemplazoForm.unidadNuevaEco || !reemplazoForm.tarjeton || !reemplazoForm.ruta)) {
-        setPlatError('Completa la unidad en reserva, tarjetón disponible y ruta para el reemplazo.');
-        return;
-      }
-      setPlatError('');
-      setGuardandoPerdida(true);
-      try {
-        const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-        const ecoNum = selectedOption.replace(/\D/g, '');
-        const payload = {
+        if (reemplazoActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !reemplazoForm.corrida)) {
+          setPlatError('Completa la unidad de reserva, tarjetón, ruta y corrida para el cambio de unidad.');
+          return;
+        }
+        setPlatError('');
+        payload = {
           numero_eco: ecoNum,
           tipo: configActual.id,
           tipo_movimiento: 'DESINCORPORACION',
           motivo: platMotivo,
           estatus_nuevo: platEstatus.toUpperCase(),
           reemplazo_activo: reemplazoActivo ? 1 : 0,
-          unidad_reemplazo: reemplazoForm.unidadNuevaEco || null,
-          tarjeton_reemplazo: reemplazoForm.tarjeton || null,
-          conductor_reemplazo: reemplazoForm.conductorNombre || null,
-          ruta_reemplazo: reemplazoForm.ruta || null,
-          corrida_reemplazo: reemplazoForm.corrida || null,
-          corridas_perdidas_reemplazo: reemplazoForm.corridaPerdida || null,
-          corrida_perdida_otro: reemplazoForm.corridaPerdidaOtro || null,
+          eco_reemplazo: reemplazoActivo ? unidadReemplazoSeleccionada.eco : null,
+          tarjeton_reemplazo: reemplazoActivo && reemplazoForm.tarjeton != null ? String(reemplazoForm.tarjeton) : null,
+          ruta_reemplazo: reemplazoActivo && reemplazoForm.ruta != null ? String(reemplazoForm.ruta) : null,
+          corrida_reemplazo: reemplazoActivo && reemplazoForm.corrida != null ? String(reemplazoForm.corrida) : null,
         };
-        const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(payload)
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          console.error('❌ Error response:', result);
-          throw new Error(result.error || result.message || 'Error al desincorporar unidad');
+        successMessage = `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`;
+        errorMessage = 'Error al desincorporar unidad';
+      } else if (modalPlataformaVisible === 'ASIGNACION_CONDUCTOR') {
+        if (!platConductor) {
+          setPlatError('Debe seleccionar un conductor.');
+          return;
         }
-        if (typeof onUpdate === 'function') onUpdate();
-        
-        datosOperativos.conductor = null;
-        datosOperativos.ruta = null;
-
-        setModalPlataformaVisible(null);
-        const Swal = (await import('sweetalert2')).default;
-        Swal.fire({ icon: 'success', title: 'Éxito', text: `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`, confirmButtonColor: '#6b1d33' });
-      } catch (error) {
-        console.error(error);
-        const Swal = (await import('sweetalert2')).default;
-        Swal.fire('Error', error.message || 'Ocurrió un error al desincorporar la unidad.', 'error');
-      } finally {
-        setGuardandoPerdida(false);
+        setPlatError('');
+        payload = {
+          numero_eco: ecoNum,
+          tipo: configActual.id,
+          tipo_movimiento: 'ASIGNACION_CONDUCTOR',
+          numero_tarjeton: platConductor != null ? String(platConductor) : null,
+          motivo: platMotivo
+        };
+        successMessage = `Conductor asignado a ECO${ecoNum}.`;
+        errorMessage = 'Error al asignar conductor';
+      } else if (modalPlataformaVisible === 'RETIRO_CONDUCTOR') {
+        if (cambioOperadorActivo) {
+          // Si hay cambio de operador
+          if (!operadorReemplazoSeleccionado || !operadorMotivo) {
+            setPlatError('Completa el conductor y el estatus para el cambio de conductor.');
+            return;
+          }
+          setPlatError('');
+          payload = {
+            numero_eco: ecoNum,
+            tipo: configActual.id,
+            tipo_movimiento: 'RETIRO_CONDUCTOR',
+            cambio_operador_activo: 1,
+            numero_tarjeton_nuevo: operadorReemplazoSeleccionado.id != null ? String(operadorReemplazoSeleccionado.id) : null,
+            motivo: operadorMotivo
+          };
+          successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
+          errorMessage = 'Error al cambiar conductor';
+        } else {
+          // Sin cambio de operador, solo retiro
+          if (!platMotivo) {
+            setPlatError('Debe ingresar un motivo para el retiro.');
+            return;
+          }
+          setPlatError('');
+          payload = {
+            numero_eco: ecoNum,
+            tipo: configActual.id,
+            tipo_movimiento: 'RETIRO_CONDUCTOR',
+            cambio_operador_activo: 0,
+            motivo: platMotivo
+          };
+          successMessage = `Conductor retirado de ECO${ecoNum}.`;
+          errorMessage = 'Error al retirar conductor';
+        }
       }
+
+      if (!payload.tipo_movimiento) {
+        setPlatError('Tipo de movimiento no identificado.');
+        return;
+      }
+
+      setGuardandoPerdida(true);
+      const response = await fetch(`${API_BASE}/api/plataforma/movimiento`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        console.error('❌ Error response:', result);
+        throw new Error(result.error || result.message || errorMessage);
+      }
+      if (typeof onUpdate === 'function') onUpdate();
+      setModalPlataformaVisible(null);
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({ icon: 'success', title: 'Éxito', text: successMessage, confirmButtonColor: '#6b1d33' });
+    } catch (error) {
+      console.error(error);
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire('Error', error.message || 'Ocurrió un error en el movimiento.', 'error');
+    } finally {
+      setGuardandoPerdida(false);
     }
   };
 
@@ -504,6 +566,23 @@ export default function UnitInfoPanel({
     }
   };
 
+  const handleConfirmTarjetonManiobrista = async (overrideValue = null) => {
+    const val = typeof overrideValue === 'string' ? overrideValue : formTarjetonManiobrista;
+    if (val === datosOperativos.tarjeton_maniobrista) {
+      setDropdownTarjetonManiobristaOpen(false);
+      return;
+    }
+    setGuardandoTarjetonManiobrista(true);
+    try {
+      await handleSaveTarjetonManiobrista(val.trim());
+      setDropdownTarjetonManiobristaOpen(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGuardandoTarjetonManiobrista(false);
+    }
+  };
+
   const handleCancelTarjetonEdit = () => {
     setFormTarjeton(datosOperativos.tarjeton || '');
     setEditandoTarjeton(false);
@@ -557,7 +636,8 @@ export default function UnitInfoPanel({
         </div>
       </div>
 
-      <div className="dashboard-grid">
+      {/* Se cambia a 2 columnas en desktop para que ocupe todo el ancho de la pantalla y no quede amontonado a la izquierda */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* CARD 1: INFORMACIÓN DE TRABAJO */}
         <div className="info-card">
           <div className="info-card__header">
@@ -567,7 +647,6 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Servicio Activo</h3>
           </div>
           <div className="info-card__body">
-            {/* Conductor Asignado */}
             <div className="info-card__item">
               <span className="info-card__label">Conductor Asignado</span>
               <div className="info-card__value-wrapper">
@@ -580,8 +659,12 @@ export default function UnitInfoPanel({
               </div>
             </div>
 
-            {/* Ruta Asignada */}
-            <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
+
+            {/* Ruta Asignada y Corrida - Lado a lado */}
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.85rem' }}>
+              
+              {/* Ruta Asignada */}
+              <div className="info-card__item" style={{ flex: 1.5, minWidth: 0 }}>
               <span className="info-card__label">Ruta Asignada</span>
               {!isPlataforma && !isReservaOrMantenimiento ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
@@ -612,7 +695,7 @@ export default function UnitInfoPanel({
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
+                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
                           <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                           </svg>
@@ -656,13 +739,13 @@ export default function UnitInfoPanel({
                   </div>
                 </div>
               ) : (
-                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
+                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1, height: '2.3rem', marginTop: '0.15rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <p className="info-card__value">
+                    <p className="info-card__value" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
                     </p>
                   </div>
@@ -670,155 +753,37 @@ export default function UnitInfoPanel({
               )}
             </div>
 
+            {/* Corrida */}
+            <div className="info-card__item" style={{ flex: 1, minWidth: 0 }}>
+              <span className="info-card__label">Corrida</span>
+              <div className="info-card__value-wrapper" style={{ height: '2.3rem', marginTop: '0.15rem' }}>
+                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                </svg>
+                <p className="info-card__value" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+                </p>
+              </div>
+            </div>
+          </div>
+
             {/* Número de Tarjetón (Editable) */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Número de Tarjetón</span>
-              {!isPlataforma && !isReservaOrMantenimiento ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                  <div ref={tarjetonRef} style={{ position: 'relative', width: '100%', zIndex: dropdownTarjetonOpen ? 50 : 1 }}>
-                    <div
-                      className="interactive-input"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 0.85rem',
-                        background: 'var(--tw-color-white)',
-                        height: '2.3rem',
-                        width: '100%',
-                        fontWeight: 'bold',
-                        opacity: guardandoTarjeton ? 0.7 : 1,
-                        borderColor: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : undefined,
-                      }}
-                    >
-                      {guardandoTarjeton ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
-                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal', fontSize: '0.85rem' }}>Guardando...</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <input
-                            type="text"
-                            placeholder={datosOperativos.tarjeton ? String(datosOperativos.tarjeton) : "Buscar o escribir tarjetón..."}
-                            value={formTarjeton}
-                            onChange={(e) => {
-                              setFormTarjeton(e.target.value);
-                              setDropdownTarjetonOpen(true);
-                            }}
-                            onFocus={() => setDropdownTarjetonOpen(true)}
-                            style={{
-                              border: 'none',
-                              outline: 'none',
-                              background: 'transparent',
-                              width: '100%',
-                              fontSize: '0.85rem',
-                              fontWeight: 'bold',
-                              color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit',
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleConfirmTarjeton();
-                                setDropdownTarjetonOpen(false);
-                              } else if (e.key === 'Escape') {
-                                setFormTarjeton('');
-                                setDropdownTarjetonOpen(false);
-                              }
-                            }}
-                          />
-                          <svg
-                            onClick={() => setDropdownTarjetonOpen(!dropdownTarjetonOpen)}
-                            className={`arrow-icon ${dropdownTarjetonOpen ? 'dropdown-trigger__arrow--open' : ''}`}
-                            style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownTarjetonOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownTarjetonOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
-                            fill="currentColor" viewBox="0 0 24 24"
-                          >
-                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    {dropdownTarjetonOpen && !guardandoTarjeton && (
-                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                          <button
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                            onClick={() => {
-                              handleCancelTarjetonEdit();
-                              setDropdownTarjetonOpen(false);
-                            }}
-                          >
-                            CANCELAR
-                          </button>
-                          {(conductoresDisponibles || [])
-                            .filter(c => {
-                              const search = formTarjeton.toLowerCase().trim();
-                              const currentTarjeton = String(datosOperativos.tarjeton || '').toLowerCase().trim();
-                              if (search === currentTarjeton || search === '') {
-                                return true;
-                              }
-                              return c.nombre.toLowerCase().includes(search) || c.id.toString().includes(search);
-                            })
-                            .map((c) => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                className="dropdown-menu__item"
-                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', textAlign: 'left', fontWeight: 'normal', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                                onClick={async () => {
-                                  if (c.estado_servicio === 'falta') {
-                                    const confirm = await Swal.fire({
-                                      title: 'Confirmar asignación',
-                                      text: `El operador ${c.nombre} está en estatus de FALTA. ¿Deseas asignarlo a esta unidad y cambiar su estatus a EN SERVICIO?`,
-                                      icon: 'warning',
-                                      showCancelButton: true,
-                                      confirmButtonColor: '#c5a059',
-                                      cancelButtonColor: '#6b7280',
-                                      confirmButtonText: 'Sí, asignar',
-                                      cancelButtonText: 'Cancelar'
-                                    });
-                                    if (!confirm.isConfirmed) return;
-                                  }
-                                  setFormTarjeton(c.id.toString());
-                                  setDropdownTarjetonOpen(false);
-                                  handleConfirmTarjeton(c.id.toString());
-                                }}
-                              >
-                                <span>{c.id} - {c.nombre}</span>
-                                {c.estado_servicio === 'falta' && (
-                                  <span style={{
-                                    fontSize: '0.65rem',
-                                    padding: '0.15rem 0.4rem',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#fee2e2',
-                                    color: '#b91c1c',
-                                    fontWeight: '700'
-                                  }}>
-                                    FALTA
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1, marginTop: '0.15rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
+                  </svg>
+                  <p className="info-card__value">
+                    {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                  </p>
                 </div>
-              ) : (
-                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
-                    </svg>
-                    <p className="info-card__value">
-                      {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
+
+            {/* [Tarjetón Maniobrista eliminado - se maneja en módulo independiente] */}
+
           </div>
         </div>
 
@@ -831,20 +796,8 @@ export default function UnitInfoPanel({
             <h3 className="info-card__title">Despacho</h3>
           </div>
           <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="info-card__item">
-              <span className="info-card__label">Corrida</span>
-              <div className="badge-display badge-display--maroon">
-                <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-                <span className="badge-display__text">
-                  {cargandoDatos ? '...' : (datosOperativos.corrida || 'No asignada')}
-                </span>
-              </div>
-            </div>
-
-            <div className="info-card__item">
-              <span className="info-card__label">Hora Programada</span>
+            {!isReservaOrMantenimiento && (<div className="info-card__item">
+              <span className="info-card__label">Hora de arribo</span>
               <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
@@ -869,9 +822,6 @@ export default function UnitInfoPanel({
                   <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                     {formHoraProgramada || '--:--'}
                   </span>
-                  <svg className={`arrow-icon ${dropdownHoraOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownHoraOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
                 </button>
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -904,23 +854,24 @@ export default function UnitInfoPanel({
                   </>
                 )}
               </div>
-            </div>
+            </div>)}
 
-            {/* ✅ NUEVO: Hora de salida (automática) */}
-            <div className="info-card__item">
+            {/* ✅ Hora de salida - reloj en tiempo real */}
+            {!isReservaOrMantenimiento && (<div className="info-card__item">
               <span className="info-card__label">Hora de salida</span>
               <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1 }}>
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="badge-display__text" style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                  {formAcople || '--:--'}
+                <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '1px' }}>
+                  <span>{liveTime.h}</span>
+                  <span style={{ opacity: liveTime.blink ? 1 : 0.15, transition: 'opacity 0.1s' }}>:</span>
+                  <span>{liveTime.m}</span>
+                  <span style={{ opacity: liveTime.blink ? 1 : 0.15, transition: 'opacity 0.1s' }}>:</span>
+                  <span>{liveTime.s}</span>
                 </span>
               </div>
-              <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.2rem', textAlign: 'center' }}>
-                (Se actualiza automáticamente al seleccionar la unidad)
-              </p>
-            </div>
+            </div>)}
 
             {/* Toggle: ¿Hubo corridas perdidas? */}
             {!isPlataforma && (
@@ -1104,10 +1055,10 @@ export default function UnitInfoPanel({
               </>
             )}
 
-            {/* INCORPORAR / DESINCORPORAR para PLATAFORMA */}
+            {/* MOVIMIENTOS DE UNIDAD */}
             {isPlataforma && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', width: '100%' }}>
-                <span className="info-card__label">Movimientos de Plataforma</span>
+                <span className="info-card__label">Movimientos de Unidad</span>
                 <div style={{
                   display: 'flex',
                   width: '100%',
@@ -1152,6 +1103,57 @@ export default function UnitInfoPanel({
                 </div>
               </div>
             )}
+
+            {/* MOVIMIENTOS DE CONDUCTORES */}
+            {isPlataforma && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', width: '100%' }}>
+                <span className="info-card__label">Movimientos de Conductores</span>
+                <div style={{
+                  display: 'flex',
+                  width: '100%',
+                  height: '2.5rem',
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => handlePlataformaMovimiento('ASIGNACION_CONDUCTOR')}
+                    disabled={datosOperativos.estatus !== 'operacion' || datosOperativos.conductor}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      background: (datosOperativos.estatus !== 'operacion' || datosOperativos.conductor) ? 'var(--tw-color-gray-100)' : '#6b1d33',
+                      color: (datosOperativos.estatus !== 'operacion' || datosOperativos.conductor) ? 'var(--tw-color-gray-400)' : 'white',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: (datosOperativos.estatus !== 'operacion' || datosOperativos.conductor) ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    ASIGNAR CONDUCTOR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePlataformaMovimiento('RETIRO_CONDUCTOR')}
+                    disabled={datosOperativos.estatus !== 'operacion' || !datosOperativos.conductor}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      borderLeft: '1px solid #e5e7eb',
+                      background: (datosOperativos.estatus !== 'operacion' || !datosOperativos.conductor) ? 'var(--tw-color-gray-100)' : '#6b1d33',
+                      color: (datosOperativos.estatus !== 'operacion' || !datosOperativos.conductor) ? 'var(--tw-color-gray-400)' : 'white',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: (datosOperativos.estatus !== 'operacion' || !datosOperativos.conductor) ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    RETIRAR CONDUCTOR
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1167,7 +1169,10 @@ export default function UnitInfoPanel({
         >
           <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', overflowX: 'hidden', minWidth: '22rem' }}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
-              {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 'Desincorporar Unidad'}
+              {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 
+               modalPlataformaVisible === 'DESINCORPORACION' ? 'Desincorporar Unidad' :
+               modalPlataformaVisible === 'ASIGNACION_CONDUCTOR' ? 'Asignar Conductor' :
+               modalPlataformaVisible === 'RETIRO_CONDUCTOR' ? 'Retirar Conductor' : 'Movimiento'}
             </h2>
 
             {modalPlataformaVisible === 'INCORPORACION' && (
@@ -1252,183 +1257,129 @@ export default function UnitInfoPanel({
 
             {modalPlataformaVisible === 'DESINCORPORACION' && (
               <div className="flex flex-col gap-4">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={reemplazoActivo}
-                    onChange={handleToggleReemplazo}
-                    style={{ width: '1rem', height: '1rem' }}
-                  />
-                  Reemplazar unidad original por una unidad en reserva
-                </label>
+                {!isReservaOrMantenimiento && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={reemplazoActivo}
+                      onChange={handleToggleReemplazo}
+                      style={{ width: '1rem', height: '1rem' }}
+                    />
+                    Reemplazar unidad original por una unidad en reserva
+                  </label>
+                )}
 
-                {reemplazoActivo && (
+                {!isReservaOrMantenimiento && reemplazoActivo && (
                   <div style={{ display: 'grid', gap: '1rem', padding: '1rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc' }}>
-                    <div style={{ display: 'grid', gap: '0.85rem' }}>
-                      <span className="info-card__label">Unidad original</span>
-                      <div style={{ padding: '0.95rem 1rem', borderRadius: '0.75rem', background: 'white', border: '1px solid #d1d5db', minHeight: '3rem', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ overflowWrap: 'anywhere', lineHeight: 1.3, color: '#0b162c' }}>{selectedOption}</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gap: '0.85rem' }}>
-                      <span className="info-card__label">Buscar unidad en reserva</span>
-                      <input
-                        type="text"
-                        value={searchReserva}
-                        onChange={(e) => setSearchReserva(e.target.value)}
-                        placeholder="Buscar ECO o tarjetón en reserva"
+                    
+                    {/* Número de ECO - Editable con dropdown */}
+                    <div style={{ display: 'grid', gap: '0.25rem', position: 'relative' }} ref={ecoReemplazoRef}>
+                      <span className="info-card__label">Número de ECO</span>
+                      <button
+                        type="button"
                         className="interactive-input"
-                        style={{ width: '100%', padding: '1rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', minWidth: '0' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gap: '0.5rem', maxHeight: '220px', overflowY: 'auto', paddingRight: '0.25rem' }}>
-                      {unidadesReservaFiltradas.length ? (
-                        unidadesReservaFiltradas.map((unidad) => (
-                          <button
-                            key={unidad.eco}
-                            type="button"
-                            onClick={() => handleSelectReservaUnit(unidad)}
-                            style={{
-                              width: '100%', textAlign: 'left', padding: '0.95rem 1rem', borderRadius: '0.75rem',
-                              border: unidadReemplazoSeleccionada?.eco === unidad.eco ? '2px solid #6b1d33' : '1px solid #e5e7eb',
-                              backgroundColor: unidadReemplazoSeleccionada?.eco === unidad.eco ? '#f8eef0' : 'white',
-                              cursor: 'pointer',
-                              minHeight: '3.1rem',
-                              boxSizing: 'border-box',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center' }}>
-                              <span style={{ fontWeight: 700, overflowWrap: 'anywhere', lineHeight: 1.3, display: 'block', width: '100%' }}>{unidad.display}</span>
-                              <span style={{ color: '#6b7280', flexShrink: 0, marginLeft: '0.5rem' }}>{unidad.tarjeton || 'Sin tarjetón'}</span>
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <span style={{ color: '#6b7280', fontSize: '0.95rem' }}>No se encontraron unidades en reserva.</span>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'grid', gap: '0.95rem' }}>
-                      <div style={{ display: 'grid', gap: '0.25rem' }}>
-                        <span className="info-card__label">Nuevo ECO</span>
-                        <select
-                          value={unidadReemplazoSeleccionada?.eco || ''}
-                          onChange={(e) => {
-                            const unidad = unidadesReserva.find((u) => String(u.eco) === String(e.target.value));
-                            if (unidad) handleSelectReservaUnit(unidad);
-                          }}
-                          className="interactive-input"
-                          style={{ width: '100%', minHeight: '3rem', height: 'auto', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: '#f8fafc', minWidth: '0', boxSizing: 'border-box', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
-                        >
-                          <option value="">Seleccione una unidad de reserva</option>
-                          {unidadesReservaFiltradas.map((unidad) => (
-                            <option key={unidad.eco} value={unidad.eco}>
-                              {unidad.display} {unidad.tarjeton ? `(${unidad.tarjeton})` : '(Sin tarjetón)'}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '0.25rem' }}>
-                        <span className="info-card__label">Tarjetón (disponible)</span>
-                        <select
-                          value={reemplazoForm.tarjeton}
-                          onChange={(e) => handleTarjetonSelect(e.target.value)}
-                          className="interactive-input"
-                          style={{ width: '100%', minHeight: '3rem', height: 'auto', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', boxSizing: 'border-box', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
-                        >
-                          <option value="">Seleccione un tarjetón</option>
-                          {conductoresDisponibles.map((c) => (
-                            <option key={c.id} value={c.tarjeton}>
-                              {c.tarjeton} — {c.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '0.25rem' }}>
-                        <span className="info-card__label">Conductor</span>
-                        <input
-                          type="text"
-                          value={reemplazoForm.conductorNombre}
-                          onChange={(e) => setReemplazoForm((prev) => ({ ...prev, conductorNombre: e.target.value }))}
-                          placeholder="Nombre del conductor"
-                          className="interactive-input"
-                          style={{ width: '100%', minHeight: '3rem', height: 'auto', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', boxSizing: 'border-box' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '0.35rem' }}>
-                        <span className="info-card__label">Tipo de ruta</span>
-                        <select
-                          value={rutaTipoSeleccionada}
-                          onChange={(e) => handleRutaTipoChange(e.target.value)}
-                          className="interactive-input"
-                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', minWidth: '0' }}
-                        >
-                          <option value="troncales">Troncales</option>
-                          <option value="alimentadoras">Alimentadoras</option>
-                        </select>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '0.25rem' }}>
-                        <span className="info-card__label">Ruta</span>
-                        <select
-                          value={reemplazoForm.ruta}
-                          onChange={(e) => setReemplazoForm((prev) => ({ ...prev, ruta: e.target.value }))}
-                          className="interactive-input"
-                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', minWidth: '0', whiteSpace: 'normal', overflowWrap: 'anywhere' }}
-                        >
-                          <option value="">Seleccione una ruta</option>
-                          {rutaOptionsByType[rutaTipoSeleccionada].map((ruta) => (
-                            <option key={ruta} value={ruta}>{ruta}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '0.25rem' }}>
-                        <span className="info-card__label">Corrida</span>
-                        <input
-                          type="text"
-                          value={reemplazoForm.corrida}
-                          onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corrida: e.target.value }))}
-                          placeholder="Ej. 123"
-                          className="interactive-input"
-                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', minWidth: '0' }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '0.25rem' }}>
-                        <span className="info-card__label">Corridas Perdidas</span>
-                        <select
-                          value={reemplazoForm.corridaPerdida}
-                          onChange={(e) => handleCorridaPerdidaChange(e.target.value)}
-                          className="interactive-input"
-                          style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', background: 'white', minWidth: '0' }}
-                        >
-                          <option value="">Seleccione una opción</option>
-                          {corridasPerdidasOptions.map((option) => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {reemplazoForm.corridaPerdida === 'OTRO' && (
-                        <div style={{ display: 'grid', gap: '0.25rem' }}>
-                          <span className="info-card__label">Especifique corridas perdidas</span>
-                          <input
-                            type="text"
-                            value={reemplazoForm.corridaPerdidaOtro}
-                            onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corridaPerdidaOtro: e.target.value }))}
-                            placeholder="Escribe aquí"
-                            className="interactive-input"
-                            style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', minWidth: '0' }}
-                          />
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                        }}
+                        onClick={() => setDropdownEcoOpen(!dropdownEcoOpen)}
+                      >
+                        <span style={{ fontWeight: 600, color: unidadReemplazoSeleccionada ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
+                          {unidadReemplazoSeleccionada ? unidadReemplazoSeleccionada.display : 'Seleccione una unidad en reserva...'}
+                        </span>
+                        <svg className={`arrow-icon ${dropdownEcoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownEcoOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                        </svg>
+                      </button>
+                      {dropdownEcoOpen && (
+                        <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                            {(unidadesReserva || []).map(u => (
+                              <button
+                                key={u.eco}
+                                type="button"
+                                className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                                style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: unidadReemplazoSeleccionada?.eco === u.eco ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                                onClick={() => handleSelectReservaUnit(u)}
+                              >
+                                {u.display} {u.tarjeton ? `(${u.tarjeton})` : '(Sin tarjetón)'}
+                              </button>
+                            ))}
+                            {(!unidadesReserva || unidadesReserva.length === 0) && (
+                              <span style={{ color: '#6b7280', fontSize: '0.9rem', padding: '0.75rem 1rem', display: 'block' }}>No hay unidades en reserva disponibles</span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
+
+                    {/* Tarjetón - Solo lectura (No editable en reemplazo) */}
+                    <div style={{ display: 'grid', gap: '0.25rem' }}>
+                      <span className="info-card__label">Número de Tarjetón</span>
+                      <div
+                        className="interactive-input"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '0 0.85rem', background: '#f1f5f9', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem', opacity: 0.8
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, color: '#64748b', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3 }}>
+                          {reemplazoForm.tarjeton || 'Sin tarjetón'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Ruta Asignada - Editable con dropdown */}
+                    <div style={{ display: 'grid', gap: '0.25rem', position: 'relative' }} ref={rutaRef}>
+                      <span className="info-card__label">Ruta Asignada</span>
+                      <button
+                        type="button"
+                        className="interactive-input"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                        }}
+                        onClick={() => setDropdownRutaOpen(!dropdownRutaOpen)}
+                      >
+                        <span style={{ fontWeight: 600, color: reemplazoForm.ruta ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
+                          {reemplazoForm.ruta || 'Seleccione una ruta...'}
+                        </span>
+                        <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                        </svg>
+                      </button>
+                      {dropdownRutaOpen && (
+                        <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                            {(rutaOptionsByType[rutaTipoSeleccionada] || []).map(r => (
+                              <button
+                                key={r}
+                                type="button"
+                                className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                                style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: reemplazoForm.ruta === r ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                                onClick={() => {
+                                  setReemplazoForm((prev) => ({ ...prev, ruta: r }));
+                                  setDropdownRutaOpen(false);
+                                }}
+                              >
+                                {r}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Corrida - Input editable */}
+                    <div style={{ display: 'grid', gap: '0.25rem' }}>
+                      <span className="info-card__label">Corrida</span>
+                      <input
+                        type="text"
+                        value={reemplazoForm.corrida}
+                        onChange={(e) => setReemplazoForm((prev) => ({ ...prev, corrida: e.target.value }))}
+                        placeholder="Ej. 123"
+                        className="interactive-input"
+                        style={{ width: '100%', padding: '0.95rem 1rem', borderRadius: '0.75rem', border: '1px solid #d1d5db', minWidth: '0' }}
+                      />
+                    </div>
+
                   </div>
                 )}
 
@@ -1480,6 +1431,213 @@ export default function UnitInfoPanel({
               </div>
             )}
 
+            {modalPlataformaVisible === 'ASIGNACION_CONDUCTOR' && (
+              <div className="flex flex-col gap-4">
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className="interactive-input"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
+                    }}
+                    onClick={() => setPlatConductorDropdown(!platConductorDropdown)}
+                  >
+                    <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
+                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
+                    </span>
+                    <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                    </svg>
+                  </button>
+                  {platConductorDropdown && (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
+                        {conductoresDisponibles.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platConductor == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => {
+                              setPlatConductor(c.id);
+                              setPlatConductorDropdown(false);
+                            }}
+                          >
+                            {c.nombre} ({c.id})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <textarea
+                  className="interactive-input"
+                  style={{ width: '100%', height: '80px', resize: 'none', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', fontSize: '0.9rem', color: '#0b162c', fontWeight: 500 }}
+                  placeholder="Escribe el motivo de la asignación aquí..."
+                  value={platMotivo}
+                  onChange={(e) => setPlatMotivo(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase())}
+                />
+              </div>
+            )}
+
+            {modalPlataformaVisible === 'RETIRO_CONDUCTOR' && (
+              <div className="flex flex-col gap-4">
+                <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid #e5e7eb' }}>
+                  <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+                    <strong>Unidad Actual:</strong> {selectedOption}
+                  </p>
+                  {datosOperativos.conductor && (
+                    <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
+                      <strong>Conductor:</strong> {datosOperativos.conductor}
+                    </p>
+                  )}
+                </div>
+
+                {/* Checkbox para cambio de operador */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.75rem', borderRadius: '0.5rem', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                  <input
+                    type="checkbox"
+                    checked={cambioOperadorActivo}
+                    onChange={handleToggleCambioOperador}
+                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                  />
+                  <span style={{ color: '#0b162c', fontWeight: 500, fontSize: '0.9rem' }}>Cambiar Conductor</span>
+                </label>
+
+                {/* Si cambio de operador está activo, mostrar dropdown de operador disponible */}
+                {cambioOperadorActivo && (
+                  <>
+                    <div style={{ position: 'relative' }} ref={operadorRef}>
+                      <div style={{ display: 'block', color: '#0b162c', fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.5rem' }}>Conductor Disponible:</div>
+                      <button
+                        type="button"
+                        onClick={() => setDropdownOperadorOpen(!dropdownOperadorOpen)}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '0.75rem',
+                          border: '1px solid #e5e7eb',
+                          background: 'white',
+                          color: '#0b162c',
+                          fontSize: '0.9rem',
+                          fontWeight: 500,
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        {operadorReemplazoSeleccionado ? `${operadorReemplazoSeleccionado.nombre} (${operadorReemplazoSeleccionado.id})` : 'Selecciona un conductor'}
+                        <span style={{ fontSize: '1rem' }}>▼</span>
+                      </button>
+
+                      {dropdownOperadorOpen && conductoresDisponibles && conductoresDisponibles.length > 0 && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '0.25rem',
+                          background: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                          zIndex: 40,
+                          maxHeight: '200px',
+                          overflowY: 'auto'
+                        }}>
+                          {conductoresDisponibles.map((c) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                              style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorReemplazoSeleccionado?.id == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                              onClick={() => {
+                                setOperadorReemplazoSeleccionado(c);
+                                setDropdownOperadorOpen(false);
+                              }}
+                            >
+                              {c.nombre} ({c.id})
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dropdown de motivo para cambio de operador */}
+                    <div style={{ position: 'relative' }} ref={operadorMotivoRef}>
+                      <div style={{ display: 'block', color: '#0b162c', fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.5rem' }}>Motivo:</div>
+                      <button
+                        type="button"
+                        onClick={() => setOperadorMotivoDropdown(!operadorMotivoDropdown)}
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '0.75rem',
+                          border: '1px solid #e5e7eb',
+                          background: 'white',
+                          color: '#0b162c',
+                          fontSize: '0.9rem',
+                          fontWeight: 500,
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        {operadorMotivo || 'Selecciona un motivo'}
+                        <span style={{ fontSize: '1rem' }}>▼</span>
+                      </button>
+
+                      {operadorMotivoDropdown && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '0.25rem',
+                          background: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.5rem',
+                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                          zIndex: 40
+                        }}>
+                          {['RESERVA', 'MANIOBRISTA', 'FALTA'].map((estatus) => (
+                            <button
+                              key={estatus}
+                              type="button"
+                              className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                              style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                              onClick={() => {
+                                setOperadorMotivo(estatus);
+                                setOperadorMotivoDropdown(false);
+                              }}
+                            >
+                              {estatus}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Textarea de motivo si no hay cambio de operador */}
+                {!cambioOperadorActivo && (
+                  <textarea
+                    className="interactive-input"
+                    style={{ width: '100%', height: '80px', resize: 'none', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', fontSize: '0.9rem', color: '#0b162c', fontWeight: 500 }}
+                    placeholder="Escribe el motivo del retiro aquí..."
+                    value={platMotivo}
+                    onChange={(e) => setPlatMotivo(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase())}
+                  />
+                )}
+              </div>
+            )}
+
             {platError && (
               <div style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontWeight: '500' }}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -1496,7 +1654,11 @@ export default function UnitInfoPanel({
                   flex: 1, border: 'none', background: '#c29b53', color: 'white', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
                 }}
               >
-                {guardandoPerdida ? 'GUARDANDO...' : modalPlataformaVisible === 'INCORPORACION' ? 'INCORPORAR' : 'DESINCORPORAR'}
+                {guardandoPerdida ? 'GUARDANDO...' : 
+                 modalPlataformaVisible === 'INCORPORACION' ? 'INCORPORAR' : 
+                 modalPlataformaVisible === 'DESINCORPORACION' ? 'DESINCORPORAR' :
+                 modalPlataformaVisible === 'ASIGNACION_CONDUCTOR' ? 'ASIGNAR' :
+                 modalPlataformaVisible === 'RETIRO_CONDUCTOR' ? 'RETIRAR' : 'GUARDAR'}
               </button>
               <button
                 type="button"

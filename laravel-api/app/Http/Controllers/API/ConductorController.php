@@ -61,6 +61,9 @@ class ConductorController extends Controller
             }
             if ($c->estatus === 'baja') {
                 $c->estado_servicio = null;
+            } elseif ($c->estado_servicio === 'maniobrista') {
+                // Respetar siempre el estado maniobrista, aunque esté asignado
+                $c->estado_servicio = 'maniobrista';
             } else {
                 $c->estado_servicio = $estaAsignado ? 'en_servicio' : ($c->estado_servicio ?? 'disponible');
             }
@@ -125,7 +128,7 @@ class ConductorController extends Controller
         $request->validate([
             'nombre' => 'sometimes|required|string|max:200',
             'tipo_tarjeton' => 'sometimes|required|string|max:50',
-            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta'
+            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista'
         ]);
 
         if ($request->has('nombre')) {
