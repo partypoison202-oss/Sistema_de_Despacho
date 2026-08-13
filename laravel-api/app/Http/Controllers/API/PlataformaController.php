@@ -16,7 +16,7 @@ class PlataformaController extends Controller
         $request->validate([
             'numero_eco' => 'required|string',
             'tipo' => 'required|string',
-            'tipo_movimiento' => 'required|string|in:INCORPORACION,DESINCORPORACION',
+            'tipo_movimiento' => 'required|string|in:INCORPORACION,DESINCORPORACION,ASIGNACION_CONDUCTOR,RETIRO_CONDUCTOR',
             'conductor' => 'nullable|string',
             'ruta' => 'nullable|string',
             'motivo' => 'nullable|string',
@@ -28,6 +28,9 @@ class PlataformaController extends Controller
             'corrida_reemplazo' => 'nullable|string',
             'corridas_perdidas_reemplazo' => 'nullable|string',
             'corrida_perdida_otro' => 'nullable|string',
+            'cambio_operador_activo' => 'nullable|boolean',
+            'numero_tarjeton_nuevo' => 'nullable|string',
+            'numero_tarjeton' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -36,10 +39,8 @@ class PlataformaController extends Controller
             $tipoMovimiento = $request->tipo_movimiento;
             $usuarioId = auth()->id();
 
-            Log::info('Buscando unidad con numero_eco:', ['numero_eco' => $numeroEco]);
+            Log::info('Buscando unidad con numero_eco:', ['numero_eco' => $numeroEco, 'movimiento' => $tipoMovimiento]);
 
-            // tipo (urbanuss/orion/zafiro/vagoneta) es fijo según el numero_eco,
-            // NO se modifica nunca en este flujo.
             $unidad = DB::table('unidades')
                 ->where('numero_eco', $numeroEco)
                 ->first();
@@ -54,54 +55,87 @@ class PlataformaController extends Controller
 
             $unidadId = $unidad->id;
 
-            // El estatus real y vigente de la unidad vive en `informacion_operativa`
-            // (la misma tabla que usa DespachoController para todo el sistema).
             $registroOperativo = DB::table('informacion_operativa')
                 ->where('unidad_id', $unidadId)
                 ->first();
 
-            // Si nunca ha tenido registro operativo, se asume RESERVA.
             $estatusAnteriorRaw = $registroOperativo->estatus ?? 'RESERVA';
             $estatusAnterior = strtoupper(trim($estatusAnteriorRaw));
             $estatusNuevo = $estatusAnterior;
+            $datosUpdate = [];
+            $mensajeBitacora = "";
 
             if ($tipoMovimiento === 'INCORPORACION') {
                 if ($estatusAnterior === 'OPERACION') {
-                    return response()->json([
-                        'error' => 'La unidad ya está en operación'
-                    ], 422);
+                    return response()->json(['error' => 'La unidad ya está en operación'], 422);
                 }
                 $estatusNuevo = 'OPERACION';
+                $datosUpdate['estatus'] = strtolower($estatusNuevo);
+                $mensajeBitacora = "INCORPORACIÓN - CONDUCTOR: " . strtoupper($request->conductor ?? 'SIN ASIGNAR') . ", RUTA: " . strtoupper($request->ruta ?? 'SIN RUTA');
             } else if ($tipoMovimiento === 'DESINCORPORACION') {
                 if ($estatusAnterior !== 'OPERACION') {
-                    return response()->json([
-                        'error' => 'La unidad no está en operación, no se puede desincorporar'
-                    ], 422);
+                    return response()->json(['error' => 'La unidad no está en operación, no se puede desincorporar'], 422);
                 }
                 $estatusNuevo = $request->estatus_nuevo ?? 'RESERVA';
+                $datosUpdate['estatus'] = strtolower($estatusNuevo);
+                $mensajeBitacora = "DESINCORPORACIÓN A " . strtoupper($estatusNuevo) . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
+            } else if ($tipoMovimiento === 'ASIGNACION_CONDUCTOR') {
+                if (!$registroOperativo) {
+                    return response()->json(['error' => 'No hay registro operativo para esta unidad.'], 422);
+                }
+                $conductorNuevo = DB::table('conductores')->where('tarjeton', $request->numero_tarjeton)->first();
+                if (!$conductorNuevo) {
+                    return response()->json(['error' => 'Conductor no encontrado en el sistema.'], 404);
+                }
+                $datosUpdate['numero_tarjeton'] = $request->numero_tarjeton;
+                $datosUpdate['nombre_conductor'] = $conductorNuevo->nombre;
+                
+                DB::table('conductores')->where('tarjeton', $request->numero_tarjeton)->update(['estado_servicio' => 'en_servicio']);
+                $mensajeBitacora = "ASIGNACIÓN DE CONDUCTOR: " . $request->numero_tarjeton . " - " . $conductorNuevo->nombre . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
+            } else if ($tipoMovimiento === 'RETIRO_CONDUCTOR') {
+                if (!$registroOperativo) {
+                    return response()->json(['error' => 'No hay registro operativo para esta unidad.'], 422);
+                }
+                $tarjetonAnterior = $registroOperativo->numero_tarjeton;
+                $motivoRetiro = strtolower($request->motivo ?? 'falta');
+                if ($tarjetonAnterior) {
+                    DB::table('conductores')->where('tarjeton', $tarjetonAnterior)->update(['estado_servicio' => $motivoRetiro]);
+                }
+
+                if ($request->cambio_operador_activo) {
+                    $conductorNuevo = DB::table('conductores')->where('tarjeton', $request->numero_tarjeton_nuevo)->first();
+                    if (!$conductorNuevo) {
+                        return response()->json(['error' => 'Conductor de reemplazo no encontrado.'], 404);
+                    }
+                    $datosUpdate['numero_tarjeton'] = $request->numero_tarjeton_nuevo;
+                    $datosUpdate['nombre_conductor'] = $conductorNuevo->nombre;
+                    DB::table('conductores')->where('tarjeton', $request->numero_tarjeton_nuevo)->update(['estado_servicio' => 'en_servicio']);
+                    
+                    $mensajeBitacora = "CAMBIO DE CONDUCTOR A: " . $request->numero_tarjeton_nuevo . " - " . $conductorNuevo->nombre . " - MOTIVO RETIRO ANTERIOR: " . strtoupper($request->motivo ?? '');
+                } else {
+                    $datosUpdate['numero_tarjeton'] = null;
+                    $datosUpdate['nombre_conductor'] = null;
+                    $mensajeBitacora = "RETIRO DE CONDUCTOR - MOTIVO: " . strtoupper($request->motivo ?? '');
+                }
             }
 
-            // Sincronizar el cambio con informacion_operativa, que es la tabla
-            // que consume el resto del sistema (DespachoController).
-            if ($registroOperativo) {
+            // Sincronizar el cambio con informacion_operativa
+            if ($registroOperativo && !empty($datosUpdate)) {
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
-                    ->update([
-                        'estatus' => strtolower($estatusNuevo),
-                    ]);
-            } else {
+                    ->update($datosUpdate);
+            } else if (!$registroOperativo && !empty($datosUpdate)) {
                 Log::warning('No existe registro en informacion_operativa para esta unidad; solo se registrará el historial.', ['unidad_id' => $unidadId]);
             }
 
-            // Registrar movimiento en plataforma_movimientos.
-            // Aquí sí se guarda el historial de conductor, ruta, motivo y estatus.
+            // Registrar movimiento en plataforma_movimientos
             DB::table('plataforma_movimientos')->insert([
                 'unidad_id' => $unidadId,
                 'usuario_id' => $usuarioId,
                 'tipo_movimiento' => $tipoMovimiento,
                 'estatus_anterior' => $estatusAnterior,
                 'estatus_nuevo' => $estatusNuevo,
-                'conductor_asignado' => $request->conductor,
+                'conductor_asignado' => $request->numero_tarjeton_nuevo ?? $request->numero_tarjeton ?? $request->conductor,
                 'ruta_asignada' => $request->ruta,
                 'motivo' => $request->motivo,
                 'unidad_reemplazo' => $request->unidad_reemplazo,
@@ -119,9 +153,7 @@ class PlataformaController extends Controller
             BitacoraHelper::registrarCambio(
                 $unidadId,
                 $tipoMovimiento,
-                $tipoMovimiento === 'INCORPORACION'
-                    ? "INCORPORACIÓN - CONDUCTOR: " . strtoupper($request->conductor ?? 'SIN ASIGNAR') . ", RUTA: " . strtoupper($request->ruta ?? 'SIN RUTA')
-                    : "DESINCORPORACIÓN A " . strtoupper($estatusNuevo) . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : ""),
+                $mensajeBitacora,
                 $estatusAnterior,
                 $estatusNuevo
             );
