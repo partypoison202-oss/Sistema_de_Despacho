@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import GlobalClock from './components/GlobalClock/GlobalClock';
@@ -70,242 +70,324 @@ function PageLoader() {
   );
 }
 
+const RootLayout = () => (
+  <AuthProvider>
+    <GlobalClock />
+    <ScrollToTop />
+    <Suspense fallback={<PageLoader />}>
+      <Outlet />
+    </Suspense>
+  </AuthProvider>
+);
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      { index: true, element: <Login /> },
+      {
+        path: 'despacho/:id',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
+            <DetalleUnidadGeneral />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'patio/dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PATIO']}>
+            <PatioDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'titan/dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN']}>
+            <DashboardTitan />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'infraccion',
+        element: <Navigate to="/infraccion/dashboard" replace />,
+      },
+      {
+        path: 'infraccion/dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'INFRACCION']}>
+            <InfraccionDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'general',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
+            <DashboardGeneral />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'mesa-control',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
+            <DashboardMesaControl />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'mesa-control/:tipoTransporte',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
+            <DetalleUnidadMesaControl />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'menu',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'CARGA_DE_COMBUSTIBLE']}>
+            <Menu />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'transporte/:tipoTransporte',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
+            <DetalleUnidad />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'cargar-excel',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROGRAMACION']}>
+            <CargaExcel />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'operadores',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
+            <Operadores />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'maniobristas',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
+            <Maniobristas />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'usuarios',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
+            <Usuarios />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'resumen-despacho',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
+            <ResumenDespacho />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'historial',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+            <MenuHistorial />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'historial/general',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROGRAMACION', 'DESPACHO', 'GENERAL']}>
+            <HistorialGeneral />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'historial/despacho',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+            <HistorialDespacho />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'historial/encierro',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'GENERAL']}>
+            <HistorialEncierro />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'historial/mantenimiento',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+            <HistorialMantenimiento />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'checklist/menu',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+            <MenuCheckList />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'checklist/seleccionar-flota',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+            <FleetSelection />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'checklist',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+            <CheckList />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'checklist/historial',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+            <HistorialCheckList />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'encierro/dashboard',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
+            <DashboardEncierro />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'encierro/transporte/:tipoTransporte',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
+            <DetalleUnidadEncierro />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'centro-control',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+            <CentroControl />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'centro-control/infracciones',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+            <DashboardInfracciones />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'centro-control/bitacoras',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+            <DashboardBitacora />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'centro-control/detalle/:tipo',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+            <DetalleUnidades />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'plano-patio',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+            <PatioDashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'mantenimiento',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
+            <Mantenimiento />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'mantenimiento/:tipoTransporte',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
+            <DetalleUnidadMantenimiento />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'carga-combustible',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
+            <Mantenimiento />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'carga-combustible/:tipoTransporte',
+        element: (
+          <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
+            <DetalleUnidadMantenimiento />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'reportestitanes',
+        element: <ReportesTitanes />,
+      },
+      {
+        path: 'historial/reportes-titanes',
+        element: <HistorialReportesTitanes />,
+      },
+      {
+        path: '*',
+        element: <Navigate to="/" replace />,
+      }
+    ]
+  }
+]);
+
 function App() {
-  return (
-    <AuthProvider>
-      <GlobalClock />
-      <ScrollToTop />
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Pantalla de Inicio de Sesión */}
-            <Route path="/" element={<Login />} />
-
-            {/* Ruta protegida de detalle de despacho (pantalla "General" nueva) */}
-            <Route path="/despacho/:id" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
-                <DetalleUnidadGeneral />
-              </ProtectedRoute>
-            } />
-
-            {/* Rutas protegidas para ADMIN y DESPACHO (NO para CENTRO_CONTROL) */}
-            <Route path="/patio/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PATIO']}>
-                <PatioDashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* TITAN Module */}
-            <Route path="/titan/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN']}>
-                <DashboardTitan />
-              </ProtectedRoute>
-            } />
-
-            {/* INFRACCION Module */}
-            <Route path="/infraccion" element={<Navigate to="/infraccion/dashboard" replace />} />
-            <Route path="/infraccion/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'INFRACCION']}>
-                <InfraccionDashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* Dashboard General */}
-            <Route path="/general" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
-                <DashboardGeneral />
-              </ProtectedRoute>
-            } />
-
-            {/* DESPACHO DASHBOARD */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* MESA DE CONTROL */}
-            <Route path="/mesa-control" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
-                <DashboardMesaControl />
-              </ProtectedRoute>
-            } />
-            <Route path="/mesa-control/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
-                <DetalleUnidadMesaControl />
-              </ProtectedRoute>
-            } />
-
-            <Route path="/menu" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'CARGA_DE_COMBUSTIBLE']}>
-                <Menu />
-              </ProtectedRoute>
-            } />
-
-            {/* Detalle por unidad (tipoTransporte) */}
-            <Route path="/transporte/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
-                <DetalleUnidad />
-              </ProtectedRoute>
-            } />
-
-            {/* Excel */}
-            <Route path="/cargar-excel" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROGRAMACION']}>
-                <CargaExcel />
-              </ProtectedRoute>
-            } />
-
-            {/* Operadores */}
-            <Route path="/operadores" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
-                <Operadores />
-              </ProtectedRoute>
-            } />
-
-            {/* Maniobristas */}
-            <Route path="/maniobristas" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
-                <Maniobristas />
-              </ProtectedRoute>
-            } />
-
-            {/* Usuarios (solo ADMIN) */}
-            <Route path="/usuarios" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
-                <Usuarios />
-              </ProtectedRoute>
-            } />
-
-            <Route path="/resumen-despacho" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR']}>
-                <ResumenDespacho />
-              </ProtectedRoute>
-            } />
-
-            {/* Historial */}
-            <Route path="/historial" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
-                <MenuHistorial />
-              </ProtectedRoute>
-            } />
-            <Route path="/historial/general" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROGRAMACION', 'DESPACHO', 'GENERAL']}>
-                <HistorialGeneral />
-              </ProtectedRoute>
-            } />
-            <Route path="/historial/despacho" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
-                <HistorialDespacho />
-              </ProtectedRoute>
-            } />
-            <Route path="/historial/encierro" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'GENERAL']}>
-                <HistorialEncierro />
-              </ProtectedRoute>
-            } />
-            <Route path="/historial/mantenimiento" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
-                <HistorialMantenimiento />
-              </ProtectedRoute>
-            } />
-
-            {/* CheckList */}
-            <Route path="/checklist/menu" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
-                <MenuCheckList />
-              </ProtectedRoute>
-            } />
-            <Route path="/checklist/seleccionar-flota" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
-                <FleetSelection />
-              </ProtectedRoute>
-            } />
-            <Route path="/checklist" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
-                <CheckList />
-              </ProtectedRoute>
-            } />
-            <Route path="/checklist/historial" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
-                <HistorialCheckList />
-              </ProtectedRoute>
-            } />
-
-            {/* Encierro */}
-            <Route path="/encierro/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
-                <DashboardEncierro />
-              </ProtectedRoute>
-            } />
-            <Route path="/encierro/transporte/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
-                <DetalleUnidadEncierro />
-              </ProtectedRoute>
-            } />
-
-            {/* Centro de Control */}
-            <Route path="/centro-control" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
-                <CentroControl />
-              </ProtectedRoute>
-            } />
-            <Route path="/centro-control/infracciones" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
-                <DashboardInfracciones />
-              </ProtectedRoute>
-            } />
-            <Route path="/centro-control/bitacoras" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
-                <DashboardBitacora />
-              </ProtectedRoute>
-            } />
-            <Route path="/centro-control/detalle/:tipo" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
-                <DetalleUnidades />
-              </ProtectedRoute>
-            } />
-            <Route path="/plano-patio" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
-                <PatioDashboard />
-              </ProtectedRoute>
-            } />
-
-            {/* Mantenimiento */}
-            <Route path="/mantenimiento" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
-                <Mantenimiento />
-              </ProtectedRoute>
-            } />
-            <Route path="/mantenimiento/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
-                <DetalleUnidadMantenimiento />
-              </ProtectedRoute>
-            } />
-
-            {/* Carga de Combustible */}
-            <Route path="/carga-combustible" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
-                <Mantenimiento />
-              </ProtectedRoute>
-            } />
-            <Route path="/carga-combustible/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
-                <DetalleUnidadMantenimiento />
-              </ProtectedRoute>
-            } />
-
-            {/* Reportes Titanes */}
-            <Route path="/reportestitanes" element={<ReportesTitanes />} />
-            <Route path="/historial/reportes-titanes" element={<HistorialReportesTitanes />} />
-
-            {/* Redirección por defecto */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

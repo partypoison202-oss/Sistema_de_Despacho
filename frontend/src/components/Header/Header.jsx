@@ -7,7 +7,7 @@ import UserAvatar from '../UserAvatar/UserAvatar';
 import Swal from 'sweetalert2';
 import './Header.css';
 
-export default function Header({ title, eyebrow, hideLogos, hideBackButton = false, hasUnsavedChanges = false, onSaveAndExit = null }) {
+export default function Header({ title, eyebrow, hideLogos, hideBackButton = false }) {
   const { user, logout } = useContext(AuthContext);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showAjustes, setShowAjustes] = useState(false);
@@ -25,37 +25,6 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleConfirmExit = (onConfirm) => {
-    if (hasUnsavedChanges) {
-      Swal.fire({
-        title: 'Cambios sin guardar',
-        text: 'Tienes cambios pendientes en la programación operativa. ¿Qué deseas hacer antes de salir?',
-        icon: 'warning',
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonColor: '#1e7145',
-        denyButtonColor: '#dc2626',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Guardar y salir',
-        denyButtonText: 'Descartar y salir',
-        cancelButtonText: 'Permanecer aquí'
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          if (onSaveAndExit) {
-            const saved = await onSaveAndExit();
-            if (saved) onConfirm();
-          } else {
-            onConfirm();
-          }
-        } else if (result.isDenied) {
-          onConfirm();
-        }
-      });
-    } else {
-      onConfirm();
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -151,7 +120,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             <button
               type="button"
               className="app-header__back-btn"
-              onClick={() => handleConfirmExit(handleBackClick)}
+              onClick={handleBackClick}
               title="Regresar"
             >
               <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -163,7 +132,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             <button
               type="button"
               className="app-header__brand"
-              onClick={() => handleConfirmExit(handleHomeClick)}
+              onClick={handleHomeClick}
               aria-label="Ir al inicio"
               style={{ cursor: 'pointer' }}
             >
@@ -181,7 +150,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
           <button
             type="button"
             className="app-header__brand"
-            onClick={() => handleConfirmExit(handleHomeClick)}
+            onClick={handleHomeClick}
             aria-label="Ir al inicio"
             style={{ cursor: 'pointer' }}
           >
@@ -221,18 +190,14 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   {['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'].includes(user.role.codigo) && (
                     <>
                       <button className="profile-menu-btn" onClick={() => {
-                        handleConfirmExit(() => {
-                          setShowProfileMenu(false);
-                          navigate('/operadores');
-                        });
+                        setShowProfileMenu(false);
+                        navigate('/operadores');
                       }}>
                         Gestión de Operadores
                       </button>
                       <button className="profile-menu-btn" onClick={() => {
-                        handleConfirmExit(() => {
-                          setShowProfileMenu(false);
-                          navigate('/maniobristas');
-                        });
+                        setShowProfileMenu(false);
+                        navigate('/maniobristas');
                       }}>
                         Gestión de Maniobristas
                       </button>
@@ -240,15 +205,13 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   )}
                   {user.role.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {
-                      handleConfirmExit(() => {
-                        setShowProfileMenu(false);
-                        navigate('/usuarios');
-                      });
+                      setShowProfileMenu(false);
+                      navigate('/usuarios');
                     }}>
                       Gestión de Usuarios
                     </button>
                   )}
-                  <button className="profile-menu-btn logout-btn" onClick={() => handleConfirmExit(handleLogout)}>
+                  <button className="profile-menu-btn logout-btn" onClick={handleLogout}>
                     Cerrar Sesión
                   </button>
                 </div>

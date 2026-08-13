@@ -39,7 +39,7 @@
   margin: 0 0 2.5rem;
 }
 
-.dashboard__grid {
+.dashboard-general__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.5rem;
@@ -51,7 +51,7 @@
     font-size: 1.75rem;
   }
 
-  .dashboard__grid {
+  .dashboard-general__grid {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 1rem;
   }

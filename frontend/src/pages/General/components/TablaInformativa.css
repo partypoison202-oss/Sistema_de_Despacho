@@ -132,17 +132,25 @@
 }
 
 .tabla-informativa__tabla {
-  width: 100%;
+  width: 100% !important;
   border-collapse: collapse;
   font-size: 0.88rem;
+  table-layout: auto;
 }
+
+.tabla-informativa__tabla th.col-servicio { width: 20%; }
+.tabla-informativa__tabla th.col-operando { width: 15%; }
+.tabla-informativa__tabla th.col-fuera { width: 15%; }
+.tabla-informativa__tabla th.col-motivo { width: 35%; }
+.tabla-informativa__tabla th.col-corrida { width: 15%; }
 
 .tabla-informativa__tabla th,
 .tabla-informativa__tabla td {
   padding: 0.7rem 0.75rem;
   border-bottom: 1px solid var(--ti-borde);
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 .tabla-informativa__tabla thead th {
