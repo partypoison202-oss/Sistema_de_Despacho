@@ -252,7 +252,7 @@ export default function Menu() {
           </h2>
         </div>
 
-        <div className="dashboard-grid">
+        <div className="menu-dashboard-grid">
           {visibleMenuItems.map((item) => (
             <button
               key={item.id}

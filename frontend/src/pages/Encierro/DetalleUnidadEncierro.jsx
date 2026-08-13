@@ -1402,7 +1402,7 @@ export default function DetalleUnidadEncierro() {
                   </div>
                 </div>
 
-                <div className="dashboard-grid">
+                <div className="detalle-dashboard-grid">
                   <div className="info-card">
                     <div className="info-card__header">
                       <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

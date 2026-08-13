@@ -61,7 +61,7 @@ export default function FleetSelection() {
           </p>
         </div>
 
-        <div className="dashboard-grid">
+        <div className="menu-dashboard-grid">
           {transportModules.map((modulo, index) => {
             const route = action === 'hacer' 
               ? `/checklist?tipoTransporte=${modulo.id}` 

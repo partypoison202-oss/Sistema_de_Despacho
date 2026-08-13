@@ -1040,7 +1040,7 @@ export default function DetalleUnidadMantenimiento() {
                   </div>
                 </div>
 
-                <div className="dashboard-grid">
+                <div className="detalle-dashboard-grid">
                   {/* CARD: SERVICIO ACTIVO */}
                   <div className="info-card info-card--double">
                     <div className="info-card__header">
