@@ -109,8 +109,7 @@ export default function CargaExcel() {
   // (handleUpdateRecord) sigan apuntando al registro correcto, aunque la tabla
   // esté filtrada.
   const registrosVisibles = previewData
-    .map((fila, originalIndex) => ({ fila, originalIndex }))
-    .filter(({ fila }) => trimString(fila.ESTATUS).toLowerCase() === 'operacion');
+    .map((fila, originalIndex) => ({ fila, originalIndex }));
 
   // Actualizar un campo específico de un registro
   const handleUpdateRecord = async (index, field, value) => {
