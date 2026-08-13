@@ -13,16 +13,25 @@
 }
 
 .tabla-bitacora__tabla {
-  width: 100%;
+  width: 100% !important;
   border-collapse: collapse;
   font-size: 0.9rem;
+  table-layout: auto;
 }
+
+.tabla-bitacora__tabla th:nth-child(1) { width: 10%; } /* Tipo */
+.tabla-bitacora__tabla th:nth-child(2) { width: 15%; } /* Eco */
+.tabla-bitacora__tabla th:nth-child(3) { width: 15%; } /* Fecha */
+.tabla-bitacora__tabla th:nth-child(4) { width: 25%; } /* Asunto */
+.tabla-bitacora__tabla th:nth-child(5) { width: 35%; } /* Observaciones */
 
 .tabla-bitacora__tabla th,
 .tabla-bitacora__tabla td {
   border: 1px solid #ddd;
-  padding: 6px 10px;
+  padding: 8px 10px;
   text-align: left;
+  vertical-align: middle;
+  word-wrap: break-word;
 }
 
 .tabla-bitacora__tabla th {

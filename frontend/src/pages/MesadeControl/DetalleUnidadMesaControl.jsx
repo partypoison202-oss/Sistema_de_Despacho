@@ -15,11 +15,14 @@ import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CONDUCTORES from '../../data/conductores';
 import Swal from 'sweetalert2';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useConfirmAction } from '../../hooks/useConfirmAction';
 
 export default function DetalleUnidadMesaControl() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { confirmAction } = useConfirmAction();
 
   // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -89,6 +92,22 @@ export default function DetalleUnidadMesaControl() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const isDirty = modalEstatusOpen;
+  useUnsavedChanges(isDirty, null);
+
+  const handleCloseModalEstatus = async () => {
+    if (isDirty) {
+      const confirmed = await confirmAction({
+        title: 'Cancelar Cambio',
+        text: '¿Seguro que deseas cancelar el cambio de estatus/relevo? La información ingresada se perderá.',
+        confirmButtonText: 'Sí, cancelar',
+        cancelButtonText: 'No, continuar'
+      });
+      if (!confirmed) return;
+    }
+    setModalEstatusOpen(false);
+  };
 
   const queryClient = useQueryClient();
 
@@ -1396,10 +1415,10 @@ export default function DetalleUnidadMesaControl() {
       {modalEstatusOpen && (
         <div
           className="custom-modal-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) setModalEstatusOpen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) handleCloseModalEstatus(); }}
           role="button"
           tabIndex={-1}
-          onKeyDown={(e) => { if (e.key === 'Escape') setModalEstatusOpen(false); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') handleCloseModalEstatus(); }}
         >
           <div className="custom-modal-content">
             <h2 className="custom-modal-title">
@@ -1754,7 +1773,7 @@ export default function DetalleUnidadMesaControl() {
               <button
                 type="button"
                 className="custom-modal-btn-cancel"
-                onClick={() => setModalEstatusOpen(false)}
+                onClick={handleCloseModalEstatus}
               >
                 Cancelar
               </button>

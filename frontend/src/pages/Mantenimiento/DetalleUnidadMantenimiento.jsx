@@ -14,6 +14,8 @@ import CONDUCTORES from '../../data/conductores';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useConfirmAction } from '../../hooks/useConfirmAction';
 
 export default function DetalleUnidadMantenimiento() {
   const { tipoTransporte } = useParams();
@@ -93,6 +95,22 @@ export default function DetalleUnidadMantenimiento() {
 
   // Modal de asignación
   const [modalEstatusOpen, setModalEstatusOpen] = useState(false);
+  const { confirmAction } = useConfirmAction();
+  const isDirty = modalEstatusOpen;
+  useUnsavedChanges(isDirty, null);
+
+  const handleCloseModalEstatus = async () => {
+    if (isDirty) {
+      const confirmed = await confirmAction({
+        title: 'Cancelar Cambio',
+        text: '¿Seguro que deseas cancelar el cambio de estatus/relevo? La información ingresada se perderá.',
+        confirmButtonText: 'Sí, cancelar',
+        cancelButtonText: 'No, continuar'
+      });
+      if (!confirmed) return;
+    }
+    setModalEstatusOpen(false);
+  };
   const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
   const [modalEstatusConductor, setModalEstatusConductor] = useState('');
   const [modalEstatusRuta, setModalEstatusRuta] = useState('');
@@ -1709,7 +1727,7 @@ export default function DetalleUnidadMantenimiento() {
       </main>
 
       {modalEstatusOpen && (
-        <div className="custom-modal-overlay" onClick={() => setModalEstatusOpen(false)}>
+        <div className="custom-modal-overlay" onClick={handleCloseModalEstatus}>
           <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
             <h2 className="custom-modal-title">Asignar Conductor y Ruta</h2>
 
@@ -1873,7 +1891,7 @@ export default function DetalleUnidadMantenimiento() {
               <button
                 type="button"
                 className="custom-modal-btn-cancel"
-                onClick={() => setModalEstatusOpen(false)}
+                onClick={handleCloseModalEstatus}
               >
                 Cancelar
               </button>

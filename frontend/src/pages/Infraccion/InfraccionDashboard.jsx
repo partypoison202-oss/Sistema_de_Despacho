@@ -8,6 +8,8 @@ import CameraModal from '../../components/CameraModal';
 import API_BASE from '../../config/api';
 import { AuthContext } from "../../context/AuthContext";
 import { generarPDFInfraccion } from "../../utils/generarPDFInfraccion";
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useConfirmAction } from '../../hooks/useConfirmAction';
 import InfraccionStats from './components/InfraccionStats';
 import './Infraccion.css';
 
@@ -96,13 +98,33 @@ const CustomSelect = ({ value, onChange, options, placeholder = "SELECCIONAR", c
 
 const InfraccionDashboard = () => {
   const { token, user } = useContext(AuthContext);
+  const { confirmAction } = useConfirmAction();
   const [activeTab, setActiveTab] = useState('REGISTRO'); // REGISTRO | DASHBOARD
 
-  // 1. Verificación de Placa previa (Paso 1)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // ====================== ESTADO GENERAL Y COMÚN ======================
   const [placas, setPlacas] = useState('');
   const [checkingPlaca, setCheckingPlaca] = useState(false);
   const [placaStatus, setPlacaStatus] = useState(null);
   const [tipoFormulario, setTipoFormulario] = useState(null); // 'amonestacion' | 'infraccion'
+
+  const isDirty = tipoFormulario !== null;
+  useUnsavedChanges(isDirty, null);
+
+  const handleResetClick = async () => {
+    if (isDirty) {
+      const confirmed = await confirmAction({
+        title: 'Limpiar formulario',
+        text: '¿Seguro que deseas descartar toda la información capturada?',
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar'
+      });
+      if (!confirmed) return;
+    }
+    resetForm();
+  };
 
   // -------------------------------------------------------------
   // ESTADOS DEL FORMULARIO 1: ACTA DE AMONESTACIÓN (Primera Incursión)
@@ -202,8 +224,6 @@ const InfraccionDashboard = () => {
   const [infNegoFirmar, setInfNegoFirmar] = useState(false);
   const [infRecibioNombre, setInfRecibioNombre] = useState('');
   const [infFirmaConductor, setInfFirmaConductor] = useState('');
-
-  const [submitting, setSubmitting] = useState(false);
 
   // Catálogos
   const ENTIDADES = [
@@ -1233,7 +1253,7 @@ const InfraccionDashboard = () => {
                 <button
                   type="button"
                   className="btn-cancel-form"
-                  onClick={resetForm}
+                  onClick={handleResetClick}
                   disabled={submitting}
                 >
                   Limpiar Formulario

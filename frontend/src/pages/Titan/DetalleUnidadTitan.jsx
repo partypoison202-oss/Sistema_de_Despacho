@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { AuthContext } from '../../context/AuthContext';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { useConfirmAction } from '../../hooks/useConfirmAction';
 import './Titan.css';
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 
@@ -36,6 +38,7 @@ const ESTACIONES       = [
 const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { confirmAction } = useConfirmAction();
 
   /* ── Unidad ─────────────────────────────────── */
   const [selectedUnidad, setSelectedUnidad] = useState(null);
@@ -123,6 +126,21 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
   /* ── UI ──────────────────────────────────────── */
   const [guardando, setGuardando] = useState(false);
+
+  const isDirty = activeTab !== '' || intervalo !== '' || observaciones !== '' || corrida !== '';
+
+  const handleCancelClick = async () => {
+    if (isDirty) {
+      const confirmed = await confirmAction({
+        title: 'Cambios sin guardar',
+        text: 'Tienes información capturada que se perderá si cierras el panel. ¿Deseas descartarla?',
+        confirmButtonText: 'Sí, descartar',
+        cancelButtonText: 'No, regresar'
+      });
+      if (!confirmed) return;
+    }
+    onCancel();
+  };
 
   /* ─── Firma helpers ─── */
   const getFirmaCoords = useCallback((e) => {
@@ -343,24 +361,24 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
   /* ─── Submit ─── */
   const handleSubmit = async () => {
-    if (!selectedUnidad) return;
-    if (!activeTab) { Swal.fire('Atención', 'Selecciona un tipo de reporte.', 'warning'); return; }
+    if (!selectedUnidad) return false;
+    if (!activeTab) { Swal.fire('Atención', 'Selecciona un tipo de reporte.', 'warning'); return false; }
 
     if (activeTab === 'DESINCORPORACION' && !motivoDesincorporacion.trim()) {
-      Swal.fire('Atención', 'El motivo de desincorporación es requerido.', 'warning'); return;
+      Swal.fire('Atención', 'El motivo de desincorporación es requerido.', 'warning'); return false;
     }
     if (DESINC_INC.includes(activeTab) && !ubicacionEvento) {
-      Swal.fire('Atención', 'Selecciona la ubicación del evento.', 'warning'); return;
+      Swal.fire('Atención', 'Selecciona la ubicación del evento.', 'warning'); return false;
     }
     if (ACCIDENT_TYPES.includes(activeTab) && !accHechos.trim()) {
-      Swal.fire('Atención', 'El campo de Hechos / Descripción es requerido.', 'warning'); return;
+      Swal.fire('Atención', 'El campo de Hechos / Descripción es requerido.', 'warning'); return false;
     }
     if (NARANJA_TYPES.includes(activeTab)) {
       if (!narRelato.trim()) {
-        Swal.fire('Atención', 'El relato de los hechos es requerido.', 'warning'); return;
+        Swal.fire('Atención', 'El relato de los hechos es requerido.', 'warning'); return false;
       }
       if (narPuestoDisposicion === false && !narMotivo.trim()) {
-        Swal.fire('Atención', 'El motivo de no puesta a disposición es requerido.', 'warning'); return;
+        Swal.fire('Atención', 'El motivo de no puesta a disposición es requerido.', 'warning'); return false;
       }
     }
 
@@ -452,13 +470,17 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
 
       await Swal.fire({ icon: 'success', title: '¡Reporte Guardado!', text: 'La información se registró correctamente.', confirmButtonColor: '#601a2a' });
       if (onSuccess) onSuccess();
+      return true;
     } catch (err) {
       console.error(err);
       Swal.fire('Error', err.message, 'error');
+      return false;
     } finally {
       setGuardando(false);
     }
   };
+
+  useUnsavedChanges(isDirty, handleSubmit);
 
   /* ─────────────────────────────────────────────────────────────
      JSX
@@ -479,7 +501,7 @@ const DetalleUnidadTitan = ({ model, preselectedUnidad, onCancel, onSuccess }) =
       <div className="titan-form-container">
         {/* Contraer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <button className="titan-btn-cancel" onClick={onCancel}>
+          <button className="titan-btn-cancel" onClick={handleCancelClick}>
             <svg className="titan-btn-cancel-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
             </svg>

@@ -253,7 +253,7 @@ export default function DashboardEncierro() {
             </button>
           </form>
 
-          <div className="dashboard__grid">
+          <div className="dashboard-general__grid">
             {encierroModules.map((module) => {
               const cantidad = conteos[module.id] || 0;
               return (
