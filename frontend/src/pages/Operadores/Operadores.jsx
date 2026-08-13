@@ -423,6 +423,12 @@ export default function Operadores() {
     }
   };
 
+  const getTarjetonNumber = (tarjeton) => {
+    if (!tarjeton) return 0;
+    const match = tarjeton.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+  };
+
   const filteredConductores = conductores.filter(c => {
     if (activeTab === 'catalogo' && c.estatus === 'baja') {
       return false;
@@ -433,6 +439,8 @@ export default function Operadores() {
       (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
       (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
     );
+  }).sort((a, b) => {
+    return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
   });
 
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
@@ -600,7 +608,7 @@ export default function Operadores() {
         ) : (
           <div className="operadores-table-card">
             <div className="table-responsive" style={{ overflowX: 'auto' }}>
-              <table className="operadores-table kardex-table" style={{ minWidth: '2400px', tableLayout: 'fixed' }}>
+              <table className="operadores-table kardex-table" style={{ minWidth: '2700px', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
                     <th style={{ width: '100px' }}>Tarjetón</th>
@@ -608,14 +616,14 @@ export default function Operadores() {
                     <th style={{ width: '110px' }}>Estatus</th>
                     <th style={{ width: '160px' }}>Última capacitación</th>
                     <th style={{ width: '160px' }}>Próxima capacitación</th>
-                    <th style={{ width: '110px', textAlign: 'center' }}>Accidentes / Siniestros</th>
-                    <th style={{ width: '90px', textAlign: 'center' }}>Faltas</th>
-                    <th style={{ width: '90px', textAlign: 'center' }}>Retardos</th>
-                    <th style={{ width: '110px', textAlign: 'center' }}>Amonestaciones</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Reconocimientos</th>
+                    <th style={{ width: '190px', textAlign: 'center' }}>Accidentes / Siniestros</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Faltas</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Retardos</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Amonestaciones</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Reconocimientos</th>
                     <th style={{ width: '250px' }}>Condicionamientos jurídicos</th>
-                    <th style={{ width: '95px', textAlign: 'center' }}>Permutas</th>
-                    <th style={{ width: '95px', textAlign: 'center' }}>Permisos</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Permutas</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Permisos</th>
                     <th style={{ width: '120px', textAlign: 'center' }}>Evaluación</th>
                     <th style={{ width: '300px' }}>Observaciones</th>
                   </tr>
