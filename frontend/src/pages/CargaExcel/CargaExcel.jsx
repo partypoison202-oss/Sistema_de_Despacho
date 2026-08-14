@@ -3,6 +3,8 @@ import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
@@ -20,7 +22,6 @@ export default function CargaExcel() {
   const [inicioData, setInicioData] = useState([]);
   const [cargandoInicio, setCargandoInicio] = useState(false);
 
-  // Helper para obtener el token de autenticación
   const getAuthHeaders = () => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     return {
@@ -29,7 +30,6 @@ export default function CargaExcel() {
     };
   };
 
-  // 1. Obtener y cachear Catálogos usando React Query (Cache de larga duración)
   const fetchCatalogos = async () => {
     const headers = getAuthHeaders();
     const [resUnidades, resConductores, resRutas, resManiobristas] = await Promise.all([
@@ -59,7 +59,7 @@ export default function CargaExcel() {
   const { data: catalogos } = useQuery({
     queryKey: ['capturista-catalogos'],
     queryFn: fetchCatalogos,
-    staleTime: 1000 * 60 * 30, // Mantener en cache por 30 minutos sin refetch automático
+    staleTime: 1000 * 60 * 30,
   });
 
   const catalogUnidades = catalogos?.unidades || [];
@@ -67,15 +67,12 @@ export default function CargaExcel() {
   const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
-  // 2. Cargar datos de la BD en tiempo real (Polling cada 8 segundos)
   const fetchDatosHoy = async () => {
     const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
       method: 'GET',
       headers: getAuthHeaders()
     });
-    if (!response.ok) {
-      throw new Error('Error al obtener datos de hoy');
-    }
+    if (!response.ok) throw new Error('Error al obtener datos de hoy');
     const datos = await response.json();
     return Array.isArray(datos) ? datos : [];
   };
@@ -83,20 +80,16 @@ export default function CargaExcel() {
   const { data: serverData, isLoading: cargandoTabla } = useQuery({
     queryKey: ['despacho-hoy'],
     queryFn: fetchDatosHoy,
-    // Detiene el refetch en segundo plano si hay cambios locales sin guardar para no sobrescribir el trabajo del capturista
-    refetchInterval: hasChanges ? false : 8000, 
+    refetchInterval: hasChanges ? false : 8000,
   });
 
-  // Sincronizar datos del servidor con el estado local del editor cuando no hay cambios pendientes
   useEffect(() => {
     if (serverData && !hasChanges) {
       setPreviewData(serverData);
     }
   }, [serverData, hasChanges]);
 
-  const trimString = (str) => {
-    return String(str ?? '').trim();
-  };
+  const trimString = (str) => String(str ?? '').trim();
 
   const normalizarTipoUnidad = (tipo) => {
     if (!tipo) return 'URBANUS';
@@ -104,19 +97,12 @@ export default function CargaExcel() {
     return t === 'URBANUSS' ? 'URBANUS' : t;
   };
 
-  // Solo se muestran en la tabla los registros cuyo ESTATUS sea "operacion".
-  // Se conserva el índice original de previewData para que las actualizaciones
-  // (handleUpdateRecord) sigan apuntando al registro correcto, aunque la tabla
-  // esté filtrada.
-  const registrosVisibles = previewData
-    .map((fila, originalIndex) => ({ fila, originalIndex }));
+  const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));
 
-  // Actualizar un campo específico de un registro
   const handleUpdateRecord = async (index, field, value) => {
     const updatedData = [...previewData];
     const valStr = String(value ?? '').trim();
 
-    // 1. Cambio de Estatus
     if (field === 'ESTATUS') {
       if (valStr === 'mantenimiento' || valStr === 'reserva') {
         updatedData[index]['ESTATUS'] = valStr;
@@ -132,10 +118,8 @@ export default function CargaExcel() {
       setHasChanges(true);
       return;
     }
-    
-    // 2. Asignación de Tarjetón / Conductor con validación de exclusividad 1 a 1
+
     if (field === 'TARJETON') {
-      // Si el usuario simplemente está limpiando el conductor (vaciando el campo)
       if (valStr === '') {
         updatedData[index]['TARJETON'] = '';
         updatedData[index]['NOMBRE_CONDUCTOR'] = '';
@@ -144,7 +128,6 @@ export default function CargaExcel() {
         return;
       }
 
-      // Buscar si este conductor ya está asignado a OTRA unidad en la lista
       const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.TARJETON) === valStr);
       const newDriverConductor = catalogConductores.find(c => trimString(c.tarjeton) === valStr);
       const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
@@ -160,16 +143,11 @@ export default function CargaExcel() {
           confirmButtonText: 'Sí, asignar',
           cancelButtonText: 'Cancelar'
         });
-
-        if (!confirm.isConfirmed) {
-          return;
-        }
-
+        if (!confirm.isConfirmed) return;
         newDriverConductor.estado_servicio = 'en_servicio';
       }
 
       if (existingRowIndex !== -1) {
-        // Conductor en uso, solicitar confirmación para intercambiar
         const existingRow = updatedData[existingRowIndex];
         const currentUnitDriverTarjeton = updatedData[index]['TARJETON'];
         const currentUnitDriverName = updatedData[index]['NOMBRE_CONDUCTOR'];
@@ -186,20 +164,15 @@ export default function CargaExcel() {
         });
 
         if (confirm.isConfirmed) {
-          // Asignar el nuevo conductor a la unidad seleccionada
           updatedData[index]['TARJETON'] = valStr;
           updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
-
-          // La unidad que tenía a este conductor ahora recibe al conductor que tenía la unidad actual (Intercambio)
           updatedData[existingRowIndex]['TARJETON'] = currentUnitDriverTarjeton;
           updatedData[existingRowIndex]['NOMBRE_CONDUCTOR'] = currentUnitDriverName;
-
           setPreviewData(updatedData);
           setHasChanges(true);
         }
         return;
       } else {
-        // El conductor está libre, asignación normal
         updatedData[index]['TARJETON'] = valStr;
         updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
       }
@@ -227,7 +200,6 @@ export default function CargaExcel() {
           confirmButtonText: 'Sí, asignar',
           cancelButtonText: 'Cancelar'
         });
-
         if (!confirm.isConfirmed) return;
         newManiobristaCatalog.estado_servicio = 'en_servicio';
       }
@@ -276,9 +248,60 @@ export default function CargaExcel() {
     setHasChanges(true);
   };
 
-  // Guardar todos los cambios al backend directamente (retorna booleano)
+  // ─── GENERA EL PDF Y RETORNA EL BASE64 ───────────────────────────────────────
+  const generarPDFProgramacion = () => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const fecha = new Date().toLocaleDateString('es-MX', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Encabezado vino
+    doc.setFillColor(107, 29, 51);
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 20, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Programación Operativa Diaria', 14, 13);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(fecha, doc.internal.pageSize.getWidth() - 14, 13, { align: 'right' });
+
+    const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Prog.', 'Corrida'];
+    const filas = previewData.map(fila => [
+      fila.ECONOMICO ?? '',
+      fila.TIPO_DE_UNIDAD ?? '',
+      (fila.ESTATUS ?? '').toUpperCase(),
+      fila.RUTA ?? '',
+      fila.TARJETON ?? '',
+      fila.NOMBRE_CONDUCTOR ?? '',
+      fila.HORA_DE_ACOPLE ?? '',
+      fila.CORRIDAS ?? '',
+    ]);
+
+    autoTable(doc, {
+      head: [columnas],
+      body: filas,
+      startY: 24,
+      styles: { fontSize: 8, cellPadding: 2.5, valign: 'middle' },
+      headStyles: { fillColor: [107, 29, 51], textColor: 255, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { halign: 'center' },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          const estatus = String(filas[data.row.index]?.[2] ?? '').toLowerCase();
+          if (estatus === 'operacion')     data.cell.styles.fillColor = [198, 239, 206];
+          if (estatus === 'reserva')       data.cell.styles.fillColor = [221, 235, 247];
+          if (estatus === 'mantenimiento') data.cell.styles.fillColor = [255, 242, 204];
+        }
+      },
+      alternateRowStyles: { fillColor: false },
+    });
+
+    // Retorna solo el base64 sin el prefijo data URI
+    return doc.output('datauristring').split(',')[1];
+  };
+
+  // ─── GUARDAR DIRECTO (retorna booleano) ──────────────────────────────────────
   const handleSaveChangesDirectly = async () => {
-    // Validar que no haya registros incompletos (unidades sin economico)
     const tieneIncompletos = previewData.some(fila => !fila.ECONOMICO);
     if (tieneIncompletos) {
       Swal.fire({
@@ -307,7 +330,6 @@ export default function CargaExcel() {
         text: 'La programación operativa se ha guardado correctamente.',
         confirmButtonColor: '#c5a059'
       });
-      // Invalidar cache para forzar la recarga de datos frescos
       queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
       return true;
     } catch (error) {
@@ -321,14 +343,84 @@ export default function CargaExcel() {
     }
   };
 
-  // Guardar todos los cambios al backend
+  // ─── GUARDAR + PREGUNTAR SI ENVIAR PDF ───────────────────────────────────────
   const handleSaveChanges = async () => {
     setIsSaving(true);
-    await handleSaveChangesDirectly();
+    const guardadoExitoso = await handleSaveChangesDirectly();
     setIsSaving(false);
+
+    if (!guardadoExitoso) return;
+
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Enviar programación a FORTALEZA?',
+      text: 'Se enviará la programación operativa actual en PDF al correo de FORTALEZA.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6b1d33',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, enviar',
+      cancelButtonText: 'No, omitir',
+    });
+
+    if (!isConfirmed) return;
+
+    try {
+      Swal.fire({
+        title: 'Enviando PDF...',
+        text: 'Por favor espera.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const fecha = new Date().toISOString().split('T')[0];
+      const pdfBase64 = generarPDFProgramacion();
+
+      const res = await fetch(`${API_BASE}/api/despacho/enviar-pdf-fortaleza`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          pdf_base64: pdfBase64,
+          nombre_archivo: `Programacion_Operativa_${fecha}.pdf`,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.status === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: '¡PDF enviado!',
+          text: 'La programación fue enviada correctamente a FORTALEZA.',
+          confirmButtonColor: '#6b1d33',
+          timer: 3000,
+        });
+      } else {
+        throw new Error(data.message || 'Error al enviar el PDF');
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al enviar',
+        text: error.message || 'No se pudo enviar el PDF. Intenta de nuevo.',
+        confirmButtonColor: '#6b1d33',
+      });
+    }
   };
 
+  // ─── BLOQUEAR CIERRE SI HAY CAMBIOS ──────────────────────────────────────────
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = 'Tienes cambios sin guardar en la programación operativa.';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
 
+<<<<<<< HEAD
 
   // 4. Bloquear recarga/cierre del navegador si hay cambios sin guardar
   useEffect(() => {
@@ -348,6 +440,9 @@ export default function CargaExcel() {
   // para conservar en el archivo el respaldo completo de mantenimiento/reserva/etc.
   // Si prefieres exportar solo lo visible en pantalla, cambia `previewData` por
   // `registrosVisibles.map(r => r.fila)` en las líneas marcadas abajo.
+=======
+  // ─── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
+>>>>>>> e5c8dd6d819d09774b507945859d298c6fa3eb1d
   const handleExportExcel = () => {
     if (!previewData || previewData.length === 0) {
       Swal.fire({
@@ -362,7 +457,6 @@ export default function CargaExcel() {
     const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'CORRIDAS'];
     const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Programada', 'Corrida'];
 
-    // Construir array de arrays: encabezados + filas de datos
     const datosHoja = [
       encabezados,
       ...previewData.map(fila => columnas.map(col => fila[col] ?? ''))
@@ -370,21 +464,18 @@ export default function CargaExcel() {
 
     const worksheet = XLSX.utils.aoa_to_sheet(datosHoja);
 
-    // Ancho de columnas
     worksheet['!cols'] = encabezados.map((h, i) => ({
       wch: Math.max(h.length, ...previewData.map(fila => String(fila[columnas[i]] ?? '').length)) + 3
     }));
 
-    // Colores por estatus (fondo de fila)
     const colorPorEstatus = {
-      operacion: 'C6EFCE',      // verde claro
-      reserva: 'DDEBF7',        // azul claro
-      mantenimiento: 'FFF2CC'   // amarillo claro
+      operacion: 'C6EFCE',
+      reserva: 'DDEBF7',
+      mantenimiento: 'FFF2CC'
     };
 
     const rango = XLSX.utils.decode_range(worksheet['!ref']);
 
-    // Formato del encabezado (fila 0): fondo vino, texto blanco, negritas
     for (let col = rango.s.c; col <= rango.e.c; col++) {
       const celdaRef = XLSX.utils.encode_cell({ r: 0, c: col });
       if (!worksheet[celdaRef]) continue;
@@ -401,9 +492,8 @@ export default function CargaExcel() {
       };
     }
 
-    // Formato de las filas de datos: colores por estatus + bordes + centrado
     previewData.forEach((fila, rowIdx) => {
-      const excelRow = rowIdx + 1; // +1 porque la fila 0 es encabezado
+      const excelRow = rowIdx + 1;
       const bgColor = colorPorEstatus[String(fila.ESTATUS || '').toLowerCase()] || 'FFFFFF';
 
       for (let col = rango.s.c; col <= rango.e.c; col++) {
@@ -429,6 +519,7 @@ export default function CargaExcel() {
     XLSX.writeFile(workbook, `Despacho_Diario_${fecha}.xlsx`, { cellStyles: true });
   };
 
+  // ─── VER INICIO DEL DÍA ───────────────────────────────────────────────────────
   const handleVerInicio = async () => {
     if (verInicio) {
       setVerInicio(false);
@@ -440,9 +531,7 @@ export default function CargaExcel() {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      if (!response.ok) {
-        throw new Error('Error al obtener datos de inicio');
-      }
+      if (!response.ok) throw new Error('Error al obtener datos de inicio');
       const data = await response.json();
       setInicioData(data);
       setVerInicio(true);
@@ -459,6 +548,7 @@ export default function CargaExcel() {
     }
   };
 
+  // ─── JSX ──────────────────────────────────────────────────────────────────────
   return (
     <div className="excel-layout">
       <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
@@ -476,18 +566,11 @@ export default function CargaExcel() {
               disabled={cargandoInicio}
               className="excel-export-btn"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.65rem 1.25rem',
-                borderRadius: '0.6rem',
-                border: 'none',
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
                 background: verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
+                color: 'white', fontWeight: 700, fontSize: '0.9rem',
+                cursor: 'pointer', transition: 'background 0.2s'
               }}
               onMouseOver={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary-hover)' : '#b38f4d'}
               onMouseOut={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)'}
@@ -510,18 +593,10 @@ export default function CargaExcel() {
               onClick={handleExportExcel}
               className="excel-export-btn"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.65rem 1.25rem',
-                borderRadius: '0.6rem',
-                border: 'none',
-                background: '#1e7145',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
+                background: '#1e7145', color: 'white', fontWeight: 700,
+                fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s'
               }}
               onMouseOver={(e) => e.currentTarget.style.background = '#155a35'}
               onMouseOut={(e) => e.currentTarget.style.background = '#1e7145'}

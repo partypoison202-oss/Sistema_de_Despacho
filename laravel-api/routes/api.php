@@ -108,6 +108,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/infracciones/{id}/send-email', [InfraccionController::class, 'sendEmail']);
     Route::get('/infracciones', [InfraccionController::class, 'index']);
     Route::post('/infracciones', [InfraccionController::class, 'store']);
+
+
+    // RUTA PARA EL ENVIO DE CORREOS DE PROGRAMACION DIARIA
+    // ✅ NUEVA RUTA: envío de PDF a FORTALEZA
+Route::post('/despacho/enviar-pdf-fortaleza', [\App\Http\Controllers\API\DespachoEmailController::class, 'enviarPdfFortaleza']);
 });
 
 // Rutas de setup (públicas, solo para desarrollo)
