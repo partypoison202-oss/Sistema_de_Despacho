@@ -420,29 +420,7 @@ export default function CargaExcel() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasChanges]);
 
-<<<<<<< HEAD
-
-  // 4. Bloquear recarga/cierre del navegador si hay cambios sin guardar
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (hasChanges) {
-        e.preventDefault();
-        e.returnValue = 'Tienes cambios sin guardar en la programación operativa.';
-        return e.returnValue;
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasChanges]);
-
-  // Exportar los datos actuales a un archivo Excel (.xlsx) con formato
-  // Nota: exporta TODOS los registros (todos los estatus), no solo "operacion",
-  // para conservar en el archivo el respaldo completo de mantenimiento/reserva/etc.
-  // Si prefieres exportar solo lo visible en pantalla, cambia `previewData` por
-  // `registrosVisibles.map(r => r.fila)` en las líneas marcadas abajo.
-=======
   // ─── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
->>>>>>> e5c8dd6d819d09774b507945859d298c6fa3eb1d
   const handleExportExcel = () => {
     if (!previewData || previewData.length === 0) {
       Swal.fire({
