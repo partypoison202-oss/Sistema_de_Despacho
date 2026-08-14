@@ -201,9 +201,10 @@ const DashboardTitan = () => {
           <section className="centro-type-grid" style={{ 
             maxWidth: activeUnidad ? '530px' : '900px', 
             margin: activeUnidad ? '0' : '40px auto', 
-            display: 'grid', 
-            gridTemplateColumns: activeUnidad ? 'repeat(4, 1fr)' : 'repeat(auto-fit, minmax(210px, 1fr))', 
-            gap: activeUnidad ? '10px' : '25px', 
+            display: 'flex', 
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: activeUnidad ? '10px' : '30px', 
             padding: activeUnidad ? '0' : '0 20px',
             flexGrow: 2,
             transition: 'all 0.3s ease-out'
@@ -225,7 +226,11 @@ const DashboardTitan = () => {
                     backgroundColor: activeUnidad && isSelected ? '#f9fafb' : 'transparent',
                     boxShadow: activeUnidad && isSelected ? undefined : 'none',
                     transition: 'all 0.3s ease-out',
-                    minHeight: activeUnidad ? '45px' : undefined
+                    minHeight: activeUnidad ? '45px' : undefined,
+                    flex: activeUnidad ? '1 1 calc(25% - 15px)' : '0 1 200px',
+                    maxWidth: activeUnidad ? 'none' : '220px',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
