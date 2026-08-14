@@ -118,6 +118,13 @@
   font-size: 0.9rem;
 }
 
+.excel-preview-table thead {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
 .excel-preview-table th {
   background-color: var(--brand-maroon-bg);
   color: var(--tw-color-white);
@@ -127,6 +134,7 @@
   letter-spacing: 0.05em;
   padding: 0.85rem 1rem;
   text-align: left;
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 10;
