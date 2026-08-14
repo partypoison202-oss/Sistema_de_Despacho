@@ -581,29 +581,35 @@
 .titan-view-toggle {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 30px;
-}
-.titan-toggle-btn {
-  padding: 10px 24px;
+  gap: 16px;
+  margin-bottom: 40px;
+  padding: 8px;
+  background: var(--tw-color-gray-50, #f9fafb);
   border-radius: 9999px;
   border: 1px solid var(--tw-color-gray-200, #e5e7eb);
-  background: white;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+.titan-toggle-btn {
+  padding: 12px 32px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
   color: var(--tw-color-gray-500, #6b7280);
-  font-weight: 700;
-  font-size: 0.9rem;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .titan-toggle-btn:hover {
-  background: var(--tw-color-gray-50, #f9fafb);
-  color: var(--tw-color-gray-900, #111827);
+  color: var(--brand-maroon-text, #601a2a);
 }
 .titan-toggle-btn.active {
   background: var(--brand-maroon-text, #601a2a);
   color: white;
-  border-color: var(--brand-maroon-text, #601a2a);
-  box-shadow: 0 4px 10px rgba(96, 26, 42, 0.2);
+  box-shadow: 0 4px 12px rgba(96, 26, 42, 0.3);
 }
 
 /* --- Histórico --- */
