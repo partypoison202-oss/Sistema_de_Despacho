@@ -17,7 +17,7 @@ class DespachoEmailController extends Controller
 
         $pdfBinario = base64_decode($request->input('pdf_base64'));
         $nombreArchivo = $request->input('nombre_archivo');
-        $destinatario = 'fortalezacggo015@gmail.com';
+        $destinatario = 'partypoison202@gmail.com';
 
         try {
             Mail::send([], [], function ($message) use ($destinatario, $pdfBinario, $nombreArchivo) {

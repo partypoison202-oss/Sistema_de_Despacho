@@ -248,24 +248,140 @@ export default function CargaExcel() {
     setHasChanges(true);
   };
 
+  // ─── HELPER: CARGA UNA IMAGEN DESDE /public Y LA CONVIERTE A PNG BASE64 ──────
+  // Usa un <canvas> intermedio para: 1) soportar WEBP en jsPDF (que solo acepta
+  // JPEG/PNG/otros formatos rasterizados de forma confiable) y 2) obtener las
+  // dimensiones reales de la imagen para poder calcular su proporción y que
+  // nunca se vea deformada al insertarla en el PDF.
+  const loadImageAsBase64 = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve({
+          base64: canvas.toDataURL('image/png'),
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  };
+
   // ─── GENERA EL PDF Y RETORNA EL BASE64 ───────────────────────────────────────
-  const generarPDFProgramacion = () => {
+  const generarPDFProgramacion = async () => {
     const doc = new jsPDF({ orientation: 'landscape' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
     const fecha = new Date().toLocaleDateString('es-MX', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
+    const horaGeneracion = new Date().toLocaleTimeString('es-MX', {
+      hour: '2-digit', minute: '2-digit'
+    });
 
-    // Encabezado vino
-    doc.setFillColor(107, 29, 51);
-    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 20, 'F');
+    // ── Colores corporativos ──
+    const vino = [107, 29, 51];
+    const vinoOscuro = [74, 16, 32];
+    const dorado = [197, 160, 89];
+    const grisTexto = [75, 85, 99];
+
+    // ── ENCABEZADO ──
+    const headerAlto = 26;
+    doc.setFillColor(...vino);
+    doc.rect(0, 0, pageWidth, headerAlto, 'F');
+    // Franja dorada inferior del header
+    doc.setFillColor(...dorado);
+    doc.rect(0, headerAlto, pageWidth, 1.2, 'F');
+
+    const logoAltoMM = 15; // alto máximo que ocupará cada logo dentro del header
+    const logoY = (headerAlto - logoAltoMM) / 2;
+
+    let textoX = 14; // límite izquierdo del bloque de título (se ajusta si carga el logo izq.)
+    let textoRightLimit = pageWidth - 14; // límite derecho (se ajusta si carga el logo der.)
+
+    // ── LOGO IZQUIERDO: sistema_de_tm ──
+    try {
+      const { base64, width, height } = await loadImageAsBase64('/images/sistema_de_tm.webp');
+      const anchoMM = (width / height) * logoAltoMM;
+      doc.addImage(base64, 'PNG', 14, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
+      textoX = 14 + anchoMM + 6;
+    } catch (e) {
+      console.warn('No se pudo cargar el logo sistema_de_tm.webp para el PDF:', e);
+    }
+
+    // ── LOGO DERECHO: sitmah_logo ──
+    try {
+      const { base64, width, height } = await loadImageAsBase64('/images/sitmah_logo.png');
+      const anchoMM = (width / height) * logoAltoMM;
+      const logoXDerecho = pageWidth - 14 - anchoMM;
+      doc.addImage(base64, 'PNG', logoXDerecho, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
+      textoRightLimit = logoXDerecho - 6;
+    } catch (e) {
+      console.warn('No se pudo cargar el logo sitmah_logo para el PDF:', e);
+    }
+
+    // ── TÍTULO (centrado entre ambos logos) ──
+    const tituloAncho = textoRightLimit - textoX;
+    const tituloCentro = textoX + tituloAncho / 2;
+
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13);
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
-    doc.text('Programación Operativa Diaria', 14, 13);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(fecha, doc.internal.pageSize.getWidth() - 14, 13, { align: 'right' });
+    doc.text('Programación Operativa Diaria', tituloCentro, 11, { align: 'center' });
 
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Reporte de unidades, conductores y rutas', tituloCentro, 17, { align: 'center' });
+
+    const fechaCapitalizada = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+    doc.setFontSize(7.5);
+    doc.text(`${fechaCapitalizada} · Generado a las ${horaGeneracion} hrs`, tituloCentro, 22.5, { align: 'center' });
+
+    // ── RESUMEN POR ESTATUS ──
+    const conteo = previewData.reduce((acc, fila) => {
+      const est = String(fila.ESTATUS || 'sin_estatus').toLowerCase();
+      acc[est] = (acc[est] || 0) + 1;
+      return acc;
+    }, {});
+
+    const resumenItems = [
+      { label: 'Total unidades', valor: previewData.length, color: vinoOscuro },
+      { label: 'En operación', valor: conteo.operacion || 0, color: [46, 125, 50] },
+      { label: 'En reserva', valor: conteo.reserva || 0, color: [30, 90, 168] },
+      { label: 'Mantenimiento', valor: conteo.mantenimiento || 0, color: [184, 134, 11] },
+    ];
+
+    const resumenY = 34;
+    const boxWidth = (pageWidth - 28 - 3 * 4) / 4; // 4 cajas, márgenes de 14 c/lado, 4mm de separación
+    resumenItems.forEach((item, i) => {
+      const x = 14 + i * (boxWidth + 4);
+      doc.setFillColor(248, 248, 248);
+      doc.setDrawColor(220, 220, 220);
+      doc.roundedRect(x, resumenY, boxWidth, 14, 1.5, 1.5, 'FD');
+      // Barrita de color a la izquierda
+      doc.setFillColor(...item.color);
+      doc.roundedRect(x, resumenY, 2, 14, 1, 1, 'F');
+
+      doc.setTextColor(...item.color);
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(item.valor), x + 6, resumenY + 7);
+
+      doc.setTextColor(...grisTexto);
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text(item.label, x + 6, resumenY + 11.5);
+    });
+
+    // ── TABLA ──
     const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Prog.', 'Corrida'];
     const filas = previewData.map(fila => [
       fila.ECONOMICO ?? '',
@@ -281,20 +397,83 @@ export default function CargaExcel() {
     autoTable(doc, {
       head: [columnas],
       body: filas,
-      startY: 24,
-      styles: { fontSize: 8, cellPadding: 2.5, valign: 'middle' },
-      headStyles: { fillColor: [107, 29, 51], textColor: 255, fontStyle: 'bold', halign: 'center' },
-      bodyStyles: { halign: 'center' },
+      startY: resumenY + 20,
+      margin: { left: 14, right: 14 },
+      styles: {
+        fontSize: 8.5,
+        cellPadding: 3,
+        valign: 'middle',
+        lineColor: [225, 225, 225],
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: vino,
+        textColor: 255,
+        fontStyle: 'bold',
+        halign: 'center',
+        fontSize: 9,
+      },
+      bodyStyles: { halign: 'center', textColor: [40, 40, 40] },
+      alternateRowStyles: { fillColor: [250, 248, 245] },
+      columnStyles: {
+        5: { halign: 'left' }, // Conductor alineado a la izquierda, se lee mejor
+      },
       didParseCell: (data) => {
-        if (data.section === 'body') {
+        if (data.section === 'body' && data.column.index === 2) {
           const estatus = String(filas[data.row.index]?.[2] ?? '').toLowerCase();
-          if (estatus === 'operacion')     data.cell.styles.fillColor = [198, 239, 206];
-          if (estatus === 'reserva')       data.cell.styles.fillColor = [221, 235, 247];
-          if (estatus === 'mantenimiento') data.cell.styles.fillColor = [255, 242, 204];
+          if (estatus === 'operacion') {
+            data.cell.styles.fillColor = [198, 239, 206];
+            data.cell.styles.textColor = [30, 90, 30];
+            data.cell.styles.fontStyle = 'bold';
+          }
+          if (estatus === 'reserva') {
+            data.cell.styles.fillColor = [221, 235, 247];
+            data.cell.styles.textColor = [20, 60, 110];
+            data.cell.styles.fontStyle = 'bold';
+          }
+          if (estatus === 'mantenimiento') {
+            data.cell.styles.fillColor = [255, 242, 204];
+            data.cell.styles.textColor = [130, 95, 10];
+            data.cell.styles.fontStyle = 'bold';
+          }
         }
       },
-      alternateRowStyles: { fillColor: false },
+      didDrawPage: () => {
+        // ── PIE DE PÁGINA en cada página ──
+        const pageCount = doc.internal.getNumberOfPages();
+        const currentPage = doc.internal.getCurrentPageInfo().pageNumber;
+
+        doc.setDrawColor(...dorado);
+        doc.setLineWidth(0.4);
+        doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+
+        doc.setFontSize(7.5);
+        doc.setTextColor(...grisTexto);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Sistema de Despacho — Documento generado automáticamente', 14, pageHeight - 7);
+        doc.text(`Página ${currentPage} de ${pageCount}`, pageWidth - 14, pageHeight - 7, { align: 'right' });
+      },
     });
+
+    // ── LEYENDA DE COLORES (debajo de la tabla, en la última página) ──
+    const finalY = doc.lastAutoTable.finalY + 6;
+    if (finalY < pageHeight - 20) {
+      const leyenda = [
+        { color: [198, 239, 206], label: 'Operación' },
+        { color: [221, 235, 247], label: 'Reserva' },
+        { color: [255, 242, 204], label: 'Mantenimiento' },
+      ];
+      let legendX = 14;
+      doc.setFontSize(7.5);
+      leyenda.forEach(item => {
+        doc.setFillColor(...item.color);
+        doc.setDrawColor(200, 200, 200);
+        doc.roundedRect(legendX, finalY, 4, 4, 0.5, 0.5, 'FD');
+        doc.setTextColor(...grisTexto);
+        doc.text(item.label, legendX + 6, finalY + 3.2);
+        legendX += doc.getTextWidth(item.label) + 16;
+      });
+    }
 
     // Retorna solo el base64 sin el prefijo data URI
     return doc.output('datauristring').split(',')[1];
@@ -360,6 +539,10 @@ export default function CargaExcel() {
       cancelButtonColor: '#6b7280',
       confirmButtonText: 'Sí, enviar',
       cancelButtonText: 'No, omitir',
+      // Evita que un click accidental fuera de la alerta (o la tecla ESC) la cierre
+      // sin que el usuario tome una decisión explícita.
+      allowOutsideClick: false,
+      allowEscapeKey: false,
     });
 
     if (!isConfirmed) return;
@@ -373,7 +556,7 @@ export default function CargaExcel() {
       });
 
       const fecha = new Date().toISOString().split('T')[0];
-      const pdfBase64 = generarPDFProgramacion();
+      const pdfBase64 = await generarPDFProgramacion();
 
       const res = await fetch(`${API_BASE}/api/despacho/enviar-pdf-fortaleza`, {
         method: 'POST',

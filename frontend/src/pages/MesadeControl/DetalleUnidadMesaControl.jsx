@@ -60,6 +60,7 @@ export default function DetalleUnidadMesaControl() {
   const [dropdownReemplazoEcoOpen, setDropdownReemplazoEcoOpen] = useState(false);
   const [reemplazoForm, setReemplazoForm] = useState({ tarjeton: '', ruta: '', corrida: '' });
   const [dropdownReemplazoTarjetonOpen, setDropdownReemplazoTarjetonOpen] = useState(false);
+  const [busquedaReemplazoTarjeton, setBusquedaReemplazoTarjeton] = useState('');
   const [dropdownReemplazoRutaOpen, setDropdownReemplazoRutaOpen] = useState(false);
 
   const modalConductorRef = useRef(null);
@@ -1641,9 +1642,25 @@ export default function DetalleUnidadMesaControl() {
                     </svg>
                   </button>
                   {dropdownReemplazoTarjetonOpen && (
-                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
-                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
-                        {(conductoresDisponibles || []).map(c => (
+                    <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ padding: '0.5rem', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, background: 'white', zIndex: 1, borderRadius: '0.75rem 0.75rem 0 0' }}>
+                        <input
+                          type="text"
+                          placeholder="Buscar por tarjetón o nombre..."
+                          value={busquedaReemplazoTarjeton}
+                          onChange={(e) => setBusquedaReemplazoTarjeton(e.target.value)}
+                          style={{ width: '100%', padding: '0.5rem', borderRadius: '0.25rem', border: '1px solid #d1d5db', fontSize: '0.85rem', color: '#0b162c' }}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem', overflowY: 'auto' }}>
+                        {(conductoresDisponibles || [])
+                          .filter(c => 
+                            String(c.tarjeton || '').toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()) || 
+                            (c.nombre && c.nombre.toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()))
+                          )
+                          .map(c => (
                           <button
                             key={c.id}
                             type="button"
@@ -1657,6 +1674,11 @@ export default function DetalleUnidadMesaControl() {
                             {c.tarjeton} — {c.nombre}
                           </button>
                         ))}
+                        {(conductoresDisponibles || []).filter(c => String(c.tarjeton || '').toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()) || (c.nombre && c.nombre.toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()))).length === 0 && (
+                          <div style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
+                            No se encontraron conductores.
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

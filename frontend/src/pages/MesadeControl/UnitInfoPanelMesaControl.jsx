@@ -166,6 +166,7 @@ export default function UnitInfoPanel({
   const [cambioOperadorActivo, setCambioOperadorActivo] = useState(false);
   const [operadorReemplazoSeleccionado, setOperadorReemplazoSeleccionado] = useState(null);
   const [dropdownOperadorOpen, setDropdownOperadorOpen] = useState(false);
+  const [operadorBusqueda, setOperadorBusqueda] = useState('');
   const [operadorMotivo, setOperadorMotivo] = useState('');
   const [operadorMotivoDropdown, setOperadorMotivoDropdown] = useState(false);
 
@@ -314,6 +315,7 @@ export default function UnitInfoPanel({
     setCambioOperadorActivo(false);
     setOperadorReemplazoSeleccionado(null);
     setDropdownOperadorOpen(false);
+    setOperadorBusqueda('');
     setOperadorMotivo('');
     setOperadorMotivoDropdown(false);
   };
@@ -345,6 +347,7 @@ export default function UnitInfoPanel({
     setCambioOperadorActivo(nuevo);
     setOperadorReemplazoSeleccionado(null);
     setOperadorMotivo('');
+    setOperadorBusqueda('');
   };
 
   const handleRutaTipoChange = (tipo) => {
@@ -1533,7 +1536,7 @@ export default function UnitInfoPanel({
                         <span style={{ fontSize: '1rem' }}>▼</span>
                       </button>
 
-                      {dropdownOperadorOpen && conductoresDisponibles && conductoresDisponibles.length > 0 && (
+                      {dropdownOperadorOpen && (
                         <div style={{
                           position: 'absolute',
                           top: '100%',
@@ -1545,23 +1548,47 @@ export default function UnitInfoPanel({
                           borderRadius: '0.5rem',
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                           zIndex: 40,
-                          maxHeight: '200px',
-                          overflowY: 'auto'
+                          maxHeight: '250px',
+                          display: 'flex',
+                          flexDirection: 'column'
                         }}>
-                          {conductoresDisponibles.map((c) => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                              style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorReemplazoSeleccionado?.id == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
-                              onClick={() => {
-                                setOperadorReemplazoSeleccionado(c);
-                                setDropdownOperadorOpen(false);
-                              }}
-                            >
-                              {c.nombre} ({c.id})
-                            </button>
-                          ))}
+                          <div style={{ padding: '0.5rem', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+                            <input
+                              type="text"
+                              placeholder="Buscar por tarjetón o nombre..."
+                              value={operadorBusqueda}
+                              onChange={(e) => setOperadorBusqueda(e.target.value)}
+                              style={{ width: '100%', padding: '0.5rem', borderRadius: '0.25rem', border: '1px solid #d1d5db', fontSize: '0.85rem' }}
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          <div style={{ overflowY: 'auto', flex: 1 }}>
+                            {conductoresDisponibles && conductoresDisponibles
+                              .filter(c => 
+                                String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) || 
+                                (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))
+                              )
+                              .map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorReemplazoSeleccionado?.id == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                                  onClick={() => {
+                                    setOperadorReemplazoSeleccionado(c);
+                                    setDropdownOperadorOpen(false);
+                                  }}
+                                >
+                                  {c.nombre} ({c.id})
+                                </button>
+                              ))}
+                            {conductoresDisponibles && conductoresDisponibles.filter(c => String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) || (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))).length === 0 && (
+                              <div style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
+                                No se encontraron conductores.
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
