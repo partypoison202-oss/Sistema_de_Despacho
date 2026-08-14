@@ -86,12 +86,14 @@
 
 .table-wrapper {
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   height: calc(100vh - 350px);
   min-height: 400px;
   background: var(--tw-color-white);
   border-radius: 8px;
   border: 1px solid var(--tw-color-gray-200);
   position: relative;
+  z-index: 1;
 }
 
 /* Custom Scrollbar */
@@ -113,15 +115,12 @@
 
 .excel-preview-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   font-size: 0.9rem;
 }
 
 .excel-preview-table thead {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
   z-index: 20;
 }
 
