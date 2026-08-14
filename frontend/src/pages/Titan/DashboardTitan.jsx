@@ -136,36 +136,60 @@ const DashboardTitan = () => {
             flexGrow: 1,
             transition: 'all 0.3s ease-out'
           }}>
-            <form className="dashboard__search" style={{ margin: 0, transition: 'all 0.3s ease-out' }} onSubmit={handleBuscarUnidad}>
+            <form style={{ display: 'flex', alignItems: 'center', transition: 'all 0.3s ease-out', position: 'relative' }} onSubmit={handleBuscarUnidad}>
+              <div style={{ position: 'absolute', left: '18px', color: '#9ca3af', pointerEvents: 'none' }}>
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
               <input
                 type="text"
                 value={busquedaEco}
                 onChange={(event) => setBusquedaEco(event.target.value.replace(/\D/g, '').substring(0, 3))}
-                placeholder="Buscar por número económico"
-                className="dashboard__search-input text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                placeholder="Buscar por número económico..."
+                style={{
+                  width: '100%',
+                  padding: '18px 18px 18px 52px',
+                  borderRadius: '16px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '1.1rem',
+                  fontWeight: '500',
+                  boxShadow: '0 4px 12px -2px rgba(0, 0, 0, 0.05)',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: '#ffffff'
+                }}
+                onFocus={(e) => { e.target.style.borderColor = '#c5a059'; e.target.style.boxShadow = '0 0 0 4px rgba(197, 160, 89, 0.15)'; }}
+                onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 4px 12px -2px rgba(0, 0, 0, 0.05)'; }}
               />
               <button 
                 type="submit" 
-                className="dashboard__search-button" 
                 disabled={!busquedaEco || buscandoUnidad || parseInt(busquedaEco, 10) === 0}
+                className="centro-btn centro-btn--primary"
                 style={activeUnidad ? { 
+                  position: 'absolute',
+                  right: '8px',
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
                   width: '44px', 
                   height: '44px',
                   minWidth: '44px',
-                  borderRadius: '50%', 
+                  borderRadius: '12px', 
                   padding: 0,
                   flexShrink: 0
-                } : { display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                } : { 
+                  position: 'absolute', 
+                  right: '10px',
+                  padding: '12px 28px',
+                  borderRadius: '12px',
+                  fontSize: '0.95rem'
+                }}
               >
                 {buscandoUnidad ? (
-                  activeUnidad ? <span style={{ fontSize: '1rem' }}>…</span> : 'Buscando...'
+                  activeUnidad ? <span style={{ fontSize: '1.2rem' }}>…</span> : '...'
                 ) : (
                   activeUnidad ? (
                     <svg style={{ width: '20px', height: '20px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                     </svg>
                   ) : 'Buscar'
                 )}
@@ -177,9 +201,10 @@ const DashboardTitan = () => {
           <section className="centro-type-grid" style={{ 
             maxWidth: activeUnidad ? '530px' : '900px', 
             margin: activeUnidad ? '0' : '40px auto', 
-            display: 'grid', 
-            gridTemplateColumns: activeUnidad ? 'repeat(4, 1fr)' : 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: activeUnidad ? '10px' : '25px', 
+            display: 'flex', 
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: activeUnidad ? '10px' : '30px', 
             padding: activeUnidad ? '0' : '0 20px',
             flexGrow: 2,
             transition: 'all 0.3s ease-out'
@@ -201,7 +226,11 @@ const DashboardTitan = () => {
                     backgroundColor: activeUnidad && isSelected ? '#f9fafb' : 'transparent',
                     boxShadow: activeUnidad && isSelected ? undefined : 'none',
                     transition: 'all 0.3s ease-out',
-                    minHeight: activeUnidad ? '45px' : undefined
+                    minHeight: activeUnidad ? '45px' : undefined,
+                    flex: activeUnidad ? '1 1 calc(25% - 15px)' : '0 1 200px',
+                    maxWidth: activeUnidad ? 'none' : '220px',
+                    display: 'flex',
+                    flexDirection: 'column'
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
