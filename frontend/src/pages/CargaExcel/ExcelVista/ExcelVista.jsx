@@ -207,10 +207,14 @@ export default function ExcelPreview({
 
       <div className="table-wrapper">
         <table className="excel-preview-table">
-          <thead>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 20 }}>
             <tr>
               {headers.map(h => (
-                <th key={h} className={`col-${h.toLowerCase()}`}>
+                <th 
+                  key={h} 
+                  className={`col-${h.toLowerCase()}`}
+                  style={{ position: 'sticky', top: 0, zIndex: 20, backgroundColor: 'var(--brand-maroon-bg)' }}
+                >
                   {HEADER_TRANSLATIONS[h] || h}
                 </th>
               ))}
