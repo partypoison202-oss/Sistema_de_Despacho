@@ -10,7 +10,7 @@ export const useUnitDetails = (selectedFleet) => {
     if (unitDetailsCache[eco]) return;
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     try {
-      const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanus';
+      const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanuss';
       const response = await fetch(`${API_BASE}/api/unidades/detalle/${fleetToUse}/${eco}`, {
         headers: {
           Authorization: `Bearer ${token}`,

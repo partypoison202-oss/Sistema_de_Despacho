@@ -9,7 +9,7 @@ import TitanHistorico from './TitanHistorico';
 import TitanDashboardStats from './TitanDashboardStats';
 
 const modelsConfig = [
-  { id: 'urbanus', label: 'URBANUSS', subtitle: 'UNIDADES TIPO AUTOBÚS', color: 'maroon', image: '/images/urbanu.webp' },
+  { id: 'urbanuss', label: 'URBANUSS', subtitle: 'UNIDADES TIPO AUTOBÚS', color: 'maroon', image: '/images/urbanu.webp' },
   { id: 'zafiro', label: 'ZAFIRO', subtitle: 'UNIDADES TIPO MICROBÚS', color: 'gold', image: '/images/zafiro.webp' },
   { id: 'vagoneta', label: 'VAGONETA', subtitle: 'UNIDADES TIPO VAN', color: 'green', image: '/images/vagoneta.webp' },
   { id: 'orion', label: 'ORION', subtitle: 'UNIDADES TIPO ORION', color: 'blue', image: '/images/orionlateral.webp' },

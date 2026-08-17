@@ -92,9 +92,9 @@ export default function CargaExcel() {
   const trimString = (str) => String(str ?? '').trim();
 
   const normalizarTipoUnidad = (tipo) => {
-    if (!tipo) return 'URBANUS';
+    if (!tipo) return 'URBANUSS';
     let t = tipo.toString().trim().toUpperCase();
-    return t === 'URBANUSS' ? 'URBANUS' : t;
+    return t === 'URBANUS' ? 'URBANUSS' : t;
   };
 
   const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));

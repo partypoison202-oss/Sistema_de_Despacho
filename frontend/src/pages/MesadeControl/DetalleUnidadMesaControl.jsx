@@ -187,7 +187,7 @@ export default function DetalleUnidadMesaControl() {
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
-  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
+  const isTroncal = configActual?.id === 'urbanuss';
   const conductoresDisponibles = dbConductores.filter(c => 
     c.estado_servicio === 'disponible' && 
     (!isTroncal || c.tipo_tarjeton === 'C')
@@ -268,7 +268,7 @@ export default function DetalleUnidadMesaControl() {
         });
         if (res.ok) {
            const data = await res.json();
-            if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+            if (configActual?.id === 'urbanuss') {
               setRutasOpciones(data.troncales || []);
             } else {
               setRutasOpciones(data.alimentadoras || []);

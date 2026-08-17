@@ -70,13 +70,13 @@ class ReporteController extends Controller
             $fechaHoy = Carbon::today()->toDateString();
             // Definimos el mapa de imágenes
             $mapeoImagenes = [
-                'URBANUS'   => 'urbanu.png',
+                'URBANUSS'   => 'urbanu.png',
                 'ZAFIRO'    => 'zafiro.png',
                 'ORION'     => 'orionlateral.PNG',
                 'VAGONETA'  => 'vagoneta lateral.png'
             ];
             
-            $tipos = ['URBANUS', 'ZAFIRO', 'ORION', 'VAGONETA'];
+            $tipos = ['URBANUSS', 'ZAFIRO', 'ORION', 'VAGONETA'];
             $resultado = [];
 
             foreach ($tipos as $tipo) {

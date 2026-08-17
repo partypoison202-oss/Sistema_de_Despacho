@@ -37,14 +37,14 @@ const FormularioBitacora = ({ onClose = () => {}, onSave = () => {} }) => {
           };
         };
 
-        const [urbanus, zafiro, orion, vagoneta] = await Promise.all([
-          fetchTipo('urbanus'),
+        const [urbanuss, zafiro, orion, vagoneta] = await Promise.all([
+          fetchTipo('urbanuss'),
           fetchTipo('zafiro'),
           fetchTipo('orion'),
           fetchTipo('vagoneta')
         ]);
 
-        setUnidadesAgrupadas([urbanus, zafiro, orion, vagoneta]);
+        setUnidadesAgrupadas([urbanuss, zafiro, orion, vagoneta]);
       } catch (err) {
         console.error('Error fetching unidades:', err);
       }
@@ -132,8 +132,8 @@ const FormularioBitacora = ({ onClose = () => {}, onSave = () => {} }) => {
     }
   }
 
-  const isTroncal = selectedTipo === 'URBANUS';
-  const isAlimentadora = selectedTipo && selectedTipo !== 'URBANUS';
+  const isTroncal = selectedTipo === 'URBANUSS';
+  const isAlimentadora = selectedTipo && selectedTipo !== 'URBANUSS';
 
   return (
     <div className="bitacora-overlay">

@@ -61,7 +61,7 @@ export default function ExcelPreview({
   }
 
   // Orden personalizado solicitado
-  const customSortOrder = ['URBANUS', 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
+  const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
 
   // Estatus traducciones para mostrar (alineados a las reglas de la BD)
   const estatusTranslations = {
@@ -102,7 +102,7 @@ export default function ExcelPreview({
 
     if (selectedTech) {
       const type = String(fila.TIPO_DE_UNIDAD || '').toUpperCase();
-      const normalizedType = type === 'URBANUSS' ? 'URBANUS' : type;
+      const normalizedType = type === 'URBANUS' ? 'URBANUSS' : type;
       if (normalizedType !== selectedTech) return false;
     }
 
@@ -170,7 +170,7 @@ export default function ExcelPreview({
         </div>
         <div className="excel-table-header-right">
           <div className="tech-filters-group">
-            {['URBANUS', 'ZAFIRO', 'VAGONETA', 'ORION'].map((tech) => {
+            {['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'].map((tech) => {
               const isActive = selectedTech === tech;
               return (
                 <button
@@ -372,7 +372,7 @@ export default function ExcelPreview({
                       }
 
                       if (h === 'RUTA') {
-                        const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUS' || fila.TIPO_DE_UNIDAD === 'URBANUSS';
+                        const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
                         const availableRoutes = isTroncal ? (catalogRutasObj.troncales || []) : (catalogRutasObj.alimentadoras || []);
                         const isRutaOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'RUTA';
 
@@ -479,7 +479,7 @@ export default function ExcelPreview({
                       if (h === 'TARJETON') {
                         const isTarjetonOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON';
 
-                        const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUS' || fila.TIPO_DE_UNIDAD === 'URBANUSS';
+                        const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
 
                         const filteredDrivers = (catalogConductores || []).filter(c => {
                           if (isTroncal && String(c.tipo_tarjeton).toUpperCase() !== 'C') return false;

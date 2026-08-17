@@ -328,7 +328,7 @@ export default function DetalleUnidadEncierro() {
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
         const configActual = encierroModules.find((m) => m.id === tipoTransporte);
-        if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+        if (configActual?.id === 'urbanuss') {
           setRutasOpciones(troncalesOpciones);
           return;
         }
@@ -353,8 +353,8 @@ export default function DetalleUnidadEncierro() {
     fetchRutas();
   }, [tipoTransporte, troncalesOpciones, unidadesList]);
 
-  const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
-  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
+  const esAlimentadora = configActual && configActual.id !== 'urbanuss';
+  const isTroncal = configActual?.id === 'urbanuss';
   // ✅ NUEVO: unidades de la ruta seleccionada derivadas localmente
   const unidadesPorRutaList = useMemo(() => {
     if (!selectedRuta) return [];
