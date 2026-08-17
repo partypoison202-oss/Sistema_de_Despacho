@@ -95,6 +95,7 @@
 
 .tabla-faltantes__tabla {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
@@ -131,7 +132,7 @@
   border-radius: 999px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  
 }
 
 .tabla-faltantes__chip--eco {
@@ -182,6 +183,7 @@
   .tabla-faltantes__tabla td {
     display: block;
     width: 100%;
+  table-layout: fixed;
   }
 
   .tabla-faltantes__tabla tr {

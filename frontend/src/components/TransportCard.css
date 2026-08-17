@@ -7,24 +7,27 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem;
-  border: none;
-  background: transparent;
+  padding: 1.5rem 1rem;
+  background-color: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eaeaea;
   cursor: pointer;
   font-family: inherit;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   max-width: 280px;
   width: 100%;
 }
 
 .transport-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .transport-card:focus-visible {
   outline: 2px solid var(--state-blue-bg);
   outline-offset: 4px;
-  border-radius: 8px;
+  border-radius: 1rem;
 }
 
 /* Imagen */
@@ -33,13 +36,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100px;
+  height: 140px; /* Fijo para alinear el texto de todas las tarjetas */
 }
 
 .transport-card__image {
   max-width: 100%;
-  height: auto;
-  max-height: 120px;
+  max-height: 100%;
   object-fit: contain;
 }
 

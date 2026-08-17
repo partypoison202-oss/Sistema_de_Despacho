@@ -61,7 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/maniobristas', [ManiobristaController::class, 'index']);
     Route::post('/maniobristas', [ManiobristaController::class, 'store']);
     Route::put('/maniobristas/{id}', [ManiobristaController::class, 'update']);
-    Route::post('/maniobristas/{id}/baja', [ManiobristaController::class, 'baja']);
+    Route::post('/maniobristas/{id}/baja', [ManiobristaController::class, 'darDeBaja']);
 
     // Rutas de Unidades
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);

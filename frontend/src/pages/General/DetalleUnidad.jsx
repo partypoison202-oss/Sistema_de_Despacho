@@ -108,13 +108,13 @@ export default function DetalleUnidad() {
               <table className="detalle__tabla">
                 <thead>
                   <tr>
-                    <th>ECO</th>
-                    <th>ID</th>
-                    <th>{modulo?.id === 'urbanus' ? 'SERVICIO' : 'RUTA'}</th>
-                    <th>Hora de salida</th>
-                    <th>Acople a ruta</th>
-                    <th>Corrida</th>
-                    <th>Observaciones</th>
+                    <th style={{ width: '8%' }}>ECO</th>
+                    <th style={{ width: '12%' }}>ID</th>
+                    <th style={{ width: '10%' }}>{modulo?.id === 'urbanus' ? 'SERVICIO' : 'RUTA'}</th>
+                    <th style={{ width: '15%' }}>Hora de salida</th>
+                    <th style={{ width: '15%' }}>Acople a ruta</th>
+                    <th style={{ width: '10%' }}>Corrida</th>
+                    <th style={{ width: '30%' }}>Observaciones</th>
                   </tr>
                 </thead>
                 <tbody>
