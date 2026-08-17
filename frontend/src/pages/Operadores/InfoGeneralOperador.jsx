@@ -122,23 +122,39 @@ export default function InfoGeneralOperador({ conductores }) {
       <div className="flex justify-end gap-3 mb-4 print:hidden">
         <button 
           onClick={handlePrint}
-          className="px-4 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+          disabled={!selectedConductor}
+          className={`px-4 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 transition-colors flex items-center gap-2 ${!selectedConductor ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
           Imprimir
         </button>
         <button 
           onClick={handleSave}
-          className="px-4 py-2 bg-[#6A1B29] border border-transparent rounded shadow-sm text-sm font-medium text-white hover:bg-[#50131f] transition-colors flex items-center gap-2"
+          disabled={!selectedConductor}
+          className={`px-4 py-2 bg-[#6A1B29] border border-transparent rounded shadow-sm text-sm font-medium text-white transition-colors flex items-center gap-2 ${!selectedConductor ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#50131f]'}`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
           Guardar
         </button>
       </div>
 
+      {/* Membrete de Impresión (Solo visible al imprimir) */}
+      <div className="hidden print:block mb-4 border-b-2 border-[#6A1B29] pb-2">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight">SISTEMA DE TRANSPORTE MASIVO DE HIDALGO</h1>
+            <h2 className="text-sm font-bold text-[#6A1B29] mt-0.5">CONSULTA DE INFORMACIÓN DEL OPERADOR</h2>
+          </div>
+          <div className="text-right text-[10px] text-gray-500">
+            <p>Fecha de Impresión: {new Date().toLocaleDateString()}</p>
+            <p>Reporte Operativo SITMAH</p>
+          </div>
+        </div>
+      </div>
+
       {/* Perfil del Operador */}
-        <div className="operator-profile space-y-6 print:space-y-4 print:text-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:gap-4">
+        <div className="operator-profile space-y-6 print:space-y-2 print:text-[10px]">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:gap-2">
             
             {/* A. Encabezado / Identidad */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden col-span-1 lg:col-span-3 print:break-inside-avoid print:shadow-none print:border-gray-300">
@@ -169,7 +185,7 @@ export default function InfoGeneralOperador({ conductores }) {
             </div>
 
             {/* B. Datos Personales y de Contacto */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-2">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
                 Datos Personales
@@ -199,7 +215,7 @@ export default function InfoGeneralOperador({ conductores }) {
             </div>
 
             {/* C. Antigüedad y Fechas */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-2">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Antigüedad y Fechas
@@ -213,24 +229,22 @@ export default function InfoGeneralOperador({ conductores }) {
                   <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 
-                <div className="bg-[#6A1B29] p-4 rounded-lg flex items-center justify-between shadow-sm print:shadow-none print:border print:border-[#6A1B29] print:bg-white print:text-[#6A1B29]">
+                <div className="bg-[#6A1B29] p-4 rounded-lg flex items-center justify-between shadow-sm print:shadow-none print:border print:border-[#6A1B29] print:bg-white print:text-[#6A1B29] print:p-2">
                   <div className="flex flex-col">
                     <span className="text-white text-xs uppercase tracking-wider font-bold print:text-[#6A1B29]">Antigüedad Total</span>
                     <span className="text-white font-bold text-lg mt-1 print:text-[#6A1B29]">{displayConductor.fecha_ingreso === null ? '---' : calcularAntiguedad(displayConductor.fecha_ingreso)}</span>
                   </div>
-                  <svg className="w-8 h-8 text-white opacity-50 print:text-[#6A1B29]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                 </div>
               </div>
             </div>
 
             {/* D. Historial y Métricas Operativas (Kardex) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 lg:col-span-3 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-4">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 lg:col-span-3 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-2">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 Historial y Métricas Operativas (Kardex)
               </h3>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 print:gap-2 print:mb-3">
                 <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-gray-800">{displayConductor.accidentes_siniestros ?? 0}</div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Accidentes</div>
@@ -249,7 +263,7 @@ export default function InfoGeneralOperador({ conductores }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:gap-4">
                 <div>
                   <div className="mb-4">
                     <span className="block text-sm font-semibold text-gray-500 mb-1">Capacitaciones</span>
