@@ -201,15 +201,6 @@ class DespachoController extends Controller
                 } else {
                     $resultado[$tipo] = (int)$item->total;
                 }
-                // Normalizar 'urbanuss' → 'urbanus' para que coincida con el id del módulo en el frontend
-                if ($tipo === 'urbanuss') {
-                    $tipo = 'urbanus';
-                }
-                if (isset($resultado[$tipo])) {
-                    $resultado[$tipo] += (int)$item->total;
-                } else {
-                    $resultado[$tipo] = (int)$item->total;
-                }
             }
         }
 
@@ -677,6 +668,10 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
+
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $fechaHoy = Carbon::today()->toDateString();
         $fechaHoy = Carbon::today()->toDateString();
@@ -724,6 +719,10 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
+
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $tarjetonLimpio = trim($request->tarjeton);
 
@@ -801,6 +800,10 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
+
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
 
         $registro = DB::table('informacion_operativa')
@@ -1004,6 +1007,10 @@ class DespachoController extends Controller
 
         $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
         $tipoNormalizado = strtolower(trim($request->tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
+
         $nuevoEstatus = strtolower(trim($request->estatus));
         $motivoEstatus = $request->motivo_estatus;
         $cambioUnidadActivo = $request->input('cambio_unidad_activo') == 1 || $request->input('cambio_unidad_activo') === true;
@@ -1279,6 +1286,10 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
+
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $rutaLimpia = trim($request->ruta);
 
@@ -1343,6 +1354,10 @@ class DespachoController extends Controller
             ]);
 
             $tipoNormalizado = strtolower(trim($request->tipo));
+        if ($tipoNormalizado === 'urbanuss') {
+            $tipoNormalizado = 'urbanus';
+        }
+
             $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
 
             \Log::info('[guardarMantenimiento] Buscando unidad', ['eco' => $numeroEcoClean, 'tipo' => $tipoNormalizado]);

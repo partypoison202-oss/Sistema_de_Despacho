@@ -133,6 +133,7 @@
 
 .tabla-informativa__tabla {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
@@ -142,7 +143,7 @@
   padding: 0.7rem 0.75rem;
   border-bottom: 1px solid var(--ti-borde);
   text-align: left;
-  white-space: nowrap;
+  
 }
 
 .tabla-informativa__tabla thead th {
@@ -285,6 +286,7 @@
   .tabla-informativa__tabla td {
     display: block;
     width: 100%;
+  table-layout: fixed;
   }
 
   .tabla-informativa__tabla tr {
