@@ -105,7 +105,7 @@ export default function DetalleUnidad() {
       display: formatearEco(u.numero_eco),
       estado: String(u.estatus ?? 'operacion').trim().toLowerCase(),
       ruta: String(u.ruta ?? '').trim(),
-      acople: Boolean(Number(u.acople ?? 0)),
+      acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       horaSalida: String(u.hora_salida ?? '').trim(),
     }));
   };
@@ -627,6 +627,42 @@ export default function DetalleUnidad() {
           acople: acople,
           ...(horaSalida !== null && { horaSalida: horaSalida })
         }));
+
+        // Invalidar queries para que la unidad desaparezca de la lista al instante
+        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
+        queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
+
+        // Auto-avanzar si es una validación de salida o acople (agilidad)
+        if (acople !== null || horaSalida !== null) {
+          let currentList = [];
+          if (selectedTroncal && isTroncal) {
+            currentList = unidadesPorTroncalList;
+          } else if (selectedEstado) {
+            currentList = unidadesPorEstado(selectedEstado);
+          } else if (selectedRuta && esAlimentadora) {
+            currentList = unidadesPorRutaList;
+          } else {
+            currentList = unidadesDisponiblesBusqueda;
+          }
+
+          const currentIndex = currentList.findIndex(u => String(u.eco).padStart(3, '0') === numeroLimpio);
+          let nextUnitEco = null;
+          if (currentIndex !== -1 && currentIndex + 1 < currentList.length) {
+              nextUnitEco = currentList[currentIndex + 1].eco;
+          }
+
+          if (nextUnitEco) {
+            const nextFormatted = `ECO${String(nextUnitEco).padStart(3, '0')}`;
+            setSelectedOption(nextFormatted);
+          } else {
+            setSelectedOption(null);
+            setSelectedEstado(null);
+          }
+          setTarjetonBusqueda('');
+          setFallaTexto('');
+        }
+
         return { success: true };
       } else {
         throw new Error(resultado.message || 'Error al actualizar las horas.');
@@ -685,8 +721,42 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['conductores-list']);
         fetchConductores();
 
-        setSelectedOption(null);
-        setSelectedEstado(null);
+        // Lógica de agilidad: auto-avanzar a la siguiente unidad en la lista activa
+        let currentList = [];
+        if (selectedTroncal && isTroncal) {
+          currentList = unidadesPorTroncalList;
+        } else if (selectedEstado) {
+          currentList = unidadesPorEstado(selectedEstado);
+        } else if (selectedRuta && esAlimentadora) {
+          currentList = unidadesPorRutaList;
+        } else {
+          currentList = unidadesDisponiblesBusqueda;
+        }
+
+        const currentIndex = currentList.findIndex(u => String(u.eco).padStart(3, '0') === numeroLimpio);
+        let nextUnitEco = null;
+        if (currentIndex !== -1 && currentIndex + 1 < currentList.length) {
+            nextUnitEco = currentList[currentIndex + 1].eco;
+        }
+
+        if (nextUnitEco) {
+          const nextFormatted = `ECO${String(nextUnitEco).padStart(3, '0')}`;
+          setSelectedOption(nextFormatted);
+          import('sweetalert2').then((Swal) => {
+            Swal.default.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: `Despachado. Siguiente: ${nextFormatted}`,
+              showConfirmButton: false,
+              timer: 1500
+            });
+          });
+        } else {
+          setSelectedOption(null);
+          setSelectedEstado(null);
+        }
+        
         setTarjetonBusqueda('');
         setFallaTexto('');
 

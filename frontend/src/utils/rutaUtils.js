@@ -2,7 +2,7 @@
 export const normalizeRuta = (ruta) => String(ruta ?? '').trim().toUpperCase();
 
 export const normalizeRutaClave = (ruta) => {
-  let texto = normalizeRuta(ruta).replace(/[-_\s]/g, '');
+  let texto = normalizeRuta(ruta).replace(/[^A-Z0-9]/g, '');
   // Unifica variantes de escritura antes de extraer el número
   texto = texto.replace(/TRONCAL/g, 'T');
   texto = texto.replace(/ALIMENTADORA/g, 'RA');

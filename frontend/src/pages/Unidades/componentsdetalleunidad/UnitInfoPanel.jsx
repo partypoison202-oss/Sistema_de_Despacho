@@ -893,13 +893,9 @@ export default function UnitInfoPanel({
                     onChange={(e) => {
                       setFormObservaciones(e.target.value);
                       setObservaciones(e.target.value);
-                      const rect = observacionesInputRef.current?.getBoundingClientRect();
-                      if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
                       setDropdownObservacionesOpen(true);
                     }}
                     onFocus={() => {
-                      const rect = observacionesInputRef.current?.getBoundingClientRect();
-                      if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
                       setDropdownObservacionesOpen(true);
                     }}
                     onBlur={() => setTimeout(() => setDropdownObservacionesOpen(false), 150)}
@@ -914,12 +910,7 @@ export default function UnitInfoPanel({
                   />
                   <svg
                     onClick={() => {
-                      const next = !dropdownObservacionesOpen;
-                      if (next) {
-                        const rect = observacionesInputRef.current?.getBoundingClientRect();
-                        if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
-                      }
-                      setDropdownObservacionesOpen(next);
+                      setDropdownObservacionesOpen(!dropdownObservacionesOpen);
                     }}
                     style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownObservacionesOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
                     fill="currentColor" viewBox="0 0 24 24"
@@ -927,27 +918,36 @@ export default function UnitInfoPanel({
                     <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                   </svg>
                 </div>
-                {dropdownObservacionesOpen && createPortal(
+                {dropdownObservacionesOpen && (
                   <div
                     style={{
                       position: 'absolute',
-                      top: obsDropdownPos.top,
-                      left: obsDropdownPos.left,
-                      width: obsDropdownPos.width,
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      width: '100%',
                       background: 'white',
                       border: '1px solid rgba(226, 232, 240, 0.8)',
                       borderRadius: '0.875rem',
                       boxShadow: '0 12px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
-                      zIndex: 9999,
+                      zIndex: 999,
                       overflow: 'hidden',
-                      maxHeight: '8rem',
+                      maxHeight: '12rem',
                       overflowY: 'auto',
                     }}
                   >
-                    {observacionesCatalogo
-                      .filter(obs => `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase()))
-                      .map(obs => {
+                    {(() => {
+                      const isExactMatch = observacionesCatalogo.some(obs => `${obs.clave} - ${obs.descripcion}` === formObservaciones);
+                      const filteredList = observacionesCatalogo.filter(obs => 
+                        isExactMatch || `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase())
+                      );
+
+                      if (filteredList.length === 0) {
+                        return <div style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#9ca3af', textAlign: 'center' }}>Sin resultados</div>;
+                      }
+
+                      return filteredList.map(obs => {
                         const label = `${obs.clave} - ${obs.descripcion}`;
+                        const isSelected = label === formObservaciones;
                         return (
                           <button
                             key={obs.clave}
@@ -964,24 +964,22 @@ export default function UnitInfoPanel({
                               textAlign: 'left',
                               padding: '0.6rem 1rem',
                               fontSize: '0.85rem',
-                              background: 'transparent',
+                              background: isSelected ? '#f3f4f6' : 'transparent',
                               border: 'none',
                               cursor: 'pointer',
-                              color: '#374151',
+                              color: isSelected ? '#601a2a' : '#374151',
+                              fontWeight: isSelected ? 'bold' : 'normal',
                               transition: 'background 0.15s',
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            onMouseLeave={e => e.currentTarget.style.background = isSelected ? '#f3f4f6' : 'transparent'}
                           >
                             {label}
                           </button>
                         );
-                      })}
-                    {observacionesCatalogo.filter(obs => `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase())).length === 0 && (
-                      <div style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#9ca3af', textAlign: 'center' }}>Sin resultados</div>
-                    )}
-                  </div>,
-                  document.body
+                      });
+                    })()}
+                  </div>
                 )}
               </div>
             )}

@@ -311,7 +311,7 @@ export default function DetalleUnidadEncierro() {
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
       ruta: u.ruta || null,
-      acople: Boolean(Number(u.acople ?? 0)),
+      acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       horaSalida: String(u.hora_salida ?? '').trim(),
     }));
   };

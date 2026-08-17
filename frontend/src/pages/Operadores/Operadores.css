@@ -708,6 +708,10 @@
 
 .kardex-table th {
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 1.5rem; /* Dar más respiro entre columnas */
 }
 
 .kardex-table th.text-center,
@@ -716,7 +720,8 @@
 }
 
 .kardex-table td {
-  padding: 0.55rem 0.75rem;
+  padding: 0.65rem 0.75rem; /* Un poco más de altura para recuadros */
+  white-space: nowrap;
 }
 
 /* Forzar apariencia nativa del calendario en iOS/Móviles */

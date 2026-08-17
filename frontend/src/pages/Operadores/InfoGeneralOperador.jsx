@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import html2pdf from 'html2pdf.js';
+import { jsPDF } from 'jspdf';
+import { toJpeg } from 'html-to-image';
 
 // Función para calcular edad
 const calcularEdad = (fechaNacimiento) => {
@@ -174,22 +175,73 @@ export default function InfoGeneralOperador({ conductores }) {
 
   const displayConductor = selectedConductor || defaultConductor;
 
-  const handlePrint = () => {
-    if (!selectedConductor) return;
-    window.print();
+  const generarDocumentoPDF = async () => {
+    const element = document.getElementById('printable-pdf-template');
+    
+    // Usamos html-to-image que tiene soporte nativo para CSS moderno como oklch (Tailwind v4)
+    const imgDataUrl = await toJpeg(element, { quality: 0.98, pixelRatio: 2 });
+    
+    // Crear el documento PDF
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    
+    // Obtener dimensiones reales de la imagen generada
+    const img = new Image();
+    img.src = imgDataUrl;
+    await new Promise((resolve) => { img.onload = resolve; });
+    
+    // Ajustar la imagen al tamaño de la página A4 con 10mm de margen
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const margin = 10;
+    const imgWidth = pdfWidth - margin * 2;
+    const imgHeight = (img.height * imgWidth) / img.width;
+    
+    pdf.addImage(imgDataUrl, 'JPEG', margin, margin, imgWidth, imgHeight);
+    return pdf;
   };
 
-  const handleSave = () => {
+  const handlePrint = async () => {
     if (!selectedConductor) return;
-    const element = document.getElementById('printable-pdf-template');
-    const opt = {
-      margin:       10,
-      filename:     `Expediente_Operador_${displayConductor.tarjeton}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(element).save();
+    
+    // Abrimos la ventana síncronamente para evitar que Safari la bloquee
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write('<div style="font-family: sans-serif; padding: 20px; text-align: center;">Generando documento oficial en PDF, por favor espere...</div>');
+    }
+
+    try {
+      const pdf = await generarDocumentoPDF();
+      const pdfUrl = pdf.output('bloburl');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Expediente Operador - ${displayConductor.tarjeton}</title>
+              <style>body { margin: 0; padding: 0; overflow: hidden; }</style>
+            </head>
+            <body>
+              <iframe src="${pdfUrl}" width="100%" height="100%" frameborder="0" style="border:0;"></iframe>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+    } catch (err) {
+      console.error('Error al generar PDF:', err);
+      if (printWindow) {
+        printWindow.document.write('<div style="color: red; text-align: center;">Ocurrió un error al generar el PDF.</div>');
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedConductor) return;
+    try {
+      const pdf = await generarDocumentoPDF();
+      pdf.save(`Expediente_Operador_${displayConductor.tarjeton}.pdf`);
+    } catch (err) {
+      console.error('Error al guardar PDF:', err);
+    }
   };
 
   return (

@@ -5,6 +5,7 @@ import { AuthContext } from '../../context/AuthContext';
 import API_BASE from '../../config/api';
 import './Operadores.css';
 import InfoGeneralOperador from './InfoGeneralOperador';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -741,27 +742,27 @@ export default function Operadores() {
         ) : activeTab === 'kardex' ? (
           <div className="operadores-table-card">
             <div className="table-responsive" style={{ overflowX: 'auto' }}>
-              <table className="operadores-table kardex-table" style={{ minWidth: '2700px', tableLayout: 'fixed' }}>
+              <table className="operadores-table kardex-table" style={{ minWidth: '3300px', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    <th style={{ width: '100px' }}>Tarjetón</th>
-                    <th style={{ width: '130px' }}>Tipo Tarjetón</th>
-                    <th style={{ width: '220px' }}>Nombre completo</th>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Edad</th>
-                    <th style={{ width: '110px' }}>Estatus</th>
-                    <th style={{ width: '160px' }}>Última capacitación</th>
-                    <th style={{ width: '160px' }}>Próxima capacitación</th>
-                    <th style={{ width: '190px', textAlign: 'center' }}>Accidentes / Siniestros</th>
-                    <th style={{ width: '110px', textAlign: 'center' }}>Faltas</th>
-                    <th style={{ width: '110px', textAlign: 'center' }}>Retardos</th>
-                    <th style={{ width: '170px', textAlign: 'center' }}>Amonestaciones</th>
-                    <th style={{ width: '170px', textAlign: 'center' }}>Reconocimientos</th>
-                    <th style={{ width: '250px' }}>Condicionamientos médicos</th>
-                    <th style={{ width: '250px' }}>Condicionamientos jurídicos</th>
-                    <th style={{ width: '110px', textAlign: 'center' }}>Cambios</th>
-                    <th style={{ width: '110px', textAlign: 'center' }}>Permisos</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Evaluación</th>
-                    <th style={{ width: '300px' }}>Observaciones</th>
+                    <th style={{ width: '110px' }}>Tarjetón</th>
+                    <th style={{ width: '140px' }}>Tipo Tarjetón</th>
+                    <th style={{ width: '280px' }}>Nombre completo</th>
+                    <th style={{ width: '90px', textAlign: 'center' }}>Edad</th>
+                    <th style={{ width: '130px' }}>Estatus</th>
+                    <th style={{ width: '210px' }}>Última capacitación</th>
+                    <th style={{ width: '210px' }}>Próxima capacitación</th>
+                    <th style={{ width: '220px', textAlign: 'center' }}>Accidentes / Siniestros</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Faltas</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Retardos</th>
+                    <th style={{ width: '180px', textAlign: 'center' }}>Amonestaciones</th>
+                    <th style={{ width: '180px', textAlign: 'center' }}>Reconocimientos</th>
+                    <th style={{ width: '280px' }}>Condicionamientos médicos</th>
+                    <th style={{ width: '280px' }}>Condicionamientos jurídicos</th>
+                    <th style={{ width: '130px', textAlign: 'center' }}>Cambios</th>
+                    <th style={{ width: '130px', textAlign: 'center' }}>Permisos</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Evaluación</th>
+                    <th style={{ width: '350px' }}>Observaciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -777,7 +778,9 @@ export default function Operadores() {
                         <td>
                           <span className="tarjeton-badge">{c.tarjeton}</span>
                         </td>
-                        <td className="text-center" style={{fontWeight: 600, color: '#555'}}>{c.tipo_tarjeton}</td>
+                        <td className="text-center">
+                          <span className="tipo-badge">TIPO {c.tipo_tarjeton || 'B'}</span>
+                        </td>
                         <td className="conductor-nombre">{c.nombre}</td>
                         <td className="text-center" style={{fontWeight: 600, color: '#555'}}>{c.fecha_nacimiento ? Math.floor((new Date() - new Date(c.fecha_nacimiento)) / 31557600000) : 'N/A'}</td>
                         <td>
@@ -795,22 +798,29 @@ export default function Operadores() {
                           </span>
                         </td>
                         <td>
-                          <input
-                            type="date"
-                            className="kardex-input"
-                            value={c.ultima_capacitacion || ''}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'ultima_capacitacion', e.target.value)}
-                            onBlur={() => handleBlurSave(c, 'ultima_capacitacion')}
-                          />
+                          <div style={{ width: '100%', minWidth: '160px' }}>
+                            <AppleDatePicker
+                              value={c.ultima_capacitacion || ''}
+                              disableFuture={true}
+                              onChange={(val) => {
+                                handleLocalFieldChange(c.id, 'ultima_capacitacion', val);
+                                handleBlurSave({ ...c, ultima_capacitacion: val }, 'ultima_capacitacion');
+                              }}
+                            />
+                          </div>
                         </td>
                         <td>
-                          <input
-                            type="date"
-                            className="kardex-input"
-                            value={c.proxima_capacitacion || ''}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'proxima_capacitacion', e.target.value)}
-                            onBlur={() => handleBlurSave(c, 'proxima_capacitacion')}
-                          />
+                          <div style={{ width: '100%', minWidth: '160px' }}>
+                            <AppleDatePicker
+                              value={c.proxima_capacitacion || ''}
+                              disableFuture={false}
+                              disablePast={true}
+                              onChange={(val) => {
+                                handleLocalFieldChange(c.id, 'proxima_capacitacion', val);
+                                handleBlurSave({ ...c, proxima_capacitacion: val }, 'proxima_capacitacion');
+                              }}
+                            />
+                          </div>
                         </td>
                         <td>
                           <input

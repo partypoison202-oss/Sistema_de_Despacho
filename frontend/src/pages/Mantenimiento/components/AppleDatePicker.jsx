@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 const CALENDAR_WIDTH = 288; // w-72
 
-const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true }) => {
+const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -68,7 +68,12 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
 
   const handlePrevMonth = (e) => {
     e.stopPropagation();
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const today = new Date();
+    if (disablePast && (prevMonth.getFullYear() < today.getFullYear() || (prevMonth.getFullYear() === today.getFullYear() && prevMonth.getMonth() < today.getMonth()))) {
+      return;
+    }
+    setCurrentMonth(prevMonth);
   };
 
   const handleNextMonth = (e) => {
@@ -132,21 +137,25 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     const isSelected = selYear === currentMonth.getFullYear() && selMonth === currentMonth.getMonth() && selDay === i;
     const isToday = today.getDate() === i && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
     const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
-    const isFuture = disableFuture && currentDate > today;
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const isFuture = disableFuture && currentDate > todayDateOnly;
+    const isPast = disablePast && currentDate < todayDateOnly;
+    const isDisabled = isFuture || isPast;
 
     days.push(
       <button
         key={`day-${i}`}
         type="button"
-        disabled={isFuture}
+        disabled={isDisabled}
         onClick={(e) => { e.stopPropagation(); handleSelectDate(i); }}
         className={`w-8 h-8 flex items-center justify-center rounded-full text-xs transition-all duration-150
-          ${isFuture ? 'opacity-30 cursor-not-allowed text-slate-400 font-normal' : 'active:scale-90 font-semibold cursor-pointer'}
-          ${!isFuture && isSelected 
+          ${isDisabled ? 'opacity-30 cursor-not-allowed text-slate-400 font-normal' : 'active:scale-90 font-semibold cursor-pointer'}
+          ${!isDisabled && isSelected 
             ? 'bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
-            : !isFuture && isToday 
+            : !isDisabled && isToday 
               ? 'text-[#6b1d33] bg-[#6b1d33]/15 font-bold border border-[#6b1d33]/30' 
-              : !isFuture ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900' : ''}
+              : !isDisabled ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900' : ''}
         `}
       >
         {i}
@@ -193,7 +202,8 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             <button 
               type="button" 
               onClick={handlePrevMonth} 
-              className="p-1.5 rounded-full hover:bg-slate-100 text-[#6b1d33] active:scale-95 transition-all"
+              disabled={disablePast && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth()}
+              className={`p-1.5 rounded-full transition-all ${disablePast && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth() ? 'opacity-30 cursor-not-allowed text-slate-400' : 'hover:bg-slate-100 text-[#6b1d33] active:scale-95'}`}
               title="Mes anterior"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -237,6 +247,16 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               className="text-xs font-bold text-[#6b1d33] hover:text-[#8d2745] transition-colors"
             >
               Hoy
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+              }}
+              className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
+            >
+              Borrar
             </button>
             <button
               type="button"
