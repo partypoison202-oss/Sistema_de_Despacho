@@ -28,6 +28,21 @@ class Conductor extends Model
         'permutas',
         'permisos',
         'evaluacion',
-        'observaciones'
+        'observaciones',
+        'vigencia_licencia',
+        'sexo',
+        'fecha_nacimiento',
+        'telefono',
+        'referencia_1',
+        'referencia_2',
+        'fecha_ingreso',
+        'amonestaciones_detalle',
+        'reconocimientos_detalle',
+        'condicionamientos_medicos'
+    ];
+
+    protected $casts = [
+        'amonestaciones_detalle' => 'array',
+        'reconocimientos_detalle' => 'array',
     ];
 }

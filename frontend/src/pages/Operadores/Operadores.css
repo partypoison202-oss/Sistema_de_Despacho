@@ -718,3 +718,9 @@
 .kardex-table td {
   padding: 0.55rem 0.75rem;
 }
+
+/* Forzar apariencia nativa del calendario en iOS/Móviles */
+input[type="date"] {
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+}

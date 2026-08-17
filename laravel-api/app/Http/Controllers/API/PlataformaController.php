@@ -98,6 +98,9 @@ class PlataformaController extends Controller
                 $motivoRetiro = strtolower($request->motivo ?? 'falta');
                 if ($tarjetonAnterior) {
                     DB::table('conductores')->where('tarjeton', $tarjetonAnterior)->update(['estado_servicio' => $motivoRetiro]);
+                    if ($motivoRetiro === 'falta') {
+                        DB::table('conductores')->where('tarjeton', $tarjetonAnterior)->increment('faltas');
+                    }
                 }
 
                 if ($request->cambio_operador_activo) {
