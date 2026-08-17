@@ -811,7 +811,6 @@ export default function ChecklistForm({
 
         if (qTipoRaw) {
             let normalizedTipo = qTipoRaw.toUpperCase();
-            if (normalizedTipo === 'URBANUS') normalizedTipo = 'URBANUSS';
 
             const loadUrlUnit = async () => {
                 await handleTipoUnidad(normalizedTipo, true);

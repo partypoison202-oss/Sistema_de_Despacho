@@ -176,7 +176,7 @@ export default function UnitInfoPanel({
         });
         if (res.ok) {
           const data = await res.json();
-          if (configActual?.id === 'urbanus') {
+          if (configActual?.id === 'urbanuss') {
             setRutasOpciones(data.troncales || []);
           } else {
             setRutasOpciones(data.alimentadoras || []);

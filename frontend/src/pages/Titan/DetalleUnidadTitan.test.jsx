@@ -17,7 +17,7 @@ vi.mock('sweetalert2', () => ({
 }));
 
 describe('DetalleUnidadTitan', () => {
-  const mockModel = { id: 'urbanus', label: 'URBANUSS' };
+  const mockModel = { id: 'urbanuss', label: 'URBANUSS' };
   const mockUnidad = { numero_economico: '123' };
 
   it('renders and allows tab switching without data contamination', async () => {

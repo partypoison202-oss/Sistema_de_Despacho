@@ -64,7 +64,7 @@ export const buildZonaVerdeSlots = (totalUnidades) => {
 
 export const fleets = [
   { id: 'all', label: 'TODAS' },
-  { id: 'urbanus', label: 'URBANUSS' },
+  { id: 'urbanuss', label: 'URBANUSS' },
   { id: 'vagoneta', label: 'VAGONETA' },
   { id: 'zafiro', label: 'ZAFIRO' },
   { id: 'orion', label: 'ORION' },

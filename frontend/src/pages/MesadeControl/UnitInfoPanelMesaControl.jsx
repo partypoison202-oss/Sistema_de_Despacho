@@ -125,7 +125,7 @@ export default function UnitInfoPanel({
             troncales: data.troncales || [],
             alimentadoras: data.alimentadoras || [],
           });
-          if (configActual?.id === 'urbanus') {
+          if (configActual?.id === 'urbanuss') {
             setRutasOpciones(data.troncales || []);
           } else {
             setRutasOpciones(data.alimentadoras || []);
@@ -155,7 +155,7 @@ export default function UnitInfoPanel({
   const [reemplazoActivo, setReemplazoActivo] = useState(false);
   const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
   const [dropdownEcoOpen, setDropdownEcoOpen] = useState(false);
-  const [rutaTipoSeleccionada, setRutaTipoSeleccionada] = useState(configActual?.id === 'urbanus' || configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
+  const [rutaTipoSeleccionada, setRutaTipoSeleccionada] = useState(configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
   const [reemplazoForm, setReemplazoForm] = useState({
     tarjeton: '',
     ruta: '',

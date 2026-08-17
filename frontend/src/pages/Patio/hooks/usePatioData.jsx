@@ -25,7 +25,7 @@ export const usePatioData = (selectedFleet) => {
       let data = [];
 
       if (fleetId === 'all') {
-        const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
+        const fleetIds = ['urbanuss', 'vagoneta', 'zafiro', 'orion'];
         const promises = fleetIds.map((id) => fetchSingleFleet(id, token));
         const results = await Promise.allSettled(promises);
         const allData = [];

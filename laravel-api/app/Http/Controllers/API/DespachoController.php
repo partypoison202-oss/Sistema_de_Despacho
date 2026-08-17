@@ -192,10 +192,7 @@ class DespachoController extends Controller
         foreach ($conteos as $item) {
             if (!empty($item->tipo)) {
                 $tipo = strtolower(trim($item->tipo));
-                // Normalizar 'urbanuss' → 'urbanus' para que coincida con el id del módulo en el frontend
-                if ($tipo === 'urbanuss') {
-                    $tipo = 'urbanus';
-                }
+
                 if (isset($resultado[$tipo])) {
                     $resultado[$tipo] += (int)$item->total;
                 } else {
@@ -216,9 +213,7 @@ class DespachoController extends Controller
     public function listarUnidadesPorTipo($tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
@@ -270,9 +265,7 @@ class DespachoController extends Controller
     public function buscarUnidadPorTarjeton($tipo, $tarjeton)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
         $tarjetonLimpio = trim($tarjeton);
 
         if ($tarjetonLimpio === '') {
@@ -307,9 +300,7 @@ class DespachoController extends Controller
     public function obtenerPorTipo($tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $data = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -332,9 +323,7 @@ class DespachoController extends Controller
     {
         \Log::info('[obtenerDetalleUnidad] Inicio', ['tipo' => $tipo, 'eco' => $numeroEco]);
         $tipoNormalizado = strtolower(trim($tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
         $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
 
         $unidadBase = DB::table('unidades')
@@ -668,9 +657,7 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $fechaHoy = Carbon::today()->toDateString();
@@ -719,9 +706,7 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $tarjetonLimpio = trim($request->tarjeton);
@@ -800,9 +785,7 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
 
@@ -1007,9 +990,7 @@ class DespachoController extends Controller
 
         $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
         $tipoNormalizado = strtolower(trim($request->tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $nuevoEstatus = strtolower(trim($request->estatus));
         $motivoEstatus = $request->motivo_estatus;
@@ -1286,9 +1267,7 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $rutaLimpia = trim($request->ruta);
@@ -1354,9 +1333,7 @@ class DespachoController extends Controller
             ]);
 
             $tipoNormalizado = strtolower(trim($request->tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
             $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
 
@@ -1469,9 +1446,7 @@ class DespachoController extends Controller
     public function unidadesPorRuta($tipo, $ruta)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-        if ($tipoNormalizado === 'urbanuss') {
-            $tipoNormalizado = 'urbanus';
-        }
+
 
         $rutaLimpia = trim($ruta);
 

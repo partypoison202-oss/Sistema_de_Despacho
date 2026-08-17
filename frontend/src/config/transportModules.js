@@ -1,7 +1,7 @@
 // src/config/transportModules.js
 export const transportModules = [
   {
-    id: 'urbanus',
+    id: 'urbanuss',
     title: 'URBANUSS',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.webp',

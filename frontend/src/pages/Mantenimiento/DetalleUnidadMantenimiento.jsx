@@ -167,7 +167,7 @@ export default function DetalleUnidadMantenimiento() {
 
   useEffect(() => {
     if (!_rutasData) return;
-    if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+    if (configActual?.id === 'urbanuss') {
       setRutasOpciones(_rutasData.troncales || []);
     } else {
       setRutasOpciones(_rutasData.alimentadoras || []);
@@ -279,7 +279,7 @@ export default function DetalleUnidadMantenimiento() {
     const nuevoEstado = !reemplazoActivo;
     setReemplazoActivo(nuevoEstado);
     if (nuevoEstado) {
-      setRutaTipoSeleccionada(configActual?.id === 'urbanus' || configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
+      setRutaTipoSeleccionada(configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
       setReemplazoForm((prev) => ({
         ...prev,
         unidadNuevaEco: '',

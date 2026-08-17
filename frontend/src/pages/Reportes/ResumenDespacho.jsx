@@ -22,7 +22,7 @@ import API_BASE from '../../config/api';
 
 
 const modelsConfig = [
-  { id: 'URBANUS', label: 'URBANUSS', image: '/images/urbanu-frente.webp' },
+  { id: 'URBANUSS', label: 'URBANUSS', image: '/images/urbanu-frente.webp' },
   { id: 'ZAFIRO', label: 'ZAFIRO', image: '/images/zafiro delante.webp' },
   { id: 'VAGONETA', label: 'VAGONETA', image: '/images/vagoneta frente.webp' },
   { id: 'ORION', label: 'ORIÓN', image: '/images/orionfrente.webp' }

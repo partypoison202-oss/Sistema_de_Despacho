@@ -2,7 +2,7 @@
 // Mismos módulos de transporte que DESPACHO pero con prefijo de ruta /encierro/
 export const encierroModules = [
   {
-    id: 'urbanus',
+    id: 'urbanuss',
     title: 'URBANUSS',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.webp',

@@ -220,7 +220,7 @@ function FuelBlock({
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function FuelInspection({ eco, tipoTransporte, token }) {
   const queryClient = useQueryClient();
-  const isDiesel = ['urbanus', 'urbanuss', 'zafiro', 'orion'].includes(
+  const isDiesel = ['urbanuss', 'zafiro', 'orion'].includes(
     tipoTransporte?.toLowerCase()
   );
   const combustibleLabel = isDiesel ? 'Diésel' : 'Gasolina';

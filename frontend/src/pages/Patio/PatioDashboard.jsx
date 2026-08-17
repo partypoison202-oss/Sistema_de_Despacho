@@ -175,7 +175,7 @@ const mergeUnitData = (incoming, prev) => {
 const PatioDashboard = () => {
   const fleets = [
     { id: 'all', label: 'TODAS' },
-    { id: 'urbanus', label: 'URBANUSS' },
+    { id: 'urbanuss', label: 'URBANUSS' },
     { id: 'vagoneta', label: 'VAGONETA' },
     { id: 'zafiro', label: 'ZAFIRO' },
     { id: 'orion', label: 'ORION' },
@@ -240,7 +240,7 @@ const PatioDashboard = () => {
   // --- Data fetching ----------------------------------------------------
   const fetchAllUnitsData = async () => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-    const fleetIds = ['urbanus', 'vagoneta', 'zafiro', 'orion'];
+    const fleetIds = ['urbanuss', 'vagoneta', 'zafiro', 'orion'];
 
     const promises = fleetIds.map(async (id) => {
       const response = await fetch(`${API_BASE}/api/unidades/listar/${id}`, {
@@ -606,7 +606,7 @@ const PatioDashboard = () => {
 
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     try {
-      const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanus';
+      const fleetToUse = selectedFleet !== 'all' ? selectedFleet : 'urbanuss';
       const response = await fetch(`${API_BASE}/api/unidades/detalle/${fleetToUse}/${eco}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -914,7 +914,7 @@ const PatioDashboard = () => {
               }
             >
               <div className="legend-box-title">Tecnologias</div>
-              <div className="legend-item"><span className="legend-color fleet-urbanus"></span> Urbanuss</div>
+              <div className="legend-item"><span className="legend-color fleet-urbanuss"></span> Urbanuss</div>
               <div className="legend-item"><span className="legend-color fleet-zafiro"></span> Zafiro</div>
               <div className="legend-item"><span className="legend-color fleet-vagoneta"></span> Vagoneta</div>
               <div className="legend-item"><span className="legend-color fleet-orion"></span> Orion</div>

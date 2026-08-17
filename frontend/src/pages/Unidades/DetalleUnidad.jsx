@@ -71,8 +71,8 @@ export default function DetalleUnidad() {
 
   // ✅ NUEVO: sólo las alimentadoras (zafiro, orion, vagoneta...) muestran el selector de rutas.
   // Las troncales usan un selector TRONCAL fijo en URBANUSS.
-  const esAlimentadora = configActual && configActual.id !== 'urbanus' && configActual.id !== 'urbanuss';
-  const isTroncal = configActual?.id === 'urbanus' || configActual?.id === 'urbanuss';
+  const esAlimentadora = configActual && configActual.id !== 'urbanuss';
+  const isTroncal = configActual?.id === 'urbanuss';
   const troncalesOpciones = ['T01', 'T02', 'T04', 'T05'];
 
   // Utilidades
@@ -225,7 +225,7 @@ export default function DetalleUnidad() {
         });
         if (res.ok) {
            const data = await res.json();
-            if (configActual?.id === 'urbanus' || configActual?.id === 'urbanuss') {
+            if (configActual?.id === 'urbanuss') {
               setRutasOpciones(data.troncales && data.troncales.length ? data.troncales : troncalesOpciones);
             } else {
               // fallback: use alimentadoras from API, or derive from unidadesList if empty

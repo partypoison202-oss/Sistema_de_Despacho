@@ -110,7 +110,7 @@ export default function DetalleUnidad() {
                   <tr>
                     <th style={{ width: '8%' }}>ECO</th>
                     <th style={{ width: '12%' }}>ID</th>
-                    <th style={{ width: '10%' }}>{modulo?.id === 'urbanus' ? 'SERVICIO' : 'RUTA'}</th>
+                    <th style={{ width: '10%' }}>{modulo?.id === 'urbanuss' ? 'SERVICIO' : 'RUTA'}</th>
                     <th style={{ width: '15%' }}>Hora de salida</th>
                     <th style={{ width: '15%' }}>Acople a ruta</th>
                     <th style={{ width: '10%' }}>Corrida</th>
