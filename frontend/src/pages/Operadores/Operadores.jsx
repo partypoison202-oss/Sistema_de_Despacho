@@ -4,6 +4,7 @@ import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
 import API_BASE from '../../config/api';
 import './Operadores.css';
+import InfoGeneralOperador from './InfoGeneralOperador';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -157,6 +158,13 @@ export default function Operadores() {
   // Form states
   const [nombre, setNombre] = useState('');
   const [tipoTarjeton, setTipoTarjeton] = useState('B');
+  const [vigenciaLicencia, setVigenciaLicencia] = useState('');
+  const [sexo, setSexo] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [referencia1, setReferencia1] = useState('');
+  const [referencia2, setReferencia2] = useState('');
+  const [fechaIngreso, setFechaIngreso] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const tipoOptions = [
@@ -181,8 +189,81 @@ export default function Operadores() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState('catalogo'); // 'catalogo' o 'kardex'
+  const [activeTab, setActiveTab] = useState('catalogo'); // 'catalogo' o 'kardex' o 'info_general'
   const [savingId, setSavingId] = useState(null);
+
+  // Modal Detalles (Amonestaciones/Reconocimientos)
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsType, setDetailsType] = useState(''); // 'amonestaciones' or 'reconocimientos'
+  const [detailsConductor, setDetailsConductor] = useState(null);
+  const [newDetailMotivo, setNewDetailMotivo] = useState('');
+
+  const openDetailsModal = (c, type) => {
+    setDetailsConductor(c);
+    setDetailsType(type);
+    setNewDetailMotivo('');
+    setShowDetailsModal(true);
+  };
+
+  const handleAddDetail = async (e) => {
+    e.preventDefault();
+    if (!newDetailMotivo.trim()) return;
+    
+    const fieldName = detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle';
+    const existing = detailsConductor[fieldName] || [];
+    const newDetail = { id: Date.now(), motivo: newDetailMotivo.trim(), fecha: new Date().toISOString() };
+    const updatedDetails = [...existing, newDetail];
+    
+    try {
+      const res = await fetch(`${API_BASE}/api/conductores/${detailsConductor.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          [fieldName]: updatedDetails,
+          [detailsType]: updatedDetails.length
+        })
+      });
+      if (!res.ok) throw new Error('Error al guardar detalle');
+      
+      setNewDetailMotivo('');
+      fetchConductores();
+      
+      setDetailsConductor({
+        ...detailsConductor,
+        [fieldName]: updatedDetails,
+        [detailsType]: updatedDetails.length
+      });
+      
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
+    }
+  };
+  
+  const handleRemoveDetail = async (detailId) => {
+      const fieldName = detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle';
+      const updatedDetails = (detailsConductor[fieldName] || []).filter(d => d.id !== detailId);
+      
+      try {
+        const res = await fetch(`${API_BASE}/api/conductores/${detailsConductor.id}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            [fieldName]: updatedDetails,
+            [detailsType]: updatedDetails.length
+          })
+        });
+        if (!res.ok) throw new Error('Error al eliminar detalle');
+        
+        fetchConductores();
+        setDetailsConductor({
+          ...detailsConductor,
+          [fieldName]: updatedDetails,
+          [detailsType]: updatedDetails.length
+        });
+      } catch (err) {
+        Swal.fire('Error', err.message, 'error');
+      }
+  };
 
   const fetchConductores = async () => {
     setLoading(true);
@@ -248,6 +329,13 @@ export default function Operadores() {
   const handleOpenAddModal = () => {
     setNombre('');
     setTipoTarjeton('B');
+    setVigenciaLicencia('');
+    setSexo('');
+    setFechaNacimiento('');
+    setTelefono('');
+    setReferencia1('');
+    setReferencia2('');
+    setFechaIngreso('');
     setShowAddModal(true);
   };
 
@@ -266,13 +354,22 @@ export default function Operadores() {
 
     setSubmitting(true);
     try {
+      const payload = {
+        nombre: nombreLimpio,
+        tipo_tarjeton: tipoTarjeton.trim(),
+      };
+      if (vigenciaLicencia) payload.vigencia_licencia = vigenciaLicencia;
+      if (sexo) payload.sexo = sexo;
+      if (fechaNacimiento) payload.fecha_nacimiento = fechaNacimiento;
+      if (telefono) payload.telefono = telefono;
+      if (referencia1) payload.referencia_1 = referencia1;
+      if (referencia2) payload.referencia_2 = referencia2;
+      if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
+
       const res = await fetch(`${API_BASE}/api/conductores`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          nombre: nombreLimpio,
-          tipo_tarjeton: tipoTarjeton.trim()
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -300,8 +397,15 @@ export default function Operadores() {
 
   const handleOpenEditModal = (c) => {
     setSelectedConductor(c);
-    setNombre(c.nombre);
+    setNombre(c.nombre || '');
     setTipoTarjeton(c.tipo_tarjeton === 'C' ? 'C' : 'B');
+    setVigenciaLicencia(c.vigencia_licencia || '');
+    setSexo(c.sexo || '');
+    setFechaNacimiento(c.fecha_nacimiento || '');
+    setTelefono(c.telefono || '');
+    setReferencia1(c.referencia_1 || '');
+    setReferencia2(c.referencia_2 || '');
+    setFechaIngreso(c.fecha_ingreso || '');
     setShowEditModal(true);
   };
 
@@ -320,13 +424,22 @@ export default function Operadores() {
 
     setSubmitting(true);
     try {
+      const payload = {
+        nombre: nombreLimpio,
+        tipo_tarjeton: tipoTarjeton.trim(),
+      };
+      if (vigenciaLicencia) payload.vigencia_licencia = vigenciaLicencia;
+      if (sexo) payload.sexo = sexo;
+      if (fechaNacimiento) payload.fecha_nacimiento = fechaNacimiento;
+      if (telefono) payload.telefono = telefono;
+      if (referencia1) payload.referencia_1 = referencia1;
+      if (referencia2) payload.referencia_2 = referencia2;
+      if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
+
       const res = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          nombre: nombreLimpio,
-          tipo_tarjeton: tipoTarjeton.trim()
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -509,22 +622,42 @@ export default function Operadores() {
           >
             Kardex de Operadores
           </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'info_general' ? 'active' : ''}`}
+            onClick={() => setActiveTab('info_general')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              color: activeTab === 'info_general' ? '#6b1d33' : '#64748b',
+              borderBottom: activeTab === 'info_general' ? '3px solid #6b1d33' : '3px solid transparent',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            Información General de Operador
+          </button>
         </div>
 
-        <div className="operadores-filter-card">
-          <div className="search-input-wrapper">
-            <svg width="18" height="18" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Buscar por nombre, tarjetón o tipo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
+        {activeTab !== 'info_general' && (
+          <div className="operadores-filter-card">
+            <div className="search-input-wrapper">
+              <svg width="18" height="18" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Buscar por nombre, tarjetón o tipo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {loading ? (
           <div className="operadores-loading">
@@ -605,24 +738,27 @@ export default function Operadores() {
               </table>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'kardex' ? (
           <div className="operadores-table-card">
             <div className="table-responsive" style={{ overflowX: 'auto' }}>
               <table className="operadores-table kardex-table" style={{ minWidth: '2700px', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
                     <th style={{ width: '100px' }}>Tarjetón</th>
+                    <th style={{ width: '130px' }}>Tipo Tarjetón</th>
                     <th style={{ width: '220px' }}>Nombre completo</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Edad</th>
                     <th style={{ width: '110px' }}>Estatus</th>
                     <th style={{ width: '160px' }}>Última capacitación</th>
                     <th style={{ width: '160px' }}>Próxima capacitación</th>
                     <th style={{ width: '190px', textAlign: 'center' }}>Accidentes / Siniestros</th>
                     <th style={{ width: '110px', textAlign: 'center' }}>Faltas</th>
                     <th style={{ width: '110px', textAlign: 'center' }}>Retardos</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Amonestaciones</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Reconocimientos</th>
+                    <th style={{ width: '170px', textAlign: 'center' }}>Amonestaciones</th>
+                    <th style={{ width: '170px', textAlign: 'center' }}>Reconocimientos</th>
+                    <th style={{ width: '250px' }}>Condicionamientos médicos</th>
                     <th style={{ width: '250px' }}>Condicionamientos jurídicos</th>
-                    <th style={{ width: '110px', textAlign: 'center' }}>Permutas</th>
+                    <th style={{ width: '110px', textAlign: 'center' }}>Cambios</th>
                     <th style={{ width: '110px', textAlign: 'center' }}>Permisos</th>
                     <th style={{ width: '120px', textAlign: 'center' }}>Evaluación</th>
                     <th style={{ width: '300px' }}>Observaciones</th>
@@ -641,7 +777,9 @@ export default function Operadores() {
                         <td>
                           <span className="tarjeton-badge">{c.tarjeton}</span>
                         </td>
+                        <td className="text-center" style={{fontWeight: 600, color: '#555'}}>{c.tipo_tarjeton}</td>
                         <td className="conductor-nombre">{c.nombre}</td>
+                        <td className="text-center" style={{fontWeight: 600, color: '#555'}}>{c.fecha_nacimiento ? Math.floor((new Date() - new Date(c.fecha_nacimiento)) / 31557600000) : 'N/A'}</td>
                         <td>
                           <span className={`estatus-badge ${c.estatus === 'baja' ? 'baja' : 'activo'}`} style={{
                             display: 'inline-block',
@@ -704,24 +842,32 @@ export default function Operadores() {
                             onBlur={() => handleBlurSave(c, 'retardos')}
                           />
                         </td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            className="kardex-input text-center"
-                            value={c.amonestaciones ?? 0}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'amonestaciones', parseInt(e.target.value, 10) || 0)}
-                            onBlur={() => handleBlurSave(c, 'amonestaciones')}
-                          />
+                        <td className="text-center">
+                          <button 
+                            type="button" 
+                            onClick={() => openDetailsModal(c, 'amonestaciones')}
+                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
+                          >
+                            {c.amonestaciones ?? 0} Detalles
+                          </button>
+                        </td>
+                        <td className="text-center">
+                          <button 
+                            type="button" 
+                            onClick={() => openDetailsModal(c, 'reconocimientos')}
+                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
+                          >
+                            {c.reconocimientos ?? 0} Detalles
+                          </button>
                         </td>
                         <td>
                           <input
-                            type="number"
-                            min="0"
-                            className="kardex-input text-center"
-                            value={c.reconocimientos ?? 0}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'reconocimientos', parseInt(e.target.value, 10) || 0)}
-                            onBlur={() => handleBlurSave(c, 'reconocimientos')}
+                            type="text"
+                            className="kardex-input"
+                            value={c.condicionamientos_medicos || ''}
+                            onChange={(e) => handleLocalFieldChange(c.id, 'condicionamientos_medicos', e.target.value)}
+                            onBlur={() => handleBlurSave(c, 'condicionamientos_medicos')}
+                            placeholder="Sin especificar"
                           />
                         </td>
                         <td>
@@ -781,7 +927,9 @@ export default function Operadores() {
               </table>
             </div>
           </div>
-        )}
+        ) : activeTab === 'info_general' ? (
+          <InfoGeneralOperador conductores={conductores} />
+        ) : null}
       </main>
 
       {/* Modal Agregar Operador */}
@@ -820,6 +968,42 @@ export default function Operadores() {
                   onChange={setTipoTarjeton}
                   options={tipoOptions}
                 />
+              </div>
+
+              <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Sexo</label>
+                  <select className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={sexo} onChange={e => setSexo(e.target.value)}>
+                    <option value="">Seleccione...</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Fecha de Nacimiento</label>
+                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Teléfono</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Fecha de Ingreso</label>
+                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaIngreso} onChange={e => setFechaIngreso(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Vigencia Licencia</label>
+                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={vigenciaLicencia} onChange={e => setVigenciaLicencia(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                <label className="form-label">Referencia 1 (Nombre y Teléfono)</label>
+                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia1} onChange={e => setReferencia1(e.target.value)} placeholder="Contacto de emergencia 1" />
+              </div>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label">Referencia 2 (Nombre y Teléfono)</label>
+                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia2} onChange={e => setReferencia2(e.target.value)} placeholder="Contacto de emergencia 2" />
               </div>
 
               <div className="form-info-box">
@@ -899,6 +1083,42 @@ export default function Operadores() {
                 />
               </div>
 
+              <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Sexo</label>
+                  <select className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={sexo} onChange={e => setSexo(e.target.value)}>
+                    <option value="">Seleccione...</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Fecha de Nacimiento</label>
+                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Teléfono</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Fecha de Ingreso</label>
+                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaIngreso} onChange={e => setFechaIngreso(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Vigencia Licencia</label>
+                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={vigenciaLicencia} onChange={e => setVigenciaLicencia(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                <label className="form-label">Referencia 1 (Nombre y Teléfono)</label>
+                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia1} onChange={e => setReferencia1(e.target.value)} placeholder="Contacto de emergencia 1" />
+              </div>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label">Referencia 2 (Nombre y Teléfono)</label>
+                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia2} onChange={e => setReferencia2(e.target.value)} placeholder="Contacto de emergencia 2" />
+              </div>
+
               <div className="modal-footer">
                 <button
                   type="button"
@@ -917,6 +1137,50 @@ export default function Operadores() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalles Amonestaciones / Reconocimientos */}
+      {showDetailsModal && detailsConductor && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{maxWidth: '500px'}}>
+            <div className="modal-header">
+              <div className="modal-header-title">
+                <h2 style={{textTransform: 'capitalize'}}>{detailsType}</h2>
+                <p>{detailsConductor.nombre}</p>
+              </div>
+              <button className="close-btn" onClick={() => setShowDetailsModal(false)} aria-label="Cerrar">&times;</button>
+            </div>
+            <div style={{padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto'}}>
+              {/* Lista actual */}
+              <ul style={{listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0'}}>
+                {(detailsType === 'amonestaciones' ? detailsConductor.amonestaciones_detalle : detailsConductor.reconocimientos_detalle)?.map((d, index) => (
+                  <li key={d.id || index} style={{display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem'}}>
+                    <div>
+                      <strong style={{display: 'block', fontSize: '0.9rem', color: '#334155'}}>#{index + 1} - {d.motivo}</strong>
+                      <small style={{color: '#94a3b8'}}>{new Date(d.fecha).toLocaleDateString()}</small>
+                    </div>
+                    <button type="button" onClick={() => handleRemoveDetail(d.id)} style={{background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.3rem'}}>
+                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </li>
+                ))}
+                {(!detailsConductor[detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle'] || detailsConductor[detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle'].length === 0) && (
+                  <li style={{textAlign: 'center', color: '#94a3b8', padding: '1rem', fontStyle: 'italic'}}>No hay registros.</li>
+                )}
+              </ul>
+              
+              <form onSubmit={handleAddDetail}>
+                <div className="form-group" style={{marginBottom: '1rem'}}>
+                  <label className="form-label">Nuevo Motivo</label>
+                  <input type="text" className="modal-input" style={{width: '100%', padding: '0.6rem'}} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value)} placeholder="Ej. Retraso en ruta, Buen desempeño..." required />
+                </div>
+                <button type="submit" className="btn-save" style={{width: '100%', padding: '0.75rem'}}>
+                  Agregar Registro
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}

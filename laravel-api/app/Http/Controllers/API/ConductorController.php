@@ -110,7 +110,17 @@ class ConductorController extends Controller
             'tarjeton' => $tarjetonGenerado,
             'tipo_tarjeton' => trim($request->tipo_tarjeton),
             'estado_servicio' => 'disponible',
-            'estatus' => 'activo'
+            'estatus' => 'activo',
+            'vigencia_licencia' => $request->vigencia_licencia ?? null,
+            'sexo' => $request->sexo ?? null,
+            'fecha_nacimiento' => $request->fecha_nacimiento ?? null,
+            'telefono' => $request->telefono ?? null,
+            'referencia_1' => $request->referencia_1 ?? null,
+            'referencia_2' => $request->referencia_2 ?? null,
+            'fecha_ingreso' => $request->fecha_ingreso ?? null,
+            'amonestaciones_detalle' => [],
+            'reconocimientos_detalle' => [],
+            'condicionamientos_medicos' => null,
         ]);
 
         return response()->json([
@@ -136,11 +146,21 @@ class ConductorController extends Controller
             'retardos' => 'sometimes|integer|min:0',
             'amonestaciones' => 'sometimes|integer|min:0',
             'reconocimientos' => 'sometimes|integer|min:0',
+            'condicionamientos_medicos' => 'sometimes|nullable|string|max:255',
             'condicionamientos_juridicos' => 'sometimes|nullable|string|max:255',
             'permutas' => 'sometimes|integer|min:0',
             'permisos' => 'sometimes|integer|min:0',
-            'evaluacion' => 'sometimes|nullable|string|max:255',
-            'observaciones' => 'sometimes|nullable|string',
+            'evaluacion' => 'sometimes|nullable|string|max:100',
+            'observaciones' => 'sometimes|nullable|string|max:500',
+            'vigencia_licencia' => 'sometimes|nullable|date',
+            'sexo' => 'sometimes|nullable|string|in:Masculino,Femenino',
+            'fecha_nacimiento' => 'sometimes|nullable|date',
+            'telefono' => 'sometimes|nullable|string|max:50',
+            'referencia_1' => 'sometimes|nullable|string|max:200',
+            'referencia_2' => 'sometimes|nullable|string|max:200',
+            'fecha_ingreso' => 'sometimes|nullable|date',
+            'amonestaciones_detalle' => 'sometimes|array',
+            'reconocimientos_detalle' => 'sometimes|array'
         ]);
 
         if ($request->has('nombre')) {
@@ -180,6 +200,13 @@ class ConductorController extends Controller
             'permisos',
             'evaluacion',
             'observaciones',
+            'vigencia_licencia',
+            'sexo',
+            'fecha_nacimiento',
+            'telefono',
+            'referencia_1',
+            'referencia_2',
+            'fecha_ingreso',
         ];
 
         foreach ($kardexFields as $field) {
