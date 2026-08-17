@@ -73,7 +73,7 @@ export default function InfoGeneralOperador({ conductores }) {
   return (
     <div className="info-general-container">
       {/* Buscador Superior */}
-      <div className="search-section bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
+      <div className="search-section bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6 print:hidden">
         <h2 className="text-lg font-bold mb-4" style={{ color: '#6A1B29' }}>Buscar Operador</h2>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -119,7 +119,7 @@ export default function InfoGeneralOperador({ conductores }) {
       </div>
 
       {/* Controles de Acción */}
-      <div className="flex justify-end gap-3 mb-4">
+      <div className="flex justify-end gap-3 mb-4 print:hidden">
         <button 
           onClick={handlePrint}
           className="px-4 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -137,14 +137,14 @@ export default function InfoGeneralOperador({ conductores }) {
       </div>
 
       {/* Perfil del Operador */}
-        <div className="operator-profile space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="operator-profile space-y-6 print:space-y-4 print:text-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:gap-4">
             
             {/* A. Encabezado / Identidad */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden col-span-1 lg:col-span-3">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: '#fdfbfb' }}>
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner" style={{ backgroundColor: '#6A1B29' }}>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden col-span-1 lg:col-span-3 print:break-inside-avoid print:shadow-none print:border-gray-300">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between print:px-4 print:py-3" style={{ backgroundColor: '#fdfbfb' }}>
+                <div className="flex items-center gap-4 print:gap-3">
+                  <div className="h-20 w-20 shrink-0 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-inner overflow-hidden object-cover print:h-16 print:w-16 print:text-2xl" style={{ backgroundColor: '#6A1B29' }}>
                     {displayConductor.nombre && displayConductor.nombre !== '------------------------' ? displayConductor.nombre.charAt(0).toUpperCase() : 'O'}
                   </div>
                   <div>
@@ -169,7 +169,7 @@ export default function InfoGeneralOperador({ conductores }) {
             </div>
 
             {/* B. Datos Personales y de Contacto */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-4">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
                 Datos Personales
@@ -199,7 +199,7 @@ export default function InfoGeneralOperador({ conductores }) {
             </div>
 
             {/* C. Antigüedad y Fechas */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-4">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Antigüedad y Fechas
@@ -213,18 +213,18 @@ export default function InfoGeneralOperador({ conductores }) {
                   <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 
-                <div className="bg-[#6A1B29] bg-opacity-10 p-4 rounded-lg flex items-center justify-between border border-[#6A1B29] border-opacity-20">
+                <div className="bg-[#6A1B29] p-4 rounded-lg flex items-center justify-between shadow-sm print:shadow-none print:border print:border-[#6A1B29] print:bg-white print:text-[#6A1B29]">
                   <div className="flex flex-col">
-                    <span className="text-[#6A1B29] text-xs uppercase tracking-wider font-bold">Antigüedad Total</span>
-                    <span className="text-[#6A1B29] font-bold text-lg mt-1">{displayConductor.fecha_ingreso === null ? '---' : calcularAntiguedad(displayConductor.fecha_ingreso)}</span>
+                    <span className="text-white text-xs uppercase tracking-wider font-bold print:text-[#6A1B29]">Antigüedad Total</span>
+                    <span className="text-white font-bold text-lg mt-1 print:text-[#6A1B29]">{displayConductor.fecha_ingreso === null ? '---' : calcularAntiguedad(displayConductor.fecha_ingreso)}</span>
                   </div>
-                  <svg className="w-8 h-8 text-[#6A1B29] opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                  <svg className="w-8 h-8 text-white opacity-50 print:text-[#6A1B29]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                 </div>
               </div>
             </div>
 
             {/* D. Historial y Métricas Operativas (Kardex) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 lg:col-span-3">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 lg:col-span-3 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-4">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 Historial y Métricas Operativas (Kardex)
@@ -291,7 +291,7 @@ export default function InfoGeneralOperador({ conductores }) {
                       Reconocimientos
                       <span className="font-bold text-[#6A1B29]">{displayConductor.reconocimientos ?? 0}</span>
                     </span>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 h-32 overflow-y-auto text-sm text-gray-700">
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 h-32 overflow-y-auto text-sm text-gray-700 print:h-auto print:overflow-visible">
                       {(displayConductor.reconocimientos_detalle && displayConductor.reconocimientos_detalle.length > 0) ? (
                         <ul className="list-disc pl-4 space-y-1">
                           {displayConductor.reconocimientos_detalle.map(d => (
@@ -309,7 +309,7 @@ export default function InfoGeneralOperador({ conductores }) {
                       Amonestaciones
                       <span className="font-bold text-[#6A1B29]">{displayConductor.amonestaciones ?? 0}</span>
                     </span>
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 h-32 overflow-y-auto text-sm text-gray-700">
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 h-32 overflow-y-auto text-sm text-gray-700 print:h-auto print:overflow-visible">
                       {(displayConductor.amonestaciones_detalle && displayConductor.amonestaciones_detalle.length > 0) ? (
                         <ul className="list-disc pl-4 space-y-1">
                           {displayConductor.amonestaciones_detalle.map(d => (
@@ -324,7 +324,7 @@ export default function InfoGeneralOperador({ conductores }) {
 
                   <div>
                     <span className="block text-sm font-semibold text-gray-500 mb-2">Observaciones Generales</span>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 h-24 overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 h-24 overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap print:h-auto print:overflow-visible">
                       {displayConductor.observaciones || <span className="italic text-gray-400">Sin observaciones registradas...</span>}
                     </div>
                   </div>
