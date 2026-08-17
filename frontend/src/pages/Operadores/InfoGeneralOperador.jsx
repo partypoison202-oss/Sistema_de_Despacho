@@ -1,4 +1,144 @@
 import React, { useState, useMemo } from 'react';
+import html2pdf from 'html2pdf.js';
+
+// Función para calcular edad
+const calcularEdad = (fechaNacimiento) => {
+  if (!fechaNacimiento) return 'N/A';
+  const hoy = new Date();
+  const cumple = new Date(fechaNacimiento);
+  let edad = hoy.getFullYear() - cumple.getFullYear();
+  const m = hoy.getMonth() - cumple.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < cumple.getDate())) {
+    edad--;
+  }
+  return isNaN(edad) ? 'N/A' : `${edad} años`;
+};
+
+// Función para calcular antigüedad
+const calcularAntiguedad = (fechaIngreso) => {
+  if (!fechaIngreso) return 'N/A';
+  const hoy = new Date();
+  const ingreso = new Date(fechaIngreso);
+  let anios = hoy.getFullYear() - ingreso.getFullYear();
+  let meses = hoy.getMonth() - ingreso.getMonth();
+  if (meses < 0) {
+    anios--;
+    meses += 12;
+  }
+  if (isNaN(anios) || isNaN(meses)) return 'N/A';
+  return `${anios} años, ${meses} meses`;
+};
+
+const PrintableTemplate = ({ conductor }) => (
+  <div className="bg-white p-8 w-[800px] mx-auto text-sm text-gray-800 font-sans" id="printable-pdf-template">
+    {/* Membrete Oficial */}
+    <div className="border-b-2 border-[#6A1B29] pb-4 mb-6 flex justify-between items-end">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 tracking-tight">SISTEMA DE TRANSPORTE MASIVO DE HIDALGO</h1>
+        <h2 className="text-md font-bold text-[#6A1B29] mt-1">CONSULTA DE INFORMACIÓN DEL OPERADOR</h2>
+      </div>
+      <div className="text-right text-xs text-gray-500">
+        <p>Fecha de Impresión: {new Date().toLocaleDateString()}</p>
+        <p>Reporte Operativo SITMAH</p>
+      </div>
+    </div>
+
+    {/* Identidad */}
+    <div className="flex items-center gap-6 mb-6 pb-4 border-b border-gray-100">
+      <div className="h-24 w-24 shrink-0 rounded-full flex items-center justify-center text-white text-4xl font-bold overflow-hidden" style={{ backgroundColor: '#6A1B29' }}>
+         {conductor.nombre && conductor.nombre !== '------------------------' ? conductor.nombre.charAt(0).toUpperCase() : 'O'}
+      </div>
+      <div className="flex-1">
+         <h2 className="text-2xl font-bold text-gray-900 uppercase">{conductor.nombre}</h2>
+         <div className="flex items-center gap-4 mt-2 text-gray-700">
+           <span><strong>ID:</strong> {conductor.id}</span>
+           <span><strong>Tarjetón:</strong> {conductor.tarjeton}</span>
+           <span className={`px-2 py-1 text-xs rounded-full font-bold uppercase ${conductor.estatus === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{conductor.estatus === 'activo' ? 'ACTIVO' : 'BAJA'}</span>
+         </div>
+         <p className="mt-1 text-xs text-gray-500"><strong>Vigencia Licencia:</strong> {conductor.vigencia_licencia ? new Date(conductor.vigencia_licencia).toLocaleDateString() : 'No registrada'}</p>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-2 gap-6 mb-6">
+      {/* Datos Personales */}
+      <div className="border border-gray-200 rounded-lg p-4">
+        <h3 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-3 text-xs">DATOS PERSONALES</h3>
+        <div className="space-y-2 text-xs">
+          <p className="flex justify-between"><span>Sexo:</span> <strong>{conductor.sexo || 'N/A'}</strong></p>
+          <p className="flex justify-between"><span>Edad:</span> <strong>{conductor.fecha_nacimiento ? calcularEdad(conductor.fecha_nacimiento) : '---'}</strong></p>
+          <p className="flex justify-between"><span>Teléfono:</span> <strong>{conductor.telefono || 'N/A'}</strong></p>
+          <p className="flex justify-between"><span>Ref 1:</span> <strong>{conductor.referencia_1 || 'N/A'}</strong></p>
+          <p className="flex justify-between"><span>Ref 2:</span> <strong>{conductor.referencia_2 || 'N/A'}</strong></p>
+        </div>
+      </div>
+
+      {/* Antigüedad */}
+      <div className="border border-gray-200 rounded-lg p-4">
+        <h3 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-3 text-xs">ANTIGÜEDAD Y FECHAS</h3>
+        <div className="grid grid-cols-2 gap-3 text-xs">
+           <div className="bg-gray-50 p-2 rounded">
+             <span className="block text-gray-500 mb-1">Fecha Ingreso</span>
+             <strong className="text-sm">{conductor.fecha_ingreso ? new Date(conductor.fecha_ingreso).toLocaleDateString() : 'N/A'}</strong>
+           </div>
+           <div className="bg-[#6A1B29] text-white p-2 rounded">
+             <span className="block mb-1 opacity-80">Antigüedad</span>
+             <strong className="text-sm">{conductor.fecha_ingreso ? calcularAntiguedad(conductor.fecha_ingreso) : '---'}</strong>
+           </div>
+           <div className="bg-gray-50 p-2 rounded">
+             <span className="block text-gray-500 mb-1">Últ. Capacitación</span>
+             <strong>{conductor.ultima_capacitacion ? new Date(conductor.ultima_capacitacion).toLocaleDateString() : 'N/A'}</strong>
+           </div>
+           <div className="bg-gray-50 p-2 rounded">
+             <span className="block text-gray-500 mb-1">Próx. Capacitación</span>
+             <strong>{conductor.proxima_capacitacion ? new Date(conductor.proxima_capacitacion).toLocaleDateString() : 'N/A'}</strong>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Kardex Métricas */}
+    <div className="border border-gray-200 rounded-lg p-4 mb-6">
+      <h3 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-3 text-xs">MÉTRICAS OPERATIVAS (KARDEX)</h3>
+      <div className="grid grid-cols-4 gap-4 text-center">
+        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.accidentes_siniestros ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Accidentes</p></div>
+        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.faltas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Faltas</p></div>
+        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.retardos ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Retardos</p></div>
+        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.cambios ?? conductor.permutas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Cambios</p></div>
+      </div>
+    </div>
+
+    {/* Observaciones y Listas */}
+    <div className="grid grid-cols-2 gap-6">
+      <div className="border border-gray-200 rounded-lg p-4">
+         <h4 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-2 flex justify-between text-xs">RECONOCIMIENTOS <span className="text-[#6A1B29]">{conductor.reconocimientos ?? 0}</span></h4>
+         <ul className="text-[10px] list-disc pl-4 space-y-1 text-gray-600">
+            {conductor.reconocimientos_detalle && conductor.reconocimientos_detalle.length > 0 ? 
+              conductor.reconocimientos_detalle.map(d => <li key={d.id}><strong>{new Date(d.fecha).toLocaleDateString()}:</strong> {d.motivo}</li>) 
+            : <li className="italic">Sin registros</li>}
+         </ul>
+      </div>
+      <div className="border border-gray-200 rounded-lg p-4">
+         <h4 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-2 flex justify-between text-xs">AMONESTACIONES <span className="text-[#6A1B29]">{conductor.amonestaciones ?? 0}</span></h4>
+         <ul className="text-[10px] list-disc pl-4 space-y-1 text-gray-600">
+            {conductor.amonestaciones_detalle && conductor.amonestaciones_detalle.length > 0 ? 
+              conductor.amonestaciones_detalle.map(d => <li key={d.id}><strong>{new Date(d.fecha).toLocaleDateString()}:</strong> {d.motivo}</li>) 
+            : <li className="italic">Sin registros</li>}
+         </ul>
+      </div>
+      <div className="col-span-2 border border-gray-200 rounded-lg p-4 text-xs">
+         <h4 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-2">CONDICIONAMIENTOS</h4>
+         <div className="flex gap-4">
+           <p className="flex-1"><strong className="text-gray-700">Médicos:</strong> {conductor.condicionamientos_medicos || 'N/A'}</p>
+           <p className="flex-1"><strong className="text-gray-700">Jurídicos:</strong> {conductor.condicionamientos_juridicos || 'N/A'}</p>
+         </div>
+      </div>
+      <div className="col-span-2 border border-gray-200 rounded-lg p-4 text-xs">
+         <h4 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-2">OBSERVACIONES</h4>
+         <p className="whitespace-pre-wrap">{conductor.observaciones || 'Sin observaciones registradas...'}</p>
+      </div>
+    </div>
+  </div>
+);
 
 export default function InfoGeneralOperador({ conductores }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,34 +161,6 @@ export default function InfoGeneralOperador({ conductores }) {
     setSearchTerm(''); // Opcional: limpiar búsqueda o dejarla
   };
 
-  // Función para calcular edad
-  const calcularEdad = (fechaNacimiento) => {
-    if (!fechaNacimiento) return 'N/A';
-    const hoy = new Date();
-    const cumple = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - cumple.getFullYear();
-    const m = hoy.getMonth() - cumple.getMonth();
-    if (m < 0 || (m === 0 && hoy.getDate() < cumple.getDate())) {
-      edad--;
-    }
-    return isNaN(edad) ? 'N/A' : `${edad} años`;
-  };
-
-  // Función para calcular antigüedad
-  const calcularAntiguedad = (fechaIngreso) => {
-    if (!fechaIngreso) return 'N/A';
-    const hoy = new Date();
-    const ingreso = new Date(fechaIngreso);
-    let anios = hoy.getFullYear() - ingreso.getFullYear();
-    let meses = hoy.getMonth() - ingreso.getMonth();
-    if (meses < 0) {
-      anios--;
-      meses += 12;
-    }
-    if (isNaN(anios) || isNaN(meses)) return 'N/A';
-    return `${anios} años, ${meses} meses`;
-  };
-
   const defaultConductor = {
     nombre: '------------------------', id: '---', tarjeton: '---', estatus: '---', tipo_tarjeton: '---',
     vigencia_licencia: null, sexo: '---', fecha_nacimiento: null,
@@ -63,15 +175,31 @@ export default function InfoGeneralOperador({ conductores }) {
   const displayConductor = selectedConductor || defaultConductor;
 
   const handlePrint = () => {
+    if (!selectedConductor) return;
     window.print();
   };
 
   const handleSave = () => {
-    alert('Función de guardar en desarrollo');
+    if (!selectedConductor) return;
+    const element = document.getElementById('printable-pdf-template');
+    const opt = {
+      margin:       10,
+      filename:     `Expediente_Operador_${displayConductor.tarjeton}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
   };
 
   return (
-    <div className="info-general-container">
+    <>
+      {/* Plantilla oculta para PDF y Print */}
+      <div className="absolute -left-[9999px] top-0 print:static print:w-full print:block">
+        <PrintableTemplate conductor={displayConductor} />
+      </div>
+
+      <div className="info-general-container print:hidden">
       {/* Buscador Superior */}
       <div className="search-section bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6 print:hidden">
         <h2 className="text-lg font-bold mb-4" style={{ color: '#6A1B29' }}>Buscar Operador</h2>
@@ -138,29 +266,15 @@ export default function InfoGeneralOperador({ conductores }) {
         </button>
       </div>
 
-      {/* Membrete de Impresión (Solo visible al imprimir) */}
-      <div className="hidden print:block mb-4 border-b-2 border-[#6A1B29] pb-2">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight">SISTEMA DE TRANSPORTE MASIVO DE HIDALGO</h1>
-            <h2 className="text-sm font-bold text-[#6A1B29] mt-0.5">CONSULTA DE INFORMACIÓN DEL OPERADOR</h2>
-          </div>
-          <div className="text-right text-[10px] text-gray-500">
-            <p>Fecha de Impresión: {new Date().toLocaleDateString()}</p>
-            <p>Reporte Operativo SITMAH</p>
-          </div>
-        </div>
-      </div>
-
       {/* Perfil del Operador */}
-        <div className="operator-profile space-y-6 print:space-y-2 print:text-[10px]">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:gap-2">
+        <div className="operator-profile space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* A. Encabezado / Identidad */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden col-span-1 lg:col-span-3 print:break-inside-avoid print:shadow-none print:border-gray-300">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between print:px-4 print:py-3" style={{ backgroundColor: '#fdfbfb' }}>
-                <div className="flex items-center gap-4 print:gap-3">
-                  <div className="h-20 w-20 shrink-0 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-inner overflow-hidden object-cover print:h-16 print:w-16 print:text-2xl" style={{ backgroundColor: '#6A1B29' }}>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden col-span-1 lg:col-span-3">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: '#fdfbfb' }}>
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 shrink-0 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-inner overflow-hidden object-cover" style={{ backgroundColor: '#6A1B29' }}>
                     {displayConductor.nombre && displayConductor.nombre !== '------------------------' ? displayConductor.nombre.charAt(0).toUpperCase() : 'O'}
                   </div>
                   <div>
@@ -185,7 +299,7 @@ export default function InfoGeneralOperador({ conductores }) {
             </div>
 
             {/* B. Datos Personales y de Contacto */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
                 Datos Personales
@@ -215,7 +329,7 @@ export default function InfoGeneralOperador({ conductores }) {
             </div>
 
             {/* C. Antigüedad y Fechas */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Antigüedad y Fechas
@@ -229,22 +343,22 @@ export default function InfoGeneralOperador({ conductores }) {
                   <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 
-                <div className="bg-[#6A1B29] p-4 rounded-lg flex items-center justify-between shadow-sm print:shadow-none print:border print:border-[#6A1B29] print:bg-white print:text-[#6A1B29] print:p-2">
+                <div className="bg-[#6A1B29] p-4 rounded-lg flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
-                    <span className="text-white text-xs uppercase tracking-wider font-bold print:text-[#6A1B29]">Antigüedad Total</span>
-                    <span className="text-white font-bold text-lg mt-1 print:text-[#6A1B29]">{displayConductor.fecha_ingreso === null ? '---' : calcularAntiguedad(displayConductor.fecha_ingreso)}</span>
+                    <span className="text-white text-xs uppercase tracking-wider font-bold">Antigüedad Total</span>
+                    <span className="text-white font-bold text-lg mt-1">{displayConductor.fecha_ingreso === null ? '---' : calcularAntiguedad(displayConductor.fecha_ingreso)}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* D. Historial y Métricas Operativas (Kardex) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 lg:col-span-3 print:break-inside-avoid print:shadow-none print:border-gray-300 print:p-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 lg:col-span-3">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2" style={{ color: '#6A1B29' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 Historial y Métricas Operativas (Kardex)
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 print:gap-2 print:mb-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-gray-800">{displayConductor.accidentes_siniestros ?? 0}</div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Accidentes</div>
@@ -263,7 +377,7 @@ export default function InfoGeneralOperador({ conductores }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <div className="mb-4">
                     <span className="block text-sm font-semibold text-gray-500 mb-1">Capacitaciones</span>
@@ -338,7 +452,7 @@ export default function InfoGeneralOperador({ conductores }) {
 
                   <div>
                     <span className="block text-sm font-semibold text-gray-500 mb-2">Observaciones Generales</span>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 h-24 overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap print:h-auto print:overflow-visible">
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 h-24 overflow-y-auto text-sm text-gray-700 whitespace-pre-wrap">
                       {displayConductor.observaciones || <span className="italic text-gray-400">Sin observaciones registradas...</span>}
                     </div>
                   </div>
@@ -348,6 +462,7 @@ export default function InfoGeneralOperador({ conductores }) {
 
           </div>
         </div>
-    </div>
+      </div>
+    </>
   );
 }
