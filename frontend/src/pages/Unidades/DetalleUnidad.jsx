@@ -1344,7 +1344,7 @@ export default function DetalleUnidad() {
                         </span>
                       </div>
                       
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                         {unidadesPorRutaList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                           const colors = getUnitColor(unidad, selectedOption === unidad.display);
                           return (
@@ -1387,7 +1387,7 @@ export default function DetalleUnidad() {
                           </span>
                         </div>
                         
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', opacity: 0.9 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', opacity: 0.9 }}>
                           {unidadesPorRutaList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
@@ -1469,7 +1469,7 @@ export default function DetalleUnidad() {
                         </span>
                       </div>
                       
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                         {unidadesPorTroncalList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                           const colors = getUnitColor(unidad, selectedOption === unidad.display);
                           return (
@@ -1511,7 +1511,7 @@ export default function DetalleUnidad() {
                           </span>
                         </div>
                         
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', opacity: 0.9 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', opacity: 0.9 }}>
                           {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
