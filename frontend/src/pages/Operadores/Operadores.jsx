@@ -219,7 +219,7 @@ export default function Operadores() {
     e.preventDefault();
     if (!newDetailMotivo.trim()) return;
     
-    const fieldName = detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle';
+    const fieldName = `${detailsType}_detalle`;
     const existing = detailsConductor[fieldName] || [];
     const newDetail = { id: Date.now(), motivo: newDetailMotivo.trim(), fecha: new Date().toISOString() };
     const updatedDetails = [...existing, newDetail];
@@ -250,7 +250,7 @@ export default function Operadores() {
   };
   
   const handleRemoveDetail = async (detailId) => {
-      const fieldName = detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle';
+      const fieldName = `${detailsType}_detalle`;
       const updatedDetails = (detailsConductor[fieldName] || []).filter(d => d.id !== detailId);
       
       try {
@@ -301,20 +301,32 @@ export default function Operadores() {
     setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
 
-  const handleInlineUpdate = async (id, field, value) => {
-    setSavingId(id);
+  const handleSaveKardexRow = async (c) => {
+    setSavingId(c.id);
     try {
-      const res = await fetch(`${API_BASE}/api/conductores/${id}`, {
+      const res = await fetch(`${API_BASE}/api/conductores/${c.id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          [field]: value
+          accidentes_siniestros: c.accidentes_siniestros,
+          faltas: c.faltas,
+          retardos: c.retardos,
+          condicionamientos_medicos: c.condicionamientos_medicos,
+          condicionamientos_juridicos: c.condicionamientos_juridicos,
+          evaluacion: c.evaluacion,
+          observaciones: c.observaciones
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al guardar datos del Kardex');
+      if (!res.ok) throw new Error(data.message || 'Error al guardar cambios');
 
-      setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: data.conductor[field] } : c));
+      Swal.fire({
+        icon: 'success',
+        title: 'Guardado',
+        text: 'Los cambios del operador se han guardado correctamente.',
+        timer: 2000,
+        showConfirmButton: false
+      });
     } catch (err) {
       console.error(err);
       Swal.fire({
@@ -326,10 +338,6 @@ export default function Operadores() {
     } finally {
       setSavingId(null);
     }
-  };
-
-  const handleBlurSave = (c, field) => {
-    handleInlineUpdate(c.id, field, c[field]);
   };
 
   useEffect(() => {
@@ -707,28 +715,30 @@ export default function Operadores() {
                 )}
               </div>
 
-              <div className="flex w-full md:w-auto items-center gap-3">
-                <CustomSelect
-                  value={filterTipo}
-                  onChange={setFilterTipo}
-                  options={[
-                    { value: '', label: 'TIPO TARJETÓN: TODOS' },
-                    { value: 'B', label: 'TIPO B' },
-                    { value: 'C', label: 'TIPO C' }
-                  ]}
-                />
+              {activeTab === 'catalogo' && (
+                <div className="flex w-full md:w-auto items-center gap-3">
+                  <CustomSelect
+                    value={filterTipo}
+                    onChange={setFilterTipo}
+                    options={[
+                      { value: '', label: 'TIPO TARJETÓN: TODOS' },
+                      { value: 'B', label: 'TIPO B' },
+                      { value: 'C', label: 'TIPO C' }
+                    ]}
+                  />
 
-                <CustomSelect
-                  value={filterEstadoServicio}
-                  onChange={setFilterEstadoServicio}
-                  options={[
-                    { value: '', label: 'ESTADO SERVICIO: TODOS' },
-                    { value: 'disponible', label: 'DISPONIBLE' },
-                    { value: 'en_servicio', label: 'EN SERVICIO' },
-                    { value: 'falta', label: 'FALTA' }
-                  ]}
-                />
-              </div>
+                  <CustomSelect
+                    value={filterEstadoServicio}
+                    onChange={setFilterEstadoServicio}
+                    options={[
+                      { value: '', label: 'ESTADO SERVICIO: TODOS' },
+                      { value: 'disponible', label: 'DISPONIBLE' },
+                      { value: 'en_servicio', label: 'EN SERVICIO' },
+                      { value: 'falta', label: 'FALTA' }
+                    ]}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -893,16 +903,13 @@ export default function Operadores() {
                                 handleBlurSave({ ...c, proxima_capacitacion: val }, 'proxima_capacitacion');
                               }}
                             />
-                          </div>
-                        </td>
-                        <td>
+                                          <td>
                           <input
                             type="number"
                             min="0"
                             className="kardex-input text-center"
                             value={c.accidentes_siniestros ?? 0}
                             onChange={(e) => handleLocalFieldChange(c.id, 'accidentes_siniestros', parseInt(e.target.value, 10) || 0)}
-                            onBlur={() => handleBlurSave(c, 'accidentes_siniestros')}
                           />
                         </td>
                         <td>
@@ -912,7 +919,6 @@ export default function Operadores() {
                             className="kardex-input text-center"
                             value={c.faltas ?? 0}
                             onChange={(e) => handleLocalFieldChange(c.id, 'faltas', parseInt(e.target.value, 10) || 0)}
-                            onBlur={() => handleBlurSave(c, 'faltas')}
                           />
                         </td>
                         <td>
@@ -922,7 +928,6 @@ export default function Operadores() {
                             className="kardex-input text-center"
                             value={c.retardos ?? 0}
                             onChange={(e) => handleLocalFieldChange(c.id, 'retardos', parseInt(e.target.value, 10) || 0)}
-                            onBlur={() => handleBlurSave(c, 'retardos')}
                           />
                         </td>
                         <td className="text-center">
@@ -949,7 +954,6 @@ export default function Operadores() {
                             className="kardex-input"
                             value={c.condicionamientos_medicos || ''}
                             onChange={(e) => handleLocalFieldChange(c.id, 'condicionamientos_medicos', e.target.value)}
-                            onBlur={() => handleBlurSave(c, 'condicionamientos_medicos')}
                             placeholder="Sin especificar"
                           />
                         </td>
@@ -959,29 +963,26 @@ export default function Operadores() {
                             className="kardex-input"
                             value={c.condicionamientos_juridicos || ''}
                             onChange={(e) => handleLocalFieldChange(c.id, 'condicionamientos_juridicos', e.target.value)}
-                            onBlur={() => handleBlurSave(c, 'condicionamientos_juridicos')}
                             placeholder="Sin especificar"
                           />
                         </td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            className="kardex-input text-center"
-                            value={c.permutas ?? 0}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'permutas', parseInt(e.target.value, 10) || 0)}
-                            onBlur={() => handleBlurSave(c, 'permutas')}
-                          />
+                        <td className="text-center">
+                          <button 
+                            type="button" 
+                            onClick={() => openDetailsModal(c, 'permutas')}
+                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
+                          >
+                            {c.permutas ?? 0} Detalles
+                          </button>
                         </td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            className="kardex-input text-center"
-                            value={c.permisos ?? 0}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'permisos', parseInt(e.target.value, 10) || 0)}
-                            onBlur={() => handleBlurSave(c, 'permisos')}
-                          />
+                        <td className="text-center">
+                          <button 
+                            type="button" 
+                            onClick={() => openDetailsModal(c, 'permisos')}
+                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
+                          >
+                            {c.permisos ?? 0} Detalles
+                          </button>
                         </td>
                         <td>
                           <input
@@ -989,7 +990,6 @@ export default function Operadores() {
                             className="kardex-input text-center"
                             value={c.evaluacion || ''}
                             onChange={(e) => handleLocalFieldChange(c.id, 'evaluacion', e.target.value)}
-                            onBlur={() => handleBlurSave(c, 'evaluacion')}
                             placeholder="N/A"
                           />
                         </td>
@@ -999,10 +999,20 @@ export default function Operadores() {
                             className="kardex-input"
                             value={c.observaciones || ''}
                             onChange={(e) => handleLocalFieldChange(c.id, 'observaciones', e.target.value)}
-                            onBlur={() => handleBlurSave(c, 'observaciones')}
-                            placeholder="Añadir notas..."
+                            placeholder="Añadir nota..."
                           />
                         </td>
+                        <td className="text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveKardexRow(c)}
+                            disabled={savingId === c.id}
+                            className={`px-3 py-1.5 rounded text-sm font-bold text-white transition-all ${savingId === c.id ? 'bg-slate-400 cursor-wait' : 'bg-[#6b1d33] hover:bg-[#8d2745] active:scale-95'}`}
+                          >
+                            {savingId === c.id ? 'Guardando...' : 'Guardar'}
+                          </button>
+                        </td>
+                      </tr>              </td>
                       </tr>
                     ))
                   )}
@@ -1252,13 +1262,15 @@ export default function Operadores() {
         </div>
       )}
 
-      {/* Modal Detalles Amonestaciones / Reconocimientos */}
+      {/* Modal Detalles Amonestaciones / Reconocimientos / Permisos / Permutas */}
       {showDetailsModal && detailsConductor && (
         <div className="modal-backdrop">
           <div className="modal-content" style={{maxWidth: '500px'}}>
             <div className="modal-header">
               <div className="modal-header-title">
-                <h2 style={{textTransform: 'capitalize'}}>{detailsType}</h2>
+                <h2 style={{textTransform: 'capitalize'}}>
+                  Historial de {detailsType}
+                </h2>
                 <p>{detailsConductor.nombre}</p>
               </div>
               <button className="close-btn" onClick={() => setShowDetailsModal(false)} aria-label="Cerrar">&times;</button>
@@ -1266,18 +1278,24 @@ export default function Operadores() {
             <div style={{padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto'}}>
               {/* Lista actual */}
               <ul style={{listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0'}}>
-                {(detailsType === 'amonestaciones' ? detailsConductor.amonestaciones_detalle : detailsConductor.reconocimientos_detalle)?.map((d, index) => (
+                {(detailsConductor[`${detailsType}_detalle`] || []).map((d, index) => (
                   <li key={d.id || index} style={{display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem'}}>
                     <div>
-                      <strong style={{display: 'block', fontSize: '0.9rem', color: '#334155'}}>#{index + 1} - {d.motivo}</strong>
-                      <small style={{color: '#94a3b8'}}>{new Date(d.fecha).toLocaleDateString()}</small>
+                      <strong style={{ display: 'block', color: '#333' }}>{d.motivo}</strong>
+                      <span style={{ fontSize: '0.8rem', color: '#888' }}>
+                        {new Date(d.fecha).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                      </span>
                     </div>
-                    <button type="button" onClick={() => handleRemoveDetail(d.id)} style={{background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.3rem'}}>
-                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <button 
+                      onClick={() => handleRemoveDetail(d.id)}
+                      style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem' }}
+                      title="Eliminar"
+                    >
+                      &times;
                     </button>
                   </li>
                 ))}
-                {(!detailsConductor[detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle'] || detailsConductor[detailsType === 'amonestaciones' ? 'amonestaciones_detalle' : 'reconocimientos_detalle'].length === 0) && (
+                {(!detailsConductor[`${detailsType}_detalle`] || detailsConductor[`${detailsType}_detalle`].length === 0) && (
                   <li style={{textAlign: 'center', color: '#94a3b8', padding: '1rem', fontStyle: 'italic'}}>No hay registros.</li>
                 )}
               </ul>
@@ -1285,7 +1303,7 @@ export default function Operadores() {
               <form onSubmit={handleAddDetail}>
                 <div className="form-group" style={{marginBottom: '1rem'}}>
                   <label className="form-label">Nuevo Motivo</label>
-                  <input type="text" className="modal-input" style={{width: '100%', padding: '0.6rem'}} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value)} placeholder="Ej. Retraso en ruta, Buen desempeño..." required />
+                  <input type="text" className="modal-input" style={{width: '100%', padding: '0.6rem'}} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value)} placeholder="Ej. Motivo del registro..." required />
                 </div>
                 <button type="submit" className="btn-save" style={{width: '100%', padding: '0.75rem'}}>
                   Agregar Registro

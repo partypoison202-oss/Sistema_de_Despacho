@@ -38,11 +38,15 @@ class Conductor extends Model
         'fecha_ingreso',
         'amonestaciones_detalle',
         'reconocimientos_detalle',
+        'permisos_detalle',
+        'permutas_detalle',
         'condicionamientos_medicos'
     ];
 
     protected $casts = [
         'amonestaciones_detalle' => 'array',
         'reconocimientos_detalle' => 'array',
+        'permisos_detalle' => 'array',
+        'permutas_detalle' => 'array',
     ];
 }
