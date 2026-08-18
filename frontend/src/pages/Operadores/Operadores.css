@@ -413,8 +413,9 @@
   border-radius: 0.85rem;
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
+  overflow-y: auto;
   border: 1px solid #e2e8f0;
   animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }

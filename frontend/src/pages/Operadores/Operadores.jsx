@@ -163,14 +163,21 @@ export default function Operadores() {
   const [sexo, setSexo] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [telefono, setTelefono] = useState('');
-  const [referencia1, setReferencia1] = useState('');
-  const [referencia2, setReferencia2] = useState('');
+  const [ref1Nombre, setRef1Nombre] = useState('');
+  const [ref1Telefono, setRef1Telefono] = useState('');
+  const [ref2Nombre, setRef2Nombre] = useState('');
+  const [ref2Telefono, setRef2Telefono] = useState('');
   const [fechaIngreso, setFechaIngreso] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const tipoOptions = [
     { value: 'B', label: 'TIPO B' },
     { value: 'C', label: 'TIPO C' }
+  ];
+
+  const sexoOptions = [
+    { value: 'Masculino', label: 'MASCULINO' },
+    { value: 'Femenino', label: 'FEMENINO' }
   ];
 
   const getAuthHeaders = () => {
@@ -334,8 +341,10 @@ export default function Operadores() {
     setSexo('');
     setFechaNacimiento('');
     setTelefono('');
-    setReferencia1('');
-    setReferencia2('');
+    setRef1Nombre('');
+    setRef1Telefono('');
+    setRef2Nombre('');
+    setRef2Telefono('');
     setFechaIngreso('');
     setShowAddModal(true);
   };
@@ -363,8 +372,11 @@ export default function Operadores() {
       if (sexo) payload.sexo = sexo;
       if (fechaNacimiento) payload.fecha_nacimiento = fechaNacimiento;
       if (telefono) payload.telefono = telefono;
-      if (referencia1) payload.referencia_1 = referencia1;
-      if (referencia2) payload.referencia_2 = referencia2;
+      const ref1 = [ref1Nombre.trim(), ref1Telefono.trim()].filter(Boolean).join(' - ');
+      if (ref1) payload.referencia_1 = ref1;
+      
+      const ref2 = [ref2Nombre.trim(), ref2Telefono.trim()].filter(Boolean).join(' - ');
+      if (ref2) payload.referencia_2 = ref2;
       if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
 
       const res = await fetch(`${API_BASE}/api/conductores`, {
@@ -404,8 +416,20 @@ export default function Operadores() {
     setSexo(c.sexo || '');
     setFechaNacimiento(c.fecha_nacimiento || '');
     setTelefono(c.telefono || '');
-    setReferencia1(c.referencia_1 || '');
-    setReferencia2(c.referencia_2 || '');
+    const parseRef = (refStr) => {
+      if (!refStr) return ['', ''];
+      const parts = refStr.split(' - ');
+      if (parts.length === 2) return parts;
+      return [parts[0] || '', parts.slice(1).join(' - ') || ''];
+    };
+
+    const [r1n, r1t] = parseRef(c.referencia_1);
+    setRef1Nombre(r1n);
+    setRef1Telefono(r1t);
+
+    const [r2n, r2t] = parseRef(c.referencia_2);
+    setRef2Nombre(r2n);
+    setRef2Telefono(r2t);
     setFechaIngreso(c.fecha_ingreso || '');
     setShowEditModal(true);
   };
@@ -433,8 +457,11 @@ export default function Operadores() {
       if (sexo) payload.sexo = sexo;
       if (fechaNacimiento) payload.fecha_nacimiento = fechaNacimiento;
       if (telefono) payload.telefono = telefono;
-      if (referencia1) payload.referencia_1 = referencia1;
-      if (referencia2) payload.referencia_2 = referencia2;
+      const ref1 = [ref1Nombre.trim(), ref1Telefono.trim()].filter(Boolean).join(' - ');
+      if (ref1) payload.referencia_1 = ref1;
+      
+      const ref2 = [ref2Nombre.trim(), ref2Telefono.trim()].filter(Boolean).join(' - ');
+      if (ref2) payload.referencia_2 = ref2;
       if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
 
       const res = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}`, {
@@ -984,15 +1011,15 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Sexo</label>
-                  <select className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={sexo} onChange={e => setSexo(e.target.value)}>
-                    <option value="">Seleccione...</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                  </select>
+                  <CustomSelect
+                    value={sexo}
+                    onChange={setSexo}
+                    options={sexoOptions}
+                  />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Fecha de Nacimiento</label>
-                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} />
+                  <AppleDatePicker value={fechaNacimiento} onChange={setFechaNacimiento} disableFuture={true} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Teléfono</label>
@@ -1000,20 +1027,34 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Fecha de Ingreso</label>
-                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaIngreso} onChange={e => setFechaIngreso(e.target.value)} />
+                  <AppleDatePicker value={fechaIngreso} onChange={setFechaIngreso} disableFuture={true} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Vigencia Licencia</label>
-                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={vigenciaLicencia} onChange={e => setVigenciaLicencia(e.target.value)} />
+                  <AppleDatePicker value={vigenciaLicencia} onChange={setVigenciaLicencia} disableFuture={false} disablePast={false} />
                 </div>
               </div>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label">Referencia 1 (Nombre y Teléfono)</label>
-                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia1} onChange={e => setReferencia1(e.target.value)} placeholder="Contacto de emergencia 1" />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 1 - Nombre</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => setRef1Nombre(e.target.value)} placeholder="Ej. Juan Pérez" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 1 - Teléfono</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Telefono} onChange={e => setRef1Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                </div>
               </div>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label">Referencia 2 (Nombre y Teléfono)</label>
-                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia2} onChange={e => setReferencia2(e.target.value)} placeholder="Contacto de emergencia 2" />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 2 - Nombre</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => setRef2Nombre(e.target.value)} placeholder="Ej. María López" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 2 - Teléfono</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Telefono} onChange={e => setRef2Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                </div>
               </div>
 
               <div className="form-info-box">
@@ -1097,15 +1138,15 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Sexo</label>
-                  <select className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={sexo} onChange={e => setSexo(e.target.value)}>
-                    <option value="">Seleccione...</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                  </select>
+                  <CustomSelect
+                    value={sexo}
+                    onChange={setSexo}
+                    options={sexoOptions}
+                  />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Fecha de Nacimiento</label>
-                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} />
+                  <AppleDatePicker value={fechaNacimiento} onChange={setFechaNacimiento} disableFuture={true} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Teléfono</label>
@@ -1113,20 +1154,34 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Fecha de Ingreso</label>
-                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={fechaIngreso} onChange={e => setFechaIngreso(e.target.value)} />
+                  <AppleDatePicker value={fechaIngreso} onChange={setFechaIngreso} disableFuture={true} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Vigencia Licencia</label>
-                  <input type="date" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={vigenciaLicencia} onChange={e => setVigenciaLicencia(e.target.value)} />
+                  <AppleDatePicker value={vigenciaLicencia} onChange={setVigenciaLicencia} disableFuture={false} disablePast={false} />
                 </div>
               </div>
-              <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                <label className="form-label">Referencia 1 (Nombre y Teléfono)</label>
-                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia1} onChange={e => setReferencia1(e.target.value)} placeholder="Contacto de emergencia 1" />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 1 - Nombre</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => setRef1Nombre(e.target.value)} placeholder="Ej. Juan Pérez" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 1 - Teléfono</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Telefono} onChange={e => setRef1Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                </div>
               </div>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label">Referencia 2 (Nombre y Teléfono)</label>
-                <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={referencia2} onChange={e => setReferencia2(e.target.value)} placeholder="Contacto de emergencia 2" />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 2 - Nombre</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => setRef2Nombre(e.target.value)} placeholder="Ej. María López" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Ref. 2 - Teléfono</label>
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Telefono} onChange={e => setRef2Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                </div>
               </div>
 
               <div className="modal-footer">
