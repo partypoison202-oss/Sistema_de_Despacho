@@ -1326,6 +1326,13 @@ export default function DetalleUnidad() {
                   </button>
                 </div>
 
+                <div style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffffff', border: '1px solid #d1d5db' }}></span> A tiempo</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffedd5', border: '1px solid #fed7aa' }}></span> Retraso leve (&lt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fee2e2', border: '1px solid #fca5a5' }}></span> Atrasada (&gt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dcfce7', border: '1px solid #86efac' }}></span> Despachada a tiempo</div>
+                </div>
+
                 {cargandoUnidadesPorRuta ? (
                   <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     <span className="unidad-spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '20px', height: '20px', borderWidth: '3px' }}></span>
@@ -1454,6 +1461,13 @@ export default function DetalleUnidad() {
                   >
                     Limpiar filtro
                   </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffffff', border: '1px solid #d1d5db' }}></span> A tiempo</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffedd5', border: '1px solid #fed7aa' }}></span> Retraso leve (&lt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fee2e2', border: '1px solid #fca5a5' }}></span> Atrasada (&gt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dcfce7', border: '1px solid #86efac' }}></span> Despachada a tiempo</div>
                 </div>
 
                 {unidadesPorTroncalList.length === 0 ? (
