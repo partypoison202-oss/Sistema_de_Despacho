@@ -869,10 +869,44 @@ export default function UnitInfoPanel({
               <div className="info-card__item">
                 <span className="info-card__label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span>¿Hubo corridas perdidas?</span>
-                  <label className="switch">
-                    <input type="checkbox" checked={huboCorridasPerdidas} onChange={(e) => handleToggleCorridasPerdidas(e.target.checked)} />
-                    <span className="slider round"></span>
-                  </label>
+                  <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '999px', padding: '0.2rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCorridasPerdidas(false)}
+                      style={{
+                        padding: '0.25rem 1rem',
+                        fontSize: '0.8rem',
+                        fontWeight: !huboCorridasPerdidas ? 'bold' : 'normal',
+                        color: !huboCorridasPerdidas ? '#374151' : '#9ca3af',
+                        background: !huboCorridasPerdidas ? '#ffffff' : 'transparent',
+                        borderRadius: '999px',
+                        border: 'none',
+                        boxShadow: !huboCorridasPerdidas ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      No
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCorridasPerdidas(true)}
+                      style={{
+                        padding: '0.25rem 1rem',
+                        fontSize: '0.8rem',
+                        fontWeight: huboCorridasPerdidas ? 'bold' : 'normal',
+                        color: huboCorridasPerdidas ? '#ffffff' : '#9ca3af',
+                        background: huboCorridasPerdidas ? 'var(--brand-maroon-text, #601a2a)' : 'transparent',
+                        borderRadius: '999px',
+                        border: 'none',
+                        boxShadow: huboCorridasPerdidas ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Sí
+                    </button>
+                  </div>
                 </span>
                 
                 {huboCorridasPerdidas && (
