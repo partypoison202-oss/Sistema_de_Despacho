@@ -160,23 +160,34 @@
 /* Tablas compactas */
 .resumen-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-bottom: 0.75rem;
-  font-size: 9.5px;
+  font-size: 8.5px;
   text-align: center;
   background-color: var(--tw-color-white);
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  table-layout: fixed;
+}
+
+.resumen-table th, .resumen-table td {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .resumen-table th {
   background-color: var(--brand-maroon-text);
   color: var(--tw-color-white);
-  padding: 0.4rem 0.3rem;
-  font-weight: 600;
-  border: 1px solid var(--tw-color-gray-200);
+  padding: 0.4rem 0.2rem;
+  font-weight: 700;
+  border-bottom: 2px solid #4a1520;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   text-transform: uppercase;
+  letter-spacing: 0.2px;
 }
 
 .resumen-table th.gold-bg {
@@ -185,12 +196,18 @@
 }
 
 .resumen-table td {
-  padding: 0.4rem 0.3rem;
-  border: 1px solid #eaeaea;
+  padding: 0.35rem 0.2rem;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
   vertical-align: middle;
-  font-weight: bold;
-  color: var(--tw-color-gray-900);
+  font-weight: 600;
+  color: #334155;
   line-height: 1.2;
+}
+
+.resumen-table th:last-child,
+.resumen-table td:last-child {
+  border-right: none;
 }
 
 .resumen-table tbody tr:nth-child(even) {
@@ -206,15 +223,16 @@
 }
 
 .resumen-table .modelo-cell img {
-  height: 24px; /* Imagen de unidad más pequeña */
+  height: 22px; /* Imagen un poco más pequeña para no ensanchar la fila */
   object-fit: contain;
 }
 
 .resumen-table .totales-row td {
   background-color: var(--brand-maroon-text);
   color: var(--tw-color-white);
-  font-size: 10px;
-  padding: 0.5rem 0.3rem;
+  font-size: 9.5px;
+  padding: 0.5rem 0.2rem;
+  border-bottom: none;
 }
 
 .resumen-table .totales-row td.gold-text {

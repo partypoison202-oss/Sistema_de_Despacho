@@ -230,12 +230,12 @@ export default function ResumenDespacho() {
             <table className="resumen-table">
               <thead>
                 <tr>
-                  <th>Modelo</th>
-                  <th>Unidades<br/>Programadas</th>
-                  <th>En Operación</th>
-                  <th>Porcentaje<br/>Eficiencia</th>
-                  <th className="gold-bg">Unidades en<br/>Mantenimiento</th>
-                  <th className="gold-bg">Tipo de Falla</th>
+                  <th style={{ width: '14%' }}>Modelo</th>
+                  <th style={{ width: '12%' }}>Unidades<br/>Programadas</th>
+                  <th style={{ width: '12%' }}>En Operación</th>
+                  <th style={{ width: '12%' }}>Porcentaje<br/>Eficiencia</th>
+                  <th className="gold-bg" style={{ width: '14%' }}>Unidades en<br/>Mantenimiento</th>
+                  <th className="gold-bg" style={{ width: '36%' }}>Tipo de Falla</th>
                 </tr>
               </thead>
               <tbody>
@@ -314,12 +314,12 @@ export default function ResumenDespacho() {
                   <th colSpan="6">Corridas y Ciclos Faltantes</th>
                 </tr>
                 <tr>
-                  <th>No.</th>
-                  <th>Eco</th>
-                  <th>Ruta</th>
-                  <th>Corrida</th>
-                  <th>Ciclo</th>
-                  <th>Motivo</th>
+                  <th style={{ width: '8%' }}>No.</th>
+                  <th style={{ width: '12%' }}>Eco</th>
+                  <th style={{ width: '30%' }}>Ruta</th>
+                  <th style={{ width: '15%' }}>Corrida</th>
+                  <th style={{ width: '10%' }}>Ciclo</th>
+                  <th style={{ width: '25%' }}>Motivo</th>
                 </tr>
               </thead>
               <tbody>
