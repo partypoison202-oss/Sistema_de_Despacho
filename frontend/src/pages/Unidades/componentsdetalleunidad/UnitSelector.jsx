@@ -157,7 +157,7 @@ export default function UnitSelector({
                         {unidades.filter(u => !getUnitStatusVisual(u).startsWith('validated')).length}
                       </span>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                       {unidades.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                         const colors = getUnitColor(unidad, selectedOption === unidad.display);
                       return (
@@ -194,7 +194,7 @@ export default function UnitSelector({
                           {unidades.filter(u => getUnitStatusVisual(u).startsWith('validated')).length}
                         </span>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', opacity: 0.9 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', opacity: 0.9 }}>
                         {unidades.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                           const colors = getUnitColor(unidad, selectedOption === unidad.display);
                           return (
