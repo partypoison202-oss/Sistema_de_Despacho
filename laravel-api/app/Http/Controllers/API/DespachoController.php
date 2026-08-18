@@ -182,6 +182,7 @@ class DespachoController extends Controller
     public function conteoUnidadesPorTipo()
     {
         $conteos = DB::table('informacion_operativa')
+            ->whereDate('fecha_registro', Carbon::today())
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
             ->groupBy('tipo')
             ->get();
@@ -218,6 +219,7 @@ class DespachoController extends Controller
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereDate('informacion_operativa.fecha_registro', Carbon::today())
             ->select(
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',
@@ -253,11 +255,6 @@ class DespachoController extends Controller
                     'hora_programada' => $unidad->hora_programada,
                     'acople' => $unidad->acople,
                     'hora_salida' => $unidad->hora_salida,
-                    'falla' => $unidad->falla,
-                    'corridas' => $unidad->corridas,
-                    'acople' => $unidad->acople,
-                    'acople' => $unidad->acople,
-                    'hora_salida' => $unidad->hora_salida,
                 ];
             });
 
@@ -281,6 +278,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->where('informacion_operativa.numero_tarjeton', $tarjetonLimpio)
+            ->whereDate('informacion_operativa.fecha_registro', Carbon::today())
             ->select('unidades.numero_eco as numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton', 'informacion_operativa.estatus')
             ->first();
 
@@ -339,6 +337,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereDate('informacion_operativa.fecha_registro', Carbon::today())
             ->select(
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
@@ -672,7 +671,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select('informacion_operativa.id')
+            ->select('informacion_operativa.id', 'informacion_operativa.numero_tarjeton', 'informacion_operativa.motivo')
             ->first();
 
         if (!$registro) {
@@ -690,6 +689,20 @@ class DespachoController extends Controller
             $actualizado = DB::table('informacion_operativa')
                 ->where('id', $registro->id)
                 ->update($updateData);
+
+            // Logica para sumar o restar faltas si el motivo cambia a/desde "Falta de Operador"
+            if ($request->has('motivo') && $registro->numero_tarjeton) {
+                $oldMotivo = $registro->motivo;
+                $newMotivo = $request->motivo;
+                
+                if ($newMotivo === 'Falta de Operador' && $oldMotivo !== 'Falta de Operador') {
+                    // Agregar falta al conductor
+                    DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->increment('faltas');
+                } elseif ($oldMotivo === 'Falta de Operador' && $newMotivo !== 'Falta de Operador') {
+                    // Quitar falta si se equivocaron
+                    DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->where('faltas', '>', 0)->decrement('faltas');
+                }
+            }
         }
 
         if ($actualizado !== false) {
@@ -1459,6 +1472,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->where('informacion_operativa.ruta', $rutaLimpia)
+            ->whereDate('informacion_operativa.fecha_registro', Carbon::today())
             ->select(
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',

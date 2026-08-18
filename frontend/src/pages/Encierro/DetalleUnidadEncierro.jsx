@@ -1697,7 +1697,6 @@ export default function DetalleUnidadEncierro() {
                             value={formObservaciones}
                             onChange={(e) => {
                               setFormObservaciones(e.target.value);
-                              setObservaciones(e.target.value);
                               const rect = observacionesInputRef.current?.getBoundingClientRect();
                               if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
                               setDropdownObservacionesOpen(true);
@@ -1707,7 +1706,10 @@ export default function DetalleUnidadEncierro() {
                               if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
                               setDropdownObservacionesOpen(true);
                             }}
-                            onBlur={() => setTimeout(() => setDropdownObservacionesOpen(false), 150)}
+                            onBlur={() => setTimeout(() => {
+                              setDropdownObservacionesOpen(false);
+                              setFormObservaciones(observaciones);
+                            }, 150)}
                             style={{
                               border: 'none',
                               outline: 'none',
