@@ -1228,6 +1228,8 @@ export default function DetalleUnidad() {
                 cargandoUnidades={cargandoUnidades}
                 configActual={configActual}
                 onSelectUnit={handleSelectUnit}
+                getUnitStatusVisual={getUnitStatusVisual}
+                getUnitColor={getUnitColor}
               />
 
               {/* ✅ NUEVO: selector de rutas alimentadoras (zafiro, orion, vagoneta, etc.) */}
