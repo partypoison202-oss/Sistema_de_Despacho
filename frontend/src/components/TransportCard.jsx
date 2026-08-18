@@ -15,7 +15,11 @@ export default function TransportCard({
     <button
       type="button"
       className="transport-card"
-      onClick={() => navigate(route)}
+      onClick={() => {
+        if (!cargando) navigate(route);
+      }}
+      disabled={cargando}
+      style={{ opacity: cargando ? 0.6 : 1, cursor: cargando ? 'wait' : 'pointer' }}
     >
       {/* Badge circular en la esquina superior izquierda */}
       <div className="transport-card__badge">

@@ -5,7 +5,7 @@ export const transportModules = [
     title: 'URBANUSS',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.webp',
-    route: '/transporte/urbanus',
+    route: '/transporte/urbanuss',
     totalUnidades: 42,
     prefijoEco: 'ECO',
     // Aquí mapeamos las imágenes específicas de este vehículo
