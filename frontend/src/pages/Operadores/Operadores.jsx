@@ -1012,7 +1012,6 @@ export default function Operadores() {
                             {savingId === c.id ? 'Guardando...' : 'Guardar'}
                           </button>
                         </td>
-                      </tr>              </td>
                       </tr>
                     ))
                   )}
