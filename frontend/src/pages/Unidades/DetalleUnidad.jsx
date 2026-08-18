@@ -111,7 +111,16 @@ export default function DetalleUnidad() {
     const [h, m] = u.horaProgramada.split(':').map(Number);
     const prog = new Date();
     prog.setHours(h, m, 0, 0);
-    const diffMins = (targetTime - prog) / 60000;
+    let diffMins = (targetTime - prog) / 60000;
+
+    // Si la diferencia es menor a -12 horas, cruzamos la medianoche y targetTime es del día siguiente
+    if (diffMins < -720) {
+      diffMins += 1440;
+    }
+    // Si la diferencia es mayor a 12 horas, cruzamos la medianoche hacia atrás (prog es del día siguiente)
+    if (diffMins > 720) {
+      diffMins -= 1440;
+    }
 
     if (u.acople || u.horaSalida) {
       if (diffMins > 15) return 'validated_missed';
@@ -125,22 +134,37 @@ export default function DetalleUnidad() {
   };
 
   const getUnitColor = (unidad, isSelected) => {
-    if (isSelected) {
-      return { bg: '#6b1d33', text: 'var(--tw-color-white)', border: '#6b1d33' };
-    }
     const status = getUnitStatusVisual(unidad);
+    let base = { bg: 'var(--tw-color-white)', text: '#374151', border: '#e5e7eb' };
+    
     switch (status) {
       case 'validated_ontime':
-        return { bg: '#dcfce7', text: '#166534', border: '#86efac' }; // Verde
+        base = { bg: '#dcfce7', text: '#166534', border: '#86efac' }; // Verde claro
+        break;
       case 'validated_missed':
       case 'missed':
-        return { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }; // Rojo
+        base = { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }; // Rojo claro
+        break;
       case 'validated_delayed':
       case 'delayed':
-        return { bg: '#fef9c3', text: '#854d0e', border: '#fde047' }; // Amarillo
-      default:
-        return { bg: 'var(--tw-color-white)', text: '#374151', border: '#e5e7eb' };
+        base = { bg: '#fef9c3', text: '#854d0e', border: '#fde047' }; // Amarillo claro
+        break;
     }
+
+    if (isSelected) {
+      if (status === 'pending') {
+          return { bg: '#6b1d33', text: '#ffffff', border: '#6b1d33', scale: 1.05 }; 
+      } else if (status.includes('missed')) {
+          return { bg: '#b91c1c', text: '#ffffff', border: '#7f1d1d', scale: 1.05 }; 
+      } else if (status.includes('delayed')) {
+          return { bg: '#a16207', text: '#ffffff', border: '#713f12', scale: 1.05 }; 
+      } else if (status.includes('ontime')) {
+          return { bg: '#15803d', text: '#ffffff', border: '#14532d', scale: 1.05 }; 
+      }
+    }
+    
+    base.scale = 1;
+    return base;
   };
 
   const fetchUnidades = async () => {
@@ -1323,35 +1347,63 @@ export default function DetalleUnidad() {
                 ) : unidadesPorRutaList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      {unidadesPorRutaList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
-                        const colors = getUnitColor(unidad, selectedOption === unidad.display);
-                        return (
-                          <button
-                            key={unidad.display}
-                            type="button"
-                            onClick={() => handleSelectUnit(unidad)}
-                            className="unit-button"
-                            style={{
-                              border: `1px solid ${colors.border}`,
-                              borderRadius: '0.5rem',
-                              padding: '0.5rem 1rem',
-                              background: colors.bg,
-                              color: colors.text,
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {unidad.display}
-                          </button>
-                        );
-                      })}
+                  <div className="dispatch-sections-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                    {/* SECCIÓN: POR SALIR */}
+                    <div className="dispatch-section dispatch-section--pending" style={{ background: '#ffffff', borderRadius: '12px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                          Pendientes por Salir
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                          {unidadesPorRutaList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).length}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {unidadesPorRutaList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
+                          const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                          return (
+                            <button
+                              key={unidad.display}
+                              type="button"
+                              onClick={() => handleSelectUnit(unidad)}
+                              className="unit-button"
+                              style={{
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                background: colors.bg,
+                                color: colors.text,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                transform: `scale(${colors.scale || 1})`,
+                                zIndex: colors.scale > 1 ? 10 : 1,
+                                boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                              }}
+                            >
+                              {unidad.display}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
+                    
+                    {/* SECCIÓN: DESPACHADAS */}
                     {unidadesPorRutaList.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
-                      <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.3rem', textTransform: 'uppercase' }}>Despachadas</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
+                            Unidades Despachadas
+                          </h4>
+                          <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#e5e7eb', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                            {unidadesPorRutaList.filter(u => getUnitStatusVisual(u).startsWith('validated')).length}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', opacity: 0.9 }}>
                           {unidadesPorRutaList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
@@ -1363,11 +1415,16 @@ export default function DetalleUnidad() {
                                 style={{
                                   border: `1px solid ${colors.border}`,
                                   borderRadius: '0.5rem',
-                                  padding: '0.5rem 1rem',
+                                  padding: '0.4rem 0.9rem',
                                   background: colors.bg,
                                   color: colors.text,
-                                  fontWeight: 700,
+                                  fontWeight: 600,
+                                  fontSize: '0.9rem',
                                   cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  transform: `scale(${colors.scale || 1})`,
+                                  zIndex: colors.scale > 1 ? 10 : 1,
+                                  boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
                                 }}
                               >
                                 {unidad.display}
@@ -1415,36 +1472,62 @@ export default function DetalleUnidad() {
                 {unidadesPorTroncalList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      {unidadesPorTroncalList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
-                        const colors = getUnitColor(unidad, selectedOption === unidad.display);
-                        return (
-                          <button
-                            key={unidad.display}
-                            onClick={() => handleSelectUnit(unidad)}
-                            className="unit-button"
-                            style={{
-                              border: `1px solid ${colors.border}`,
-                              borderRadius: '0.5rem',
-                              padding: '0.5rem 1rem',
-                              background: colors.bg,
-                              color: colors.text,
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {unidad.display}
-                          </button>
-                        );
-                      })}
+                  <div className="dispatch-sections-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                    {/* SECCIÓN: POR SALIR TRONCAL */}
+                    <div className="dispatch-section dispatch-section--pending" style={{ background: '#ffffff', borderRadius: '12px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                          Pendientes por Salir
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                          {unidadesPorTroncalList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).length}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {unidadesPorTroncalList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
+                          const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                          return (
+                            <button
+                              key={unidad.display}
+                              onClick={() => handleSelectUnit(unidad)}
+                              className="unit-button"
+                              style={{
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                background: colors.bg,
+                                color: colors.text,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                transform: `scale(${colors.scale || 1})`,
+                                zIndex: colors.scale > 1 ? 10 : 1,
+                                boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                              }}
+                            >
+                              {unidad.display}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     
-                    {/* Validadas (Despachadas) de la Troncal */}
+                    {/* SECCIÓN: DESPACHADAS TRONCAL */}
                     {unidadesPorTroncalList.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
-                      <div>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.3rem', textTransform: 'uppercase' }}>Despachadas</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
+                            Unidades Despachadas
+                          </h4>
+                          <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#e5e7eb', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                            {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u).startsWith('validated')).length}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', opacity: 0.9 }}>
                           {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
@@ -1455,11 +1538,16 @@ export default function DetalleUnidad() {
                                 style={{
                                   border: `1px solid ${colors.border}`,
                                   borderRadius: '0.5rem',
-                                  padding: '0.5rem 1rem',
+                                  padding: '0.4rem 0.9rem',
                                   background: colors.bg,
                                   color: colors.text,
-                                  fontWeight: 700,
+                                  fontWeight: 600,
+                                  fontSize: '0.9rem',
                                   cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  transform: `scale(${colors.scale || 1})`,
+                                  zIndex: colors.scale > 1 ? 10 : 1,
+                                  boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
                                 }}
                               >
                                 {unidad.display}

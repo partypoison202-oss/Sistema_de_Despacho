@@ -144,10 +144,22 @@ export default function UnitSelector({
               <div className="p-4 text-center text-gray-500">No hay unidades en {titulo}</div>
             ) : (
               getUnitStatusVisual && getUnitColor ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    {unidades.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
-                      const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                <div className="dispatch-sections-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem', width: '100%' }}>
+                  
+                  {/* SECCIÓN: PENDIENTES */}
+                  <div className="dispatch-section dispatch-section--pending" style={{ background: '#ffffff', borderRadius: '8px', padding: '0.75rem', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                        Pendientes
+                      </h4>
+                      <span style={{ fontSize: '0.7rem', color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>
+                        {unidades.filter(u => !getUnitStatusVisual(u).startsWith('validated')).length}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      {unidades.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
+                        const colors = getUnitColor(unidad, selectedOption === unidad.display);
                       return (
                         <button
                           key={unidad.display}
@@ -168,10 +180,21 @@ export default function UnitSelector({
                       );
                     })}
                   </div>
+                  </div>
+                  
+                  {/* SECCIÓN: DESPACHADAS */}
                   {unidades.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
-                    <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.3rem', textTransform: 'uppercase', textAlign: 'center' }}>Despachadas</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '8px', padding: '0.75rem', border: '1px solid #f3f4f6' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
+                          Despachadas
+                        </h4>
+                        <span style={{ fontSize: '0.7rem', color: '#6b7280', fontWeight: 600, background: '#e5e7eb', padding: '0.15rem 0.5rem', borderRadius: '999px' }}>
+                          {unidades.filter(u => getUnitStatusVisual(u).startsWith('validated')).length}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', opacity: 0.9 }}>
                         {unidades.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                           const colors = getUnitColor(unidad, selectedOption === unidad.display);
                           return (
