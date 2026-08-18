@@ -903,7 +903,9 @@ export default function Operadores() {
                                 handleBlurSave({ ...c, proxima_capacitacion: val }, 'proxima_capacitacion');
                               }}
                             />
-                                          <td>
+                          </div>
+                        </td>
+                        <td>
                           <input
                             type="number"
                             min="0"
