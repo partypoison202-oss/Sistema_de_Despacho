@@ -162,12 +162,19 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0.75rem;
-  font-size: 9px;
+  font-size: 8.5px;
   text-align: center;
   background-color: var(--tw-color-white);
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  table-layout: fixed;
+}
+
+.resumen-table th, .resumen-table td {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .resumen-table th {
@@ -223,22 +230,24 @@
   border-color: #eaeaea;
 }
 
-/* Grillas más compactas */
-.resumen-grid-top {
-  display: grid;
-  grid-template-columns: 58% 40%;
+/* Grillas más compactas y seguras para html2canvas usando flex */
+.resumen-grid-top, .resumen-grid-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 2%;
   margin-bottom: 0.75rem;
 }
 
-.resumen-grid-bottom {
-  display: grid;
-  grid-template-columns: 58% 40%;
-  gap: 2%;
+.resumen-grid-top > div:first-child,
+.resumen-grid-bottom > div:first-child {
+  width: 58%;
+  min-width: 0;
 }
 
-.resumen-grid-top > div,
-.resumen-grid-bottom > div {
+.resumen-grid-top > div:last-child,
+.resumen-grid-bottom > div:last-child {
+  width: 40%;
   min-width: 0;
 }
 
