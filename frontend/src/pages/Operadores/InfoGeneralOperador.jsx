@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
+import API_BASE from '../../config/api';
 
 // Función para calcular edad
 const calcularEdad = (fechaNacimiento) => {
@@ -327,7 +328,11 @@ export default function InfoGeneralOperador({ conductores }) {
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: '#fdfbfb' }}>
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 shrink-0 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-inner overflow-hidden object-cover" style={{ backgroundColor: '#6A1B29' }}>
-                    {displayConductor.nombre && displayConductor.nombre !== '------------------------' ? displayConductor.nombre.charAt(0).toUpperCase() : 'O'}
+                    {displayConductor.foto ? (
+                      <img src={`${API_BASE}/storage/${displayConductor.foto}`} alt={displayConductor.nombre} className="w-full h-full object-cover" />
+                    ) : (
+                      displayConductor.nombre && displayConductor.nombre !== '------------------------' ? displayConductor.nombre.charAt(0).toUpperCase() : 'O'
+                    )}
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">{displayConductor.nombre}</h2>
