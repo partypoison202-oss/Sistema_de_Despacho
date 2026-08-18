@@ -18,32 +18,20 @@
   gap: 1rem;
 }
 
-.btn-pdf-top {
-  background-color: var(--brand-gold-text);
-  color: var(--brand-maroon-text);
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 800;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  cursor: pointer;
+.resumen-controls-bottom {
+  margin-top: 1.5rem;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.2s ease;
-  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 816px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.btn-pdf-top:hover {
-  background-color: #d4b271;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-}
-
-.btn-pdf-top svg {
-  width: 20px;
-  height: 20px;
+.btn-large-full {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
 }
 
 .resumen-pdf-wrapper {
@@ -240,12 +228,11 @@
   border-color: #eaeaea;
 }
 
-/* Grillas side-by-side formato viejo, usando flex para html2canvas */
-.resumen-grid-top, .resumen-grid-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2%;
+/* Grillas más compactas */
+.resumen-grid-top {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
