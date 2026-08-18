@@ -171,10 +171,18 @@ class DespachoController extends Controller
     /**
      * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
      */
-    public function conteoUnidadesPorTipo()
+    public function conteoUnidadesPorTipo(Request $request)
     {
-        $conteos = DB::table('informacion_operativa')
-            ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
+        $vista = $request->query('vista');
+        $query = DB::table('informacion_operativa');
+
+        if ($vista === 'despacho') {
+            $query->whereNull('hora_salida');
+        } elseif ($vista === 'encierro') {
+            $query->whereNull('acople');
+        }
+
+        $conteos = $query->select('tipo', DB::raw('count(distinct unidad_id) as total'))
             ->groupBy('tipo')
             ->get();
 
@@ -202,15 +210,22 @@ class DespachoController extends Controller
      * Obtiene el listado de unidades que tienen registro operativo para hoy
      * y pertenecen al tipo de transporte solicitado.
      */
-    public function listarUnidadesPorTipo($tipo)
+    public function listarUnidadesPorTipo(Request $request, $tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
+        $vista = $request->query('vista');
 
-
-        $unidades = DB::table('unidades')
+        $query = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select(
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]);
+
+        if ($vista === 'despacho') {
+            $query->whereNull('informacion_operativa.hora_salida');
+        } elseif ($vista === 'encierro') {
+            $query->whereNull('informacion_operativa.acople');
+        }
+
+        $unidades = $query->select(
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.estatus',

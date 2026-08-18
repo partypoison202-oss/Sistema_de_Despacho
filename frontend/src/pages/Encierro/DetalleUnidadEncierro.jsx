@@ -292,7 +292,7 @@ export default function DetalleUnidadEncierro() {
       navigate('/');
       return [];
     }
-    const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${tipoTransporte}`, {
+    const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${tipoTransporte}?vista=encierro`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'

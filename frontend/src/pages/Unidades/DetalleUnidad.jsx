@@ -176,7 +176,7 @@ export default function DetalleUnidad() {
       navigate('/login');
       return [];
     }
-    const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${tipoTransporte}`, {
+    const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${tipoTransporte}?vista=despacho`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     });
     if (respuesta.status === 401) {

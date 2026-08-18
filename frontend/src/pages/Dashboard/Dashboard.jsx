@@ -25,7 +25,7 @@ export default function Dashboard() {
         queryFn: async () => {
           const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
           if (!token) return [];
-          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
+          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=despacho`, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           });
           if (!respuesta.ok) return [];
@@ -35,7 +35,11 @@ export default function Dashboard() {
             eco: String(u.numero_eco ?? '').padStart(3, '0'),
             tarjeton: String(u.tarjeton ?? '').trim(),
             display: formatearEco(u.numero_eco),
-            estado: u.estatus || 'operacion',
+            estado: String(u.estatus ?? 'operacion').trim().toLowerCase(),
+            ruta: String(u.ruta ?? '').trim(),
+            acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
+            horaSalida: String(u.hora_salida ?? '').trim(),
+            horaProgramada: String(u.hora_programada ?? '').trim(),
           }));
         },
         staleTime: 60000,
@@ -78,7 +82,7 @@ export default function Dashboard() {
             
             // Intento 2: Si no hay en caché, ir a red (fallback)
             if (unidades.length === 0) {
-              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
+              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=despacho`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                   'Content-Type': 'application/json',

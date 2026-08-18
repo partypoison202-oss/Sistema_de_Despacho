@@ -26,7 +26,7 @@ export default function DashboardEncierro() {
         queryFn: async () => {
           const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
           if (!token) return [];
-          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
+          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=encierro`, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           });
           if (!respuesta.ok) return [];
@@ -35,8 +35,11 @@ export default function DashboardEncierro() {
           return (Array.isArray(datos) ? datos : []).map((u) => ({
             eco: String(u.numero_eco ?? '').padStart(3, '0'),
             tarjeton: String(u.tarjeton ?? '').trim(),
-            display: formatearEco(u.numero_eco),
+            display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
             estado: String(u.estatus ?? 'operacion').toLowerCase(),
+            ruta: u.ruta || null,
+            acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
+            horaSalida: String(u.hora_salida ?? '').trim(),
           }));
         },
         staleTime: 60000,
@@ -116,7 +119,7 @@ export default function DashboardEncierro() {
   };
 
   const fetchConteos = async () => {
-    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
+    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades?vista=encierro`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
@@ -164,7 +167,7 @@ export default function DashboardEncierro() {
             let unidades = cachedData || [];
 
             if (unidades.length === 0) {
-              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
+              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=encierro`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                   'Content-Type': 'application/json',
