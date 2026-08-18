@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/conductores', [ConductorController::class, 'index']);
     Route::post('/conductores', [ConductorController::class, 'store']);
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
+    Route::post('/conductores/{id}/foto', [ConductorController::class, 'uploadFoto']);
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
 
     // Gestión de Maniobristas

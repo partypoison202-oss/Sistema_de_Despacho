@@ -22,6 +22,12 @@ export default function CargaExcel() {
   const [inicioData, setInicioData] = useState([]);
   const [cargandoInicio, setCargandoInicio] = useState(false);
 
+  const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
+  const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
+  const isRelevos = _roleCodigo === 'RELEVOS' || _roleCodigo === 'REVELOS'
+    || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
+    || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
+
   const getAuthHeaders = () => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     return {
@@ -727,7 +733,7 @@ export default function CargaExcel() {
               disabled={cargandoInicio}
               className="excel-export-btn"
               style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                display: isRelevos ? 'none' : 'flex', alignItems: 'center', gap: '0.5rem',
                 padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
                 background: verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)',
                 color: 'white', fontWeight: 700, fontSize: '0.9rem',

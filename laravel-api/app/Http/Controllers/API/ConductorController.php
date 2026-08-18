@@ -24,6 +24,11 @@ class ConductorController extends Controller
                     $table->string('tipo_tarjeton', 50)->nullable();
                 });
             }
+            if (!Schema::hasColumn('conductores', 'foto')) {
+                Schema::table('conductores', function (Blueprint $table) {
+                    $table->string('foto', 255)->nullable();
+                });
+            }
         } catch (\Exception $e) {
             // Manejo silencioso si las columnas ya existen
         }
@@ -228,6 +233,35 @@ class ConductorController extends Controller
             'message' => 'Operador actualizado correctamente',
             'conductor' => $conductor
         ]);
+    }
+
+    public function uploadFoto(Request $request, $id)
+    {
+        $this->ensureColumnsExist();
+        
+        $request->validate([
+            'foto' => 'required|image|max:5120' // Max 5MB
+        ]);
+
+        $conductor = Conductor::findOrFail($id);
+
+        if ($request->hasFile('foto')) {
+            $file = $request->file('foto');
+            $filename = 'conductor_' . $id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            // Guardar en public/storage/conductores
+            $path = $file->storeAs('conductores', $filename, 'public');
+            
+            $conductor->foto = $path;
+            $conductor->save();
+
+            return response()->json([
+                'message' => 'Foto subida exitosamente',
+                'foto_url' => '/storage/' . $path,
+                'conductor' => $conductor
+            ]);
+        }
+
+        return response()->json(['message' => 'No se proporcionó ninguna imagen'], 400);
     }
 
     public function darDeBaja(Request $request, $id)

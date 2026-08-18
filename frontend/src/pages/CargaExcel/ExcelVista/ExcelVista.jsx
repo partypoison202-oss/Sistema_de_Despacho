@@ -100,6 +100,10 @@ export default function ExcelPreview({
   const filteredData = sortedData.filter(fila => {
     if (!fila) return false;
 
+    if (isRelevos && String(fila.ESTATUS || '').trim().toLowerCase() !== 'operacion') {
+      return false;
+    }
+
     if (selectedTech) {
       const type = String(fila.TIPO_DE_UNIDAD || '').toUpperCase();
       const normalizedType = type === 'URBANUS' ? 'URBANUSS' : type;
@@ -562,8 +566,14 @@ export default function ExcelPreview({
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
                                             onClick={() => {
+                                              if (c.estado_servicio === 'falta') return;
                                               onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
                                               setOpenDropdown({ rowIndex: null, field: null });
+                                            }}
+                                            disabled={c.estado_servicio === 'falta'}
+                                            style={{
+                                              opacity: c.estado_servicio === 'falta' ? 0.6 : 1,
+                                              cursor: c.estado_servicio === 'falta' ? 'not-allowed' : 'pointer'
                                             }}
                                           >
                                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>

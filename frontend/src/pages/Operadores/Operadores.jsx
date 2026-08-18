@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
@@ -6,6 +7,7 @@ import API_BASE from '../../config/api';
 import './Operadores.css';
 import InfoGeneralOperador from './InfoGeneralOperador';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import GeneracionGafete from './GeneracionGafete';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -152,6 +154,7 @@ export default function Operadores() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
+  const navigate = useNavigate();
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -170,6 +173,7 @@ export default function Operadores() {
   const [ref2Nombre, setRef2Nombre] = useState('');
   const [ref2Telefono, setRef2Telefono] = useState('');
   const [fechaIngreso, setFechaIngreso] = useState('');
+  const [foto, setFoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const tipoOptions = [
@@ -472,6 +476,7 @@ export default function Operadores() {
     setRef2Nombre(r2n);
     setRef2Telefono(r2t);
     setFechaIngreso(c.fecha_ingreso || '');
+    setFoto(null);
     setShowEditModal(true);
   };
 
@@ -514,12 +519,34 @@ export default function Operadores() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al actualizar operador');
 
+      // Subir la foto si se seleccionó una
+      if (foto) {
+        const formData = new FormData();
+        formData.append('foto', foto);
+        
+        const photoRes = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}/foto`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+          },
+          body: formData
+        });
+
+        if (!photoRes.ok) {
+           console.error("Error al subir foto");
+           // Podríamos lanzar error, pero preferimos que el conductor se haya guardado
+        }
+      }
+
       setShowEditModal(false);
       Swal.fire({
         icon: 'success',
         title: 'Actualizado',
         text: 'Los datos del operador se han actualizado correctamente.',
         confirmButtonColor: '#c5a059'
+      }).then(() => {
+        // Redirigir al módulo de checklist como solicitó el usuario
+        navigate('/checklist/menu');
       });
       fetchConductores();
     } catch (err) {
@@ -715,6 +742,24 @@ export default function Operadores() {
             }}
           >
             Información General de Operador
+          </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'generacion_gafete' ? 'active' : ''}`}
+            onClick={() => setActiveTab('generacion_gafete')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              color: activeTab === 'generacion_gafete' ? '#6b1d33' : '#64748b',
+              borderBottom: activeTab === 'generacion_gafete' ? '3px solid #6b1d33' : '3px solid transparent',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            Generación de Gafete
           </button>
         </div>
 
@@ -1056,6 +1101,8 @@ export default function Operadores() {
           </div>
         ) : activeTab === 'info_general' ? (
           <InfoGeneralOperador conductores={conductores} />
+        ) : activeTab === 'generacion_gafete' ? (
+          <GeneracionGafete conductores={conductores} />
         ) : null}
       </main>
 
@@ -1221,6 +1268,17 @@ export default function Operadores() {
                   value={tipoTarjeton}
                   onChange={setTipoTarjeton}
                   options={tipoOptions}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFoto(e.target.files[0])}
+                  className="modal-input"
+                  style={{ width: '100%', padding: '0.6rem' }}
                 />
               </div>
 
