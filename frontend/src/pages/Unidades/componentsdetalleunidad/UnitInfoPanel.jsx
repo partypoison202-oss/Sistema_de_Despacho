@@ -232,16 +232,26 @@ export default function UnitInfoPanel({
   }, []);
 
   const ciclosOptions = [
-    { value: '0.5', label: '1/2' },
-    { value: '1', label: '1' },
-    { value: '1.5', label: '1 1/2' },
-    { value: '2', label: '2' },
-    { value: '2.5', label: '2 1/2' },
-    { value: '3', label: '3' },
-    { value: '3.5', label: '3 1/2' },
-    { value: '4', label: '4' },
-    { value: '4.5', label: '4 1/2' },
-    { value: '5', label: '5' },
+    { value: '0.5', label: '1/2 ciclo' },
+    { value: '1', label: '1 ciclo' },
+    { value: '1.5', label: '1 1/2 ciclos' },
+    { value: '2', label: '2 ciclos' },
+    { value: '2.5', label: '2 1/2 ciclos' },
+    { value: '3', label: '3 ciclos' },
+    { value: '3.5', label: '3 1/2 ciclos' },
+    { value: '4', label: '4 ciclos' },
+    { value: '4.5', label: '4 1/2 ciclos' },
+    { value: '5', label: '5 ciclos' },
+    { value: '5.5', label: '5 1/2 ciclos' },
+    { value: '6', label: '6 ciclos' },
+    { value: '6.5', label: '6 1/2 ciclos' },
+    { value: '7', label: '7 ciclos' },
+    { value: '7.5', label: '7 1/2 ciclos' },
+    { value: '8', label: '8 ciclos' },
+    { value: '8.5', label: '8 1/2 ciclos' },
+    { value: '9', label: '9 ciclos' },
+    { value: '9.5', label: '9 1/2 ciclos' },
+    { value: '10', label: '10 ciclos' },
   ];
 
   const handleToggleCorridasPerdidas = async (valor) => {
