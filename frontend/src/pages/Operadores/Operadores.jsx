@@ -365,9 +365,13 @@ export default function Operadores() {
     }
   };
 
+  // Carga inicial
   useEffect(() => {
     fetchConductores();
-    
+  }, []);
+
+  // Polling silencioso
+  useEffect(() => {
     // Polling rápido cada 2 segundos solo si no hay cambios sin guardar y no hay modal abierto
     let interval;
     if (modifiedIds.size === 0 && !showDetailsModal && !showEditModal && !showAddModal) {
