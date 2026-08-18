@@ -1454,13 +1454,15 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->where('informacion_operativa.ruta', $rutaLimpia)
-            ->whereNull('informacion_operativa.hora_salida')
             ->select(
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.estatus',
                 'informacion_operativa.ruta',
-                'informacion_operativa.nombre_conductor'
+                'informacion_operativa.nombre_conductor',
+                'informacion_operativa.hora_programada',
+                'informacion_operativa.acople',
+                'informacion_operativa.hora_salida'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -1476,6 +1478,9 @@ class DespachoController extends Controller
                     'estatus'          => $estatus,
                     'ruta'             => $unidad->ruta,
                     'nombre_conductor' => $unidad->nombre_conductor,
+                    'hora_programada'  => $unidad->hora_programada,
+                    'acople'           => $unidad->acople,
+                    'hora_salida'      => $unidad->hora_salida,
                 ];
             });
 
