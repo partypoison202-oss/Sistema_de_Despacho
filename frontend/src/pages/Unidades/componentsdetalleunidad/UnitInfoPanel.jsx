@@ -144,8 +144,8 @@ export default function UnitInfoPanel({
   }, []);
 
   useEffect(() => {
-    setSalidaCongelada(datosOperativos.hora_salida || null);
-  }, [datosOperativos.hora_salida, selectedOption]);
+    setSalidaCongelada(datosOperativos.horaSalida || null);
+  }, [datosOperativos.horaSalida, selectedOption]);
 
   const calculateAcople = (timeStr) => {
     if (!timeStr) return '--:--';
@@ -864,121 +864,72 @@ export default function UnitInfoPanel({
               disabled={isPlataforma || isReservaOrMantenimiento}
             />
 
-            {/* Observaciones (Replaces Corridas Perdidas) */}
+            {/* Corridas Perdidas */}
             {!isPlataforma && (
-              <div className="info-card__item" ref={observacionesRef} style={{ position: 'relative' }}>
-                <span className="info-card__label">Observaciones</span>
-                <div
-                  ref={observacionesInputRef}
-                  className="interactive-input"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0 0.85rem',
-                    background: 'var(--tw-color-white)',
-                    height: '2.3rem',
-                    width: '100%',
-                    marginTop: '0.25rem',
-                    fontWeight: 'normal',
-                    borderColor: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : undefined,
-                    opacity: (isPlataforma || isReservaOrMantenimiento || !!salidaCongelada) ? 0.6 : 1,
-                    pointerEvents: (isPlataforma || isReservaOrMantenimiento || !!salidaCongelada) ? 'none' : 'auto'
-                  }}
-                >
-                  <input
-                    type="text"
-                    placeholder="Buscar observación..."
-                    value={formObservaciones}
-                    onChange={(e) => {
-                      setFormObservaciones(e.target.value);
-                      setObservaciones(e.target.value);
-                      setDropdownObservacionesOpen(true);
-                    }}
-                    onFocus={() => {
-                      setDropdownObservacionesOpen(true);
-                    }}
-                    onBlur={() => setTimeout(() => setDropdownObservacionesOpen(false), 150)}
-                    style={{
-                      border: 'none',
-                      outline: 'none',
-                      background: 'transparent',
-                      width: '100%',
-                      fontSize: '0.85rem',
-                      color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit',
-                    }}
-                  />
-                  <svg
-                    onClick={() => {
-                      setDropdownObservacionesOpen(!dropdownObservacionesOpen);
-                    }}
-                    style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownObservacionesOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
-                    fill="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
-                </div>
-                {dropdownObservacionesOpen && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      width: '100%',
-                      background: 'white',
-                      border: '1px solid rgba(226, 232, 240, 0.8)',
-                      borderRadius: '0.875rem',
-                      boxShadow: '0 12px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
-                      zIndex: 999,
-                      overflow: 'hidden',
-                      maxHeight: '12rem',
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {(() => {
-                      const isExactMatch = observacionesCatalogo.some(obs => `${obs.clave} - ${obs.descripcion}` === formObservaciones);
-                      const filteredList = observacionesCatalogo.filter(obs => 
-                        isExactMatch || `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase())
-                      );
-
-                      if (filteredList.length === 0) {
-                        return <div style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#9ca3af', textAlign: 'center' }}>Sin resultados</div>;
-                      }
-
-                      return filteredList.map(obs => {
-                        const label = `${obs.clave} - ${obs.descripcion}`;
-                        const isSelected = label === formObservaciones;
-                        return (
-                          <button
-                            key={obs.clave}
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setFormObservaciones(label);
-                              setObservaciones(label);
-                              setDropdownObservacionesOpen(false);
-                            }}
-                            style={{
-                              display: 'block',
-                              width: '100%',
-                              textAlign: 'left',
-                              padding: '0.6rem 1rem',
-                              fontSize: '0.85rem',
-                              background: isSelected ? '#f3f4f6' : 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: isSelected ? '#601a2a' : '#374151',
-                              fontWeight: isSelected ? 'bold' : 'normal',
-                              transition: 'background 0.15s',
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
-                            onMouseLeave={e => e.currentTarget.style.background = isSelected ? '#f3f4f6' : 'transparent'}
-                          >
-                            {label}
-                          </button>
-                        );
-                      });
-                    })()}
+              <div className="info-card__item">
+                <span className="info-card__label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span>¿Hubo corridas perdidas?</span>
+                  <label className="switch">
+                    <input type="checkbox" checked={huboCorridasPerdidas} onChange={(e) => handleToggleCorridasPerdidas(e.target.checked)} />
+                    <span className="slider round"></span>
+                  </label>
+                </span>
+                
+                {huboCorridasPerdidas && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <div ref={ciclosRef} style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        className="interactive-input"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                          opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                        }}
+                        onClick={() => !guardandoPerdida && setDropdownCiclosOpen(!dropdownCiclosOpen)}
+                      >
+                        <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? `${perdidaCiclos} ciclo(s)` : 'Ciclos'}</span>
+                        <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                      </button>
+                      {dropdownCiclosOpen && (
+                        <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', zIndex: 999 }}>
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem' }}>
+                            {ciclosOptions.map(opt => (
+                              <button key={opt.value} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaCiclos(opt.value); setDropdownCiclosOpen(false); handleSavePerdida(opt.value, perdidaMotivo); }}>
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div ref={motivoRef} style={{ position: 'relative' }}>
+                      <button
+                        type="button"
+                        className="interactive-input"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                          opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                        }}
+                        onClick={() => !guardandoPerdida && setDropdownMotivoOpen(!dropdownMotivoOpen)}
+                      >
+                        <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perdidaMotivo || 'Motivo'}</span>
+                        <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                      </button>
+                      {dropdownMotivoOpen && (
+                        <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                            {['Falla Mecánica', 'Accidente', 'Tráfico', 'Falta de Operador', 'Falta de Unidad', 'Otro'].map(mot => (
+                              <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); handleSavePerdida(perdidaCiclos, mot); }}>
+                                {mot}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
