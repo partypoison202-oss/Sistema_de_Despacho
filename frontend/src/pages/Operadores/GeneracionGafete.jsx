@@ -164,7 +164,7 @@ export default function GeneracionGafete({ conductores }) {
 
                 {/* 3. CÓDIGO QR - Lado Izquierdo */}
                 <div className="absolute bg-white p-1 z-10"
-                     style={{ left: '22.5%', top: '17.8%', width: '16.5%', aspectRatio: '1/1' }}>
+                     style={{ left: '19%', top: '18.5%', width: '16%', aspectRatio: '1/1' }}>
                   <QRCode
                     value={qrValue}
                     size={256}
@@ -174,14 +174,14 @@ export default function GeneracionGafete({ conductores }) {
                 </div>
 
                 {/* 4. FECHA DE EXPEDICIÓN - Franja Guinda Izquierda */}
-                <div className="absolute z-10 text-white font-bold tracking-wider text-[10px] uppercase"
-                     style={{ left: '9%', top: '86.8%' }}>
+                <div className="absolute z-10 text-white font-bold tracking-wider text-[8px] uppercase"
+                     style={{ left: '16.5%', top: '87%' }}>
                   {fechaExpedicion}
                 </div>
 
                 {/* 5. FECHA DE VIGENCIA - Franja Guinda Izquierda */}
-                <div className="absolute z-10 text-white font-bold tracking-wider text-[10px] uppercase"
-                     style={{ left: '29.5%', top: '86.8%' }}>
+                <div className="absolute z-10 text-white font-bold tracking-wider text-[8px] uppercase"
+                     style={{ left: '36.5%', top: '87%' }}>
                   {fechaVigencia}
                 </div>
               </>
