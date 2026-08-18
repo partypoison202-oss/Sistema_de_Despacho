@@ -920,61 +920,86 @@ export default function UnitInfoPanel({
                 </span>
                 
                 {huboCorridasPerdidas && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <div ref={ciclosRef} style={{ position: 'relative' }}>
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <div ref={ciclosRef} style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          className="interactive-input"
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                            opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                          }}
+                          onClick={() => !guardandoPerdida && setDropdownCiclosOpen(!dropdownCiclosOpen)}
+                        >
+                          <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? `${perdidaCiclos}` : 'Ciclos'}</span>
+                          <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                        </button>
+                        {dropdownCiclosOpen && (
+                          <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', zIndex: 999 }}>
+                            <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem' }}>
+                              {ciclosOptions.map(opt => (
+                                <button key={opt.value} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaCiclos(opt.value); setDropdownCiclosOpen(false); }}>
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div ref={motivoRef} style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          className="interactive-input"
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                            opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                          }}
+                          onClick={() => !guardandoPerdida && setDropdownMotivoOpen(!dropdownMotivoOpen)}
+                        >
+                          <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perdidaMotivo || 'Motivo'}</span>
+                          <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                        </button>
+                        {dropdownMotivoOpen && (
+                          <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
+                            <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                              {['Falla Mecánica', 'Accidente', 'Tráfico', 'Falta de Operador', 'Falta de Unidad', 'Otro'].map(mot => (
+                                <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); }}>
+                                  {mot}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {perdidaCiclos && perdidaMotivo && (
                       <button
                         type="button"
-                        className="interactive-input"
+                        onClick={() => handleSavePerdida(perdidaCiclos, perdidaMotivo)}
+                        disabled={guardandoPerdida}
                         style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
-                          opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                          width: '100%',
+                          marginTop: '0.75rem',
+                          padding: '0.5rem',
+                          background: 'var(--brand-maroon-text)',
+                          color: 'white',
+                          borderRadius: '0.5rem',
+                          border: 'none',
+                          cursor: guardandoPerdida ? 'not-allowed' : 'pointer',
+                          opacity: guardandoPerdida ? 0.7 : 1,
+                          fontWeight: 'bold',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s'
                         }}
-                        onClick={() => !guardandoPerdida && setDropdownCiclosOpen(!dropdownCiclosOpen)}
                       >
-                        <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? `${perdidaCiclos} ciclo(s)` : 'Ciclos'}</span>
-                        <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                        {guardandoPerdida ? 'Validando...' : 'Validar Corridas Perdidas'}
                       </button>
-                      {dropdownCiclosOpen && (
-                        <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', zIndex: 999 }}>
-                          <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem' }}>
-                            {ciclosOptions.map(opt => (
-                              <button key={opt.value} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaCiclos(opt.value); setDropdownCiclosOpen(false); handleSavePerdida(opt.value, perdidaMotivo); }}>
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div ref={motivoRef} style={{ position: 'relative' }}>
-                      <button
-                        type="button"
-                        className="interactive-input"
-                        style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
-                          opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
-                        }}
-                        onClick={() => !guardandoPerdida && setDropdownMotivoOpen(!dropdownMotivoOpen)}
-                      >
-                        <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perdidaMotivo || 'Motivo'}</span>
-                        <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
-                      </button>
-                      {dropdownMotivoOpen && (
-                        <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
-                          <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                            {['Falla Mecánica', 'Accidente', 'Tráfico', 'Falta de Operador', 'Falta de Unidad', 'Otro'].map(mot => (
-                              <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); handleSavePerdida(perdidaCiclos, mot); }}>
-                                {mot}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
