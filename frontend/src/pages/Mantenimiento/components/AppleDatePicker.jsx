@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const CALENDAR_WIDTH = 288; // w-72
+const CALENDAR_HEIGHT = 320; // approx height
 
 const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +34,11 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     let left = rect.left + rect.width / 2 - CALENDAR_WIDTH / 2;
     left = Math.max(margin, Math.min(left, window.innerWidth - CALENDAR_WIDTH - margin));
 
-    const top = rect.bottom + 8;
+    let top = rect.bottom + 8;
+    if (top + CALENDAR_HEIGHT > window.innerHeight && rect.top - CALENDAR_HEIGHT - 8 > 0) {
+      top = rect.top - CALENDAR_HEIGHT - 8;
+    }
+
     setCoords({ top, left });
   }, []);
 
@@ -53,15 +59,17 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
   // Cierra al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      const clickedButton = wrapperRef.current && wrapperRef.current.contains(event.target);
+      const clickedButton = buttonRef.current && buttonRef.current.contains(event.target);
       const clickedCalendar = calendarRef.current && calendarRef.current.contains(event.target);
       if (!clickedButton && !clickedCalendar) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
@@ -193,10 +201,15 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div 
-          className="absolute z-[9999] mt-2 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-100 p-4 w-72 animate-fade-in-up transition-all"
-          style={{ boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 1px 1px rgba(0,0,0,0.05)' }}
+          ref={calendarRef}
+          className="fixed z-[99999] bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-100 p-4 w-72 animate-fade-in-up transition-all"
+          style={{ 
+            top: coords.top, 
+            left: coords.left,
+            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 1px 1px rgba(0,0,0,0.05)' 
+          }}
         >
           <div className="flex items-center justify-between mb-3 px-1">
             <button 
@@ -211,9 +224,25 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               </svg>
             </button>
 
-            <span className="font-bold text-slate-800 text-sm tracking-tight">
-              {monthNames[currentMonth.getMonth()]} <span className="text-[#6b1d33] font-extrabold">{currentMonth.getFullYear()}</span>
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-slate-800 text-sm tracking-tight">
+                {monthNames[currentMonth.getMonth()]}
+              </span>
+              <select
+                value={currentMonth.getFullYear()}
+                onChange={(e) => {
+                  const newYear = parseInt(e.target.value, 10);
+                  const newDate = new Date(newYear, currentMonth.getMonth(), 1);
+                  setCurrentMonth(newDate);
+                }}
+                className="text-[#6b1d33] font-extrabold text-sm bg-transparent border-none outline-none cursor-pointer hover:bg-slate-100 rounded px-1"
+                style={{ appearance: 'none', paddingRight: '0.2rem' }}
+              >
+                {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - 80 + i).map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
 
             <button 
               type="button" 
@@ -266,7 +295,8 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               Cerrar
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
