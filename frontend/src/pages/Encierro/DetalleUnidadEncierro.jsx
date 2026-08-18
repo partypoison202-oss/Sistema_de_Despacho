@@ -1752,6 +1752,7 @@ export default function DetalleUnidadEncierro() {
                             {observacionesCatalogo
                               .filter(obs => {
                                 const label = `${formatObservacionClave(obs.clave)} - ${obs.descripcion}`;
+                                if (formObservaciones === observaciones) return true;
                                 return label.toLowerCase().includes(formObservaciones.toLowerCase());
                               })
                               .map(obs => {
