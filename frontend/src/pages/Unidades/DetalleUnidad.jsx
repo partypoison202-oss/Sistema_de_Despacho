@@ -90,11 +90,11 @@ export default function DetalleUnidad() {
   };
 
   const getUnitStatusVisual = (u) => {
-    if (!u.horaProgramada) return (u.acople || u.horaSalida) ? 'validated_ontime' : 'pending';
+    if (!u.horaProgramada) return u.horaSalida ? 'validated_ontime' : 'pending';
     
     let targetTime = null;
-    if (u.horaSalida || u.acople) {
-      const doneTime = u.horaSalida || u.acople;
+    if (u.horaSalida) {
+      const doneTime = u.horaSalida;
       // Extract first valid time string "HH:MM"
       const timeMatch = doneTime.toString().match(/\d{2}:\d{2}/);
       const timeStr = timeMatch ? timeMatch[0] : (doneTime.length >= 5 ? doneTime.substring(0, 5) : doneTime);
@@ -122,7 +122,7 @@ export default function DetalleUnidad() {
       diffMins -= 1440;
     }
 
-    if (u.acople || u.horaSalida) {
+    if (u.horaSalida) {
       if (diffMins > 15) return 'validated_missed';
       if (diffMins > 0) return 'validated_delayed';
       return 'validated_ontime';
@@ -272,7 +272,7 @@ export default function DetalleUnidad() {
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);
     if (estado === 'operacion') {
-      filtradas = filtradas.filter((u) => !u.acople && !u.horaSalida);
+      filtradas = filtradas.filter((u) => !u.horaSalida);
     }
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
@@ -286,7 +286,7 @@ export default function DetalleUnidad() {
   };
 
   const unidadesDisponiblesBusqueda = useMemo(
-    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.acople && !u.horaSalida),
+    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.horaSalida),
     [unidadesList]
   );
   const totalProgramadasOperacion = useMemo(
@@ -487,7 +487,7 @@ export default function DetalleUnidad() {
       (unidad) => String(unidad.tarjeton ?? '').trim() === valor
     );
     if (unidadEncontrada) {
-      if (unidadEncontrada.horaSalida || unidadEncontrada.acople) {
+      if (unidadEncontrada.horaSalida) {
         setMensajeBusqueda('Esta unidad ya fue validada y no está disponible para despacho.');
         return;
       }
@@ -693,14 +693,14 @@ export default function DetalleUnidad() {
 
     if (currentIndex !== -1) {
       for (let i = currentIndex + 1; i < currentList.length; i++) {
-        if (!currentList[i].acople && !currentList[i].horaSalida) {
+        if (!currentList[i].horaSalida) {
           nextUnitEco = currentList[i].eco;
           break;
         }
       }
       if (!nextUnitEco) {
         for (let i = 0; i < currentIndex; i++) {
-          if (!currentList[i].acople && !currentList[i].horaSalida) {
+          if (!currentList[i].horaSalida) {
             nextUnitEco = currentList[i].eco;
             break;
           }
@@ -761,8 +761,8 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
 
-        // Auto-avanzar si es una validación de salida o acople (agilidad)
-        if (acople !== null || horaSalida !== null) {
+        // Auto-avanzar si es una validación de salida (agilidad)
+        if (horaSalida !== null) {
           advanceToNextPendingUnit(numeroLimpio);
         }
         setFallaTexto('');
