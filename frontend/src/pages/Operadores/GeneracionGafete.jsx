@@ -164,7 +164,7 @@ export default function GeneracionGafete({ conductores }) {
 
                 {/* 3. CÓDIGO QR - Lado Izquierdo */}
                 <div className="absolute bg-white p-1 z-10"
-                     style={{ left: '16.2%', top: '16.5%', width: '14.5%', aspectRatio: '1/1' }}>
+                     style={{ left: '17.3%', top: '17.8%', width: '15.5%', aspectRatio: '1/1' }}>
                   <QRCode
                     value={qrValue}
                     size={256}

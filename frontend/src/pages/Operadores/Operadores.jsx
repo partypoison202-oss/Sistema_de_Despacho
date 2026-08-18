@@ -549,8 +549,7 @@ export default function Operadores() {
         text: 'Los datos del operador se han actualizado correctamente.',
         confirmButtonColor: '#c5a059'
       }).then(() => {
-        // Redirigir al módulo de checklist como solicitó el usuario
-        navigate('/checklist/menu');
+        // fetchConductores(); // It will be fetched by the interval, or we can fetch it explicitly
       });
       fetchConductores();
     } catch (err) {
@@ -1277,6 +1276,15 @@ export default function Operadores() {
 
               <div className="form-group">
                 <label className="form-label">Fotografía del Operador (Opcional)</label>
+                {(foto || selectedConductor?.foto) && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    <img 
+                      src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`} 
+                      alt="Vista previa" 
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
+                    />
+                  </div>
+                )}
                 <input
                   type="file"
                   accept="image/*"
