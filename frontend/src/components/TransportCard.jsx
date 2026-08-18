@@ -17,15 +17,6 @@ export default function TransportCard({
       className="transport-card"
       onClick={() => navigate(route)}
     >
-      {/* Badge circular en la esquina superior izquierda */}
-      <div className="transport-card__badge">
-        {cargando ? (
-          <span className="transport-card__badge-loading">…</span>
-        ) : (
-          <span className="transport-card__badge-number">{cantidad}</span>
-        )}
-      </div>
-
       <div className="transport-card__image-wrap">
         <img src={image} alt={title} className="transport-card__image" />
       </div>
