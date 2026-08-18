@@ -162,25 +162,18 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0.75rem;
-  font-size: 11.5px;
+  font-size: 9.5px;
   text-align: center;
   background-color: var(--tw-color-white);
   border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  table-layout: fixed;
-}
-
-.resumen-table th, .resumen-table td {
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
 }
 
 .resumen-table th {
   background-color: var(--brand-maroon-text);
   color: var(--tw-color-white);
-  padding: 0.6rem 0.4rem;
+  padding: 0.4rem 0.3rem;
   font-weight: 600;
   border: 1px solid var(--tw-color-gray-200);
   text-transform: uppercase;
@@ -192,7 +185,7 @@
 }
 
 .resumen-table td {
-  padding: 0.6rem 0.4rem;
+  padding: 0.4rem 0.3rem;
   border: 1px solid #eaeaea;
   vertical-align: middle;
   font-weight: bold;
@@ -220,8 +213,8 @@
 .resumen-table .totales-row td {
   background-color: var(--brand-maroon-text);
   color: var(--tw-color-white);
-  font-size: 12px;
-  padding: 0.7rem 0.4rem;
+  font-size: 10px;
+  padding: 0.5rem 0.3rem;
 }
 
 .resumen-table .totales-row td.gold-text {
@@ -230,26 +223,24 @@
   border-color: #eaeaea;
 }
 
-/* Grillas más compactas y seguras para html2canvas usando flex */
-/* Grillas más compactas y seguras para html2canvas usando flex */
+/* Grillas side-by-side formato viejo, usando flex para html2canvas */
 .resumen-grid-top, .resumen-grid-bottom {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2%;
+  margin-bottom: 0.75rem;
 }
 
 .resumen-grid-top > div:first-child,
 .resumen-grid-bottom > div:first-child {
-  width: 100%;
+  width: 59%;
   min-width: 0;
 }
 
 .resumen-grid-top > div:last-child,
 .resumen-grid-bottom > div:last-child {
-  width: 100%;
-  max-width: 600px;
+  width: 39%;
   min-width: 0;
 }
 
