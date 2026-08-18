@@ -276,8 +276,8 @@ export default function Operadores() {
       }
   };
 
-  const fetchConductores = async () => {
-    setLoading(true);
+  const fetchConductores = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/conductores?incluir_bajas=true`, {
         headers: getAuthHeaders()
@@ -287,14 +287,16 @@ export default function Operadores() {
       setConductores(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudieron cargar los operadores.',
-        confirmButtonColor: '#6b1d33'
-      });
+      if (!silent) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron cargar los operadores.',
+          confirmButtonColor: '#6b1d33'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -353,7 +355,17 @@ export default function Operadores() {
 
   useEffect(() => {
     fetchConductores();
-  }, []);
+    
+    // Polling rápido cada 2 segundos solo si no hay cambios sin guardar y no hay modal abierto
+    let interval;
+    if (modifiedIds.size === 0 && !showDetailsModal && !showEditModal && !showAddModal) {
+      interval = setInterval(() => {
+        fetchConductores(true);
+      }, 2000);
+    }
+    
+    return () => clearInterval(interval);
+  }, [modifiedIds.size, showDetailsModal, showEditModal, showAddModal]);
 
   const handleOpenAddModal = () => {
     setNombre('');
