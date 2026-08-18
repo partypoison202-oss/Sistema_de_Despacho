@@ -1304,7 +1304,7 @@ export default function DetalleUnidadEncierro() {
                 ) : unidadesPorRutaList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                     {unidadesPorRutaList.map((unidad) => (
                       <button
                         key={unidad.display}
@@ -1361,7 +1361,7 @@ export default function DetalleUnidadEncierro() {
                 {unidadesPorTroncalList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                     {unidadesPorTroncalList.map((unidad) => (
                       <button
                         key={unidad.display}
