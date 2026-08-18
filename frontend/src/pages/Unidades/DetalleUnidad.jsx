@@ -147,7 +147,10 @@ export default function DetalleUnidad() {
         break;
       case 'validated_delayed':
       case 'delayed':
-        base = { bg: '#fef9c3', text: '#854d0e', border: '#fde047' }; // Amarillo claro
+        base = { bg: '#ffedd5', text: '#c2410c', border: '#fed7aa' }; // Naranja claro
+        break;
+      case 'pending':
+        base = { bg: '#ffffff', text: '#374151', border: '#d1d5db' }; // Blanco neutral
         break;
     }
 
