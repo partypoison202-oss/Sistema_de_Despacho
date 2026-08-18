@@ -146,7 +146,7 @@ export default function UnitSelector({
               getUnitStatusVisual && getUnitColor ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    {unidades.filter(u => getUnitStatusVisual(u) !== 'validated').map((unidad) => {
+                    {unidades.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                       const colors = getUnitColor(unidad, selectedOption === unidad.display);
                       return (
                         <button
@@ -168,11 +168,11 @@ export default function UnitSelector({
                       );
                     })}
                   </div>
-                  {unidades.some(u => getUnitStatusVisual(u) === 'validated') && (
+                  {unidades.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
                     <div>
                       <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.3rem', textTransform: 'uppercase', textAlign: 'center' }}>Despachadas</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        {unidades.filter(u => getUnitStatusVisual(u) === 'validated').map((unidad) => {
+                        {unidades.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                           const colors = getUnitColor(unidad, selectedOption === unidad.display);
                           return (
                             <button

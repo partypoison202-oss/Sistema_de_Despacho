@@ -90,16 +90,38 @@ export default function DetalleUnidad() {
   };
 
   const getUnitStatusVisual = (u) => {
-    if (u.acople || u.horaSalida) return 'validated';
-    if (!u.horaProgramada) return 'pending';
-    const now = new Date();
+    if (!u.horaProgramada) return (u.acople || u.horaSalida) ? 'validated_ontime' : 'pending';
+    
+    let targetTime = null;
+    if (u.horaSalida || u.acople) {
+      const doneTime = u.horaSalida || u.acople;
+      // Extract first valid time string "HH:MM"
+      const timeMatch = doneTime.toString().match(/\d{2}:\d{2}/);
+      const timeStr = timeMatch ? timeMatch[0] : (doneTime.length >= 5 ? doneTime.substring(0, 5) : doneTime);
+      const parts = timeStr.split(':');
+      const hDone = parseInt(parts[0]) || 0;
+      const mDone = parseInt(parts[1]) || 0;
+      
+      targetTime = new Date();
+      targetTime.setHours(hDone, mDone, 0, 0);
+    } else {
+      targetTime = new Date();
+    }
+
     const [h, m] = u.horaProgramada.split(':').map(Number);
     const prog = new Date();
     prog.setHours(h, m, 0, 0);
-    const diffMins = (now - prog) / 60000;
-    if (diffMins > 15) return 'missed';
-    if (diffMins > 0) return 'delayed';
-    return 'pending';
+    const diffMins = (targetTime - prog) / 60000;
+
+    if (u.acople || u.horaSalida) {
+      if (diffMins > 15) return 'validated_missed';
+      if (diffMins > 0) return 'validated_delayed';
+      return 'validated_ontime';
+    } else {
+      if (diffMins > 15) return 'missed';
+      if (diffMins > 0) return 'delayed';
+      return 'pending';
+    }
   };
 
   const getUnitColor = (unidad, isSelected) => {
@@ -108,10 +130,12 @@ export default function DetalleUnidad() {
     }
     const status = getUnitStatusVisual(unidad);
     switch (status) {
-      case 'validated':
+      case 'validated_ontime':
         return { bg: '#dcfce7', text: '#166534', border: '#86efac' }; // Verde
+      case 'validated_missed':
       case 'missed':
         return { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }; // Rojo
+      case 'validated_delayed':
       case 'delayed':
         return { bg: '#fef9c3', text: '#854d0e', border: '#fde047' }; // Amarillo
       default:
@@ -1300,15 +1324,15 @@ export default function DetalleUnidad() {
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) !== 'validated').map((unidad) => {
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {unidadesPorRutaList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                         const colors = getUnitColor(unidad, selectedOption === unidad.display);
                         return (
                           <button
                             key={unidad.display}
                             type="button"
                             onClick={() => handleSelectUnit(unidad)}
-                            className="dropdown-menu__item"
+                            className="unit-button"
                             style={{
                               border: `1px solid ${colors.border}`,
                               borderRadius: '0.5rem',
@@ -1324,18 +1348,18 @@ export default function DetalleUnidad() {
                         );
                       })}
                     </div>
-                    {unidadesPorRutaList.some(u => getUnitStatusVisual(u) === 'validated') && (
+                    {unidadesPorRutaList.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
                       <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Unidades Despachadas</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) === 'validated').map((unidad) => {
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.3rem', textTransform: 'uppercase' }}>Despachadas</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                          {unidadesPorRutaList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
                               <button
                                 key={unidad.display}
                                 type="button"
                                 onClick={() => handleSelectUnit(unidad)}
-                                className="dropdown-menu__item"
+                                className="unit-button"
                                 style={{
                                   border: `1px solid ${colors.border}`,
                                   borderRadius: '0.5rem',
@@ -1392,15 +1416,14 @@ export default function DetalleUnidad() {
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) !== 'validated').map((unidad) => {
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {unidadesPorTroncalList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                         const colors = getUnitColor(unidad, selectedOption === unidad.display);
                         return (
                           <button
                             key={unidad.display}
-                            type="button"
                             onClick={() => handleSelectUnit(unidad)}
-                            className="dropdown-menu__item"
+                            className="unit-button"
                             style={{
                               border: `1px solid ${colors.border}`,
                               borderRadius: '0.5rem',
@@ -1408,7 +1431,7 @@ export default function DetalleUnidad() {
                               background: colors.bg,
                               color: colors.text,
                               fontWeight: 700,
-                              cursor: 'pointer',
+                              cursor: 'pointer'
                             }}
                           >
                             {unidad.display}
@@ -1416,18 +1439,19 @@ export default function DetalleUnidad() {
                         );
                       })}
                     </div>
-                    {unidadesPorTroncalList.some(u => getUnitStatusVisual(u) === 'validated') && (
+                    
+                    {/* Validadas (Despachadas) de la Troncal */}
+                    {unidadesPorTroncalList.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
                       <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Unidades Despachadas</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) === 'validated').map((unidad) => {
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.3rem', textTransform: 'uppercase' }}>Despachadas</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                          {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
                               <button
                                 key={unidad.display}
-                                type="button"
                                 onClick={() => handleSelectUnit(unidad)}
-                                className="dropdown-menu__item"
+                                className="unit-button"
                                 style={{
                                   border: `1px solid ${colors.border}`,
                                   borderRadius: '0.5rem',
