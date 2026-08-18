@@ -18,20 +18,32 @@
   gap: 1rem;
 }
 
-.resumen-controls-bottom {
-  margin-top: 1.5rem;
+.btn-pdf-top {
+  background-color: var(--brand-gold-text);
+  color: var(--brand-maroon-text);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  cursor: pointer;
   display: flex;
-  width: 100%;
-  max-width: 816px;
-  margin-left: auto;
-  margin-right: auto;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  margin-bottom: 1.5rem;
 }
 
-.btn-large-full {
-  width: 100%;
-  padding: 1rem;
-  font-size: 1.1rem;
-  font-weight: bold;
+.btn-pdf-top:hover {
+  background-color: #d4b271;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.btn-pdf-top svg {
+  width: 20px;
+  height: 20px;
 }
 
 .resumen-pdf-wrapper {
@@ -150,7 +162,7 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 0.75rem;
-  font-size: 9.5px;
+  font-size: 9px;
   text-align: center;
   background-color: var(--tw-color-white);
   border-radius: 4px;
@@ -214,15 +226,20 @@
 /* Grillas más compactas */
 .resumen-grid-top {
   display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 0.75rem;
+  grid-template-columns: 58% 40%;
+  gap: 2%;
   margin-bottom: 0.75rem;
 }
 
 .resumen-grid-bottom {
   display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 0.75rem;
+  grid-template-columns: 58% 40%;
+  gap: 2%;
+}
+
+.resumen-grid-top > div,
+.resumen-grid-bottom > div {
+  min-width: 0;
 }
 
 /* Gráficas Contenedores Compactos */
