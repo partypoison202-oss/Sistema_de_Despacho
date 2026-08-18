@@ -115,7 +115,7 @@ export default function ResumenDespacho() {
     try {
       const el = document.getElementById('reporte-pdf');
       const canvas = await html2canvas(el, {
-        scale: 3,
+        scale: 4, // Incrementar la escala para mayor definición
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -123,7 +123,7 @@ export default function ResumenDespacho() {
         windowHeight: el.scrollHeight
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
       
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -136,14 +136,14 @@ export default function ResumenDespacho() {
       let heightLeft = imgHeight;
       let position = margin;
 
-      pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= (pdfHeight - (margin * 2));
 
       // Tolerancia de 2mm para evitar páginas adicionales en blanco por errores de redondeo
       while (heightLeft > 2) {
         position -= (pdfHeight - (margin * 2));
         pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
         heightLeft -= (pdfHeight - (margin * 2));
       }
 
@@ -251,7 +251,7 @@ export default function ResumenDespacho() {
                     <td>{row.operacion}</td>
                     <td>{row.eficiencia}%</td>
                     <td>{row.mantenimiento}</td>
-                    <td style={{ whiteSpace: 'pre-wrap', textAlign: 'left', fontSize: '10px' }}>{row.fallasText}</td>
+                    <td style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{row.fallasText}</td>
                   </tr>
                 ))}
                 <tr className="totales-row">
@@ -308,7 +308,7 @@ export default function ResumenDespacho() {
           
           {/* TABLA 2 (PLACEHOLDER) */}
           <div>
-            <table className="resumen-table">
+            <table className="resumen-table-bottom">
               <thead>
                 <tr>
                   <th colSpan="6">Corridas y Ciclos Faltantes</th>
@@ -348,13 +348,13 @@ export default function ResumenDespacho() {
           {/* GRÁFICA DE DONA */}
           <div className="chart-container">
             <div className="chart-header">Porcentaje de Unidades en Mantenimiento</div>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart margin={{ top: 15, right: 15, bottom: 15, left: 15 }}>
                 <Pie
                   isAnimationActive={false}
                   data={dataDona}
-                  innerRadius={45}
-                  outerRadius={65}
+                  innerRadius={35}
+                  outerRadius={55}
                   dataKey="value"
                   label={({ name, percent, value }) => `${value}, ${(percent * 100).toFixed(0)}%`}
                 >
