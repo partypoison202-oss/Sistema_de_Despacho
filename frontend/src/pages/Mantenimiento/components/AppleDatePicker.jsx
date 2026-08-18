@@ -6,11 +6,13 @@ const CALENDAR_HEIGHT = 320; // approx height
 
 const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [view, setView] = useState('days'); // 'days' | 'years'
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const wrapperRef = useRef(null);
   const buttonRef = useRef(null);
   const calendarRef = useRef(null);
+  const yearsContainerRef = useRef(null);
 
   // Sincroniza el mes con la fecha seleccionada
   useEffect(() => {
@@ -44,7 +46,10 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
 
   // Reposiciona al abrir y en eventos de resize/scroll
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setView('days');
+      return;
+    }
     updatePosition();
 
     const handleReposition = () => updatePosition();
@@ -70,6 +75,16 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
+
+  // Scroll to selected year when switching to 'years' view
+  useEffect(() => {
+    if (view === 'years' && yearsContainerRef.current) {
+      const selectedBtn = yearsContainerRef.current.querySelector('.selected-year');
+      if (selectedBtn) {
+        selectedBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
+      }
+    }
+  }, [view]);
 
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
@@ -228,20 +243,16 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               <span className="font-bold text-slate-800 text-sm tracking-tight">
                 {monthNames[currentMonth.getMonth()]}
               </span>
-              <select
-                value={currentMonth.getFullYear()}
-                onChange={(e) => {
-                  const newYear = parseInt(e.target.value, 10);
-                  const newDate = new Date(newYear, currentMonth.getMonth(), 1);
-                  setCurrentMonth(newDate);
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setView(view === 'days' ? 'years' : 'days');
                 }}
-                className="text-[#6b1d33] font-extrabold text-sm bg-transparent border-none outline-none cursor-pointer hover:bg-slate-100 rounded px-1"
-                style={{ appearance: 'none', paddingRight: '0.2rem' }}
+                className={`font-extrabold text-sm px-2 py-0.5 rounded-md transition-colors ${view === 'years' ? 'bg-[#6b1d33] text-white shadow-sm' : 'text-[#6b1d33] hover:bg-slate-100'}`}
               >
-                {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - 80 + i).map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
+                {currentMonth.getFullYear()}
+              </button>
             </div>
 
             <button 
@@ -257,17 +268,50 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, idx) => (
-              <div key={day} className={`text-center text-[10px] font-bold uppercase tracking-wider ${idx === 0 || idx === 6 ? 'text-slate-400' : 'text-slate-500'}`}>
-                {day}
+          {view === 'days' ? (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, idx) => (
+                  <div key={day} className={`text-center text-[10px] font-bold uppercase tracking-wider ${idx === 0 || idx === 6 ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {day}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-7 gap-1">
-            {days}
-          </div>
+              <div className="grid grid-cols-7 gap-1">
+                {days}
+              </div>
+            </>
+          ) : (
+            <div 
+              ref={yearsContainerRef}
+              className="grid grid-cols-4 gap-2 overflow-y-auto pr-1 my-2" 
+              style={{ maxHeight: '200px', scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}
+            >
+              {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - 80 + i).map(year => {
+                const isSelected = year === currentMonth.getFullYear();
+                return (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newDate = new Date(year, currentMonth.getMonth(), 1);
+                      setCurrentMonth(newDate);
+                      setView('days');
+                    }}
+                    className={`py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                      isSelected 
+                        ? 'selected-year bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {year}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center px-1">
             <button
