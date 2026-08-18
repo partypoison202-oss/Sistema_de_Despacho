@@ -201,6 +201,7 @@ export default function Operadores() {
 
   const [activeTab, setActiveTab] = useState('catalogo'); // 'catalogo' o 'kardex' o 'info_general'
   const [savingId, setSavingId] = useState(null);
+  const [modifiedIds, setModifiedIds] = useState(new Set());
 
   // Modal Detalles (Amonestaciones/Reconocimientos)
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -299,34 +300,43 @@ export default function Operadores() {
 
   const handleLocalFieldChange = (id, field, value) => {
     setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    setModifiedIds(prev => new Set(prev).add(id));
   };
 
-  const handleSaveKardexRow = async (c) => {
-    setSavingId(c.id);
+  const handleSaveAllKardex = async () => {
+    if (modifiedIds.size === 0) return;
+    setSavingId('all');
     try {
-      const res = await fetch(`${API_BASE}/api/conductores/${c.id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          accidentes_siniestros: c.accidentes_siniestros,
-          faltas: c.faltas,
-          retardos: c.retardos,
-          condicionamientos_medicos: c.condicionamientos_medicos,
-          condicionamientos_juridicos: c.condicionamientos_juridicos,
-          evaluacion: c.evaluacion,
-          observaciones: c.observaciones
-        })
+      const promises = Array.from(modifiedIds).map(id => {
+        const c = conductores.find(cond => cond.id === id);
+        return fetch(`${API_BASE}/api/conductores/${c.id}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            accidentes_siniestros: c.accidentes_siniestros,
+            faltas: c.faltas,
+            retardos: c.retardos,
+            condicionamientos_medicos: c.condicionamientos_medicos,
+            condicionamientos_juridicos: c.condicionamientos_juridicos,
+            evaluacion: c.evaluacion,
+            observaciones: c.observaciones
+          })
+        });
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al guardar cambios');
+
+      const results = await Promise.all(promises);
+      
+      const failed = results.filter(res => !res.ok);
+      if (failed.length > 0) throw new Error('Algunos cambios no se pudieron guardar.');
 
       Swal.fire({
         icon: 'success',
         title: 'Guardado',
-        text: 'Los cambios del operador se han guardado correctamente.',
+        text: 'Los cambios del Kardex se han guardado correctamente.',
         timer: 2000,
         showConfirmButton: false
       });
+      setModifiedIds(new Set());
     } catch (err) {
       console.error(err);
       Swal.fire({
@@ -739,6 +749,18 @@ export default function Operadores() {
                   />
                 </div>
               )}
+
+              {activeTab === 'kardex' && (
+                <div className="flex w-full md:w-auto items-center gap-3">
+                  <button
+                    onClick={handleSaveAllKardex}
+                    disabled={modifiedIds.size === 0 || savingId === 'all'}
+                    className={`px-6 py-2.5 rounded-xl text-[0.95rem] font-bold text-white transition-all shadow-sm flex items-center justify-center min-w-[200px] ${modifiedIds.size === 0 ? 'bg-slate-300 cursor-not-allowed opacity-70' : savingId === 'all' ? 'bg-slate-400 cursor-wait' : 'bg-[#6b1d33] hover:bg-[#8d2745] hover:-translate-y-0.5 active:translate-y-0 shadow-md'}`}
+                  >
+                    {savingId === 'all' ? 'Guardando...' : `Guardar Cambios (${modifiedIds.size})`}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -841,7 +863,7 @@ export default function Operadores() {
                     <th style={{ width: '180px', textAlign: 'center' }}>Amonestaciones</th>
                     <th style={{ width: '180px', textAlign: 'center' }}>Reconocimientos</th>
                     <th style={{ width: '280px' }}>Condicionamientos médicos</th>
-                    <th style={{ width: '280px' }}>Condicionamientos jurídicos</th>
+                    <th style={{ minWidth: '180px' }}>Condicionamientos Jurídicos</th>
                     <th style={{ width: '130px', textAlign: 'center' }}>Cambios</th>
                     <th style={{ width: '130px', textAlign: 'center' }}>Permisos</th>
                     <th style={{ width: '150px', textAlign: 'center' }}>Evaluación</th>
@@ -1003,16 +1025,6 @@ export default function Operadores() {
                             onChange={(e) => handleLocalFieldChange(c.id, 'observaciones', e.target.value)}
                             placeholder="Añadir nota..."
                           />
-                        </td>
-                        <td className="text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleSaveKardexRow(c)}
-                            disabled={savingId === c.id}
-                            className={`px-3 py-1.5 rounded text-sm font-bold text-white transition-all ${savingId === c.id ? 'bg-slate-400 cursor-wait' : 'bg-[#6b1d33] hover:bg-[#8d2745] active:scale-95'}`}
-                          >
-                            {savingId === c.id ? 'Guardando...' : 'Guardar'}
-                          </button>
                         </td>
                       </tr>
                     ))
