@@ -208,6 +208,7 @@ export default function Operadores() {
   const [detailsType, setDetailsType] = useState(''); // 'amonestaciones' or 'reconocimientos'
   const [detailsConductor, setDetailsConductor] = useState(null);
   const [newDetailMotivo, setNewDetailMotivo] = useState('');
+  const [savingDetail, setSavingDetail] = useState(false);
 
   const openDetailsModal = (c, type) => {
     setDetailsConductor(c);
@@ -218,8 +219,9 @@ export default function Operadores() {
 
   const handleAddDetail = async (e) => {
     e.preventDefault();
-    if (!newDetailMotivo.trim()) return;
+    if (!newDetailMotivo.trim() || savingDetail) return;
     
+    setSavingDetail(true);
     const fieldName = `${detailsType}_detalle`;
     const existing = detailsConductor[fieldName] || [];
     const newDetail = { id: Date.now(), motivo: newDetailMotivo.trim(), fecha: new Date().toISOString() };
@@ -237,7 +239,7 @@ export default function Operadores() {
       if (!res.ok) throw new Error('Error al guardar detalle');
       
       setNewDetailMotivo('');
-      fetchConductores();
+      fetchConductores(true); // silent fetch para no recargar visualmente el fondo
       
       setDetailsConductor({
         ...detailsConductor,
@@ -247,10 +249,14 @@ export default function Operadores() {
       
     } catch (err) {
       Swal.fire('Error', err.message, 'error');
+    } finally {
+      setSavingDetail(false);
     }
   };
   
   const handleRemoveDetail = async (detailId) => {
+      if (savingDetail) return;
+      setSavingDetail(true);
       const fieldName = `${detailsType}_detalle`;
       const updatedDetails = (detailsConductor[fieldName] || []).filter(d => d.id !== detailId);
       
@@ -265,7 +271,7 @@ export default function Operadores() {
         });
         if (!res.ok) throw new Error('Error al eliminar detalle');
         
-        fetchConductores();
+        fetchConductores(true); // silent fetch para no parpadear toda la tabla
         setDetailsConductor({
           ...detailsConductor,
           [fieldName]: updatedDetails,
@@ -273,6 +279,8 @@ export default function Operadores() {
         });
       } catch (err) {
         Swal.fire('Error', err.message, 'error');
+      } finally {
+        setSavingDetail(false);
       }
   };
 
@@ -1331,8 +1339,8 @@ export default function Operadores() {
                   <label className="form-label">Nuevo Motivo</label>
                   <input type="text" className="modal-input" style={{width: '100%', padding: '0.6rem'}} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value.toUpperCase())} placeholder="Ej. Motivo del registro..." required />
                 </div>
-                <button type="submit" className="btn-save" style={{width: '100%', padding: '0.75rem'}}>
-                  Agregar Registro
+                <button type="submit" className="btn-save" style={{width: '100%', padding: '0.75rem', opacity: savingDetail ? 0.7 : 1, cursor: savingDetail ? 'wait' : 'pointer'}} disabled={savingDetail}>
+                  {savingDetail ? 'Guardando registro...' : 'Agregar Registro'}
                 </button>
               </form>
             </div>
