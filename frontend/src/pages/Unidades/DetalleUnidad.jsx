@@ -1297,29 +1297,60 @@ export default function DetalleUnidad() {
                 ) : unidadesPorRutaList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorRutaList.map((unidad) => {
-                      const colors = getUnitColor(unidad, selectedOption === unidad.display);
-                      return (
-                        <button
-                          key={unidad.display}
-                          type="button"
-                          onClick={() => handleSelectUnit(unidad)}
-                          className="dropdown-menu__item"
-                          style={{
-                            border: `1px solid ${colors.border}`,
-                            borderRadius: '0.5rem',
-                            padding: '0.5rem 1rem',
-                            background: colors.bg,
-                            color: colors.text,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {unidad.display}
-                        </button>
-                      );
-                    })}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) !== 'validated').map((unidad) => {
+                        const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                        return (
+                          <button
+                            key={unidad.display}
+                            type="button"
+                            onClick={() => handleSelectUnit(unidad)}
+                            className="dropdown-menu__item"
+                            style={{
+                              border: `1px solid ${colors.border}`,
+                              borderRadius: '0.5rem',
+                              padding: '0.5rem 1rem',
+                              background: colors.bg,
+                              color: colors.text,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {unidad.display}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {unidadesPorRutaList.some(u => getUnitStatusVisual(u) === 'validated') && (
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Unidades Despachadas</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) === 'validated').map((unidad) => {
+                            const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                            return (
+                              <button
+                                key={unidad.display}
+                                type="button"
+                                onClick={() => handleSelectUnit(unidad)}
+                                className="dropdown-menu__item"
+                                style={{
+                                  border: `1px solid ${colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  padding: '0.5rem 1rem',
+                                  background: colors.bg,
+                                  color: colors.text,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {unidad.display}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1358,29 +1389,60 @@ export default function DetalleUnidad() {
                 {unidadesPorTroncalList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorTroncalList.map((unidad) => {
-                      const colors = getUnitColor(unidad, selectedOption === unidad.display);
-                      return (
-                        <button
-                          key={unidad.display}
-                          type="button"
-                          onClick={() => handleSelectUnit(unidad)}
-                          className="dropdown-menu__item"
-                          style={{
-                            border: `1px solid ${colors.border}`,
-                            borderRadius: '0.5rem',
-                            padding: '0.5rem 1rem',
-                            background: colors.bg,
-                            color: colors.text,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {unidad.display}
-                        </button>
-                      );
-                    })}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) !== 'validated').map((unidad) => {
+                        const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                        return (
+                          <button
+                            key={unidad.display}
+                            type="button"
+                            onClick={() => handleSelectUnit(unidad)}
+                            className="dropdown-menu__item"
+                            style={{
+                              border: `1px solid ${colors.border}`,
+                              borderRadius: '0.5rem',
+                              padding: '0.5rem 1rem',
+                              background: colors.bg,
+                              color: colors.text,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {unidad.display}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {unidadesPorTroncalList.some(u => getUnitStatusVisual(u) === 'validated') && (
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#9ca3af', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Unidades Despachadas</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) === 'validated').map((unidad) => {
+                            const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                            return (
+                              <button
+                                key={unidad.display}
+                                type="button"
+                                onClick={() => handleSelectUnit(unidad)}
+                                className="dropdown-menu__item"
+                                style={{
+                                  border: `1px solid ${colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  padding: '0.5rem 1rem',
+                                  background: colors.bg,
+                                  color: colors.text,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {unidad.display}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
