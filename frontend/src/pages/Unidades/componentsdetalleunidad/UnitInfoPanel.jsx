@@ -976,29 +976,6 @@ export default function UnitInfoPanel({
                         )}
                       </div>
                     </div>
-                    {perdidaCiclos && perdidaMotivo && (
-                      <button
-                        type="button"
-                        onClick={() => handleSavePerdida(perdidaCiclos, perdidaMotivo)}
-                        disabled={guardandoPerdida}
-                        style={{
-                          width: '100%',
-                          marginTop: '0.75rem',
-                          padding: '0.5rem',
-                          background: 'var(--brand-maroon-text)',
-                          color: 'white',
-                          borderRadius: '0.5rem',
-                          border: 'none',
-                          cursor: guardandoPerdida ? 'not-allowed' : 'pointer',
-                          opacity: guardandoPerdida ? 0.7 : 1,
-                          fontWeight: 'bold',
-                          fontSize: '0.85rem',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {guardandoPerdida ? 'Validando...' : 'Validar Corridas Perdidas'}
-                      </button>
-                    )}
                   </>
                 )}
               </div>
@@ -1007,7 +984,7 @@ export default function UnitInfoPanel({
             <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">
                <button
                   type="button"
-                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada}
+                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))}
                   onClick={async () => {
                     setGuardandoSalida(true);
                     const now = new Date();
@@ -1019,6 +996,11 @@ export default function UnitInfoPanel({
                     try {
                       if (handleSaveHoras) {
                         await handleSaveHoras(formHoraProgramada, calculatedAcople, horaParaGuardar, observaciones);
+                        
+                        if (huboCorridasPerdidas && perdidaCiclos && perdidaMotivo) {
+                          await handleSavePerdida(perdidaCiclos, perdidaMotivo);
+                        }
+
                         setSalidaCongelada(horaParaGuardar);
                         const Swal = (await import('sweetalert2')).default;
                         Swal.fire({
@@ -1047,8 +1029,9 @@ export default function UnitInfoPanel({
                     borderRadius: '0.5rem',
                     fontWeight: 700,
                     fontSize: '0.95rem',
-                    cursor: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada) ? 'not-allowed' : 'pointer',
-                    opacity: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada) ? 0.6 : 1,
+                    cursor: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))) ? 'not-allowed' : 'pointer',
+                    opacity: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))) ? 0.5 : 1,
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
