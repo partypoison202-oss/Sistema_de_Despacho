@@ -26,7 +26,7 @@ export default function DashboardEncierro() {
         queryFn: async () => {
           const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
           if (!token) return [];
-          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=encierro`, {
+          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           });
           if (!respuesta.ok) return [];
@@ -119,7 +119,7 @@ export default function DashboardEncierro() {
   };
 
   const fetchConteos = async () => {
-    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades?vista=encierro`, {
+    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
@@ -167,7 +167,7 @@ export default function DashboardEncierro() {
             let unidades = cachedData || [];
 
             if (unidades.length === 0) {
-              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=encierro`, {
+              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                   'Content-Type': 'application/json',

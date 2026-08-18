@@ -173,16 +173,8 @@ class DespachoController extends Controller
      */
     public function conteoUnidadesPorTipo(Request $request)
     {
-        $vista = $request->query('vista');
-        $query = DB::table('informacion_operativa');
-
-        if ($vista === 'despacho') {
-            $query->whereNull('hora_salida');
-        } elseif ($vista === 'encierro') {
-            $query->whereNull('acople');
-        }
-
-        $conteos = $query->select('tipo', DB::raw('count(distinct unidad_id) as total'))
+        $conteos = DB::table('informacion_operativa')
+            ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
             ->groupBy('tipo')
             ->get();
 
@@ -213,19 +205,11 @@ class DespachoController extends Controller
     public function listarUnidadesPorTipo(Request $request, $tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-        $vista = $request->query('vista');
 
-        $query = DB::table('unidades')
+        $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]);
-
-        if ($vista === 'despacho') {
-            $query->whereNull('informacion_operativa.hora_salida');
-        } elseif ($vista === 'encierro') {
-            $query->whereNull('informacion_operativa.acople');
-        }
-
-        $unidades = $query->select(
+            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->select(
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.estatus',

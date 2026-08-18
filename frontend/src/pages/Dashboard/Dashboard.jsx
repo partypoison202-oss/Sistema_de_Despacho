@@ -25,7 +25,7 @@ export default function Dashboard() {
         queryFn: async () => {
           const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
           if (!token) return [];
-          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=despacho`, {
+          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           });
           if (!respuesta.ok) return [];
@@ -82,7 +82,7 @@ export default function Dashboard() {
             
             // Intento 2: Si no hay en caché, ir a red (fallback)
             if (unidades.length === 0) {
-              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}?vista=despacho`, {
+              const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                   'Content-Type': 'application/json',
