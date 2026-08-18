@@ -160,7 +160,9 @@ class ConductorController extends Controller
             'referencia_2' => 'sometimes|nullable|string|max:200',
             'fecha_ingreso' => 'sometimes|nullable|date',
             'amonestaciones_detalle' => 'sometimes|array',
-            'reconocimientos_detalle' => 'sometimes|array'
+            'reconocimientos_detalle' => 'sometimes|array',
+            'permisos_detalle' => 'sometimes|array',
+            'permutas_detalle' => 'sometimes|array'
         ]);
 
         if ($request->has('nombre')) {
@@ -207,6 +209,11 @@ class ConductorController extends Controller
             'referencia_1',
             'referencia_2',
             'fecha_ingreso',
+            'condicionamientos_medicos',
+            'amonestaciones_detalle',
+            'reconocimientos_detalle',
+            'permisos_detalle',
+            'permutas_detalle'
         ];
 
         foreach ($kardexFields as $field) {

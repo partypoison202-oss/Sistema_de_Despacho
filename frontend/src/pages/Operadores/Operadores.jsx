@@ -299,7 +299,8 @@ export default function Operadores() {
   };
 
   const handleLocalFieldChange = (id, field, value) => {
-    setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+    const finalValue = typeof value === 'string' ? value.toUpperCase() : value;
+    setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: finalValue } : c));
     setModifiedIds(prev => new Set(prev).add(id));
   };
 
@@ -1316,7 +1317,7 @@ export default function Operadores() {
               <form onSubmit={handleAddDetail}>
                 <div className="form-group" style={{marginBottom: '1rem'}}>
                   <label className="form-label">Nuevo Motivo</label>
-                  <input type="text" className="modal-input" style={{width: '100%', padding: '0.6rem'}} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value)} placeholder="Ej. Motivo del registro..." required />
+                  <input type="text" className="modal-input" style={{width: '100%', padding: '0.6rem'}} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value.toUpperCase())} placeholder="Ej. Motivo del registro..." required />
                 </div>
                 <button type="submit" className="btn-save" style={{width: '100%', padding: '0.75rem'}}>
                   Agregar Registro
