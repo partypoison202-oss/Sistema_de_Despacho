@@ -385,14 +385,6 @@ export default function DetalleUnidad() {
       return;
     }
 
-    if (unidadSeleccionada.horaSalida || unidadSeleccionada.acople) {
-      queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
-        prev ? prev.filter((u) => u.eco !== String(unidadSeleccionada.eco).padStart(3, '0')) : []
-      );
-      setOpenDropdown(null);
-      return;
-    }
-
     const ecoSeleccionado = unidadSeleccionada.display;
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(unidadSeleccionada.estado);
@@ -425,15 +417,7 @@ export default function DetalleUnidad() {
       });
 
       if (resultado.status === 'success') {
-        if (resultado.hora_salida || resultado.acople) {
-          queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
-            prev ? prev.filter((u) => u.eco !== numeroLimpio) : []
-          );
-          setSelectedOption(null);
-          setSelectedEstado(null);
-          setCargandoDatos(false);
-          return;
-        }
+        const datosGenerales = resultado.unidad || {};
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
