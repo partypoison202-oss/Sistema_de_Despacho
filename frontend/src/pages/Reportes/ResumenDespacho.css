@@ -18,32 +18,20 @@
   gap: 1rem;
 }
 
-.btn-pdf-top {
-  background-color: var(--brand-gold-text);
-  color: var(--brand-maroon-text);
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 800;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  cursor: pointer;
+.resumen-controls-bottom {
+  margin-top: 1.5rem;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.2s ease;
-  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 816px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.btn-pdf-top:hover {
-  background-color: #d4b271;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-}
-
-.btn-pdf-top svg {
-  width: 20px;
-  height: 20px;
+.btn-large-full {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
 }
 
 .resumen-pdf-wrapper {
@@ -160,34 +148,23 @@
 /* Tablas compactas */
 .resumen-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
   margin-bottom: 0.75rem;
-  font-size: 8.5px;
+  font-size: 9.5px;
   text-align: center;
   background-color: var(--tw-color-white);
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-  table-layout: fixed;
-}
-
-.resumen-table th, .resumen-table td {
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .resumen-table th {
   background-color: var(--brand-maroon-text);
   color: var(--tw-color-white);
-  padding: 0.4rem 0.2rem;
-  font-weight: 700;
-  border-bottom: 2px solid #4a1520;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.3rem;
+  font-weight: 600;
+  border: 1px solid var(--tw-color-gray-200);
   text-transform: uppercase;
-  letter-spacing: 0.2px;
 }
 
 .resumen-table th.gold-bg {
@@ -196,18 +173,12 @@
 }
 
 .resumen-table td {
-  padding: 0.35rem 0.2rem;
-  border-bottom: 1px solid #f1f5f9;
-  border-right: 1px solid #f1f5f9;
+  padding: 0.4rem 0.3rem;
+  border: 1px solid #eaeaea;
   vertical-align: middle;
-  font-weight: 600;
-  color: #334155;
+  font-weight: bold;
+  color: var(--tw-color-gray-900);
   line-height: 1.2;
-}
-
-.resumen-table th:last-child,
-.resumen-table td:last-child {
-  border-right: none;
 }
 
 .resumen-table tbody tr:nth-child(even) {
@@ -223,16 +194,15 @@
 }
 
 .resumen-table .modelo-cell img {
-  height: 22px; /* Imagen un poco más pequeña para no ensanchar la fila */
+  height: 24px; /* Imagen de unidad más pequeña */
   object-fit: contain;
 }
 
 .resumen-table .totales-row td {
   background-color: var(--brand-maroon-text);
   color: var(--tw-color-white);
-  font-size: 9.5px;
-  padding: 0.5rem 0.2rem;
-  border-bottom: none;
+  font-size: 10px;
+  padding: 0.5rem 0.3rem;
 }
 
 .resumen-table .totales-row td.gold-text {
@@ -241,25 +211,18 @@
   border-color: #eaeaea;
 }
 
-/* Grillas side-by-side formato viejo, usando flex para html2canvas */
-.resumen-grid-top, .resumen-grid-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2%;
+/* Grillas más compactas */
+.resumen-grid-top {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
-.resumen-grid-top > div:first-child,
-.resumen-grid-bottom > div:first-child {
-  width: 59%;
-  min-width: 0;
-}
-
-.resumen-grid-top > div:last-child,
-.resumen-grid-bottom > div:last-child {
-  width: 39%;
-  min-width: 0;
+.resumen-grid-bottom {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 0.75rem;
 }
 
 /* Gráficas Contenedores Compactos */

@@ -115,7 +115,7 @@ export default function ResumenDespacho() {
     try {
       const el = document.getElementById('reporte-pdf');
       const canvas = await html2canvas(el, {
-        scale: 3,
+        scale: 1,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -123,7 +123,7 @@ export default function ResumenDespacho() {
         windowHeight: el.scrollHeight
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
+      const imgData = canvas.toDataURL('image/jpeg', 0.6);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
       
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -183,26 +183,6 @@ export default function ResumenDespacho() {
 
       <main className="resumen-container">
 
-        <div style={{ width: '100%', maxWidth: '816px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button 
-            className="btn-pdf-top"
-            onClick={handleGeneratePDF} 
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <span className="spinner" style={{ width: '20px', height: '20px', borderWidth: '3px', margin: 0, borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: '#601a2a' }}></span>
-                Generando...
-              </>
-            ) : (
-              <>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                DESCARGAR PDF
-              </>
-            )}
-          </button>
-        </div>
-
       <div className="table-responsive-wrapper" style={{ width: '100%', maxWidth: '816px', overflowX: 'auto', margin: '0 auto' }}>
         <div className="resumen-pdf-wrapper" id="reporte-pdf">
         
@@ -230,12 +210,12 @@ export default function ResumenDespacho() {
             <table className="resumen-table">
               <thead>
                 <tr>
-                  <th style={{ width: '14%' }}>Modelo</th>
-                  <th style={{ width: '12%' }}>Unidades<br/>Programadas</th>
-                  <th style={{ width: '12%' }}>En Operación</th>
-                  <th style={{ width: '12%' }}>Porcentaje<br/>Eficiencia</th>
-                  <th className="gold-bg" style={{ width: '14%' }}>Unidades en<br/>Mantenimiento</th>
-                  <th className="gold-bg" style={{ width: '36%' }}>Tipo de Falla</th>
+                  <th>Modelo</th>
+                  <th>Unidades<br/>Programadas</th>
+                  <th>En Operación</th>
+                  <th>Porcentaje<br/>Eficiencia</th>
+                  <th className="gold-bg">Unidades en<br/>Mantenimiento</th>
+                  <th className="gold-bg">Tipo de Falla</th>
                 </tr>
               </thead>
               <tbody>
@@ -314,12 +294,12 @@ export default function ResumenDespacho() {
                   <th colSpan="6">Corridas y Ciclos Faltantes</th>
                 </tr>
                 <tr>
-                  <th style={{ width: '8%' }}>No.</th>
-                  <th style={{ width: '12%' }}>Eco</th>
-                  <th style={{ width: '30%' }}>Ruta</th>
-                  <th style={{ width: '15%' }}>Corrida</th>
-                  <th style={{ width: '10%' }}>Ciclo</th>
-                  <th style={{ width: '25%' }}>Motivo</th>
+                  <th>No.</th>
+                  <th>Eco</th>
+                  <th>Ruta</th>
+                  <th>Corrida</th>
+                  <th>Ciclo</th>
+                  <th>Motivo</th>
                 </tr>
               </thead>
               <tbody>
@@ -378,6 +358,23 @@ export default function ResumenDespacho() {
         </div>
         </div>
       </div>
+      
+      <div className="resumen-controls-bottom">
+          <button 
+            className="btn btn-primary btn-large-full" 
+            onClick={handleGeneratePDF} 
+            disabled={isGenerating}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+          >
+            {isGenerating ? (
+              <>
+                <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                Generando PDF...
+              </>
+            ) : 'Generar PDF'}
+          </button>
+        </div>
+
       </main>
     </div>
   );
