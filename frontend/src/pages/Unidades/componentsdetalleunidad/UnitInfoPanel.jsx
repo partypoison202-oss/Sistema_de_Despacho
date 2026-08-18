@@ -933,7 +933,7 @@ export default function UnitInfoPanel({
                           }}
                           onClick={() => !guardandoPerdida && setDropdownCiclosOpen(!dropdownCiclosOpen)}
                         >
-                          <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? `${perdidaCiclos}` : 'Ciclos'}</span>
+                          <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? (ciclosOptions.find(opt => opt.value === String(perdidaCiclos))?.label || perdidaCiclos) : 'Ciclos'}</span>
                           <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
                         </button>
                         {dropdownCiclosOpen && (
