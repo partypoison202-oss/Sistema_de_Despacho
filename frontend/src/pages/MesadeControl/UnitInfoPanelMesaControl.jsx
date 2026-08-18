@@ -1508,10 +1508,13 @@ export default function UnitInfoPanel({
                     <strong>Unidad Actual:</strong> {selectedOption}
                   </p>
                   {datosOperativos.conductor && (
-                    <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
+                    <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
                       <strong>Conductor:</strong> {datosOperativos.conductor}
                     </p>
                   )}
+                  <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
+                    <strong>Número de Tarjetón:</strong> {datosOperativos.tarjeton || 'No asignado'}
+                  </p>
                 </div>
 
                 {/* Checkbox para cambio de operador */}
