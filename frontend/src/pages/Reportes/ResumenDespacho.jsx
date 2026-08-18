@@ -129,22 +129,22 @@ export default function ResumenDespacho() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       
-      const margin = 8; // Margen de 8mm en los bordes
-      const imgWidth = pdfWidth - (margin * 2);
+      const margin = 0; // Sin márgenes para usar toda la hoja
+      const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       let heightLeft = imgHeight;
-      let position = margin;
+      let position = 0;
 
-      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= (pdfHeight - (margin * 2));
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pdfHeight;
 
       // Tolerancia de 2mm para evitar páginas adicionales en blanco por errores de redondeo
       while (heightLeft > 2) {
-        position -= (pdfHeight - (margin * 2));
+        position -= pdfHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= (pdfHeight - (margin * 2));
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pdfHeight;
       }
 
       pdf.save(`Resumen_Despacho_${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -183,17 +183,39 @@ export default function ResumenDespacho() {
 
       <main className="resumen-container">
 
-      <div className="table-responsive-wrapper" style={{ width: '100%', maxWidth: '816px', overflowX: 'auto', margin: '0 auto' }}>
+        <div style={{ width: '100%', maxWidth: '816px', display: 'flex', justifyContent: 'flex-end', position: 'sticky', top: '10px', zIndex: 100, marginBottom: '10px' }}>
+          <button 
+            className="btn-pdf-top"
+            onClick={handleGeneratePDF} 
+            disabled={isGenerating}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', backgroundColor: 'var(--brand-gold-text)', color: 'var(--brand-maroon-text)', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+          >
+            {isGenerating ? (
+              <>
+                <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: '#601a2a' }}></span>
+                Generando PDF...
+              </>
+            ) : 'DESCARGAR PDF'}
+          </button>
+        </div>
+
+        <div className="table-responsive-wrapper" style={{ width: '100%', maxWidth: '816px', overflowX: 'auto', margin: '0 auto' }}>
         <div className="resumen-pdf-wrapper" id="reporte-pdf">
         
         {/* ENCABEZADO TIPO BANNER */}
         <div className="resumen-header-wrapper">
-          <div className="resumen-header-banner">
-            <div className="banner-left">
+          <div className="resumen-header-banner" style={{ position: 'relative', overflow: 'hidden' }}>
+            <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} viewBox="0 0 100 100" preserveAspectRatio="none">
+              {/* Franja dorada diagonal */}
+              <polygon points="45,0 60,0 50,100 35,100" fill="rgba(210, 180, 120, 0.4)" />
+              {/* Forma guinda derecha */}
+              <polygon points="78,0 100,0 100,100 70,100" fill="#601a2a" />
+            </svg>
+            <div className="banner-left" style={{ zIndex: 2, position: 'relative' }}>
               <h1>RESUMEN DE DESPACHO</h1>
               <h2>Sistema Integrado de Transporte Masivo de Hidalgo</h2>
             </div>
-            <div className="banner-right">
+            <div className="banner-right" style={{ zIndex: 2, position: 'relative' }}>
               <img src="/images/sistema_de_tm.webp" alt="Sistema de Transporte Metropolitano" className="logo-derecha" />
             </div>
           </div>
@@ -249,7 +271,7 @@ export default function ResumenDespacho() {
           {/* GRÁFICA DE BARRAS + LÍNEA */}
           <div className="chart-container">
             <div className="chart-header">Porcentaje de Eficiencia</div>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={280}>
               <ComposedChart data={modelData} margin={{ top: 15, right: 15, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10 }} />
@@ -328,7 +350,7 @@ export default function ResumenDespacho() {
           {/* GRÁFICA DE DONA */}
           <div className="chart-container">
             <div className="chart-header">Porcentaje de Unidades en Mantenimiento</div>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart margin={{ top: 15, right: 15, bottom: 15, left: 15 }}>
                 <Pie
                   isAnimationActive={false}
@@ -359,21 +381,7 @@ export default function ResumenDespacho() {
         </div>
       </div>
       
-      <div className="resumen-controls-bottom">
-          <button 
-            className="btn btn-primary btn-large-full" 
-            onClick={handleGeneratePDF} 
-            disabled={isGenerating}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-          >
-            {isGenerating ? (
-              <>
-                <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
-                Generando PDF...
-              </>
-            ) : 'Generar PDF'}
-          </button>
-        </div>
+
 
       </main>
     </div>

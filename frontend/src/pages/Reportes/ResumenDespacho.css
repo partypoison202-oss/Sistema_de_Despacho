@@ -62,31 +62,7 @@
   border-bottom: 2px solid #b8985c;
 }
 
-/* Franja dorada diagonal en el medio */
-.resumen-header-banner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 45%;
-  width: 15%;
-  height: 100%;
-  background-color: rgba(210, 180, 120, 0.4);
-  transform: skewX(-35deg);
-  z-index: 1;
-}
-
-/* Forma guinda en la derecha */
-.resumen-header-banner::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 25%;
-  height: 100%;
-  background-color: var(--brand-maroon-text);
-  clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
-  z-index: 1;
-}
+/* Pseudo-elementos eliminados (ahora se usa SVG en línea en el JSX para compatibilidad con PDF) */
 
 .banner-left {
   z-index: 2;
@@ -190,7 +166,7 @@
 }
 
 .resumen-table td, .resumen-table-bottom td {
-  padding: 0.3rem 0.2rem; /* Reducido */
+  padding: 0.5rem 0.3rem; /* Aumentado de 0.3rem a 0.5rem para rellenar la hoja */
   border: 1px solid #eaeaea;
   vertical-align: middle;
   font-weight: bold;
@@ -229,22 +205,24 @@
 }
 
 /* Grillas más compactas */
-.resumen-grid-top {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 0.75rem;
+.resumen-grid-top, .resumen-grid-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 0.75rem;
 }
 
 .resumen-grid-top > div:first-child,
 .resumen-grid-bottom > div:first-child {
-  width: 71%; /* Aumentado de 65% para dar más espacio a la tabla */
+  width: 545px; /* Calculado como 71% del ancho disponible */
+  flex-shrink: 0;
   min-width: 0;
 }
 
 .resumen-grid-top > div:last-child,
 .resumen-grid-bottom > div:last-child {
-  width: 27%; /* Reducido de 33% para hacer gráfica más pequeña */
+  width: 207px; /* Calculado como 27% del ancho disponible */
+  flex-shrink: 0;
   min-width: 0;
 }
 
