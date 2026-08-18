@@ -83,6 +83,42 @@ export default function DetalleUnidad() {
     return digitos.padStart(3, '0');
   };
 
+  const parseTimeToMinutes = (timeStr) => {
+    if (!timeStr) return 99999;
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h * 60) + (m || 0);
+  };
+
+  const getUnitStatusVisual = (u) => {
+    if (u.acople || u.horaSalida) return 'validated';
+    if (!u.horaProgramada) return 'pending';
+    const now = new Date();
+    const [h, m] = u.horaProgramada.split(':').map(Number);
+    const prog = new Date();
+    prog.setHours(h, m, 0, 0);
+    const diffMins = (now - prog) / 60000;
+    if (diffMins > 15) return 'missed';
+    if (diffMins > 0) return 'delayed';
+    return 'pending';
+  };
+
+  const getUnitColor = (unidad, isSelected) => {
+    if (isSelected) {
+      return { bg: '#6b1d33', text: 'var(--tw-color-white)', border: '#6b1d33' };
+    }
+    const status = getUnitStatusVisual(unidad);
+    switch (status) {
+      case 'validated':
+        return { bg: '#dcfce7', text: '#166534', border: '#86efac' }; // Verde
+      case 'missed':
+        return { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }; // Rojo
+      case 'delayed':
+        return { bg: '#fef9c3', text: '#854d0e', border: '#fde047' }; // Amarillo
+      default:
+        return { bg: 'var(--tw-color-white)', text: '#374151', border: '#e5e7eb' };
+    }
+  };
+
   const fetchUnidades = async () => {
     const token = getToken();
     if (!token) {
@@ -98,7 +134,6 @@ export default function DetalleUnidad() {
     }
     if (!respuesta.ok) throw new Error('Error al obtener lista de unidades');
     const datos = await respuesta.json();
-    console.debug('[Despacho] fetchUnidades: muestra ejemplo de datos:', Array.isArray(datos) ? datos.slice(0,5) : datos);
     return (Array.isArray(datos) ? datos : []).map((u) => ({
       eco: String(u.numero_eco ?? '').padStart(3, '0'),
       tarjeton: String(u.tarjeton ?? '').trim(),
@@ -107,6 +142,7 @@ export default function DetalleUnidad() {
       ruta: String(u.ruta ?? '').trim(),
       acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       horaSalida: String(u.hora_salida ?? '').trim(),
+      horaProgramada: String(u.hora_programada ?? '').trim(),
     }));
   };
 
@@ -162,7 +198,10 @@ export default function DetalleUnidad() {
         tarjeton: String(u.tarjeton ?? '').trim(),
         display: formatearEco(u.numero_eco ?? u.eco),
         estado: u.estatus || u.estado || 'operacion',
-      }));
+        horaProgramada: String(u.hora_programada ?? '').trim(),
+        acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
+        horaSalida: String(u.hora_salida ?? '').trim(),
+      })).sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
     },
     enabled: !!selectedRuta && esAlimentadora,
     staleTime: 30000,
@@ -172,11 +211,11 @@ export default function DetalleUnidad() {
   const unidadesPorTroncalList = useMemo(() => {
     if (!selectedTroncal) return [];
     const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
-    return unidadesList.filter((u) => {
+    const filtradas = unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      // Filtrar por troncal y excluir unidades acopladas (consistente con Encierro)
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+      return rutaUnidad && rutaUnidad === rutaSeleccionada;
     });
+    return filtradas.sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
   }, [unidadesList, selectedTroncal]);
 
   const unidadesPorEstado = (estado) => {
@@ -591,6 +630,49 @@ export default function DetalleUnidad() {
   };
 
   // Guardar Horas
+  const advanceToNextPendingUnit = (numeroLimpio) => {
+    let currentList = [];
+    if (selectedTroncal && isTroncal) {
+      currentList = unidadesPorTroncalList;
+    } else if (selectedEstado) {
+      currentList = unidadesPorEstado(selectedEstado);
+    } else if (selectedRuta && esAlimentadora) {
+      currentList = unidadesPorRutaList;
+    } else {
+      currentList = unidadesDisponiblesBusqueda;
+    }
+
+    const currentIndex = currentList.findIndex((u) => String(u.eco).padStart(3, '0') === numeroLimpio);
+    let nextUnitEco = null;
+
+    if (currentIndex !== -1) {
+      for (let i = currentIndex + 1; i < currentList.length; i++) {
+        if (!currentList[i].acople && !currentList[i].horaSalida) {
+          nextUnitEco = currentList[i].eco;
+          break;
+        }
+      }
+      if (!nextUnitEco) {
+        for (let i = 0; i < currentIndex; i++) {
+          if (!currentList[i].acople && !currentList[i].horaSalida) {
+            nextUnitEco = currentList[i].eco;
+            break;
+          }
+        }
+      }
+    }
+
+    if (nextUnitEco) {
+      const nextFormatted = `ECO${String(nextUnitEco).padStart(3, '0')}`;
+      setSelectedOption(nextFormatted);
+      return nextFormatted;
+    } else {
+      setSelectedOption(null);
+      setSelectedEstado(null);
+      return null;
+    }
+  };
+
   const handleSaveHoras = async (horaProgramada, acople, horaSalida = null, observaciones = null) => {
     try {
       const token = getToken();
@@ -635,34 +717,9 @@ export default function DetalleUnidad() {
 
         // Auto-avanzar si es una validación de salida o acople (agilidad)
         if (acople !== null || horaSalida !== null) {
-          let currentList = [];
-          if (selectedTroncal && isTroncal) {
-            currentList = unidadesPorTroncalList;
-          } else if (selectedEstado) {
-            currentList = unidadesPorEstado(selectedEstado);
-          } else if (selectedRuta && esAlimentadora) {
-            currentList = unidadesPorRutaList;
-          } else {
-            currentList = unidadesDisponiblesBusqueda;
-          }
-
-          const currentIndex = currentList.findIndex(u => String(u.eco).padStart(3, '0') === numeroLimpio);
-          let nextUnitEco = null;
-          if (currentIndex !== -1 && currentIndex + 1 < currentList.length) {
-              nextUnitEco = currentList[currentIndex + 1].eco;
-          }
-
-          if (nextUnitEco) {
-            const nextFormatted = `ECO${String(nextUnitEco).padStart(3, '0')}`;
-            setSelectedOption(nextFormatted);
-          } else {
-            setSelectedOption(null);
-            setSelectedEstado(null);
-          }
-          setTarjetonBusqueda('');
-          setFallaTexto('');
+          advanceToNextPendingUnit(numeroLimpio);
         }
-
+        setFallaTexto('');
         return { success: true };
       } else {
         throw new Error(resultado.message || 'Error al actualizar las horas.');
@@ -722,26 +779,8 @@ export default function DetalleUnidad() {
         fetchConductores();
 
         // Lógica de agilidad: auto-avanzar a la siguiente unidad en la lista activa
-        let currentList = [];
-        if (selectedTroncal && isTroncal) {
-          currentList = unidadesPorTroncalList;
-        } else if (selectedEstado) {
-          currentList = unidadesPorEstado(selectedEstado);
-        } else if (selectedRuta && esAlimentadora) {
-          currentList = unidadesPorRutaList;
-        } else {
-          currentList = unidadesDisponiblesBusqueda;
-        }
-
-        const currentIndex = currentList.findIndex(u => String(u.eco).padStart(3, '0') === numeroLimpio);
-        let nextUnitEco = null;
-        if (currentIndex !== -1 && currentIndex + 1 < currentList.length) {
-            nextUnitEco = currentList[currentIndex + 1].eco;
-        }
-
-        if (nextUnitEco) {
-          const nextFormatted = `ECO${String(nextUnitEco).padStart(3, '0')}`;
-          setSelectedOption(nextFormatted);
+        const nextFormatted = advanceToNextPendingUnit(numeroLimpio);
+        if (nextFormatted) {
           import('sweetalert2').then((Swal) => {
             Swal.default.fire({
               toast: true,
@@ -752,9 +791,6 @@ export default function DetalleUnidad() {
               timer: 1500
             });
           });
-        } else {
-          setSelectedOption(null);
-          setSelectedEstado(null);
         }
         
         setTarjetonBusqueda('');
@@ -1262,25 +1298,28 @@ export default function DetalleUnidad() {
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorRutaList.map((unidad) => (
-                      <button
-                        key={unidad.display}
-                        type="button"
-                        onClick={() => handleSelectUnit(unidad)}
-                        className="dropdown-menu__item"
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
-                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {unidad.display}
-                      </button>
-                    ))}
+                    {unidadesPorRutaList.map((unidad) => {
+                      const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                      return (
+                        <button
+                          key={unidad.display}
+                          type="button"
+                          onClick={() => handleSelectUnit(unidad)}
+                          className="dropdown-menu__item"
+                          style={{
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            background: colors.bg,
+                            color: colors.text,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {unidad.display}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1320,25 +1359,28 @@ export default function DetalleUnidad() {
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorTroncalList.map((unidad) => (
-                      <button
-                        key={unidad.display}
-                        type="button"
-                        onClick={() => handleSelectUnit(unidad)}
-                        className="dropdown-menu__item"
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
-                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {unidad.display}
-                      </button>
-                    ))}
+                    {unidadesPorTroncalList.map((unidad) => {
+                      const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                      return (
+                        <button
+                          key={unidad.display}
+                          type="button"
+                          onClick={() => handleSelectUnit(unidad)}
+                          className="dropdown-menu__item"
+                          style={{
+                            border: `1px solid ${colors.border}`,
+                            borderRadius: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            background: colors.bg,
+                            color: colors.text,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {unidad.display}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
