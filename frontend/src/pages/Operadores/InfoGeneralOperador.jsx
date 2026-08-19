@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
 import API_BASE from '../../config/api';
@@ -31,18 +31,21 @@ const calcularAntiguedad = (fechaIngreso) => {
   return `${anios} años, ${meses} meses`;
 };
 
-const PrintableTemplate = ({ conductor }) => (
+const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
   <div className="bg-white p-8 w-[800px] mx-auto text-sm text-gray-800 font-sans" id="printable-pdf-template">
     {/* Membrete Oficial */}
-    <div className="border-b-2 border-[#6A1B29] pb-4 mb-6 flex justify-between items-end">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900 tracking-tight">SISTEMA DE TRANSPORTE MASIVO DE HIDALGO</h1>
-        <h2 className="text-md font-bold text-[#6A1B29] mt-1">CONSULTA DE INFORMACIÓN DEL OPERADOR</h2>
+    <div className="border-b-2 border-[#6A1B29] pb-4 mb-6 flex items-center justify-between">
+      {/* Left Logo */}
+      <img src={sitmahOrangeUrl} alt="SITMAH" className="h-10 w-auto object-contain" />
+      
+      {/* Center Text */}
+      <div className="text-center flex-1 mx-4">
+        <h2 className="text-xl font-bold text-[#6A1B29]">CONSULTA DE INFORMACIÓN DEL OPERADOR</h2>
+        <p className="text-[10px] text-gray-500 mt-1">Fecha de Impresión: {new Date().toLocaleDateString()} | Reporte Operativo SITMAH</p>
       </div>
-      <div className="text-right text-xs text-gray-500">
-        <p>Fecha de Impresión: {new Date().toLocaleDateString()}</p>
-        <p>Reporte Operativo SITMAH</p>
-      </div>
+
+      {/* Right Logo */}
+      <img src="/images/sistema_de_tm.webp" alt="Sistema TM" crossOrigin="anonymous" className="h-16 w-auto object-contain" />
     </div>
 
     {/* Identidad */}
@@ -145,6 +148,24 @@ const PrintableTemplate = ({ conductor }) => (
 export default function InfoGeneralOperador({ conductores }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConductor, setSelectedConductor] = useState(null);
+  const [sitmahOrangeUrl, setSitmahOrangeUrl] = useState('/images/sitmah_logo.webp');
+
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = '/images/sitmah_logo.webp';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.fillStyle = '#e04f00'; // Naranja oficial SITMAH
+      ctx.fillRect(0, 0, img.width, img.height);
+      setSitmahOrangeUrl(canvas.toDataURL('image/png'));
+    };
+  }, []);
 
   // Filtrado del buscador principal
   const filteredConductores = useMemo(() => {
@@ -249,7 +270,7 @@ export default function InfoGeneralOperador({ conductores }) {
     <>
       {/* Plantilla oculta para PDF y Print */}
       <div className="absolute -left-[9999px] top-0 print:static print:w-full print:block">
-        <PrintableTemplate conductor={displayConductor} />
+        <PrintableTemplate conductor={displayConductor} sitmahOrangeUrl={sitmahOrangeUrl} />
       </div>
 
       <div className="info-general-container print:hidden">
@@ -327,11 +348,20 @@ export default function InfoGeneralOperador({ conductores }) {
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden col-span-1 lg:col-span-3">
               <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: '#fdfbfb' }}>
                 <div className="flex items-center gap-4">
-                  <div className="h-20 w-20 shrink-0 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-inner overflow-hidden object-cover" style={{ backgroundColor: '#6A1B29' }}>
-                    {displayConductor.foto ? (
-                      <img src={`${API_BASE}/storage/${displayConductor.foto}`} alt={displayConductor.nombre} className="w-full h-full object-cover" />
-                    ) : (
-                      displayConductor.nombre && displayConductor.nombre !== '------------------------' ? displayConductor.nombre.charAt(0).toUpperCase() : 'O'
+                  <div className="relative h-20 w-20 shrink-0 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-inner overflow-hidden object-cover" style={{ backgroundColor: '#6A1B29' }}>
+                    <span className="absolute inset-0 flex items-center justify-center z-0">
+                       {displayConductor.nombre && displayConductor.nombre !== '------------------------' ? displayConductor.nombre.charAt(0).toUpperCase() : 'O'}
+                    </span>
+                    {displayConductor.foto && (
+                      <img 
+                        src={`${API_BASE}/storage/${displayConductor.foto}`} 
+                        alt={displayConductor.nombre} 
+                        className="w-full h-full object-cover relative z-10"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.style.display = 'none';
+                        }}
+                      />
                     )}
                   </div>
                   <div>

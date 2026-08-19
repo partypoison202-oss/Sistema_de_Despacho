@@ -229,7 +229,7 @@ export default function GeneracionGafete({ conductores }) {
           .print-area {
             position: absolute !important;
             left: 50% !important;
-            top: 50% !important;
+            top: 35% !important;
             width: 100% !important;
             max-width: 850px !important;
             margin: 0 !important;
