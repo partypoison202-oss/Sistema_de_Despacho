@@ -440,8 +440,13 @@ export default function Operadores() {
 
       // Subir la foto si se seleccionó una
       if (foto && data.conductor?.id) {
+        if (foto.size > 5 * 1024 * 1024) {
+          throw new Error('La fotografía excede el tamaño máximo permitido de 5MB. Por favor, elige una imagen más ligera.');
+        }
+
         const formData = new FormData();
         formData.append('foto', foto);
+
         
         const photoRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/foto`, {
           method: 'POST',
@@ -544,6 +549,10 @@ export default function Operadores() {
 
       // Subir la foto si se seleccionó una
       if (foto) {
+        if (foto.size > 5 * 1024 * 1024) {
+          throw new Error('La fotografía excede el tamaño máximo permitido de 5MB. Por favor, elige una imagen más ligera.');
+        }
+
         const formData = new FormData();
         formData.append('foto', foto);
         
@@ -1141,6 +1150,31 @@ export default function Operadores() {
             </div>
             <form onSubmit={handleAddSubmit} className="modal-form">
               <div className="form-group">
+                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                {foto && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    <img 
+                      src={URL.createObjectURL(foto)} 
+                      alt="Vista previa" 
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
+                    />
+                  </div>
+                )}
+                <label className="custom-file-upload-btn" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  {foto ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFoto(e.target.files[0])}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Nombre Completo del Operador</label>
                 <input
                   type="text"
@@ -1164,31 +1198,6 @@ export default function Operadores() {
                   onChange={setTipoTarjeton}
                   options={tipoOptions}
                 />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Fotografía del Operador (Opcional)</label>
-                {foto && (
-                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img 
-                      src={URL.createObjectURL(foto)} 
-                      alt="Vista previa" 
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
-                    />
-                  </div>
-                )}
-                <label className="custom-file-upload-btn">
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                  </svg>
-                  {foto ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFoto(e.target.files[0])}
-                    style={{ display: 'none' }}
-                  />
-                </label>
               </div>
 
               <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>
@@ -1283,6 +1292,31 @@ export default function Operadores() {
             </div>
             <form onSubmit={handleEditSubmit} className="modal-form">
               <div className="form-group">
+                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                {(foto || selectedConductor?.foto) && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    <img 
+                      src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`} 
+                      alt="Vista previa" 
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
+                    />
+                  </div>
+                )}
+                <label className="custom-file-upload-btn" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  {(foto || selectedConductor?.foto) ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFoto(e.target.files[0])}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Tarjetón Asignado (Automático)</label>
                 <input
                   type="text"
@@ -1316,31 +1350,6 @@ export default function Operadores() {
                   onChange={setTipoTarjeton}
                   options={tipoOptions}
                 />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Fotografía del Operador (Opcional)</label>
-                {(foto || selectedConductor?.foto) && (
-                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img 
-                      src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`} 
-                      alt="Vista previa" 
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
-                    />
-                  </div>
-                )}
-                <label className="custom-file-upload-btn">
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                  </svg>
-                  {(foto || selectedConductor?.foto) ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFoto(e.target.files[0])}
-                    style={{ display: 'none' }}
-                  />
-                </label>
               </div>
 
               <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>
