@@ -395,6 +395,7 @@ export default function Operadores() {
     setRef2Nombre('');
     setRef2Telefono('');
     setFechaIngreso('');
+    setFoto(null);
     setShowAddModal(true);
   };
 
@@ -436,6 +437,24 @@ export default function Operadores() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Error al agregar operador');
+
+      // Subir la foto si se seleccionó una
+      if (foto && data.conductor?.id) {
+        const formData = new FormData();
+        formData.append('foto', foto);
+        
+        const photoRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/foto`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+          },
+          body: formData
+        });
+
+        if (!photoRes.ok) {
+           console.error("Error al subir foto durante la creación del operador");
+        }
+      }
 
       setShowAddModal(false);
       Swal.fire({
@@ -766,7 +785,7 @@ export default function Operadores() {
           </button>
         </div>
 
-        {activeTab !== 'info_general' && (
+        {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && (
           <div className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-slate-200">
             <div className="flex flex-col md:flex-row items-center gap-4">
               <div className="relative w-full md:flex-1">
@@ -1147,6 +1166,31 @@ export default function Operadores() {
                 />
               </div>
 
+              <div className="form-group">
+                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                {foto && (
+                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    <img 
+                      src={URL.createObjectURL(foto)} 
+                      alt="Vista previa" 
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
+                    />
+                  </div>
+                )}
+                <label className="custom-file-upload-btn">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  {foto ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFoto(e.target.files[0])}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+
               <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -1285,13 +1329,18 @@ export default function Operadores() {
                     />
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFoto(e.target.files[0])}
-                  className="modal-input"
-                  style={{ width: '100%', padding: '0.6rem' }}
-                />
+                <label className="custom-file-upload-btn">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  {(foto || selectedConductor?.foto) ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFoto(e.target.files[0])}
+                    style={{ display: 'none' }}
+                  />
+                </label>
               </div>
 
               <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>

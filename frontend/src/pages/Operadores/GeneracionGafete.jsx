@@ -130,29 +130,41 @@ export default function GeneracionGafete({ conductores }) {
         {/* COLUMNA DERECHA (Vista Previa) */}
         <div className="lg:col-span-8 flex justify-center items-start overflow-x-auto print:overflow-visible print:col-span-12 print:block">
           
-          <div className="print-area relative w-[850px] h-[540px] bg-white print:w-[850px] print:h-[540px] shadow-xl print:shadow-none mx-auto overflow-hidden rounded-md print:rounded-none"
-               style={{ 
-                 // These exact dimensions will be tweaked depending on the user's template aspect ratio
-               }}>
+          <div className="print-area relative w-full max-w-[850px] bg-white print:max-w-[850px] shadow-xl print:shadow-none mx-auto overflow-hidden rounded-md print:rounded-none">
             
             {/* Background Template */}
-            <div 
-              className="absolute inset-0 bg-no-repeat bg-center bg-contain"
-              style={{ backgroundImage: `url(${plantillaGafete})` }}
-            ></div>
+            <img 
+              src={plantillaGafete} 
+              alt="Plantilla" 
+              className="w-full h-auto block"
+            />
 
             {selectedConductor && (
               <>
-                {/* 1. FOTOGRAFÍA - Lado Derecho */}
                 <div className="absolute bg-slate-100 flex items-center justify-center overflow-hidden z-10"
                      style={{
                         top: '30%', left: '65%', width: '16.5%', height: '30%'
                      }}>
                   {fotoUrl ? (
-                     <img src={fotoUrl} alt="Operador" className="w-full h-full object-cover" />
-                  ) : (
-                     <span className="text-slate-400 text-sm font-semibold">FOTO</span>
-                  )}
+                     <img 
+                       src={fotoUrl} 
+                       alt="Operador" 
+                       className="w-full h-full object-cover" 
+                       onError={(e) => {
+                         e.target.onerror = null;
+                         e.target.style.display = 'none';
+                         if (e.target.nextElementSibling) {
+                           e.target.nextElementSibling.style.display = 'block';
+                         }
+                       }}
+                     />
+                  ) : null}
+                  <span 
+                    className="text-slate-400 text-sm font-semibold"
+                    style={{ display: fotoUrl ? 'none' : 'block' }}
+                  >
+                    FOTO
+                  </span>
                 </div>
 
                 {/* 2. NOMBRE DEL OPERADOR - Lado Derecho */}
@@ -218,20 +230,19 @@ export default function GeneracionGafete({ conductores }) {
             position: absolute !important;
             left: 50% !important;
             top: 50% !important;
-            width: 850px !important;
-            height: 540px !important;
+            width: 100% !important;
+            max-width: 850px !important;
             margin: 0 !important;
             padding: 0 !important;
             background-color: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            /* Se escala a 0.70 para que el ancho total desplegado sea aprox 16-17cm */
-            transform: translate(-50%, -50%) scale(0.70) !important;
+            transform: translate(-50%, -50%) scale(0.95) !important;
             transform-origin: center center;
           }
           
           @page {
-            size: letter landscape;
+            size: landscape;
             margin: 0;
           }
         }
