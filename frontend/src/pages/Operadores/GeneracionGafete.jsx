@@ -130,14 +130,14 @@ export default function GeneracionGafete({ conductores }) {
         {/* COLUMNA DERECHA (Vista Previa) */}
         <div className="lg:col-span-8 flex justify-center items-start overflow-x-auto print:overflow-visible print:col-span-12 print:block">
           
-          <div className="print-area relative w-full max-w-[850px] bg-white print:max-w-[850px] shadow-xl print:shadow-none mx-auto overflow-hidden rounded-md print:rounded-none">
+          <div className="print-area relative w-full max-w-[850px] bg-white print:max-w-[850px] shadow-xl print:shadow-none mx-auto overflow-hidden rounded-md print:rounded-none"
+               style={{ aspectRatio: '850 / 540' }}>
             
             {/* Background Template */}
-            <img 
-              src={plantillaGafete} 
-              alt="Plantilla" 
-              className="w-full h-auto block"
-            />
+            <div 
+              className="absolute inset-0 bg-no-repeat bg-center bg-contain"
+              style={{ backgroundImage: `url(${plantillaGafete})` }}
+            ></div>
 
             {selectedConductor && (
               <>
