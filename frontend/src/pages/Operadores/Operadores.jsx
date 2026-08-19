@@ -8,6 +8,7 @@ import './Operadores.css';
 import InfoGeneralOperador from './InfoGeneralOperador';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import GeneracionGafete from './GeneracionGafete';
+import EstadisticasOperadores from './EstadisticasOperadores';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -80,7 +81,8 @@ function StatusDropdown({ value, onChange }) {
   const options = [
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
     { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
-    { value: 'falta', label: 'FALTA', class: 'falta' }
+    { value: 'falta', label: 'FALTA', class: 'falta' },
+    { value: 'permuta', label: 'PERMUTA', class: 'permuta' }
   ];
 
   // Si el operador está marcado como maniobrista, mostrar badge de solo lectura
@@ -147,6 +149,98 @@ function StatusDropdown({ value, onChange }) {
   );
 }
 
+const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder = 'Vacío' }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [localValue, setLocalValue] = useState(value);
+  const [status, setStatus] = useState('idle'); // 'idle', 'saving', 'saved', 'error'
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setLocalValue(value);
+    }
+  }, [value, isEditing]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+
+  const handleBlur = async () => {
+    setIsEditing(false);
+    if (localValue !== value) {
+      setStatus('saving');
+      try {
+        await onChange(localValue);
+        setStatus('saved');
+        setTimeout(() => setStatus('idle'), 2000);
+      } catch (e) {
+        setStatus('error');
+        setLocalValue(value); // Revertir visualmente
+        setTimeout(() => setStatus('idle'), 3000);
+      }
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      inputRef.current.blur();
+    } else if (e.key === 'Escape') {
+      setLocalValue(value);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        ref={inputRef}
+        type={type}
+        min={type === 'number' ? '0' : undefined}
+        className="kardex-input"
+        style={{ width: '100%', textAlign: type === 'number' ? 'center' : 'left' }}
+        value={localValue || ''}
+        onChange={(e) => setLocalValue(type === 'number' ? (parseInt(e.target.value, 10) || 0) : e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+      />
+    );
+  }
+
+  return (
+    <div 
+      onClick={() => setIsEditing(true)}
+      style={{ 
+        cursor: 'pointer', 
+        padding: '0.4rem', 
+        minHeight: '28px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: type === 'number' ? 'center' : 'flex-start',
+        gap: '8px',
+        borderRadius: '4px',
+        transition: 'background-color 0.2s',
+        position: 'relative'
+      }}
+      className="editable-cell-display"
+      title="Haz clic para editar"
+    >
+      <span style={{ 
+        color: value ? 'inherit' : '#aaa', 
+        fontStyle: value ? 'normal' : 'italic'
+      }}>
+        {value === 0 ? '0' : (value || placeholder)}
+      </span>
+      {status === 'saving' && <span style={{fontSize: '0.8rem'}}>⏳</span>}
+      {status === 'saved' && <span style={{fontSize: '0.8rem', color: '#16a34a', fontWeight: 'bold'}}>✓</span>}
+      {status === 'error' && <span style={{fontSize: '0.8rem', color: 'red'}}>❌</span>}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.value === nextProps.value && prevProps.type === nextProps.type;
+});
+
 export default function Operadores() {
   const { user } = useContext(AuthContext);
   const [conductores, setConductores] = useState([]);
@@ -163,7 +257,7 @@ export default function Operadores() {
 
   // Form states
   const [nombre, setNombre] = useState('');
-  const [tipoTarjeton, setTipoTarjeton] = useState('B');
+  const [tipoTarjeton, setTipoTarjeton] = useState('');
   const [vigenciaLicencia, setVigenciaLicencia] = useState('');
   const [sexo, setSexo] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
@@ -177,11 +271,13 @@ export default function Operadores() {
   const [submitting, setSubmitting] = useState(false);
 
   const tipoOptions = [
+    { value: '', label: 'Seleccionar...' },
     { value: 'B', label: 'TIPO B' },
     { value: 'C', label: 'TIPO C' }
   ];
 
   const sexoOptions = [
+    { value: '', label: 'Seleccionar...' },
     { value: 'Masculino', label: 'MASCULINO' },
     { value: 'Femenino', label: 'FEMENINO' }
   ];
@@ -205,7 +301,6 @@ export default function Operadores() {
 
   const [activeTab, setActiveTab] = useState('catalogo'); // 'catalogo' o 'kardex' o 'info_general'
   const [savingId, setSavingId] = useState(null);
-  const [modifiedIds, setModifiedIds] = useState(new Set());
 
   // Modal Detalles (Amonestaciones/Reconocimientos)
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -214,9 +309,24 @@ export default function Operadores() {
   const [newDetailMotivo, setNewDetailMotivo] = useState('');
   const [savingDetail, setSavingDetail] = useState(false);
 
+  const getDetailArray = (conductor, type) => {
+    if (!conductor) return [];
+    const val = conductor[`${type}_detalle`];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const openDetailsModal = (c, type) => {
-    setDetailsConductor(c);
     setDetailsType(type);
+    setDetailsConductor(c);
     setNewDetailMotivo('');
     setShowDetailsModal(true);
   };
@@ -227,7 +337,7 @@ export default function Operadores() {
     
     setSavingDetail(true);
     const fieldName = `${detailsType}_detalle`;
-    const existing = detailsConductor[fieldName] || [];
+    const existing = getDetailArray(detailsConductor, detailsType);
     const newDetail = { id: Date.now(), motivo: newDetailMotivo.trim(), fecha: new Date().toISOString() };
     const updatedDetails = [...existing, newDetail];
     
@@ -312,56 +422,22 @@ export default function Operadores() {
     }
   };
 
-  const handleLocalFieldChange = (id, field, value) => {
+  const autoSaveField = async (id, field, value) => {
     const finalValue = typeof value === 'string' ? value.toUpperCase() : value;
+    
+    // Optimistic update
     setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: finalValue } : c));
-    setModifiedIds(prev => new Set(prev).add(id));
-  };
-
-  const handleSaveAllKardex = async () => {
-    if (modifiedIds.size === 0) return;
-    setSavingId('all');
-    try {
-      const promises = Array.from(modifiedIds).map(id => {
-        const c = conductores.find(cond => cond.id === id);
-        return fetch(`${API_BASE}/api/conductores/${c.id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            accidentes_siniestros: c.accidentes_siniestros,
-            faltas: c.faltas,
-            retardos: c.retardos,
-            condicionamientos_medicos: c.condicionamientos_medicos,
-            condicionamientos_juridicos: c.condicionamientos_juridicos,
-            evaluacion: c.evaluacion,
-            observaciones: c.observaciones
-          })
-        });
-      });
-
-      const results = await Promise.all(promises);
-      
-      const failed = results.filter(res => !res.ok);
-      if (failed.length > 0) throw new Error('Algunos cambios no se pudieron guardar.');
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Guardado',
-        text: 'Los cambios del Kardex se han guardado correctamente.',
-        timer: 2000,
-        showConfirmButton: false
-      });
-      setModifiedIds(new Set());
-    } catch (err) {
-      console.error(err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: err.message,
-        confirmButtonColor: '#6b1d33'
-      });
-    } finally {
-      setSavingId(null);
+    
+    const payload = { [field]: finalValue };
+    
+    const res = await fetch(`${API_BASE}/api/conductores/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    
+    if (!res.ok) {
+      throw new Error('Error al guardar');
     }
   };
 
@@ -372,20 +448,21 @@ export default function Operadores() {
 
   // Polling silencioso
   useEffect(() => {
-    // Polling rápido cada 2 segundos solo si no hay cambios sin guardar y no hay modal abierto
+    // Polling cada 15 segundos para no saturar ni alentar el navegador
     let interval;
-    if (modifiedIds.size === 0 && !showDetailsModal && !showEditModal && !showAddModal) {
+    if (!showDetailsModal && !showEditModal && !showAddModal) {
       interval = setInterval(() => {
         fetchConductores(true);
-      }, 2000);
+      }, 15000);
     }
     
     return () => clearInterval(interval);
-  }, [modifiedIds.size, showDetailsModal, showEditModal, showAddModal]);
+  }, [showDetailsModal, showEditModal, showAddModal]);
 
   const handleOpenAddModal = () => {
     setNombre('');
-    setTipoTarjeton('B');
+    setTipoTarjeton('');
+    setFoto(null);
     setVigenciaLicencia('');
     setSexo('');
     setFechaNacimiento('');
@@ -758,6 +835,24 @@ export default function Operadores() {
           </button>
           <button
             type="button"
+            className={`tab-btn ${activeTab === 'estadisticas' ? 'active' : ''}`}
+            onClick={() => setActiveTab('estadisticas')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              color: activeTab === 'estadisticas' ? '#6b1d33' : '#64748b',
+              borderBottom: activeTab === 'estadisticas' ? '3px solid #6b1d33' : '3px solid transparent',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            Estadísticas de Operadores
+          </button>
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'info_general' ? 'active' : ''}`}
             onClick={() => setActiveTab('info_general')}
             style={{
@@ -794,7 +889,13 @@ export default function Operadores() {
           </button>
         </div>
 
-        {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && (
+        {activeTab === 'estadisticas' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6 p-6">
+            <EstadisticasOperadores conductores={conductores} />
+          </div>
+        )}
+
+        {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && activeTab !== 'estadisticas' && (
           <div className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-slate-200">
             <div className="flex flex-col md:flex-row items-center gap-4">
               <div className="relative w-full md:flex-1">
@@ -841,23 +942,13 @@ export default function Operadores() {
                       { value: '', label: 'ESTADO SERVICIO: TODOS' },
                       { value: 'disponible', label: 'DISPONIBLE' },
                       { value: 'en_servicio', label: 'EN SERVICIO' },
-                      { value: 'falta', label: 'FALTA' }
+                      { value: 'falta', label: 'FALTA' },
+                      { value: 'permuta', label: 'PERMUTA' }
                     ]}
                   />
                 </div>
               )}
 
-              {activeTab === 'kardex' && (
-                <div className="flex w-full md:w-auto items-center gap-3">
-                  <button
-                    onClick={handleSaveAllKardex}
-                    disabled={modifiedIds.size === 0 || savingId === 'all'}
-                    className={`px-6 py-2.5 rounded-xl text-[0.95rem] font-bold text-white transition-all shadow-sm flex items-center justify-center min-w-[200px] ${modifiedIds.size === 0 ? 'bg-slate-300 cursor-not-allowed opacity-70' : savingId === 'all' ? 'bg-slate-400 cursor-wait' : 'bg-[#6b1d33] hover:bg-[#8d2745] hover:-translate-y-0.5 active:translate-y-0 shadow-md'}`}
-                  >
-                    {savingId === 'all' ? 'Guardando...' : `Guardar Cambios (${modifiedIds.size})`}
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -954,14 +1045,14 @@ export default function Operadores() {
                     <th style={{ width: '130px' }}>Estatus</th>
                     <th style={{ width: '210px' }}>Última capacitación</th>
                     <th style={{ width: '210px' }}>Próxima capacitación</th>
-                    <th style={{ width: '220px', textAlign: 'center' }}>Accidentes / Siniestros</th>
+                    <th style={{ width: '220px', textAlign: 'center' }}>Accidentes y Siniestros</th>
                     <th style={{ width: '120px', textAlign: 'center' }}>Faltas</th>
                     <th style={{ width: '120px', textAlign: 'center' }}>Retardos</th>
                     <th style={{ width: '180px', textAlign: 'center' }}>Amonestaciones</th>
                     <th style={{ width: '180px', textAlign: 'center' }}>Reconocimientos</th>
                     <th style={{ width: '280px' }}>Condicionamientos médicos</th>
                     <th style={{ minWidth: '180px' }}>Condicionamientos Jurídicos</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>Cambios</th>
+                    <th style={{ width: '130px', textAlign: 'center' }}>Permutas</th>
                     <th style={{ width: '130px', textAlign: 'center' }}>Permisos</th>
                     <th style={{ width: '150px', textAlign: 'center' }}>Evaluación</th>
                     <th style={{ width: '350px' }}>Observaciones</th>
@@ -1005,8 +1096,7 @@ export default function Operadores() {
                               value={c.ultima_capacitacion || ''}
                               disableFuture={true}
                               onChange={(val) => {
-                                handleLocalFieldChange(c.id, 'ultima_capacitacion', val);
-                                handleBlurSave({ ...c, ultima_capacitacion: val }, 'ultima_capacitacion');
+                                autoSaveField(c.id, 'ultima_capacitacion', val);
                               }}
                             />
                           </div>
@@ -1018,109 +1108,107 @@ export default function Operadores() {
                               disableFuture={false}
                               disablePast={true}
                               onChange={(val) => {
-                                handleLocalFieldChange(c.id, 'proxima_capacitacion', val);
-                                handleBlurSave({ ...c, proxima_capacitacion: val }, 'proxima_capacitacion');
+                                autoSaveField(c.id, 'proxima_capacitacion', val);
                               }}
                             />
                           </div>
                         </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <button
+                              type="button"
+                              className="btn-details-badge"
+                              onClick={() => openDetailsModal(c, 'accidentes_siniestros')}
+                            >
+                              <span className="badge-number">{c.accidentes_siniestros ?? 0}</span>
+                              <span className="badge-text">Detalles</span>
+                            </button>
+                          </div>
+                        </td>
                         <td>
-                          <input
+                          <EditableCell
                             type="number"
-                            min="0"
-                            className="kardex-input text-center"
-                            value={c.accidentes_siniestros ?? 0}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'accidentes_siniestros', parseInt(e.target.value, 10) || 0)}
+                            value={c.faltas}
+                            onChange={(val) => autoSaveField(c.id, 'faltas', val)}
                           />
                         </td>
                         <td>
-                          <input
+                          <EditableCell
                             type="number"
-                            min="0"
-                            className="kardex-input text-center"
-                            value={c.faltas ?? 0}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'faltas', parseInt(e.target.value, 10) || 0)}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            min="0"
-                            className="kardex-input text-center"
-                            value={c.retardos ?? 0}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'retardos', parseInt(e.target.value, 10) || 0)}
+                            value={c.retardos}
+                            onChange={(val) => autoSaveField(c.id, 'retardos', val)}
                           />
                         </td>
                         <td className="text-center">
                           <button 
                             type="button" 
+                            className="btn-details-badge"
                             onClick={() => openDetailsModal(c, 'amonestaciones')}
-                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
                           >
-                            {c.amonestaciones ?? 0} Detalles
+                            <span className="badge-number">{c.amonestaciones ?? 0}</span>
+                            <span className="badge-text">Detalles</span>
                           </button>
                         </td>
                         <td className="text-center">
                           <button 
                             type="button" 
+                            className="btn-details-badge"
                             onClick={() => openDetailsModal(c, 'reconocimientos')}
-                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
                           >
-                            {c.reconocimientos ?? 0} Detalles
+                            <span className="badge-number">{c.reconocimientos ?? 0}</span>
+                            <span className="badge-text">Detalles</span>
                           </button>
                         </td>
                         <td>
-                          <input
+                          <EditableCell
                             type="text"
-                            className="kardex-input"
-                            value={c.condicionamientos_medicos || ''}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'condicionamientos_medicos', e.target.value)}
+                            value={c.condicionamientos_medicos}
                             placeholder="Sin especificar"
+                            onChange={(val) => autoSaveField(c.id, 'condicionamientos_medicos', val)}
                           />
                         </td>
                         <td>
-                          <input
+                          <EditableCell
                             type="text"
-                            className="kardex-input"
-                            value={c.condicionamientos_juridicos || ''}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'condicionamientos_juridicos', e.target.value)}
+                            value={c.condicionamientos_juridicos}
                             placeholder="Sin especificar"
+                            onChange={(val) => autoSaveField(c.id, 'condicionamientos_juridicos', val)}
                           />
                         </td>
                         <td className="text-center">
                           <button 
                             type="button" 
+                            className="btn-details-badge"
                             onClick={() => openDetailsModal(c, 'permutas')}
-                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
                           >
-                            {c.permutas ?? 0} Detalles
+                            <span className="badge-number">{c.permutas ?? 0}</span>
+                            <span className="badge-text">Detalles</span>
                           </button>
                         </td>
                         <td className="text-center">
                           <button 
                             type="button" 
+                            className="btn-details-badge"
                             onClick={() => openDetailsModal(c, 'permisos')}
-                            style={{ padding: '0.4rem 0.8rem', borderRadius: '0.3rem', border: '1px solid #ddd', background: '#f9f9f9', cursor: 'pointer', fontSize: '0.85rem' }}
                           >
-                            {c.permisos ?? 0} Detalles
+                            <span className="badge-number">{c.permisos ?? 0}</span>
+                            <span className="badge-text">Detalles</span>
                           </button>
                         </td>
                         <td>
-                          <input
+                          <EditableCell
                             type="text"
-                            className="kardex-input text-center"
-                            value={c.evaluacion || ''}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'evaluacion', e.target.value)}
+                            value={c.evaluacion}
                             placeholder="N/A"
+                            onChange={(val) => autoSaveField(c.id, 'evaluacion', val)}
                           />
                         </td>
                         <td>
-                          <input
+                          <EditableCell
                             type="text"
-                            className="kardex-input"
-                            value={c.observaciones || ''}
-                            onChange={(e) => handleLocalFieldChange(c.id, 'observaciones', e.target.value)}
+                            value={c.observaciones}
                             placeholder="Añadir nota..."
+                            onChange={(val) => autoSaveField(c.id, 'observaciones', val)}
                           />
                         </td>
                       </tr>
@@ -1431,7 +1519,7 @@ export default function Operadores() {
             <div className="modal-header">
               <div className="modal-header-title">
                 <h2 style={{textTransform: 'capitalize'}}>
-                  Historial de {detailsType}
+                  Historial de {detailsType.replace(/_/g, ' y ')}
                 </h2>
                 <p>{detailsConductor.nombre}</p>
               </div>
@@ -1440,12 +1528,12 @@ export default function Operadores() {
             <div style={{padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto'}}>
               {/* Lista actual */}
               <ul style={{listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0'}}>
-                {(detailsConductor[`${detailsType}_detalle`] || []).map((d, index) => (
+                {getDetailArray(detailsConductor, detailsType).map((d, index) => (
                   <li key={d.id || index} style={{display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem'}}>
                     <div>
                       <strong style={{ display: 'block', color: '#333' }}>{d.motivo}</strong>
                       <span style={{ fontSize: '0.8rem', color: '#888' }}>
-                        {new Date(d.fecha).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                        {d.fecha ? new Date(d.fecha).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' }) : 'Fecha no disponible'}
                       </span>
                     </div>
                     <button 
@@ -1457,7 +1545,7 @@ export default function Operadores() {
                     </button>
                   </li>
                 ))}
-                {(!detailsConductor[`${detailsType}_detalle`] || detailsConductor[`${detailsType}_detalle`].length === 0) && (
+                {getDetailArray(detailsConductor, detailsType).length === 0 && (
                   <li style={{textAlign: 'center', color: '#94a3b8', padding: '1rem', fontStyle: 'italic'}}>No hay registros.</li>
                 )}
               </ul>

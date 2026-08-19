@@ -143,7 +143,7 @@ class ConductorController extends Controller
         $request->validate([
             'nombre' => 'sometimes|required|string|max:200',
             'tipo_tarjeton' => 'sometimes|required|string|max:50',
-            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista',
+            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista,permuta',
             'ultima_capacitacion' => 'sometimes|nullable|date',
             'proxima_capacitacion' => 'sometimes|nullable|date',
             'accidentes_siniestros' => 'sometimes|integer|min:0',
@@ -167,7 +167,8 @@ class ConductorController extends Controller
             'amonestaciones_detalle' => 'sometimes|array',
             'reconocimientos_detalle' => 'sometimes|array',
             'permisos_detalle' => 'sometimes|array',
-            'permutas_detalle' => 'sometimes|array'
+            'permutas_detalle' => 'sometimes|array',
+            'accidentes_siniestros_detalle' => 'sometimes|array'
         ]);
 
         if ($request->has('nombre')) {
@@ -218,7 +219,8 @@ class ConductorController extends Controller
             'amonestaciones_detalle',
             'reconocimientos_detalle',
             'permisos_detalle',
-            'permutas_detalle'
+            'permutas_detalle',
+            'accidentes_siniestros_detalle'
         ];
 
         foreach ($kardexFields as $field) {
