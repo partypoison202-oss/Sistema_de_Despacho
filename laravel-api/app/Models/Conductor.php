@@ -40,7 +40,8 @@ class Conductor extends Model
         'reconocimientos_detalle',
         'permisos_detalle',
         'permutas_detalle',
-        'condicionamientos_medicos'
+        'condicionamientos_medicos',
+        'accidentes_siniestros_detalle'
     ];
 
     protected $casts = [
@@ -48,5 +49,6 @@ class Conductor extends Model
         'reconocimientos_detalle' => 'array',
         'permisos_detalle' => 'array',
         'permutas_detalle' => 'array',
+        'accidentes_siniestros_detalle' => 'array',
     ];
 }
