@@ -143,7 +143,7 @@ VALUES
 ('URBANUSS'),
 ('ZAFIRO'),
 ('BAGONETA'),
-('ORION');
+('ORION') ON CONFLICT DO NOTHING;
 
 INSERT INTO unidades (transporte_id, numero_eco) VALUES
 (1,'001'),(1,'002'),(1,'003'),(1,'004'),(1,'005'),
@@ -163,17 +163,17 @@ INSERT INTO unidades (transporte_id, numero_eco) VALUES
 (2,'120'),(2,'121'),(2,'122'),(2,'123'),(2,'124'),
 (2,'125'),(2,'126'),(2,'127'),(2,'128'),(2,'129'),
 (2,'130'),(2,'131'),(2,'132'),(2,'133'),(2,'134'),
-(2,'135'),(2,'136'),(2,'137')
+(2,'135'),(2,'136'),(2,'137'),
 
 (4,'107'),(4,'110'),(4,'105'),(4,'408'),(4,'403'),
-(4,'137'),(4,'401');
+(4,'137'),(4,'401') ON CONFLICT DO NOTHING;
 
 INSERT INTO secciones_unidad (nombre)
 VALUES
 ('Frente'),
 ('Trasera'),
 ('Costado Izquierdo'),
-('Costado Derecho');
+('Costado Derecho') ON CONFLICT DO NOTHING;
 
 -- Componentes generales (usados por DESPACHO y/o ENCIERRO)
 INSERT INTO componentes (nombre)
@@ -189,7 +189,7 @@ VALUES
 ('Interior y limpieza'),
 ('Asientos'),
 ('Extintor y seguridad'),
-('Documentación');
+('Documentación') ON CONFLICT DO NOTHING;
 
 -- Componentes exclusivos de formulario ENCIERRO
 INSERT INTO componentes (nombre)
@@ -198,13 +198,13 @@ VALUES
 ('Torreta'),
 ('Pintura y vinil'),
 ('Tecnología'),
-('Alerta en tablero');
+('Alerta en tablero') ON CONFLICT DO NOTHING;
 
 INSERT INTO estados_componente (nombre)
 VALUES
 ('Ok'),
 ('NO Ok'),
-('N/A');
+('N/A') ON CONFLICT DO NOTHING;
 
 -- Tablas de usuarios
 CREATE TABLE roles (
@@ -220,7 +220,7 @@ VALUES
 ('CAPTURISTA', 'Capturista', 'Carga y edición de Excel'),
 ('CENTRO_CONTROL', 'Centro de Control', 'Monitoreo y dashboard'),
 ('DESPACHO', 'Despacho', 'Reportes e inspecciones'),
-('ENCIERRO', 'Encierro', 'Reportes e inspecciones');
+('ENCIERRO', 'Encierro', 'Reportes e inspecciones') ON CONFLICT DO NOTHING;
 
 CREATE TABLE conductores (
     id SERIAL PRIMARY KEY,
@@ -270,7 +270,7 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (1, 9,  'DESPACHO'),  -- Interior y limpieza
 (1, 10, 'DESPACHO'),  -- Asientos
 (1, 11, 'DESPACHO'),  -- Extintor y seguridad
-(1, 12, 'DESPACHO');  -- Documentación
+(1, 12, 'DESPACHO') ON CONFLICT DO NOTHING;  -- Documentación
 
 -- *** DESPACHO: Trasera ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
@@ -284,7 +284,7 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (2, 9,  'DESPACHO'),  -- Interior y limpieza
 (2, 10, 'DESPACHO'),  -- Asientos
 (2, 11, 'DESPACHO'),  -- Extintor y seguridad
-(2, 12, 'DESPACHO');  -- Documentación
+(2, 12, 'DESPACHO') ON CONFLICT DO NOTHING;  -- Documentación
 
 -- *** DESPACHO: Costado Izquierdo ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
@@ -299,7 +299,7 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (3, 9,  'DESPACHO'),  -- Interior y limpieza
 (3, 10, 'DESPACHO'),  -- Asientos
 (3, 11, 'DESPACHO'),  -- Extintor y seguridad
-(3, 12, 'DESPACHO');  -- Documentación
+(3, 12, 'DESPACHO') ON CONFLICT DO NOTHING;  -- Documentación
 
 -- *** DESPACHO: Costado Derecho ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
@@ -313,7 +313,7 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (4, 9,  'DESPACHO'),  -- Interior y limpieza
 (4, 10, 'DESPACHO'),  -- Asientos
 (4, 11, 'DESPACHO'),  -- Extintor y seguridad
-(4, 12, 'DESPACHO');  -- Documentación
+(4, 12, 'DESPACHO') ON CONFLICT DO NOTHING;  -- Documentación
 
 -- *** ENCIERRO: Frente (todos los 16 componentes) ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
@@ -332,7 +332,7 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (1, 11, 'ENCIERRO'),  -- Extintor y seguridad
 (1, 12, 'ENCIERRO'),  -- Documentación
 (1, 16, 'ENCIERRO'),  -- Tecnología
-(1, 17, 'ENCIERRO');  -- Alerta en tablero
+(1, 17, 'ENCIERRO') ON CONFLICT DO NOTHING;  -- Alerta en tablero
 
 -- *** ENCIERRO: Trasera (sin Mobitec, Torreta ni Retrovisores) ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
@@ -348,7 +348,7 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (2, 11, 'ENCIERRO'),  -- Extintor y seguridad
 (2, 12, 'ENCIERRO'),  -- Documentación
 (2, 16, 'ENCIERRO'),  -- Tecnología
-(2, 17, 'ENCIERRO');  -- Alerta en tablero
+(2, 17, 'ENCIERRO') ON CONFLICT DO NOTHING;  -- Alerta en tablero
 
 -- *** ENCIERRO: Costado Izquierdo (sin Mobitec y Torreta, con Retrovisores) ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
@@ -365,7 +365,7 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (3, 11, 'ENCIERRO'),  -- Extintor y seguridad
 (3, 12, 'ENCIERRO'),  -- Documentación
 (3, 16, 'ENCIERRO'),  -- Tecnología
-(3, 17, 'ENCIERRO');  -- Alerta en tablero
+(3, 17, 'ENCIERRO') ON CONFLICT DO NOTHING;  -- Alerta en tablero
 
 -- *** ENCIERRO: Costado Derecho (sin Mobitec, Torreta ni Retrovisores) ***
 INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALUES
@@ -381,4 +381,4 @@ INSERT INTO seccion_componente (seccion_id, componente_id, tipo_formulario) VALU
 (4, 11, 'ENCIERRO'),  -- Extintor y seguridad
 (4, 12, 'ENCIERRO'),  -- Documentación
 (4, 16, 'ENCIERRO'),  -- Tecnología
-(4, 17, 'ENCIERRO');  -- Alerta en tablero
+(4, 17, 'ENCIERRO') ON CONFLICT DO NOTHING;  -- Alerta en tablero
