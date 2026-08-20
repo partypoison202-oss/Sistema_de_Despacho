@@ -114,7 +114,8 @@ return new class extends Migration
         if (!Schema::hasTable('conductores')) {
             Schema::create('conductores', function (Blueprint $table) {
                 $table->id();
-                $table->string('nombre', 200);
+                $table->string('nombres', 100)->nullable();
+                $table->string('apellidos', 100)->nullable();
                 $table->string('tarjeton', 50)->unique();
                 $table->string('tipo_tarjeton', 20)->nullable();
                 $table->string('estado_servicio', 30)->nullable()->default('activo');
