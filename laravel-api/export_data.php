@@ -7,19 +7,23 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-// Solo exportamos las tablas de catálogos y estados operativos
+// Exportamos todas las tablas de catálogos, configuraciones y estados para iniciar limpios sin seeders
 $tables = [
+    'roles',
+    'usuarios',
     'transportes',
     'rutas',
     'secciones_unidad',
     'unidades',
     'conductores',
     'maniobristas',
-    'informacion_operativa'
+    'informacion_operativa',
+    'observacion_catalogos'
 ];
 
 // Tablas que NO tienen created_at / updated_at en el código de producción
 $tablesWithoutTimestamps = [
+    'roles',
     'transportes',
     'rutas',
     'secciones_unidad',
