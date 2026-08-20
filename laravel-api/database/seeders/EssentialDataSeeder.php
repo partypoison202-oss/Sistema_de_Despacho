@@ -51,9 +51,9 @@ class EssentialDataSeeder extends Seeder
 
         $data = [
             ['id' => 1, 'nombre' => 'URBANUSS'],
-            ['id' => 2, 'nombre' => 'VOLARE'],
-            ['id' => 3, 'nombre' => 'BUSSCAR'],
-            ['id' => 4, 'nombre' => 'NEOBUS'],
+            ['id' => 2, 'nombre' => 'VAGONETA'],
+            ['id' => 3, 'nombre' => 'ZAFIRO'],
+            ['id' => 4, 'nombre' => 'ORION'],
         ];
         foreach ($data as $row) {
             DB::table('transportes')->updateOrInsert(['id' => $row['id']], $row);
@@ -260,12 +260,15 @@ class EssentialDataSeeder extends Seeder
             $exists = DB::table('informacion_operativa')->where('unidad_id', $unidad->id)->exists();
             if (!$exists) {
                 $default = $ioData[$unidad->numero_eco] ?? null;
+                $transporte = DB::table('transportes')->where('id', $unidad->transporte_id)->first();
+                $tipoUnit = $default['tipo'] ?? ($transporte ? $transporte->nombre : 'URBANUSS');
+
                 DB::table('informacion_operativa')->insert([
                     'unidad_id'           => $unidad->id,
                     'ruta'                => $default['ruta'] ?? null,
                     'numero_tarjeton'     => $default['numero_tarjeton'] ?? null,
                     'nombre_conductor'    => $default['nombre_conductor'] ?? null,
-                    'tipo'                => $default['tipo'] ?? 'URBANUSS',
+                    'tipo'                => $tipoUnit,
                     'estatus'             => 'encierro',
                     'fecha_registro'      => $now,
                     'falla'               => null,
