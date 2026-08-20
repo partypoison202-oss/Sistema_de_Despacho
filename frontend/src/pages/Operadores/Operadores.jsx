@@ -453,17 +453,29 @@ export default function Operadores() {
     fetchConductores();
   }, []);
 
-  // Polling silencioso
+  // Polling silencioso & Bloquear scroll de fondo
   useEffect(() => {
+    const isAnyModalOpen = showDetailsModal || showEditModal || showAddModal;
+    
+    // Bloquear el scroll en el body si hay modales abiertos
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
     // Polling cada 15 segundos para no saturar ni alentar el navegador
     let interval;
-    if (!showDetailsModal && !showEditModal && !showAddModal) {
+    if (!isAnyModalOpen) {
       interval = setInterval(() => {
         fetchConductores(true);
       }, 15000);
     }
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      document.body.style.overflow = '';
+    };
   }, [showDetailsModal, showEditModal, showAddModal]);
 
   const handleOpenAddModal = () => {
