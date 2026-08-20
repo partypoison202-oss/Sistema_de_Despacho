@@ -109,6 +109,21 @@ return new class extends Migration
                 $table->id();
                 $table->string('ruta', 20)->unique();
                 $table->string('tipo', 20)->nullable();
+                $table->timestamps();
+            });
+        } else {
+            if (!Schema::hasColumn('rutas', 'created_at')) {
+                Schema::table('rutas', function (Blueprint $table) {
+                    $table->timestamps();
+                });
+            }
+        }
+
+        // ─── Secciones Unidad ──────────────────────────────────────────
+        if (!Schema::hasTable('secciones_unidad')) {
+            Schema::create('secciones_unidad', function (Blueprint $table) {
+                $table->id();
+                $table->string('nombre', 100)->unique();
             });
         }
 
@@ -157,6 +172,31 @@ return new class extends Migration
                 $table->integer('num_accidentes')->nullable()->default(0);
                 $table->text('detalle_accidentes')->nullable();
                 $table->integer('faltas')->nullable()->default(0);
+                
+                // Nuevos campos provenientes de Neon DB / Conductor.php
+                $table->date('ultima_capacitacion')->nullable();
+                $table->date('proxima_capacitacion')->nullable();
+                $table->integer('accidentes_siniestros')->nullable()->default(0);
+                $table->integer('retardos')->nullable()->default(0);
+                $table->integer('amonestaciones')->nullable()->default(0);
+                $table->integer('reconocimientos')->nullable()->default(0);
+                $table->string('condicionamientos_juridicos', 255)->nullable();
+                $table->integer('permutas')->nullable()->default(0);
+                $table->integer('permisos')->nullable()->default(0);
+                $table->string('evaluacion', 100)->nullable();
+                $table->date('vigencia_licencia')->nullable();
+                $table->string('sexo', 20)->nullable();
+                $table->string('referencia_1', 255)->nullable();
+                $table->string('referencia_2', 255)->nullable();
+                $table->string('condicionamientos_medicos', 255)->nullable();
+                $table->string('foto', 255)->nullable();
+                
+                $table->json('amonestaciones_detalle')->nullable();
+                $table->json('reconocimientos_detalle')->nullable();
+                $table->json('permisos_detalle')->nullable();
+                $table->json('permutas_detalle')->nullable();
+                $table->json('accidentes_siniestros_detalle')->nullable();
+
                 $table->timestamps();
             });
         } else {
@@ -199,6 +239,30 @@ return new class extends Migration
                 'num_accidentes'       => fn($t) => $t->integer('num_accidentes')->nullable()->default(0),
                 'detalle_accidentes'   => fn($t) => $t->text('detalle_accidentes')->nullable(),
                 'faltas'               => fn($t) => $t->integer('faltas')->nullable()->default(0),
+                
+                // Parciales else block
+                'ultima_capacitacion'  => fn($t) => $t->date('ultima_capacitacion')->nullable(),
+                'proxima_capacitacion' => fn($t) => $t->date('proxima_capacitacion')->nullable(),
+                'accidentes_siniestros'=> fn($t) => $t->integer('accidentes_siniestros')->nullable()->default(0),
+                'retardos'             => fn($t) => $t->integer('retardos')->nullable()->default(0),
+                'amonestaciones'       => fn($t) => $t->integer('amonestaciones')->nullable()->default(0),
+                'reconocimientos'      => fn($t) => $t->integer('reconocimientos')->nullable()->default(0),
+                'condicionamientos_juridicos'=> fn($t) => $t->string('condicionamientos_juridicos', 255)->nullable(),
+                'permutas'             => fn($t) => $t->integer('permutas')->nullable()->default(0),
+                'permisos'             => fn($t) => $t->integer('permisos')->nullable()->default(0),
+                'evaluacion'           => fn($t) => $t->string('evaluacion', 100)->nullable(),
+                'vigencia_licencia'    => fn($t) => $t->date('vigencia_licencia')->nullable(),
+                'sexo'                 => fn($t) => $t->string('sexo', 20)->nullable(),
+                'referencia_1'         => fn($t) => $t->string('referencia_1', 255)->nullable(),
+                'referencia_2'         => fn($t) => $t->string('referencia_2', 255)->nullable(),
+                'condicionamientos_medicos'=> fn($t) => $t->string('condicionamientos_medicos', 255)->nullable(),
+                'foto'                 => fn($t) => $t->string('foto', 255)->nullable(),
+                
+                'amonestaciones_detalle'=> fn($t) => $t->json('amonestaciones_detalle')->nullable(),
+                'reconocimientos_detalle'=> fn($t) => $t->json('reconocimientos_detalle')->nullable(),
+                'permisos_detalle'     => fn($t) => $t->json('permisos_detalle')->nullable(),
+                'permutas_detalle'     => fn($t) => $t->json('permutas_detalle')->nullable(),
+                'accidentes_siniestros_detalle'=> fn($t) => $t->json('accidentes_siniestros_detalle')->nullable(),
             ] as $col => $def) {
                 if (!Schema::hasColumn('conductores', $col)) {
                     Schema::table('conductores', $def);
@@ -212,9 +276,20 @@ return new class extends Migration
                 $table->id();
                 $table->string('nombre', 200);
                 $table->string('tarjeton', 50)->unique();
+                $table->string('tipo_tarjeton', 50)->nullable();
                 $table->string('estado_servicio', 30)->nullable()->default('activo');
+                $table->string('estatus', 30)->nullable();
                 $table->timestamps();
             });
+        } else {
+            foreach ([
+                'tipo_tarjeton'   => fn($t) => $t->string('tipo_tarjeton', 50)->nullable(),
+                'estatus'         => fn($t) => $t->string('estatus', 30)->nullable(),
+            ] as $col => $def) {
+                if (!Schema::hasColumn('maniobristas', $col)) {
+                    Schema::table('maniobristas', $def);
+                }
+            }
         }
 
         // ─── Información Operativa ────────────────────────────────────
@@ -309,6 +384,7 @@ return new class extends Migration
                 $table->string('momento', 20)->nullable();
                 $table->date('fecha_historial')->nullable();
                 $table->timestamp('fecha_registro')->nullable()->useCurrent();
+                $table->timestamps();
             });
         } else {
             foreach ([
@@ -327,16 +403,32 @@ return new class extends Migration
         if (!Schema::hasTable('checklists')) {
             Schema::create('checklists', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('unidad_id')->constrained('unidades');
-                $table->string('tipo_formulario', 20);
-                $table->json('secciones')->nullable();
-                $table->string('nombre_responsable', 200)->nullable();
-                $table->string('origen', 30)->nullable();
-                $table->timestamp('fecha_inspeccion')->nullable()->useCurrent();
+                $table->foreignId('usuario_id')->nullable()->constrained('usuarios');
+                $table->json('puntos')->nullable();
+                $table->timestamp('fecha_hora')->nullable();
+                $table->string('origen', 50)->nullable();
+                $table->text('dibujo')->nullable();
+                $table->string('tipo_unidad', 50)->nullable();
+                $table->string('conductor_id', 50)->nullable();
+                $table->string('economico', 50)->nullable();
+                $table->string('servicio', 50)->nullable();
+                $table->timestamps();
             });
         } else {
-            if (!Schema::hasColumn('checklists', 'origen')) {
-                Schema::table('checklists', fn($t) => $t->string('origen', 30)->nullable());
+            foreach ([
+                'usuario_id'   => fn($t) => $t->foreignId('usuario_id')->nullable()->constrained('usuarios'),
+                'puntos'       => fn($t) => $t->json('puntos')->nullable(),
+                'fecha_hora'   => fn($t) => $t->timestamp('fecha_hora')->nullable(),
+                'origen'       => fn($t) => $t->string('origen', 50)->nullable(),
+                'dibujo'       => fn($t) => $t->text('dibujo')->nullable(),
+                'tipo_unidad'  => fn($t) => $t->string('tipo_unidad', 50)->nullable(),
+                'conductor_id' => fn($t) => $t->string('conductor_id', 50)->nullable(),
+                'economico'    => fn($t) => $t->string('economico', 50)->nullable(),
+                'servicio'     => fn($t) => $t->string('servicio', 50)->nullable(),
+            ] as $col => $def) {
+                if (!Schema::hasColumn('checklists', $col)) {
+                    Schema::table('checklists', $def);
+                }
             }
         }
 
@@ -345,11 +437,14 @@ return new class extends Migration
             Schema::create('plataforma_movimientos', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('unidad_id')->constrained('unidades');
-                $table->string('tipo_movimiento', 30);
-                $table->string('responsable', 200)->nullable();
-                $table->string('destino', 200)->nullable();
-                $table->text('observaciones')->nullable();
-                $table->timestamp('fecha_movimiento')->nullable()->useCurrent();
+                $table->foreignId('usuario_id')->nullable()->constrained('usuarios');
+                $table->string('tipo_movimiento', 100);
+                $table->string('estatus_anterior', 100)->nullable();
+                $table->string('estatus_nuevo', 100)->nullable();
+                $table->string('conductor_asignado', 100)->nullable();
+                $table->string('ruta_asignada', 100)->nullable();
+                $table->text('motivo')->nullable();
+                $table->timestamps();
             });
         }
 
@@ -358,73 +453,59 @@ return new class extends Migration
             Schema::create('reportes_titan', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('unidad_id')->nullable()->constrained('unidades');
-                $table->string('numero_eco', 20)->nullable();
-                $table->string('tipo_reporte', 50)->nullable();
-                $table->string('ubicacion', 255)->nullable();
+                $table->foreignId('usuario_id')->nullable()->constrained('usuarios');
+                
+                $table->string('intervalo', 100)->nullable();
+                $table->text('observaciones')->nullable();
+                $table->string('tipo_evento', 100);
+                $table->string('corrida', 100)->nullable();
+                $table->string('hora_evento', 100)->nullable();
+                $table->string('ubicacion_gps', 255)->nullable();
                 $table->string('ubicacion_evento', 255)->nullable();
-                $table->text('descripcion')->nullable();
-                $table->string('responsable', 200)->nullable();
+                $table->text('motivo_desincorporacion')->nullable();
+                
+                $table->string('accidente_dueno', 150)->nullable();
+                $table->string('accidente_vehiculo', 150)->nullable();
+                $table->string('accidente_placas', 100)->nullable();
+                $table->boolean('accidente_seguro')->nullable()->default(false);
+                $table->text('accidente_hechos')->nullable();
                 $table->string('firma_particular_url', 500)->nullable();
+                
+                $table->string('accidente_edad', 20)->nullable();
+                $table->string('accidente_genero', 20)->nullable();
+                $table->string('accidente_hecho_tipo', 100)->nullable();
+                $table->string('accidente_favor_de_quien', 150)->nullable();
+                $table->string('accidente_cantidades_dinero', 100)->nullable();
+                $table->string('accidente_hubo_fallecidos', 50)->nullable();
+                $table->integer('accidente_fallecidos_cantidad')->nullable()->default(0);
+                $table->text('accidente_fallecidos_nombres')->nullable();
+                $table->string('accidente_hora_fallecimiento', 50)->nullable();
+                $table->string('accidente_hora_asistencia_cemefo', 50)->nullable();
+                
+                $table->integer('lesionados_cantidad')->nullable()->default(0);
+                $table->text('nombres_afectados')->nullable();
+                $table->text('asistencia_sitio')->nullable();
+                $table->text('diagnostico_preliminar')->nullable();
+                $table->boolean('amerita_traslado')->nullable()->default(false);
+                $table->string('estatus_legal', 100)->nullable();
+                $table->boolean('usuario_anonimo')->nullable()->default(false);
+                $table->string('estacion_hecho', 150)->nullable();
+                $table->string('ruta_hecho', 150)->nullable();
+                $table->string('autoridad_interviniente', 150)->nullable();
+                $table->boolean('puesto_disposicion')->nullable()->default(false);
+                $table->text('motivo_no_disposicion')->nullable();
                 $table->boolean('visto')->default(false);
-                $table->string('accidente_tipo', 100)->nullable();
-                $table->integer('edad_conductor')->nullable();
-                $table->string('genero_conductor', 20)->nullable();
-                $table->integer('num_heridos')->nullable();
-                $table->integer('num_fallecidos')->nullable();
-                $table->text('detalle_heridos')->nullable();
-                $table->text('detalle_fallecidos')->nullable();
-                $table->string('unidad_involucrada', 100)->nullable();
-                $table->string('placas_involucradas', 100)->nullable();
-                $table->string('nombre_tercero', 200)->nullable();
-                $table->string('telefono_tercero', 20)->nullable();
-                $table->string('aseguradora_tercero', 100)->nullable();
-                $table->string('num_poliza_tercero', 100)->nullable();
-                $table->string('agencia_mp', 200)->nullable();
-                $table->string('num_carpeta_mp', 100)->nullable();
-                $table->string('grua_empresa', 100)->nullable();
-                $table->string('grua_num_unidad', 50)->nullable();
-                $table->string('num_vialidad', 50)->nullable();
-                $table->text('fotos_urls')->nullable();
-                $table->text('firma_conductor_url')->nullable();
-                $table->timestamp('fecha_reporte')->nullable()->useCurrent();
+
+                $table->timestamps();
             });
-        } else {
-            foreach ([
-                'visto'                => fn($t) => $t->boolean('visto')->default(false),
-                'ubicacion_evento'     => fn($t) => $t->string('ubicacion_evento', 255)->nullable(),
-                'firma_particular_url' => fn($t) => $t->string('firma_particular_url', 500)->nullable(),
-                'accidente_tipo'       => fn($t) => $t->string('accidente_tipo', 100)->nullable(),
-                'edad_conductor'       => fn($t) => $t->integer('edad_conductor')->nullable(),
-                'genero_conductor'     => fn($t) => $t->string('genero_conductor', 20)->nullable(),
-                'num_heridos'          => fn($t) => $t->integer('num_heridos')->nullable(),
-                'num_fallecidos'       => fn($t) => $t->integer('num_fallecidos')->nullable(),
-                'detalle_heridos'      => fn($t) => $t->text('detalle_heridos')->nullable(),
-                'detalle_fallecidos'   => fn($t) => $t->text('detalle_fallecidos')->nullable(),
-                'unidad_involucrada'   => fn($t) => $t->string('unidad_involucrada', 100)->nullable(),
-                'placas_involucradas'  => fn($t) => $t->string('placas_involucradas', 100)->nullable(),
-                'nombre_tercero'       => fn($t) => $t->string('nombre_tercero', 200)->nullable(),
-                'telefono_tercero'     => fn($t) => $t->string('telefono_tercero', 20)->nullable(),
-                'aseguradora_tercero'  => fn($t) => $t->string('aseguradora_tercero', 100)->nullable(),
-                'num_poliza_tercero'   => fn($t) => $t->string('num_poliza_tercero', 100)->nullable(),
-                'agencia_mp'           => fn($t) => $t->string('agencia_mp', 200)->nullable(),
-                'num_carpeta_mp'       => fn($t) => $t->string('num_carpeta_mp', 100)->nullable(),
-                'grua_empresa'         => fn($t) => $t->string('grua_empresa', 100)->nullable(),
-                'grua_num_unidad'      => fn($t) => $t->string('grua_num_unidad', 50)->nullable(),
-                'num_vialidad'         => fn($t) => $t->string('num_vialidad', 50)->nullable(),
-                'fotos_urls'           => fn($t) => $t->text('fotos_urls')->nullable(),
-                'firma_conductor_url'  => fn($t) => $t->text('firma_conductor_url')->nullable(),
-            ] as $col => $def) {
-                if (!Schema::hasColumn('reportes_titan', $col)) {
-                    Schema::table('reportes_titan', $def);
-                }
-            }
         }
 
+        // ─── Reportes TITAN Fotos ─────────────────────────────────────
         if (!Schema::hasTable('reportes_titan_fotos')) {
             Schema::create('reportes_titan_fotos', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('reporte_id')->constrained('reportes_titan')->onDelete('cascade');
-                $table->text('foto_url');
+                $table->foreignId('reporte_titan_id')->constrained('reportes_titan')->onDelete('cascade');
+                $table->string('ruta_foto', 255);
                 $table->timestamps();
             });
         }
@@ -484,6 +565,15 @@ return new class extends Migration
                 $table->string('conductor_identificacion', 100)->nullable();
                 $table->boolean('conductor_nego_firmar')->default(false);
                 $table->unsignedBigInteger('inspector_id')->nullable();
+                
+                // Campos adicionales requeridos por el modelo y Neon DB
+                $table->string('inspector_nombre', 150)->nullable();
+                $table->string('inspector_gafete', 100)->nullable();
+                $table->string('adscripcion', 255)->nullable();
+                $table->text('firma_inspector')->nullable();
+                $table->string('recibio_nombre', 150)->nullable();
+                $table->text('firma_conductor')->nullable();
+
                 $table->timestamps();
             });
         }
@@ -543,21 +633,7 @@ return new class extends Migration
             });
         }
 
-        // ─── Bitácoras ────────────────────────────────────────────────
-        if (!Schema::hasTable('bitacoras')) {
-            Schema::create('bitacoras', function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('usuario_id')->nullable()->constrained('usuarios');
-                $table->string('accion', 100)->nullable();
-                $table->string('modulo', 100)->nullable();
-                $table->text('descripcion')->nullable();
-                $table->json('datos_anteriores')->nullable();
-                $table->json('datos_nuevos')->nullable();
-                $table->string('ip', 45)->nullable();
-                $table->timestamp('created_at')->nullable()->useCurrent();
-            });
-        }
-
+        // ─── Bitácora de Cambios de Unidades ──────────────────────────
         if (!Schema::hasTable('bitacora_cambios_unidades')) {
             Schema::create('bitacora_cambios_unidades', function (Blueprint $table) {
                 $table->id();
@@ -588,8 +664,8 @@ return new class extends Migration
         if (!Schema::hasTable('observacion_catalogos')) {
             Schema::create('observacion_catalogos', function (Blueprint $table) {
                 $table->id();
-                $table->string('tipo', 50)->nullable();
-                $table->string('texto', 500);
+                $table->integer('clave')->unique();
+                $table->string('descripcion', 500);
                 $table->timestamps();
             });
         }
@@ -599,7 +675,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('observacion_catalogos');
         Schema::dropIfExists('bitacora_cambios_unidades');
-        Schema::dropIfExists('bitacoras');
         Schema::dropIfExists('infracciones');
         Schema::dropIfExists('amonestaciones');
         Schema::dropIfExists('reportes_titan_fotos');
@@ -608,9 +683,11 @@ return new class extends Migration
         Schema::dropIfExists('plataforma_movimientos');
         Schema::dropIfExists('checklists');
         Schema::dropIfExists('historial_operativo');
+        Schema::dropIfExists('bitacoras');
         Schema::dropIfExists('informacion_operativa');
         Schema::dropIfExists('maniobristas');
         Schema::dropIfExists('conductores');
+        Schema::dropIfExists('secciones_unidad');
         Schema::dropIfExists('rutas');
         Schema::dropIfExists('unidades');
         Schema::dropIfExists('transportes');
