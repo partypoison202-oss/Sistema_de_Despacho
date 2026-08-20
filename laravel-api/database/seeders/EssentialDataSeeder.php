@@ -44,6 +44,11 @@ class EssentialDataSeeder extends Seeder
     private function seedTransportes(): void
     {
         $this->command->info('   → Cargando transportes...');
+        if (DB::table('transportes')->count() > 0) {
+            $this->command->info('     ✓ Transportes ya existen, omitiendo.');
+            return;
+        }
+
         $data = [
             ['id' => 1, 'nombre' => 'URBANUSS'],
             ['id' => 2, 'nombre' => 'VOLARE'],
@@ -61,6 +66,11 @@ class EssentialDataSeeder extends Seeder
     private function seedRutas(): void
     {
         $this->command->info('   → Cargando rutas...');
+        if (DB::table('rutas')->count() > 0) {
+            $this->command->info('     ✓ Rutas ya existen, omitiendo.');
+            return;
+        }
+
         $data = [
             ['id' => 1,  'ruta' => 'T01',  'tipo' => 'troncal'],
             ['id' => 2,  'ruta' => 'T02',  'tipo' => 'troncal'],
@@ -103,6 +113,11 @@ class EssentialDataSeeder extends Seeder
     private function seedSeccionesUnidad(): void
     {
         $this->command->info('   → Cargando secciones de unidad...');
+        if (DB::table('secciones_unidad')->count() > 0) {
+            $this->command->info('     ✓ Secciones de unidad ya existen, omitiendo.');
+            return;
+        }
+
         $data = [
             ['id' => 1, 'nombre' => 'Frente'],
             ['id' => 2, 'nombre' => 'Trasera'],
@@ -119,6 +134,11 @@ class EssentialDataSeeder extends Seeder
     private function seedRoles(): void
     {
         $this->command->info('   → Cargando roles...');
+        if (DB::table('roles')->count() > 0) {
+            $this->command->info('     ✓ Roles ya existen, omitiendo.');
+            return;
+        }
+
         $data = [
             ['id' => 1,  'codigo' => 'ADMINISTRADOR',       'nombre' => 'Administrador',         'descripcion' => 'Administrador general del sistema.'],
             ['id' => 2,  'codigo' => 'PROGRAMACION',        'nombre' => 'Programación',           'descripcion' => 'Gestión de la programación diaria.'],
@@ -142,6 +162,10 @@ class EssentialDataSeeder extends Seeder
     private function seedUnidades(): void
     {
         $this->command->info('   → Cargando unidades (148)...');
+        if (DB::table('unidades')->count() > 0) {
+            $this->command->info('     ✓ Unidades ya existen, omitiendo.');
+            return;
+        }
 
         // URBANUSS (transporte_id=1): 001-041 (sin 002 duplicado, etc.)
         $urbanuss = [];
@@ -220,6 +244,10 @@ class EssentialDataSeeder extends Seeder
     private function seedInformacionOperativa(): void
     {
         $this->command->info('   → Cargando información operativa (1 registro por unidad)...');
+        if (DB::table('informacion_operativa')->count() > 0) {
+            $this->command->info('     ✓ Información operativa ya existe, omitiendo.');
+            return;
+        }
 
         // Solo insertar si no existe ya un registro para esa unidad
         $unidades = DB::table('unidades')->orderBy('id')->get();
@@ -264,6 +292,10 @@ class EssentialDataSeeder extends Seeder
     private function seedUsuarios(): void
     {
         $this->command->info('   → Cargando usuario administrador...');
+        if (DB::table('usuarios')->count() > 0) {
+            $this->command->info('     ✓ Usuarios ya existen, omitiendo.');
+            return;
+        }
 
         // Solo el admin del sistema se seed automáticamente.
         // Los demás usuarios operativos deben crearse desde el panel de administración.
