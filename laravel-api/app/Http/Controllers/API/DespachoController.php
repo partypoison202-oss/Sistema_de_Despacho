@@ -178,8 +178,6 @@ class DespachoController extends Controller
             ->groupBy('tipo')
             ->get();
 
-        \Log::info('conteoUnidadesPorTipo - resultados crudos', $conteos->toArray());
-
         $resultado = [];
         foreach ($conteos as $item) {
             if (!empty($item->tipo)) {
@@ -192,8 +190,6 @@ class DespachoController extends Controller
                 }
             }
         }
-
-        \Log::info('conteoUnidadesPorTipo - resultado final', $resultado);
 
         return response()->json($resultado, 200);
     }
