@@ -472,11 +472,19 @@ return new class extends Migration
         if (!Schema::hasTable('amonestaciones')) {
             Schema::create('amonestaciones', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('conductor_id')->constrained('conductores');
-                $table->string('tipo', 100)->nullable();
-                $table->text('descripcion')->nullable();
-                $table->string('aplicada_por', 200)->nullable();
-                $table->timestamp('fecha_amonestacion')->nullable()->useCurrent();
+                $table->string('folio', 50)->unique();
+                $table->dateTime('fecha');
+                $table->string('lugar', 255);
+                $table->string('placas', 20)->nullable();
+                $table->string('entidad_federativa', 100)->nullable();
+                $table->string('marca', 100)->nullable();
+                $table->string('modelo', 100)->nullable();
+                $table->string('color', 50)->nullable();
+                $table->string('conductor_nombre', 150);
+                $table->string('conductor_identificacion', 100)->nullable();
+                $table->boolean('conductor_nego_firmar')->default(false);
+                $table->unsignedBigInteger('inspector_id')->nullable();
+                $table->timestamps();
             });
         }
 
@@ -484,19 +492,54 @@ return new class extends Migration
         if (!Schema::hasTable('infracciones')) {
             Schema::create('infracciones', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('conductor_id')->nullable()->constrained('conductores');
-                $table->foreignId('unidad_id')->nullable()->constrained('unidades');
-                $table->string('numero_folio', 50)->nullable();
-                $table->string('tipo_infraccion', 100)->nullable();
-                $table->string('autoridad', 100)->nullable();
-                $table->decimal('monto', 10, 2)->nullable();
-                $table->string('estatus', 30)->nullable()->default('pendiente');
-                $table->text('descripcion')->nullable();
-                $table->string('lugar', 255)->nullable();
-                $table->date('fecha_infraccion')->nullable();
-                $table->date('fecha_pago')->nullable();
-                $table->text('evidencia_urls')->nullable();
-                $table->timestamp('created_at')->nullable()->useCurrent();
+                $table->string('folio', 50)->unique();
+                $table->dateTime('fecha_expedicion');
+                $table->string('hora_intervencion', 20);
+                $table->string('municipio', 100)->default('Pachuca de Soto');
+                $table->string('ubicacion_exacta', 255);
+
+                $table->string('imagen_1', 255)->nullable();
+                $table->string('imagen_2', 255)->nullable();
+                $table->string('imagen_3', 255)->nullable();
+                $table->string('imagen_4', 255)->nullable();
+                $table->string('imagen_5', 255)->nullable();
+
+                $table->string('placas', 20)->index();
+                $table->string('entidad_federativa', 100);
+                $table->string('marca', 100);
+                $table->string('submarca', 100)->nullable();
+                $table->string('modelo', 100);
+                $table->string('color', 50);
+                $table->string('niv_vin', 100)->nullable();
+                $table->string('tipo_vehiculo', 50)->default('Particular');
+
+                $table->string('conductor_nombre', 150);
+                $table->text('conductor_domicilio')->nullable();
+                $table->string('licencia_numero', 100)->nullable();
+                $table->string('licencia_tipo', 50)->nullable();
+                $table->string('licencia_estado', 100)->nullable();
+                $table->string('calidad_conductor', 50)->default('Conductora');
+                $table->string('correo_infractor', 255)->nullable();
+
+                $table->string('motivacion_hecho', 100)->default('transitaba');
+                $table->text('descripcion_hechos')->nullable();
+
+                $table->decimal('sancion_uma', 10, 2)->default(0);
+                $table->string('garantia_tipo', 100)->default('Detención del Vehículo');
+                $table->text('garantia_observaciones')->nullable();
+
+                $table->unsignedBigInteger('inspector_id')->nullable();
+                $table->string('inspector_nombre', 150);
+                $table->string('inspector_gafete', 100);
+                $table->string('adscripcion', 255)->default('Dirección Jurídica del SITMAH');
+                $table->longText('firma_inspector')->nullable();
+
+                $table->boolean('conductor_nego_firmar')->default(false);
+                $table->string('recibio_nombre', 150)->nullable();
+                $table->longText('firma_conductor')->nullable();
+                
+                $table->foreignId('amonestacion_id')->nullable()->constrained('amonestaciones');
+                $table->timestamps();
             });
         }
 
