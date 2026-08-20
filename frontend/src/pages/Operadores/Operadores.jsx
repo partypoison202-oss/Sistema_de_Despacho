@@ -411,6 +411,9 @@ export default function Operadores() {
       const res = await fetch(`${API_BASE}/api/conductores?incluir_bajas=true`, {
         headers: getAuthHeaders()
       });
+      if (res.status === 401) {
+        throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+      }
       if (!res.ok) throw new Error('Error al cargar operadores');
       const data = await res.json();
       setConductores(Array.isArray(data) ? data : []);
@@ -419,9 +422,18 @@ export default function Operadores() {
       if (!silent) {
         Swal.fire({
           icon: 'error',
-          title: 'Error',
-          text: 'No se pudieron cargar los operadores.',
+          title: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.' ? 'Sesión expirada' : 'Error',
+          text: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.' 
+            ? err.message 
+            : 'No se pudieron cargar los operadores.',
           confirmButtonColor: '#6b1d33'
+        }).then((result) => {
+          if (result.isConfirmed && err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.') {
+            // Limpiar tokens y redirigir al login si la sesión expiró
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('token');
+            window.location.href = '/login';
+          }
         });
       }
     } finally {
