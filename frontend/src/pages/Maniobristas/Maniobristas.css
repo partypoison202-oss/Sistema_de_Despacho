@@ -98,17 +98,11 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
   overflow: visible;
-  overflow: visible;
 }
 
 .table-responsive {
-<<<<<<< Updated upstream
   overflow-x: auto;
-  padding-bottom: 140px; /* Espacio para que el dropdown no se corte en las últimas filas */
-  min-height: 250px;
-=======
   min-height: 350px;
->>>>>>> Stashed changes
 }
 
 .maniobristas-table {
