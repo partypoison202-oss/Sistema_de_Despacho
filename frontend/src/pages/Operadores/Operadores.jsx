@@ -372,7 +372,7 @@ export default function Operadores() {
       if (savingDetail) return;
       setSavingDetail(true);
       const fieldName = `${detailsType}_detalle`;
-      const updatedDetails = (detailsConductor[fieldName] || []).filter(d => d.id !== detailId);
+      const updatedDetails = getDetailArray(detailsConductor, detailsType).filter(d => d.id !== detailId);
       
       try {
         const res = await fetch(`${API_BASE}/api/conductores/${detailsConductor.id}`, {
