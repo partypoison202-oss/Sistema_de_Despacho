@@ -101,12 +101,9 @@ function StatusDropdown({ value, onChange }) {
     { value: 'falta', label: 'FALTA', class: 'falta' },
     { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' },
     { value: 'permuta', label: 'PERMUTA', class: 'permuta', hideInMenu: true }
-    { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' },
-    { value: 'permuta', label: 'PERMUTA', class: 'permuta', hideInMenu: true }
   ];
 
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
-  const isReadOnly = selectedOpt.value === 'permuta';
   const isReadOnly = selectedOpt.value === 'permuta';
 
   return (
