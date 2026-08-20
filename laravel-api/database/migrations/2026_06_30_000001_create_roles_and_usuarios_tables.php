@@ -19,10 +19,12 @@ return new class extends Migration
             $table->id();
             $table->string('nombre_completo');
             $table->string('usuario')->unique();
+            $table->string('correo')->nullable();
             $table->string('contrasena');
             $table->boolean('activo')->default(true);
             $table->foreignId('rol_id')->nullable()->constrained('roles');
-            $table->timestamps();
+            $table->timestamp('fecha_creacion')->nullable();
+            $table->timestamp('fecha_actualizacion')->nullable();
         });
     }
 

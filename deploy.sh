@@ -36,9 +36,10 @@ composer install --no-interaction --prefer-dist --optimize-autoloader
 echo -e "${BLUE}🧹 4. Limpiando caché de Laravel...${NC}"
 php artisan optimize:clear
 
-# Paso 5: Ejecución de migraciones
-echo -e "${BLUE}🗄️ 5. Ejecutando migraciones de base de datos...${NC}"
+# Paso 5: Ejecución de migraciones y seeders
+echo -e "${BLUE}🗄️ 5. Ejecutando migraciones y seeders de base de datos...${NC}"
 php artisan migrate --force
+php artisan db:seed --force
 
 # Paso 6: Asignación de permisos en storage y bootstrap/cache
 echo -e "${BLUE}🔐 6. Asignando permisos críticos a storage y bootstrap/cache...${NC}"

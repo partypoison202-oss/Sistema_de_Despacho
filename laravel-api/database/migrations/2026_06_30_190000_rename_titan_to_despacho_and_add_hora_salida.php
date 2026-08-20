@@ -31,12 +31,16 @@ return new class extends Migration
             ]);
 
         // 3. Update seccion_componente table to change tipo_formulario from 'TITAN' to 'DESPACHO'
-        DB::table('seccion_componente')
-            ->where('tipo_formulario', 'TITAN')
-            ->update(['tipo_formulario' => 'DESPACHO']);
+        if (Schema::hasTable('seccion_componente')) {
+            DB::table('seccion_componente')
+                ->where('tipo_formulario', 'TITAN')
+                ->update(['tipo_formulario' => 'DESPACHO']);
 
-        // 4. Alter table default for tipo_formulario to 'DESPACHO'
-        DB::statement("ALTER TABLE seccion_componente ALTER COLUMN tipo_formulario SET DEFAULT 'DESPACHO'");
+            // 4. Alter table default for tipo_formulario to 'DESPACHO' (solo si es Postgres)
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement("ALTER TABLE seccion_componente ALTER COLUMN tipo_formulario SET DEFAULT 'DESPACHO'");
+            }
+        }
     }
 
     /**
@@ -44,11 +48,15 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE seccion_componente ALTER COLUMN tipo_formulario SET DEFAULT 'TITAN'");
+        if (Schema::hasTable('seccion_componente')) {
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement("ALTER TABLE seccion_componente ALTER COLUMN tipo_formulario SET DEFAULT 'TITAN'");
+            }
 
-        DB::table('seccion_componente')
-            ->where('tipo_formulario', 'DESPACHO')
-            ->update(['tipo_formulario' => 'TITAN']);
+            DB::table('seccion_componente')
+                ->where('tipo_formulario', 'DESPACHO')
+                ->update(['tipo_formulario' => 'TITAN']);
+        }
 
         DB::table('roles')
             ->where('codigo', 'DESPACHO')

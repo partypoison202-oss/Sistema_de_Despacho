@@ -18,6 +18,9 @@ fi
 echo "🔄 Ejecutando migraciones de la base de datos..."
 php artisan migrate --force
 
+echo "🌱 Sembrando datos base (Seeders)..."
+php artisan db:seed --force
+
 echo "🔗 Creando acceso directo de almacenamiento (storage:link)..."
 php artisan storage:link --force || true
 
