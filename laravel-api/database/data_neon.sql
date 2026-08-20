@@ -9,36 +9,36 @@ INSERT INTO "transportes" ("id", "nombre") VALUES ('3', 'ZAFIRO') ON CONFLICT DO
 SELECT setval(pg_get_serial_sequence('transportes', 'id'), COALESCE((SELECT MAX(id) FROM "transportes"), 1));
 
 -- Tabla: rutas
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('1', 'T01', 'troncal', '2026-08-20 10:45:18', '2026-08-20 10:45:18') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('2', 'T02', 'troncal', '2026-08-20 10:45:18', '2026-08-20 10:45:18') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('3', 'T04', 'troncal', '2026-08-20 10:45:18', '2026-08-20 10:45:18') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('4', 'T05', 'troncal', '2026-08-20 10:45:18', '2026-08-20 10:45:18') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('5', '1A', 'alimentadora', '2026-08-20 10:45:18', '2026-08-20 10:45:18') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('6', '1B', 'alimentadora', '2026-08-20 10:45:18', '2026-08-20 10:45:18') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('7', '2A', 'alimentadora', '2026-08-20 10:45:18', '2026-08-20 10:45:18') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('8', '2B', 'alimentadora', '2026-08-20 10:45:19', '2026-08-20 10:45:19') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('9', '2D', 'alimentadora', '2026-08-20 10:45:19', '2026-08-20 10:45:19') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('10', '2E', 'alimentadora', '2026-08-20 10:45:19', '2026-08-20 10:45:19') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('11', '3', 'alimentadora', '2026-08-20 10:45:19', '2026-08-20 10:45:19') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('12', '4A', 'alimentadora', '2026-07-09 17:47:51', '2026-07-09 17:47:51') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('13', '5', 'alimentadora', '2026-08-20 10:45:19', '2026-08-20 10:45:19') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('14', '6', 'alimentadora', '2026-08-20 10:45:19', '2026-08-20 10:45:19') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('15', '7', 'alimentadora', '2026-08-20 10:45:20', '2026-08-20 10:45:20') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('16', '8', 'alimentadora', '2026-08-20 10:45:20', '2026-08-20 10:45:20') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('17', '9', 'alimentadora', '2026-08-20 10:45:20', '2026-08-20 10:45:20') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('18', '10', 'alimentadora', '2026-08-20 10:45:20', '2026-08-20 10:45:20') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('19', '11', 'alimentadora', '2026-08-20 10:45:20', '2026-08-20 10:45:20') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('20', '12', 'alimentadora', '2026-08-20 10:45:20', '2026-08-20 10:45:20') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('21', '13', 'alimentadora', '2026-08-20 10:45:21', '2026-08-20 10:45:21') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('22', '14', 'alimentadora', '2026-08-20 10:45:21', '2026-08-20 10:45:21') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('23', '15A', 'alimentadora', '2026-08-20 10:45:21', '2026-08-20 10:45:21') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('24', '15B', 'alimentadora', '2026-08-20 10:45:21', '2026-08-20 10:45:21') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('25', '15C', 'alimentadora', '2026-08-20 10:45:21', '2026-08-20 10:45:21') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('26', '16', 'alimentadora', '2026-08-20 10:45:21', '2026-08-20 10:45:21') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('27', '17', 'alimentadora', '2026-08-20 10:45:21', '2026-08-20 10:45:21') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('28', '19', 'alimentadora', '2026-08-20 10:45:22', '2026-08-20 10:45:22') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('29', '20B', 'alimentadora', '2026-08-20 10:45:22', '2026-08-20 10:45:22') ON CONFLICT DO NOTHING;
-INSERT INTO "rutas" ("id", "ruta", "tipo", "created_at", "updated_at") VALUES ('30', '4', 'alimentadora', '2026-08-20 10:45:19', '2026-08-20 10:45:19') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('1', 'T01', 'troncal') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('2', 'T02', 'troncal') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('3', 'T04', 'troncal') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('4', 'T05', 'troncal') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('5', '1A', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('6', '1B', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('7', '2A', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('8', '2B', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('9', '2D', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('10', '2E', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('11', '3', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('12', '4A', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('13', '5', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('14', '6', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('15', '7', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('16', '8', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('17', '9', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('18', '10', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('19', '11', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('20', '12', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('21', '13', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('22', '14', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('23', '15A', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('24', '15B', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('25', '15C', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('26', '16', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('27', '17', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('28', '19', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('29', '20B', 'alimentadora') ON CONFLICT DO NOTHING;
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('30', '4', 'alimentadora') ON CONFLICT DO NOTHING;
 SELECT setval(pg_get_serial_sequence('rutas', 'id'), COALESCE((SELECT MAX(id) FROM "rutas"), 1));
 
 -- Tabla: secciones_unidad
@@ -452,4 +452,3 @@ INSERT INTO "maniobristas" ("id", "nombre", "tarjeton", "tipo_tarjeton", "estado
 SELECT setval(pg_get_serial_sequence('maniobristas', 'id'), COALESCE((SELECT MAX(id) FROM "maniobristas"), 1));
 
 COMMIT;
-
