@@ -102,6 +102,8 @@
 
 .table-responsive {
   overflow-x: auto;
+  padding-bottom: 140px; /* Espacio para que el dropdown no se corte en las últimas filas */
+  min-height: 250px;
 }
 
 .maniobristas-table {
