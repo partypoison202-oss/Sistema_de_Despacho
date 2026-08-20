@@ -1072,7 +1072,6 @@ export default function Operadores() {
                     <th style={{ width: '280px' }}>Condicionamientos médicos</th>
                     <th style={{ minWidth: '180px' }}>Condicionamientos Jurídicos</th>
                     <th style={{ width: '130px', textAlign: 'center' }}>Permutas</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>Permisos</th>
                     <th style={{ width: '150px', textAlign: 'center' }}>Evaluación</th>
                     <th style={{ width: '350px' }}>Observaciones</th>
                   </tr>
@@ -1201,16 +1200,6 @@ export default function Operadores() {
                             onClick={() => openDetailsModal(c, 'permutas')}
                           >
                             <span className="badge-number">{c.permutas ?? 0}</span>
-                            <span className="badge-text">Detalles</span>
-                          </button>
-                        </td>
-                        <td className="text-center">
-                          <button 
-                            type="button" 
-                            className="btn-details-badge"
-                            onClick={() => openDetailsModal(c, 'permisos')}
-                          >
-                            <span className="badge-number">{c.permisos ?? 0}</span>
                             <span className="badge-text">Detalles</span>
                           </button>
                         </td>
