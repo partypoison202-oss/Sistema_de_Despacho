@@ -53,7 +53,7 @@ class AdminUserSeeder extends Seeder
             'usuario'             => 'Admin',
             'correo'              => 'admin@sitmah.gob.mx',
             'contrasena'          => Hash::make('password'),
-            'activo'              => true,
+            'activo'              => DB::raw('true'),
             'rol_id'              => $rol->id,
             'foto_url'            => null,
             'fecha_creacion'      => now()->toDateTimeString(),
