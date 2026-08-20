@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Schema;
 // Exportamos todas las tablas de catálogos, configuraciones y estados para iniciar limpios sin seeders
 $tables = [
     'roles',
-    'usuarios',
     'transportes',
     'rutas',
     'secciones_unidad',
