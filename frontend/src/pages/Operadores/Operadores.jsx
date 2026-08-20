@@ -172,7 +172,14 @@ const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder =
     if (localValue !== value) {
       setStatus('saving');
       try {
-        await onChange(localValue);
+        let finalValue = localValue;
+        if (type === 'number') {
+          finalValue = Number(localValue);
+          if (isNaN(finalValue) || localValue === '') {
+            finalValue = 0;
+          }
+        }
+        await onChange(finalValue);
         setStatus('saved');
         setTimeout(() => setStatus('idle'), 2000);
       } catch (e) {
