@@ -4,9 +4,9 @@ import { createPortal } from 'react-dom';
 const CALENDAR_WIDTH = 288; // w-72
 const CALENDAR_HEIGHT = 320; // approx height
 
-const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false }) => {
+const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false, mode = "date" }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [view, setView] = useState('days'); // 'days' | 'years'
+  const [view, setView] = useState(mode === 'month' ? 'months' : 'days'); // 'days' | 'months' | 'years'
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const wrapperRef = useRef(null);
@@ -47,7 +47,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
   // Reposiciona al abrir y en eventos de resize/scroll
   useEffect(() => {
     if (!isOpen) {
-      setView('days');
+      setView(mode === 'month' ? 'months' : 'days');
       return;
     }
     updatePosition();
@@ -134,6 +134,10 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     const parts = value.split('-');
     if (parts.length === 3) {
       const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+      if (mode === 'month') {
+        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        return `${meses[d.getMonth()]} ${d.getFullYear()}`;
+      }
       return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
     }
     return value;
@@ -240,14 +244,16 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             </button>
 
             <div className="flex items-center gap-1">
-              <span className="font-bold text-slate-800 text-sm tracking-tight">
-                {monthNames[currentMonth.getMonth()]}
-              </span>
+              {mode !== 'month' && (
+                <span className="font-bold text-slate-800 text-sm tracking-tight">
+                  {monthNames[currentMonth.getMonth()]}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setView(view === 'days' ? 'years' : 'days');
+                  setView(view === 'years' ? (mode === 'month' ? 'months' : 'days') : 'years');
                 }}
                 className={`font-extrabold text-sm px-2 py-0.5 rounded-md transition-colors ${view === 'years' ? 'bg-[#6b1d33] text-white shadow-sm' : 'text-[#6b1d33] hover:bg-slate-100'}`}
               >
@@ -282,6 +288,46 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
                 {days}
               </div>
             </>
+          ) : view === 'months' ? (
+            <div className="grid grid-cols-3 gap-2 mt-4 mb-2">
+              {monthNames.map((m, idx) => {
+                let isSelected = false;
+                if (value) {
+                  const parts = value.split('-');
+                  if (parts.length === 3) {
+                    isSelected = parseInt(parts[1]) - 1 === idx && parseInt(parts[0]) === currentMonth.getFullYear();
+                  }
+                }
+                const isFuture = disableFuture && currentMonth.getFullYear() === today.getFullYear() && idx > today.getMonth();
+                const isPast = disablePast && currentMonth.getFullYear() === today.getFullYear() && idx < today.getMonth();
+                const isFutureYear = disableFuture && currentMonth.getFullYear() > today.getFullYear();
+                const isPastYear = disablePast && currentMonth.getFullYear() < today.getFullYear();
+                const isDisabled = isFuture || isPast || isFutureYear || isPastYear;
+
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newMonthStr = String(idx + 1).padStart(2, '0');
+                      const yearStr = currentMonth.getFullYear();
+                      onChange(`${yearStr}-${newMonthStr}-01`);
+                      setIsOpen(false);
+                    }}
+                    className={`py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                      isDisabled ? 'opacity-30 cursor-not-allowed text-slate-400' :
+                      isSelected 
+                        ? 'bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 active:scale-95 cursor-pointer'
+                    }`}
+                  >
+                    {m.substring(0,3).toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
           ) : (
             <div 
               ref={yearsContainerRef}
@@ -298,7 +344,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
                       e.stopPropagation();
                       const newDate = new Date(year, currentMonth.getMonth(), 1);
                       setCurrentMonth(newDate);
-                      setView('days');
+                      setView(mode === 'month' ? 'months' : 'days');
                     }}
                     className={`py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                       isSelected 
@@ -319,7 +365,7 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               onClick={handleTodaySelect}
               className="text-xs font-bold text-[#6b1d33] hover:text-[#8d2745] transition-colors"
             >
-              Hoy
+              {mode === 'month' ? 'Mes actual' : 'Hoy'}
             </button>
             <button
               type="button"

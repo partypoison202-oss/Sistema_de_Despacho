@@ -104,6 +104,7 @@ export default function GeneracionGafete({ conductores }) {
                 placeholder="Seleccionar Fecha"
                 disableFuture={false}
                 disablePast={false}
+                mode="month"
               />
             </div>
             <div>
@@ -114,6 +115,7 @@ export default function GeneracionGafete({ conductores }) {
                 placeholder="Seleccionar Fecha"
                 disableFuture={false}
                 disablePast={false}
+                mode="month"
               />
             </div>
           </div>
