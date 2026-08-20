@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('observacion_catalogos', function (Blueprint $table) {
+        if (!Schema::hasTable('observacion_catalogos')) {
+            Schema::create('observacion_catalogos', function (Blueprint $table) {
             $table->id();
             $table->integer('clave')->unique();
             $table->string('descripcion');
             $table->timestamps();
         });
+        }
     }
 
     /**

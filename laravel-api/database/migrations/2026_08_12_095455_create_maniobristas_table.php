@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('maniobristas', function (Blueprint $table) {
+        if (!Schema::hasTable('maniobristas')) {
+            Schema::create('maniobristas', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 200);
             $table->string('tarjeton', 50)->unique();
@@ -20,6 +21,7 @@ return new class extends Migration
             $table->string('estatus', 20)->default('ACTIVO'); // ACTIVO, BAJA
             $table->timestamps();
         });
+        }
     }
 
     /**

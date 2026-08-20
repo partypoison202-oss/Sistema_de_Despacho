@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('informacion_operativa', function (Blueprint $table) {
+        if (!Schema::hasTable('informacion_operativa')) {
+            Schema::create('informacion_operativa', function (Blueprint $table) {
             $table->id();
             $table->foreignId('unidad_id')->constrained('unidades');
             $table->string('ruta')->nullable();
@@ -20,6 +21,7 @@ return new class extends Migration
             $table->timestamp('fecha_registro');
             $table->timestamps();
         });
+        }
     }
 
     /**

@@ -18,12 +18,14 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Create conductors table
-        Schema::create('conductores', function (Blueprint $table) {
+        if (!Schema::hasTable('conductores')) {
+            Schema::create('conductores', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 200);
             $table->string('tarjeton', 50)->unique();
             $table->timestamps();
         });
+        }
 
         // 2. Populate conductors from existing data in informacion_operativa
         $existing = DB::table('informacion_operativa')

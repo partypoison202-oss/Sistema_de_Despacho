@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('historial_operativo', function (Blueprint $table) {
+        if (!Schema::hasTable('historial_operativo')) {
+            Schema::create('historial_operativo', function (Blueprint $table) {
             $table->id();
             $table->date('fecha_historial'); // Identificador del día del snapshot
             $table->foreignId('unidad_id')->constrained('unidades');
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->timestamp('fecha_registro')->nullable(); // La fecha original del registro
             $table->timestamps();
         });
+        }
     }
 
     /**

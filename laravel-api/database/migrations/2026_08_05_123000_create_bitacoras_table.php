@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bitacoras', function (Blueprint $table) {
+        if (!Schema::hasTable('bitacoras')) {
+            Schema::create('bitacoras', function (Blueprint $table) {
             $table->id();
             $table->string('unidad')->nullable();
             $table->string('cambio')->nullable();
@@ -19,6 +20,7 @@ return new class extends Migration
             $table->string('id_vespertino')->nullable();
             $table->timestamps();
         });
+        }
     }
 
     /**

@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bitacora_cambios_unidades', function (Blueprint $table) {
+        if (!Schema::hasTable('bitacora_cambios_unidades')) {
+            Schema::create('bitacora_cambios_unidades', function (Blueprint $table) {
             $table->id();
             $table->date('fecha')->index();
             $table->foreignId('unidad_id')->constrained('unidades')->onDelete('cascade');
@@ -22,6 +23,7 @@ return new class extends Migration
             $table->text('detalles')->nullable();
             $table->timestamps();
         });
+        }
     }
 
     /**

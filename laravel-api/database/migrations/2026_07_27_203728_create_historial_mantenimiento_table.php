@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('historial_mantenimiento', function (Blueprint $table) {
+        if (!Schema::hasTable('historial_mantenimiento')) {
+            Schema::create('historial_mantenimiento', function (Blueprint $table) {
             $table->id();
             $table->foreignId('unidad_id')->constrained('unidades')->onDelete('cascade');
             $table->string('tipo_vehiculo')->nullable();
@@ -23,6 +24,7 @@ return new class extends Migration
             $table->timestamp('fecha_registro')->nullable();
             $table->timestamps();
         });
+        }
     }
 
     /**

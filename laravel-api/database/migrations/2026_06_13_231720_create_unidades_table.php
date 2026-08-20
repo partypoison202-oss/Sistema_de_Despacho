@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('unidades', function (Blueprint $table) {
+        if (!Schema::hasTable('unidades')) {
+            Schema::create('unidades', function (Blueprint $table) {
             $table->id();
             $table->string('numero_eco');
             $table->string('tipo')->nullable();
             $table->timestamps();
         });
+        }
     }
 
     /**

@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rutas', function (Blueprint $table) {
+        if (!Schema::hasTable('rutas')) {
+            Schema::create('rutas', function (Blueprint $table) {
             $table->id();
             $table->string('ruta')->unique('rt_ruta_unique');
             $table->string('tipo');
             $table->timestamps();
         });
+        }
     }
 
     /**
