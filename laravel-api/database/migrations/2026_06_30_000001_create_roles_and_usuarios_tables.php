@@ -8,24 +8,28 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('roles', function (Blueprint $table) {
-            $table->id();
-            $table->string('codigo')->unique();
-            $table->string('nombre');
-            $table->text('descripcion')->nullable();
-        });
+        if (!Schema::hasTable('roles')) {
+            Schema::create('roles', function (Blueprint $table) {
+                $table->id();
+                $table->string('codigo')->unique();
+                $table->string('nombre');
+                $table->text('descripcion')->nullable();
+            });
+        }
 
-        Schema::create('usuarios', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre_completo');
-            $table->string('usuario')->unique();
-            $table->string('correo')->nullable();
-            $table->string('contrasena');
-            $table->boolean('activo')->default(true);
-            $table->foreignId('rol_id')->nullable()->constrained('roles');
-            $table->timestamp('fecha_creacion')->nullable();
-            $table->timestamp('fecha_actualizacion')->nullable();
-        });
+        if (!Schema::hasTable('usuarios')) {
+            Schema::create('usuarios', function (Blueprint $table) {
+                $table->id();
+                $table->string('nombre_completo');
+                $table->string('usuario')->unique();
+                $table->string('correo')->nullable();
+                $table->string('contrasena');
+                $table->boolean('activo')->default(true);
+                $table->foreignId('rol_id')->nullable()->constrained('roles');
+                $table->timestamp('fecha_creacion')->nullable();
+                $table->timestamp('fecha_actualizacion')->nullable();
+            });
+        }
     }
 
     public function down(): void
