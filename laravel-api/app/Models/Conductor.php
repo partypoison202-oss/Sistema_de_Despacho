@@ -11,8 +11,11 @@ class Conductor extends Model
 
     protected $table = 'conductores';
 
+    protected $appends = ['nombre'];
+
     protected $fillable = [
-        'nombre',
+        'nombres',
+        'apellidos',
         'tarjeton',
         'tipo_tarjeton',
         'estado_servicio',
@@ -51,4 +54,9 @@ class Conductor extends Model
         'permutas_detalle' => 'array',
         'accidentes_siniestros_detalle' => 'array',
     ];
+
+    public function getNombreAttribute()
+    {
+        return trim("{$this->apellidos} {$this->nombres}");
+    }
 }

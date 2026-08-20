@@ -83,8 +83,11 @@ class ConductorController extends Controller
         $this->ensureColumnsExist();
 
         $request->validate([
-            'nombre' => 'required|string|max:200',
-            'tipo_tarjeton' => 'required|string|max:50'
+            'nombres' => 'required|string|max:100',
+            'apellidos' => 'required|string|max:100',
+            'tipo_tarjeton' => 'required|string|max:50',
+            'telefono' => 'nullable|string|digits:10',
+            'sexo' => 'required|string|in:Masculino,Femenino'
         ]);
 
         // Generar tarjetón de forma automática
@@ -112,7 +115,8 @@ class ConductorController extends Controller
         }
 
         $conductor = Conductor::create([
-            'nombre' => trim($request->nombre),
+            'nombres' => trim($request->nombres),
+            'apellidos' => trim($request->apellidos),
             'tarjeton' => $tarjetonGenerado,
             'tipo_tarjeton' => trim($request->tipo_tarjeton),
             'estado_servicio' => 'disponible',
@@ -142,7 +146,8 @@ class ConductorController extends Controller
         $conductor = Conductor::findOrFail($id);
 
         $request->validate([
-            'nombre' => 'sometimes|required|string|max:200',
+            'nombres' => 'sometimes|required|string|max:100',
+            'apellidos' => 'sometimes|required|string|max:100',
             'tipo_tarjeton' => 'sometimes|required|string|max:50',
             'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista,permuta',
             'ultima_capacitacion' => 'sometimes|nullable|date',
@@ -159,9 +164,9 @@ class ConductorController extends Controller
             'evaluacion' => 'sometimes|nullable|string|max:100',
             'observaciones' => 'sometimes|nullable|string|max:500',
             'vigencia_licencia' => 'sometimes|nullable|date',
-            'sexo' => 'sometimes|nullable|string|in:Masculino,Femenino',
+            'sexo' => 'sometimes|required|string|in:Masculino,Femenino',
             'fecha_nacimiento' => 'sometimes|nullable|date',
-            'telefono' => 'sometimes|nullable|string|max:50',
+            'telefono' => 'sometimes|nullable|string|digits:10',
             'referencia_1' => 'sometimes|nullable|string|max:200',
             'referencia_2' => 'sometimes|nullable|string|max:200',
             'fecha_ingreso' => 'sometimes|nullable|date',
@@ -172,8 +177,12 @@ class ConductorController extends Controller
             'accidentes_siniestros_detalle' => 'sometimes|array'
         ]);
 
-        if ($request->has('nombre')) {
-            $conductor->nombre = trim($request->nombre);
+        if ($request->has('nombres')) {
+            $conductor->nombres = trim($request->nombres);
+        }
+
+        if ($request->has('apellidos')) {
+            $conductor->apellidos = trim($request->apellidos);
         }
 
         if ($request->has('tipo_tarjeton')) {

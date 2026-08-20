@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
@@ -68,15 +69,36 @@ function StatusDropdown({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  const [menuStyle, setMenuStyle] = useState({});
+
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !e.target.closest('.status-dropdown-menu')) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    const handleScroll = () => {
+      if (isOpen) setIsOpen(false);
+    };
+
+    if (isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setMenuStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999
+      });
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isOpen]);
 
   const options = [
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
@@ -120,8 +142,8 @@ function StatusDropdown({ value, onChange }) {
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="status-dropdown-menu">
+      {isOpen && createPortal(
+        <div className="status-dropdown-menu" style={menuStyle}>
           {options.map((opt) => (
             <div
               key={opt.value}
@@ -143,7 +165,8 @@ function StatusDropdown({ value, onChange }) {
               {opt.label}
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -263,7 +286,8 @@ export default function Operadores() {
   const [selectedConductor, setSelectedConductor] = useState(null);
 
   // Form states
-  const [nombre, setNombre] = useState('');
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
   const [tipoTarjeton, setTipoTarjeton] = useState('');
   const [vigenciaLicencia, setVigenciaLicencia] = useState('');
   const [sexo, setSexo] = useState('');
@@ -297,12 +321,27 @@ export default function Operadores() {
     };
   };
 
-  // Validación en tiempo real para el nombre del operador: solo letras, acentos, ñ y espacios
-  const handleNombreChange = (e) => {
+  // Validación en tiempo real: solo letras, acentos, ñ y espacios
+  const handleNombresChange = (e) => {
     const val = e.target.value.toUpperCase();
     const filtered = val.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
     if (filtered.length <= 100) {
-      setNombre(filtered);
+      setNombres(filtered);
+    }
+  };
+
+  const handleApellidosChange = (e) => {
+    const val = e.target.value.toUpperCase();
+    const filtered = val.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+    if (filtered.length <= 100) {
+      setApellidos(filtered);
+    }
+  };
+
+  const handlePhoneChange = (e, setter) => {
+    const val = e.target.value.replace(/\D/g, ''); // Solo números
+    if (val.length <= 10) {
+      setter(val);
     }
   };
 
@@ -491,7 +530,8 @@ export default function Operadores() {
   }, [showDetailsModal, showEditModal, showAddModal]);
 
   const handleOpenAddModal = () => {
-    setNombre('');
+    setNombres('');
+    setApellidos('');
     setTipoTarjeton('');
     setFoto(null);
     setVigenciaLicencia('');
@@ -509,12 +549,23 @@ export default function Operadores() {
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
-    const nombreLimpio = nombre.trim();
-    if (!nombreLimpio || !tipoTarjeton.trim()) {
+    const nombresLimpio = nombres.trim();
+    const apellidosLimpio = apellidos.trim();
+    if (!nombresLimpio || !apellidosLimpio || !tipoTarjeton.trim() || !sexo) {
       Swal.fire({
         icon: 'warning',
         title: 'Campos requeridos',
-        text: 'Por favor ingresa un nombre válido para el operador.',
+        text: 'Por favor ingresa nombres, apellidos, tipo de tarjetón y sexo.',
+        confirmButtonColor: '#c5a059'
+      });
+      return;
+    }
+
+    if ((telefono && telefono.length !== 10) || (ref1Telefono && ref1Telefono.length !== 10) || (ref2Telefono && ref2Telefono.length !== 10)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Teléfono inválido',
+        text: 'Todos los números de teléfono deben tener exactamente 10 dígitos.',
         confirmButtonColor: '#c5a059'
       });
       return;
@@ -523,7 +574,8 @@ export default function Operadores() {
     setSubmitting(true);
     try {
       const payload = {
-        nombre: nombreLimpio,
+        nombres: nombresLimpio,
+        apellidos: apellidosLimpio,
         tipo_tarjeton: tipoTarjeton.trim(),
       };
       if (vigenciaLicencia) payload.vigencia_licencia = vigenciaLicencia;
@@ -591,7 +643,8 @@ export default function Operadores() {
 
   const handleOpenEditModal = (c) => {
     setSelectedConductor(c);
-    setNombre(c.nombre || '');
+    setNombres(c.nombres || '');
+    setApellidos(c.apellidos || '');
     setTipoTarjeton(c.tipo_tarjeton === 'C' ? 'C' : 'B');
     setVigenciaLicencia(c.vigencia_licencia || '');
     setSexo(c.sexo || '');
@@ -618,12 +671,23 @@ export default function Operadores() {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    const nombreLimpio = nombre.trim();
-    if (!nombreLimpio) {
+    const nombresLimpio = nombres.trim();
+    const apellidosLimpio = apellidos.trim();
+    if (!nombresLimpio || !apellidosLimpio || !tipoTarjeton.trim() || !sexo) {
       Swal.fire({
         icon: 'warning',
-        title: 'Campo requerido',
-        text: 'El nombre del operador no puede estar vacío.',
+        title: 'Campos requeridos',
+        text: 'Los nombres, apellidos, tipo de tarjetón y sexo del operador no pueden estar vacíos.',
+        confirmButtonColor: '#c5a059'
+      });
+      return;
+    }
+
+    if ((telefono && telefono.length !== 10) || (ref1Telefono && ref1Telefono.length !== 10) || (ref2Telefono && ref2Telefono.length !== 10)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Teléfono inválido',
+        text: 'Todos los números de teléfono deben tener exactamente 10 dígitos.',
         confirmButtonColor: '#c5a059'
       });
       return;
@@ -632,7 +696,8 @@ export default function Operadores() {
     setSubmitting(true);
     try {
       const payload = {
-        nombre: nombreLimpio,
+        nombres: nombresLimpio,
+        apellidos: apellidosLimpio,
         tipo_tarjeton: tipoTarjeton.trim(),
       };
       if (vigenciaLicencia) payload.vigencia_licencia = vigenciaLicencia;
@@ -1283,20 +1348,29 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre Completo del Operador</label>
+                <label className="form-label">Apellidos del Operador</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. PÉREZ LÓPEZ JUAN"
-                  value={nombre}
-                  onChange={handleNombreChange}
+                  placeholder="Ej. PÉREZ LÓPEZ"
+                  value={apellidos}
+                  onChange={handleApellidosChange}
                   maxLength={100}
                   className="modal-input"
                 />
-                <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '5px', lineHeight: '1.4' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  <span>Inicia por <strong style={{ color: '#555' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).</span>
-                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Nombre(s) del Operador</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. JUAN ARTURO"
+                  value={nombres}
+                  onChange={handleNombresChange}
+                  maxLength={100}
+                  className="modal-input"
+                />
               </div>
 
               <div className="form-group">
@@ -1324,7 +1398,7 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Teléfono</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={telefono} onChange={e => handlePhoneChange(e, setTelefono)} placeholder="Ej. 5551234567" maxLength={10} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Fecha de Ingreso</label>
@@ -1343,7 +1417,7 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Teléfono</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Telefono} onChange={e => setRef1Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Telefono} onChange={e => handlePhoneChange(e, setRef1Telefono)} placeholder="Ej. 5551234567" maxLength={10} />
                 </div>
               </div>
 
@@ -1354,7 +1428,7 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Teléfono</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Telefono} onChange={e => setRef2Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Telefono} onChange={e => handlePhoneChange(e, setRef2Telefono)} placeholder="Ej. 5551234567" maxLength={10} />
                 </div>
               </div>
 
@@ -1435,20 +1509,29 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre Completo del Operador</label>
+                <label className="form-label">Apellidos del Operador</label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. PÉREZ LÓPEZ JUAN"
-                  value={nombre}
-                  onChange={handleNombreChange}
+                  placeholder="Ej. PÉREZ LÓPEZ"
+                  value={apellidos}
+                  onChange={handleApellidosChange}
                   maxLength={100}
                   className="modal-input"
                 />
-                <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '5px', lineHeight: '1.4' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  <span>Inicia por <strong style={{ color: '#555' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).</span>
-                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Nombre(s) del Operador</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. JUAN ARTURO"
+                  value={nombres}
+                  onChange={handleNombresChange}
+                  maxLength={100}
+                  className="modal-input"
+                />
               </div>
 
               <div className="form-group">
@@ -1476,7 +1559,7 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Teléfono</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={telefono} onChange={e => handlePhoneChange(e, setTelefono)} placeholder="Ej. 5551234567" maxLength={10} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Fecha de Ingreso</label>
@@ -1495,7 +1578,7 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Teléfono</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Telefono} onChange={e => setRef1Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Telefono} onChange={e => handlePhoneChange(e, setRef1Telefono)} placeholder="Ej. 5551234567" maxLength={10} />
                 </div>
               </div>
 
@@ -1506,7 +1589,7 @@ export default function Operadores() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Teléfono</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Telefono} onChange={e => setRef2Telefono(e.target.value)} placeholder="Ej. 555-123-4567" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Telefono} onChange={e => handlePhoneChange(e, setRef2Telefono)} placeholder="Ej. 5551234567" maxLength={10} />
                 </div>
               </div>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
@@ -63,15 +64,36 @@ function StatusDropdown({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  const [menuStyle, setMenuStyle] = useState({});
+
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !e.target.closest('.status-dropdown-menu')) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    const handleScroll = () => {
+      if (isOpen) setIsOpen(false);
+    };
+
+    if (isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setMenuStyle({
+        position: 'fixed',
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999
+      });
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isOpen]);
 
   const options = [
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
@@ -100,8 +122,8 @@ function StatusDropdown({ value, onChange }) {
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="status-dropdown-menu">
+      {isOpen && createPortal(
+        <div className="status-dropdown-menu" style={menuStyle}>
           {options.map((opt) => (
             <div
               key={opt.value}
@@ -123,7 +145,8 @@ function StatusDropdown({ value, onChange }) {
               {opt.label}
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
