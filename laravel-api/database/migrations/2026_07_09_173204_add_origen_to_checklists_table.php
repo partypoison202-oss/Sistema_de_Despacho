@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('checklists', function (Blueprint $table) {
-            $table->string('origen')->default('despacho')->after('fecha_hora');
+            if (!Schema::hasColumn($table->getTable(), 'origen')) {
+                $table->string('origen')->default('despacho')->after('fecha_hora');
+            }
         });
     }
 

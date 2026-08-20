@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reportes_titan', function (Blueprint $table) {
-            $table->boolean('visto')->default(false);
+            if (!Schema::hasColumn($table->getTable(), 'visto')) {
+                $table->boolean('visto')->default(false);
+            }
         });
     }
 

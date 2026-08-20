@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->string('falla', 50)->nullable();
-            $table->integer('corridas')->nullable();
-            $table->string('ciclo', 10)->nullable();
-            $table->string('motivo', 50)->nullable();
+            if (!Schema::hasColumn($table->getTable(), 'falla')) {
+                $table->string('falla', 50)->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'corridas')) {
+                $table->integer('corridas')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'ciclo')) {
+                $table->string('ciclo', 10)->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'motivo')) {
+                $table->string('motivo', 50)->nullable();
+            }
         });
     }
 

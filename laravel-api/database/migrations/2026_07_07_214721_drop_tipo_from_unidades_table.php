@@ -22,7 +22,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('unidades', function (Blueprint $table) {
-            $table->string('tipo')->nullable();
+            if (!Schema::hasColumn($table->getTable(), 'tipo')) {
+                $table->string('tipo')->nullable();
+            }
         });
     }
 };

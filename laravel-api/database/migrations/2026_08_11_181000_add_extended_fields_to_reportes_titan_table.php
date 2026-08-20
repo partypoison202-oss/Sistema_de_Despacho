@@ -15,20 +15,44 @@ return new class extends Migration
     {
         Schema::table('reportes_titan', function (Blueprint $table) {
             // ── Código Ámbar / Rojo — campos médicos/legales extendidos ──────────
-            $table->integer('lesionados_cantidad')->nullable();
-            $table->text('nombres_afectados')->nullable();    // texto libre o JSON
-            $table->text('asistencia_sitio')->nullable();     // JSON: ["AMBULANCIA","POLICIA",...]
-            $table->text('diagnostico_preliminar')->nullable();
-            $table->boolean('amerita_traslado')->nullable();
-            $table->string('estatus_legal')->nullable();      // CHOQUE | CORRALO_PENDIENTE | LIBERADO | EN_PROCESO
+            if (!Schema::hasColumn($table->getTable(), 'lesionados_cantidad')) {
+                $table->integer('lesionados_cantidad')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'nombres_afectados')) {
+                $table->text('nombres_afectados')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'asistencia_sitio')) {
+                $table->text('asistencia_sitio')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'diagnostico_preliminar')) {
+                $table->text('diagnostico_preliminar')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'amerita_traslado')) {
+                $table->boolean('amerita_traslado')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'estatus_legal')) {
+                $table->string('estatus_legal')->nullable();
+            }
 
             // ── Código Naranja (Acoso) — campos específicos ────────────────────
-            $table->boolean('usuario_anonimo')->nullable();   // víctima no identificada
-            $table->string('estacion_hecho')->nullable();
-            $table->string('ruta_hecho')->nullable();
-            $table->string('autoridad_interviniente')->nullable();
-            $table->boolean('puesto_disposicion')->nullable();
-            $table->text('motivo_no_disposicion')->nullable();
+            if (!Schema::hasColumn($table->getTable(), 'usuario_anonimo')) {
+                $table->boolean('usuario_anonimo')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'estacion_hecho')) {
+                $table->string('estacion_hecho')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'ruta_hecho')) {
+                $table->string('ruta_hecho')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'autoridad_interviniente')) {
+                $table->string('autoridad_interviniente')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'puesto_disposicion')) {
+                $table->boolean('puesto_disposicion')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'motivo_no_disposicion')) {
+                $table->text('motivo_no_disposicion')->nullable();
+            }
         });
     }
 

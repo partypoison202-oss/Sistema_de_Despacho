@@ -12,13 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('unidades', function (Blueprint $table) {
-            $table->string('numero_cincho_adblue')->nullable()->after('numero_cincho');
-            $table->string('odometro')->nullable()->after('kilometraje');
+            if (!Schema::hasColumn($table->getTable(), 'numero_cincho_adblue')) {
+                $table->string('numero_cincho_adblue')->nullable()->after('numero_cincho');
+            }
+            if (!Schema::hasColumn($table->getTable(), 'odometro')) {
+                $table->string('odometro')->nullable()->after('kilometraje');
+            }
         });
 
         Schema::table('historial_mantenimiento', function (Blueprint $table) {
-            $table->string('numero_cincho_adblue')->nullable()->after('numero_cincho');
-            $table->string('odometro')->nullable()->after('kilometraje');
+            if (!Schema::hasColumn($table->getTable(), 'numero_cincho_adblue')) {
+                $table->string('numero_cincho_adblue')->nullable()->after('numero_cincho');
+            }
+            if (!Schema::hasColumn($table->getTable(), 'odometro')) {
+                $table->string('odometro')->nullable()->after('kilometraje');
+            }
         });
     }
 

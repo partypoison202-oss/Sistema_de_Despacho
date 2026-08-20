@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('conductores', function (Blueprint $table) {
-            $table->json('amonestaciones_detalle')->nullable();
-            $table->json('reconocimientos_detalle')->nullable();
-            $table->string('condicionamientos_medicos')->nullable();
+            if (!Schema::hasColumn($table->getTable(), 'amonestaciones_detalle')) {
+                $table->json('amonestaciones_detalle')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'reconocimientos_detalle')) {
+                $table->json('reconocimientos_detalle')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'condicionamientos_medicos')) {
+                $table->string('condicionamientos_medicos')->nullable();
+            }
         });
     }
 

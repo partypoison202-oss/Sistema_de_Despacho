@@ -11,14 +11,18 @@ return new class extends Migration
         Schema::table('usuarios', function (Blueprint $table) {
             // longText porque un Base64 de una imagen de 2MB puede superar
             // el límite de una columna TEXT normal (~65,535 bytes)
-            $table->longText('foto_url')->nullable()->change();
+            if (!Schema::hasColumn($table->getTable(), 'foto_url')) {
+                $table->longText('foto_url')->nullable()->change();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('usuarios', function (Blueprint $table) {
-            $table->string('foto_url')->nullable()->change();
+            if (!Schema::hasColumn($table->getTable(), 'foto_url')) {
+                $table->string('foto_url')->nullable()->change();
+            }
         });
     }
 };

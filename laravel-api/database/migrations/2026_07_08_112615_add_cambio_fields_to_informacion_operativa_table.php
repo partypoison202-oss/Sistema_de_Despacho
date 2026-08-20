@@ -9,8 +9,12 @@ return new class extends Migration
     public function up()
     {
         Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->string('cambio_desde')->nullable()->after('motivo');
-            $table->string('cambio_motivo')->nullable()->after('cambio_desde');
+            if (!Schema::hasColumn($table->getTable(), 'cambio_desde')) {
+                $table->string('cambio_desde')->nullable()->after('motivo');
+            }
+            if (!Schema::hasColumn($table->getTable(), 'cambio_motivo')) {
+                $table->string('cambio_motivo')->nullable()->after('cambio_desde');
+            }
         });
     }
 

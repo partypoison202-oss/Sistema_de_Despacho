@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->string('hora_salida', 20)->nullable()->after('acople');
+            if (!Schema::hasColumn($table->getTable(), 'hora_salida')) {
+                $table->string('hora_salida', 20)->nullable()->after('acople');
+            }
         });
     }
 

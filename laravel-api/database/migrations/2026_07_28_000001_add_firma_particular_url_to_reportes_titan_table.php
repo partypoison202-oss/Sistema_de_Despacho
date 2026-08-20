@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reportes_titan', function (Blueprint $table) {
-            $table->string('firma_particular_url')->nullable()->after('accidente_hechos');
+            if (!Schema::hasColumn($table->getTable(), 'firma_particular_url')) {
+                $table->string('firma_particular_url')->nullable()->after('accidente_hechos');
+            }
         });
     }
 

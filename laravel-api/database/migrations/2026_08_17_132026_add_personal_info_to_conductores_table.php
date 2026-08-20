@@ -12,13 +12,27 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('conductores', function (Blueprint $table) {
-            $table->date('vigencia_licencia')->nullable();
-            $table->string('sexo', 20)->nullable();
-            $table->date('fecha_nacimiento')->nullable();
-            $table->string('telefono', 20)->nullable();
-            $table->string('referencia_1')->nullable();
-            $table->string('referencia_2')->nullable();
-            $table->date('fecha_ingreso')->nullable();
+            if (!Schema::hasColumn($table->getTable(), 'vigencia_licencia')) {
+                $table->date('vigencia_licencia')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'sexo')) {
+                $table->string('sexo', 20)->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'fecha_nacimiento')) {
+                $table->date('fecha_nacimiento')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'telefono')) {
+                $table->string('telefono', 20)->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'referencia_1')) {
+                $table->string('referencia_1')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'referencia_2')) {
+                $table->string('referencia_2')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'fecha_ingreso')) {
+                $table->date('fecha_ingreso')->nullable();
+            }
         });
     }
 

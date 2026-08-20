@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('unidades', function (Blueprint $table) {
-            $table->string('kilometraje')->nullable();
+            if (!Schema::hasColumn($table->getTable(), 'kilometraje')) {
+                $table->string('kilometraje')->nullable();
+            }
         });
     }
 

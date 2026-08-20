@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('unidades', function (Blueprint $table) {
-            $table->string('nivel_combustible')->nullable();
-            $table->string('nivel_adblue')->nullable();
-            $table->string('numero_cincho')->nullable();
-            $table->date('fecha_ultima_carga')->nullable();
+            if (!Schema::hasColumn($table->getTable(), 'nivel_combustible')) {
+                $table->string('nivel_combustible')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'nivel_adblue')) {
+                $table->string('nivel_adblue')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'numero_cincho')) {
+                $table->string('numero_cincho')->nullable();
+            }
+            if (!Schema::hasColumn($table->getTable(), 'fecha_ultima_carga')) {
+                $table->date('fecha_ultima_carga')->nullable();
+            }
         });
     }
 

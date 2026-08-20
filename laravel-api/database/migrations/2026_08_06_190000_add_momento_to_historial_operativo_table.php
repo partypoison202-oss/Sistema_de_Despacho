@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('historial_operativo', function (Blueprint $table) {
-            $table->string('momento', 20)->default('FIN')->index();
+            if (!Schema::hasColumn($table->getTable(), 'momento')) {
+                $table->string('momento', 20)->default('FIN')->index();
+            }
         });
     }
 
