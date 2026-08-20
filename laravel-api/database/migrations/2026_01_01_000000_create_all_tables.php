@@ -511,6 +511,8 @@ return new class extends Migration
                 $table->string('ip', 45)->nullable();
                 $table->timestamp('created_at')->nullable()->useCurrent();
             });
+        }
+
         if (!Schema::hasTable('bitacora_cambios_unidades')) {
             Schema::create('bitacora_cambios_unidades', function (Blueprint $table) {
                 $table->id();
