@@ -41,8 +41,8 @@ services:
       APP_KEY: "${APP_KEY:-base64:NwteU9JHYOxfPtB3jrW+NpBpaobal2AQ7BR64bMpTk8=}"
       APP_URL: "${APP_URL:-http://localhost}"
       DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
       DB_DATABASE: ${POSTGRES_DB:-neondb}
       DB_USERNAME: ${POSTGRES_USER:-neondb_owner}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-despacho_secure_password_2026}
