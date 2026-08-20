@@ -200,7 +200,7 @@ export default function DetalleUnidad() {
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
     queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
-    staleTime: 60000,
+    staleTime: 0,
     refetchInterval: 30000,
   });
 
@@ -255,7 +255,7 @@ export default function DetalleUnidad() {
       })).sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
     },
     enabled: !!selectedRuta && esAlimentadora,
-    staleTime: 30000,
+    staleTime: 0,
   });
 
   // ✅ NUEVO: unidades de la troncal seleccionada, derivadas localmente (mismo patrón que Encierro)

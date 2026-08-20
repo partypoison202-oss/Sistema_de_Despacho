@@ -129,7 +129,15 @@ function StatusDropdown({ value, onChange }) {
       <button
         type="button"
         className={`status-dropdown-trigger ${selectedOpt.class} ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const nextState = !isOpen;
+          setIsOpen(nextState);
+          if (nextState && dropdownRef.current) {
+            setTimeout(() => {
+              dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
+        }}
       >
         <span className="status-text">{selectedOpt.label}</span>
         <svg

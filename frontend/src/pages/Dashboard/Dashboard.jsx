@@ -42,7 +42,7 @@ export default function Dashboard() {
             horaProgramada: String(u.hora_programada ?? '').trim(),
           }));
         },
-        staleTime: 60000,
+        staleTime: 0,
       });
     });
   }, [queryClient]);

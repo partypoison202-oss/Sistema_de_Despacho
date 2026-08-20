@@ -99,32 +99,76 @@ function StatusDropdown({ value, onChange }) {
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
     { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
     { value: 'falta', label: 'FALTA', class: 'falta' },
-    { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' }
+    { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' },
+    { value: 'permuta', label: 'PERMUTA', class: 'permuta', hideInMenu: true }
+    { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' },
+    { value: 'permuta', label: 'PERMUTA', class: 'permuta', hideInMenu: true }
   ];
 
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
+  const isReadOnly = selectedOpt.value === 'permuta';
+  const isReadOnly = selectedOpt.value === 'permuta';
 
   return (
     <div className="status-dropdown-container" ref={dropdownRef}>
       <button
         type="button"
         className={`status-dropdown-trigger ${selectedOpt.class} ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (isReadOnly) return;
+          const nextState = !isOpen;
+          setIsOpen(nextState);
+          if (nextState && dropdownRef.current) {
+            setTimeout(() => {
+              dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
+        }}
+        style={{ cursor: isReadOnly ? 'default' : 'pointer' }}
+        onClick={() => {
+          if (isReadOnly) return;
+          const nextState = !isOpen;
+          setIsOpen(nextState);
+          if (nextState && dropdownRef.current) {
+            setTimeout(() => {
+              dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
+        }}
+        style={{ cursor: isReadOnly ? 'default' : 'pointer' }}
       >
         <span className="status-text">{selectedOpt.label}</span>
-        <svg
-          className={`arrow-icon ${isOpen ? 'open' : ''}`}
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-        >
-          <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
-        </svg>
+        {!isReadOnly && (
+          <svg
+            className={`arrow-icon ${isOpen ? 'open' : ''}`}
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+          >
+            <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
+          </svg>
+        )}
+        {!isReadOnly && (
+          <svg
+            className={`arrow-icon ${isOpen ? 'open' : ''}`}
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+          >
+            <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
+          </svg>
+        )}
       </button>
 
+<<<<<<< Updated upstream
       {isOpen && createPortal(
         <div className="status-dropdown-menu" style={menuStyle}>
           {options.map((opt) => (
+=======
+      {isOpen && !isReadOnly && (
+        <div className="status-dropdown-menu">
+          {options.filter(opt => !opt.hideInMenu).map((opt) => (
+>>>>>>> Stashed changes
             <div
               key={opt.value}
               className={`status-dropdown-item ${opt.class} ${value === opt.value ? 'active' : ''}`}

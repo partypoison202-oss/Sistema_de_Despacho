@@ -100,12 +100,12 @@
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .table-responsive {
   width: 100%;
-  overflow-x: auto;
+  min-height: 350px;
 }
 
 .operadores-table {
@@ -125,7 +125,14 @@
   letter-spacing: 0.05em;
   padding: 0.9rem 1rem;
   border-bottom: 1px solid #e2e8f0;
+}
 
+.operadores-table th:first-child {
+  border-top-left-radius: 0.75rem;
+}
+
+.operadores-table th:last-child {
+  border-top-right-radius: 0.75rem;
 }
 
 .operadores-table td {

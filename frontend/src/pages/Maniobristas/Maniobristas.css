@@ -97,13 +97,18 @@
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  overflow: visible;
+  overflow: visible;
 }
 
 .table-responsive {
+<<<<<<< Updated upstream
   overflow-x: auto;
   padding-bottom: 140px; /* Espacio para que el dropdown no se corte en las últimas filas */
   min-height: 250px;
+=======
+  min-height: 350px;
+>>>>>>> Stashed changes
 }
 
 .maniobristas-table {
@@ -122,7 +127,21 @@
   letter-spacing: 0.05em;
   padding: 0.9rem 1rem;
   border-bottom: 1px solid #e2e8f0;
+}
 
+.maniobristas-table th:first-child {
+  border-top-left-radius: 0.75rem;
+}
+}
+
+.maniobristas-table th:first-child {
+  border-top-left-radius: 0.75rem;
+}
+
+.maniobristas-table th:last-child {
+  border-top-right-radius: 0.75rem;
+.maniobristas-table th:last-child {
+  border-top-right-radius: 0.75rem;
 }
 
 .maniobristas-table td {
@@ -252,6 +271,22 @@
   background-color: #fed7aa;
 }
 
+.status-dropdown-trigger.permuta {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+.status-dropdown-trigger.permuta:hover {
+  background-color: #e9d5ff;
+}
+
+.status-dropdown-trigger.permuta {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+.status-dropdown-trigger.permuta:hover {
+  background-color: #e9d5ff;
+}
+
 
 
 /* MENÚ DESPLEGABLE */
@@ -320,6 +355,24 @@
 .status-dropdown-item.maniobrista:hover,
 .status-dropdown-item.maniobrista.active {
   background-color: #ffedd5;
+}
+
+.status-dropdown-item.permuta {
+  color: #7e22ce;
+  background-color: transparent;
+}
+.status-dropdown-item.permuta:hover,
+.status-dropdown-item.permuta.active {
+  background-color: #f3e8ff;
+}
+
+.status-dropdown-item.permuta {
+  color: #7e22ce;
+  background-color: transparent;
+}
+.status-dropdown-item.permuta:hover,
+.status-dropdown-item.permuta.active {
+  background-color: #f3e8ff;
 }
 
 
