@@ -593,6 +593,11 @@
   color: #3b4559;
   font-weight: 700;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  text-align: left;
 }
 
 .custom-dropdown-trigger .arrow-icon {
