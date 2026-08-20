@@ -562,6 +562,7 @@
 .custom-dropdown-container {
   position: relative;
   width: 100%;
+  min-width: 230px;
 }
 
 .custom-dropdown-trigger {
@@ -614,7 +615,8 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
+  min-width: 100%;
+  width: max-content;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -644,6 +646,7 @@
   border-bottom: 1px solid #f1f5f9;
   text-transform: uppercase;
   transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
 }
 
 .custom-dropdown-item:last-child {
