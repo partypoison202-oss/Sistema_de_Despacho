@@ -22,6 +22,7 @@ class AdminUserSeeder extends Seeder
             ['codigo' => 'DESPACHO',             'nombre' => 'Despacho',              'descripcion' => 'Despacho de unidades.'],
             ['codigo' => 'ENCIERRO',             'nombre' => 'Encierro',              'descripcion' => 'Gestión de entrada y salida de unidades en encierros.'],
             ['codigo' => 'GENERAL',              'nombre' => 'General',               'descripcion' => 'Rol operativo general.'],
+            ['codigo' => 'TITAN',                'nombre' => 'TITAN',                 'descripcion' => 'Rol operativo TITAN.'],
             ['codigo' => 'PLATAFORMA',           'nombre' => 'Plataforma',            'descripcion' => 'Movimientos de plataforma.'],
             ['codigo' => 'INFRACCION',           'nombre' => 'Infracción',            'descripcion' => 'Gestión de infracciones.'],
             ['codigo' => 'GESTOR_OPERADORES',    'nombre' => 'Gestor de Operadores',  'descripcion' => 'Gestión del catálogo de operadores.'],
