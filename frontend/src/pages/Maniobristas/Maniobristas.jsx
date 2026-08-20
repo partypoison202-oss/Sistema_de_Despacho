@@ -157,15 +157,9 @@ function StatusDropdown({ value, onChange }) {
         )}
       </button>
 
-<<<<<<< Updated upstream
-      {isOpen && createPortal(
+      {isOpen && !isReadOnly && createPortal(
         <div className="status-dropdown-menu" style={menuStyle}>
-          {options.map((opt) => (
-=======
-      {isOpen && !isReadOnly && (
-        <div className="status-dropdown-menu">
           {options.filter(opt => !opt.hideInMenu).map((opt) => (
->>>>>>> Stashed changes
             <div
               key={opt.value}
               className={`status-dropdown-item ${opt.class} ${value === opt.value ? 'active' : ''}`}
