@@ -13,6 +13,21 @@ return new class extends Migration
         // 1. Obtener los IDs de los roles
         $rolCapturista = DB::table('roles')->where('codigo', 'CAPTURISTA')->first();
         $rolRelevos = DB::table('roles')->where('codigo', 'RELEVOS')->first();
+        $rolProgramacion = DB::table('roles')->where('codigo', 'PROGRAMACION')->first();
+
+        // Si PROGRAMACION ya existe (porque viene del SQL de instalación), no hacemos nada
+        if ($rolProgramacion) {
+            // PROGRAMACION ya existe, solo eliminar RELEVOS y CAPTURISTA si sobran
+            if ($rolRelevos) {
+                DB::table('usuarios')->where('rol_id', $rolRelevos->id)->update(['rol_id' => $rolProgramacion->id]);
+                DB::table('roles')->where('id', $rolRelevos->id)->delete();
+            }
+            if ($rolCapturista) {
+                DB::table('usuarios')->where('rol_id', $rolCapturista->id)->update(['rol_id' => $rolProgramacion->id]);
+                DB::table('roles')->where('id', $rolCapturista->id)->delete();
+            }
+            return;
+        }
 
         // 2. Si no existe el rol PROGRAMACION, renombramos/actualizamos el de CAPTURISTA a PROGRAMACION
         if ($rolCapturista) {
