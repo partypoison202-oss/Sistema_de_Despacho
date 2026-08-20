@@ -154,6 +154,7 @@ return new class extends Migration
                 $table->text('detalle_permutas')->nullable();
                 $table->integer('num_accidentes')->nullable()->default(0);
                 $table->text('detalle_accidentes')->nullable();
+                $table->integer('faltas')->nullable()->default(0);
                 $table->timestamps();
             });
         } else {
@@ -195,6 +196,7 @@ return new class extends Migration
                 'detalle_permutas'     => fn($t) => $t->text('detalle_permutas')->nullable(),
                 'num_accidentes'       => fn($t) => $t->integer('num_accidentes')->nullable()->default(0),
                 'detalle_accidentes'   => fn($t) => $t->text('detalle_accidentes')->nullable(),
+                'faltas'               => fn($t) => $t->integer('faltas')->nullable()->default(0),
             ] as $col => $def) {
                 if (!Schema::hasColumn('conductores', $col)) {
                     Schema::table('conductores', $def);
@@ -437,13 +439,26 @@ return new class extends Migration
                 $table->string('numero_cincho', 20)->nullable();
                 $table->string('numero_cincho_adblue', 20)->nullable();
                 $table->string('odometro', 20)->nullable();
+                $table->string('tipo_vehiculo', 50)->nullable();
+                $table->string('nivel_combustible', 20)->nullable();
+                $table->string('nivel_adblue', 20)->nullable();
+                $table->date('fecha_ultima_carga')->nullable();
+                $table->string('kilometraje', 20)->nullable();
                 $table->timestamp('fecha_mantenimiento')->nullable()->useCurrent();
+                $table->timestamp('fecha_registro')->nullable()->useCurrent();
+                $table->timestamps();
             });
         } else {
             foreach ([
                 'numero_cincho'        => fn($t) => $t->string('numero_cincho', 20)->nullable(),
                 'numero_cincho_adblue' => fn($t) => $t->string('numero_cincho_adblue', 20)->nullable(),
                 'odometro'             => fn($t) => $t->string('odometro', 20)->nullable(),
+                'tipo_vehiculo'        => fn($t) => $t->string('tipo_vehiculo', 50)->nullable(),
+                'nivel_combustible'    => fn($t) => $t->string('nivel_combustible', 20)->nullable(),
+                'nivel_adblue'         => fn($t) => $t->string('nivel_adblue', 20)->nullable(),
+                'fecha_ultima_carga'   => fn($t) => $t->date('fecha_ultima_carga')->nullable(),
+                'kilometraje'          => fn($t) => $t->string('kilometraje', 20)->nullable(),
+                'fecha_registro'       => fn($t) => $t->timestamp('fecha_registro')->nullable()->useCurrent(),
             ] as $col => $def) {
                 if (!Schema::hasColumn('historial_mantenimiento', $col)) {
                     Schema::table('historial_mantenimiento', $def);
