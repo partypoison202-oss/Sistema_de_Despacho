@@ -18,9 +18,11 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Add hora_salida to informacion_operativa directly
-        Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->string('hora_salida', 20)->nullable();
-        });
+        if (!Schema::hasColumn('informacion_operativa', 'hora_salida')) {
+            Schema::table('informacion_operativa', function (Blueprint $table) {
+                $table->string('hora_salida', 20)->nullable();
+            });
+        }
 
         // 2. Rename role TITAN to DESPACHO in roles
         DB::table('roles')
