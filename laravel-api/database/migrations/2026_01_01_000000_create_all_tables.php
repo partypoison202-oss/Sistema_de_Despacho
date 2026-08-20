@@ -262,6 +262,23 @@ return new class extends Migration
             }
         }
 
+        // ─── Bitacoras (Diarias) ──────────────────────────────────────
+        if (!Schema::hasTable('bitacoras')) {
+            Schema::create('bitacoras', function (Blueprint $table) {
+                $table->id();
+                $table->string('corrida')->nullable();
+                $table->string('ruta')->nullable();
+                $table->string('unidad')->nullable();
+                $table->string('cambio_1')->nullable();
+                $table->string('cambio_2')->nullable();
+                $table->string('cambio_3')->nullable();
+                $table->string('cambio_4')->nullable();
+                $table->string('id_matutino')->nullable();
+                $table->string('id_vespertino')->nullable();
+                $table->timestamps();
+            });
+        }
+
         // ─── Historial Operativo ──────────────────────────────────────
         if (!Schema::hasTable('historial_operativo')) {
             Schema::create('historial_operativo', function (Blueprint $table) {
@@ -286,6 +303,7 @@ return new class extends Migration
                 $table->string('tarjeton_maniobrista', 50)->nullable();
                 $table->string('nombre_maniobrista', 200)->nullable();
                 $table->string('momento', 20)->nullable();
+                $table->date('fecha_historial')->nullable();
                 $table->timestamp('fecha_registro')->nullable()->useCurrent();
             });
         } else {
@@ -293,6 +311,7 @@ return new class extends Migration
                 'momento'              => fn($t) => $t->string('momento', 20)->nullable(),
                 'tarjeton_maniobrista' => fn($t) => $t->string('tarjeton_maniobrista', 50)->nullable(),
                 'nombre_maniobrista'   => fn($t) => $t->string('nombre_maniobrista', 200)->nullable(),
+                'fecha_historial'      => fn($t) => $t->date('fecha_historial')->nullable(),
             ] as $col => $def) {
                 if (!Schema::hasColumn('historial_operativo', $col)) {
                     Schema::table('historial_operativo', $def);
@@ -477,29 +496,30 @@ return new class extends Migration
                 $table->string('ip', 45)->nullable();
                 $table->timestamp('created_at')->nullable()->useCurrent();
             });
-        } else {
-            foreach ([
-                'modulo'           => fn($t) => $t->string('modulo', 100)->nullable(),
-                'datos_anteriores' => fn($t) => $t->json('datos_anteriores')->nullable(),
-                'datos_nuevos'     => fn($t) => $t->json('datos_nuevos')->nullable(),
-                'ip'               => fn($t) => $t->string('ip', 45)->nullable(),
-            ] as $col => $def) {
-                if (!Schema::hasColumn('bitacoras', $col)) {
-                    Schema::table('bitacoras', $def);
-                }
-            }
-        }
-
         if (!Schema::hasTable('bitacora_cambios_unidades')) {
             Schema::create('bitacora_cambios_unidades', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('unidad_id')->constrained('unidades');
                 $table->foreignId('usuario_id')->nullable()->constrained('usuarios');
-                $table->string('campo_modificado', 100)->nullable();
-                $table->text('valor_anterior')->nullable();
-                $table->text('valor_nuevo')->nullable();
-                $table->timestamp('fecha_cambio')->nullable()->useCurrent();
+                $table->string('tipo_accion', 100)->nullable();
+                $table->string('estatus_anterior', 100)->nullable();
+                $table->string('estatus_nuevo', 100)->nullable();
+                $table->text('detalles')->nullable();
+                $table->date('fecha')->nullable();
+                $table->timestamps();
             });
+        } else {
+            foreach ([
+                'tipo_accion'      => fn($t) => $t->string('tipo_accion', 100)->nullable(),
+                'estatus_anterior' => fn($t) => $t->string('estatus_anterior', 100)->nullable(),
+                'estatus_nuevo'    => fn($t) => $t->string('estatus_nuevo', 100)->nullable(),
+                'detalles'         => fn($t) => $t->text('detalles')->nullable(),
+                'fecha'            => fn($t) => $t->date('fecha')->nullable(),
+            ] as $col => $def) {
+                if (!Schema::hasColumn('bitacora_cambios_unidades', $col)) {
+                    Schema::table('bitacora_cambios_unidades', $def);
+                }
+            }
         }
 
         // ─── Catálogo de Observaciones ────────────────────────────────
