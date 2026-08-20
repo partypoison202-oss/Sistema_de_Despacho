@@ -9,41 +9,57 @@ use Illuminate\Support\Facades\Hash;
 class AdminUserSeeder extends Seeder
 {
     /**
-     * Siembra únicamente el usuario administrador del sistema.
-     * Solo actúa si no existe ya. No inserta ningún otro dato.
+     * Crea los roles del sistema y el usuario Administrador.
+     * Completamente idempotente: no duplica si ya existen.
      */
     public function run(): void
     {
-        // Verificar si ya existe el admin
-        $exists = DB::table('usuarios')->where('usuario', 'Admin')->exists();
+        // ── Roles ──────────────────────────────────────────────────────
+        $roles = [
+            ['codigo' => 'ADMINISTRADOR',       'nombre' => 'Administrador',        'descripcion' => 'Administrador general del sistema.'],
+            ['codigo' => 'PROGRAMACION',         'nombre' => 'Programación',          'descripcion' => 'Gestión de la programación diaria.'],
+            ['codigo' => 'CENTRO_CONTROL',       'nombre' => 'Centro de Control',     'descripcion' => 'Monitoreo y control del Centro de Control.'],
+            ['codigo' => 'DESPACHO',             'nombre' => 'Despacho',              'descripcion' => 'Despacho de unidades.'],
+            ['codigo' => 'ENCIERRO',             'nombre' => 'Encierro',              'descripcion' => 'Gestión de entrada y salida de unidades en encierros.'],
+            ['codigo' => 'GENERAL',              'nombre' => 'General',               'descripcion' => 'Rol operativo general.'],
+            ['codigo' => 'PLATAFORMA',           'nombre' => 'Plataforma',            'descripcion' => 'Movimientos de plataforma.'],
+            ['codigo' => 'INFRACCION',           'nombre' => 'Infracción',            'descripcion' => 'Gestión de infracciones.'],
+            ['codigo' => 'GESTOR_OPERADORES',    'nombre' => 'Gestor de Operadores',  'descripcion' => 'Gestión del catálogo de operadores.'],
+            ['codigo' => 'CARGA_DE_COMBUSTIBLE', 'nombre' => 'Carga de Combustible',  'descripcion' => 'Control de carga de combustible.'],
+        ];
 
-        if ($exists) {
+        foreach ($roles as $rol) {
+            DB::table('roles')->updateOrInsert(
+                ['codigo' => $rol['codigo']],
+                ['nombre' => $rol['nombre'], 'descripcion' => $rol['descripcion']]
+            );
+        }
+
+        $this->command->info('✓ Roles verificados/creados.');
+
+        // ── Usuario Administrador ──────────────────────────────────────
+        $yaExiste = DB::table('usuarios')->where('usuario', 'Admin')->exists();
+
+        if ($yaExiste) {
             $this->command->info('✓ Usuario Administrador ya existe. Sin cambios.');
             return;
         }
 
-        // Buscar el rol ADMINISTRADOR por SQL directo (sin depender de modelos)
         $rol = DB::table('roles')->where('codigo', 'ADMINISTRADOR')->first();
-
-        if (!$rol) {
-            $this->command->error('✗ No se encontró el rol ADMINISTRADOR en la tabla roles.');
-            $this->command->error('  Asegúrate de que las migraciones se ejecutaron correctamente.');
-            return;
-        }
 
         DB::table('usuarios')->insert([
             'nombre_completo'     => 'Administrador del Sistema',
             'usuario'             => 'Admin',
             'correo'              => 'admin@sitmah.gob.mx',
             'contrasena'          => Hash::make('password'),
-            'activo'              => DB::raw('true'),
+            'activo'              => true,
             'rol_id'              => $rol->id,
+            'foto_url'            => null,
             'fecha_creacion'      => now()->toDateTimeString(),
             'fecha_actualizacion' => now()->toDateTimeString(),
-            'foto_url'            => null,
         ]);
 
         $this->command->info('✓ Usuario Administrador creado (usuario: Admin, contraseña: password)');
-        $this->command->warn('  ⚠ Cambia la contraseña del admin en producción.');
+        $this->command->warn('  ⚠ Cambia la contraseña en producción.');
     }
 }
