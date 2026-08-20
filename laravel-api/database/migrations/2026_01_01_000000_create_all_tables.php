@@ -77,6 +77,7 @@ return new class extends Migration
                 $table->id();
                 $table->foreignId('transporte_id')->constrained('transportes');
                 $table->string('numero_eco', 20)->unique();
+                $table->string('tipo', 50)->nullable();
                 $table->string('nivel_combustible', 10)->nullable();
                 $table->string('nivel_adblue', 10)->nullable();
                 $table->string('numero_cincho', 20)->nullable();
@@ -87,6 +88,7 @@ return new class extends Migration
             });
         } else {
             foreach ([
+                'tipo'                 => fn($t) => $t->string('tipo', 50)->nullable(),
                 'nivel_combustible'    => fn($t) => $t->string('nivel_combustible', 10)->nullable(),
                 'nivel_adblue'         => fn($t) => $t->string('nivel_adblue', 10)->nullable(),
                 'numero_cincho'        => fn($t) => $t->string('numero_cincho', 20)->nullable(),
