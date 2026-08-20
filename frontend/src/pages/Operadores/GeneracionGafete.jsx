@@ -2,12 +2,21 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import API_BASE from '../../config/api';
 import plantillaGafete from '../../assets/plantilla_gafete.png';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 
 export default function GeneracionGafete({ conductores }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConductor, setSelectedConductor] = useState(null);
-  const [fechaExpedicion, setFechaExpedicion] = useState('ENERO 2026');
-  const [fechaVigencia, setFechaVigencia] = useState('DICIEMBRE 2026');
+  const [fechaExpedicion, setFechaExpedicion] = useState('2026-01-01');
+  const [fechaVigencia, setFechaVigencia] = useState('2026-12-01');
+
+  const formatMonthYear = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString + 'T00:00:00');
+    if (isNaN(date.getTime())) return dateString;
+    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    return `${meses[date.getMonth()]} ${date.getFullYear()}`;
+  };
 
   const filteredConductores = conductores.filter(c => {
     const term = searchTerm.toLowerCase();
@@ -89,22 +98,22 @@ export default function GeneracionGafete({ conductores }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Mes/Año Expedición</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6b1d33] outline-none transition-all uppercase"
+              <AppleDatePicker
                 value={fechaExpedicion}
-                onChange={(e) => setFechaExpedicion(e.target.value.toUpperCase())}
-                placeholder="Ej. ENERO 2026"
+                onChange={setFechaExpedicion}
+                placeholder="Seleccionar Fecha"
+                disableFuture={false}
+                disablePast={false}
               />
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Mes/Año Vigencia</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6b1d33] outline-none transition-all uppercase"
+              <AppleDatePicker
                 value={fechaVigencia}
-                onChange={(e) => setFechaVigencia(e.target.value.toUpperCase())}
-                placeholder="Ej. DICIEMBRE 2026"
+                onChange={setFechaVigencia}
+                placeholder="Seleccionar Fecha"
+                disableFuture={false}
+                disablePast={false}
               />
             </div>
           </div>
@@ -188,13 +197,13 @@ export default function GeneracionGafete({ conductores }) {
                 {/* 4. FECHA DE EXPEDICIÓN - Franja Guinda Izquierda */}
                 <div className="absolute z-10 text-white font-bold tracking-wider text-[8px] uppercase"
                      style={{ left: '16.5%', top: '87%' }}>
-                  {fechaExpedicion}
+                  {formatMonthYear(fechaExpedicion)}
                 </div>
 
                 {/* 5. FECHA DE VIGENCIA - Franja Guinda Izquierda */}
                 <div className="absolute z-10 text-white font-bold tracking-wider text-[8px] uppercase"
                      style={{ left: '36.5%', top: '87%' }}>
-                  {fechaVigencia}
+                  {formatMonthYear(fechaVigencia)}
                 </div>
               </>
             )}
