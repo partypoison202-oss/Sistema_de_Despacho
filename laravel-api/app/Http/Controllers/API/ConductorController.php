@@ -87,8 +87,8 @@ class ConductorController extends Controller
             'tipo_tarjeton' => 'required|string|max:50'
         ]);
 
-        // Generar tarjetón de forma automática (iniciar a partir del 1080 si no hay mayores)
-        $maxNum = 1079;
+        // Generar tarjetón de forma automática
+        $maxNum = 0;
         $existingTarjetones = DB::table('conductores')->pluck('tarjeton');
         foreach ($existingTarjetones as $t) {
             preg_match_all('/\d+/', (string)$t, $matches);
@@ -101,13 +101,14 @@ class ConductorController extends Controller
                 }
             }
         }
-        $nuevoNumero = $maxNum + 1;
-        $tarjetonGenerado = "TJ-" . $nuevoNumero;
+        
+        $nuevoNumero = $maxNum > 0 ? $maxNum + 1 : 1;
+        $tarjetonGenerado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
 
         // Asegurar unicidad si por algún motivo existe
         while (DB::table('conductores')->where('tarjeton', $tarjetonGenerado)->exists()) {
             $nuevoNumero++;
-            $tarjetonGenerado = "TJ-" . $nuevoNumero;
+            $tarjetonGenerado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
         }
 
         $conductor = Conductor::create([
