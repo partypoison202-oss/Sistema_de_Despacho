@@ -3,41 +3,47 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\Role;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Siembra únicamente el usuario administrador del sistema.
+     * Solo actúa si no existe ya. No inserta ningún otro dato.
      */
     public function run(): void
     {
-        // Obtener el rol de administrador
-        $role = Role::where('codigo', 'ADMINISTRADOR')->first();
+        // Verificar si ya existe el admin
+        $exists = DB::table('usuarios')->where('usuario', 'Admin')->exists();
 
-        if (!$role) {
-            $this->command->error('Rol de ADMINISTRADOR no encontrado. Asegúrate de ejecutar primero el RolesSeeder.');
+        if ($exists) {
+            $this->command->info('✓ Usuario Administrador ya existe. Sin cambios.');
             return;
         }
 
-        // Crear el usuario administrador únicamente si no existe para no sobreescribir la contraseña
-        $exists = \Illuminate\Support\Facades\DB::table('usuarios')->where('usuario', 'Admin')->exists();
-        if (!$exists) {
-            \Illuminate\Support\Facades\DB::table('usuarios')->insert([
-                'usuario' => 'Admin',
-                'nombre_completo' => 'Administrador del Sistema',
-                'correo' => 'admin@sitmah.gob.mx',
-                'contrasena' => Hash::make('password'),
-                'activo' => 'true',
-                'rol_id' => $role->id,
-                'fecha_creacion' => now(),
-                'fecha_actualizacion' => now(),
-            ]);
-            $this->command->info('Usuario Administrador creado exitosamente (Usuario: Admin, Contraseña: password)');
-        } else {
-            $this->command->info('El usuario Administrador ya existe. No se realizaron cambios para preservar la contraseña.');
+        // Buscar el rol ADMINISTRADOR por SQL directo (sin depender de modelos)
+        $rol = DB::table('roles')->where('codigo', 'ADMINISTRADOR')->first();
+
+        if (!$rol) {
+            $this->command->error('✗ No se encontró el rol ADMINISTRADOR en la tabla roles.');
+            $this->command->error('  Asegúrate de que las migraciones se ejecutaron correctamente.');
+            return;
         }
+
+        DB::table('usuarios')->insert([
+            'nombre_completo'     => 'Administrador del Sistema',
+            'usuario'             => 'Admin',
+            'correo'              => 'admin@sitmah.gob.mx',
+            'contrasena'          => Hash::make('password'),
+            'activo'              => DB::raw('true'),
+            'rol_id'              => $rol->id,
+            'fecha_creacion'      => now()->toDateTimeString(),
+            'fecha_actualizacion' => now()->toDateTimeString(),
+            'foto_url'            => null,
+        ]);
+
+        $this->command->info('✓ Usuario Administrador creado (usuario: Admin, contraseña: password)');
+        $this->command->warn('  ⚠ Cambia la contraseña del admin en producción.');
     }
 }
