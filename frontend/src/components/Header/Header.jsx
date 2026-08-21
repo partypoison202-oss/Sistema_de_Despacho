@@ -226,7 +226,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                           navigate('/operadores');
                         });
                       }}>
-                        Gestión de Operadores
+                        Gestión de T6
                       </button>
                       <button className="profile-menu-btn" onClick={() => {
                         handleConfirmExit(() => {

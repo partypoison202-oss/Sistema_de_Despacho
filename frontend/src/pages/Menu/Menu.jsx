@@ -175,7 +175,7 @@ const menuItems = [
         <line x1="15" y1="11" x2="19" y2="11" />
       </svg>
     ),
-    label: 'GESTIÓN DE OPERADORES',
+    label: 'GESTIÓN DE T6',
     color: 'gold',
   },
   {
