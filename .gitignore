@@ -6,9 +6,3 @@ frontend/dist/
 
 # Archivos temporales de exportación
 laravel-api/export.sql
-
-# Variables de entorno locales (nunca subir al repo)
-.env
-laravel-api/.env
-frontend/.env
-frontend/.env.local
