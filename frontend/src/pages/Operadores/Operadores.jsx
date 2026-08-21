@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -71,32 +71,41 @@ function StatusDropdown({ value, onChange }) {
 
   const [menuStyle, setMenuStyle] = useState({});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !e.target.closest('.status-dropdown-menu')) {
         setIsOpen(false);
       }
     };
-    const handleScroll = () => {
-      if (isOpen) setIsOpen(false);
-    };
+
 
     if (isOpen && dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
-      setMenuStyle({
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownHeight = 160; // Altura estimada del menú (4 opciones)
+
+      let style = {
         position: 'fixed',
-        top: rect.bottom + 4,
         left: rect.left,
         width: rect.width,
         zIndex: 9999
-      });
+      };
+
+      // Si no hay suficiente espacio abajo y hay más espacio arriba que abajo, desplegar hacia arriba
+      if (spaceBelow < dropdownHeight && rect.top > spaceBelow) {
+        style.bottom = window.innerHeight - rect.top + 4;
+        style.top = 'auto';
+      } else {
+        style.top = rect.bottom + 4;
+        style.bottom = 'auto';
+      }
+
+      setMenuStyle({ ...style });
       document.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('scroll', handleScroll, true);
     }
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isOpen]);
 
@@ -132,12 +141,8 @@ function StatusDropdown({ value, onChange }) {
         onClick={() => {
           const nextState = !isOpen;
           setIsOpen(nextState);
-          if (nextState && dropdownRef.current) {
-            setTimeout(() => {
-              dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-          }
         }}
+        style={{ cursor: 'pointer' }}
       >
         <span className="status-text">{selectedOpt.label}</span>
         <svg
@@ -247,11 +252,11 @@ const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder =
   }
 
   return (
-    <div 
+    <div
       onClick={() => setIsEditing(true)}
-      style={{ 
-        cursor: 'pointer', 
-        padding: '0.4rem', 
+      style={{
+        cursor: 'pointer',
+        padding: '0.4rem',
         minHeight: '28px',
         display: 'flex',
         alignItems: 'center',
@@ -264,15 +269,27 @@ const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder =
       className="editable-cell-display"
       title="Haz clic para editar"
     >
-      <span style={{ 
-        color: value ? 'inherit' : '#aaa', 
+      <span style={{
+        color: value ? 'inherit' : '#aaa',
         fontStyle: value ? 'normal' : 'italic'
       }}>
         {value === 0 ? '0' : (value || placeholder)}
       </span>
-      {status === 'saving' && <span style={{fontSize: '0.8rem'}}>⏳</span>}
-      {status === 'saved' && <span style={{fontSize: '0.8rem', color: '#16a34a', fontWeight: 'bold'}}>✓</span>}
-      {status === 'error' && <span style={{fontSize: '0.8rem', color: 'red'}}>❌</span>}
+      {status === 'saving' && (
+        <svg width="14" height="14" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24" className="animate-spin">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      )}
+      {status === 'saved' && (
+        <svg width="14" height="14" fill="none" stroke="#16a34a" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+      {status === 'error' && (
+        <svg width="14" height="14" fill="none" stroke="#ef4444" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      )}
     </div>
   );
 }, (prevProps, nextProps) => {
@@ -287,7 +304,7 @@ export default function Operadores() {
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
   const navigate = useNavigate();
-  
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -388,13 +405,13 @@ export default function Operadores() {
   const handleAddDetail = async (e) => {
     e.preventDefault();
     if (!newDetailMotivo.trim() || savingDetail) return;
-    
+
     setSavingDetail(true);
     const fieldName = `${detailsType}_detalle`;
     const existing = getDetailArray(detailsConductor, detailsType);
     const newDetail = { id: Date.now(), motivo: newDetailMotivo.trim(), fecha: new Date().toISOString() };
     const updatedDetails = [...existing, newDetail];
-    
+
     try {
       const res = await fetch(`${API_BASE}/api/conductores/${detailsConductor.id}`, {
         method: 'PUT',
@@ -405,51 +422,51 @@ export default function Operadores() {
         })
       });
       if (!res.ok) throw new Error('Error al guardar detalle');
-      
+
       setNewDetailMotivo('');
       fetchConductores(true); // silent fetch para no recargar visualmente el fondo
-      
+
       setDetailsConductor({
         ...detailsConductor,
         [fieldName]: updatedDetails,
         [detailsType]: updatedDetails.length
       });
-      
+
     } catch (err) {
       Swal.fire('Error', err.message, 'error');
     } finally {
       setSavingDetail(false);
     }
   };
-  
+
   const handleRemoveDetail = async (detailId) => {
-      if (savingDetail) return;
-      setSavingDetail(true);
-      const fieldName = `${detailsType}_detalle`;
-      const updatedDetails = getDetailArray(detailsConductor, detailsType).filter(d => d.id !== detailId);
-      
-      try {
-        const res = await fetch(`${API_BASE}/api/conductores/${detailsConductor.id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            [fieldName]: updatedDetails,
-            [detailsType]: updatedDetails.length
-          })
-        });
-        if (!res.ok) throw new Error('Error al eliminar detalle');
-        
-        fetchConductores(true); // silent fetch para no parpadear toda la tabla
-        setDetailsConductor({
-          ...detailsConductor,
+    if (savingDetail) return;
+    setSavingDetail(true);
+    const fieldName = `${detailsType}_detalle`;
+    const updatedDetails = getDetailArray(detailsConductor, detailsType).filter(d => d.id !== detailId);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/conductores/${detailsConductor.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
           [fieldName]: updatedDetails,
           [detailsType]: updatedDetails.length
-        });
-      } catch (err) {
-        Swal.fire('Error', err.message, 'error');
-      } finally {
-        setSavingDetail(false);
-      }
+        })
+      });
+      if (!res.ok) throw new Error('Error al eliminar detalle');
+
+      fetchConductores(true); // silent fetch para no parpadear toda la tabla
+      setDetailsConductor({
+        ...detailsConductor,
+        [fieldName]: updatedDetails,
+        [detailsType]: updatedDetails.length
+      });
+    } catch (err) {
+      Swal.fire('Error', err.message, 'error');
+    } finally {
+      setSavingDetail(false);
+    }
   };
 
   const fetchConductores = async (silent = false) => {
@@ -470,8 +487,8 @@ export default function Operadores() {
         Swal.fire({
           icon: 'error',
           title: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.' ? 'Sesión expirada' : 'Error',
-          text: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.' 
-            ? err.message 
+          text: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.'
+            ? err.message
             : 'No se pudieron cargar los operadores.',
           confirmButtonColor: '#6b1d33'
         }).then((result) => {
@@ -490,18 +507,18 @@ export default function Operadores() {
 
   const autoSaveField = async (id, field, value) => {
     const finalValue = typeof value === 'string' ? value.toUpperCase() : value;
-    
+
     // Optimistic update
     setConductores(prev => prev.map(c => c.id === id ? { ...c, [field]: finalValue } : c));
-    
+
     const payload = { [field]: finalValue };
-    
+
     const res = await fetch(`${API_BASE}/api/conductores/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload)
     });
-    
+
     if (!res.ok) {
       throw new Error('Error al guardar');
     }
@@ -515,7 +532,7 @@ export default function Operadores() {
   // Polling silencioso & Bloquear scroll de fondo
   useEffect(() => {
     const isAnyModalOpen = showDetailsModal || showEditModal || showAddModal;
-    
+
     // Bloquear el scroll en el body si hay modales abiertos
     if (isAnyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -530,7 +547,7 @@ export default function Operadores() {
         fetchConductores(true);
       }, 15000);
     }
-    
+
     return () => {
       clearInterval(interval);
       document.body.style.overflow = '';
@@ -592,7 +609,7 @@ export default function Operadores() {
       if (telefono) payload.telefono = telefono;
       const ref1 = [ref1Nombre.trim(), ref1Telefono.trim()].filter(Boolean).join(' - ');
       if (ref1) payload.referencia_1 = ref1;
-      
+
       const ref2 = [ref2Nombre.trim(), ref2Telefono.trim()].filter(Boolean).join(' - ');
       if (ref2) payload.referencia_2 = ref2;
       if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
@@ -615,7 +632,7 @@ export default function Operadores() {
         const formData = new FormData();
         formData.append('foto', foto);
 
-        
+
         const photoRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/foto`, {
           method: 'POST',
           headers: {
@@ -625,7 +642,7 @@ export default function Operadores() {
         });
 
         if (!photoRes.ok) {
-           console.error("Error al subir foto durante la creación del operador");
+          console.error("Error al subir foto durante la creación del operador");
         }
       }
 
@@ -714,7 +731,7 @@ export default function Operadores() {
       if (telefono) payload.telefono = telefono;
       const ref1 = [ref1Nombre.trim(), ref1Telefono.trim()].filter(Boolean).join(' - ');
       if (ref1) payload.referencia_1 = ref1;
-      
+
       const ref2 = [ref2Nombre.trim(), ref2Telefono.trim()].filter(Boolean).join(' - ');
       if (ref2) payload.referencia_2 = ref2;
       if (fechaIngreso) payload.fecha_ingreso = fechaIngreso;
@@ -736,7 +753,7 @@ export default function Operadores() {
 
         const formData = new FormData();
         formData.append('foto', foto);
-        
+
         const photoRes = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}/foto`, {
           method: 'POST',
           headers: {
@@ -746,8 +763,8 @@ export default function Operadores() {
         });
 
         if (!photoRes.ok) {
-           console.error("Error al subir foto");
-           // Podríamos lanzar error, pero preferimos que el conductor se haya guardado
+          console.error("Error al subir foto");
+          // Podríamos lanzar error, pero preferimos que el conductor se haya guardado
         }
       }
 
@@ -854,7 +871,7 @@ export default function Operadores() {
     if (activeTab === 'catalogo' && c.estatus === 'baja') {
       return false;
     }
-    
+
     // Filtros por Tipo y Estado
     if (filterTipo && c.tipo_tarjeton !== filterTipo) return false;
     if (filterEstadoServicio && c.estado_servicio !== filterEstadoServicio) return false;
@@ -880,7 +897,7 @@ export default function Operadores() {
       <main className="operadores-main-content">
         <div className="operadores-top-bar">
           <div className="operadores-title-section">
-            <h1>Catálogo de Operadores / Conductores</h1>
+            <h1>Gestión de Operadores</h1>
             <p className="operadores-subtitle">
               Administra el alta y edición de operadores. El tarjetón se genera automáticamente.
             </p>
@@ -917,7 +934,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Catálogo de Operadores
+            Gestión de Operadores
           </button>
           <button
             type="button"
@@ -971,7 +988,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Información General de Operador
+            Información General de la Persona Conductora
           </button>
           <button
             type="button"
@@ -1016,7 +1033,7 @@ export default function Operadores() {
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-[0.95rem] rounded-xl focus:ring-2 focus:ring-[#6b1d33]/20 focus:border-[#6b1d33] focus:bg-white transition-all outline-none placeholder:text-slate-400"
                 />
                 {searchTerm && (
-                  <button 
+                  <button
                     onClick={() => setSearchTerm('')}
                     className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 transition-colors"
                   >
@@ -1178,7 +1195,7 @@ export default function Operadores() {
                           <span className="tipo-badge">TIPO {c.tipo_tarjeton || 'B'}</span>
                         </td>
                         <td className="conductor-nombre">{c.nombre}</td>
-                        <td className="text-center" style={{fontWeight: 600, color: '#555'}}>{c.fecha_nacimiento ? Math.floor((new Date() - new Date(c.fecha_nacimiento)) / 31557600000) : 'N/A'}</td>
+                        <td className="text-center" style={{ fontWeight: 600, color: '#555' }}>{c.fecha_nacimiento ? Math.floor((new Date() - new Date(c.fecha_nacimiento)) / 31557600000) : 'N/A'}</td>
                         <td>
                           <span className={`estatus-badge ${c.estatus === 'baja' ? 'baja' : 'activo'}`} style={{
                             display: 'inline-block',
@@ -1243,8 +1260,8 @@ export default function Operadores() {
                           />
                         </td>
                         <td className="text-center">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="btn-details-badge"
                             onClick={() => openDetailsModal(c, 'amonestaciones')}
                           >
@@ -1253,8 +1270,8 @@ export default function Operadores() {
                           </button>
                         </td>
                         <td className="text-center">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="btn-details-badge"
                             onClick={() => openDetailsModal(c, 'reconocimientos')}
                           >
@@ -1279,8 +1296,8 @@ export default function Operadores() {
                           />
                         </td>
                         <td className="text-center">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="btn-details-badge"
                             onClick={() => openDetailsModal(c, 'permutas')}
                           >
@@ -1334,15 +1351,15 @@ export default function Operadores() {
                 <label className="form-label">Fotografía del Operador (Opcional)</label>
                 {foto && (
                   <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img 
-                      src={URL.createObjectURL(foto)} 
-                      alt="Vista previa" 
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
+                    <img
+                      src={URL.createObjectURL(foto)}
+                      alt="Vista previa"
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }}
                     />
                   </div>
                 )}
-                <label className="custom-file-upload-btn" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
+                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%' }}>
+                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                   </svg>
                   {foto ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
@@ -1390,7 +1407,7 @@ export default function Operadores() {
                 />
               </div>
 
-              <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>
+              <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem' }}>Datos Personales y Operativos</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Sexo</label>
@@ -1485,15 +1502,15 @@ export default function Operadores() {
                 <label className="form-label">Fotografía del Operador (Opcional)</label>
                 {(foto || selectedConductor?.foto) && (
                   <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img 
-                      src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`} 
-                      alt="Vista previa" 
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }} 
+                    <img
+                      src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`}
+                      alt="Vista previa"
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }}
                     />
                   </div>
                 )}
-                <label className="custom-file-upload-btn" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
+                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%' }}>
+                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                   </svg>
                   {(foto || selectedConductor?.foto) ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
@@ -1551,7 +1568,7 @@ export default function Operadores() {
                 />
               </div>
 
-              <h3 style={{marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem'}}>Datos Personales y Operativos</h3>
+              <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem', color: '#6A1B29', fontSize: '1.1rem', borderBottom: '1px solid #ddd', paddingBottom: '0.3rem' }}>Datos Personales y Operativos</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Sexo</label>
@@ -1626,28 +1643,28 @@ export default function Operadores() {
       {/* Modal Detalles Amonestaciones / Reconocimientos / Permisos / Permutas */}
       {showDetailsModal && detailsConductor && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{maxWidth: '500px'}}>
+          <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
               <div className="modal-header-title">
-                <h2 style={{textTransform: 'capitalize'}}>
+                <h2 style={{ textTransform: 'capitalize' }}>
                   Historial de {detailsType.replace(/_/g, ' y ')}
                 </h2>
                 <p>{detailsConductor.nombre}</p>
               </div>
               <button className="close-btn" onClick={() => setShowDetailsModal(false)} aria-label="Cerrar">&times;</button>
             </div>
-            <div style={{padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto'}}>
+            <div style={{ padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
               {/* Lista actual */}
-              <ul style={{listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0'}}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0' }}>
                 {getDetailArray(detailsConductor, detailsType).map((d, index) => (
-                  <li key={d.id || index} style={{display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem'}}>
+                  <li key={d.id || index} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem' }}>
                     <div>
                       <strong style={{ display: 'block', color: '#333' }}>{d.motivo}</strong>
                       <span style={{ fontSize: '0.8rem', color: '#888' }}>
-                        {d.fecha ? new Date(d.fecha).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' }) : 'Fecha no disponible'}
+                        {d.fecha ? new Date(d.fecha).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Fecha no disponible'}
                       </span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleRemoveDetail(d.id)}
                       style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem' }}
                       title="Eliminar"
@@ -1657,16 +1674,16 @@ export default function Operadores() {
                   </li>
                 ))}
                 {getDetailArray(detailsConductor, detailsType).length === 0 && (
-                  <li style={{textAlign: 'center', color: '#94a3b8', padding: '1rem', fontStyle: 'italic'}}>No hay registros.</li>
+                  <li style={{ textAlign: 'center', color: '#94a3b8', padding: '1rem', fontStyle: 'italic' }}>No hay registros.</li>
                 )}
               </ul>
-              
+
               <form onSubmit={handleAddDetail}>
-                <div className="form-group" style={{marginBottom: '1rem'}}>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <label className="form-label">Nuevo Motivo</label>
-                  <input type="text" className="modal-input" style={{width: '100%', padding: '0.6rem'}} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value.toUpperCase())} placeholder="Ej. Motivo del registro..." required />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value.toUpperCase())} placeholder="Ej. Motivo del registro..." required />
                 </div>
-                <button type="submit" className="btn-save" style={{width: '100%', padding: '0.75rem', opacity: savingDetail ? 0.7 : 1, cursor: savingDetail ? 'wait' : 'pointer'}} disabled={savingDetail}>
+                <button type="submit" className="btn-save" style={{ width: '100%', padding: '0.75rem', opacity: savingDetail ? 0.7 : 1, cursor: savingDetail ? 'wait' : 'pointer' }} disabled={savingDetail}>
                   {savingDetail ? 'Guardando registro...' : 'Agregar Registro'}
                 </button>
               </form>

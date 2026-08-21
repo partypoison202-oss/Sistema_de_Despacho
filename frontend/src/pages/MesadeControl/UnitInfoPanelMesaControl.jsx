@@ -1133,7 +1133,7 @@ export default function UnitInfoPanel({
       {/* REACT MODAL PARA PLATAFORMA */}
       {modalPlataformaVisible && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setModalPlataformaVisible(null); }}
           role="button"
           tabIndex={-1}
