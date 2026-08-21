@@ -568,9 +568,12 @@ export default function UnitInfoPanel({
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                           <input
                             type="text"
+                            readOnly={!!salidaCongelada}
+                            disabled={!!salidaCongelada}
                             placeholder={datosOperativos.tarjeton ? String(datosOperativos.tarjeton) : "Buscar o escribir tarjetón..."}
                             value={formTarjeton}
                             onChange={(e) => {
+                              if(salidaCongelada) return;
                               setFormTarjeton(e.target.value);
                               setDropdownTarjetonOpen(true);
                             }}

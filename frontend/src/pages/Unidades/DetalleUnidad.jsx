@@ -83,6 +83,93 @@ export default function DetalleUnidad() {
     return digitos.padStart(3, '0');
   };
 
+  const parseTimeToMinutes = (timeStr) => {
+    if (!timeStr) return 99999;
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h * 60) + (m || 0);
+  };
+
+  const getUnitStatusVisual = (u) => {
+    if (!u.horaProgramada) return u.horaSalida ? 'validated_ontime' : 'pending';
+    
+    let targetTime = null;
+    if (u.horaSalida) {
+      const doneTime = u.horaSalida;
+      // Extract first valid time string "HH:MM"
+      const timeMatch = doneTime.toString().match(/\d{2}:\d{2}/);
+      const timeStr = timeMatch ? timeMatch[0] : (doneTime.length >= 5 ? doneTime.substring(0, 5) : doneTime);
+      const parts = timeStr.split(':');
+      const hDone = parseInt(parts[0]) || 0;
+      const mDone = parseInt(parts[1]) || 0;
+      
+      targetTime = new Date();
+      targetTime.setHours(hDone, mDone, 0, 0);
+    } else {
+      targetTime = new Date();
+    }
+
+    const [h, m] = u.horaProgramada.split(':').map(Number);
+    const prog = new Date();
+    prog.setHours(h, m, 0, 0);
+    let diffMins = (targetTime - prog) / 60000;
+
+    // Si la diferencia es menor a -12 horas, cruzamos la medianoche y targetTime es del día siguiente
+    if (diffMins < -720) {
+      diffMins += 1440;
+    }
+    // Si la diferencia es mayor a 12 horas, cruzamos la medianoche hacia atrás (prog es del día siguiente)
+    if (diffMins > 720) {
+      diffMins -= 1440;
+    }
+
+    if (u.horaSalida) {
+      if (diffMins > 15) return 'validated_missed';
+      if (diffMins > 0) return 'validated_delayed';
+      return 'validated_ontime';
+    } else {
+      if (diffMins > 15) return 'missed';
+      if (diffMins > 0) return 'delayed';
+      return 'pending';
+    }
+  };
+
+  const getUnitColor = (unidad, isSelected) => {
+    const status = getUnitStatusVisual(unidad);
+    let base = { bg: 'var(--tw-color-white)', text: '#374151', border: '#e5e7eb' };
+    
+    switch (status) {
+      case 'validated_ontime':
+        base = { bg: '#dcfce7', text: '#166534', border: '#86efac' }; // Verde claro
+        break;
+      case 'validated_missed':
+      case 'missed':
+        base = { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }; // Rojo claro
+        break;
+      case 'validated_delayed':
+      case 'delayed':
+        base = { bg: '#ffedd5', text: '#c2410c', border: '#fed7aa' }; // Naranja claro
+        break;
+      case 'pending':
+        base = { bg: '#ffffff', text: '#374151', border: '#d1d5db' }; // Blanco neutral
+        break;
+    }
+
+    if (isSelected) {
+      if (status === 'pending') {
+          return { bg: '#6b1d33', text: '#ffffff', border: '#6b1d33', scale: 1.05 }; 
+      } else if (status.includes('missed')) {
+          return { bg: '#b91c1c', text: '#ffffff', border: '#7f1d1d', scale: 1.05 }; 
+      } else if (status.includes('delayed')) {
+          return { bg: '#a16207', text: '#ffffff', border: '#713f12', scale: 1.05 }; 
+      } else if (status.includes('ontime')) {
+          return { bg: '#15803d', text: '#ffffff', border: '#14532d', scale: 1.05 }; 
+      }
+    }
+    
+    base.scale = 1;
+    return base;
+  };
+
   const fetchUnidades = async () => {
     const token = getToken();
     if (!token) {
@@ -98,22 +185,22 @@ export default function DetalleUnidad() {
     }
     if (!respuesta.ok) throw new Error('Error al obtener lista de unidades');
     const datos = await respuesta.json();
-    console.debug('[Despacho] fetchUnidades: muestra ejemplo de datos:', Array.isArray(datos) ? datos.slice(0,5) : datos);
     return (Array.isArray(datos) ? datos : []).map((u) => ({
       eco: String(u.numero_eco ?? '').padStart(3, '0'),
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: formatearEco(u.numero_eco),
       estado: String(u.estatus ?? 'operacion').trim().toLowerCase(),
       ruta: String(u.ruta ?? '').trim(),
-      acople: Boolean(Number(u.acople ?? 0)),
+      acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       horaSalida: String(u.hora_salida ?? '').trim(),
+      horaProgramada: String(u.hora_programada ?? '').trim(),
     }));
   };
 
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
     queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
-    staleTime: 60000,
+    staleTime: 0,
     refetchInterval: 30000,
   });
 
@@ -162,27 +249,30 @@ export default function DetalleUnidad() {
         tarjeton: String(u.tarjeton ?? '').trim(),
         display: formatearEco(u.numero_eco ?? u.eco),
         estado: u.estatus || u.estado || 'operacion',
-      }));
+        horaProgramada: String(u.hora_programada ?? '').trim(),
+        acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
+        horaSalida: String(u.hora_salida ?? '').trim(),
+      })).sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
     },
     enabled: !!selectedRuta && esAlimentadora,
-    staleTime: 30000,
+    staleTime: 0,
   });
 
   // ✅ NUEVO: unidades de la troncal seleccionada, derivadas localmente (mismo patrón que Encierro)
   const unidadesPorTroncalList = useMemo(() => {
     if (!selectedTroncal) return [];
     const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
-    return unidadesList.filter((u) => {
+    const filtradas = unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      // Filtrar por troncal y excluir unidades acopladas (consistente con Encierro)
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+      return rutaUnidad && rutaUnidad === rutaSeleccionada;
     });
+    return filtradas.sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
   }, [unidadesList, selectedTroncal]);
 
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);
     if (estado === 'operacion') {
-      filtradas = filtradas.filter((u) => !u.acople && !u.horaSalida);
+      filtradas = filtradas.filter((u) => !u.horaSalida);
     }
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
@@ -196,7 +286,7 @@ export default function DetalleUnidad() {
   };
 
   const unidadesDisponiblesBusqueda = useMemo(
-    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.acople && !u.horaSalida),
+    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.horaSalida),
     [unidadesList]
   );
   const totalProgramadasOperacion = useMemo(
@@ -298,14 +388,6 @@ export default function DetalleUnidad() {
       return;
     }
 
-    if (unidadSeleccionada.horaSalida || unidadSeleccionada.acople) {
-      queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
-        prev ? prev.filter((u) => u.eco !== String(unidadSeleccionada.eco).padStart(3, '0')) : []
-      );
-      setOpenDropdown(null);
-      return;
-    }
-
     const ecoSeleccionado = unidadSeleccionada.display;
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(unidadSeleccionada.estado);
@@ -338,15 +420,7 @@ export default function DetalleUnidad() {
       });
 
       if (resultado.status === 'success') {
-        if (resultado.hora_salida || resultado.acople) {
-          queryClient.setQueryData(['unidades-list', tipoTransporte], (prev) =>
-            prev ? prev.filter((u) => u.eco !== numeroLimpio) : []
-          );
-          setSelectedOption(null);
-          setSelectedEstado(null);
-          setCargandoDatos(false);
-          return;
-        }
+        const datosGenerales = resultado.unidad || {};
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
@@ -402,7 +476,7 @@ export default function DetalleUnidad() {
       (unidad) => String(unidad.tarjeton ?? '').trim() === valor
     );
     if (unidadEncontrada) {
-      if (unidadEncontrada.horaSalida || unidadEncontrada.acople) {
+      if (unidadEncontrada.horaSalida) {
         setMensajeBusqueda('Esta unidad ya fue validada y no está disponible para despacho.');
         return;
       }
@@ -591,6 +665,49 @@ export default function DetalleUnidad() {
   };
 
   // Guardar Horas
+  const advanceToNextPendingUnit = (numeroLimpio) => {
+    let currentList = [];
+    if (selectedTroncal && isTroncal) {
+      currentList = unidadesPorTroncalList;
+    } else if (selectedEstado) {
+      currentList = unidadesPorEstado(selectedEstado);
+    } else if (selectedRuta && esAlimentadora) {
+      currentList = unidadesPorRutaList;
+    } else {
+      currentList = unidadesDisponiblesBusqueda;
+    }
+
+    const currentIndex = currentList.findIndex((u) => String(u.eco).padStart(3, '0') === numeroLimpio);
+    let nextUnitEco = null;
+
+    if (currentIndex !== -1) {
+      for (let i = currentIndex + 1; i < currentList.length; i++) {
+        if (!currentList[i].horaSalida) {
+          nextUnitEco = currentList[i].eco;
+          break;
+        }
+      }
+      if (!nextUnitEco) {
+        for (let i = 0; i < currentIndex; i++) {
+          if (!currentList[i].horaSalida) {
+            nextUnitEco = currentList[i].eco;
+            break;
+          }
+        }
+      }
+    }
+
+    if (nextUnitEco) {
+      const nextFormatted = `ECO${String(nextUnitEco).padStart(3, '0')}`;
+      setSelectedOption(nextFormatted);
+      return nextFormatted;
+    } else {
+      setSelectedOption(null);
+      setSelectedEstado(null);
+      return null;
+    }
+  };
+
   const handleSaveHoras = async (horaProgramada, acople, horaSalida = null, observaciones = null) => {
     try {
       const token = getToken();
@@ -627,6 +744,17 @@ export default function DetalleUnidad() {
           acople: acople,
           ...(horaSalida !== null && { horaSalida: horaSalida })
         }));
+
+        // Invalidar queries para que la unidad desaparezca de la lista al instante
+        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
+        queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
+
+        // Auto-avanzar si es una validación de salida (agilidad)
+        if (horaSalida !== null) {
+          advanceToNextPendingUnit(numeroLimpio);
+        }
+        setFallaTexto('');
         return { success: true };
       } else {
         throw new Error(resultado.message || 'Error al actualizar las horas.');
@@ -685,8 +813,21 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['conductores-list']);
         fetchConductores();
 
-        setSelectedOption(null);
-        setSelectedEstado(null);
+        // Lógica de agilidad: auto-avanzar a la siguiente unidad en la lista activa
+        const nextFormatted = advanceToNextPendingUnit(numeroLimpio);
+        if (nextFormatted) {
+          import('sweetalert2').then((Swal) => {
+            Swal.default.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: `Despachado. Siguiente: ${nextFormatted}`,
+              showConfirmButton: false,
+              timer: 1500
+            });
+          });
+        }
+        
         setTarjetonBusqueda('');
         setFallaTexto('');
 
@@ -1122,6 +1263,8 @@ export default function DetalleUnidad() {
                 cargandoUnidades={cargandoUnidades}
                 configActual={configActual}
                 onSelectUnit={handleSelectUnit}
+                getUnitStatusVisual={getUnitStatusVisual}
+                getUnitColor={getUnitColor}
               />
 
               {/* ✅ NUEVO: selector de rutas alimentadoras (zafiro, orion, vagoneta, etc.) */}
@@ -1183,6 +1326,13 @@ export default function DetalleUnidad() {
                   </button>
                 </div>
 
+                <div style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffffff', border: '1px solid #d1d5db' }}></span> A tiempo</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffedd5', border: '1px solid #fed7aa' }}></span> Retraso leve (&lt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fee2e2', border: '1px solid #fca5a5' }}></span> Atrasada (&gt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dcfce7', border: '1px solid #86efac' }}></span> Despachada a tiempo</div>
+                </div>
+
                 {cargandoUnidadesPorRuta ? (
                   <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     <span className="unidad-spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '20px', height: '20px', borderWidth: '3px' }}></span>
@@ -1191,26 +1341,93 @@ export default function DetalleUnidad() {
                 ) : unidadesPorRutaList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorRutaList.map((unidad) => (
-                      <button
-                        key={unidad.display}
-                        type="button"
-                        onClick={() => handleSelectUnit(unidad)}
-                        className="dropdown-menu__item"
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
-                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {unidad.display}
-                      </button>
-                    ))}
+                  <div className="dispatch-sections-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                    {/* SECCIÓN: POR SALIR */}
+                    <div className="dispatch-section dispatch-section--pending" style={{ background: '#ffffff', borderRadius: '12px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                          Pendientes por Salir
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                          {unidadesPorRutaList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).length}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                        {unidadesPorRutaList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
+                          const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                          return (
+                            <button
+                              key={unidad.display}
+                              type="button"
+                              onClick={() => handleSelectUnit(unidad)}
+                              className="unit-button"
+                              style={{
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                background: colors.bg,
+                                color: colors.text,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                transform: `scale(${colors.scale || 1})`,
+                                zIndex: colors.scale > 1 ? 10 : 1,
+                                boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                              }}
+                            >
+                              {unidad.display}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* SECCIÓN: DESPACHADAS */}
+                    {unidadesPorRutaList.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
+                      <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
+                            Unidades Despachadas
+                          </h4>
+                          <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#e5e7eb', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                            {unidadesPorRutaList.filter(u => getUnitStatusVisual(u).startsWith('validated')).length}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', opacity: 0.9 }}>
+                          {unidadesPorRutaList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
+                            const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                            return (
+                              <button
+                                type="button"
+                                key={unidad.display}
+                                onClick={() => handleSelectUnit(unidad)}
+                                className="unit-button"
+                                style={{
+                                  border: `1px solid ${colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  padding: '0.4rem 0.9rem',
+                                  background: colors.bg,
+                                  color: colors.text,
+                                  fontWeight: 600,
+                                  fontSize: '0.9rem',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  transform: `scale(${colors.scale || 1})`,
+                                  zIndex: colors.scale > 1 ? 10 : 1,
+                                  boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                                }}
+                              >
+                                {unidad.display}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1246,29 +1463,102 @@ export default function DetalleUnidad() {
                   </button>
                 </div>
 
+                <div style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffffff', border: '1px solid #d1d5db' }}></span> A tiempo</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffedd5', border: '1px solid #fed7aa' }}></span> Retraso leve (&lt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#fee2e2', border: '1px solid #fca5a5' }}></span> Atrasada (&gt;15m)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dcfce7', border: '1px solid #86efac' }}></span> Despachada a tiempo</div>
+                </div>
+
                 {unidadesPorTroncalList.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorTroncalList.map((unidad) => (
-                      <button
-                        key={unidad.display}
-                        type="button"
-                        onClick={() => handleSelectUnit(unidad)}
-                        className="dropdown-menu__item"
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
-                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {unidad.display}
-                      </button>
-                    ))}
+                  <div className="dispatch-sections-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                    {/* SECCIÓN: POR SALIR TRONCAL */}
+                    <div className="dispatch-section dispatch-section--pending" style={{ background: '#ffffff', borderRadius: '12px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                          Pendientes por Salir
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                          {unidadesPorTroncalList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).length}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                        {unidadesPorTroncalList.filter(u => !getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
+                          const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                          return (
+                            <button
+                              key={unidad.display}
+                              onClick={() => handleSelectUnit(unidad)}
+                              className="unit-button"
+                              style={{
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                background: colors.bg,
+                                color: colors.text,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                transform: `scale(${colors.scale || 1})`,
+                                zIndex: colors.scale > 1 ? 10 : 1,
+                                boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                              }}
+                            >
+                              {unidad.display}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* SECCIÓN: DESPACHADAS TRONCAL */}
+                    {unidadesPorTroncalList.some(u => getUnitStatusVisual(u).startsWith('validated')) && (
+                      <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
+                            Unidades Despachadas
+                          </h4>
+                          <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#e5e7eb', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                            {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u).startsWith('validated')).length}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', opacity: 0.9 }}>
+                          {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
+                            const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                            return (
+                              <button
+                                type="button"
+                                key={unidad.display}
+                                onClick={() => handleSelectUnit(unidad)}
+                                className="unit-button"
+                                style={{
+                                  border: `1px solid ${colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  padding: '0.4rem 0.9rem',
+                                  background: colors.bg,
+                                  color: colors.text,
+                                  fontWeight: 600,
+                                  fontSize: '0.9rem',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  transform: `scale(${colors.scale || 1})`,
+                                  zIndex: colors.scale > 1 ? 10 : 1,
+                                  boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                                }}
+                              >
+                                {unidad.display}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
