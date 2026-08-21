@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
 import API_BASE from '../../config/api';
-import './T6.css';
+import './Operadores.css';
 import InfoGeneralOperador from './InfoGeneralOperador';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import GeneracionGafete from './GeneracionGafete';
