@@ -1,2 +1,8 @@
-node_modules
+node_modules/
 logs/
+
+# Archivos compilados del frontend - se generan con npm run build en el servidor
+frontend/dist/
+
+# Archivos temporales de exportación
+laravel-api/export.sql

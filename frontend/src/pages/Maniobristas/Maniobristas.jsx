@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
@@ -63,46 +64,82 @@ function StatusDropdown({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  useEffect(() => {
+  const [menuStyle, setMenuStyle] = useState({});
+
+  useLayoutEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !e.target.closest('.status-dropdown-menu')) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
+
+    if (isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownHeight = 200; // Altura estimada del menú desplegable
+
+      let style = {
+        position: 'fixed',
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999
+      };
+
+      if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+        style.bottom = window.innerHeight - rect.top + 4;
+      } else {
+        style.top = rect.bottom + 4;
+      }
+
+      setMenuStyle(style);
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const options = [
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
     { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
     { value: 'falta', label: 'FALTA', class: 'falta' },
-    { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' }
+    { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' },
+    { value: 'permuta', label: 'PERMUTA', class: 'permuta', hideInMenu: true }
   ];
 
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
+  const isReadOnly = selectedOpt.value === 'permuta';
 
   return (
     <div className="status-dropdown-container" ref={dropdownRef}>
       <button
         type="button"
         className={`status-dropdown-trigger ${selectedOpt.class} ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (isReadOnly) return;
+          const nextState = !isOpen;
+          setIsOpen(nextState);
+        }}
+        style={{ cursor: isReadOnly ? 'default' : 'pointer' }}
       >
         <span className="status-text">{selectedOpt.label}</span>
-        <svg
-          className={`arrow-icon ${isOpen ? 'open' : ''}`}
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-        >
-          <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
-        </svg>
+        {!isReadOnly && (
+          <svg
+            className={`arrow-icon ${isOpen ? 'open' : ''}`}
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+          >
+            <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
+          </svg>
+        )}
       </button>
 
-      {isOpen && (
-        <div className="status-dropdown-menu">
-          {options.map((opt) => (
+      {isOpen && !isReadOnly && createPortal(
+        <div className="status-dropdown-menu" style={menuStyle}>
+          {options.filter(opt => !opt.hideInMenu).map((opt) => (
             <div
               key={opt.value}
               className={`status-dropdown-item ${opt.class} ${value === opt.value ? 'active' : ''}`}
@@ -123,7 +160,8 @@ function StatusDropdown({ value, onChange }) {
               {opt.label}
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -134,7 +172,7 @@ export default function Operadores() {
   const [maniobristas, setManiobristas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -517,7 +555,7 @@ export default function Operadores() {
                   className="modal-input"
                 />
                 <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '5px', lineHeight: '1.4' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                   <span>Inicia por <strong style={{ color: '#555' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).</span>
                 </small>
               </div>
@@ -594,7 +632,7 @@ export default function Operadores() {
                   className="modal-input"
                 />
                 <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '5px', lineHeight: '1.4' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                   <span>Inicia por <strong style={{ color: '#555' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).</span>
                 </small>
               </div>

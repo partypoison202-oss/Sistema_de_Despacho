@@ -15,6 +15,8 @@ export default function UnitSelector({
   cargandoUnidades,
   configActual,
   onSelectUnit,
+  getUnitStatusVisual,
+  getUnitColor,
 }) {
   const toggleDropdown = () => setIsOpen(!isOpen);
   const dropdownRef = useRef(null);

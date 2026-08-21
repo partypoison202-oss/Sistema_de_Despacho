@@ -24,6 +24,11 @@ class ConductorController extends Controller
                     $table->string('tipo_tarjeton', 50)->nullable();
                 });
             }
+            if (!Schema::hasColumn('conductores', 'foto')) {
+                Schema::table('conductores', function (Blueprint $table) {
+                    $table->string('foto', 255)->nullable();
+                });
+            }
         } catch (\Exception $e) {
             // Manejo silencioso si las columnas ya existen
         }
@@ -78,12 +83,15 @@ class ConductorController extends Controller
         $this->ensureColumnsExist();
 
         $request->validate([
-            'nombre' => 'required|string|max:200',
-            'tipo_tarjeton' => 'required|string|max:50'
+            'nombres' => 'required|string|max:100',
+            'apellidos' => 'required|string|max:100',
+            'tipo_tarjeton' => 'required|string|max:50',
+            'telefono' => 'nullable|string|digits:10',
+            'sexo' => 'required|string|in:Masculino,Femenino'
         ]);
 
-        // Generar tarjetón de forma automática (iniciar a partir del 1080 si no hay mayores)
-        $maxNum = 1079;
+        // Generar tarjetón de forma automática
+        $maxNum = 0;
         $existingTarjetones = DB::table('conductores')->pluck('tarjeton');
         foreach ($existingTarjetones as $t) {
             preg_match_all('/\d+/', (string)$t, $matches);
@@ -96,17 +104,19 @@ class ConductorController extends Controller
                 }
             }
         }
-        $nuevoNumero = $maxNum + 1;
-        $tarjetonGenerado = "TJ-" . $nuevoNumero;
+        
+        $nuevoNumero = $maxNum > 0 ? $maxNum + 1 : 1;
+        $tarjetonGenerado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
 
         // Asegurar unicidad si por algún motivo existe
         while (DB::table('conductores')->where('tarjeton', $tarjetonGenerado)->exists()) {
             $nuevoNumero++;
-            $tarjetonGenerado = "TJ-" . $nuevoNumero;
+            $tarjetonGenerado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
         }
 
         $conductor = Conductor::create([
-            'nombre' => trim($request->nombre),
+            'nombres' => trim($request->nombres),
+            'apellidos' => trim($request->apellidos),
             'tarjeton' => $tarjetonGenerado,
             'tipo_tarjeton' => trim($request->tipo_tarjeton),
             'estado_servicio' => 'disponible',
@@ -136,9 +146,10 @@ class ConductorController extends Controller
         $conductor = Conductor::findOrFail($id);
 
         $request->validate([
-            'nombre' => 'sometimes|required|string|max:200',
+            'nombres' => 'sometimes|required|string|max:100',
+            'apellidos' => 'sometimes|required|string|max:100',
             'tipo_tarjeton' => 'sometimes|required|string|max:50',
-            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista',
+            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista,permuta',
             'ultima_capacitacion' => 'sometimes|nullable|date',
             'proxima_capacitacion' => 'sometimes|nullable|date',
             'accidentes_siniestros' => 'sometimes|integer|min:0',
@@ -153,18 +164,25 @@ class ConductorController extends Controller
             'evaluacion' => 'sometimes|nullable|string|max:100',
             'observaciones' => 'sometimes|nullable|string|max:500',
             'vigencia_licencia' => 'sometimes|nullable|date',
-            'sexo' => 'sometimes|nullable|string|in:Masculino,Femenino',
+            'sexo' => 'sometimes|required|string|in:Masculino,Femenino',
             'fecha_nacimiento' => 'sometimes|nullable|date',
-            'telefono' => 'sometimes|nullable|string|max:50',
+            'telefono' => 'sometimes|nullable|string|digits:10',
             'referencia_1' => 'sometimes|nullable|string|max:200',
             'referencia_2' => 'sometimes|nullable|string|max:200',
             'fecha_ingreso' => 'sometimes|nullable|date',
             'amonestaciones_detalle' => 'sometimes|array',
-            'reconocimientos_detalle' => 'sometimes|array'
+            'reconocimientos_detalle' => 'sometimes|array',
+            'permisos_detalle' => 'sometimes|array',
+            'permutas_detalle' => 'sometimes|array',
+            'accidentes_siniestros_detalle' => 'sometimes|array'
         ]);
 
-        if ($request->has('nombre')) {
-            $conductor->nombre = trim($request->nombre);
+        if ($request->has('nombres')) {
+            $conductor->nombres = trim($request->nombres);
+        }
+
+        if ($request->has('apellidos')) {
+            $conductor->apellidos = trim($request->apellidos);
         }
 
         if ($request->has('tipo_tarjeton')) {
@@ -207,6 +225,12 @@ class ConductorController extends Controller
             'referencia_1',
             'referencia_2',
             'fecha_ingreso',
+            'condicionamientos_medicos',
+            'amonestaciones_detalle',
+            'reconocimientos_detalle',
+            'permisos_detalle',
+            'permutas_detalle',
+            'accidentes_siniestros_detalle'
         ];
 
         foreach ($kardexFields as $field) {
@@ -221,6 +245,35 @@ class ConductorController extends Controller
             'message' => 'Operador actualizado correctamente',
             'conductor' => $conductor
         ]);
+    }
+
+    public function uploadFoto(Request $request, $id)
+    {
+        $this->ensureColumnsExist();
+        
+        $request->validate([
+            'foto' => 'required|image|max:5120' // Max 5MB
+        ]);
+
+        $conductor = Conductor::findOrFail($id);
+
+        if ($request->hasFile('foto')) {
+            $file = $request->file('foto');
+            $filename = 'conductor_' . $id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            // Guardar en public/storage/conductores
+            $path = $file->storeAs('conductores', $filename, 'public');
+            
+            $conductor->foto = $path;
+            $conductor->save();
+
+            return response()->json([
+                'message' => 'Foto subida exitosamente',
+                'foto_url' => '/storage/' . $path,
+                'conductor' => $conductor
+            ]);
+        }
+
+        return response()->json(['message' => 'No se proporcionó ninguna imagen'], 400);
     }
 
     public function darDeBaja(Request $request, $id)

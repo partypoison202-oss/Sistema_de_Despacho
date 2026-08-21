@@ -35,10 +35,14 @@ export default function Dashboard() {
             eco: String(u.numero_eco ?? '').padStart(3, '0'),
             tarjeton: String(u.tarjeton ?? '').trim(),
             display: formatearEco(u.numero_eco),
-            estado: u.estatus || 'operacion',
+            estado: String(u.estatus ?? 'operacion').trim().toLowerCase(),
+            ruta: String(u.ruta ?? '').trim(),
+            acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
+            horaSalida: String(u.hora_salida ?? '').trim(),
+            horaProgramada: String(u.hora_programada ?? '').trim(),
           }));
         },
-        staleTime: 60000,
+        staleTime: 0,
       });
     });
   }, [queryClient]);

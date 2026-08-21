@@ -144,6 +144,7 @@ export default function UnitInfoPanel({
   // Modals de Plataforma
   const [modalPlataformaVisible, setModalPlataformaVisible] = useState(null);
   const [platMotivo, setPlatMotivo] = useState('');
+  const [platMotivoDropdown, setPlatMotivoDropdown] = useState(false);
   const [platEstatus, setPlatEstatus] = useState('');
   const [platEstatusDropdown, setPlatEstatusDropdown] = useState(false);
   const [platConductor, setPlatConductor] = useState('');
@@ -170,6 +171,18 @@ export default function UnitInfoPanel({
   const [operadorMotivo, setOperadorMotivo] = useState('');
   const [operadorMotivoDropdown, setOperadorMotivoDropdown] = useState(false);
 
+  // Bloquear scroll de fondo cuando hay modales abiertos
+  useEffect(() => {
+    if (modalPlataformaVisible || showChecklist || lightboxDibujo) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [modalPlataformaVisible, showChecklist, lightboxDibujo]);
+
   // useMemo para filtrar unidades removido - ya no necesario
 
   const ciclosRef = useRef(null);
@@ -180,6 +193,7 @@ export default function UnitInfoPanel({
   const ecoReemplazoRef = useRef(null);
   const operadorRef = useRef(null);
   const operadorMotivoRef = useRef(null);
+  const platMotivoRef = useRef(null);
 
   useEffect(() => {
     setPerdidaCiclos(datosOperativos.ciclo || '');
@@ -212,6 +226,9 @@ export default function UnitInfoPanel({
       }
       if (operadorMotivoRef.current && !operadorMotivoRef.current.contains(e.target)) {
         setOperadorMotivoDropdown(false);
+      }
+      if (platMotivoRef.current && !platMotivoRef.current.contains(e.target)) {
+        setPlatMotivoDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -877,186 +894,138 @@ export default function UnitInfoPanel({
             </div>)}
 
             {/* Toggle: ¿Hubo corridas perdidas? */}
-            {!isPlataforma && (
-              <div className="info-card__item">
-                <span className="info-card__label">¿Hubo Corridas Perdidas?</span>
-                <div style={{
-                  display: 'flex',
-                  width: '100%',
-                  marginTop: '0.25rem',
-                  height: '2.3rem',
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                  border: '1px solid #e5e7eb'
-                }}>
+            <div className="info-card__item">
+              <span className="info-card__label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span>¿Hubo corridas perdidas?</span>
+                <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '999px', padding: '0.2rem' }}>
                   <button
                     type="button"
-                    disabled={isPlataforma || isReservaOrMantenimiento}
-                    onClick={() => handleToggleCorridasPerdidas(true)}
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      background: huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
-                      color: huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
-                      opacity: (isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    SÍ
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isPlataforma || isReservaOrMantenimiento}
+                    disabled={isReservaOrMantenimiento}
                     onClick={() => handleToggleCorridasPerdidas(false)}
                     style={{
-                      flex: 1,
+                      padding: '0.25rem 1rem',
+                      fontSize: '0.8rem',
+                      fontWeight: !huboCorridasPerdidas ? 'bold' : 'normal',
+                      color: !huboCorridasPerdidas ? '#374151' : '#9ca3af',
+                      background: !huboCorridasPerdidas ? '#ffffff' : 'transparent',
+                      borderRadius: '999px',
                       border: 'none',
-                      borderLeft: '1px solid #e5e7eb',
-                      background: !huboCorridasPerdidas ? '#6b1d33' : 'var(--tw-color-gray-100)',
-                      color: !huboCorridasPerdidas ? 'var(--tw-color-white)' : 'var(--tw-color-gray-600)',
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      cursor: (isPlataforma || isReservaOrMantenimiento) ? 'not-allowed' : 'pointer',
-                      opacity: (isPlataforma || isReservaOrMantenimiento) ? 0.6 : 1,
-                      transition: 'all 0.2s'
+                      boxShadow: !huboCorridasPerdidas ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      cursor: isReservaOrMantenimiento ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      opacity: isReservaOrMantenimiento ? 0.6 : 1,
                     }}
                   >
-                    NO
+                    No
                   </button>
-                </div>
-              </div>
-            )}
-
-            {/* Ciclos Perdidos y Motivo */}
-            {!isPlataforma && huboCorridasPerdidas && (
-              <>
-                <div ref={ciclosRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownCiclosOpen ? 50 : 1 }}>
-                  <span className="info-card__label">Ciclos Perdidos</span>
                   <button
                     type="button"
-                    className="interactive-input"
+                    disabled={isReservaOrMantenimiento}
+                    onClick={() => handleToggleCorridasPerdidas(true)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0 0.85rem',
-                      marginTop: '0.25rem',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      background: 'var(--tw-color-white)',
-                      height: '2.3rem',
-                      fontSize: '0.85rem'
+                      padding: '0.25rem 1rem',
+                      fontSize: '0.8rem',
+                      fontWeight: huboCorridasPerdidas ? 'bold' : 'normal',
+                      color: huboCorridasPerdidas ? '#ffffff' : '#9ca3af',
+                      background: huboCorridasPerdidas ? 'var(--brand-maroon-text, #601a2a)' : 'transparent',
+                      borderRadius: '999px',
+                      border: 'none',
+                      boxShadow: huboCorridasPerdidas ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                      cursor: isReservaOrMantenimiento ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      opacity: isReservaOrMantenimiento ? 0.6 : 1,
                     }}
-                    onClick={() => setDropdownCiclosOpen(!dropdownCiclosOpen)}
                   >
-                    <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {perdidaCiclos ? ciclosOptions.find(opt => opt.value === perdidaCiclos)?.label + ' CICLOS' : 'SELECCIONAR'}
-                    </span>
-                    <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                    </svg>
+                    Sí
                   </button>
-
-                  {dropdownCiclosOpen && (
-                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                      <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                        <button
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                          onClick={() => {
-                            setPerdidaCiclos('');
-                            setDropdownCiclosOpen(false);
-                            handleSavePerdida('', perdidaMotivo);
-                          }}
-                        >
-                          SELECCIONAR
-                        </button>
-                        {ciclosOptions.map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaCiclos === opt.value ? 'bold' : 'normal' }}
-                            onClick={() => {
-                              setPerdidaCiclos(opt.value);
-                              setDropdownCiclosOpen(false);
-                              handleSavePerdida(opt.value, perdidaMotivo);
-                            }}
-                          >
-                            {opt.label} CICLOS
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
+              </span>
 
-                <div ref={motivoRef} className="info-card__item animate-fade-in-up" style={{ position: 'relative', zIndex: dropdownMotivoOpen ? 50 : 1 }}>
-                  <span className="info-card__label">Motivo (Obligatorio)</span>
-                  <button
-                    type="button"
-                    className="interactive-input"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0 0.85rem',
-                      marginTop: '0.25rem',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      background: 'var(--tw-color-white)',
-                      height: '2.3rem',
-                      fontSize: '0.85rem'
-                    }}
-                    onClick={() => setDropdownMotivoOpen(!dropdownMotivoOpen)}
-                  >
-                    <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {perdidaMotivo || 'SELECCIONAR MOTIVO'}
-                    </span>
-                    <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.75rem', height: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                    </svg>
-                  </button>
-                  {dropdownMotivoOpen && (
-                    <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                      <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                        <button
-                          type="button"
-                          className="dropdown-menu__item"
-                          style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                          onClick={() => {
-                            setPerdidaMotivo('');
-                            setDropdownMotivoOpen(false);
-                            handleSavePerdida(perdidaCiclos, '');
-                          }}
-                        >
-                          SELECCIONAR MOTIVO
-                        </button>
-                        {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map((motivo) => (
-                          <button
-                            key={motivo}
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: perdidaMotivo === motivo ? 'bold' : 'normal' }}
-                            onClick={() => {
-                              setPerdidaMotivo(motivo);
-                              setDropdownMotivoOpen(false);
-                              handleSavePerdida(perdidaCiclos, motivo);
-                            }}
-                          >
-                            {motivo}
-                          </button>
-                        ))}
+              {huboCorridasPerdidas && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  {/* Ciclos */}
+                  <div ref={ciclosRef} style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      className="interactive-input"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                        opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                      }}
+                      onClick={() => !guardandoPerdida && setDropdownCiclosOpen(!dropdownCiclosOpen)}
+                    >
+                      <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? (ciclosOptions.find(opt => opt.value === String(perdidaCiclos))?.label || perdidaCiclos) : 'Ciclos'}</span>
+                      <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                    </button>
+                    {dropdownCiclosOpen && (
+                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', zIndex: 999 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem' }}>
+                          {ciclosOptions.map(opt => (
+                            <button key={opt.value} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaCiclos(opt.value); setDropdownCiclosOpen(false); }}>
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  
+                  {/* Motivo */}
+                  <div ref={motivoRef} style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      className="interactive-input"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                        opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                      }}
+                      onClick={() => !guardandoPerdida && setDropdownMotivoOpen(!dropdownMotivoOpen)}
+                    >
+                      <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perdidaMotivo || 'Motivo'}</span>
+                      <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                    </button>
+                    {dropdownMotivoOpen && (
+                      <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                          {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map(mot => (
+                            <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); }}>
+                              {mot}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Guardar */}
+                  <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      disabled={guardandoPerdida || !perdidaCiclos || !perdidaMotivo}
+                      onClick={() => handleSavePerdida(perdidaCiclos, perdidaMotivo)}
+                      className="interactive-input"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        background: (!perdidaCiclos || !perdidaMotivo) ? 'var(--tw-color-gray-300)' : '#601a2a',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: (!perdidaCiclos || !perdidaMotivo || guardandoPerdida) ? 'not-allowed' : 'pointer',
+                        opacity: guardandoPerdida ? 0.7 : 1,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {guardandoPerdida ? 'GUARDANDO...' : 'GUARDAR CORRIDAS PERDIDAS'}
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
 
             {/* MOVIMIENTOS DE UNIDAD */}
             {isPlataforma && (
@@ -1164,13 +1133,13 @@ export default function UnitInfoPanel({
       {/* REACT MODAL PARA PLATAFORMA */}
       {modalPlataformaVisible && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setModalPlataformaVisible(null); }}
           role="button"
           tabIndex={-1}
           onKeyDown={(e) => { if (e.key === 'Escape') setModalPlataformaVisible(null); }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', overflowX: 'hidden', minWidth: '22rem' }}>
+          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflow: (modalPlataformaVisible === 'RETIRO_CONDUCTOR' || modalPlataformaVisible === 'ASIGNACION_CONDUCTOR') ? 'visible' : 'hidden auto', minWidth: '22rem' }}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 
                modalPlataformaVisible === 'DESINCORPORACION' ? 'Desincorporar Unidad' :
@@ -1491,10 +1460,13 @@ export default function UnitInfoPanel({
                     <strong>Unidad Actual:</strong> {selectedOption}
                   </p>
                   {datosOperativos.conductor && (
-                    <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
+                    <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
                       <strong>Conductor:</strong> {datosOperativos.conductor}
                     </p>
                   )}
+                  <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
+                    <strong>Número de Tarjetón:</strong> {datosOperativos.tarjeton || 'No asignado'}
+                  </p>
                 </div>
 
                 {/* Checkbox para cambio de operador */}
@@ -1652,15 +1624,63 @@ export default function UnitInfoPanel({
                   </>
                 )}
 
-                {/* Textarea de motivo si no hay cambio de operador */}
+                {/* Dropdown de motivo si no hay cambio de operador */}
                 {!cambioOperadorActivo && (
-                  <textarea
-                    className="interactive-input"
-                    style={{ width: '100%', height: '80px', resize: 'none', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #e5e7eb', fontSize: '0.9rem', color: '#0b162c', fontWeight: 500 }}
-                    placeholder="Escribe el motivo del retiro aquí..."
-                    value={platMotivo}
-                    onChange={(e) => setPlatMotivo(e.target.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').toUpperCase())}
-                  />
+                  <div style={{ position: 'relative' }} ref={platMotivoRef}>
+                    <div style={{ display: 'block', color: '#0b162c', fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.5rem' }}>Motivo de Retiro:</div>
+                    <button
+                      type="button"
+                      onClick={() => setPlatMotivoDropdown(!platMotivoDropdown)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '0.75rem',
+                        border: '1px solid #e5e7eb',
+                        background: 'white',
+                        color: '#0b162c',
+                        fontSize: '0.9rem',
+                        fontWeight: 500,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      {platMotivo || 'Selecciona un motivo'}
+                      <span style={{ fontSize: '1rem' }}>▼</span>
+                    </button>
+
+                    {platMotivoDropdown && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '0.25rem',
+                        background: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                        zIndex: 40
+                      }}>
+                        {['RESERVA', 'MANIOBRISTA', 'FALTA'].map((estatus) => (
+                          <button
+                            key={estatus}
+                            type="button"
+                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            onClick={() => {
+                              setPlatMotivo(estatus);
+                              setPlatMotivoDropdown(false);
+                            }}
+                          >
+                            {estatus}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}

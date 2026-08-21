@@ -119,15 +119,7 @@ class DespachoController extends Controller
         }
 
         try {
-            DB::table('informacion_operativa')
-                ->whereDate('fecha_registro', $fechaHoy)
-                ->delete();
-
-            // Eliminar el snapshot de inicio anterior para hoy para que se regenere con el nuevo Excel
-            DB::table('historial_operativo')
-                ->where('fecha_historial', $fechaHoy)
-                ->where('momento', 'INICIO')
-                ->delete();
+            DB::table('informacion_operativa')->delete();
 
             // Eliminar el snapshot de inicio anterior para hoy para que se regenere con el nuevo Excel
             DB::table('historial_operativo')
@@ -179,14 +171,12 @@ class DespachoController extends Controller
     /**
      * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
      */
-    public function conteoUnidadesPorTipo()
+    public function conteoUnidadesPorTipo(Request $request)
     {
         $conteos = DB::table('informacion_operativa')
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
             ->groupBy('tipo')
             ->get();
-
-        \Log::info('conteoUnidadesPorTipo - resultados crudos', $conteos->toArray());
 
         $resultado = [];
         foreach ($conteos as $item) {
@@ -201,8 +191,6 @@ class DespachoController extends Controller
             }
         }
 
-        \Log::info('conteoUnidadesPorTipo - resultado final', $resultado);
-
         return response()->json($resultado, 200);
     }
 
@@ -210,10 +198,9 @@ class DespachoController extends Controller
      * Obtiene el listado de unidades que tienen registro operativo para hoy
      * y pertenecen al tipo de transporte solicitado.
      */
-    public function listarUnidadesPorTipo($tipo)
+    public function listarUnidadesPorTipo(Request $request, $tipo)
     {
         $tipoNormalizado = strtolower(trim($tipo));
-
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
@@ -226,11 +213,9 @@ class DespachoController extends Controller
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.tarjeton_maniobrista',
                 'informacion_operativa.nombre_maniobrista',
-                'informacion_operativa.tarjeton_maniobrista',
-                'informacion_operativa.nombre_maniobrista',
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
-                'informacion_operativa.acople',
+                'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida'
             )
@@ -248,9 +233,11 @@ class DespachoController extends Controller
                     'estatus' => $estatus,
                     'ruta' => $unidad->ruta,
                     'nombre_conductor' => $unidad->nombre_conductor,
+                    'tarjeton_maniobrista' => $unidad->tarjeton_maniobrista,
+                    'nombre_maniobrista' => $unidad->nombre_maniobrista,
                     'falla' => $unidad->falla,
                     'corridas' => $unidad->corridas,
-                    'acople' => $unidad->acople,
+                    'hora_programada' => $unidad->hora_programada,
                     'acople' => $unidad->acople,
                     'hora_salida' => $unidad->hora_salida,
                 ];
@@ -667,7 +654,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select('informacion_operativa.id')
+            ->select('informacion_operativa.id', 'informacion_operativa.numero_tarjeton', 'informacion_operativa.motivo')
             ->first();
 
         if (!$registro) {
@@ -685,6 +672,20 @@ class DespachoController extends Controller
             $actualizado = DB::table('informacion_operativa')
                 ->where('id', $registro->id)
                 ->update($updateData);
+
+            // Logica para sumar o restar faltas si el motivo cambia a/desde "Falta de Operador"
+            if ($request->has('motivo') && $registro->numero_tarjeton) {
+                $oldMotivo = $registro->motivo;
+                $newMotivo = $request->motivo;
+                
+                if ($newMotivo === 'Falta de Operador' && $oldMotivo !== 'Falta de Operador') {
+                    // Agregar falta al conductor
+                    DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->increment('faltas');
+                } elseif ($oldMotivo === 'Falta de Operador' && $newMotivo !== 'Falta de Operador') {
+                    // Quitar falta si se equivocaron
+                    DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->where('faltas', '>', 0)->decrement('faltas');
+                }
+            }
         }
 
         if ($actualizado !== false) {
@@ -880,10 +881,6 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
-                'TIPO_DE_UNIDAD' => $reg->tipo,
-                'RUTA' => $reg->ruta,
-                'ECONOMICO' => $reg->numero_eco,
-                'TARJETON' => $reg->tarjeton,
                 'TIPO_DE_UNIDAD' => $reg->tipo,
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
@@ -1454,13 +1451,15 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->where('informacion_operativa.ruta', $rutaLimpia)
-            ->whereNull('informacion_operativa.hora_salida')
             ->select(
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.estatus',
                 'informacion_operativa.ruta',
-                'informacion_operativa.nombre_conductor'
+                'informacion_operativa.nombre_conductor',
+                'informacion_operativa.hora_programada',
+                'informacion_operativa.acople',
+                'informacion_operativa.hora_salida'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -1476,6 +1475,9 @@ class DespachoController extends Controller
                     'estatus'          => $estatus,
                     'ruta'             => $unidad->ruta,
                     'nombre_conductor' => $unidad->nombre_conductor,
+                    'hora_programada'  => $unidad->hora_programada,
+                    'acople'           => $unidad->acople,
+                    'hora_salida'      => $unidad->hora_salida,
                 ];
             });
 

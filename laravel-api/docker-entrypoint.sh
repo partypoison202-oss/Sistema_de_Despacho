@@ -1,9 +1,11 @@
 #!/bin/sh
 set -e
 
-echo "⏳ Esperando a que la base de datos PostgreSQL esté lista..."
-until nc -z -v -w30 db 5432; do
-  echo "Esperando conexión con el contenedor 'db' en el puerto 5432..."
+DB_HOST_TO_CHECK=${DB_HOST:-db}
+DB_PORT_TO_CHECK=${DB_PORT:-5432}
+echo "⏳ Esperando a que la base de datos PostgreSQL ($DB_HOST_TO_CHECK:$DB_PORT_TO_CHECK) esté lista..."
+until nc -z -v -w30 "$DB_HOST_TO_CHECK" "$DB_PORT_TO_CHECK"; do
+  echo "Esperando conexión con la base de datos en $DB_HOST_TO_CHECK:$DB_PORT_TO_CHECK..."
   sleep 2
 done
 
@@ -17,6 +19,9 @@ fi
 
 echo "🔄 Ejecutando migraciones de la base de datos..."
 php artisan migrate --force
+
+echo "🌱 Sembrando datos base (Seeders)..."
+php artisan db:seed --force
 
 echo "🔗 Creando acceso directo de almacenamiento (storage:link)..."
 php artisan storage:link --force || true

@@ -138,13 +138,12 @@ body {
 /* SPINNERS Y LOADERS */
 .spinner {
   display: inline-block;
-  width: 1.2rem;
-  height: 1.2rem;
-  border: 3px solid rgba(255, 255, 255, 0.2);
-  border-left-color: var(--tw-color-white);
-  border-right-color: var(--color-gold-base);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: currentColor;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.75s linear infinite;
   box-sizing: border-box;
   flex-shrink: 0;
 }

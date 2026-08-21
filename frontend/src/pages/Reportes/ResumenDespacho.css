@@ -62,31 +62,7 @@
   border-bottom: 2px solid #b8985c;
 }
 
-/* Franja dorada diagonal en el medio */
-.resumen-header-banner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 45%;
-  width: 15%;
-  height: 100%;
-  background-color: rgba(210, 180, 120, 0.4);
-  transform: skewX(-35deg);
-  z-index: 1;
-}
-
-/* Forma guinda en la derecha */
-.resumen-header-banner::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 25%;
-  height: 100%;
-  background-color: var(--brand-maroon-text);
-  clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
-  z-index: 1;
-}
+/* Pseudo-elementos eliminados (ahora se usa SVG en línea en el JSX para compatibilidad con PDF) */
 
 .banner-left {
   z-index: 2;
@@ -145,12 +121,12 @@
   padding-left: 0.1rem;
 }
 
-/* Tablas compactas */
-.resumen-table {
+.resumen-table, .resumen-table-bottom {
   width: 100%;
+  table-layout: fixed; /* Asegura que los anchos de columna se respeten */
   border-collapse: collapse;
   margin-bottom: 0.75rem;
-  font-size: 9.5px;
+  font-size: 8px; /* Reducido de 9.5px */
   text-align: center;
   background-color: var(--tw-color-white);
   border-radius: 4px;
@@ -158,13 +134,30 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.resumen-table th {
+/* Distribuir el espacio para darle más al "Tipo de Falla" (Columna 6) */
+.resumen-table th:nth-child(1) { width: 14%; } /* Modelo */
+.resumen-table th:nth-child(2) { width: 11%; } /* Prog */
+.resumen-table th:nth-child(3) { width: 11%; } /* Oper */
+.resumen-table th:nth-child(4) { width: 11%; } /* Efic */
+.resumen-table th:nth-child(5) { width: 13%; } /* Mant */
+.resumen-table th:nth-child(6) { width: 40%; } /* Tipo Falla */
+
+/* Distribuir el espacio para la tabla inferior */
+.resumen-table-bottom th:nth-child(1) { width: 8%; } /* No */
+.resumen-table-bottom th:nth-child(2) { width: 14%; } /* Eco */
+.resumen-table-bottom th:nth-child(3) { width: 16%; } /* Ruta */
+.resumen-table-bottom th:nth-child(4) { width: 16%; } /* Corrida */
+.resumen-table-bottom th:nth-child(5) { width: 16%; } /* Ciclo */
+.resumen-table-bottom th:nth-child(6) { width: 30%; } /* Motivo */
+
+.resumen-table th, .resumen-table-bottom th {
   background-color: var(--brand-maroon-text);
   color: var(--tw-color-white);
-  padding: 0.4rem 0.3rem;
+  padding: 0.3rem 0.2rem; /* Reducido para dar más espacio */
   font-weight: 600;
   border: 1px solid var(--tw-color-gray-200);
   text-transform: uppercase;
+  font-size: 7.5px; /* Más pequeño para que quepan palabras largas */
 }
 
 .resumen-table th.gold-bg {
@@ -172,8 +165,8 @@
   color: var(--brand-maroon-text);
 }
 
-.resumen-table td {
-  padding: 0.4rem 0.3rem;
+.resumen-table td, .resumen-table-bottom td {
+  padding: 0.5rem 0.3rem; /* Aumentado de 0.3rem a 0.5rem para rellenar la hoja */
   border: 1px solid #eaeaea;
   vertical-align: middle;
   font-weight: bold;
@@ -181,7 +174,7 @@
   line-height: 1.2;
 }
 
-.resumen-table tbody tr:nth-child(even) {
+.resumen-table tbody tr:nth-child(even), .resumen-table-bottom tbody tr:nth-child(even) {
   background-color: var(--tw-color-gray-50); /* Tint cálido para filas alternas */
 }
 
@@ -212,17 +205,25 @@
 }
 
 /* Grillas más compactas */
-.resumen-grid-top {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 0.75rem;
+.resumen-grid-top, .resumen-grid-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 0.75rem;
 }
 
-.resumen-grid-bottom {
-  display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 0.75rem;
+.resumen-grid-top > div:first-child,
+.resumen-grid-bottom > div:first-child {
+  width: 545px; /* Calculado como 71% del ancho disponible */
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.resumen-grid-top > div:last-child,
+.resumen-grid-bottom > div:last-child {
+  width: 207px; /* Calculado como 27% del ancho disponible */
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 /* Gráficas Contenedores Compactos */

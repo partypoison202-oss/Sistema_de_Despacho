@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const CALENDAR_WIDTH = 288; // w-72
+const CALENDAR_HEIGHT = 320; // approx height
 
-const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true }) => {
+const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false, mode = "date" }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [view, setView] = useState(mode === 'month' ? 'months' : 'days'); // 'days' | 'months' | 'years'
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const wrapperRef = useRef(null);
   const buttonRef = useRef(null);
   const calendarRef = useRef(null);
+  const yearsContainerRef = useRef(null);
 
   // Sincroniza el mes con la fecha seleccionada
   useEffect(() => {
@@ -32,13 +36,20 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     let left = rect.left + rect.width / 2 - CALENDAR_WIDTH / 2;
     left = Math.max(margin, Math.min(left, window.innerWidth - CALENDAR_WIDTH - margin));
 
-    const top = rect.bottom + 8;
+    let top = rect.bottom + 8;
+    if (top + CALENDAR_HEIGHT > window.innerHeight && rect.top - CALENDAR_HEIGHT - 8 > 0) {
+      top = rect.top - CALENDAR_HEIGHT - 8;
+    }
+
     setCoords({ top, left });
   }, []);
 
   // Reposiciona al abrir y en eventos de resize/scroll
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setView(mode === 'month' ? 'months' : 'days');
+      return;
+    }
     updatePosition();
 
     const handleReposition = () => updatePosition();
@@ -53,22 +64,39 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
   // Cierra al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      const clickedButton = wrapperRef.current && wrapperRef.current.contains(event.target);
+      const clickedButton = buttonRef.current && buttonRef.current.contains(event.target);
       const clickedCalendar = calendarRef.current && calendarRef.current.contains(event.target);
       if (!clickedButton && !clickedCalendar) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
+
+  // Scroll to selected year when switching to 'years' view
+  useEffect(() => {
+    if (view === 'years' && yearsContainerRef.current) {
+      const selectedBtn = yearsContainerRef.current.querySelector('.selected-year');
+      if (selectedBtn) {
+        selectedBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
+      }
+    }
+  }, [view]);
 
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
 
   const handlePrevMonth = (e) => {
     e.stopPropagation();
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const today = new Date();
+    if (disablePast && (prevMonth.getFullYear() < today.getFullYear() || (prevMonth.getFullYear() === today.getFullYear() && prevMonth.getMonth() < today.getMonth()))) {
+      return;
+    }
+    setCurrentMonth(prevMonth);
   };
 
   const handleNextMonth = (e) => {
@@ -106,6 +134,10 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     const parts = value.split('-');
     if (parts.length === 3) {
       const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+      if (mode === 'month') {
+        const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        return `${meses[d.getMonth()]} ${d.getFullYear()}`;
+      }
       return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
     }
     return value;
@@ -132,21 +164,25 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     const isSelected = selYear === currentMonth.getFullYear() && selMonth === currentMonth.getMonth() && selDay === i;
     const isToday = today.getDate() === i && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
     const currentDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
-    const isFuture = disableFuture && currentDate > today;
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const isFuture = disableFuture && currentDate > todayDateOnly;
+    const isPast = disablePast && currentDate < todayDateOnly;
+    const isDisabled = isFuture || isPast;
 
     days.push(
       <button
         key={`day-${i}`}
         type="button"
-        disabled={isFuture}
+        disabled={isDisabled}
         onClick={(e) => { e.stopPropagation(); handleSelectDate(i); }}
         className={`w-8 h-8 flex items-center justify-center rounded-full text-xs transition-all duration-150
-          ${isFuture ? 'opacity-30 cursor-not-allowed text-slate-400 font-normal' : 'active:scale-90 font-semibold cursor-pointer'}
-          ${!isFuture && isSelected 
+          ${isDisabled ? 'opacity-30 cursor-not-allowed text-slate-400 font-normal' : 'active:scale-90 font-semibold cursor-pointer'}
+          ${!isDisabled && isSelected 
             ? 'bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
-            : !isFuture && isToday 
+            : !isDisabled && isToday 
               ? 'text-[#6b1d33] bg-[#6b1d33]/15 font-bold border border-[#6b1d33]/30' 
-              : !isFuture ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900' : ''}
+              : !isDisabled ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900' : ''}
         `}
       >
         {i}
@@ -184,16 +220,22 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div 
-          className="absolute z-[9999] mt-2 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-100 p-4 w-72 animate-fade-in-up transition-all"
-          style={{ boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 1px 1px rgba(0,0,0,0.05)' }}
+          ref={calendarRef}
+          className="fixed z-[99999] bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-100 p-4 w-72 animate-fade-in-up transition-all"
+          style={{ 
+            top: coords.top, 
+            left: coords.left,
+            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.15), 0 0 1px 1px rgba(0,0,0,0.05)' 
+          }}
         >
           <div className="flex items-center justify-between mb-3 px-1">
             <button 
               type="button" 
               onClick={handlePrevMonth} 
-              className="p-1.5 rounded-full hover:bg-slate-100 text-[#6b1d33] active:scale-95 transition-all"
+              disabled={disablePast && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth()}
+              className={`p-1.5 rounded-full transition-all ${disablePast && currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth() ? 'opacity-30 cursor-not-allowed text-slate-400' : 'hover:bg-slate-100 text-[#6b1d33] active:scale-95'}`}
               title="Mes anterior"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -201,9 +243,23 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               </svg>
             </button>
 
-            <span className="font-bold text-slate-800 text-sm tracking-tight">
-              {monthNames[currentMonth.getMonth()]} <span className="text-[#6b1d33] font-extrabold">{currentMonth.getFullYear()}</span>
-            </span>
+            <div className="flex items-center gap-1">
+              {mode !== 'month' && (
+                <span className="font-bold text-slate-800 text-sm tracking-tight">
+                  {monthNames[currentMonth.getMonth()]}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setView(view === 'years' ? (mode === 'month' ? 'months' : 'days') : 'years');
+                }}
+                className={`font-extrabold text-sm px-2 py-0.5 rounded-md transition-colors ${view === 'years' ? 'bg-[#6b1d33] text-white shadow-sm' : 'text-[#6b1d33] hover:bg-slate-100'}`}
+              >
+                {currentMonth.getFullYear()}
+              </button>
+            </div>
 
             <button 
               type="button" 
@@ -218,17 +274,90 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, idx) => (
-              <div key={day} className={`text-center text-[10px] font-bold uppercase tracking-wider ${idx === 0 || idx === 6 ? 'text-slate-400' : 'text-slate-500'}`}>
-                {day}
+          {view === 'days' ? (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'].map((day, idx) => (
+                  <div key={day} className={`text-center text-[10px] font-bold uppercase tracking-wider ${idx === 0 || idx === 6 ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {day}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-7 gap-1">
-            {days}
-          </div>
+              <div className="grid grid-cols-7 gap-1">
+                {days}
+              </div>
+            </>
+          ) : view === 'months' ? (
+            <div className="grid grid-cols-3 gap-2 mt-4 mb-2">
+              {monthNames.map((m, idx) => {
+                let isSelected = false;
+                if (value) {
+                  const parts = value.split('-');
+                  if (parts.length === 3) {
+                    isSelected = parseInt(parts[1]) - 1 === idx && parseInt(parts[0]) === currentMonth.getFullYear();
+                  }
+                }
+                const isFuture = disableFuture && currentMonth.getFullYear() === today.getFullYear() && idx > today.getMonth();
+                const isPast = disablePast && currentMonth.getFullYear() === today.getFullYear() && idx < today.getMonth();
+                const isFutureYear = disableFuture && currentMonth.getFullYear() > today.getFullYear();
+                const isPastYear = disablePast && currentMonth.getFullYear() < today.getFullYear();
+                const isDisabled = isFuture || isPast || isFutureYear || isPastYear;
+
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newMonthStr = String(idx + 1).padStart(2, '0');
+                      const yearStr = currentMonth.getFullYear();
+                      onChange(`${yearStr}-${newMonthStr}-01`);
+                      setIsOpen(false);
+                    }}
+                    className={`py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                      isDisabled ? 'opacity-30 cursor-not-allowed text-slate-400' :
+                      isSelected 
+                        ? 'bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 active:scale-95 cursor-pointer'
+                    }`}
+                  >
+                    {m.substring(0,3).toUpperCase()}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div 
+              ref={yearsContainerRef}
+              className="grid grid-cols-4 gap-2 overflow-y-auto pr-1 my-2" 
+              style={{ maxHeight: '200px', scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}
+            >
+              {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - 80 + i).map(year => {
+                const isSelected = year === currentMonth.getFullYear();
+                return (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newDate = new Date(year, currentMonth.getMonth(), 1);
+                      setCurrentMonth(newDate);
+                      setView(mode === 'month' ? 'months' : 'days');
+                    }}
+                    className={`py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                      isSelected 
+                        ? 'selected-year bg-gradient-to-br from-[#6b1d33] to-[#8d2745] text-white shadow-md shadow-[#6b1d33]/30 scale-105' 
+                        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {year}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center px-1">
             <button
@@ -236,7 +365,17 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               onClick={handleTodaySelect}
               className="text-xs font-bold text-[#6b1d33] hover:text-[#8d2745] transition-colors"
             >
-              Hoy
+              {mode === 'month' ? 'Mes actual' : 'Hoy'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onChange('');
+                setIsOpen(false);
+              }}
+              className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
+            >
+              Borrar
             </button>
             <button
               type="button"
@@ -246,7 +385,8 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
               Cerrar
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

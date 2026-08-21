@@ -90,8 +90,8 @@ class ManiobristaController extends Controller
             'tipo_tarjeton' => 'required|string|max:50'
         ]);
 
-        // Generar tarjetón de forma automática (iniciar a partir del 1080 si no hay mayores)
-        $maxNum = 1079;
+        // Generar tarjetón de forma automática (iniciar desde 1)
+        $maxNum = 0;
         $existingTarjetones = DB::table('maniobristas')->pluck('tarjeton');
         foreach ($existingTarjetones as $t) {
             preg_match_all('/\d+/', (string)$t, $matches);

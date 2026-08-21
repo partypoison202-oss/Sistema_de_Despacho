@@ -6,7 +6,7 @@ export const encierroModules = [
     title: 'URBANUSS',
     subtitle: 'Unidades tipo autobús',
     image: '/images/urbanu.webp',
-    route: '/encierro/transporte/urbanus',
+    route: '/encierro/transporte/urbanuss',
     totalUnidades: 42,
     prefijoEco: 'ECO',
     imagenesZonas: {

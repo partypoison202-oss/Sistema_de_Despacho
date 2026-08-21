@@ -1152,7 +1152,7 @@ export default function DetalleUnidadMantenimiento() {
                               </div>
                             </div>
 
-                            <div style={{ display: 'grid', gap: '0.5rem', maxHeight: '180px', overflowY: 'auto', padding: '0.5rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#ffffff' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', maxHeight: '180px', overflowY: 'auto', padding: '0.5rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#ffffff' }}>
                               {unidadesReservaFiltradas.length ? (
                                 unidadesReservaFiltradas.slice(0, 10).map((unidad) => (
                                   <button

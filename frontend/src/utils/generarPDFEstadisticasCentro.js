@@ -155,9 +155,10 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         pdf.setFillColor(255, 255, 255);
         pdf.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'FD');
 
-        // Top Color Border
+        // Top Color Border (Thick, rounded top corners)
         pdf.setFillColor(...mainColor);
-        pdf.roundedRect(x, y - 0.5, cardWidth, 2.5, 1, 1, 'F');
+        pdf.roundedRect(x, y, cardWidth, 4, 3, 3, 'F');
+        pdf.rect(x, y + 2, cardWidth, 2, 'F'); // Square off bottom corners
 
         // Image (preservando relación de aspecto)
         const img = images[m.id];
@@ -201,18 +202,28 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         pdf.roundedRect(barX, barY, barW, barH, 2, 2, 'F');
 
         let currentBarX = barX;
-        const drawSegment = (value, color) => {
-            if (value > 0) {
-                const segW = (value / m.programadas) * barW;
-                pdf.setFillColor(...color);
-                // No redondeado interno para que conecten, se podría mejorar pero es pequeño
-                pdf.rect(currentBarX, barY, segW, barH, 'F');
-                currentBarX += segW;
-            }
-        };
-        drawSegment(m.operacion, COLOR_GREEN);
-        drawSegment(m.reserva, COLOR_GOLD);
-        drawSegment(m.mantenimiento, COLOR_RED);
+        const activeSegments = [];
+        if (m.operacion > 0) activeSegments.push({ val: m.operacion, color: COLOR_GREEN });
+        if (m.reserva > 0) activeSegments.push({ val: m.reserva, color: COLOR_GOLD });
+        if (m.mantenimiento > 0) activeSegments.push({ val: m.mantenimiento, color: COLOR_RED });
+
+        activeSegments.forEach((seg, i) => {
+            const segW = (seg.val / m.programadas) * barW;
+            const isFirst = i === 0;
+            const isLast = i === activeSegments.length - 1;
+            
+            pdf.setFillColor(...seg.color);
+            // Draw rounded rect for the full width to get rounded corners
+            pdf.roundedRect(currentBarX, barY, segW, barH, 2, 2, 'F');
+            
+            // Square off the left side if not first
+            if (!isFirst) pdf.rect(currentBarX, barY, 2, barH, 'F');
+            
+            // Square off the right side if not last
+            if (!isLast) pdf.rect(currentBarX + segW - 2, barY, 2, barH, 'F');
+            
+            currentBarX += segW;
+        });
 
         // List Rows
         const pct = (val) => m.programadas > 0 ? Math.round((val / m.programadas) * 100) : 0;
@@ -247,10 +258,10 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
             pdf.text(r.label, x + 14, rowY);
 
             // Badge %
-            const badgeW = 9;
+            const badgeW = 10;
             const badgeH = 4.5;
             pdf.setFillColor(...r.bg);
-            pdf.roundedRect(x + cardWidth - 30, rowY - 3.5, badgeW, badgeH, 1, 1, 'F');
+            pdf.roundedRect(x + cardWidth - 30, rowY - 3.5, badgeW, badgeH, 2.25, 2.25, 'F');
             
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(6.5);

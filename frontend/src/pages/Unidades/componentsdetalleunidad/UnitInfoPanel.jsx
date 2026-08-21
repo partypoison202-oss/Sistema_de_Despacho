@@ -144,8 +144,8 @@ export default function UnitInfoPanel({
   }, []);
 
   useEffect(() => {
-    setSalidaCongelada(datosOperativos.hora_salida || null);
-  }, [datosOperativos.hora_salida, selectedOption]);
+    setSalidaCongelada(datosOperativos.horaSalida || null);
+  }, [datosOperativos.horaSalida, selectedOption]);
 
   const calculateAcople = (timeStr) => {
     if (!timeStr) return '--:--';
@@ -242,6 +242,16 @@ export default function UnitInfoPanel({
     { value: '4', label: '4' },
     { value: '4.5', label: '4 1/2' },
     { value: '5', label: '5' },
+    { value: '5.5', label: '5 1/2' },
+    { value: '6', label: '6' },
+    { value: '6.5', label: '6 1/2' },
+    { value: '7', label: '7' },
+    { value: '7.5', label: '7 1/2' },
+    { value: '8', label: '8' },
+    { value: '8.5', label: '8 1/2' },
+    { value: '9', label: '9' },
+    { value: '9.5', label: '9 1/2' },
+    { value: '10', label: '10' },
   ];
 
   const handleToggleCorridasPerdidas = async (valor) => {
@@ -867,124 +877,109 @@ export default function UnitInfoPanel({
               disabled={isPlataforma || isReservaOrMantenimiento}
             />
 
-            {/* Observaciones (Replaces Corridas Perdidas) */}
+            {/* Corridas Perdidas */}
             {!isPlataforma && (
-              <div className="info-card__item" ref={observacionesRef} style={{ position: 'relative' }}>
-                <span className="info-card__label">Observaciones</span>
-                <div
-                  ref={observacionesInputRef}
-                  className="interactive-input"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0 0.85rem',
-                    background: 'var(--tw-color-white)',
-                    height: '2.3rem',
-                    width: '100%',
-                    marginTop: '0.25rem',
-                    fontWeight: 'normal',
-                    borderColor: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : undefined,
-                    opacity: (isPlataforma || isReservaOrMantenimiento || !!salidaCongelada) ? 0.6 : 1,
-                    pointerEvents: (isPlataforma || isReservaOrMantenimiento || !!salidaCongelada) ? 'none' : 'auto'
-                  }}
-                >
-                  <input
-                    type="text"
-                    placeholder="Buscar observación..."
-                    value={formObservaciones}
-                    onChange={(e) => {
-                      setFormObservaciones(e.target.value);
-                      setObservaciones(e.target.value);
-                      const rect = observacionesInputRef.current?.getBoundingClientRect();
-                      if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
-                      setDropdownObservacionesOpen(true);
-                    }}
-                    onFocus={() => {
-                      const rect = observacionesInputRef.current?.getBoundingClientRect();
-                      if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
-                      setDropdownObservacionesOpen(true);
-                    }}
-                    onBlur={() => setTimeout(() => setDropdownObservacionesOpen(false), 150)}
-                    style={{
-                      border: 'none',
-                      outline: 'none',
-                      background: 'transparent',
-                      width: '100%',
-                      fontSize: '0.85rem',
-                      color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit',
-                    }}
-                  />
-                  <svg
-                    onClick={() => {
-                      const next = !dropdownObservacionesOpen;
-                      if (next) {
-                        const rect = observacionesInputRef.current?.getBoundingClientRect();
-                        if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
-                      }
-                      setDropdownObservacionesOpen(next);
-                    }}
-                    style={{ cursor: 'pointer', transition: 'transform 0.2s', transform: dropdownObservacionesOpen ? 'rotate(180deg)' : 'none', width: '1.2rem', height: '1.2rem', padding: '0.2rem', color: dropdownObservacionesOpen ? 'var(--brand-maroon-text)' : 'inherit', flexShrink: 0, marginLeft: '0.5rem' }}
-                    fill="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                  </svg>
-                </div>
-                {dropdownObservacionesOpen && createPortal(
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: obsDropdownPos.top,
-                      left: obsDropdownPos.left,
-                      width: obsDropdownPos.width,
-                      background: 'white',
-                      border: '1px solid rgba(226, 232, 240, 0.8)',
-                      borderRadius: '0.875rem',
-                      boxShadow: '0 12px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
-                      zIndex: 9999,
-                      overflow: 'hidden',
-                      maxHeight: '8rem',
-                      overflowY: 'auto',
-                    }}
-                  >
-                    {observacionesCatalogo
-                      .filter(obs => `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase()))
-                      .map(obs => {
-                        const label = `${obs.clave} - ${obs.descripcion}`;
-                        return (
-                          <button
-                            key={obs.clave}
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setFormObservaciones(label);
-                              setObservaciones(label);
-                              setDropdownObservacionesOpen(false);
-                            }}
-                            style={{
-                              display: 'block',
-                              width: '100%',
-                              textAlign: 'left',
-                              padding: '0.6rem 1rem',
-                              fontSize: '0.85rem',
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: '#374151',
-                              transition: 'background 0.15s',
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    {observacionesCatalogo.filter(obs => `${obs.clave} - ${obs.descripcion}`.toLowerCase().includes(formObservaciones.toLowerCase())).length === 0 && (
-                      <div style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#9ca3af', textAlign: 'center' }}>Sin resultados</div>
-                    )}
-                  </div>,
-                  document.body
+              <div className="info-card__item">
+                <span className="info-card__label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span>¿Hubo corridas perdidas?</span>
+                  <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '999px', padding: '0.2rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCorridasPerdidas(false)}
+                      style={{
+                        padding: '0.25rem 1rem',
+                        fontSize: '0.8rem',
+                        fontWeight: !huboCorridasPerdidas ? 'bold' : 'normal',
+                        color: !huboCorridasPerdidas ? '#374151' : '#9ca3af',
+                        background: !huboCorridasPerdidas ? '#ffffff' : 'transparent',
+                        borderRadius: '999px',
+                        border: 'none',
+                        boxShadow: !huboCorridasPerdidas ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      No
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCorridasPerdidas(true)}
+                      style={{
+                        padding: '0.25rem 1rem',
+                        fontSize: '0.8rem',
+                        fontWeight: huboCorridasPerdidas ? 'bold' : 'normal',
+                        color: huboCorridasPerdidas ? '#ffffff' : '#9ca3af',
+                        background: huboCorridasPerdidas ? 'var(--brand-maroon-text, #601a2a)' : 'transparent',
+                        borderRadius: '999px',
+                        border: 'none',
+                        boxShadow: huboCorridasPerdidas ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Sí
+                    </button>
+                  </div>
+                </span>
+                
+                {huboCorridasPerdidas && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <div ref={ciclosRef} style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          className="interactive-input"
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                            opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                          }}
+                          onClick={() => !guardandoPerdida && setDropdownCiclosOpen(!dropdownCiclosOpen)}
+                        >
+                          <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? (ciclosOptions.find(opt => opt.value === String(perdidaCiclos))?.label || perdidaCiclos) : 'Ciclos'}</span>
+                          <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                        </button>
+                        {dropdownCiclosOpen && (
+                          <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', zIndex: 999 }}>
+                            <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem' }}>
+                              {ciclosOptions.map(opt => (
+                                <button key={opt.value} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaCiclos(opt.value); setDropdownCiclosOpen(false); }}>
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div ref={motivoRef} style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          className="interactive-input"
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
+                            opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                          }}
+                          onClick={() => !guardandoPerdida && setDropdownMotivoOpen(!dropdownMotivoOpen)}
+                        >
+                          <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perdidaMotivo || 'Motivo'}</span>
+                          <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                        </button>
+                        {dropdownMotivoOpen && (
+                          <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
+                            <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+                              {['Falla Mecánica', 'Accidente', 'Tráfico', 'Falta de Operador', 'Falta de Unidad', 'Otro'].map(mot => (
+                                <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); }}>
+                                  {mot}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -992,7 +987,7 @@ export default function UnitInfoPanel({
             <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">
                <button
                   type="button"
-                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada}
+                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))}
                   onClick={async () => {
                     setGuardandoSalida(true);
                     const now = new Date();
@@ -1004,6 +999,11 @@ export default function UnitInfoPanel({
                     try {
                       if (handleSaveHoras) {
                         await handleSaveHoras(formHoraProgramada, calculatedAcople, horaParaGuardar, observaciones);
+                        
+                        if (huboCorridasPerdidas && perdidaCiclos && perdidaMotivo) {
+                          await handleSavePerdida(perdidaCiclos, perdidaMotivo);
+                        }
+
                         setSalidaCongelada(horaParaGuardar);
                         const Swal = (await import('sweetalert2')).default;
                         Swal.fire({
@@ -1032,8 +1032,9 @@ export default function UnitInfoPanel({
                     borderRadius: '0.5rem',
                     fontWeight: 700,
                     fontSize: '0.95rem',
-                    cursor: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada) ? 'not-allowed' : 'pointer',
-                    opacity: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada) ? 0.6 : 1,
+                    cursor: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))) ? 'not-allowed' : 'pointer',
+                    opacity: (isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))) ? 0.5 : 1,
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

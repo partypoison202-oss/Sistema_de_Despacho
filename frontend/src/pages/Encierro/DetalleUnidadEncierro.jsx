@@ -6,10 +6,13 @@ const LiveClockAcople = ({ horaCongelada }) => {
   const [ahora, setAhora] = useState(new Date());
 
   useEffect(() => {
+    // Si ya hay hora congelada, no iniciamos el reloj
     if (horaCongelada) return;
+
     const t = setInterval(() => setAhora(new Date()), 1000);
+    // Limpieza siempre: si horaCongelada llega después del mount, este cleanup corre
     return () => clearInterval(t);
-  }, [horaCongelada]);
+  }, [horaCongelada]); // Cuando horaCongelada cambia de null a un valor, el efecto se re-ejecuta y limpia el interval anterior
 
   let horas12, minutos, segundos, ampm, separador;
 
@@ -18,8 +21,8 @@ const LiveClockAcople = ({ horaCongelada }) => {
     const h24 = parseInt(partes[0], 10);
     ampm = h24 >= 12 ? 'P.M.' : 'A.M.';
     horas12 = String(h24 % 12 || 12).padStart(2, '0');
-    minutos = partes[1];
-    segundos = partes[2];
+    minutos = partes[1] || '00';
+    segundos = partes[2] ? partes[2].substring(0, 2) : '00';
     separador = ':';
   } else {
     const horas24 = ahora.getHours();
@@ -51,6 +54,7 @@ const LiveClockAcople = ({ horaCongelada }) => {
 };
 
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+
 import { encierroModules } from '../../config/encierroModules';
 import Header from '../../components/Header/Header';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
@@ -83,6 +87,33 @@ export default function DetalleUnidadEncierro() {
     horaProgramada: '',
     estatus: 'operacion'
   });
+
+  const getUnitStatusVisual = (u) => {
+    // En encierro, si el estado no es operacion, se considera "Encerrada"
+    const isEncerrada = u.estado !== 'operacion' && u.estado !== 'en_servicio';
+    return isEncerrada ? 'validated_ontime' : 'pending';
+  };
+
+  const getUnitColor = (unidad, isSelected) => {
+    const status = getUnitStatusVisual(unidad);
+    let base = { bg: 'var(--tw-color-white)', text: '#374151', border: '#e5e7eb' };
+    
+    if (status === 'validated_ontime') {
+      base = { bg: '#dcfce7', text: '#166534', border: '#86efac' }; // Verde claro
+    } else {
+      base = { bg: '#ffffff', text: '#374151', border: '#d1d5db' }; // Blanco neutral
+    }
+
+    if (isSelected) {
+      if (status === 'pending') {
+          return { bg: '#6b1d33', text: '#ffffff', border: '#6b1d33', scale: 1.05 }; 
+      } else {
+          return { bg: '#14532d', text: '#ffffff', border: '#14532d', scale: 1.05 }; 
+      }
+    }
+
+    return { ...base, scale: 1 };
+  };
 
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
   const [cargandoDatos, setCargandoDatos] = useState(false);
@@ -311,7 +342,7 @@ export default function DetalleUnidadEncierro() {
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
       ruta: u.ruta || null,
-      acople: Boolean(Number(u.acople ?? 0)),
+      acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       horaSalida: String(u.hora_salida ?? '').trim(),
     }));
   };
@@ -641,6 +672,7 @@ export default function DetalleUnidadEncierro() {
           hora_programada: resultado.hora_programada || '',
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
+        setAcopleCongelado(resultado.acople || null);
       } else {
         setDatosOperativos({
           conductor: 'No reportado hoy',
@@ -654,6 +686,7 @@ export default function DetalleUnidadEncierro() {
           acople: '',
           hora_programada: '',
         });
+        setAcopleCongelado(null);
       }
     } catch (error) {
       console.error('Error en la petición:', error);
@@ -1278,7 +1311,7 @@ export default function DetalleUnidadEncierro() {
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
-                    Unidades por salir en ruta {selectedRuta}
+                    Unidades por encerrar en ruta {selectedRuta}
                   </span>
                   <button
                     type="button"
@@ -1296,34 +1329,105 @@ export default function DetalleUnidadEncierro() {
                   </button>
                 </div>
 
+                <div style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffffff', border: '1px solid #d1d5db' }}></span> Pendiente de Encierro</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dcfce7', border: '1px solid #86efac' }}></span> Unidad Encerrada</div>
+                </div>
+
                 {cargandoUnidadesPorRuta ? (
                   <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     <span className="unidad-spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '20px', height: '20px', borderWidth: '3px' }}></span>
                     Cargando unidades de la ruta...
                   </div>
                 ) : unidadesPorRutaList.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No hay unidades por salir en la ruta {selectedRuta}</div>
+                  <div className="p-4 text-center text-gray-500">No hay unidades para la ruta {selectedRuta}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorRutaList.map((unidad) => (
-                      <button
-                        key={unidad.display}
-                        type="button"
-                        onClick={() => handleSelectUnit(unidad)}
-                        className="dropdown-menu__item"
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
-                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {unidad.display}
-                      </button>
-                    ))}
+                  <div className="dispatch-sections-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                    {/* SECCIÓN: PENDIENTES */}
+                    <div className="dispatch-section dispatch-section--pending" style={{ background: '#ffffff', borderRadius: '12px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                          Pendientes por Encerrar
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                          {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) === 'pending').length}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                        {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) === 'pending').map((unidad) => {
+                          const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                          return (
+                            <button
+                              key={unidad.display}
+                              type="button"
+                              onClick={() => handleSelectUnit(unidad)}
+                              className="unit-button"
+                              style={{
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                background: colors.bg,
+                                color: colors.text,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                transform: `scale(${colors.scale || 1})`,
+                                zIndex: colors.scale > 1 ? 10 : 1,
+                                boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                              }}
+                            >
+                              {unidad.display}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* SECCIÓN: ENCERRADAS */}
+                    {unidadesPorRutaList.some(u => getUnitStatusVisual(u) !== 'pending') && (
+                      <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
+                            Unidades Encerradas
+                          </h4>
+                          <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#e5e7eb', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                            {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) !== 'pending').length}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                          {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) !== 'pending').map((unidad) => {
+                            const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                            return (
+                              <button
+                                key={unidad.display}
+                                type="button"
+                                onClick={() => handleSelectUnit(unidad)}
+                                className="unit-button"
+                                style={{
+                                  border: `1px solid ${colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  padding: '0.5rem 1rem',
+                                  background: colors.bg,
+                                  color: colors.text,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  transform: `scale(${colors.scale || 1})`,
+                                  zIndex: colors.scale > 1 ? 10 : 1,
+                                  boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                                }}
+                              >
+                                {unidad.display}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1340,7 +1444,7 @@ export default function DetalleUnidadEncierro() {
                   }}
                 >
                   <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
-                    Unidades por salir en troncal {selectedTroncal}
+                    Unidades por encerrar en troncal {selectedTroncal}
                   </span>
                   <button
                     type="button"
@@ -1358,29 +1462,100 @@ export default function DetalleUnidadEncierro() {
                   </button>
                 </div>
 
+                <div style={{ display: 'flex', gap: '0.8rem', fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem', flexWrap: 'wrap', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffffff', border: '1px solid #d1d5db' }}></span> Pendiente de Encierro</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dcfce7', border: '1px solid #86efac' }}></span> Unidad Encerrada</div>
+                </div>
+
                 {unidadesPorTroncalList.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No hay unidades por salir en la troncal {selectedTroncal}</div>
+                  <div className="p-4 text-center text-gray-500">No hay unidades para la troncal {selectedTroncal}</div>
                 ) : (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {unidadesPorTroncalList.map((unidad) => (
-                      <button
-                        key={unidad.display}
-                        type="button"
-                        onClick={() => handleSelectUnit(unidad)}
-                        className="dropdown-menu__item"
-                        style={{
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          padding: '0.5rem 1rem',
-                          background: selectedOption === unidad.display ? '#6b1d33' : 'var(--tw-color-white)',
-                          color: selectedOption === unidad.display ? 'var(--tw-color-white)' : '#374151',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {unidad.display}
-                      </button>
-                    ))}
+                  <div className="dispatch-sections-container" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                    {/* SECCIÓN: PENDIENTES */}
+                    <div className="dispatch-section dispatch-section--pending" style={{ background: '#ffffff', borderRadius: '12px', padding: '1rem', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                          Pendientes por Encerrar
+                        </h4>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#f3f4f6', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                          {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) === 'pending').length}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                        {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) === 'pending').map((unidad) => {
+                          const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                          return (
+                            <button
+                              key={unidad.display}
+                              type="button"
+                              onClick={() => handleSelectUnit(unidad)}
+                              className="unit-button"
+                              style={{
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '0.5rem',
+                                padding: '0.5rem 1rem',
+                                background: colors.bg,
+                                color: colors.text,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                transform: `scale(${colors.scale || 1})`,
+                                zIndex: colors.scale > 1 ? 10 : 1,
+                                boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                              }}
+                            >
+                              {unidad.display}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* SECCIÓN: ENCERRADAS */}
+                    {unidadesPorTroncalList.some(u => getUnitStatusVisual(u) !== 'pending') && (
+                      <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#4b5563', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }}></span>
+                            Unidades Encerradas
+                          </h4>
+                          <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, background: '#e5e7eb', padding: '0.2rem 0.75rem', borderRadius: '999px' }}>
+                            {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) !== 'pending').length}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+                          {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) !== 'pending').map((unidad) => {
+                            const colors = getUnitColor(unidad, selectedOption === unidad.display);
+                            return (
+                              <button
+                                key={unidad.display}
+                                type="button"
+                                onClick={() => handleSelectUnit(unidad)}
+                                className="unit-button"
+                                style={{
+                                  border: `1px solid ${colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  padding: '0.5rem 1rem',
+                                  background: colors.bg,
+                                  color: colors.text,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  transform: `scale(${colors.scale || 1})`,
+                                  zIndex: colors.scale > 1 ? 10 : 1,
+                                  boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                                }}
+                              >
+                                {unidad.display}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1697,7 +1872,6 @@ export default function DetalleUnidadEncierro() {
                             value={formObservaciones}
                             onChange={(e) => {
                               setFormObservaciones(e.target.value);
-                              setObservaciones(e.target.value);
                               const rect = observacionesInputRef.current?.getBoundingClientRect();
                               if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
                               setDropdownObservacionesOpen(true);
@@ -1707,7 +1881,10 @@ export default function DetalleUnidadEncierro() {
                               if (rect) setObsDropdownPos({ top: rect.bottom + window.scrollY + 4, left: rect.left + window.scrollX, width: rect.width });
                               setDropdownObservacionesOpen(true);
                             }}
-                            onBlur={() => setTimeout(() => setDropdownObservacionesOpen(false), 150)}
+                            onBlur={() => setTimeout(() => {
+                              setDropdownObservacionesOpen(false);
+                              setFormObservaciones(observaciones);
+                            }, 150)}
                             style={{
                               border: 'none',
                               outline: 'none',
@@ -1752,6 +1929,7 @@ export default function DetalleUnidadEncierro() {
                             {observacionesCatalogo
                               .filter(obs => {
                                 const label = `${formatObservacionClave(obs.clave)} - ${obs.descripcion}`;
+                                if (formObservaciones === observaciones) return true;
                                 return label.toLowerCase().includes(formObservaciones.toLowerCase());
                               })
                               .map(obs => {
