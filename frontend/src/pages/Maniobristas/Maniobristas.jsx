@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
@@ -66,32 +66,38 @@ function StatusDropdown({ value, onChange }) {
 
   const [menuStyle, setMenuStyle] = useState({});
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !e.target.closest('.status-dropdown-menu')) {
         setIsOpen(false);
       }
     };
-    const handleScroll = () => {
-      if (isOpen) setIsOpen(false);
-    };
+
 
     if (isOpen && dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
-      setMenuStyle({
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownHeight = 200; // Altura estimada del menú desplegable
+
+      let style = {
         position: 'fixed',
-        top: rect.bottom + 4,
         left: rect.left,
         width: rect.width,
         zIndex: 9999
-      });
+      };
+
+      if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+        style.bottom = window.innerHeight - rect.top + 4;
+      } else {
+        style.top = rect.bottom + 4;
+      }
+
+      setMenuStyle(style);
       document.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('scroll', handleScroll, true);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isOpen]);
 
@@ -115,36 +121,10 @@ function StatusDropdown({ value, onChange }) {
           if (isReadOnly) return;
           const nextState = !isOpen;
           setIsOpen(nextState);
-          if (nextState && dropdownRef.current) {
-            setTimeout(() => {
-              dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-          }
-        }}
-        style={{ cursor: isReadOnly ? 'default' : 'pointer' }}
-        onClick={() => {
-          if (isReadOnly) return;
-          const nextState = !isOpen;
-          setIsOpen(nextState);
-          if (nextState && dropdownRef.current) {
-            setTimeout(() => {
-              dropdownRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-          }
         }}
         style={{ cursor: isReadOnly ? 'default' : 'pointer' }}
       >
         <span className="status-text">{selectedOpt.label}</span>
-        {!isReadOnly && (
-          <svg
-            className={`arrow-icon ${isOpen ? 'open' : ''}`}
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-          >
-            <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
-          </svg>
-        )}
         {!isReadOnly && (
           <svg
             className={`arrow-icon ${isOpen ? 'open' : ''}`}
