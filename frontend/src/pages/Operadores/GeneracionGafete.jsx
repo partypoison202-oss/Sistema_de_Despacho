@@ -4,7 +4,7 @@ import API_BASE from '../../config/api';
 import plantillaGafete from '../../assets/plantilla_gafete.png';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 
-export default function GeneracionGafete({ T6 }) {
+export default function GeneracionGafete({ conductores }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConductor, setSelectedConductor] = useState(null);
   const [fechaExpedicion, setFechaExpedicion] = useState('2026-01-01');
@@ -18,7 +18,7 @@ export default function GeneracionGafete({ T6 }) {
     return `${meses[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  const filteredConductores = T6.filter(c => {
+  const filteredConductores = conductores.filter(c => {
     const term = (searchTerm || '').toLowerCase();
     return (
       (c.nombre && c.nombre.toLowerCase().includes(term)) ||
@@ -57,11 +57,11 @@ export default function GeneracionGafete({ T6 }) {
         <div className="lg:col-span-4 flex flex-col gap-6 print:hidden">
           <div>
             <h2 className="text-xl font-bold text-slate-800 mb-2">Controles del Gafete</h2>
-            <p className="text-sm text-slate-500 mb-4">Busca un T6 y completa los datos de expedición.</p>
+            <p className="text-sm text-slate-500 mb-4">Busca un operador y completa los datos de expedición.</p>
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Buscar T6</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Buscar Operador</label>
             <input
               type="text"
               placeholder="Buscar por nombre o tarjetón..."
@@ -89,7 +89,7 @@ export default function GeneracionGafete({ T6 }) {
                     </div>
                   ))
                 ) : (
-                  <div className="px-4 py-3 text-sm text-slate-500">No se encontraron T6.</div>
+                  <div className="px-4 py-3 text-sm text-slate-500">No se encontraron operadores.</div>
                 )}
               </div>
             )}
@@ -159,7 +159,7 @@ export default function GeneracionGafete({ T6 }) {
                   {fotoUrl ? (
                      <img 
                        src={fotoUrl} 
-                       alt="T6" 
+                       alt="Operador" 
                        className="w-full h-full object-cover" 
                        onError={(e) => {
                          e.target.onerror = null;
