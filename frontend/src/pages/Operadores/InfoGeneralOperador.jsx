@@ -31,7 +31,7 @@ const calcularAntiguedad = (fechaIngreso) => {
   return `${anios} años, ${meses} meses`;
 };
 
-const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
+const PrintableTemplate = ({ T6, sitmahOrangeUrl }) => (
   <div className="bg-white p-8 w-[800px] mx-auto text-sm text-gray-800 font-sans" id="printable-pdf-template">
     {/* Membrete Oficial */}
     <div className="border-b-2 border-[#6A1B29] pb-4 mb-6 flex items-center justify-between">
@@ -51,7 +51,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
     {/* Identidad */}
     <div className="flex items-center gap-6 mb-6 pb-4 border-b border-gray-100">
       <div className="h-24 w-24 shrink-0 rounded-full flex items-center justify-center text-white text-4xl font-bold overflow-hidden" style={{ backgroundColor: '#6A1B29' }}>
-         {conductor.nombre && conductor.nombre !== '------------------------' ? conductor.nombre.charAt(0).toUpperCase() : 'O'}
+         {conductor.nombre && T6.nombre !== '------------------------' ? T6.nombre.charAt(0).toUpperCase() : 'O'}
       </div>
       <div className="flex-1">
          <h2 className="text-2xl font-bold text-gray-900 uppercase">{conductor.nombre}</h2>
@@ -60,7 +60,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
            <span><strong>Tarjetón:</strong> {conductor.tarjeton}</span>
            <span className={`px-2 py-1 text-xs rounded-full font-bold uppercase ${conductor.estatus === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{conductor.estatus === 'activo' ? 'ACTIVO' : 'BAJA'}</span>
          </div>
-         <p className="mt-1 text-xs text-gray-500"><strong>Vigencia Licencia:</strong> {conductor.vigencia_licencia ? new Date(conductor.vigencia_licencia).toLocaleDateString() : 'No registrada'}</p>
+         <p className="mt-1 text-xs text-gray-500"><strong>Vigencia Licencia:</strong> {conductor.vigencia_licencia ? new Date(T6.vigencia_licencia).toLocaleDateString() : 'No registrada'}</p>
       </div>
     </div>
 
@@ -70,7 +70,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
         <h3 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-3 text-xs">DATOS PERSONALES</h3>
         <div className="space-y-3 text-xs">
           <p className="flex justify-between border-b border-gray-50 pb-1"><span>Sexo:</span> <strong>{conductor.sexo || 'N/A'}</strong></p>
-          <p className="flex justify-between border-b border-gray-50 pb-1"><span>Edad:</span> <strong>{conductor.fecha_nacimiento ? calcularEdad(conductor.fecha_nacimiento) : '---'}</strong></p>
+          <p className="flex justify-between border-b border-gray-50 pb-1"><span>Edad:</span> <strong>{conductor.fecha_nacimiento ? calcularEdad(T6.fecha_nacimiento) : '---'}</strong></p>
           <p className="flex justify-between border-b border-gray-50 pb-1"><span>Teléfono:</span> <strong>{conductor.telefono || 'N/A'}</strong></p>
           <div>
             <span className="block text-gray-500 mb-1">Referencia 1:</span>
@@ -89,19 +89,19 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
         <div className="grid grid-cols-2 gap-3 text-xs">
            <div className="bg-gray-50 p-2 rounded">
              <span className="block text-gray-500 mb-1">Fecha Ingreso</span>
-             <strong className="text-sm">{conductor.fecha_ingreso ? new Date(conductor.fecha_ingreso).toLocaleDateString() : 'N/A'}</strong>
+             <strong className="text-sm">{conductor.fecha_ingreso ? new Date(T6.fecha_ingreso).toLocaleDateString() : 'N/A'}</strong>
            </div>
            <div className="bg-[#6A1B29] text-white p-2 rounded">
              <span className="block mb-1 opacity-80">Antigüedad</span>
-             <strong className="text-sm">{conductor.fecha_ingreso ? calcularAntiguedad(conductor.fecha_ingreso) : '---'}</strong>
+             <strong className="text-sm">{conductor.fecha_ingreso ? calcularAntiguedad(T6.fecha_ingreso) : '---'}</strong>
            </div>
            <div className="bg-gray-50 p-2 rounded">
              <span className="block text-gray-500 mb-1">Últ. Capacitación</span>
-             <strong>{conductor.ultima_capacitacion ? new Date(conductor.ultima_capacitacion).toLocaleDateString() : 'N/A'}</strong>
+             <strong>{conductor.ultima_capacitacion ? new Date(T6.ultima_capacitacion).toLocaleDateString() : 'N/A'}</strong>
            </div>
            <div className="bg-gray-50 p-2 rounded">
              <span className="block text-gray-500 mb-1">Próx. Capacitación</span>
-             <strong>{conductor.proxima_capacitacion ? new Date(conductor.proxima_capacitacion).toLocaleDateString() : 'N/A'}</strong>
+             <strong>{conductor.proxima_capacitacion ? new Date(T6.proxima_capacitacion).toLocaleDateString() : 'N/A'}</strong>
            </div>
         </div>
       </div>
@@ -114,7 +114,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.accidentes_siniestros ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Accidentes y Siniestros</p></div>
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.faltas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Faltas</p></div>
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.retardos ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Retardos</p></div>
-        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.cambios ?? conductor.permutas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Permutas</p></div>
+        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.cambios ?? T6.permutas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Permutas</p></div>
       </div>
     </div>
 
@@ -123,16 +123,16 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
       <div className="border border-gray-200 rounded-lg p-4">
          <h4 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-2 flex justify-between text-xs">RECONOCIMIENTOS <span className="text-[#6A1B29]">{conductor.reconocimientos ?? 0}</span></h4>
          <ul className="text-[10px] list-disc pl-4 space-y-1 text-gray-600">
-            {conductor.reconocimientos_detalle && conductor.reconocimientos_detalle.length > 0 ? 
-              conductor.reconocimientos_detalle.map(d => <li key={d.id}><strong>{new Date(d.fecha).toLocaleDateString()}:</strong> {d.motivo}</li>) 
+            {conductor.reconocimientos_detalle && T6.reconocimientos_detalle.length > 0 ? 
+              T6.reconocimientos_detalle.map(d => <li key={d.id}><strong>{new Date(d.fecha).toLocaleDateString()}:</strong> {d.motivo}</li>) 
             : <li className="italic">Sin registros</li>}
          </ul>
       </div>
       <div className="border border-gray-200 rounded-lg p-4">
          <h4 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-2 flex justify-between text-xs">AMONESTACIONES <span className="text-[#6A1B29]">{conductor.amonestaciones ?? 0}</span></h4>
          <ul className="text-[10px] list-disc pl-4 space-y-1 text-gray-600">
-            {conductor.amonestaciones_detalle && conductor.amonestaciones_detalle.length > 0 ? 
-              conductor.amonestaciones_detalle.map(d => <li key={d.id}><strong>{new Date(d.fecha).toLocaleDateString()}:</strong> {d.motivo}</li>) 
+            {conductor.amonestaciones_detalle && T6.amonestaciones_detalle.length > 0 ? 
+              T6.amonestaciones_detalle.map(d => <li key={d.id}><strong>{new Date(d.fecha).toLocaleDateString()}:</strong> {d.motivo}</li>) 
             : <li className="italic">Sin registros</li>}
          </ul>
       </div>
@@ -151,7 +151,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
   </div>
 );
 
-export default function InfoGeneralOperador({ conductores }) {
+export default function InfoGeneralOperador({ T6 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConductor, setSelectedConductor] = useState(null);
   const [sitmahOrangeUrl, setSitmahOrangeUrl] = useState('/images/sitmah_logo.webp');
@@ -177,7 +177,7 @@ export default function InfoGeneralOperador({ conductores }) {
   const filteredConductores = useMemo(() => {
     if (!searchTerm) return [];
     const lower = searchTerm.toLowerCase();
-    return conductores.filter(c => 
+    return T6.filter(c => 
       String(c.nombre || '').toLowerCase().includes(lower) ||
       String(c.tarjeton || '').toLowerCase().includes(lower) ||
       String(c.id || '').toLowerCase().includes(lower)
@@ -185,8 +185,8 @@ export default function InfoGeneralOperador({ conductores }) {
   }, [conductores, searchTerm]);
 
   // Selección
-  const handleSelect = (conductor) => {
-    setSelectedConductor(conductor);
+  const handleSelect = (T6) => {
+    setSelectedConductor(T6);
     setSearchTerm(''); // Opcional: limpiar búsqueda o dejarla
   };
 
@@ -244,7 +244,7 @@ export default function InfoGeneralOperador({ conductores }) {
         printWindow.document.write(`
           <html>
             <head>
-              <title>Expediente Operador - ${displayConductor.tarjeton}</title>
+              <title>Expediente T6 - ${displayConductor.tarjeton}</title>
               <style>body { margin: 0; padding: 0; overflow: hidden; }</style>
             </head>
             <body>
@@ -266,7 +266,7 @@ export default function InfoGeneralOperador({ conductores }) {
     if (!selectedConductor) return;
     try {
       const pdf = await generarDocumentoPDF();
-      pdf.save(`Expediente_Operador_${displayConductor.tarjeton}.pdf`);
+      pdf.save(`Expediente_T6_${displayConductor.tarjeton}.pdf`);
     } catch (err) {
       console.error('Error al guardar PDF:', err);
     }
@@ -282,7 +282,7 @@ export default function InfoGeneralOperador({ conductores }) {
       <div className="info-general-container print:hidden">
       {/* Buscador Superior */}
       <div className="search-section bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6 print:hidden">
-        <h2 className="text-lg font-bold mb-4" style={{ color: '#6A1B29' }}>Buscar Operador</h2>
+        <h2 className="text-lg font-bold mb-4" style={{ color: '#6A1B29' }}>Buscar T6</h2>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -320,7 +320,7 @@ export default function InfoGeneralOperador({ conductores }) {
                 ))}
               </ul>
             ) : (
-              <p className="p-4 text-sm text-gray-500 text-center">No se encontraron operadores.</p>
+              <p className="p-4 text-sm text-gray-500 text-center">No se encontraron T6.</p>
             )}
           </div>
         )}
@@ -346,7 +346,7 @@ export default function InfoGeneralOperador({ conductores }) {
         </button>
       </div>
 
-      {/* Perfil del Operador */}
+      {/* Perfil del T6 */}
         <div className="operator-profile space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             

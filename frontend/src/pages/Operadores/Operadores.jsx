@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
 import API_BASE from '../../config/api';
-import './Operadores.css';
+import './T6.css';
 import InfoGeneralOperador from './InfoGeneralOperador';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import GeneracionGafete from './GeneracionGafete';
@@ -64,7 +64,7 @@ function CustomSelect({ value, onChange, options }) {
   );
 }
 
-// Componente de Dropdown de Estatus de Servicio para Operadores
+// Componente de Dropdown de Estatus de Servicio para T6
 function StatusDropdown({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -116,13 +116,13 @@ function StatusDropdown({ value, onChange }) {
     { value: 'permuta', label: 'PERMUTA', class: 'permuta' }
   ];
 
-  // Si el operador está marcado como maniobrista, mostrar badge de solo lectura
+  // Si el T6 está marcado como maniobrista, mostrar badge de solo lectura
   if (value === 'maniobrista') {
     return (
       <div className="status-dropdown-container" ref={dropdownRef}>
         <div
           className="status-dropdown-trigger maniobrista"
-          title="Este operador está gestionado como Maniobrista"
+          title="Este T6 está gestionado como Maniobrista"
           style={{ cursor: 'default', opacity: 0.85 }}
         >
           <span className="status-text">MANIOBRISTA</span>
@@ -296,7 +296,7 @@ const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder =
   return prevProps.value === nextProps.value && prevProps.type === nextProps.type;
 });
 
-export default function Operadores() {
+export default function T6() {
   const { user } = useContext(AuthContext);
   const [conductores, setConductores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -380,7 +380,7 @@ export default function Operadores() {
   const [newDetailMotivo, setNewDetailMotivo] = useState('');
   const [savingDetail, setSavingDetail] = useState(false);
 
-  const getDetailArray = (conductor, type) => {
+  const getDetailArray = (T6, type) => {
     if (!conductor) return [];
     const val = conductor[`${type}_detalle`];
     if (Array.isArray(val)) return val;
@@ -478,7 +478,7 @@ export default function Operadores() {
       if (res.status === 401) {
         throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
       }
-      if (!res.ok) throw new Error('Error al cargar operadores');
+      if (!res.ok) throw new Error('Error al cargar T6');
       const data = await res.json();
       setConductores(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -489,7 +489,7 @@ export default function Operadores() {
           title: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.' ? 'Sesión expirada' : 'Error',
           text: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.'
             ? err.message
-            : 'No se pudieron cargar los operadores.',
+            : 'No se pudieron cargar los T6.',
           confirmButtonColor: '#6b1d33'
         }).then((result) => {
           if (result.isConfirmed && err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.') {
@@ -622,7 +622,7 @@ export default function Operadores() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al agregar operador');
+      if (!res.ok) throw new Error(data.message || 'Error al agregar T6');
 
       // Subir la foto si se seleccionó una
       if (foto && data.conductor?.id) {
@@ -643,15 +643,15 @@ export default function Operadores() {
         });
 
         if (!photoRes.ok) {
-          console.error("Error al subir foto durante la creación del operador");
+          console.error("Error al subir foto durante la creación del T6");
         }
       }
 
       setShowAddModal(false);
       Swal.fire({
         icon: 'success',
-        title: 'Operador Registrado',
-        text: `El operador se creó exitosamente con el Tarjetón Automático: ${data.conductor.tarjeton}`,
+        title: 'T6 Registrado',
+        text: `El T6 se creó exitosamente con el Tarjetón Automático: ${data.conductor.tarjeton}`,
         confirmButtonColor: '#c5a059'
       });
       fetchConductores();
@@ -703,7 +703,7 @@ export default function Operadores() {
       Swal.fire({
         icon: 'warning',
         title: 'Campos requeridos',
-        text: 'Los nombres, apellidos, tipo de tarjetón y sexo del operador no pueden estar vacíos.',
+        text: 'Los nombres, apellidos, tipo de tarjetón y sexo del T6 no pueden estar vacíos.',
         confirmButtonColor: '#c5a059'
       });
       return;
@@ -745,7 +745,7 @@ export default function Operadores() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al actualizar operador');
+      if (!res.ok) throw new Error(data.message || 'Error al actualizar T6');
 
       // Subir la foto si se seleccionó una
       if (foto) {
@@ -766,7 +766,7 @@ export default function Operadores() {
 
         if (!photoRes.ok) {
           console.error("Error al subir foto");
-          // Podríamos lanzar error, pero preferimos que el conductor se haya guardado
+          // Podríamos lanzar error, pero preferimos que el T6 se haya guardado
         }
       }
 
@@ -774,7 +774,7 @@ export default function Operadores() {
       Swal.fire({
         icon: 'success',
         title: 'Actualizado',
-        text: 'Los datos del operador se han actualizado correctamente.',
+        text: 'Los datos del T6 se han actualizado correctamente.',
         confirmButtonColor: '#c5a059'
       }).then(() => {
         // fetchConductores(); // It will be fetched by the interval, or we can fetch it explicitly
@@ -794,8 +794,8 @@ export default function Operadores() {
 
   const handleDarDeBaja = async (c) => {
     const confirm = await Swal.fire({
-      title: '¿Dar de baja al operador?',
-      text: `El operador ${c.nombre} (Tarjetón: ${c.tarjeton}) se marcará como BAJA en el sistema. No se eliminará de la base de datos.`,
+      title: '¿Dar de baja al T6?',
+      text: `El T6 ${c.nombre} (Tarjetón: ${c.tarjeton}) se marcará como BAJA en el sistema. No se eliminará de la base de datos.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#6b1d33',
@@ -817,8 +817,8 @@ export default function Operadores() {
 
       Swal.fire({
         icon: 'success',
-        title: 'Operador en Baja',
-        text: 'El operador se ha dado de baja correctamente.',
+        title: 'T6 en Baja',
+        text: 'El T6 se ha dado de baja correctamente.',
         confirmButtonColor: '#c5a059'
       });
       fetchConductores();
@@ -832,7 +832,7 @@ export default function Operadores() {
     }
   };
 
-  const handleStatusChange = async (conductor, nuevoEstatus) => {
+  const handleStatusChange = async (T6, nuevoEstatus) => {
     try {
       const res = await fetch(`${API_BASE}/api/conductores/${conductor.id}`, {
         method: 'PUT',
@@ -869,7 +869,7 @@ export default function Operadores() {
     return match ? parseInt(match[0], 10) : 0;
   };
 
-  const filteredConductores = conductores.filter(c => {
+  const filteredConductores = T6.filter(c => {
     if (activeTab === 'catalogo' && c.estatus === 'baja') {
       return false;
     }
@@ -894,14 +894,14 @@ export default function Operadores() {
 
   return (
     <div className="operadores-layout">
-      <Header title="Gestión de Operadores" />
+      <Header title="Gestión de T6" />
 
       <main className="operadores-main-content">
         <div className="operadores-top-bar">
           <div className="operadores-title-section">
-            <h1>Gestión de Operadores</h1>
+            <h1>Gestión de T6</h1>
             <p className="operadores-subtitle">
-              Administra el alta y edición de operadores. El tarjetón se genera automáticamente.
+              Administra el alta y edición de T6. El tarjetón se genera automáticamente.
             </p>
           </div>
 
@@ -914,7 +914,7 @@ export default function Operadores() {
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Agregar Operador
+              Agregar T6
             </button>
           )}
         </div>
@@ -936,7 +936,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Gestión de Operadores
+            Gestión de T6
           </button>
           <button
             type="button"
@@ -954,7 +954,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Kardex de Operadores
+            Kardex de T6
           </button>
           <button
             type="button"
@@ -972,7 +972,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Estadísticas de Operadores
+            Estadísticas
           </button>
           <button
             type="button"
@@ -990,7 +990,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Información General de la Persona Conductora
+            Información General de T6
           </button>
           <button
             type="button"
@@ -1079,7 +1079,7 @@ export default function Operadores() {
         {loading ? (
           <div className="operadores-loading">
             <span className="spinner"></span>
-            <p>Cargando lista de operadores...</p>
+            <p>Cargando lista de T6...</p>
           </div>
         ) : activeTab === 'catalogo' ? (
           <div className="operadores-table-card">
@@ -1088,8 +1088,8 @@ export default function Operadores() {
                 <thead>
                   <tr>
                     <th style={{ width: '130px' }}># Tarjetón</th>
-                    <th>Nombre Completo del Operador</th>
-                    <th style={{ width: '140px' }}>Tipo Tarjetón</th>
+                    <th>Nombre Completo</th>
+                    <th style={{ width: '160px' }}>Tipo Tarjetón</th>
                     <th style={{ width: '160px' }}>Estado Servicio</th>
                     <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
                   </tr>
@@ -1098,7 +1098,7 @@ export default function Operadores() {
                   {filteredConductores.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="empty-table-cell">
-                        No se encontraron operadores registrados.
+                        No se encontraron T6 registrados.
                       </td>
                     </tr>
                   ) : (
@@ -1125,7 +1125,7 @@ export default function Operadores() {
                               type="button"
                               className="btn-action edit"
                               onClick={() => handleOpenEditModal(c)}
-                              title="Editar Operador"
+                              title="Editar T6"
                             >
                               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -1162,7 +1162,7 @@ export default function Operadores() {
                 <thead>
                   <tr>
                     <th style={{ width: '110px' }}>Tarjetón</th>
-                    <th style={{ width: '140px' }}>Tipo Tarjetón</th>
+                    <th style={{ width: '160px' }}>Tipo Tarjetón</th>
                     <th style={{ width: '280px' }}>Nombre completo</th>
                     <th style={{ width: '90px', textAlign: 'center' }}>Edad</th>
                     <th style={{ width: '130px' }}>Estatus</th>
@@ -1184,7 +1184,7 @@ export default function Operadores() {
                   {filteredConductores.length === 0 ? (
                     <tr>
                       <td colSpan="15" className="empty-table-cell">
-                        No se encontraron operadores registrados.
+                        No se encontraron T6 registrados.
                       </td>
                     </tr>
                   ) : (
@@ -1337,20 +1337,20 @@ export default function Operadores() {
         ) : null}
       </main>
 
-      {/* Modal Agregar Operador */}
+      {/* Modal Agregar T6 */}
       {showAddModal && (
         <div className="modal-backdrop">
           <div className="modal-content">
             <div className="modal-header">
               <div className="modal-header-title">
-                <h2>Agregar Nuevo Operador</h2>
-                <p>Ingresa los datos del conductor a registrar</p>
+                <h2>Agregar Nuevo T6</h2>
+                <p>Ingresa los datos del T6 a registrar</p>
               </div>
               <button className="close-btn" onClick={() => setShowAddModal(false)} aria-label="Cerrar">&times;</button>
             </div>
             <form onSubmit={handleAddSubmit} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                <label className="form-label">Fotografía del T6 (Opcional)</label>
                 {foto && (
                   <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
                     <img
@@ -1375,7 +1375,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Apellidos del Operador</label>
+                <label className="form-label">Apellidos del T6</label>
                 <input
                   type="text"
                   required
@@ -1388,7 +1388,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del Operador</label>
+                <label className="form-label">Nombre(s) del T6</label>
                 <input
                   type="text"
                   required
@@ -1480,7 +1480,7 @@ export default function Operadores() {
                   className="btn-save"
                   disabled={submitting}
                 >
-                  {submitting ? 'Guardando...' : 'Guardar Operador'}
+                  {submitting ? 'Guardando...' : 'Guardar T6'}
                 </button>
               </div>
             </form>
@@ -1488,20 +1488,20 @@ export default function Operadores() {
         </div>
       )}
 
-      {/* Modal Editar Operador */}
+      {/* Modal Editar T6 */}
       {showEditModal && selectedConductor && (
         <div className="modal-backdrop">
           <div className="modal-content">
             <div className="modal-header">
               <div className="modal-header-title">
-                <h2>Editar Operador</h2>
+                <h2>Editar T6</h2>
                 <p>Modifica el nombre o tipo de tarjetón asignado</p>
               </div>
               <button className="close-btn" onClick={() => setShowEditModal(false)} aria-label="Cerrar">&times;</button>
             </div>
             <form onSubmit={handleEditSubmit} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                <label className="form-label">Fotografía del T6 (Opcional)</label>
                 {(foto || selectedConductor?.foto) && (
                   <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
                     <img
@@ -1536,7 +1536,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Apellidos del Operador</label>
+                <label className="form-label">Apellidos del T6</label>
                 <input
                   type="text"
                   required
@@ -1549,7 +1549,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del Operador</label>
+                <label className="form-label">Nombre(s) del T6</label>
                 <input
                   type="text"
                   required

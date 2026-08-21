@@ -461,7 +461,7 @@ export default function Operadores() {
                 <thead>
                   <tr>
                     <th style={{ width: '130px' }}># Tarjetón</th>
-                    <th>Nombre Completo del Maniobrista</th>
+                    <th>Nombre Completo</th>
                     <th style={{ width: '140px' }}>Tipo Tarjetón</th>
                     <th style={{ width: '160px' }}>Estado Servicio</th>
                     <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
@@ -544,7 +544,7 @@ export default function Operadores() {
             </div>
             <form onSubmit={handleAddSubmit} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Nombre Completo del Maniobrista</label>
+                <label className="form-label">Nombre Completo</label>
                 <input
                   type="text"
                   required
@@ -621,7 +621,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre Completo del Maniobrista</label>
+                <label className="form-label">Nombre Completo</label>
                 <input
                   type="text"
                   required

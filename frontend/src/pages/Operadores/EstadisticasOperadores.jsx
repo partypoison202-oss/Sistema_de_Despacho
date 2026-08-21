@@ -7,7 +7,7 @@ import {
 // Paleta de colores Premium
 const COLORS = ['#6b1d33', '#c5a059', '#1e293b', '#64748b', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
-const getDetailArray = (conductor, type) => {
+const getDetailArray = (T6, type) => {
   if (!conductor) return [];
   const val = conductor[`${type}_detalle`];
   if (Array.isArray(val)) return val;
@@ -22,7 +22,7 @@ const getDetailArray = (conductor, type) => {
   return [];
 };
 
-export default function EstadisticasOperadores({ conductores = [] }) {
+export default function EstadisticasOperadores({ T6 = [] }) {
   const stats = useMemo(() => {
     let activos = 0;
     let bajas = 0;
@@ -36,13 +36,13 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     const topAccidentes = [];
     const tarjetonesCount = {};
 
-    conductores.forEach(c => {
+    T6.forEach(c => {
       // Bajas vs Activos
       if (c.estatus === 'baja') {
         bajas++;
       } else {
         activos++;
-        
+
         // Sumar faltas y retardos (solo de activos para no sesgar con gente que ya no está)
         const faltas = Number(c.faltas) || 0;
         const retardos = Number(c.retardos) || 0;
@@ -50,7 +50,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
 
         totalFaltas += faltas;
         totalRetardos += retardos;
-        
+
         if (c.evaluacion) {
           sumaEvaluacion += Number(c.evaluacion);
           evaluadosCount++;
@@ -99,7 +99,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
+
     return percent > 0.05 ? (
       <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="0.8rem">
         {`${(percent * 100).toFixed(0)}%`}
@@ -108,18 +108,18 @@ export default function EstadisticasOperadores({ conductores = [] }) {
   };
 
   return (
-    <div className="estadisticas-operadores" style={{ animation: 'fadeIn 0.5s ease' }}>
-      
+    <div className="estadisticas-T6" style={{ animation: 'fadeIn 0.5s ease' }}>
+
       {/* Top Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 border-l-4 border-l-[#10b981]">
-          <p className="text-slate-500 text-sm font-medium mb-1">Operadores Activos</p>
+          <p className="text-slate-500 text-sm font-medium mb-1">T6 Activos</p>
           <div className="flex items-end justify-between">
             <h3 className="text-3xl font-bold text-slate-800">{stats.activos}</h3>
             <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{stats.bajas} Bajas</span>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 border-l-4 border-l-[#ef4444]">
           <p className="text-slate-500 text-sm font-medium mb-1">Total Faltas (Activos)</p>
           <div className="flex items-end justify-between">
@@ -146,14 +146,14 @@ export default function EstadisticasOperadores({ conductores = [] }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        
+
         {/* Gráfica Top Faltas */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
             <svg width="24" height="24" fill="none" stroke="#ef4444" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            Top 5 Operadores con Faltas
+            Top 5 T6 con Faltas
           </h3>
           {stats.top5Faltas.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
@@ -161,14 +161,14 @@ export default function EstadisticasOperadores({ conductores = [] }) {
                 <BarChart data={stats.top5Faltas} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                   <XAxis type="number" />
-                  <YAxis dataKey="nombre" type="category" width={120} tick={{fontSize: 12}} />
-                  <RechartsTooltip cursor={{fill: '#f1f5f9'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                  <YAxis dataKey="nombre" type="category" width={120} tick={{ fontSize: 12 }} />
+                  <RechartsTooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                   <Bar dataKey="faltas" fill="#ef4444" radius={[0, 4, 4, 0]} name="Faltas" barSize={30} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
-             <div className="h-[300px] flex items-center justify-center text-slate-400 italic">No hay faltas registradas.</div>
+            <div className="h-[300px] flex items-center justify-center text-slate-400 italic">No hay faltas registradas.</div>
           )}
         </div>
 
@@ -193,7 +193,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                  <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                   <Legend iconType="circle" />
                 </PieChart>
               </ResponsiveContainer>
@@ -211,7 +211,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
             <svg width="24" height="24" fill="none" stroke="#f59e0b" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            Top 5 Operadores con Accidentes/Siniestros
+            Top 5 T6 con Accidentes/Siniestros
           </h3>
           {stats.top5Accidentes.length > 0 ? (
             <div className="space-y-3">
@@ -224,7 +224,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
             </div>
           ) : (
             <div className="p-4 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-slate-100">
-              Excelente, no hay accidentes registrados en operadores activos.
+              Excelente, no hay accidentes registrados en T6 activos.
             </div>
           )}
         </div>
@@ -235,7 +235,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
             <svg width="24" height="24" fill="none" stroke="#3b82f6" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Top 5 Operadores con Retardos
+            Top 5 T6 con Retardos
           </h3>
           {stats.top5Retardos.length > 0 ? (
             <div className="space-y-3">
@@ -248,7 +248,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
             </div>
           ) : (
             <div className="p-4 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-slate-100">
-              No hay retardos registrados en operadores activos.
+              No hay retardos registrados en T6 activos.
             </div>
           )}
         </div>
