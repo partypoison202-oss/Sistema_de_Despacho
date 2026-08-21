@@ -89,7 +89,7 @@ export default function GeneracionGafete({ conductores }) {
                     </div>
                   ))
                 ) : (
-                  <div className="px-4 py-3 text-sm text-slate-500">No se encontraron operadores.</div>
+                  <div className="px-4 py-3 text-sm text-slate-500">No se encontraron T6.</div>
                 )}
               </div>
             )}

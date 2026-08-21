@@ -894,12 +894,12 @@ export default function Operadores() {
 
   return (
     <div className="operadores-layout">
-      <Header title="Gestión de Operadores" />
+      <Header title="Gestión de T6" />
 
       <main className="operadores-main-content">
         <div className="operadores-top-bar">
           <div className="operadores-title-section">
-            <h1>Gestión de Operadores</h1>
+            <h1>Gestión de T6</h1>
             <p className="operadores-subtitle">
               Administra el alta y edición de operadores. El tarjetón se genera automáticamente.
             </p>
@@ -914,7 +914,7 @@ export default function Operadores() {
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Agregar Operador
+              Agregar T6
             </button>
           )}
         </div>
@@ -936,7 +936,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Gestión de Operadores
+            Gestión de T6
           </button>
           <button
             type="button"
@@ -954,7 +954,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Kardex de Operadores
+            Kardex de T6
           </button>
           <button
             type="button"
@@ -990,7 +990,7 @@ export default function Operadores() {
               transition: 'all 0.2s'
             }}
           >
-            Información General de la Persona Conductora
+            Información General de T6
           </button>
           <button
             type="button"
@@ -1079,7 +1079,7 @@ export default function Operadores() {
         {loading ? (
           <div className="operadores-loading">
             <span className="spinner"></span>
-            <p>Cargando lista de operadores...</p>
+            <p>Cargando lista de T6...</p>
           </div>
         ) : activeTab === 'catalogo' ? (
           <div className="operadores-table-card">
@@ -1098,7 +1098,7 @@ export default function Operadores() {
                   {filteredConductores.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="empty-table-cell">
-                        No se encontraron operadores registrados.
+                        No se encontraron T6 registrados.
                       </td>
                     </tr>
                   ) : (
@@ -1125,7 +1125,7 @@ export default function Operadores() {
                               type="button"
                               className="btn-action edit"
                               onClick={() => handleOpenEditModal(c)}
-                              title="Editar Operador"
+                              title="Editar T6"
                             >
                               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -1184,7 +1184,7 @@ export default function Operadores() {
                   {filteredConductores.length === 0 ? (
                     <tr>
                       <td colSpan="15" className="empty-table-cell">
-                        No se encontraron operadores registrados.
+                        No se encontraron T6 registrados.
                       </td>
                     </tr>
                   ) : (
@@ -1337,20 +1337,20 @@ export default function Operadores() {
         ) : null}
       </main>
 
-      {/* Modal Agregar Operador */}
+      {/* Modal Agregar T6 */}
       {showAddModal && (
         <div className="modal-backdrop">
           <div className="modal-content">
             <div className="modal-header">
               <div className="modal-header-title">
-                <h2>Agregar Nuevo Operador</h2>
-                <p>Ingresa los datos del conductor a registrar</p>
+                <h2>Agregar Nuevo T6</h2>
+                <p>Ingresa los datos del T6 a registrar</p>
               </div>
               <button className="close-btn" onClick={() => setShowAddModal(false)} aria-label="Cerrar">&times;</button>
             </div>
             <form onSubmit={handleAddSubmit} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                <label className="form-label">Fotografía del T6 (Opcional)</label>
                 {foto && (
                   <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
                     <img
@@ -1375,7 +1375,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Apellidos del Operador</label>
+                <label className="form-label">Apellidos del T6</label>
                 <input
                   type="text"
                   required
@@ -1388,7 +1388,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del Operador</label>
+                <label className="form-label">Nombre(s) del T6</label>
                 <input
                   type="text"
                   required
@@ -1480,7 +1480,7 @@ export default function Operadores() {
                   className="btn-save"
                   disabled={submitting}
                 >
-                  {submitting ? 'Guardando...' : 'Guardar Operador'}
+                  {submitting ? 'Guardando...' : 'Guardar T6'}
                 </button>
               </div>
             </form>
@@ -1488,20 +1488,20 @@ export default function Operadores() {
         </div>
       )}
 
-      {/* Modal Editar Operador */}
+      {/* Modal Editar T6 */}
       {showEditModal && selectedConductor && (
         <div className="modal-backdrop">
           <div className="modal-content">
             <div className="modal-header">
               <div className="modal-header-title">
-                <h2>Editar Operador</h2>
+                <h2>Editar T6</h2>
                 <p>Modifica el nombre o tipo de tarjetón asignado</p>
               </div>
               <button className="close-btn" onClick={() => setShowEditModal(false)} aria-label="Cerrar">&times;</button>
             </div>
             <form onSubmit={handleEditSubmit} className="modal-form">
               <div className="form-group">
-                <label className="form-label">Fotografía del Operador (Opcional)</label>
+                <label className="form-label">Fotografía del T6 (Opcional)</label>
                 {(foto || selectedConductor?.foto) && (
                   <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
                     <img
@@ -1536,7 +1536,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Apellidos del Operador</label>
+                <label className="form-label">Apellidos del T6</label>
                 <input
                   type="text"
                   required
@@ -1549,7 +1549,7 @@ export default function Operadores() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Nombre(s) del Operador</label>
+                <label className="form-label">Nombre(s) del T6</label>
                 <input
                   type="text"
                   required

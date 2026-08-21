@@ -320,7 +320,7 @@ export default function InfoGeneralOperador({ conductores }) {
                 ))}
               </ul>
             ) : (
-              <p className="p-4 text-sm text-gray-500 text-center">No se encontraron operadores.</p>
+              <p className="p-4 text-sm text-gray-500 text-center">No se encontraron T6.</p>
             )}
           </div>
         )}
@@ -346,7 +346,7 @@ export default function InfoGeneralOperador({ conductores }) {
         </button>
       </div>
 
-      {/* Perfil del Operador */}
+      {/* Perfil del T6 */}
         <div className="operator-profile space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
