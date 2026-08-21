@@ -40,10 +40,9 @@ php artisan optimize:clear
 echo -e "${BLUE}🔐 5. Asignando permisos críticos a storage y bootstrap/cache...${NC}"
 chmod -R 775 storage bootstrap/cache
 
-# Paso 6: Ejecución de migraciones y seeders
-echo -e "${BLUE}🗄️ 6. Ejecutando migraciones y seeders de base de datos...${NC}"
+# Paso 6: Ejecución de migraciones (solo estructura, CERO inserts)
+echo -e "${BLUE}🗄️ 6. Ejecutando migraciones de base de datos (solo nuevas tablas/cambios)...${NC}"
 php artisan migrate --force
-php artisan db:seed --force
 
 cd ..
 
