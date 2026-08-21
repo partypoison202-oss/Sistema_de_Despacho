@@ -82,7 +82,7 @@ function StatusDropdown({ value, onChange }) {
     if (isOpen && dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      const dropdownHeight = 200; // Altura estimada del menú desplegable
+      const dropdownHeight = 160; // Altura estimada del menú (4 opciones)
 
       let style = {
         position: 'fixed',
@@ -91,7 +91,8 @@ function StatusDropdown({ value, onChange }) {
         zIndex: 9999
       };
 
-      if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+      // Si no hay suficiente espacio abajo y hay más espacio arriba que abajo, desplegar hacia arriba
+      if (spaceBelow < dropdownHeight && rect.top > spaceBelow) {
         style.bottom = window.innerHeight - rect.top + 4;
         style.top = 'auto';
       } else {

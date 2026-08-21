@@ -154,38 +154,38 @@ class PlataformaController extends Controller
                     return response()->json(['error' => 'Conductor no encontrado en el sistema.'], 404);
                 }
                 $datosUpdate['numero_tarjeton'] = $request->numero_tarjeton;
-                $datosUpdate['nombre_conductor'] = $conductorNuevo->nombre;
+                $nombreCompletoAsig = trim($conductorNuevo->nombres . ' ' . $conductorNuevo->apellidos);
+                $datosUpdate['nombre_conductor'] = $nombreCompletoAsig;
 
                 DB::table('conductores')->where('tarjeton', $request->numero_tarjeton)->update(['estado_servicio' => 'en_servicio']);
-                $mensajeBitacora = "ASIGNACIÓN DE CONDUCTOR: " . $request->numero_tarjeton . " - " . $conductorNuevo->nombre . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
+                $mensajeBitacora = "ASIGNACIÓN DE CONDUCTOR: " . $request->numero_tarjeton . " - " . $nombreCompletoAsig . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
 
             } else if ($tipoMovimiento === 'RETIRO_CONDUCTOR') {
                 if (!$registroOperativo) {
-                    return response()->json(['error' => 'No hay registro operativo para esta unidad.'], 422);
-                }
-                $tarjetonAnterior = $registroOperativo->numero_tarjeton;
-                $motivoRetiro = strtolower($request->motivo ?? 'falta');
-                if ($tarjetonAnterior) {
-                    DB::table('conductores')->where('tarjeton', $tarjetonAnterior)->update(['estado_servicio' => $motivoRetiro]);
-                    if ($motivoRetiro === 'falta') {
-                        DB::table('conductores')->where('tarjeton', $tarjetonAnterior)->increment('faltas');
-                    }
+                    return response()->json(['error' => 'No hay conductor asignado actualmente a esta unidad en Plataforma.'], 400);
                 }
 
-                if ($request->cambio_operador_activo) {
+                // 1) Liberar conductor anterior
+                if ($registroOperativo->numero_tarjeton) {
+                    DB::table('conductores')->where('tarjeton', $registroOperativo->numero_tarjeton)->update(['estado_servicio' => 'disponible']);
+                }
+
+                // 2) Actualizar registro con nuevo conductor (si hay reemplazo)
+                if ($request->has('numero_tarjeton_nuevo') && $request->numero_tarjeton_nuevo) {
                     $conductorNuevo = DB::table('conductores')->where('tarjeton', $request->numero_tarjeton_nuevo)->first();
                     if (!$conductorNuevo) {
                         return response()->json(['error' => 'Conductor de reemplazo no encontrado.'], 404);
                     }
                     $datosUpdate['numero_tarjeton'] = $request->numero_tarjeton_nuevo;
-                    $datosUpdate['nombre_conductor'] = $conductorNuevo->nombre;
+                    $nombreCompleto = trim($conductorNuevo->nombres . ' ' . $conductorNuevo->apellidos);
+                    $datosUpdate['nombre_conductor'] = $nombreCompleto;
                     DB::table('conductores')->where('tarjeton', $request->numero_tarjeton_nuevo)->update(['estado_servicio' => 'en_servicio']);
 
-                    $mensajeBitacora = "CAMBIO DE CONDUCTOR A: " . $request->numero_tarjeton_nuevo . " - " . $conductorNuevo->nombre . " - MOTIVO RETIRO ANTERIOR: " . strtoupper($request->motivo ?? '');
+                    $mensajeBitacora = "CAMBIO DE CONDUCTOR A: " . $request->numero_tarjeton_nuevo . " - " . $nombreCompleto . " - MOTIVO RETIRO ANTERIOR: " . strtoupper($request->motivo ?? '');
                 } else {
                     $datosUpdate['numero_tarjeton'] = null;
                     $datosUpdate['nombre_conductor'] = null;
-                    $mensajeBitacora = "RETIRO DE CONDUCTOR - MOTIVO: " . strtoupper($request->motivo ?? '');
+                    $mensajeBitacora = "RETIRO DE CONDUCTOR: " . $registroOperativo->numero_tarjeton . " - MOTIVO: " . strtoupper($request->motivo ?? '');
                 }
             }
 
