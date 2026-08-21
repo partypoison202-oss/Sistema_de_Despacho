@@ -586,11 +586,12 @@ export default function Operadores() {
       return;
     }
 
-    if ((telefono && telefono.length !== 10) || (ref1Telefono && ref1Telefono.length !== 10) || (ref2Telefono && ref2Telefono.length !== 10)) {
+    const phoneRegex = /^\d{10}$/;
+    if ((telefono && !phoneRegex.test(telefono)) || (ref1Telefono && !phoneRegex.test(ref1Telefono)) || (ref2Telefono && !phoneRegex.test(ref2Telefono))) {
       Swal.fire({
         icon: 'warning',
         title: 'Teléfono inválido',
-        text: 'Todos los números de teléfono deben tener exactamente 10 dígitos.',
+        text: 'Todos los números de teléfono deben tener exactamente 10 dígitos numéricos.',
         confirmButtonColor: '#c5a059'
       });
       return;
@@ -708,11 +709,12 @@ export default function Operadores() {
       return;
     }
 
-    if ((telefono && telefono.length !== 10) || (ref1Telefono && ref1Telefono.length !== 10) || (ref2Telefono && ref2Telefono.length !== 10)) {
+    const phoneRegex = /^\d{10}$/;
+    if ((telefono && !phoneRegex.test(telefono)) || (ref1Telefono && !phoneRegex.test(ref1Telefono)) || (ref2Telefono && !phoneRegex.test(ref2Telefono))) {
       Swal.fire({
         icon: 'warning',
         title: 'Teléfono inválido',
-        text: 'Todos los números de teléfono deben tener exactamente 10 dígitos.',
+        text: 'Todos los números de teléfono deben tener exactamente 10 dígitos numéricos.',
         confirmButtonColor: '#c5a059'
       });
       return;

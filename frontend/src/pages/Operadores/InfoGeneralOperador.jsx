@@ -40,7 +40,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
       
       {/* Center Text */}
       <div className="text-center flex-1 mx-4">
-        <h2 className="text-xl font-bold text-[#6A1B29]">CONSULTA DE INFORMACIÓN DEL OPERADOR</h2>
+        <h2 className="text-xl font-bold text-[#6A1B29]">CONSULTA DE INFORMACIÓN DE LA PERSONA CONDUCTORA</h2>
         <p className="text-[10px] text-gray-500 mt-1">Fecha de Impresión: {new Date().toLocaleDateString()} | Reporte Operativo SITMAH</p>
       </div>
 
@@ -68,12 +68,18 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
       {/* Datos Personales */}
       <div className="border border-gray-200 rounded-lg p-4">
         <h3 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-3 text-xs">DATOS PERSONALES</h3>
-        <div className="space-y-2 text-xs">
-          <p className="flex justify-between"><span>Sexo:</span> <strong>{conductor.sexo || 'N/A'}</strong></p>
-          <p className="flex justify-between"><span>Edad:</span> <strong>{conductor.fecha_nacimiento ? calcularEdad(conductor.fecha_nacimiento) : '---'}</strong></p>
-          <p className="flex justify-between"><span>Teléfono:</span> <strong>{conductor.telefono || 'N/A'}</strong></p>
-          <p className="flex justify-between"><span>Ref 1:</span> <strong>{conductor.referencia_1 || 'N/A'}</strong></p>
-          <p className="flex justify-between"><span>Ref 2:</span> <strong>{conductor.referencia_2 || 'N/A'}</strong></p>
+        <div className="space-y-3 text-xs">
+          <p className="flex justify-between border-b border-gray-50 pb-1"><span>Sexo:</span> <strong>{conductor.sexo || 'N/A'}</strong></p>
+          <p className="flex justify-between border-b border-gray-50 pb-1"><span>Edad:</span> <strong>{conductor.fecha_nacimiento ? calcularEdad(conductor.fecha_nacimiento) : '---'}</strong></p>
+          <p className="flex justify-between border-b border-gray-50 pb-1"><span>Teléfono:</span> <strong>{conductor.telefono || 'N/A'}</strong></p>
+          <div>
+            <span className="block text-gray-500 mb-1">Referencia 1:</span>
+            <strong className="block truncate whitespace-normal leading-tight">{conductor.referencia_1 || 'N/A'}</strong>
+          </div>
+          <div>
+            <span className="block text-gray-500 mb-1">Referencia 2:</span>
+            <strong className="block truncate whitespace-normal leading-tight">{conductor.referencia_2 || 'N/A'}</strong>
+          </div>
         </div>
       </div>
 

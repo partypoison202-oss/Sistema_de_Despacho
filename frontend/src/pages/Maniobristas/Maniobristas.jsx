@@ -208,7 +208,7 @@ export default function Operadores() {
   const fetchManiobristas = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/conductores`, {
+      const res = await fetch(`${API_BASE}/api/maniobristas`, {
         headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error('Error al cargar maniobristas');
@@ -252,7 +252,7 @@ export default function Operadores() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/api/conductores`, {
+      const res = await fetch(`${API_BASE}/api/maniobristas`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -306,7 +306,7 @@ export default function Operadores() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/api/conductores/${selectedManiobrista.id}`, {
+      const res = await fetch(`${API_BASE}/api/maniobristas/${selectedManiobrista.id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -353,7 +353,7 @@ export default function Operadores() {
     if (!confirm.isConfirmed) return;
 
     try {
-      const res = await fetch(`${API_BASE}/api/conductores/${c.id}/baja`, {
+      const res = await fetch(`${API_BASE}/api/maniobristas/${c.id}/baja`, {
         method: 'POST',
         headers: getAuthHeaders()
       });
@@ -380,7 +380,7 @@ export default function Operadores() {
 
   const handleStatusChange = async (maniobrista, nuevoEstatus) => {
     try {
-      const res = await fetch(`${API_BASE}/api/conductores/${maniobrista.id}`, {
+      const res = await fetch(`${API_BASE}/api/maniobristas/${maniobrista.id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({

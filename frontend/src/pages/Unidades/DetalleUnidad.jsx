@@ -388,17 +388,6 @@ export default function DetalleUnidad() {
       return;
     }
 
-    if (unidadSeleccionada.horaSalida) {
-      const Swal = (await import('sweetalert2')).default;
-      Swal.fire({
-        icon: 'info',
-        title: 'Unidad ya validada',
-        text: `${unidadSeleccionada.display} ya fue validada y no puede ser modificada.`,
-        confirmButtonColor: '#601a2a',
-      });
-      return;
-    }
-
     const ecoSeleccionado = unidadSeleccionada.display;
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(unidadSeleccionada.estado);
@@ -1412,26 +1401,28 @@ export default function DetalleUnidad() {
                           {unidadesPorRutaList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
-                                <div
-                                  key={unidad.display}
-                                  className="unit-button"
-                                  style={{
-                                    border: `1px solid ${colors.border}`,
-                                    borderRadius: '0.5rem',
-                                    padding: '0.4rem 0.9rem',
-                                    background: colors.bg,
-                                    color: colors.text,
-                                    fontWeight: 600,
-                                    fontSize: '0.9rem',
-                                    cursor: 'default',
-                                    transition: 'all 0.2s ease',
-                                    transform: `scale(${colors.scale || 1})`,
-                                    zIndex: colors.scale > 1 ? 10 : 1,
-                                    boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
-                                  }}
-                                >
-                                  {unidad.display}
-                                </div>
+                              <button
+                                type="button"
+                                key={unidad.display}
+                                onClick={() => handleSelectUnit(unidad)}
+                                className="unit-button"
+                                style={{
+                                  border: `1px solid ${colors.border}`,
+                                  borderRadius: '0.5rem',
+                                  padding: '0.4rem 0.9rem',
+                                  background: colors.bg,
+                                  color: colors.text,
+                                  fontWeight: 600,
+                                  fontSize: '0.9rem',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  transform: `scale(${colors.scale || 1})`,
+                                  zIndex: colors.scale > 1 ? 10 : 1,
+                                  boxShadow: colors.scale > 1 ? '0 4px 6px rgba(0,0,0,0.1)' : 'none'
+                                }}
+                              >
+                                {unidad.display}
+                              </button>
                             );
                           })}
                         </div>
@@ -1541,8 +1532,10 @@ export default function DetalleUnidad() {
                           {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u).startsWith('validated')).map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
                             return (
-                              <div
+                              <button
+                                type="button"
                                 key={unidad.display}
+                                onClick={() => handleSelectUnit(unidad)}
                                 className="unit-button"
                                 style={{
                                   border: `1px solid ${colors.border}`,
@@ -1552,7 +1545,7 @@ export default function DetalleUnidad() {
                                   color: colors.text,
                                   fontWeight: 600,
                                   fontSize: '0.9rem',
-                                  cursor: 'default',
+                                  cursor: 'pointer',
                                   transition: 'all 0.2s ease',
                                   transform: `scale(${colors.scale || 1})`,
                                   zIndex: colors.scale > 1 ? 10 : 1,
@@ -1560,7 +1553,7 @@ export default function DetalleUnidad() {
                                 }}
                               >
                                 {unidad.display}
-                              </div>
+                              </button>
                             );
                           })}
                         </div>
