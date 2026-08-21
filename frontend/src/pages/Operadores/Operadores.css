@@ -106,8 +106,10 @@
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px);
   min-height: 350px;
-  padding-bottom: 250px;
+  padding-bottom: 100px;
 }
 
 .operadores-table {
@@ -127,6 +129,9 @@
   letter-spacing: 0.05em;
   padding: 0.9rem 1rem;
   border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .operadores-table th:first-child {
