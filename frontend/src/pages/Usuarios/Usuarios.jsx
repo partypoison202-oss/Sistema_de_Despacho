@@ -37,6 +37,19 @@ export default function Usuarios() {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
+  const getRoleBadgeClass = (roleName) => {
+    if (!roleName) return 'role-default';
+    const lower = roleName.toLowerCase();
+    if (lower === 'administrador') return 'role-admin';
+    if (lower === 'lectura') return 'role-lectura';
+    if (lower === 'despacho') return 'role-despacho';
+    if (lower === 'mantenimiento') return 'role-mantenimiento';
+    if (lower === 'centro_control' || lower === 'centro de control') return 'role-centro';
+    if (lower === 'programacion' || lower === 'programación') return 'role-programacion';
+    if (lower === 'gestor_operadores' || lower.includes('gestor')) return 'role-gestor';
+    return 'role-default';
+  };
+
   const fetchData = async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([
@@ -59,6 +72,18 @@ export default function Usuarios() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Prevenir scroll de fondo cuando el modal está abierto
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
 
   // Manejar apertura del modal (edición o creación)
   const handleOpenModal = (user = null) => {
@@ -350,7 +375,8 @@ export default function Usuarios() {
       if (a.activo && !b.activo) return -1;
       if (!a.activo && b.activo) return 1;
 
-      return a.nombre_completo.localeCompare(b.nombre_completo);
+      // Preserve backend matrix order (which maps to ID)
+      return a.id - b.id;
     });
 
   // Validación del formulario
@@ -439,7 +465,9 @@ export default function Usuarios() {
                       <td>{user.nombre_completo}</td>
                       <td>{user.usuario}</td>
                       <td>
-                        <span className="role-badge">{formatRoleName(user.role?.nombre)}</span>
+                        <span className={`role-badge ${getRoleBadgeClass(user.role?.nombre)}`}>
+                          {formatRoleName(user.role?.nombre)}
+                        </span>
                       </td>
                       <td>
                         <button

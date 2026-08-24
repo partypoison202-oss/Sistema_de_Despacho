@@ -52,6 +52,17 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'rol_id');
     }
 
+    public function modulos()
+    {
+        return $this->hasMany(\App\Models\UsuarioModulo::class, 'usuario_id');
+    }
+
+    // Retorna array plano de códigos de módulos
+    public function getModulosArrayAttribute(): array
+    {
+        return $this->modulos()->pluck('modulo_codigo')->toArray();
+    }
+
     protected $casts = [
         'activo' => 'boolean',
         'contrasena' => 'hashed',

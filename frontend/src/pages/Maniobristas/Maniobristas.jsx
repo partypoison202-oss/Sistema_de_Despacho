@@ -60,7 +60,7 @@ function CustomSelect({ value, onChange, options }) {
 }
 
 // Componente de Dropdown de Estatus de Servicio para Maniobristas
-function StatusDropdown({ value, onChange }) {
+function StatusDropdown({ value, onChange, disabled = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -110,7 +110,7 @@ function StatusDropdown({ value, onChange }) {
   ];
 
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];
-  const isReadOnly = selectedOpt.value === 'permuta';
+  const isReadOnly = selectedOpt.value === 'permuta' || disabled;
 
   return (
     <div className="status-dropdown-container" ref={dropdownRef}>
@@ -172,6 +172,8 @@ export default function Operadores() {
   const [maniobristas, setManiobristas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterTipo, setFilterTipo] = useState('');
+  const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -208,12 +210,17 @@ export default function Operadores() {
   const fetchManiobristas = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/maniobristas`, {
+      const res = await fetch(`${API_BASE}/api/conductores`, {
         headers: getAuthHeaders()
       });
-      if (!res.ok) throw new Error('Error al cargar maniobristas');
+      if (!res.ok) throw new Error('Error al cargar conductores');
       const data = await res.json();
-      setManiobristas(Array.isArray(data) ? data : []);
+      
+      const mappedData = (Array.isArray(data) ? data : []).map(c => ({
+        ...c,
+        nombre: c.nombres ? `${c.nombres} ${c.apellidos || ''}`.trim() : c.nombre
+      }));
+      setManiobristas(mappedData);
     } catch (err) {
       console.error(err);
       Swal.fire({
@@ -338,49 +345,11 @@ export default function Operadores() {
     }
   };
 
-  const handleDarDeBaja = async (c) => {
-    const confirm = await Swal.fire({
-      title: '¿Dar de baja al maniobrista?',
-      text: `El maniobrista ${c.nombre} (Tarjetón: ${c.tarjeton}) se marcará como BAJA en el sistema. No se eliminará de la base de datos.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#6b1d33',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Sí, dar de baja',
-      cancelButtonText: 'Cancelar'
-    });
 
-    if (!confirm.isConfirmed) return;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/maniobristas/${c.id}/baja`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al dar de baja');
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Maniobrista en Baja',
-        text: 'El maniobrista se ha dado de baja correctamente.',
-        confirmButtonColor: '#c5a059'
-      });
-      fetchManiobristas();
-    } catch (err) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: err.message,
-        confirmButtonColor: '#6b1d33'
-      });
-    }
-  };
 
   const handleStatusChange = async (maniobrista, nuevoEstatus) => {
     try {
-      const res = await fetch(`${API_BASE}/api/maniobristas/${maniobrista.id}`, {
+      const res = await fetch(`${API_BASE}/api/conductores/${maniobrista.id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -411,14 +380,19 @@ export default function Operadores() {
 
   const filteredManiobristas = maniobristas.filter(c => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchTerm = 
       (c.nombre && c.nombre.toLowerCase().includes(term)) ||
       (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
-      (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
-    );
+      (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term));
+    
+    const matchTipo = filterTipo ? c.tipo_tarjeton === filterTipo : true;
+    const matchEstado = filterEstadoServicio ? c.estado_servicio === filterEstadoServicio : true;
+
+    return matchTerm && matchTipo && matchEstado;
   });
 
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
+  const canEdit = user?.modulos?.includes('maniobristas') || isAdmin || user?.role?.codigo === 'GESTOR_OPERADORES';
 
   return (
     <div className="maniobristas-layout">
@@ -432,19 +406,57 @@ export default function Operadores() {
               Administra el alta y edición de maniobristas. El tarjetón se genera automáticamente.
             </p>
           </div>
+          {/* Botón Nuevo Maniobrista eliminado ya que se extraen todos los conductores */}
         </div>
 
-        <div className="maniobristas-filter-card">
-          <div className="search-input-wrapper">
-            <svg width="18" height="18" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4 mt-2 px-6">
+          <div className="relative w-full md:w-96 group">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+              <svg className="w-5 h-5 text-slate-400 group-focus-within:text-[#6b1d33] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+            </div>
             <input
               type="text"
               placeholder="Buscar por nombre, tarjetón o tipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 text-slate-800 text-[0.95rem] rounded-full focus:ring-2 focus:ring-[#6b1d33]/20 focus:border-[#6b1d33] focus:bg-white transition-all outline-none placeholder:text-slate-400"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <div className="flex w-full md:w-auto items-center gap-3">
+            <CustomSelect
+              value={filterTipo}
+              onChange={setFilterTipo}
+              options={[
+                { value: '', label: 'TIPO TARJETÓN: TODOS' },
+                { value: 'B', label: 'TIPO B' },
+                { value: 'C', label: 'TIPO C' }
+              ]}
+            />
+
+            <CustomSelect
+              value={filterEstadoServicio}
+              onChange={setFilterEstadoServicio}
+              options={[
+                { value: '', label: 'ESTADO SERVICIO: TODOS' },
+                { value: 'disponible', label: 'DISPONIBLE' },
+                { value: 'en_servicio', label: 'EN SERVICIO' },
+                { value: 'falta', label: 'FALTA' },
+                { value: 'maniobrista', label: 'MANIOBRISTA' },
+                { value: 'permuta', label: 'PERMUTA' }
+              ]}
             />
           </div>
         </div>
@@ -464,7 +476,6 @@ export default function Operadores() {
                     <th>Nombre Completo del Maniobrista</th>
                     <th style={{ width: '140px' }}>Tipo Tarjetón</th>
                     <th style={{ width: '160px' }}>Estado Servicio</th>
-                    <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -490,36 +501,8 @@ export default function Operadores() {
                           <StatusDropdown
                             value={c.estado_servicio}
                             onChange={(newStatus) => handleStatusChange(c, newStatus)}
+                            disabled={!canEdit}
                           />
-                        </td>
-                        <td>
-                          <div className="actions-container">
-                            <button
-                              type="button"
-                              className="btn-action edit"
-                              onClick={() => handleOpenEditModal(c)}
-                              title="Editar Maniobrista"
-                            >
-                              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                              </svg>
-                              <span>Editar</span>
-                            </button>
-
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                className="btn-action baja"
-                                onClick={() => handleDarDeBaja(c)}
-                                title="Dar de baja en sistema"
-                              >
-                                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
-                                </svg>
-                                <span>Dar de Baja</span>
-                              </button>
-                            )}
-                          </div>
                         </td>
                       </tr>
                     ))
@@ -530,143 +513,6 @@ export default function Operadores() {
           </div>
         )}
       </main>
-
-      {/* Modal Agregar Maniobrista */}
-      {showAddModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="modal-header-title">
-                <h2>Agregar Nuevo Maniobrista</h2>
-                <p>Ingresa los datos del maniobrista a registrar</p>
-              </div>
-              <button className="close-btn" onClick={() => setShowAddModal(false)} aria-label="Cerrar">&times;</button>
-            </div>
-            <form onSubmit={handleAddSubmit} className="modal-form">
-              <div className="form-group">
-                <label className="form-label">Nombre Completo del Maniobrista</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. PÉREZ LÓPEZ JUAN"
-                  value={nombre}
-                  onChange={handleNombreChange}
-                  maxLength={100}
-                  className="modal-input"
-                />
-                <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '5px', lineHeight: '1.4' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                  <span>Inicia por <strong style={{ color: '#555' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).</span>
-                </small>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Tipo de Tarjetón</label>
-                <CustomSelect
-                  value={tipoTarjeton}
-                  onChange={setTipoTarjeton}
-                  options={tipoOptions}
-                />
-              </div>
-
-              <div className="form-info-box">
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="info-icon">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                </svg>
-                <span>El número de tarjetón se generará de manera automática en el sistema (ej. TJ-XXXX).</span>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={submitting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="btn-save"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Guardando...' : 'Guardar Maniobrista'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Editar Maniobrista */}
-      {showEditModal && selectedManiobrista && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="modal-header-title">
-                <h2>Editar Maniobrista</h2>
-                <p>Modifica el nombre o tipo de tarjetón asignado</p>
-              </div>
-              <button className="close-btn" onClick={() => setShowEditModal(false)} aria-label="Cerrar">&times;</button>
-            </div>
-            <form onSubmit={handleEditSubmit} className="modal-form">
-              <div className="form-group">
-                <label className="form-label">Tarjetón Asignado (Automático)</label>
-                <input
-                  type="text"
-                  disabled
-                  value={selectedManiobrista.tarjeton}
-                  className="modal-input disabled-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Nombre Completo del Maniobrista</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. PÉREZ LÓPEZ JUAN"
-                  value={nombre}
-                  onChange={handleNombreChange}
-                  maxLength={100}
-                  className="modal-input"
-                />
-                <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '5px', lineHeight: '1.4' }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                  <span>Inicia por <strong style={{ color: '#555' }}>apellido paterno</strong>, apellido materno y luego el nombre(s).</span>
-                </small>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Tipo de Tarjetón</label>
-                <CustomSelect
-                  value={tipoTarjeton}
-                  onChange={setTipoTarjeton}
-                  options={tipoOptions}
-                />
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn-cancel"
-                  onClick={() => setShowEditModal(false)}
-                  disabled={submitting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="btn-save"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Guardando...' : 'Actualizar Datos'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

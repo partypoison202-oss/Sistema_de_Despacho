@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext, getDefaultRoute } from '../context/AuthContext';
 
-export default function ProtectedRoute({ children, allowedRoles }) {
+export default function ProtectedRoute({ children, allowedRoles, allowedModules }) {
   const { user, token, loading } = useContext(AuthContext);
 
   if (loading) {
@@ -18,31 +18,31 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/" replace />;
   }
 
-  // Si se definieron roles permitidos y el usuario no está en ellos, redirigir
-  if (allowedRoles && !allowedRoles.includes(user.role.codigo)) {
-    // Mapeo de roles a rutas de redirección
-    const roleRedirectMap = {
-      PROGRAMACION: '/menu',
-      CARGA_DE_COMBUSTIBLE: '/menu',
-      GESTOR_OPERADORES: '/operadores',
-      ENCIERRO: '/encierro/dashboard',
-      GENERAL: '/general',
-      CENTRO_CONTROL: '/centro-control',
-      TITAN: '/titan/dashboard',
-      INFRACCION: '/infraccion/dashboard',
-      DESPACHO: '/dashboard',
-      PLATAFORMA: '/dashboard',
-    };
+  const rol = user.role?.codigo;
+  const modulos = user.modulos || [];
 
-    const redirectPath = roleRedirectMap[user.role.codigo];
-    if (redirectPath) {
-      return <Navigate to={redirectPath} replace />;
+  // Los ADMIN y LECTURA tienen acceso universal, a menos que el módulo esté explícitamente bloqueado (usualmente no)
+  const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
+
+  // Verificación por módulos (nueva lógica)
+  if (allowedModules && !isSuper) {
+    // Verificar si el usuario tiene al menos uno de los módulos requeridos
+    const hasModuleAccess = allowedModules.some(mod => modulos.includes(mod));
+    
+    if (!hasModuleAccess) {
+      const fallbackRoute = getDefaultRoute(user);
+      return <Navigate to={fallbackRoute} replace />;
     }
-
-    // Si el rol no está en el mapa, enviar al login (evita loops)
-    return <Navigate to="/" replace />;
   }
 
-  // Si el usuario tiene el rol permitido, renderizar los children
+  // Verificación por roles (lógica antigua como fallback)
+  if (allowedRoles && !isSuper && !allowedModules) {
+    if (!allowedRoles.includes(rol)) {
+      const fallbackRoute = getDefaultRoute(user);
+      return <Navigate to={fallbackRoute} replace />;
+    }
+  }
+
+  // Permitido
   return children;
 }

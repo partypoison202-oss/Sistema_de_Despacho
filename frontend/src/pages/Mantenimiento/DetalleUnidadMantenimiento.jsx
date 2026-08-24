@@ -1004,40 +1004,6 @@ export default function DetalleUnidadMantenimiento() {
                     <div>
                       <div className="dashboard-header-card__eyebrow">{configActual.title}</div>
                       <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
-                      <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {datosOperativos.horaDespacho ? (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '9999px',
-                            backgroundColor: '#ecfdf5',
-                            color: '#166534',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                          }}>
-                            <span>Despacho realizado</span>
-                            <span style={{ color: '#14532d', fontWeight: 600 }}>
-                              ({datosOperativos.horaDespacho})
-                            </span>
-                          </span>
-                        ) : (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '9999px',
-                            backgroundColor: '#f8fafc',
-                            color: '#475569',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                          }}>
-                            <span>Despacho pendiente</span>
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>

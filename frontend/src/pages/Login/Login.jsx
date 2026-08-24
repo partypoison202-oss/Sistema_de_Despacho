@@ -1,12 +1,11 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
-import { AuthContext } from '../../context/AuthContext';
+import { AuthContext, getDefaultRoute } from '../../context/AuthContext';
 import GlobalClock from '../../components/GlobalClock/GlobalClock';
 import Swal from 'sweetalert2';
 import './Login.css';
 import API_BASE from '../../config/api';
-
 
 // ── Logo STM — T abstracta oficial (Sitmah-Flotilla) ──
 function LogoSTM({ className = '' }) {
@@ -93,7 +92,7 @@ export default function Login() {
   // Redirección automática si ya hay sesión
   useEffect(() => {
     if (!loading && user) {
-      redirigirPorRol(user, navigate);
+      navigate(getDefaultRoute(user));
     }
   }, [user, loading, navigate]);
 
@@ -151,18 +150,9 @@ export default function Login() {
       // Guardar sesión
       login(data.user, data.access_token, rememberMe);
       
-      // Redirigir según rol
-      const redirigido = redirigirPorRol(data.user, navigate);
-
-      if (!redirigido) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Rol sin pantalla asignada',
-          text: 'Tu usuario no tiene un rol con una pantalla configurada. Contacta al administrador.',
-          confirmButtonColor: '#c5a059'
-        });
-        setIsSubmitting(false);
-      }
+      // Redirigir según módulos o rol
+      const route = getDefaultRoute(data.user);
+      navigate(route);
       
     } catch {
       Swal.fire({
@@ -173,35 +163,6 @@ export default function Login() {
       setIsSubmitting(false);
     }
   };
-
-  // Función auxiliar para centralizar la redirección por rol
-  // Devuelve true si logró redirigir, false si el rol no está mapeado
-  const redirigirPorRol = (user, navigate) => {
-    const rol = user.role?.codigo;
-    if (rol === 'ADMINISTRADOR') {
-      navigate('/menu');
-    } else if (rol === 'PROGRAMACION' || rol === 'CARGA_DE_COMBUSTIBLE') {
-      navigate('/menu');
-    } else if (rol === 'GESTOR_OPERADORES') {
-      navigate('/operadores');
-    } else if (rol === 'ENCIERRO') {
-      navigate('/encierro/dashboard');
-    } else if (rol === 'CENTRO_CONTROL') {
-      navigate('/centro-control');
-    } else if (rol === 'TITAN') {
-      navigate('/titan/dashboard');
-    } else if (rol === 'INFRACCION') {
-      navigate('/infraccion/dashboard');
-    } else if (rol === 'GENERAL') {
-      navigate('/general');
-    } else if (rol === 'DESPACHO' || rol === 'PLATAFORMA') {
-      navigate('/dashboard');
-    } else {
-      return false;
-    }
-    return true;
-  };
-
   // Detecta si Bloq Mayús está activado durante el tecleo
   const checkCapsLock = (e) => {
     if (typeof e.getModifierState === 'function') {

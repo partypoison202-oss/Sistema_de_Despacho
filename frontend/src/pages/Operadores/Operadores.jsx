@@ -65,7 +65,7 @@ function CustomSelect({ value, onChange, options }) {
 }
 
 // Componente de Dropdown de Estatus de Servicio para Operadores
-function StatusDropdown({ value, onChange }) {
+function StatusDropdown({ value, onChange, disabled = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -139,23 +139,25 @@ function StatusDropdown({ value, onChange }) {
         type="button"
         className={`status-dropdown-trigger ${selectedOpt.class} ${isOpen ? 'open' : ''}`}
         onClick={() => {
-          const nextState = !isOpen;
-          setIsOpen(nextState);
+          if (disabled) return;
+          setIsOpen(!isOpen);
         }}
-        style={{ cursor: 'pointer' }}
+        style={{ cursor: disabled ? 'default' : 'pointer' }}
       >
         <span className="status-text">{selectedOpt.label}</span>
-        <svg
-          className={`arrow-icon ${isOpen ? 'open' : ''}`}
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-        >
-          <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
-        </svg>
+        {!disabled && (
+          <svg
+            className={`arrow-icon ${isOpen ? 'open' : ''}`}
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+          >
+            <path d="M7 10l5 5 5-5H7z" fill="currentColor" />
+          </svg>
+        )}
       </button>
 
-      {isOpen && createPortal(
+      {isOpen && !disabled && createPortal(
         <div className="status-dropdown-menu" style={menuStyle}>
           {options.map((opt) => (
             <div
@@ -891,6 +893,7 @@ export default function Operadores() {
   });
 
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
+  const canEdit = user?.modulos?.includes('operadores') || isAdmin || user?.role?.codigo === 'GESTOR_OPERADORES';
 
   return (
     <div className="operadores-layout">
@@ -901,11 +904,11 @@ export default function Operadores() {
           <div className="operadores-title-section">
             <h1>Gestión de T6</h1>
             <p className="operadores-subtitle">
-              Administra el alta y edición de operadores. El tarjetón se genera automáticamente.
+              Administra el alta, baja y edición de conductores (T6). El tarjetón se genera automáticamente.
             </p>
           </div>
 
-          {activeTab === 'catalogo' && (
+          {canEdit && (
             <button
               type="button"
               className="btn-add-operador"
@@ -914,7 +917,7 @@ export default function Operadores() {
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Agregar T6
+              Nuevo Operador
             </button>
           )}
         </div>
@@ -1032,7 +1035,7 @@ export default function Operadores() {
                   placeholder="Buscar por nombre, tarjetón o tipo..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-[0.95rem] rounded-xl focus:ring-2 focus:ring-[#6b1d33]/20 focus:border-[#6b1d33] focus:bg-white transition-all outline-none placeholder:text-slate-400"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 text-slate-800 text-[0.95rem] rounded-full focus:ring-2 focus:ring-[#6b1d33]/20 focus:border-[#6b1d33] focus:bg-white transition-all outline-none placeholder:text-slate-400"
                 />
                 {searchTerm && (
                   <button
@@ -1117,21 +1120,24 @@ export default function Operadores() {
                           <StatusDropdown
                             value={c.estado_servicio}
                             onChange={(newStatus) => handleStatusChange(c, newStatus)}
+                            disabled={!canEdit}
                           />
                         </td>
                         <td>
                           <div className="actions-container">
-                            <button
-                              type="button"
-                              className="btn-action edit"
-                              onClick={() => handleOpenEditModal(c)}
-                              title="Editar T6"
-                            >
-                              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                              </svg>
-                              <span>Editar</span>
-                            </button>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                className="btn-action edit"
+                                onClick={() => handleOpenEditModal(c)}
+                                title="Editar Operador"
+                              >
+                                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                </svg>
+                                <span>Editar</span>
+                              </button>
+                            )}
 
                             {isAdmin && (
                               <button

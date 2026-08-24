@@ -83,21 +83,21 @@ function App() {
 
             {/* Ruta protegida de detalle de despacho (pantalla "General" nueva) */}
             <Route path="/despacho/:id" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
+              <ProtectedRoute allowedModules={['general']}>
                 <DetalleUnidadGeneral />
               </ProtectedRoute>
             } />
 
             {/* Rutas protegidas para ADMIN y DESPACHO (NO para CENTRO_CONTROL) */}
             <Route path="/patio/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PATIO']}>
+              <ProtectedRoute allowedModules={['patio']}>
                 <PatioDashboard />
               </ProtectedRoute>
             } />
 
             {/* TITAN Module */}
             <Route path="/titan/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'TITAN']}>
+              <ProtectedRoute allowedModules={['titan']}>
                 <DashboardTitan />
               </ProtectedRoute>
             } />
@@ -105,67 +105,65 @@ function App() {
             {/* INFRACCION Module */}
             <Route path="/infraccion" element={<Navigate to="/infraccion/dashboard" replace />} />
             <Route path="/infraccion/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'INFRACCION']}>
+              <ProtectedRoute allowedModules={['infraccion']}>
                 <InfraccionDashboard />
               </ProtectedRoute>
             } />
 
             {/* Dashboard General */}
             <Route path="/general" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GENERAL']}>
+              <ProtectedRoute allowedModules={['general']}>
                 <DashboardGeneral />
               </ProtectedRoute>
             } />
 
             {/* DESPACHO DASHBOARD */}
             <Route path="/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
+              <ProtectedRoute allowedModules={['despacho']}>
                 <Dashboard />
               </ProtectedRoute>
             } />
 
             {/* MESA DE CONTROL */}
             <Route path="/mesa-control" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
+              <ProtectedRoute allowedModules={['mesa_control']}>
                 <DashboardMesaControl />
               </ProtectedRoute>
             } />
             <Route path="/mesa-control/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PLATAFORMA']}>
+              <ProtectedRoute allowedModules={['mesa_control']}>
                 <DetalleUnidadMesaControl />
               </ProtectedRoute>
             } />
 
             <Route path="/menu" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'PLATAFORMA', 'TITAN', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'CARGA_DE_COMBUSTIBLE']}>
+              <ProtectedRoute>
                 <Menu />
               </ProtectedRoute>
             } />
 
             {/* Detalle por unidad (tipoTransporte) */}
             <Route path="/transporte/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA']}>
+              <ProtectedRoute allowedModules={['despacho', 'mesa_control']}>
                 <DetalleUnidad />
               </ProtectedRoute>
             } />
 
             {/* Excel */}
             <Route path="/cargar-excel" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROGRAMACION']}>
+              <ProtectedRoute allowedModules={['capturista', 'relevos']}>
                 <CargaExcel />
               </ProtectedRoute>
             } />
 
             {/* Operadores */}
             <Route path="/operadores" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
+              <ProtectedRoute allowedModules={['operadores', 'maniobristas', 'despacho', 'centro_control', 'general', 'mantenimiento', 'carga_combustible']}>
                 <Operadores />
               </ProtectedRoute>
             } />
-
-            {/* Maniobristas */}
             <Route path="/maniobristas" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO']}>
+              <ProtectedRoute allowedModules={['operadores', 'maniobristas', 'despacho', 'centro_control', 'general', 'mantenimiento', 'carga_combustible']}>
                 <Maniobristas />
               </ProtectedRoute>
             } />
@@ -185,112 +183,112 @@ function App() {
 
             {/* Historial */}
             <Route path="/historial" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+              <ProtectedRoute allowedModules={['historial']}>
                 <MenuHistorial />
               </ProtectedRoute>
             } />
             <Route path="/historial/general" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'PROGRAMACION', 'DESPACHO', 'GENERAL']}>
+              <ProtectedRoute allowedModules={['historial']}>
                 <HistorialGeneral />
               </ProtectedRoute>
             } />
             <Route path="/historial/despacho" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+              <ProtectedRoute allowedModules={['historial']}>
                 <HistorialDespacho />
               </ProtectedRoute>
             } />
             <Route path="/historial/encierro" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'GENERAL']}>
+              <ProtectedRoute allowedModules={['historial']}>
                 <HistorialEncierro />
               </ProtectedRoute>
             } />
             <Route path="/historial/mantenimiento" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'GENERAL']}>
+              <ProtectedRoute allowedModules={['historial']}>
                 <HistorialMantenimiento />
               </ProtectedRoute>
             } />
 
             {/* CheckList */}
             <Route path="/checklist/menu" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+              <ProtectedRoute allowedModules={['despacho', 'encierro']}>
                 <MenuCheckList />
               </ProtectedRoute>
             } />
             <Route path="/checklist/seleccionar-flota" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+              <ProtectedRoute allowedModules={['despacho', 'encierro']}>
                 <FleetSelection />
               </ProtectedRoute>
             } />
             <Route path="/checklist" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+              <ProtectedRoute allowedModules={['despacho', 'encierro']}>
                 <CheckList />
               </ProtectedRoute>
             } />
             <Route path="/checklist/historial" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'DESPACHO', 'ENCIERRO']}>
+              <ProtectedRoute allowedModules={['historial']}>
                 <HistorialCheckList />
               </ProtectedRoute>
             } />
 
             {/* Encierro */}
             <Route path="/encierro/dashboard" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
+              <ProtectedRoute allowedModules={['encierro']}>
                 <DashboardEncierro />
               </ProtectedRoute>
             } />
             <Route path="/encierro/transporte/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE']}>
+              <ProtectedRoute allowedModules={['encierro']}>
                 <DetalleUnidadEncierro />
               </ProtectedRoute>
             } />
 
             {/* Centro de Control */}
             <Route path="/centro-control" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+              <ProtectedRoute allowedModules={['centro_control']}>
                 <CentroControl />
               </ProtectedRoute>
             } />
             <Route path="/centro-control/infracciones" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+              <ProtectedRoute allowedModules={['centro_control']}>
                 <DashboardInfracciones />
               </ProtectedRoute>
             } />
             <Route path="/centro-control/bitacoras" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+              <ProtectedRoute allowedModules={['centro_control']}>
                 <DashboardBitacora />
               </ProtectedRoute>
             } />
             <Route path="/centro-control/detalle/:tipo" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+              <ProtectedRoute allowedModules={['centro_control']}>
                 <DetalleUnidades />
               </ProtectedRoute>
             } />
             <Route path="/plano-patio" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CENTRO_CONTROL']}>
+              <ProtectedRoute allowedModules={['centro_control']}>
                 <PatioDashboard />
               </ProtectedRoute>
             } />
 
             {/* Mantenimiento */}
             <Route path="/mantenimiento" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
+              <ProtectedRoute allowedModules={['mantenimiento']}>
                 <Mantenimiento />
               </ProtectedRoute>
             } />
             <Route path="/mantenimiento/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
+              <ProtectedRoute allowedModules={['mantenimiento']}>
                 <DetalleUnidadMantenimiento />
               </ProtectedRoute>
             } />
 
             {/* Carga de Combustible */}
             <Route path="/carga-combustible" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
+              <ProtectedRoute allowedModules={['carga_combustible']}>
                 <Mantenimiento />
               </ProtectedRoute>
             } />
             <Route path="/carga-combustible/:tipoTransporte" element={
-              <ProtectedRoute allowedRoles={['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE']}>
+              <ProtectedRoute allowedModules={['carga_combustible']}>
                 <DetalleUnidadMantenimiento />
               </ProtectedRoute>
             } />

@@ -9,7 +9,7 @@ const menuItems = [
   {
     id: 'despacho',
     redirectTo: '/dashboard',
-    roles: ['ADMINISTRADOR', 'DESPACHO', 'PLATAFORMA'],
+    modulo: 'despacho',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
@@ -23,7 +23,7 @@ const menuItems = [
   {
     id: 'general',
     redirectTo: '/general',
-    roles: ['ADMINISTRADOR', 'GENERAL'],
+    modulo: 'general',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -38,7 +38,7 @@ const menuItems = [
   {
     id: 'encierro',
     redirectTo: '/encierro/dashboard', 
-    roles: ['ADMINISTRADOR', 'ENCIERRO', 'CARGA_DE_COMBUSTIBLE'],
+    modulo: 'encierro',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 21V9l9-6 9 6v12" />
@@ -51,7 +51,7 @@ const menuItems = [
   {
     id: 'capturista',
     redirectTo: '/cargar-excel', 
-    roles: ['ADMINISTRADOR', 'PROGRAMACION'],
+    modulo: 'capturista',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -65,7 +65,7 @@ const menuItems = [
   {
     id: 'relevos',
     redirectTo: '/cargar-excel',
-    roles: ['ADMINISTRADOR', 'PROGRAMACION'],
+    modulo: 'relevos',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 2.1l4 4-4 4" />
@@ -80,7 +80,7 @@ const menuItems = [
   {
     id: 'mantenimiento',
     redirectTo: '/mantenimiento',
-    roles: ['ADMINISTRADOR', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE'],
+    modulo: 'mantenimiento',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
@@ -92,7 +92,7 @@ const menuItems = [
   {
     id: 'centro',
     redirectTo: '/centro-control',
-    roles: ['ADMINISTRADOR', 'CENTRO_CONTROL'],
+    modulo: 'centro_control',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -106,7 +106,7 @@ const menuItems = [
   {
     id: 'historial',
     redirectTo: '/historial', 
-    roles: ['ADMINISTRADOR', 'DESPACHO', 'GENERAL'],
+    modulo: 'historial',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -120,7 +120,7 @@ const menuItems = [
   {
     id: 'titan',
     redirectTo: '/titan/dashboard', 
-    roles: ['ADMINISTRADOR', 'TITAN'],
+    modulo: 'titan',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -134,7 +134,7 @@ const menuItems = [
   {
     id: 'infraccion',
     redirectTo: '/infraccion/dashboard',
-    roles: ['ADMINISTRADOR', 'INFRACCION'],
+    modulo: 'infraccion',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
@@ -150,7 +150,7 @@ const menuItems = [
   {
     id: 'mesa-control',          // antes 'plataforma'
     redirectTo: '/mesa-control', // antes '/dashboard'
-    roles: ['ADMINISTRADOR', 'PLATAFORMA'],
+    modulo: 'mesa_control',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -165,7 +165,7 @@ const menuItems = [
   {
     id: 'operadores',
     redirectTo: '/operadores',
-    roles: ['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'],
+    modulo: 'operadores',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="16" rx="2" ry="2" />
@@ -181,7 +181,7 @@ const menuItems = [
   {
     id: 'maniobristas',
     redirectTo: '/maniobristas',
-    roles: ['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'],
+    modulo: 'maniobristas',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -203,7 +203,7 @@ const menuItems = [
   {
     id: 'carga-combustible',
     redirectTo: '/carga-combustible',
-    roles: ['ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE'],
+    modulo: 'carga_combustible',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <line x1="3" y1="22" x2="21" y2="22" />
@@ -217,22 +217,49 @@ const menuItems = [
   }
 ];
 
+const MENU_MODULES_CONFIG = {
+  'DESPACHO DASHBOARD': 'DESPACHO DE UNIDADES',
+  'GENERAL': 'MONITOR OPERATIVO',
+  'ENCIERRO DASHBOARD': 'ENCIERRO DE UNIDADES',
+  'CAPTURISTA': 'PROGRAMACIÓN Y LOGÍSTICA',
+  'RELEVOS': 'RELEVOS DE T6',
+  'MANTENIMIENTO': 'MANTENIMIENTO PARQUE VEHICULAR',
+  'CENTRO DE CONTROL': 'MONITOREO DE LA OPERACIÓN',
+  'HISTORIAL': 'HISTÓRICO DE LA OPERACIÓN',
+  'TITÁN': 'INSPECTORES DE OPERACIÓN',
+  'MESA DE CONTROL': 'MESA DE CONTROL',
+  'GESTIÓN DE T6': 'CONTROL DE PERSONAS CONDUCTORAS',
+  'GESTIÓN DE MANIOBRISTAS': 'GESTIÓN DE MANIOBRISTAS',
+  'CARGA DE COMBUSTIBLE': 'CONTROL DE COMBUSTIBLE',
+  'INFRACCIÓN': 'INFRACCIÓN'
+};
+
 export default function Menu() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL', 'TITAN', 'PLATAFORMA', 'INFRACCION', 'GESTOR_OPERADORES', 'PROGRAMACION', 'CARGA_DE_COMBUSTIBLE'].includes(user.role?.codigo)) {
+    
+    const rol = user.role?.codigo;
+    const modulos = user.modulos || [];
+    
+    // Si no es admin/lectura y no tiene modulos, kick
+    if (rol !== 'ADMINISTRADOR' && rol !== 'LECTURA' && modulos.length === 0) {
       navigate('/');
     }
   }, [user, navigate]);
 
   if (!user) return null;
 
+  const rol = user.role?.codigo;
+  const modulos = user.modulos || [];
+  const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
+
   const visibleMenuItems = menuItems.filter((item) => {
-    if (!item.roles) return true;
-    return item.roles.includes(user.role?.codigo);
+    if (isSuper) return true;
+    if (!item.modulo) return true;
+    return modulos.includes(item.modulo);
   });
 
   const handleClick = (item) => {
@@ -283,7 +310,7 @@ export default function Menu() {
                 {item.icon}
               </div>
               <div className="dashboard-card__body">
-                <span className="dashboard-card__label">{item.label}</span>
+                <span className="dashboard-card__label">{MENU_MODULES_CONFIG[item.label] || item.label}</span>
                 <span className="dashboard-card__desc">{item.description}</span>
               </div>
               <div className="dashboard-card__arrow" aria-hidden="true">
