@@ -471,17 +471,19 @@ class DespachoController extends Controller
 
         $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
 
-        $conductoresMap = DB::table('conductores')->select('tarjeton', 'nombre')->get()->keyBy(function ($c) {
-            return trim($c->tarjeton);
-        });
+        $conductoresMap = DB::table('conductores')
+            ->select('tarjeton', DB::raw("CONCAT(nombres, ' ', apellidos) AS nombre"))
+            ->get()
+            ->keyBy(function ($c) {
+                return trim($c->tarjeton);
+            });
 
-        $maniobristasMap = DB::table('maniobristas')->select('tarjeton', 'nombre')->get()->keyBy(function ($m) {
-            return trim($m->tarjeton);
-        });
-
-        $maniobristasMap = DB::table('maniobristas')->select('tarjeton', 'nombre')->get()->keyBy(function ($m) {
-            return trim($m->tarjeton);
-        });
+        $maniobristasMap = DB::table('maniobristas')
+            ->select('tarjeton', 'nombre')
+            ->get()
+            ->keyBy(function ($m) {
+                return trim($m->tarjeton);
+            });
 
         $infoOperativaIds = DB::table('informacion_operativa')->pluck('id', 'unidad_id')->all();
 
