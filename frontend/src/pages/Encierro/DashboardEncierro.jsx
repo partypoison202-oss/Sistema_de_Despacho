@@ -8,9 +8,9 @@ import '../Dashboard/Dashboard.css';
 import API_BASE from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
 import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
-import { useEffect } from 'react';
 
 export default function DashboardEncierro() {
   const [busquedaEco, setBusquedaEco] = useState('');
@@ -18,34 +18,7 @@ export default function DashboardEncierro() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    // Precarga fantasma de las unidades de todas las flotillas (Encierro)
-    encierroModules.forEach((modulo) => {
-      queryClient.prefetchQuery({
-        queryKey: ['unidades-list-encierro', modulo.id],
-        queryFn: async () => {
-          const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-          if (!token) return [];
-          const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          });
-          if (!respuesta.ok) return [];
-          const datos = await respuesta.json();
-          const formatearEco = (v) => `ECO${String(v ?? '').padStart(3, '0')}`;
-          return (Array.isArray(datos) ? datos : []).map((u) => ({
-            eco: String(u.numero_eco ?? '').padStart(3, '0'),
-            tarjeton: String(u.tarjeton ?? '').trim(),
-            display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
-            estado: String(u.estatus ?? 'operacion').toLowerCase(),
-            ruta: u.ruta || null,
-            acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
-            horaSalida: String(u.hora_salida ?? '').trim(),
-          }));
-        },
-        staleTime: 60000,
-      });
-    });
-  }, [queryClient]);
+  useGlobalPrefetch();
 
   const [isGenerating, setIsGenerating] = useState(false);
 
