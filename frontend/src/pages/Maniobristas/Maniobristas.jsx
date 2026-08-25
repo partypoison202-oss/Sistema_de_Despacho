@@ -106,7 +106,9 @@ function StatusDropdown({ value, onChange, disabled = false }) {
     { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
     { value: 'falta', label: 'FALTA', class: 'falta' },
     { value: 'maniobrista', label: 'MANIOBRISTA', class: 'maniobrista' },
-    { value: 'permuta', label: 'PERMUTA', class: 'permuta', hideInMenu: true }
+    { value: 'permuta', label: 'PERMUTA', class: 'permuta', hideInMenu: true },
+    { value: 'incapacidad', label: 'INCAPACIDAD', class: 'incapacidad' },
+    { value: 'descanso', label: 'DESCANSO', class: 'descanso' }
   ];
 
   const selectedOpt = options.find(o => o.value === (value || 'disponible')) || options[0];

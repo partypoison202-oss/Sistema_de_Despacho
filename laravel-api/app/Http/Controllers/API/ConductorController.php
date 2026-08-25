@@ -149,7 +149,7 @@ class ConductorController extends Controller
             'nombres' => 'sometimes|required|string|max:100',
             'apellidos' => 'sometimes|required|string|max:100',
             'tipo_tarjeton' => 'sometimes|required|string|max:50',
-            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista,permuta',
+            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,maniobrista,permuta,incapacidad,descanso',
             'ultima_capacitacion' => 'sometimes|nullable|date',
             'proxima_capacitacion' => 'sometimes|nullable|date',
             'accidentes_siniestros' => 'sometimes|integer|min:0',

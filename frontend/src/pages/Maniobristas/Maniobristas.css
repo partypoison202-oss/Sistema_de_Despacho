@@ -274,12 +274,20 @@
   background-color: #e9d5ff;
 }
 
-.status-dropdown-trigger.permuta {
-  background-color: #f3e8ff;
-  color: #7e22ce;
+.status-dropdown-trigger.incapacidad {
+  background-color: #fef3c7;
+  color: #b45309;
 }
-.status-dropdown-trigger.permuta:hover {
-  background-color: #e9d5ff;
+.status-dropdown-trigger.incapacidad:hover {
+  background-color: #fde68a;
+}
+
+.status-dropdown-trigger.descanso {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+.status-dropdown-trigger.descanso:hover {
+  background-color: #e2e8f0;
 }
 
 
@@ -359,6 +367,24 @@
 .status-dropdown-item.permuta:hover,
 .status-dropdown-item.permuta.active {
   background-color: #f3e8ff;
+}
+
+.status-dropdown-item.incapacidad {
+  color: #b45309;
+  background-color: transparent;
+}
+.status-dropdown-item.incapacidad:hover,
+.status-dropdown-item.incapacidad.active {
+  background-color: #fef3c7;
+}
+
+.status-dropdown-item.descanso {
+  color: #475569;
+  background-color: transparent;
+}
+.status-dropdown-item.descanso:hover,
+.status-dropdown-item.descanso.active {
+  background-color: #f1f5f9;
 }
 
 .status-dropdown-item.permuta {

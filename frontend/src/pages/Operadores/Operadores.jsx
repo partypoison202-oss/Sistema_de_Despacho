@@ -113,7 +113,9 @@ function StatusDropdown({ value, onChange, disabled = false }) {
     { value: 'disponible', label: 'DISPONIBLE', class: 'disponible' },
     { value: 'en_servicio', label: 'EN SERVICIO', class: 'en_servicio' },
     { value: 'falta', label: 'FALTA', class: 'falta' },
-    { value: 'permuta', label: 'PERMUTA', class: 'permuta' }
+    { value: 'permuta', label: 'PERMUTA', class: 'permuta' },
+    { value: 'incapacidad', label: 'INCAPACIDAD', class: 'incapacidad' },
+    { value: 'descanso', label: 'DESCANSO', class: 'descanso' }
   ];
 
   // Si el operador está marcado como maniobrista, mostrar badge de solo lectura
