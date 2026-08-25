@@ -1267,7 +1267,7 @@ export default function ChecklistForm({
 
                                             <div className="sm:col-span-6 relative">
                                                 <label htmlFor="nombre-conductor" className="mb-1.5 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-guinda-700 h-4">
-                                                    Conductor Asignado
+                                                    Persona Conductora
                                                     {conductorId && !CONDUCTORES.find((c) => c.id === Number(conductorId)) && (
                                                         <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 absolute -top-1 right-0">No encontrado</span>
                                                     )}

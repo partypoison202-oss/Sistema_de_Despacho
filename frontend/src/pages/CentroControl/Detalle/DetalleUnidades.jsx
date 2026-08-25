@@ -28,7 +28,7 @@ const getConductor = (d) =>
   d.CHOFER ??
   d.NOMBRE_CHOFER ??
   d.OPERADOR ??
-  'Sin conductor asignado';
+  'Sin persona conductora asignada';
 
 const getTarjeton = (d) =>
   d.TARJETON ??

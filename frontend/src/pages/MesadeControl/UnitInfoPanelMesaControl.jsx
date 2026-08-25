@@ -439,7 +439,7 @@ export default function UnitInfoPanel({
           numero_tarjeton: platConductor != null ? String(platConductor) : null,
           motivo: platMotivo
         };
-        successMessage = `Conductor asignado a ECO${ecoNum}.`;
+        successMessage = `Persona Conductora asignada a ECO${ecoNum}.`;
         errorMessage = 'Error al asignar conductor';
       } else if (modalPlataformaVisible === 'RETIRO_CONDUCTOR') {
         if (cambioOperadorActivo) {
@@ -668,7 +668,7 @@ export default function UnitInfoPanel({
           </div>
           <div className="info-card__body">
             <div className="info-card__item">
-              <span className="info-card__label">Conductor Asignado</span>
+              <span className="info-card__label">Persona Conductora</span>
               <div className="info-card__value-wrapper">
                 <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
