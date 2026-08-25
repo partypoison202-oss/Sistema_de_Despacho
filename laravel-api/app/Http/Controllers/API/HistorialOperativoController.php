@@ -75,7 +75,7 @@ class HistorialOperativoController extends Controller
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
-            ->leftJoin('roles', 'usuarios.role_id', '=', 'roles.id')
+            ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
             ->whereIn('roles.codigo', ['DESPACHO', 'ADMINISTRADOR'])
             ->select(
@@ -183,7 +183,7 @@ class HistorialOperativoController extends Controller
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
-            ->leftJoin('roles', 'usuarios.role_id', '=', 'roles.id')
+            ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
             ->whereIn('roles.codigo', ['ENCIERRO', 'ADMINISTRADOR'])
             ->select(
@@ -409,7 +409,7 @@ class HistorialOperativoController extends Controller
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
-            ->leftJoin('roles', 'usuarios.role_id', '=', 'roles.id')
+            ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
             ->whereIn('roles.codigo', ['MANTENIMIENTO', 'ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE'])
             ->select(
