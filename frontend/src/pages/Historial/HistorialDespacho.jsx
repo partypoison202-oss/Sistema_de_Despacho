@@ -245,8 +245,8 @@ export default function HistorialDespacho() {
                     </td>
                     <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior || 'N/A'}</td>
                     <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo || 'N/A'}</td>
-                    <td style={{ maxWidth: '280px', wordBreak: 'break-word' }}>{d.detalles}</td>
-                    <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
+                    <td style={{ minWidth: '350px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>{d.detalles}</td>
+                    <td style={{ fontWeight: '600', whiteSpace: 'nowrap' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                   </tr>
                 ))}
                 {activeData.length === 0 && (

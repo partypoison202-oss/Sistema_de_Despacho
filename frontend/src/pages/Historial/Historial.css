@@ -69,6 +69,7 @@
 .historial-table {
   width: 100%;
   min-width: 800px;
+  max-width: none; /* override global max-width: 100% to allow scroll */
   border-collapse: collapse;
 }
 
