@@ -89,7 +89,7 @@ class DespachoController extends Controller
                 }
             }
 
-            $horaAcople = trim((string) ($fila['HORA_DE_ACOPLE'] ?? $fila['HORA_PROGRAMADA'] ?? ''));
+            $horaAcople = trim((string) ($fila['HORA_PROGRAMADA'] ?? '')) ?: trim((string) ($fila['HORA_DE_ACOPLE'] ?? ''));
 
             // Usamos unidad_id como clave para sobrescribir duplicados si existen en el mismo Excel
             $registrosParaInsertar[$unidad->id] = [
@@ -553,8 +553,7 @@ class DespachoController extends Controller
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-            $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
-            $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
+            $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? '')) ?: trim((string) ($fila['HORA_DE_ACOPLE'] ?? ''));
 
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 

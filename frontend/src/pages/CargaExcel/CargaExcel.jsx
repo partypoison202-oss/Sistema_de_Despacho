@@ -246,6 +246,9 @@ export default function CargaExcel() {
       if (unidad) {
         updatedData[index]['TIPO_DE_UNIDAD'] = normalizarTipoUnidad(unidad.tipo);
       }
+    } else if (field === 'HORA_DE_ACOPLE' || field === 'HORA_PROGRAMADA') {
+      updatedData[index]['HORA_DE_ACOPLE'] = value;
+      updatedData[index]['HORA_PROGRAMADA'] = value;
     } else {
       updatedData[index][field] = value;
     }
