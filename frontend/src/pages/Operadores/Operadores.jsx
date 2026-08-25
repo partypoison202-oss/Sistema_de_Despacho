@@ -1366,11 +1366,11 @@ export default function Operadores() {
                     />
                   </div>
                 )}
-                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%' }}>
-                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24">
+                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
+                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                   </svg>
-                  {foto ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
+                  <span style={{ marginLeft: '8px' }}>{foto ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -1517,11 +1517,11 @@ export default function Operadores() {
                     />
                   </div>
                 )}
-                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%' }}>
-                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24">
+                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
+                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                   </svg>
-                  {(foto || selectedConductor?.foto) ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}
+                  <span style={{ marginLeft: '8px' }}>{(foto || selectedConductor?.foto) ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}</span>
                   <input
                     type="file"
                     accept="image/*"
