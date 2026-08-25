@@ -440,14 +440,23 @@
 
 .modal-content {
   background: #ffffff;
-  border-radius: 0.85rem;
+  border-radius: 12px;
   width: 100%;
-  max-width: 480px;
+  max-width: 700px;
   max-height: 90vh;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   overflow-y: auto;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  position: relative;
+  display: flex;
+  flex-direction: column;
   animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 95%;
+    max-height: 95vh;
+  }
 }
 
 @keyframes modalFadeIn {
@@ -516,7 +525,10 @@
 .form-label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #334155;
+  color: #334155 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
 }
 
 .modal-input {
@@ -553,7 +565,7 @@
   justify-content: center;
   width: 100%;
   height: 48px;
-  background-color: #6b1d33;
+  background-color: #6b1d33 !important;
   color: #ffffff !important;
   border-radius: 8px;
   font-weight: 700;
@@ -564,7 +576,8 @@
   box-shadow: 0 2px 4px rgba(107, 29, 51, 0.25);
   border: 1px solid transparent;
   gap: 8px;
-  text-shadow: none;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .custom-file-upload-btn svg {
@@ -573,7 +586,7 @@
 }
 
 .custom-file-upload-btn:hover {
-  background-color: #521526;
+  background-color: #521526 !important;
   transform: translateY(-1px);
 }
 
