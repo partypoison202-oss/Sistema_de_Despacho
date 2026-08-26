@@ -174,6 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bitacoras-diarias', [\App\Http\Controllers\API\BitacorasCentroController::class, 'getBitacoras']);
 
     // Rutas para TITAN
+    Route::get('/titan/notificaciones-pendientes', [TitanReporteController::class, 'notificacionesPendientes']);
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);
     Route::get('/titan/historico', [TitanController::class, 'getAllReportes']);
     Route::post('/titan/reporte', [TitanController::class, 'guardarReporte']);
