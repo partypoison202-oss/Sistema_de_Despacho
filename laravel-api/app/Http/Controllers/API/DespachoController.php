@@ -332,6 +332,8 @@ class DespachoController extends Controller
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
                 'informacion_operativa.motivo_estatus',
+                'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.fecha_folio_mantenimiento',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
@@ -1516,6 +1518,13 @@ class DespachoController extends Controller
             'estatus' => $nuevoEstatus,
             'motivo_estatus' => $motivoEstatus
         ];
+
+        if ($request->has('folio_mantenimiento')) {
+            $updateData['folio_mantenimiento'] = $request->folio_mantenimiento;
+        }
+        if ($request->has('fecha_folio_mantenimiento')) {
+            $updateData['fecha_folio_mantenimiento'] = $request->fecha_folio_mantenimiento;
+        }
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') {
             $updateData['nombre_conductor'] = null;

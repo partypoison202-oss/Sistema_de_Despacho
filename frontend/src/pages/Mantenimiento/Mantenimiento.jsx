@@ -5,6 +5,7 @@ import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
 import './Mantenimiento.css';
+import '../CentroControl/CentroControl.css';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -125,17 +126,17 @@ export default function Mantenimiento() {
       <div className="mantenimiento">
         <Header />
         <main className="mantenimiento__main">
-          <p className="mantenimiento__eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
-          <h1 className="mantenimiento__title text-gray-900 dark:text-white">
-            {isInspeccion ? 'Carga de Combustible' : 'Mantenimiento de Unidades'}
+          <p className="centro-eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
+          <h1 className="centro-title">
+            {isInspeccion ? 'CARGA DE COMBUSTIBLE' : 'MANTENIMIENTO PARQUE VEHICULAR'}
           </h1>
-          <p className="mantenimiento__subtitle text-gray-500 dark:text-gray-300">
+          <p className="centro-subtitle">
             {isInspeccion
               ? 'Toque la imagen del transporte para comenzar la carga de combustible'
               : 'Toque la imagen del transporte para comenzar el mantenimiento'}
           </p>
 
-          <form className="mantenimiento__search" onSubmit={handleBuscarUnidad}>
+          <form className="mantenimiento__search mt-8" onSubmit={handleBuscarUnidad}>
             <input
               type="text"
               value={busquedaEco}

@@ -654,6 +654,17 @@ export default function UnitInfoPanel({
             <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
           </div>
         </div>
+        {(datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'mantenimiento') && (
+          <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+             <div style={{ fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Folio Asignado</div>
+             <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
+             {datosOperativos.fecha_folio_mantenimiento && (
+               <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '2px' }}>
+                 {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleDateString('es-MX')}
+               </div>
+             )}
+          </div>
+        )}
       </div>
 
       {/* Se cambia a 2 columnas en desktop para que ocupe todo el ancho de la pantalla y no quede amontonado a la izquierda */}

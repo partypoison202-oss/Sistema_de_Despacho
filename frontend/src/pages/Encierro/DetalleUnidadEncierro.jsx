@@ -897,6 +897,28 @@ export default function DetalleUnidadEncierro() {
     };
 
     if (requiereMotivo) {
+      if (nuevoEstatus === 'mantenimiento') {
+        swalOptions.html = `
+          <div style="text-align: left; margin-top: 0.5rem;">
+            <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
+              Asignar folio de Mantenimiento:
+            </label>
+            <input type="text" id="swal-folio-input" class="swal2-input" placeholder="ESCRIBE EL FOLIO..." style="width: 100%; margin: 0; border-radius: 8px; font-size: 0.88rem; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+          </div>
+        `;
+        swalOptions.preConfirm = () => {
+          const folio = document.getElementById('swal-folio-input').value.trim();
+          if (!folio) {
+            Swal.showValidationMessage('Por favor ingresa el folio.');
+            return false;
+          }
+          return {
+            motivo: 'MANTENIMIENTO',
+            folio_mantenimiento: folio,
+            fecha_folio_mantenimiento: new Date().toISOString()
+          };
+        };
+      } else {
       const motivosPredefinidos = [
         'FALTA DE OPERADOR',
         'MANTENIMIENTO',
@@ -1052,13 +1074,26 @@ export default function DetalleUnidadEncierro() {
 
         return val;
       };
+      } // end else
     }
 
     const confirmacion = await Swal.fire(swalOptions);
 
     if (!confirmacion.isConfirmed) return;
 
-    const motivoCapturado = requiereMotivo ? (confirmacion.value || null) : null;
+    let motivoCapturado = null;
+    let folioMantenimiento = null;
+    let fechaFolioMantenimiento = null;
+
+    if (requiereMotivo && confirmacion.value) {
+      if (typeof confirmacion.value === 'object') {
+        motivoCapturado = confirmacion.value.motivo;
+        folioMantenimiento = confirmacion.value.folio_mantenimiento;
+        fechaFolioMantenimiento = confirmacion.value.fecha_folio_mantenimiento;
+      } else {
+        motivoCapturado = confirmacion.value;
+      }
+    }
 
     setCambiandoEstatus(true);
     try {
@@ -1075,7 +1110,9 @@ export default function DetalleUnidadEncierro() {
         body: JSON.stringify({
           ...payloadUpdate,
           numero_eco: numeroLimpio,
-          motivo_estatus: motivoCapturado
+          motivo_estatus: motivoCapturado,
+          folio_mantenimiento: folioMantenimiento,
+          fecha_folio_mantenimiento: fechaFolioMantenimiento
         })
       });
 

@@ -452,6 +452,8 @@ export default function DetalleUnidadMantenimiento() {
           tarjeton: resultado.tarjeton || '',
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
           motivo_estatus: resultado.motivo_estatus || null, // <-- NUEVO: obtener motivo
+          folio_mantenimiento: resultado.folio_mantenimiento || null,
+          fecha_folio_mantenimiento: resultado.fecha_folio_mantenimiento || null,
           horaSalida: resultado.hora_salida || null,
           horaProgramada: resultado.hora_programada || null,
           horaDespacho,
@@ -465,6 +467,8 @@ export default function DetalleUnidadMantenimiento() {
           tarjeton: '',
           estatus: 'operacion',
           motivo_estatus: null,
+          folio_mantenimiento: null,
+          fecha_folio_mantenimiento: null,
           horaSalida: null,
           horaProgramada: null,
           horaDespacho: null,
@@ -478,6 +482,8 @@ export default function DetalleUnidadMantenimiento() {
         tarjeton: '',
         estatus: 'operacion',
         motivo_estatus: null,
+        folio_mantenimiento: null,
+        fecha_folio_mantenimiento: null,
         horaSalida: null,
       });
     } finally {
@@ -510,13 +516,11 @@ export default function DetalleUnidadMantenimiento() {
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;
 
-    // <-- MODIFICADO: Si ya está en el mismo estado y no es mantenimiento, no hacer nada
-    if (datosOperativos.estatus === nuevoEstatus && nuevoEstatus !== 'mantenimiento') {
+    if (datosOperativos.estatus === nuevoEstatus) {
       return;
     }
 
-    // <-- NUEVO: detectar si es el mismo estatus (para mantenimiento)
-    const esMismoEstatus = datosOperativos.estatus === nuevoEstatus;
+    const esMismoEstatus = false;
 
     let payloadUpdate = {
       numero_eco: null,
@@ -550,8 +554,43 @@ export default function DetalleUnidadMantenimiento() {
 
     let motivoCapturado = null;
 
+    const swalOptions = {
+      title: esMismoEstatus ? 'Actualizar motivo de Mantenimiento' : '¿Cambiar Estatus?',
+      text: esMismoEstatus
+        ? `La unidad ${selectedOption} ya está en MANTENIMIENTO. Puedes actualizar el motivo.`
+        : `¿Seguro que deseas mover la unidad ${selectedOption} a ${nuevoEstatus.toUpperCase()}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#6b1d33',
+      cancelButtonColor: '#9ca3af',
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar',
+    };
+
     if (requiereMotivo) {
       // Configurar el Swal para seleccionar motivo (el mismo código existente)
+      if (nuevoEstatus === 'mantenimiento') {
+        swalOptions.html = `
+          <div style="text-align: left; margin-top: 0.5rem;">
+            <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
+              Asignar folio de Mantenimiento:
+            </label>
+            <input type="text" id="swal-folio-input" class="swal2-input" placeholder="ESCRIBE EL FOLIO..." style="width: 100%; margin: 0; border-radius: 8px; font-size: 0.88rem; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+          </div>
+        `;
+        swalOptions.preConfirm = () => {
+          const folio = document.getElementById('swal-folio-input').value.trim();
+          if (!folio) {
+            Swal.showValidationMessage('Por favor ingresa el folio.');
+            return false;
+          }
+          return {
+            motivo: 'MANTENIMIENTO',
+            folio_mantenimiento: folio,
+            fecha_folio_mantenimiento: new Date().toISOString()
+          };
+        };
+      } else {
       const motivosPredefinidos = [
         'FALTA DE OPERADOR',
         'MANTENIMIENTO',
@@ -562,57 +601,46 @@ export default function DetalleUnidadMantenimiento() {
         'OTRO'
       ];
 
-      const swalOptions = {
-        title: esMismoEstatus ? 'Actualizar motivo de Mantenimiento' : '¿Cambiar Estatus?',
-        text: esMismoEstatus
-          ? `La unidad ${selectedOption} ya está en MANTENIMIENTO. Puedes actualizar el motivo.`
-          : `¿Seguro que deseas mover la unidad ${selectedOption} a ${nuevoEstatus.toUpperCase()}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#6b1d33',
-        cancelButtonColor: '#9ca3af',
-        confirmButtonText: 'Sí, cambiar',
-        cancelButtonText: 'Cancelar',
-        html: `
-          <div style="text-align: left; margin-top: 0.5rem; position: relative;">
-            <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
-              Seleccione el motivo de ${nuevoEstatus.toUpperCase()}:
-            </label>
-            
-            <div style="position: relative;">
-              <button type="button" id="swal-motivo-trigger" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 1rem; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.88rem; font-weight: 700; color: #1f2937; cursor: pointer; outline: none; transition: all 0.2s ease;">
-                <span id="swal-motivo-trigger-text" style="text-transform: uppercase; color: #6b7280;">Seleccionar motivo</span>
-                <svg id="swal-motivo-arrow" style="width: 16px; height: 16px; color: #6b1d33; transition: transform 0.2s ease;" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 10l5 5 5-5H7z" />
-                </svg>
-              </button>
+      swalOptions.html = `
+        <div style="text-align: left; margin-top: 0.5rem; position: relative;">
+          <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
+            Seleccione el motivo de ${nuevoEstatus.toUpperCase()}:
+          </label>
+          
+          <div style="position: relative;">
+            <button type="button" id="swal-motivo-trigger" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 44px; padding: 0 1rem; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 0.88rem; font-weight: 700; color: #1f2937; cursor: pointer; outline: none; transition: all 0.2s ease;">
+              <span id="swal-motivo-trigger-text" style="text-transform: uppercase; color: #6b7280;">Seleccionar motivo</span>
+              <svg id="swal-motivo-arrow" style="width: 16px; height: 16px; color: #6b1d33; transition: transform 0.2s ease;" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 10l5 5 5-5H7z" />
+              </svg>
+            </button>
 
-              <div id="swal-motivo-menu" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); z-index: 9999; max-height: 180px; overflow-y: auto;">
-                ${motivosPredefinidos.map(m => `
-                  <div class="swal-motivo-item" data-value="${m}" style="padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: #4b5563; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s ease, color 0.2s ease;">
-                    ${m}
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-            <input type="hidden" id="swal-motivo-hidden" value="" />
-
-            <div id="swal-motivo-custom-container" style="display: none; margin-top: 0.75rem;">
-              <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="Escribe el motivo detallado..." maxlength="70" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem;"></textarea>
-              <div id="swal-motivo-counter" style="text-align: right; font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 4px;">0/70</div>
+            <div id="swal-motivo-menu" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); z-index: 9999; max-height: 180px; overflow-y: auto;">
+              ${motivosPredefinidos.map(m => `
+                <div class="swal-motivo-item" data-value="${m}" style="padding: 0.75rem 1rem; font-size: 0.88rem; font-weight: 600; color: #4b5563; cursor: pointer; border-bottom: 1px solid #f3f4f6; transition: background-color 0.2s ease, color 0.2s ease;">
+                  ${m}
+                </div>
+              `).join('')}
             </div>
           </div>
-        `,
-        didOpen: () => {
-          const popup = Swal.getPopup();
-          if (popup) popup.style.overflow = 'visible';
+          <input type="hidden" id="swal-motivo-hidden" value="" />
 
-          const htmlContainer = Swal.getHtmlContainer();
-          if (htmlContainer) {
-            htmlContainer.style.overflow = 'visible';
-            htmlContainer.style.position = 'relative';
-            htmlContainer.style.zIndex = '100';
-          }
+          <div id="swal-motivo-custom-container" style="display: none; margin-top: 0.75rem;">
+            <textarea id="swal-motivo-textarea" class="swal2-textarea" placeholder="Escribe el motivo detallado..." maxlength="70" style="width: 100%; height: 60px; margin: 0; border-radius: 8px; font-size: 0.88rem; resize: none; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem;"></textarea>
+            <div id="swal-motivo-counter" style="text-align: right; font-size: 10px; font-weight: 500; color: #9ca3af; margin-top: 4px;">0/70</div>
+          </div>
+        </div>
+      `;
+      swalOptions.didOpen = () => {
+        const popup = Swal.getPopup();
+        if (popup) popup.style.overflow = 'visible';
+
+        const htmlContainer = Swal.getHtmlContainer();
+        if (htmlContainer) {
+          htmlContainer.style.overflow = 'visible';
+          htmlContainer.style.position = 'relative';
+          htmlContainer.style.zIndex = '100';
+        }
 
           const actions = Swal.getActions();
           if (actions) {
@@ -694,8 +722,8 @@ export default function DetalleUnidadMantenimiento() {
               }
             });
           }
-        },
-        preConfirm: () => {
+        };
+        swalOptions.preConfirm = () => {
           const hiddenInput = document.getElementById('swal-motivo-hidden');
           const textarea = document.getElementById('swal-motivo-textarea');
 
@@ -715,12 +743,22 @@ export default function DetalleUnidadMantenimiento() {
           }
 
           return val;
-        }
-      };
+        };
+      } // CLOSE the else block
 
       const confirmacion = await Swal.fire(swalOptions);
       if (!confirmacion.isConfirmed) return;
-      motivoCapturado = confirmacion.value || null;
+      let folioMantenimiento = null;
+      let fechaFolioMantenimiento = null;
+      if (typeof confirmacion.value === 'object') {
+        motivoCapturado = confirmacion.value.motivo;
+        folioMantenimiento = confirmacion.value.folio_mantenimiento;
+        fechaFolioMantenimiento = confirmacion.value.fecha_folio_mantenimiento;
+      } else {
+        motivoCapturado = confirmacion.value || null;
+      }
+      payloadUpdate.folio_mantenimiento = folioMantenimiento;
+      payloadUpdate.fecha_folio_mantenimiento = fechaFolioMantenimiento;
     } else if (nuevoEstatus === 'reserva') {
       const confirmacion = await Swal.fire({
         title: '¿Cambiar a Reserva?',
@@ -1018,6 +1056,17 @@ export default function DetalleUnidadMantenimiento() {
                       <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
                     </div>
                   </div>
+                  {(datosOperativos.estatus === 'mantenimiento' || datosOperativos.estatus === 'MANTENIMIENTO') && (
+                    <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                       <div style={{ fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Folio Asignado</div>
+                       <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
+                       {datosOperativos.fecha_folio_mantenimiento && (
+                         <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '2px' }}>
+                           {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleDateString('es-MX')}
+                         </div>
+                       )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="detalle-dashboard-grid">
@@ -1302,7 +1351,11 @@ export default function DetalleUnidadMantenimiento() {
 
                   {/* CARD: MOVILIDAD Y ESTATUS */}
                   {!isInspeccion && (
-                    <div className="info-card info-card--double">
+                    <div className="info-card info-card--double" style={{
+                      opacity: cargandoDatos ? 0.6 : 1,
+                      pointerEvents: cargandoDatos ? 'none' : 'auto',
+                      transition: 'all 0.3s ease'
+                    }}>
                       <div className="info-card__header">
                         <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -1321,7 +1374,7 @@ export default function DetalleUnidadMantenimiento() {
                               <button
                                 key={st.id}
                                 onClick={() => handleCambiarEstatus(st.id)}
-                                disabled={cambiandoEstatus}
+                                disabled={cambiandoEstatus || isActive}
                                 style={{
                                   padding: '1rem 0.5rem',
                                   borderRadius: '0.75rem',
@@ -1330,13 +1383,13 @@ export default function DetalleUnidadMantenimiento() {
                                   color: isActive ? st.color : 'var(--tw-color-gray-500)',
                                   fontWeight: isActive ? 700 : 500,
                                   fontSize: '0.85rem',
-                                  cursor: cambiandoEstatus ? 'not-allowed' : 'pointer',
+                                  cursor: (cambiandoEstatus || isActive) ? 'not-allowed' : 'pointer',
                                   transition: 'all 0.2s',
                                   display: 'flex',
                                   flexDirection: 'column',
                                   alignItems: 'center',
                                   gap: '0.35rem',
-                                  opacity: cambiandoEstatus && !isActive ? 0.5 : 1,
+                                  opacity: (cambiandoEstatus && !isActive) ? 0.5 : 1,
                                 }}
                               >
                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: isActive ? st.color : 'var(--tw-color-gray-300)' }}></div>
@@ -1345,28 +1398,6 @@ export default function DetalleUnidadMantenimiento() {
                             );
                           })}
                         </div>
-
-                        {/* <-- NUEVO: Mostrar motivo si está en mantenimiento */}
-                        {datosOperativos.estatus === 'mantenimiento' && datosOperativos.motivo_estatus && (
-                          <div style={{
-                            marginTop: '1rem',
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#fef3c7',
-                            border: '1px solid #f59e0b',
-                            borderRadius: '0.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.85rem',
-                            fontWeight: '600',
-                            color: '#92400e',
-                          }}>
-                            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Motivo: <span style={{ textTransform: 'capitalize' }}>{datosOperativos.motivo_estatus}</span></span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
