@@ -167,6 +167,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Historial Operativo
     Route::get('/historial-operativo/fechas', [HistorialOperativoController::class, 'getFechas']);
     Route::get('/historial-operativo/despacho/{fecha}', [HistorialOperativoController::class, 'getHistorialDespacho']);
+    Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
     Route::get('/historial-operativo/mantenimiento/{fecha}', [HistorialOperativoController::class, 'getHistorialMantenimiento']);
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
