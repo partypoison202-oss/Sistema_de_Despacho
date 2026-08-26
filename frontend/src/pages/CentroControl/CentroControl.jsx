@@ -178,7 +178,7 @@ export default function CentroControl() {
       // Usamos los mismos datos calculados que ya están en el componente:
       // totales, modelData, y eficienciaGlobal
       await generarPDFEstadisticasCentro(totales, modelData, eficienciaGlobal);
-      
+
       Swal.fire({
         icon: 'success',
         title: '¡Reporte Generado!',
@@ -260,14 +260,14 @@ export default function CentroControl() {
         <main className="centro-main">
           <div className="centro-welcome">
             <p className="centro-eyebrow">Visión general de la flota</p>
-            <h1 className="centro-title">Centro de Control</h1>
+            <h1 className="centro-title">MONITOREO DE OPERACIONES</h1>
             <p className="centro-date">{fechaActual}</p>
             <p className="centro-subtitle">
               Consulta el total de unidades programadas, su estatus operativo
               y genera reportes generales de la mesa de control.
             </p>
           </div>
- 
+
           <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
 
             {/* Botón Titanes */}
