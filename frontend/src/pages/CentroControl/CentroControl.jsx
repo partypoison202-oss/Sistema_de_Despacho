@@ -264,7 +264,7 @@ export default function CentroControl() {
             <p className="centro-date">{fechaActual}</p>
             <p className="centro-subtitle">
               Consulta el total de unidades programadas, su estatus operativo
-              y genera reportes generales del despacho.
+              y genera reportes generales de la mesa de control.
             </p>
           </div>
  
@@ -634,7 +634,7 @@ export default function CentroControl() {
               className="centro-btn centro-btn--secondary"
               onClick={() => navigate('/resumen-despacho')}
             >
-              Ver Resumen de Despacho
+              Ver Resumen de Mesa de Control
             </button>
           </section>
         </main>

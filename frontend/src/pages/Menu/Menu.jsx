@@ -17,7 +17,7 @@ const menuItems = [
         <line x1="15" y1="6" x2="15" y2="21" />
       </svg>
     ),
-    label: 'DESPACHO DASHBOARD',
+    label: 'MESA DE CONTROL DASHBOARD',
     color: 'maroon',
   },
   {
@@ -45,7 +45,7 @@ const menuItems = [
         <path d="M9 21v-8h6v8" />
       </svg>
     ),
-    label: 'ENCIERRO DASHBOARD',
+    label: 'MANTENIMIENTO DASHBOARD',
     color: 'gold',
   },
   {
@@ -218,9 +218,9 @@ const menuItems = [
 ];
 
 const MENU_MODULES_CONFIG = {
-  'DESPACHO DASHBOARD': 'DESPACHO DE UNIDADES',
+  'MESA DE CONTROL DASHBOARD': 'MESA DE CONTROL',
   'GENERAL': 'MONITOR OPERATIVO',
-  'ENCIERRO DASHBOARD': 'ENCIERRO DE UNIDADES',
+  'MANTENIMIENTO DASHBOARD': 'MANTENIMIENTO PARQUE VEHICULAR',
   'CAPTURISTA': 'PROGRAMACIÓN Y LOGÍSTICA',
   'RELEVOS': 'RELEVOS DE T6',
   'MANTENIMIENTO': 'MANTENIMIENTO PARQUE VEHICULAR',
