@@ -77,6 +77,8 @@ const PUNTOS = [
     { id: 'documentacion', label: 'Documentación', desc: 'Revisar documentación de la unidad (tarjeta de circulación, póliza de seguro).' },
     { id: 'tecnologia', label: 'Tecnología', desc: 'Verificar funcionamiento del monitor (Unidad Urbanuss), cámaras, pantallas y bocinas.' },
     { id: 'alerta_tablero', label: 'Alerta en tablero', desc: 'Verificar qué tipo de alerta está prendida en el tablero.' },
+    { id: 'mecanica_general', label: 'Mecánica general', desc: 'Revisar motor, suspensión y frenos.' },
+    { id: 'mantenimiento_preventivo', label: 'Mantenimiento preventivo', desc: 'Revisar puntos críticos si la unidad se enviará a mantenimiento.' },
 ];
 
 const buildEstadoInicial = () =>
@@ -951,8 +953,22 @@ export default function ChecklistForm({
     const totalPendiente = PUNTOS.length - totalBien - totalMal;
     const progreso = Math.round(((totalBien + totalMal) / PUNTOS.length) * 100);
 
-    const handleCambioPunto = (id, campo, valor) =>
-        setPuntos((prev) => ({ ...prev, [id]: { ...prev[id], [campo]: valor } }));
+    const handleCambioPunto = (id, campo, valor) => {
+        setPuntos((prev) => {
+            const current = prev[id] || {};
+            const newState = { ...current, [campo]: valor };
+            
+            if (campo === 'observaciones' && typeof valor === 'string') {
+                if (valor.trim().length > 0 && current.estado === 'bien') {
+                    newState.estado = 'mal';
+                } else if (valor.trim().length === 0 && current.estado === 'mal') {
+                    newState.estado = 'bien';
+                }
+            }
+            
+            return { ...prev, [id]: newState };
+        });
+    };
 
     const handleConductorId = (e) => {
         const v = e.target.value.replace(/\D/g, '').slice(0, 10);

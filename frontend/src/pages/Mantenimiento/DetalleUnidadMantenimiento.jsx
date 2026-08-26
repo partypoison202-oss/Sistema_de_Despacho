@@ -545,8 +545,8 @@ export default function DetalleUnidadMantenimiento() {
       }
     }
 
-    // Determinar si requiere motivo (reserva, mantenimiento o actualización de motivo en mantenimiento)
-    const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento' || esMismoEstatus;
+    // Determinar si requiere motivo (mantenimiento o actualización de motivo en mantenimiento)
+    const requiereMotivo = nuevoEstatus === 'mantenimiento' || esMismoEstatus;
 
     let motivoCapturado = null;
 
@@ -721,6 +721,18 @@ export default function DetalleUnidadMantenimiento() {
       const confirmacion = await Swal.fire(swalOptions);
       if (!confirmacion.isConfirmed) return;
       motivoCapturado = confirmacion.value || null;
+    } else if (nuevoEstatus === 'reserva') {
+      const confirmacion = await Swal.fire({
+        title: '¿Cambiar a Reserva?',
+        text: `¿Seguro que deseas mover la unidad ${selectedOption} a RESERVA?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6b1d33',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Sí, cambiar',
+        cancelButtonText: 'Cancelar',
+      });
+      if (!confirmacion.isConfirmed) return;
     }
 
     // Si es mismo estatus, mantener el estatus actual en el payload
