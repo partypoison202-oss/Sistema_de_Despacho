@@ -136,7 +136,7 @@ export default function Mantenimiento() {
               : 'Toque la imagen del transporte para comenzar el mantenimiento'}
           </p>
 
-          <form className="mantenimiento__search mt-8" onSubmit={handleBuscarUnidad}>
+          <form className="mantenimiento__search mt-16" onSubmit={handleBuscarUnidad}>
             <input
               type="text"
               value={busquedaEco}
