@@ -744,7 +744,7 @@ export default function ChecklistForm({
     checklistId = null,
     onComplete = null,
     onClose = null,
-    origen = 'despacho',
+    origen = 'mesaControl',
     editMode = false
 }) {
     const navigate = useNavigate();

@@ -150,7 +150,7 @@ class RbacMatrizSeeder extends Seeder
             ],
             [
                 'nombre_completo' => 'Marino Román Velázquez',
-                'usuario'         => 'Román_Marino',
+                'usuario'         => 'Roman_Marino',
                 'correo'          => 'rmarino@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
@@ -158,7 +158,7 @@ class RbacMatrizSeeder extends Seeder
             ],
             [
                 'nombre_completo' => 'César Jiménez',
-                'usuario'         => 'César_Eduardo',
+                'usuario'         => 'Cesar_Eduardo',
                 'correo'          => 'cjimenez@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
