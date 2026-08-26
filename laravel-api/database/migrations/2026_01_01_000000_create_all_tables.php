@@ -79,7 +79,9 @@ return new class extends Migration
                 $table->string('numero_eco', 20)->unique();
                 $table->string('tipo', 50)->nullable();
                 $table->string('nivel_combustible', 10)->nullable();
+                $table->string('litros_combustible', 20)->nullable();
                 $table->string('nivel_adblue', 10)->nullable();
+                $table->string('litros_adblue', 20)->nullable();
                 $table->string('numero_cincho', 20)->nullable();
                 $table->string('numero_cincho_adblue', 20)->nullable();
                 $table->date('fecha_ultima_carga')->nullable();
@@ -90,7 +92,9 @@ return new class extends Migration
             foreach ([
                 'tipo'                 => fn($t) => $t->string('tipo', 50)->nullable(),
                 'nivel_combustible'    => fn($t) => $t->string('nivel_combustible', 10)->nullable(),
+                'litros_combustible'   => fn($t) => $t->string('litros_combustible', 20)->nullable(),
                 'nivel_adblue'         => fn($t) => $t->string('nivel_adblue', 10)->nullable(),
+                'litros_adblue'        => fn($t) => $t->string('litros_adblue', 20)->nullable(),
                 'numero_cincho'        => fn($t) => $t->string('numero_cincho', 20)->nullable(),
                 'numero_cincho_adblue' => fn($t) => $t->string('numero_cincho_adblue', 20)->nullable(),
                 'fecha_ultima_carga'   => fn($t) => $t->date('fecha_ultima_carga')->nullable(),
@@ -626,7 +630,9 @@ return new class extends Migration
                 $table->string('odometro', 20)->nullable();
                 $table->string('tipo_vehiculo', 50)->nullable();
                 $table->string('nivel_combustible', 20)->nullable();
+                $table->string('litros_combustible', 20)->nullable();
                 $table->string('nivel_adblue', 20)->nullable();
+                $table->string('litros_adblue', 20)->nullable();
                 $table->date('fecha_ultima_carga')->nullable();
                 $table->string('kilometraje', 20)->nullable();
                 $table->timestamp('fecha_mantenimiento')->nullable()->useCurrent();
@@ -640,7 +646,9 @@ return new class extends Migration
                 'odometro'             => fn($t) => $t->string('odometro', 20)->nullable(),
                 'tipo_vehiculo'        => fn($t) => $t->string('tipo_vehiculo', 50)->nullable(),
                 'nivel_combustible'    => fn($t) => $t->string('nivel_combustible', 20)->nullable(),
+                'litros_combustible'   => fn($t) => $t->string('litros_combustible', 20)->nullable(),
                 'nivel_adblue'         => fn($t) => $t->string('nivel_adblue', 20)->nullable(),
+                'litros_adblue'        => fn($t) => $t->string('litros_adblue', 20)->nullable(),
                 'fecha_ultima_carga'   => fn($t) => $t->date('fecha_ultima_carga')->nullable(),
                 'kilometraje'          => fn($t) => $t->string('kilometraje', 20)->nullable(),
                 'fecha_registro'       => fn($t) => $t->timestamp('fecha_registro')->nullable()->useCurrent(),

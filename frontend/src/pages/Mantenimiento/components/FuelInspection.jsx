@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import FuelGaugeSelector from './FuelGaugeSelector';
 import AppleDatePicker from './AppleDatePicker';
 import API_BASE from '../../../config/api';
+import { AuthContext } from '../../../context/AuthContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const formatDate = (isoStr) => {
@@ -18,6 +19,18 @@ const diasDesde = (fechaStr) => {
   if (!fechaStr) return null;
   const msPerDay = 86400000;
   return Math.floor((Date.now() - new Date(fechaStr)) / msPerDay);
+};
+
+const fuelToPercentage = (val) => {
+  if (!val) return 0;
+  switch (val) {
+    case 'E': return 0;
+    case '1/4': return 25;
+    case '1/2': return 50;
+    case '3/4': return 75;
+    case 'F': return 100;
+    default: return 0;
+  }
 };
 
 // ─── Sub-componente: Etiqueta de contexto (solo lectura) ─────────────────────
@@ -220,6 +233,8 @@ function FuelBlock({
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function FuelInspection({ eco, tipoTransporte, token }) {
   const queryClient = useQueryClient();
+  const { user } = React.useContext(AuthContext);
+  const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
   const isDiesel = ['urbanuss', 'zafiro', 'orion'].includes(
     tipoTransporte?.toLowerCase()
   );
@@ -240,6 +255,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     odometro: '',
   });
   const [guardando, setGuardando] = useState(false);
+  const [comparativaGuardada, setComparativaGuardada] = useState(null);
 
   // ── Fetch del último registro ────────────────────────────────────────────
   const ecoLimpio = eco ? String(eco).replace(/\D/g, '').padStart(3, '0') : null;
@@ -257,6 +273,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     enabled: !!ecoLimpio && !!token,
     staleTime: 30000,
   });
+
+  // Limpiar la comparativa SOLO al cambiar de unidad
+  useEffect(() => {
+    setComparativaGuardada(null);
+  }, [ecoLimpio]);
 
   // ── Un único efecto que maneja tanto el reset como la pre-carga ─────────────
   // Esto evita la condición de carrera donde el reset pisaba al pre-populate.
@@ -303,17 +324,27 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
   const handleGuardar = async () => {
     if (!ecoLimpio) return;
 
-    const { nivelGasolina, nivelAdblue, numeroCincho, numeroCinchoAdblue, fechaUltimaCargaGasolina, fechaUltimaCargaAdblue, kilometrajeGasolina, odometro } = form;
+    const isVagoneta = tipoTransporte?.toLowerCase() === 'vagoneta';
+    const faltantes = [];
 
-    // 1. Al menos un dato (incluye el kilometraje: '0' es válido para una unidad nueva)
-    const hayDato = nivelGasolina || nivelAdblue || numeroCincho || numeroCinchoAdblue || odometro ||
-                    fechaUltimaCargaGasolina || fechaUltimaCargaAdblue ||
-                    (kilometrajeGasolina !== '' && kilometrajeGasolina !== undefined);
-    if (!hayDato) {
+    // 1. Validar que todos los campos requeridos estén llenos
+    if (form.kilometrajeGasolina === '') faltantes.push('Kilometraje Actual');
+    if (form.litrosGasolina === '') faltantes.push(`Litros Cargados (${combustibleLabel})`);
+    if (form.nivelGasolina === '') faltantes.push(`Nivel de ${combustibleLabel}`);
+
+    if (!isVagoneta) {
+      if (form.odometro === '') faltantes.push('Odómetro');
+      if (form.litrosAdblue === '') faltantes.push('Litros Cargados (AdBlue)');
+      if (form.nivelAdblue === '') faltantes.push('Nivel de AdBlue');
+      if (form.numeroCincho === '') faltantes.push(`Número de Cincho (${combustibleLabel})`);
+      if (form.numeroCinchoAdblue === '') faltantes.push('Número de Cincho (AdBlue)');
+    }
+
+    if (faltantes.length > 0) {
       Swal.fire({
         icon: 'warning',
-        title: 'Sin datos',
-        text: 'Por favor ingresa al menos un dato de carga de combustible para poder guardar.',
+        title: 'Campos Incompletos',
+        html: `Por favor llena los siguientes campos para poder guardar el registro de carga:<br><br><ul style="text-align: left;">${faltantes.map(f => `<li>${f}</li>`).join('')}</ul>`,
         confirmButtonColor: '#c5a059',
       });
       return;
@@ -323,13 +354,10 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     const kmAnterior = registroAnterior?.kilometraje !== undefined && registroAnterior?.kilometraje !== null
       ? Number(registroAnterior.kilometraje) : null;
 
-    // Usamos !== '' para que '0' (unidad nueva) sea un valor válido
-    const kmGasolinaNum = form.kilometrajeGasolina !== '' && form.kilometrajeGasolina !== undefined
-      ? Number(form.kilometrajeGasolina) : null;
-    const kmAdblueNum = form.kilometrajeAdblue !== '' && form.kilometrajeAdblue !== undefined
-      ? Number(form.kilometrajeAdblue) : null;
+    const kmGasolinaNum = Number(form.kilometrajeGasolina);
+    const kmAdblueNum = form.kilometrajeAdblue !== '' ? Number(form.kilometrajeAdblue) : null;
 
-    if (kmAnterior !== null && kmGasolinaNum !== null && kmGasolinaNum < kmAnterior) {
+    if (kmAnterior !== null && kmGasolinaNum < kmAnterior) {
       Swal.fire({
         icon: 'error',
         title: '⚠️ Anomalía en Kilometraje',
@@ -338,7 +366,17 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       });
       return;
     }
-    if (kmAnterior !== null && kmAdblueNum !== null && kmAdblueNum < kmAnterior) {
+    if (!isVagoneta && kmAnterior !== null && kmAdblueNum !== null && kmAdblueNum < kmAnterior) {
+      Swal.fire({
+        icon: 'error',
+        title: '⚠️ Anomalía en Kilometraje',
+        html: `El kilometraje de AdBlue ingresado (<b>${kmAdblueNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el odómetro y vuelve a intentarlo.`,
+        confirmButtonColor: '#6b1d33',
+      });
+      return;
+    }
+
+    if (!isVagoneta && kmAnterior !== null && kmAdblueNum !== null && kmAdblueNum < kmAnterior) {
       Swal.fire({
         icon: 'error',
         title: '⚠️ Anomalía en Kilometraje',
@@ -358,7 +396,9 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         tipo: tipoTransporte,
         // Si el usuario no ingresó nada (y tampoco es 0), enviamos el valor anterior o null
         nivel_combustible: form.nivelGasolina !== '' ? form.nivelGasolina : null,
+        litros_combustible: form.litrosGasolina !== '' ? form.litrosGasolina : null,
         nivel_adblue: form.nivelAdblue !== '' ? form.nivelAdblue : null,
+        litros_adblue: form.litrosAdblue !== '' ? form.litrosAdblue : null,
         numero_cincho: form.numeroCincho !== '' ? form.numeroCincho : (registroAnterior?.numero_cincho || null),
         numero_cincho_adblue: form.numeroCinchoAdblue !== '' ? form.numeroCinchoAdblue : (registroAnterior?.numero_cincho_adblue || null),
         kilometraje: kmActual !== null ? String(kmActual) : (registroAnterior?.kilometraje ?? null),
@@ -379,6 +419,38 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       const data = await response.json();
 
       if (response.ok && data.status === 'success') {
+        // ── Calcular la comparativa antes de invalidar el caché ──
+        if (registroAnterior && (registroAnterior.kilometraje || registroAnterior.odometro || registroAnterior.nivel_combustible)) {
+          const getDiff = (current, previous) => (Number(current) || 0) - (Number(previous) || 0);
+          const kmDiff = getDiff(form.kilometrajeGasolina, registroAnterior.kilometraje);
+          const odoDiff = getDiff(form.odometro, registroAnterior.odometro);
+          const prevKm = Number(registroAnterior.kilometraje) || 0;
+          const prevOdo = Number(registroAnterior.odometro) || 0;
+
+          setComparativaGuardada({
+            kmActual: form.kilometrajeGasolina,
+            kmDiff: kmDiff,
+            kmPct: prevKm > 0 ? (kmDiff / prevKm) * 100 : 0,
+            odoActual: form.odometro,
+            odoDiff: odoDiff,
+            odoPct: prevOdo > 0 ? (odoDiff / prevOdo) * 100 : 0,
+            fuelActual: form.nivelGasolina,
+            fuelCurrPct: fuelToPercentage(form.nivelGasolina),
+            fuelDiff: fuelToPercentage(form.nivelGasolina) - fuelToPercentage(registroAnterior.nivel_combustible),
+            fuelLitrosActual: form.litrosGasolina,
+            fuelLitrosDiff: getDiff(form.litrosGasolina, registroAnterior.litros_combustible),
+            adblueActual: form.nivelAdblue,
+            adblueCurrPct: fuelToPercentage(form.nivelAdblue),
+            adblueDiff: fuelToPercentage(form.nivelAdblue) - fuelToPercentage(registroAnterior.nivel_adblue),
+            adblueLitrosActual: form.litrosAdblue,
+            adblueLitrosDiff: getDiff(form.litrosAdblue, registroAnterior.litros_adblue),
+            isVagoneta: tipoTransporte?.toLowerCase() === 'vagoneta',
+            combustibleLabel: combustibleLabel
+          });
+        } else {
+           setComparativaGuardada(null);
+        }
+
         // Invalidar cache para que al regresar a esta unidad se vea el nuevo registro
         queryClient.invalidateQueries(['mantenimiento-ultimo-registro', ecoLimpio]);
 
@@ -403,6 +475,75 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       });
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const handleResetKmOdometro = async () => {
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Reiniciar a 0?',
+      text: 'Esta acción dejará el kilometraje y odómetro de la unidad en 0. Solo para pruebas y configuración inicial.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, reiniciar a 0',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ef4444'
+    });
+
+    if (isConfirmed) {
+      setGuardando(true);
+      try {
+        const payload = {
+          numero_eco: ecoLimpio,
+          tipo: tipoTransporte,
+          kilometraje: '0',
+          odometro: '0',
+          nivel_combustible: registroAnterior?.nivel_combustible || null,
+          litros_combustible: null,
+          nivel_adblue: registroAnterior?.nivel_adblue || null,
+          litros_adblue: null,
+          numero_cincho: registroAnterior?.numero_cincho || null,
+          numero_cincho_adblue: registroAnterior?.numero_cincho_adblue || null,
+          fecha_ultima_carga: new Date().toISOString().split('T')[0]
+        };
+
+        const response = await fetch(`${API_BASE}/api/mantenimiento/guardar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status === 'success') {
+          queryClient.invalidateQueries(['mantenimiento-ultimo-registro', ecoLimpio]);
+          Swal.fire({
+            icon: 'success',
+            title: 'Unidad Reiniciada',
+            text: 'El kilometraje y odómetro se han puesto en 0.',
+            timer: 2500,
+            showConfirmButton: false,
+          });
+          setComparativaGuardada(null);
+          setForm(prev => ({
+            ...prev,
+            kilometrajeGasolina: '',
+            odometro: ''
+          }));
+        } else {
+          throw new Error(data.message || 'Error al reiniciar la unidad');
+        }
+      } catch (error) {
+        console.error('[FuelInspection] Error al reiniciar:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.message || 'No se pudo reiniciar la unidad.',
+        });
+      } finally {
+        setGuardando(false);
+      }
     }
   };
 
@@ -574,8 +715,31 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         </div>
       )}
 
-      {/* ── Botón Guardar ── */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '1rem' }}>
+        {isAdmin && (
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={handleResetKmOdometro}
+            className="interactive-input"
+            style={{
+              width: 'auto',
+              padding: '0 1rem',
+              height: '2.3rem',
+              background: 'transparent',
+              color: '#ef4444',
+              border: '1px solid #ef4444',
+              borderRadius: '0.5rem',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              opacity: guardando ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            RESETEAR A 0
+          </button>
+        )}
         <button
           type="button"
           disabled={guardando}
@@ -617,6 +781,94 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           GUARDAR
         </button>
       </div>
+
+      {/* ── Comparativa Guardada (se muestra solo después de guardar) ── */}
+      {comparativaGuardada && (
+        <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#ecfdf5', borderRadius: '0.75rem', border: '1px solid #10b981' }}>
+          <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#065f46', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Resumen de Diferencias
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+            
+            {comparativaGuardada.kmActual !== '' && (
+              <div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Kilometraje</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                    {Number(comparativaGuardada.kmActual).toLocaleString('es-MX')}
+                  </span>
+                  {comparativaGuardada.kmDiff !== 0 && (
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.kmDiff >= 0 ? '#10b981' : '#ef4444' }}>
+                      {comparativaGuardada.kmDiff > 0 ? '+' : ''}{comparativaGuardada.kmDiff.toLocaleString('es-MX')} km ({comparativaGuardada.kmPct > 0 ? '+' : ''}{comparativaGuardada.kmPct.toFixed(2)}%)
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!comparativaGuardada.isVagoneta && comparativaGuardada.odoActual !== '' && (
+              <div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Odómetro</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                    {Number(comparativaGuardada.odoActual).toLocaleString('es-MX')}
+                  </span>
+                  {comparativaGuardada.odoDiff !== 0 && (
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.odoDiff >= 0 ? '#10b981' : '#ef4444' }}>
+                      {comparativaGuardada.odoDiff > 0 ? '+' : ''}{comparativaGuardada.odoDiff.toLocaleString('es-MX')} ({comparativaGuardada.odoPct > 0 ? '+' : ''}{comparativaGuardada.odoPct.toFixed(2)}%)
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {comparativaGuardada.fuelActual !== '' && (
+              <div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Nivel {comparativaGuardada.combustibleLabel}</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                    {comparativaGuardada.fuelActual}%
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {comparativaGuardada.fuelLitrosActual !== '' && (
+              <div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Litros Cargados ({comparativaGuardada.combustibleLabel})</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                    {comparativaGuardada.fuelLitrosActual} L
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!comparativaGuardada.isVagoneta && comparativaGuardada.adblueActual !== '' && (
+              <div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Nivel AdBlue</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                    {comparativaGuardada.adblueActual}%
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!comparativaGuardada.isVagoneta && comparativaGuardada.adblueLitrosActual !== '' && (
+              <div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Litros Cargados (AdBlue)</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                    {comparativaGuardada.adblueLitrosActual} L
+                  </span>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
