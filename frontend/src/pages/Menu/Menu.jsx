@@ -32,7 +32,7 @@ const menuItems = [
         <path d="M7 16h6" />
       </svg>
     ),
-    label: 'GENERAL',
+    label: 'MONITOR OPERATIVO',
     color: 'orange',
   },
   {
@@ -59,7 +59,7 @@ const menuItems = [
         <line x1="12" y1="3" x2="12" y2="15" />
       </svg>
     ),
-    label: 'CAPTURISTA',
+    label: 'PROGRAMACIÓN Y LOGÍSTICA',
     color: 'green',
   },
   {
@@ -74,7 +74,7 @@ const menuItems = [
         <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
       </svg>
     ),
-    label: 'RELEVOS',
+    label: 'RELEVOS DE T6',
     color: 'teal',
   },
   {
@@ -86,7 +86,7 @@ const menuItems = [
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
       </svg>
     ),
-    label: 'MANTENIMIENTO',
+    label: 'MANTENIMIENTO PARQUE VEHICULAR',
     color: 'brown',
   },
   {
@@ -100,7 +100,7 @@ const menuItems = [
         <circle cx="12" cy="12" r="2" />
       </svg>
     ),
-    label: 'CENTRO DE CONTROL',
+    label: 'MONITOREO DE LA OPERACIÓN',
     color: 'blue',
   },
   {
@@ -114,7 +114,7 @@ const menuItems = [
         <path d="M12 7v5l4 2" />
       </svg>
     ),
-    label: 'HISTORIAL',
+    label: 'HISTÓRICO DE LA OPERACIÓN',
     color: 'orange',
   },
   {
@@ -128,7 +128,7 @@ const menuItems = [
         <path d="M12 16h.01" />
       </svg>
     ),
-    label: 'TITÁN',
+    label: 'INSPECTORES DE OPERACIÓN',
     color: 'maroon',
   },
   {
@@ -158,7 +158,7 @@ const menuItems = [
         <line x1="12" y1="17" x2="12" y2="21"></line>
       </svg>
     ),
-    label: 'MESA DE CONTROL',   // antes 'PLATAFORMA DASHBOARD'
+    label: 'MESA DE CONTROL',
     color: 'blue',
   },
   // ========================================================
@@ -212,7 +212,7 @@ const menuItems = [
         <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" />
       </svg>
     ),
-    label: 'CARGA DE COMBUSTIBLE',
+    label: 'CONTROL DE COMBUSTIBLE',
     color: 'teal',
   }
 ];

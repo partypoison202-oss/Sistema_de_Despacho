@@ -334,6 +334,9 @@ class DespachoController extends Controller
                 'informacion_operativa.motivo_estatus',
                 'informacion_operativa.folio_mantenimiento',
                 'informacion_operativa.fecha_folio_mantenimiento',
+                'informacion_operativa.falla_reportada',
+                'informacion_operativa.diagnostico',
+                'informacion_operativa.firma_base64',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
@@ -423,7 +426,11 @@ class DespachoController extends Controller
                 'ciclo'     => $info->ciclo,
                 'motivo'    => $info->motivo,
                 'motivo_estatus' => $info->motivo_estatus,
-                'motivo_estatus' => $info->motivo_estatus,
+                'folio_mantenimiento' => $info->folio_mantenimiento,
+                'fecha_folio_mantenimiento' => $info->fecha_folio_mantenimiento,
+                'falla_reportada' => $info->falla_reportada,
+                'diagnostico' => $info->diagnostico,
+                'firma_base64' => $info->firma_base64,
                 'hora_programada' => $info->hora_programada,
                 'acople'    => $info->acople,
                 'hora_salida' => $info->hora_salida,
@@ -1229,11 +1236,11 @@ class DespachoController extends Controller
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
                 'informacion_operativa.motivo_estatus',
-<<<<<<< Updated upstream
                 'informacion_operativa.folio_mantenimiento',
                 'informacion_operativa.fecha_folio_mantenimiento',
-=======
->>>>>>> Stashed changes
+                'informacion_operativa.falla_reportada',
+                'informacion_operativa.diagnostico',
+                'informacion_operativa.firma_base64',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida'
@@ -1257,6 +1264,11 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
+                'FOLIO_MANTENIMIENTO' => $reg->folio_mantenimiento,
+                'FECHA_FOLIO_MANTENIMIENTO' => $reg->fecha_folio_mantenimiento,
+                'FALLA_REPORTADA' => $reg->falla_reportada,
+                'DIAGNOSTICO' => $reg->diagnostico,
+                'FIRMA_BASE64' => $reg->firma_base64,
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
@@ -1388,15 +1400,13 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_salida
-<<<<<<< Updated upstream
-=======
+
             ];
         });
 
         return response()->json($formateados, 200);
     }
 
-    public function obtenerDatosMananaDuplicado()
     public function obtenerDatosMananaDuplicado()
     {
         // Si la tabla de mañana está vacía, la inicializamos con la programación actual
@@ -1460,7 +1470,6 @@ class DespachoController extends Controller
     }
 
     public function obtenerDatosEspecificoDuplicado($dia)
-    public function obtenerDatosEspecificoDuplicado($dia)
     {
         if (!in_array($dia, ['sabado', 'domingo', 'lunes'])) {
             return response()->json(['error' => 'Día no válido'], 400);
@@ -1519,7 +1528,7 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_salida
->>>>>>> Stashed changes
+
             ];
         });
 
@@ -1656,12 +1665,24 @@ class DespachoController extends Controller
         if ($request->has('fecha_folio_mantenimiento')) {
             $updateData['fecha_folio_mantenimiento'] = $request->fecha_folio_mantenimiento;
         }
+        if ($request->has('falla_reportada')) {
+            $updateData['falla_reportada'] = $request->falla_reportada;
+        }
+        if ($request->has('diagnostico')) {
+            $updateData['diagnostico'] = $request->diagnostico;
+        }
+        if ($request->has('firma_base64')) {
+            $updateData['firma_base64'] = $request->firma_base64;
+        }
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') {
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;
             $updateData['corridas'] = null;
+            $updateData['ciclo'] = null;
+            $updateData['falla'] = null;
+            $updateData['motivo'] = null;
 
             if ($registroOperativo->numero_tarjeton) {
                 DB::table('conductores')
