@@ -1,5 +1,5 @@
 // src/pages/Mantenimiento/components/FuelInspection.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import FuelGaugeSelector from './FuelGaugeSelector';
@@ -8,17 +8,36 @@ import API_BASE from '../../../config/api';
 import { AuthContext } from '../../../context/AuthContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+const getLocalDateString = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
 const formatDate = (isoStr) => {
   if (!isoStr) return null;
-  const d = new Date(isoStr);
-  if (isNaN(d)) return null;
-  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  try {
+    const datePart = String(isoStr).split('T')[0].split(' ')[0]; // 'YYYY-MM-DD'
+    const [year, month, day] = datePart.split('-');
+    const d = new Date(year, month - 1, day, 12, 0, 0);
+    if (isNaN(d)) return null;
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch(e) {
+    return null;
+  }
 };
 
 const diasDesde = (fechaStr) => {
   if (!fechaStr) return null;
-  const msPerDay = 86400000;
-  return Math.floor((Date.now() - new Date(fechaStr)) / msPerDay);
+  try {
+    const datePart = String(fechaStr).split('T')[0].split(' ')[0];
+    const [year, month, day] = datePart.split('-');
+    const targetDate = new Date(year, month - 1, day, 12, 0, 0);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+    return Math.floor((today - targetDate) / 86400000);
+  } catch(e) {
+    return null;
+  }
 };
 
 const fuelToPercentage = (val) => {
@@ -208,7 +227,7 @@ function FuelBlock({
               textAlign: 'center',
               fontWeight: '600'
             }}
-            value={fechaValue ? formatDate(fechaValue) : formatDate(new Date().toISOString().split('T')[0])}
+            value={fechaValue ? formatDate(fechaValue) : formatDate(getLocalDateString())}
           />
         </div>
         {showDias && dias !== null && (
@@ -233,7 +252,7 @@ function FuelBlock({
 // ─── Componente principal ────────────────────────────────────────────────────
 export default function FuelInspection({ eco, tipoTransporte, token }) {
   const queryClient = useQueryClient();
-  const { user } = React.useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
   const isDiesel = ['urbanuss', 'zafiro', 'orion'].includes(
     tipoTransporte?.toLowerCase()
@@ -244,11 +263,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
   const [form, setForm] = useState({
     nivelGasolina: '',
     kilometrajeGasolina: '',
-    fechaUltimaCargaGasolina: new Date().toISOString().split('T')[0],
+    fechaUltimaCargaGasolina: getLocalDateString(),
     litrosGasolina: '',
     nivelAdblue: '',
     kilometrajeAdblue: '',
-    fechaUltimaCargaAdblue: new Date().toISOString().split('T')[0],
+    fechaUltimaCargaAdblue: getLocalDateString(),
     litrosAdblue: '',
     numeroCincho: '',
     numeroCinchoAdblue: '',
@@ -288,11 +307,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     const baseVacia = {
       nivelGasolina: '',
       kilometrajeGasolina: '',
-      fechaUltimaCargaGasolina: new Date().toISOString().split('T')[0],
+      fechaUltimaCargaGasolina: getLocalDateString(),
       litrosGasolina: '',
       nivelAdblue: '',
       kilometrajeAdblue: '',
-      fechaUltimaCargaAdblue: new Date().toISOString().split('T')[0],
+      fechaUltimaCargaAdblue: getLocalDateString(),
       litrosAdblue: '',
       numeroCincho: '',
       numeroCinchoAdblue: '',
@@ -431,9 +450,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
             kmActual: form.kilometrajeGasolina,
             kmDiff: kmDiff,
             kmPct: prevKm > 0 ? (kmDiff / prevKm) * 100 : 0,
+            prevKm: prevKm,
             odoActual: form.odometro,
             odoDiff: odoDiff,
             odoPct: prevOdo > 0 ? (odoDiff / prevOdo) * 100 : 0,
+            prevOdo: prevOdo,
             fuelActual: form.nivelGasolina,
             fuelCurrPct: fuelToPercentage(form.nivelGasolina),
             fuelDiff: fuelToPercentage(form.nivelGasolina) - fuelToPercentage(registroAnterior.nivel_combustible),
@@ -445,7 +466,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
             adblueLitrosActual: form.litrosAdblue,
             adblueLitrosDiff: getDiff(form.litrosAdblue, registroAnterior.litros_adblue),
             isVagoneta: tipoTransporte?.toLowerCase() === 'vagoneta',
-            combustibleLabel: combustibleLabel
+            combustibleLabel: combustibleLabel,
+            prevLitrosGas: registroAnterior.litros_combustible || 0,
+            prevLitrosAdblue: registroAnterior.litros_adblue || 0,
+            prevNivelGas: registroAnterior.nivel_combustible,
+            prevNivelAdblue: registroAnterior.nivel_adblue
           });
         } else {
            setComparativaGuardada(null);
@@ -503,7 +528,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           litros_adblue: null,
           numero_cincho: registroAnterior?.numero_cincho || null,
           numero_cincho_adblue: registroAnterior?.numero_cincho_adblue || null,
-          fecha_ultima_carga: new Date().toISOString().split('T')[0]
+          fecha_ultima_carga: getLocalDateString()
         };
 
         const response = await fetch(`${API_BASE}/api/mantenimiento/guardar`, {
@@ -784,85 +809,103 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
 
       {/* ── Comparativa Guardada (se muestra solo después de guardar) ── */}
       {comparativaGuardada && (
-        <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#ecfdf5', borderRadius: '0.75rem', border: '1px solid #10b981' }}>
-          <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#065f46', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            Resumen de Diferencias
+        <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#fafafa', borderRadius: '0.75rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#6b1d33', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+            Resumen de Carga (Comparativa)
           </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
             
             {comparativaGuardada.kmActual !== '' && (
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Kilometraje</span>
+              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Kilometraje</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
-                    {Number(comparativaGuardada.kmActual).toLocaleString('es-MX')}
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
+                    {Number(comparativaGuardada.kmActual).toLocaleString('es-MX')} km
                   </span>
                   {comparativaGuardada.kmDiff !== 0 && (
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.kmDiff >= 0 ? '#10b981' : '#ef4444' }}>
-                      {comparativaGuardada.kmDiff > 0 ? '+' : ''}{comparativaGuardada.kmDiff.toLocaleString('es-MX')} km ({comparativaGuardada.kmPct > 0 ? '+' : ''}{comparativaGuardada.kmPct.toFixed(2)}%)
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.kmDiff >= 0 ? '#c5a059' : '#ef4444' }}>
+                      {comparativaGuardada.kmDiff > 0 ? '+' : ''}{comparativaGuardada.kmDiff.toLocaleString('es-MX')} km
                     </span>
                   )}
                 </div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Antes: {comparativaGuardada.prevKm.toLocaleString('es-MX')} km
+                </span>
               </div>
             )}
 
             {!comparativaGuardada.isVagoneta && comparativaGuardada.odoActual !== '' && (
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Odómetro</span>
+              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Odómetro</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
                     {Number(comparativaGuardada.odoActual).toLocaleString('es-MX')}
                   </span>
                   {comparativaGuardada.odoDiff !== 0 && (
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.odoDiff >= 0 ? '#10b981' : '#ef4444' }}>
-                      {comparativaGuardada.odoDiff > 0 ? '+' : ''}{comparativaGuardada.odoDiff.toLocaleString('es-MX')} ({comparativaGuardada.odoPct > 0 ? '+' : ''}{comparativaGuardada.odoPct.toFixed(2)}%)
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.odoDiff >= 0 ? '#c5a059' : '#ef4444' }}>
+                      {comparativaGuardada.odoDiff > 0 ? '+' : ''}{comparativaGuardada.odoDiff.toLocaleString('es-MX')}
                     </span>
                   )}
                 </div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Antes: {comparativaGuardada.prevOdo.toLocaleString('es-MX')}
+                </span>
               </div>
             )}
 
             {comparativaGuardada.fuelActual !== '' && (
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Nivel {comparativaGuardada.combustibleLabel}</span>
+              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Nivel {comparativaGuardada.combustibleLabel}</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
-                    {comparativaGuardada.fuelActual}%
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
+                    {comparativaGuardada.fuelActual} <span style={{ fontSize: '0.85rem', color: '#6b1d33' }}>({comparativaGuardada.fuelCurrPct}%)</span>
                   </span>
                 </div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Antes: {comparativaGuardada.prevNivelGas || '-'} {comparativaGuardada.prevNivelGas ? `(${fuelToPercentage(comparativaGuardada.prevNivelGas)}%)` : ''}
+                </span>
               </div>
             )}
 
             {comparativaGuardada.fuelLitrosActual !== '' && (
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Litros Cargados ({comparativaGuardada.combustibleLabel})</span>
+              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Litros Cargados ({comparativaGuardada.combustibleLabel})</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
                     {comparativaGuardada.fuelLitrosActual} L
                   </span>
                 </div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Antes: {comparativaGuardada.prevLitrosGas || 0} L
+                </span>
               </div>
             )}
 
             {!comparativaGuardada.isVagoneta && comparativaGuardada.adblueActual !== '' && (
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Nivel AdBlue</span>
+              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Nivel AdBlue</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
-                    {comparativaGuardada.adblueActual}%
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
+                    {comparativaGuardada.adblueActual} <span style={{ fontSize: '0.85rem', color: '#3b82f6' }}>({comparativaGuardada.adblueCurrPct}%)</span>
                   </span>
                 </div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Antes: {comparativaGuardada.prevNivelAdblue || '-'} {comparativaGuardada.prevNivelAdblue ? `(${fuelToPercentage(comparativaGuardada.prevNivelAdblue)}%)` : ''}
+                </span>
               </div>
             )}
 
             {!comparativaGuardada.isVagoneta && comparativaGuardada.adblueLitrosActual !== '' && (
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>Litros Cargados (AdBlue)</span>
+              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Litros Cargados (AdBlue)</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#064e3b' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
                     {comparativaGuardada.adblueLitrosActual} L
                   </span>
                 </div>
+                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
+                  Antes: {comparativaGuardada.prevLitrosAdblue || 0} L
+                </span>
               </div>
             )}
 

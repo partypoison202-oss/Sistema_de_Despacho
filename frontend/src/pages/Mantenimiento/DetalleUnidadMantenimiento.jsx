@@ -516,11 +516,12 @@ export default function DetalleUnidadMantenimiento() {
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;
 
-    if (datosOperativos.estatus === nuevoEstatus) {
+    const esMismoEstatus = datosOperativos.estatus === nuevoEstatus;
+
+    // Si es el mismo estatus, SOLO permitimos si es 'mantenimiento' para actualizar el motivo o folio
+    if (esMismoEstatus && nuevoEstatus !== 'mantenimiento') {
       return;
     }
-
-    const esMismoEstatus = false;
 
     let payloadUpdate = {
       numero_eco: null,
@@ -573,13 +574,22 @@ export default function DetalleUnidadMantenimiento() {
         swalOptions.html = `
           <div style="text-align: left; margin-top: 0.5rem;">
             <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
-              Asignar folio de Mantenimiento:
+              Asignar incidencia de Mantenimiento:
             </label>
             <input type="text" id="swal-folio-input" class="swal2-input" placeholder="ESCRIBE EL FOLIO..." style="width: 100%; margin: 0; border-radius: 8px; font-size: 0.88rem; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+            
+            ${!esMismoEstatus ? `
+            <label style="display: flex; align-items: center; gap: 8px; margin-top: 15px; cursor: pointer; padding: 10px; background: #f3f4f6; border-radius: 8px;">
+              <input type="checkbox" id="swal-incidencia-menor" style="width: 18px; height: 18px; cursor: pointer; accent-color: #6b1d33;">
+              <span style="font-size: 0.88rem; font-weight: 600; color: #374151; line-height: 1.2;">Incidencia menor<br><span style="font-size: 0.75rem; color: #6b7280; font-weight: 400;">La unidad conservará su operador y ruta, y continuará en operación.</span></span>
+            </label>
+            ` : ''}
           </div>
         `;
         swalOptions.preConfirm = () => {
           const folio = document.getElementById('swal-folio-input').value.trim();
+          const checkbox = document.getElementById('swal-incidencia-menor');
+          const incidenciaMenor = checkbox ? checkbox.checked : false;
           if (!folio) {
             Swal.showValidationMessage('Por favor ingresa el folio.');
             return false;
@@ -587,7 +597,8 @@ export default function DetalleUnidadMantenimiento() {
           return {
             motivo: 'MANTENIMIENTO',
             folio_mantenimiento: folio,
-            fecha_folio_mantenimiento: new Date().toISOString()
+            fecha_folio_mantenimiento: new Date().toISOString(),
+            incidenciaMenor: incidenciaMenor
           };
         };
       } else {
@@ -754,6 +765,14 @@ export default function DetalleUnidadMantenimiento() {
         motivoCapturado = confirmacion.value.motivo;
         folioMantenimiento = confirmacion.value.folio_mantenimiento;
         fechaFolioMantenimiento = confirmacion.value.fecha_folio_mantenimiento;
+        
+        // Si es incidencia menor, mantenemos el estatus como operacion y conservamos el conductor
+        if (confirmacion.value.incidenciaMenor) {
+          payloadUpdate.estatus = 'operacion';
+          payloadUpdate.nombre_conductor = datosOperativos.conductor;
+          payloadUpdate.numero_tarjeton = datosOperativos.tarjeton;
+          payloadUpdate.ruta = datosOperativos.ruta;
+        }
       } else {
         motivoCapturado = confirmacion.value || null;
       }

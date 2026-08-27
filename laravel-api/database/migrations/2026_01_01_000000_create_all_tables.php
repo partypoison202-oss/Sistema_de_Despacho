@@ -316,6 +316,8 @@ return new class extends Migration
                 $table->string('cambio_desde', 50)->nullable();
                 $table->string('cambio_motivo', 200)->nullable();
                 $table->string('motivo_estatus', 200)->nullable();
+                $table->string('folio_mantenimiento', 50)->nullable();
+                $table->date('fecha_folio_mantenimiento')->nullable();
                 $table->text('observaciones')->nullable();
                 $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
                 $table->string('nombre_maniobrista', 200)->nullable()->default('');
@@ -335,6 +337,8 @@ return new class extends Migration
                 'cambio_desde'         => fn($t) => $t->string('cambio_desde', 50)->nullable(),
                 'cambio_motivo'        => fn($t) => $t->string('cambio_motivo', 200)->nullable(),
                 'motivo_estatus'       => fn($t) => $t->string('motivo_estatus', 200)->nullable(),
+                'folio_mantenimiento'  => fn($t) => $t->string('folio_mantenimiento', 50)->nullable(),
+                'fecha_folio_mantenimiento' => fn($t) => $t->date('fecha_folio_mantenimiento')->nullable(),
                 'observaciones'        => fn($t) => $t->text('observaciones')->nullable(),
                 'tarjeton_maniobrista' => fn($t) => $t->string('tarjeton_maniobrista', 50)->nullable()->default(''),
                 'nombre_maniobrista'   => fn($t) => $t->string('nombre_maniobrista', 200)->nullable()->default(''),
@@ -365,6 +369,8 @@ return new class extends Migration
                 $table->string('cambio_desde', 50)->nullable();
                 $table->string('cambio_motivo', 200)->nullable();
                 $table->string('motivo_estatus', 200)->nullable();
+                $table->string('folio_mantenimiento', 50)->nullable();
+                $table->date('fecha_folio_mantenimiento')->nullable();
                 $table->text('observaciones')->nullable();
                 $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
                 $table->string('nombre_maniobrista', 200)->nullable()->default('');
@@ -384,6 +390,8 @@ return new class extends Migration
                 'cambio_desde'         => fn($t) => $t->string('cambio_desde', 50)->nullable(),
                 'cambio_motivo'        => fn($t) => $t->string('cambio_motivo', 200)->nullable(),
                 'motivo_estatus'       => fn($t) => $t->string('motivo_estatus', 200)->nullable(),
+                'folio_mantenimiento'  => fn($t) => $t->string('folio_mantenimiento', 50)->nullable(),
+                'fecha_folio_mantenimiento' => fn($t) => $t->date('fecha_folio_mantenimiento')->nullable(),
                 'observaciones'        => fn($t) => $t->text('observaciones')->nullable(),
                 'tarjeton_maniobrista' => fn($t) => $t->string('tarjeton_maniobrista', 50)->nullable()->default(''),
                 'nombre_maniobrista'   => fn($t) => $t->string('nombre_maniobrista', 200)->nullable()->default(''),
@@ -417,6 +425,8 @@ return new class extends Migration
                     $table->string('cambio_desde', 50)->nullable();
                     $table->string('cambio_motivo', 200)->nullable();
                     $table->string('motivo_estatus', 200)->nullable();
+                    $table->string('folio_mantenimiento', 50)->nullable();
+                    $table->date('fecha_folio_mantenimiento')->nullable();
                     $table->text('observaciones')->nullable();
                     $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
                     $table->string('nombre_maniobrista', 200)->nullable()->default('');
@@ -436,6 +446,8 @@ return new class extends Migration
                     'cambio_desde'         => fn($t) => $t->string('cambio_desde', 50)->nullable(),
                     'cambio_motivo'        => fn($t) => $t->string('cambio_motivo', 200)->nullable(),
                     'motivo_estatus'       => fn($t) => $t->string('motivo_estatus', 200)->nullable(),
+                    'folio_mantenimiento'  => fn($t) => $t->string('folio_mantenimiento', 50)->nullable(),
+                    'fecha_folio_mantenimiento' => fn($t) => $t->date('fecha_folio_mantenimiento')->nullable(),
                     'observaciones'        => fn($t) => $t->text('observaciones')->nullable(),
                     'tarjeton_maniobrista' => fn($t) => $t->string('tarjeton_maniobrista', 50)->nullable()->default(''),
                     'nombre_maniobrista'   => fn($t) => $t->string('nombre_maniobrista', 200)->nullable()->default(''),
