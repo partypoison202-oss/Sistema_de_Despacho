@@ -1550,13 +1550,13 @@ class DespachoController extends Controller
         }
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') {
-            $updateData['nombre_conductor'] = '';
-            $updateData['numero_tarjeton'] = '';
-            $updateData['ruta'] = '';
-            $updateData['corridas'] = '';
-            $updateData['ciclo'] = '';
-            $updateData['falla'] = '';
-            $updateData['motivo'] = '';
+            $updateData['nombre_conductor'] = null;
+            $updateData['numero_tarjeton'] = null;
+            $updateData['ruta'] = null;
+            $updateData['corridas'] = null;
+            $updateData['ciclo'] = null;
+            $updateData['falla'] = null;
+            $updateData['motivo'] = null;
 
             if ($registroOperativo->numero_tarjeton) {
                 DB::table('conductores')
