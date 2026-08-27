@@ -110,6 +110,7 @@ const handleNext = () => {
   const isFormValid = () => {
     return (
       String(formData.falla_reportada || '').trim() !== '' &&
+      String(formData.km || '').trim() !== '' &&
       formData.firma_base64 !== ''
     );
   };
@@ -257,8 +258,8 @@ const handleNext = () => {
               <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]" placeholder="Ej. 2" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM</label>
-              <input type="text" name="km" value={formData.km} onChange={handleInputChange} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]" placeholder="Ej. 1488" />
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM <span className="text-red-500">*</span></label>
+              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]" placeholder="Ej. 1488" />
             </div>
           </div>
 

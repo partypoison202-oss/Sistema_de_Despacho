@@ -1013,49 +1013,20 @@ export default function DetalleUnidadMantenimiento() {
                       <div className="dashboard-header-card__eyebrow">{configActual.title}</div>
                       <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
                       <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {datosOperativos.horaDespacho ? (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '9999px',
-                            backgroundColor: '#ecfdf5',
-                            color: '#166534',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                          }}>
-                            <span>Despacho realizado</span>
-                            <span style={{ color: '#14532d', fontWeight: 600 }}>
-                              ({datosOperativos.horaDespacho})
-                            </span>
-                          </span>
-                        ) : (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '9999px',
-                            backgroundColor: '#f8fafc',
-                            color: '#475569',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                          }}>
-                            <span>Despacho pendiente</span>
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
 
                    {(datosOperativos.estatus === 'mantenimiento' || datosOperativos.estatus === 'MANTENIMIENTO') && (
-                    <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                       <div style={{ fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Folio Asignado</div>
-                       <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
+                    <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: '2px' }}>
+                       <div style={{ fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '-2px' }}>Folio Asignado</div>
+                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.1' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
                        {datosOperativos.fecha_folio_mantenimiento && (
-                         <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '2px' }}>
-                           {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleDateString('es-MX')}
+                         <div style={{ fontSize: '0.8rem', opacity: 0.85, fontWeight: 500 }}>
+                           {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleString('es-MX', { 
+                             day: '2-digit', month: '2-digit', year: 'numeric', 
+                             hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+                           })}
                          </div>
                        )}
                         <button
