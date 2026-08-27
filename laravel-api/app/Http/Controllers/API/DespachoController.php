@@ -1528,10 +1528,7 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_salida
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
             ];
         });
 
