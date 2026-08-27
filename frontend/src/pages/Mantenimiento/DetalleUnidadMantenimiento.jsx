@@ -12,6 +12,7 @@ import ChecklistForm from '../CheckList/CheckList';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import CONDUCTORES from '../../data/conductores';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
+import MaintenanceReportWizard from '../../components/Mantenimiento/MaintenanceReportWizard';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -98,6 +99,7 @@ export default function DetalleUnidadMantenimiento() {
   const [modalEstatusRuta, setModalEstatusRuta] = useState('');
   const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
   const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
+  const [isMaintenanceWizardOpen, setIsMaintenanceWizardOpen] = useState(false);
   const [rutasOpciones, setRutasOpciones] = useState([]);
 
   const modalConductorRef = useRef(null);
@@ -552,6 +554,11 @@ export default function DetalleUnidadMantenimiento() {
 
     if (requiereMotivo) {
       // Configurar el Swal para seleccionar motivo (el mismo código existente)
+
+      if (nuevoEstatus === 'mantenimiento') {
+        setIsMaintenanceWizardOpen(true);
+        return; // Salimos, el Wizard se encargará de hacer la petición al guardar
+      } else {
       const motivosPredefinidos = [
         'FALTA DE OPERADOR',
         'MANTENIMIENTO',
@@ -1040,6 +1047,39 @@ export default function DetalleUnidadMantenimiento() {
                       </div>
                     </div>
                   </div>
+
+                   {(datosOperativos.estatus === 'mantenimiento' || datosOperativos.estatus === 'MANTENIMIENTO') && (
+                    <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                       <div style={{ fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Folio Asignado</div>
+                       <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
+                       {datosOperativos.fecha_folio_mantenimiento && (
+                         <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '2px' }}>
+                           {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleDateString('es-MX')}
+                         </div>
+                       )}
+                        <button
+                          onClick={() => setIsMaintenanceWizardOpen(true)}
+                          style={{
+                            background: 'rgba(255,255,255,0.2)',
+                            border: '1px solid rgba(255,255,255,0.4)',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            marginTop: '8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                          </svg>
+                          Editar / Imprimir Orden
+                        </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="detalle-dashboard-grid">
@@ -1880,6 +1920,114 @@ export default function DetalleUnidadMantenimiento() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* === MODAL/WIZARD DE REPORTE DE FALLA === */}
+      {isMaintenanceWizardOpen && (
+        <MaintenanceReportWizard 
+          isOpen={isMaintenanceWizardOpen}
+          onClose={() => setIsMaintenanceWizardOpen(false)}
+          initialStep={(datosOperativos.estatus || '').toLowerCase() === 'mantenimiento' ? 2 : 1}
+          initialData={{
+            numero_eco: selectedOption ? String(selectedOption.replace(/\D/g, '')).padStart(3, '0') : '',
+            tipoTransporte: configActual.id,
+            folio_mantenimiento: datosOperativos.folio_mantenimiento || '',
+            fecha_folio_mantenimiento: datosOperativos.fecha_folio_mantenimiento || '',
+            conductorNombre: (() => {
+              const cond = (datosOperativos.conductor || '').trim();
+              if (cond && cond !== 'Sin asignar' && cond !== 'NO ASIGNADO' && cond !== 'Desconocido') return cond;
+              return '';
+            })(),
+            tarjeton: datosOperativos.tarjeton || '',
+            corrida: datosOperativos.corrida || '',
+            servicio: (() => {
+              let r = datosOperativos.ruta || '';
+              if (r === 'Sin ruta') r = '';
+              if (configActual.id === 'URBANUSS') {
+                if (r.includes('T-01')) return 'T01';
+                if (r.includes('T-02')) return 'T02';
+                if (r.includes('T-04')) return 'T04';
+                if (r.includes('T-05')) return 'T05';
+                if (r.includes('ESPECIAL')) return 'SE';
+                if (r.includes('METROPOLITANO')) return 'TM';
+                if (r.includes('POTENCIA')) return 'HP';
+                if (r.includes('MOVILIDAD')) return 'TLM';
+              }
+              return r;
+            })(),
+            falla_reportada: datosOperativos.falla_reportada || '',
+            diagnostico: datosOperativos.diagnostico || '',
+            firma_base64: datosOperativos.firma_base64 || '',
+            km: datosOperativos.kilometraje || ''
+          }}
+          onSuccess={async (data) => {
+            try {
+              setCambiandoEstatus(true);
+              const token = localStorage.getItem('token');
+              // Extraer solo los dígitos del ECO seleccionado (ej: "ECO023" -> "023")
+              const ecoLimpio = String(selectedOption ?? '').trim().toUpperCase().match(/\d+/)?.[0]?.padStart(3, '0') ?? selectedOption;
+              const url = `${API_BASE}/api/unidades/cambiar-estatus`;
+              
+              const payload = {
+                numero_eco: ecoLimpio,
+                tipo: tipoTransporte,
+                estatus: 'mantenimiento',
+                motivo_estatus: data.motivo,
+                folio_mantenimiento: data.folio_mantenimiento,
+                fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
+                falla_reportada: data.falla_reportada,
+                diagnostico: data.diagnostico,
+                firma_base64: data.firma_base64
+              };
+
+              const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+              });
+
+              if (!response.ok) {
+                const resData = await response.json().catch(() => ({}));
+                throw new Error(resData.message || 'Error al cambiar estatus');
+              }
+
+              // Refrescar estado local
+              setDatosOperativos(prev => ({
+                ...prev,
+                estatus: 'mantenimiento',
+                motivo_estatus: data.motivo,
+                folio_mantenimiento: data.folio_mantenimiento,
+                fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
+                falla_reportada: data.falla_reportada,
+                diagnostico: data.diagnostico,
+                firma_base64: data.firma_base64
+              }));
+
+              setSelectedEstado('mantenimiento');
+
+              // Invalidar query
+              queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+
+              Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: 'Reporte generado y guardado.',
+                timer: 1500,
+                showConfirmButton: false
+              });
+              
+              return Promise.resolve();
+            } catch (error) {
+              // El wizard mostrará el error de forma inline (sin Swal que queda detrás del modal)
+              throw error;
+            } finally {
+              setCambiandoEstatus(false);
+            }
+          }}
+        />
       )}
     </div>
   );

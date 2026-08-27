@@ -332,6 +332,12 @@ class DespachoController extends Controller
                 'informacion_operativa.ciclo',
                 'informacion_operativa.motivo',
                 'informacion_operativa.motivo_estatus',
+
+                'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.fecha_folio_mantenimiento',
+                'informacion_operativa.falla_reportada',
+                'informacion_operativa.diagnostico',
+                'informacion_operativa.firma_base64',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
@@ -421,14 +427,15 @@ class DespachoController extends Controller
                 'ciclo'     => $info->ciclo,
                 'motivo'    => $info->motivo,
                 'motivo_estatus' => $info->motivo_estatus,
-                'motivo_estatus' => $info->motivo_estatus,
+                'folio_mantenimiento' => $info->folio_mantenimiento ?? null,
+                'fecha_folio_mantenimiento' => $info->fecha_folio_mantenimiento ?? null,
+                'falla_reportada' => $info->falla_reportada ?? null,
+                'diagnostico' => $info->diagnostico ?? null,
+                'firma_base64' => $info->firma_base64 ?? null,
                 'hora_programada' => $info->hora_programada,
                 'acople'    => $info->acople,
                 'hora_salida' => $info->hora_salida,
                 'observaciones' => $info->observaciones,
-                // Nuevos campos de mantenimiento
-                'observaciones' => $info->observaciones,
-                // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -445,12 +452,14 @@ class DespachoController extends Controller
                 'ciclo'     => null,
                 'motivo'    => null,
                 'motivo_estatus' => null,
-                'motivo_estatus' => null,
+                'folio_mantenimiento' => null,
+                'fecha_folio_mantenimiento' => null,
+                'falla_reportada' => null,
+                'diagnostico' => null,
+                'firma_base64' => null,
                 'hora_programada' => null,
                 'acople'    => null,
                 'hora_salida' => null,
-                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
-                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
                 'numero_cincho'      => $unidadBase->numero_cincho ?? null,
@@ -1021,6 +1030,23 @@ class DespachoController extends Controller
             'estatus' => $nuevoEstatus,
             'motivo_estatus' => $motivoEstatus
         ];
+
+
+        if ($request->has('folio_mantenimiento')) {
+            $updateData['folio_mantenimiento'] = $request->folio_mantenimiento;
+        }
+        if ($request->has('fecha_folio_mantenimiento')) {
+            $updateData['fecha_folio_mantenimiento'] = $request->fecha_folio_mantenimiento;
+        }
+        if ($request->has('falla_reportada')) {
+            $updateData['falla_reportada'] = $request->falla_reportada;
+        }
+        if ($request->has('diagnostico')) {
+            $updateData['diagnostico'] = $request->diagnostico;
+        }
+        if ($request->has('firma_base64')) {
+            $updateData['firma_base64'] = $request->firma_base64;
+        }
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') {
             $updateData['nombre_conductor'] = null;
