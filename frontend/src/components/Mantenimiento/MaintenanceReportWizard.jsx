@@ -6,7 +6,7 @@ import PrintableMaintenanceOrder from './PrintableMaintenanceOrder';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1 }) {
+export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1, printOnly = false }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -65,6 +65,20 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       hasInitialized.current = false;
     }
   }, [isOpen, initialData, initialStep]);
+
+  // Si printOnly es true, generar PDF automáticamente después de inicializar
+  useEffect(() => {
+    if (isOpen && printOnly && hasInitialized.current && !loading) {
+      const autoPrint = async () => {
+        setLoading(true);
+        await handleGeneratePDF();
+        setLoading(false);
+        onClose();
+      };
+      // Pequeño timeout para permitir que el DOM se pinte completamente
+      setTimeout(autoPrint, 300);
+    }
+  }, [isOpen, printOnly]);
 
   // Reloj en tiempo real parpadeante
   useEffect(() => {
@@ -327,6 +341,20 @@ const handleNext = () => {
       </div>
     </div>
   );
+
+  if (printOnly) {
+    return createPortal(
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-4"></div>
+        <p className="text-white text-lg font-semibold animate-pulse">Generando e imprimiendo Orden de Mantenimiento...</p>
+        {/* Contenedor Oculto para la plantilla PDF */}
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
+          <PrintableMaintenanceOrder ref={printableRef} data={{...formData, folio}} />
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
