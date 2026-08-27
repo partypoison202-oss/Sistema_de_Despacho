@@ -576,9 +576,6 @@ class DespachoController extends Controller
                 'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
-                'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
-                'acople'               => $acopleVal === '' ? null : $acopleVal,
-                'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
             ];
@@ -1403,6 +1400,135 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_salida
+
+            ];
+        });
+
+        return response()->json($formateados, 200);
+    }
+
+    public function obtenerDatosMananaDuplicado()
+    {
+        // Si la tabla de mañana está vacía, la inicializamos con la programación actual
+        if (DB::table('informacion_operativa_manana')->count() === 0) {
+            $hoy = DB::table('informacion_operativa')->get();
+            foreach ($hoy as $row) {
+                unset($row->id);
+                // Limpiar campos que son exclusivos del transcurso del día si se desea, 
+                // o dejar tal cual para que el usuario parta de la misma plantilla.
+                DB::table('informacion_operativa_manana')->insert((array)$row);
+            }
+        }
+
+        $registros = DB::table('informacion_operativa_manana')
+            ->join('unidades', 'informacion_operativa_manana.unidad_id', '=', 'unidades.id')
+            ->select(
+                'unidades.numero_eco',
+                'informacion_operativa_manana.tipo',
+                'informacion_operativa_manana.ruta',
+                'informacion_operativa_manana.numero_tarjeton as tarjeton',
+                'informacion_operativa_manana.nombre_conductor',
+                'informacion_operativa_manana.tarjeton_maniobrista',
+                'informacion_operativa_manana.nombre_maniobrista',
+                'informacion_operativa_manana.estatus',
+                'informacion_operativa_manana.falla',
+                'informacion_operativa_manana.corridas',
+                'informacion_operativa_manana.ciclo',
+                'informacion_operativa_manana.motivo',
+                'informacion_operativa_manana.motivo_estatus',
+                'informacion_operativa_manana.hora_programada',
+                'informacion_operativa_manana.acople',
+                'informacion_operativa_manana.hora_salida'
+            )
+            ->orderBy('informacion_operativa_manana.tipo')
+            ->orderBy('unidades.numero_eco')
+            ->get();
+
+        $formateados = $registros->map(function ($reg) {
+            return [
+                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'RUTA' => $reg->ruta,
+                'ECONOMICO' => $reg->numero_eco,
+                'TARJETON' => $reg->tarjeton,
+                'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
+                'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
+                'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
+                'ESTATUS' => $reg->estatus,
+                'FALLA' => $reg->falla,
+                'CORRIDAS' => $reg->corridas,
+                'CICLO' => $reg->ciclo,
+                'MOTIVO' => $reg->motivo,
+                'MOTIVO_ESTATUS' => $reg->motivo_estatus,
+                'HORA_DE_ACOPLE' => $reg->hora_programada,
+                'HORA_PROGRAMADA' => $reg->hora_programada,
+                'ACOPLE' => $reg->acople,
+                'HORA_SALIDA' => $reg->hora_salida
+            ];
+        });
+
+        return response()->json($formateados, 200);
+    }
+
+    public function obtenerDatosEspecificoDuplicado($dia)
+    {
+        if (!in_array($dia, ['sabado', 'domingo', 'lunes'])) {
+            return response()->json(['error' => 'Día no válido'], 400);
+        }
+        $tableName = 'informacion_operativa_' . $dia;
+
+        // Inicializamos con la programación actual si está vacía
+        if (DB::table($tableName)->count() === 0) {
+            $hoy = DB::table('informacion_operativa')->get();
+            foreach ($hoy as $row) {
+                unset($row->id);
+                DB::table($tableName)->insert((array)$row);
+            }
+        }
+
+        $registros = DB::table($tableName)
+            ->join('unidades', "{$tableName}.unidad_id", '=', 'unidades.id')
+            ->select(
+                'unidades.numero_eco',
+                "{$tableName}.tipo",
+                "{$tableName}.ruta",
+                "{$tableName}.numero_tarjeton as tarjeton",
+                "{$tableName}.nombre_conductor",
+                "{$tableName}.tarjeton_maniobrista",
+                "{$tableName}.nombre_maniobrista",
+                "{$tableName}.estatus",
+                "{$tableName}.falla",
+                "{$tableName}.corridas",
+                "{$tableName}.ciclo",
+                "{$tableName}.motivo",
+                "{$tableName}.motivo_estatus",
+                "{$tableName}.hora_programada",
+                "{$tableName}.acople",
+                "{$tableName}.hora_salida"
+            )
+            ->orderBy("{$tableName}.tipo")
+            ->orderBy('unidades.numero_eco')
+            ->get();
+
+        $formateados = $registros->map(function ($reg) {
+            return [
+                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'RUTA' => $reg->ruta,
+                'ECONOMICO' => $reg->numero_eco,
+                'TARJETON' => $reg->tarjeton,
+                'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
+                'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
+                'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
+                'ESTATUS' => $reg->estatus,
+                'FALLA' => $reg->falla,
+                'CORRIDAS' => $reg->corridas,
+                'CICLO' => $reg->ciclo,
+                'MOTIVO' => $reg->motivo,
+                'MOTIVO_ESTATUS' => $reg->motivo_estatus,
+                'HORA_DE_ACOPLE' => $reg->hora_programada,
+                'HORA_PROGRAMADA' => $reg->hora_programada,
+                'ACOPLE' => $reg->acople,
+                'HORA_SALIDA' => $reg->hora_salida
+
             ];
         });
 
@@ -2012,5 +2138,217 @@ class DespachoController extends Controller
             });
 
         return response()->json($unidades, 200);
+    }
+
+    /**
+     * Genera las estadísticas diarias de combustible por tipo de unidad.
+     */
+    public function reporteCombustibleDiario(Request $request)
+    {
+        try {
+            $today = \Carbon\Carbon::today()->toDateString();
+            $unidades = DB::table('unidades')->get();
+            $informacion = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
+            $transportes = DB::table('transportes')->get()->keyBy('id');
+
+            $reporte = [];
+            $tipos = ['urbanuss', 'zafiro', 'urvan', 'orion'];
+
+            foreach ($tipos as $tipo) {
+                $unidadesTipo = $unidades->filter(function($u) use ($tipo, $transportes) {
+                    $transporte = $transportes->get($u->transporte_id);
+                    $nombreTrans = $transporte ? strtolower(trim($transporte->nombre)) : '';
+                    if ($tipo === 'urvan' && $nombreTrans === 'vagoneta') return true;
+                    return $nombreTrans === $tipo;
+                });
+
+                $parque = $unidadesTipo->count();
+                
+                $unidadesCargaron = $unidadesTipo->filter(function($u) use ($today) {
+                    $fecha = $u->fecha_ultima_carga ?? '';
+                    return str_starts_with($fecha, $today) && floatval($u->litros_combustible) > 0;
+                });
+                
+                $cargaronCount = $unidadesCargaron->count();
+                $sinCargarCount = $parque - $cargaronCount;
+                $litrosTotal = $unidadesCargaron->sum('litros_combustible');
+                
+                $porcentaje = $parque > 0 ? round(($cargaronCount / $parque) * 100) : 0;
+                
+                $motivo = '';
+                $obs = '';
+                
+                if ($sinCargarCount > 0) {
+                    $unidadesSinCargar = $unidadesTipo->filter(function($u) use ($today) {
+                        $fecha = $u->fecha_ultima_carga ?? '';
+                        return !(str_starts_with($fecha, $today) && floatval($u->litros_combustible) > 0);
+                    });
+                    
+                    $estatusCounts = [];
+                    foreach($unidadesSinCargar as $u) {
+                        $info = $informacion->get($u->id);
+                        $est = $info ? strtolower(trim($info->estatus)) : 'operacion';
+                        if(!isset($estatusCounts[$est])) $estatusCounts[$est] = 0;
+                        $estatusCounts[$est]++;
+                    }
+                    
+                    arsort($estatusCounts);
+                    $primaryEstatus = key($estatusCounts);
+                    $countEstatus = current($estatusCounts);
+                    
+                    if ($primaryEstatus === 'reserva') {
+                        $motivo = 'Combustible suficiente';
+                        $obs = "UNIDADES RESERVA";
+                    } elseif (in_array($primaryEstatus, ['mantenimiento', 'taller', 'baja'])) {
+                        $motivo = 'Fuera de operación';
+                        $obs = "$countEstatus UNIDADES FUERA DE OPERACIÓN";
+                    } else {
+                        $motivo = 'Combustible suficiente';
+                        $obs = "COMBUSTIBLE SUFICIENTE";
+                    }
+                }
+                
+                $combustibleStr = in_array($tipo, ['urbanuss', 'zafiro', 'orion']) ? 'Diésel' : 'Gasolina';
+                $nombreDisplay = ucfirst($tipo);
+                if ($nombreDisplay === 'Urbanuss') $nombreDisplay = 'Urbanus';
+                if ($nombreDisplay === 'Orion') $nombreDisplay = 'Orión';
+
+                $reporte[] = [
+                    'tipo_unidad' => $nombreDisplay,
+                    'combustible' => $combustibleStr,
+                    'parque' => $parque,
+                    'litros_cargados' => $litrosTotal,
+                    'unidades_cargaron' => $cargaronCount,
+                    'unidades_sin_cargar' => $sinCargarCount,
+                    'porcentaje' => $porcentaje,
+                    'motivo_no_carga' => $motivo,
+                    'observaciones' => $obs,
+                    'raw_tipo' => $tipo
+                ];
+            }
+
+            $totales = [
+                'litros_totales' => collect($reporte)->sum('litros_cargados'),
+                'unidades_cargaron' => collect($reporte)->sum('unidades_cargaron'),
+                'unidades_sin_cargar' => collect($reporte)->sum('unidades_sin_cargar'),
+            ];
+            $parqueTotal = collect($reporte)->sum('parque');
+            $totales['porcentaje'] = $parqueTotal > 0 ? round(($totales['unidades_cargaron'] / $parqueTotal) * 100) : 0;
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $reporte,
+                'totales' => $totales
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[reporteCombustibleDiario] Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Error al generar el reporte'], 500);
+        }
+    }
+
+    /**
+     * Genera las estadísticas diarias de combustible por tipo de unidad.
+     */
+    public function reporteCombustibleDiario(Request $request)
+    {
+        try {
+            $today = \Carbon\Carbon::today()->toDateString();
+            $unidades = DB::table('unidades')->get();
+            $informacion = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
+            $transportes = DB::table('transportes')->get()->keyBy('id');
+
+            $reporte = [];
+            $tipos = ['urbanuss', 'zafiro', 'urvan', 'orion'];
+
+            foreach ($tipos as $tipo) {
+                $unidadesTipo = $unidades->filter(function($u) use ($tipo, $transportes) {
+                    $transporte = $transportes->get($u->transporte_id);
+                    $nombreTrans = $transporte ? strtolower(trim($transporte->nombre)) : '';
+                    if ($tipo === 'urvan' && $nombreTrans === 'vagoneta') return true;
+                    return $nombreTrans === $tipo;
+                });
+
+                $parque = $unidadesTipo->count();
+                
+                $unidadesCargaron = $unidadesTipo->filter(function($u) use ($today) {
+                    $fecha = $u->fecha_ultima_carga ?? '';
+                    return str_starts_with($fecha, $today) && floatval($u->litros_combustible) > 0;
+                });
+                
+                $cargaronCount = $unidadesCargaron->count();
+                $sinCargarCount = $parque - $cargaronCount;
+                $litrosTotal = $unidadesCargaron->sum('litros_combustible');
+                
+                $porcentaje = $parque > 0 ? round(($cargaronCount / $parque) * 100) : 0;
+                
+                $motivo = '';
+                $obs = '';
+                
+                if ($sinCargarCount > 0) {
+                    $unidadesSinCargar = $unidadesTipo->filter(function($u) use ($today) {
+                        $fecha = $u->fecha_ultima_carga ?? '';
+                        return !(str_starts_with($fecha, $today) && floatval($u->litros_combustible) > 0);
+                    });
+                    
+                    $estatusCounts = [];
+                    foreach($unidadesSinCargar as $u) {
+                        $info = $informacion->get($u->id);
+                        $est = $info ? strtolower(trim($info->estatus)) : 'operacion';
+                        if(!isset($estatusCounts[$est])) $estatusCounts[$est] = 0;
+                        $estatusCounts[$est]++;
+                    }
+                    
+                    arsort($estatusCounts);
+                    $primaryEstatus = key($estatusCounts);
+                    $countEstatus = current($estatusCounts);
+                    
+                    if ($primaryEstatus === 'reserva') {
+                        $motivo = 'Combustible suficiente';
+                        $obs = "UNIDADES RESERVA";
+                    } elseif (in_array($primaryEstatus, ['mantenimiento', 'taller', 'baja'])) {
+                        $motivo = 'Fuera de operación';
+                        $obs = "$countEstatus UNIDADES FUERA DE OPERACIÓN";
+                    } else {
+                        $motivo = 'Combustible suficiente';
+                        $obs = "COMBUSTIBLE SUFICIENTE";
+                    }
+                }
+                
+                $combustibleStr = in_array($tipo, ['urbanuss', 'zafiro', 'orion']) ? 'Diésel' : 'Gasolina';
+                $nombreDisplay = ucfirst($tipo);
+                if ($nombreDisplay === 'Urbanuss') $nombreDisplay = 'Urbanus';
+                if ($nombreDisplay === 'Orion') $nombreDisplay = 'Orión';
+
+                $reporte[] = [
+                    'tipo_unidad' => $nombreDisplay,
+                    'combustible' => $combustibleStr,
+                    'parque' => $parque,
+                    'litros_cargados' => $litrosTotal,
+                    'unidades_cargaron' => $cargaronCount,
+                    'unidades_sin_cargar' => $sinCargarCount,
+                    'porcentaje' => $porcentaje,
+                    'motivo_no_carga' => $motivo,
+                    'observaciones' => $obs,
+                    'raw_tipo' => $tipo
+                ];
+            }
+
+            $totales = [
+                'litros_totales' => collect($reporte)->sum('litros_cargados'),
+                'unidades_cargaron' => collect($reporte)->sum('unidades_cargaron'),
+                'unidades_sin_cargar' => collect($reporte)->sum('unidades_sin_cargar'),
+            ];
+            $parqueTotal = collect($reporte)->sum('parque');
+            $totales['porcentaje'] = $parqueTotal > 0 ? round(($totales['unidades_cargaron'] / $parqueTotal) * 100) : 0;
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $reporte,
+                'totales' => $totales
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[reporteCombustibleDiario] Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Error al generar el reporte'], 500);
+        }
     }
 }

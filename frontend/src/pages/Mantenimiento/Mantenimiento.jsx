@@ -1,5 +1,5 @@
 // src/pages/Mantenimiento/Mantenimiento.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
@@ -9,13 +9,23 @@ import '../CentroControl/CentroControl.css';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import ReporteCombustiblePDF from './components/ReporteCombustiblePDF';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
+
 export default function Mantenimiento() {
   const [busquedaEco, setBusquedaEco] = useState('');
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isInspeccion = location.pathname.startsWith('/carga-combustible');
+
+  // Estado para la generación del PDF
+  const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [pdfData, setPdfData] = useState(null);
+  const [pdfTotales, setPdfTotales] = useState(null);
+  const pdfRef = useRef(null);
   const queryClient = useQueryClient();
 
   useGlobalPrefetch();
@@ -121,6 +131,58 @@ export default function Mantenimiento() {
     refetchInterval: 30000, // Actualiza silenciosamente cada 30 segundos
   });
 
+  const handleGenerarPDF = async () => {
+    try {
+      setGenerandoPDF(true);
+      const res = await fetch(`${API_BASE}/api/mantenimiento/reporte-combustible`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+        },
+      });
+      if (!res.ok) throw new Error('Error al obtener datos');
+      const json = await res.json();
+      
+      if (json.status === 'success') {
+        setPdfData(json.data);
+        setPdfTotales(json.totales);
+        
+        // Esperar un breve instante para que React renderice el componente oculto
+        setTimeout(async () => {
+          if (pdfRef.current) {
+            const canvas = await html2canvas(pdfRef.current, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF({
+              orientation: 'landscape',
+              unit: 'px',
+              format: [canvas.width, canvas.height]
+            });
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            const todayStr = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+            pdf.save(`Reporte_Combustible_${todayStr}.pdf`);
+          }
+          setPdfData(null);
+          setPdfTotales(null);
+          setGenerandoPDF(false);
+          Swal.fire({
+            title: '¡Reporte Generado!',
+            text: 'El PDF se ha descargado correctamente.',
+            icon: 'success',
+            confirmButtonColor: '#6b1d33'
+          });
+        }, 500);
+      } else {
+        throw new Error(json.message || 'Error desconocido');
+      }
+    } catch (e) {
+      console.error(e);
+      setGenerandoPDF(false);
+      Swal.fire('Error', 'No se pudo generar el reporte', 'error');
+    }
+  };
+
   return (
     <>
       <div className="mantenimiento">
@@ -166,6 +228,33 @@ export default function Mantenimiento() {
               />
             ))}
           </div>
+          
+          {isInspeccion && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', marginBottom: '2rem' }}>
+              <button 
+                onClick={handleGenerarPDF}
+                disabled={generandoPDF}
+                style={{ 
+                  background: '#6b1d33', 
+                  color: '#fff', 
+                  padding: '12px 24px', 
+                  borderRadius: '5px', 
+                  fontWeight: 'bold',
+                  fontSize: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: generandoPDF ? 'not-allowed' : 'pointer',
+                  opacity: generandoPDF ? 0.7 : 1,
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}
+              >
+                {generandoPDF ? 'Generando Reporte...' : '📄 Generar Reporte PDF'}
+              </button>
+            </div>
+          )}
+
+          <ReporteCombustiblePDF ref={pdfRef} data={pdfData} totales={pdfTotales} />
         </main>
       </div>
     </>

@@ -512,14 +512,12 @@ export default function DetalleUnidadMantenimiento() {
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;
 
-    // <-- MODIFICADO: Si ya está en el mismo estado y no es mantenimiento, no hacer nada
-    if (datosOperativos.estatus === nuevoEstatus && nuevoEstatus !== 'mantenimiento') {
-      return;
-    }
-
-    // <-- NUEVO: detectar si es el mismo estatus (para mantenimiento)
     const esMismoEstatus = datosOperativos.estatus === nuevoEstatus;
 
+    // Si es el mismo estatus, SOLO permitimos si es 'mantenimiento' para actualizar el motivo o folio
+    if (esMismoEstatus && nuevoEstatus !== 'mantenimiento') {
+      return;
+    }
     let payloadUpdate = {
       numero_eco: null,
       tipo: tipoTransporte,

@@ -131,6 +131,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
     Route::post('/mantenimiento/guardar', [DespachoController::class, 'guardarMantenimiento']);
     Route::get('/mantenimiento/ultimo-registro/{eco}', [DespachoController::class, 'ultimoRegistroMantenimiento']);
+    Route::get('/mantenimiento/reporte-combustible', [DespachoController::class, 'reporteCombustibleDiario']);
+
 
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
