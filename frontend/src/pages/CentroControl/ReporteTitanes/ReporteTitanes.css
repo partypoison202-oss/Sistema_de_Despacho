@@ -1,6 +1,7 @@
 .reportes-titanes-page {
   min-height: 100vh;
   background: #f9fafb;
+  font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 .reportes-titanes-main {
@@ -18,7 +19,9 @@
 }
 
 .rt-title {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 4px 0 8px;
 }
 

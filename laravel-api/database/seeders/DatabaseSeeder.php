@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             NeonImportSeeder::class,
+            RbacMatrizSeeder::class,
         ]);
 
         // Crear administrador de respaldo solo si la tabla de usuarios está completamente vacía

@@ -228,7 +228,7 @@ export default function ResumenDespacho() {
         <div className="resumen-grid-top">
           
           {/* TABLA 1 */}
-          <div>
+          <div className="table-responsive">
             <table className="resumen-table">
               <thead>
                 <tr>
@@ -309,7 +309,7 @@ export default function ResumenDespacho() {
         <div className="resumen-grid-bottom">
           
           {/* TABLA 2 (PLACEHOLDER) */}
-          <div>
+          <div className="table-responsive">
             <table className="resumen-table-bottom">
               <thead>
                 <tr>

@@ -367,9 +367,10 @@ export default function HistorialCheckList() {
     // Buscar checklist para preview
     const previewChecklist = checklists?.find(c => c.id === previewId);
 
-    // Filtrado local por origen
     const displayedChecklists = checklists.filter(c => {
         if (filterOrigen === 'todos') return true;
+        if (filterOrigen === 'mesaControl') return c.origen === 'mesaControl' || c.origen === 'despacho';
+        if (filterOrigen === 'mantenimiento') return c.origen === 'mantenimiento' || c.origen === 'encierro';
         return c.origen === filterOrigen;
     });
 
@@ -527,16 +528,16 @@ export default function HistorialCheckList() {
                             Todos
                         </button>
                         <button
-                            onClick={() => setFilterOrigen('despacho')}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${filterOrigen === 'despacho' ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-gray-500 hover:text-gray-700'}`}
+                            onClick={() => setFilterOrigen('mesaControl')}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${filterOrigen === 'mesaControl' ? 'bg-red-50 text-red-700 shadow-sm border border-red-100' : 'text-gray-500 hover:text-gray-700'}`}
                         >
-                            Despacho
+                            Mesa de Control
                         </button>
                         <button
-                            onClick={() => setFilterOrigen('encierro')}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${filterOrigen === 'encierro' ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200' : 'text-gray-500 hover:text-gray-700'}`}
+                            onClick={() => setFilterOrigen('mantenimiento')}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${filterOrigen === 'mantenimiento' ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200' : 'text-gray-500 hover:text-gray-700'}`}
                         >
-                            Encierro
+                            Mantenimiento P. V.
                         </button>
                     </div>
                 </div>
@@ -621,11 +622,11 @@ export default function HistorialCheckList() {
                                                     <div>#{c.id}</div>
                                                     {c.origen && (
                                                         <div className={`mt-1 inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
-                                                            c.origen === 'despacho' 
+                                                            (c.origen === 'mesaControl' || c.origen === 'despacho')
                                                             ? 'bg-red-50 text-red-600' 
                                                             : 'bg-yellow-50 text-yellow-700'
                                                         }`}>
-                                                            {c.origen === 'despacho' ? 'Despacho' : 'Encierro'}
+                                                            {(c.origen === 'mesaControl' || c.origen === 'despacho') ? 'Mesa de Control' : 'Mantenimiento'}
                                                         </div>
                                                     )}
                                                 </td>

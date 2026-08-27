@@ -106,8 +106,10 @@
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px);
   min-height: 350px;
-  padding-bottom: 250px;
+  padding-bottom: 100px;
 }
 
 .operadores-table {
@@ -127,6 +129,9 @@
   letter-spacing: 0.05em;
   padding: 0.9rem 1rem;
   border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .operadores-table th:first-child {
@@ -272,6 +277,22 @@
   background-color: #e9d5ff;
 }
 
+.status-dropdown-trigger.incapacidad {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+.status-dropdown-trigger.incapacidad:hover {
+  background-color: #fde68a;
+}
+
+.status-dropdown-trigger.descanso {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+.status-dropdown-trigger.descanso:hover {
+  background-color: #e2e8f0;
+}
+
 
 
 /* MENÚ DESPLEGABLE */
@@ -347,7 +368,25 @@
 }
 .status-dropdown-item.permuta:hover,
 .status-dropdown-item.permuta.active {
-  background-color: #e9d5ff;
+  background-color: #f3e8ff;
+}
+
+.status-dropdown-item.incapacidad {
+  color: #b45309;
+  background-color: transparent;
+}
+.status-dropdown-item.incapacidad:hover,
+.status-dropdown-item.incapacidad.active {
+  background-color: #fef3c7;
+}
+
+.status-dropdown-item.descanso {
+  color: #475569;
+  background-color: transparent;
+}
+.status-dropdown-item.descanso:hover,
+.status-dropdown-item.descanso.active {
+  background-color: #f1f5f9;
 }
 
 
@@ -435,14 +474,23 @@
 
 .modal-content {
   background: #ffffff;
-  border-radius: 0.85rem;
+  border-radius: 12px;
   width: 100%;
-  max-width: 480px;
+  max-width: 700px;
   max-height: 90vh;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   overflow-y: auto;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  position: relative;
+  display: flex;
+  flex-direction: column;
   animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 95%;
+    max-height: 95vh;
+  }
 }
 
 @keyframes modalFadeIn {
@@ -511,7 +559,10 @@
 .form-label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #334155;
+  color: #334155 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
 }
 
 .modal-input {
@@ -548,7 +599,7 @@
   justify-content: center;
   width: 100%;
   height: 48px;
-  background-color: #6b1d33;
+  background-color: #6b1d33 !important;
   color: #ffffff !important;
   border-radius: 8px;
   font-weight: 700;
@@ -559,7 +610,8 @@
   box-shadow: 0 2px 4px rgba(107, 29, 51, 0.25);
   border: 1px solid transparent;
   gap: 8px;
-  text-shadow: none;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .custom-file-upload-btn svg {
@@ -568,7 +620,7 @@
 }
 
 .custom-file-upload-btn:hover {
-  background-color: #521526;
+  background-color: #521526 !important;
   transform: translateY(-1px);
 }
 

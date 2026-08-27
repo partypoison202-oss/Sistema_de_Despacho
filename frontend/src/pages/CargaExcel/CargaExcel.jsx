@@ -21,6 +21,7 @@ export default function CargaExcel() {
   const [verInicio, setVerInicio] = useState(false);
   const [inicioData, setInicioData] = useState([]);
   const [cargandoInicio, setCargandoInicio] = useState(false);
+  const [tabActiva, setTabActiva] = useState('HOY');
 
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
@@ -73,19 +74,24 @@ export default function CargaExcel() {
   const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
-  const fetchDatosHoy = async () => {
-    const response = await fetch(`${API_BASE}/api/despacho/hoy`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+  const fetchDatos = async ({ queryKey }) => {
+    const [_key, tab] = queryKey;
+    const headers = getAuthHeaders();
+    let url = `${API_BASE}/api/despacho/hoy`;
+    if (tab === 'MANANA') url = `${API_BASE}/api/despacho/manana`;
+    else if (['SABADO', 'DOMINGO', 'LUNES'].includes(tab)) url = `${API_BASE}/api/despacho/especifico/${tab.toLowerCase()}`;
+
+    const response = await fetch(url, {
+      headers
     });
-    if (!response.ok) throw new Error('Error al obtener datos de hoy');
+    if (!response.ok) throw new Error(`Error al obtener datos de ${tab}`);
     const datos = await response.json();
     return Array.isArray(datos) ? datos : [];
   };
 
-  const { data: serverData, isLoading: cargandoTabla } = useQuery({
-    queryKey: ['despacho-hoy'],
-    queryFn: fetchDatosHoy,
+  const { data: serverData, isLoading: cargandoTabla, refetch: refetchData } = useQuery({
+    queryKey: ['despacho-datos', tabActiva],
+    queryFn: fetchDatos,
     refetchInterval: hasChanges ? false : 8000,
   });
 
@@ -116,6 +122,8 @@ export default function CargaExcel() {
         updatedData[index]['TARJETON'] = '';
         updatedData[index]['NOMBRE_CONDUCTOR'] = '';
         updatedData[index]['HORA_DE_ACOPLE'] = '';
+        updatedData[index]['ACOPLE'] = '';
+        updatedData[index]['HORA_SALIDA'] = '';
         updatedData[index]['CORRIDAS'] = null;
       } else {
         updatedData[index]['ESTATUS'] = valStr;
@@ -246,6 +254,9 @@ export default function CargaExcel() {
       if (unidad) {
         updatedData[index]['TIPO_DE_UNIDAD'] = normalizarTipoUnidad(unidad.tipo);
       }
+    } else if (field === 'HORA_DE_ACOPLE' || field === 'HORA_PROGRAMADA') {
+      updatedData[index]['HORA_DE_ACOPLE'] = value;
+      updatedData[index]['HORA_PROGRAMADA'] = value;
     } else {
       updatedData[index][field] = value;
     }
@@ -388,7 +399,7 @@ export default function CargaExcel() {
     });
 
     // ── TABLA ──
-    const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Prog.', 'Corrida'];
+    const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Prog.', 'Acople', 'Hora Salida', 'Corrida'];
     const filas = previewData.map(fila => [
       fila.ECONOMICO ?? '',
       fila.TIPO_DE_UNIDAD ?? '',
@@ -397,6 +408,8 @@ export default function CargaExcel() {
       fila.TARJETON ?? '',
       fila.NOMBRE_CONDUCTOR ?? '',
       fila.HORA_DE_ACOPLE ?? '',
+      fila.ACOPLE ?? '',
+      fila.HORA_SALIDA ?? '',
       fila.CORRIDAS ?? '',
     ]);
 
@@ -499,7 +512,11 @@ export default function CargaExcel() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/despacho/actualizar`, {
+      let url = `${API_BASE}/api/despacho/actualizar`;
+      if (tabActiva === 'MANANA') url = `${API_BASE}/api/despacho/actualizar-manana`;
+      else if (['SABADO', 'DOMINGO', 'LUNES'].includes(tabActiva)) url = `${API_BASE}/api/despacho/actualizar-especifico/${tabActiva.toLowerCase()}`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ unidades: previewData })
@@ -515,7 +532,7 @@ export default function CargaExcel() {
         text: 'La programación operativa se ha guardado correctamente.',
         confirmButtonColor: '#c5a059'
       });
-      queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+      queryClient.invalidateQueries({ queryKey: ['despacho-datos'] });
       return true;
     } catch (error) {
       Swal.fire({
@@ -621,8 +638,8 @@ export default function CargaExcel() {
       return;
     }
 
-    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'CORRIDAS'];
-    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Programada', 'Corrida'];
+    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_SALIDA', 'CORRIDAS'];
+    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Programada', 'Acople', 'Hora Salida', 'Corrida'];
 
     const datosHoja = [
       encabezados,
@@ -723,10 +740,109 @@ export default function CargaExcel() {
         <div className="excel-top-bar">
           <div className="excel-title-section">
             <h1>Captura de Despacho Diario</h1>
-            <p className="excel-subtitle">Organiza, edita y concilia la programación operativa de hoy directamente en el sistema</p>
+            <p className="excel-subtitle">Organiza, edita y concilia la programación operativa directamente en el sistema</p>
+          </div>
+
+          <div className="excel-tabs-container">
+            <button
+              className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
+              onClick={() => {
+                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                setHasChanges(false);
+                setTabActiva('HOY');
+              }}
+            >
+              Día Operativo (Actual)
+            </button>
+            <button
+              className={`excel-tab-btn ${tabActiva === 'MANANA' ? 'active' : ''}`}
+              onClick={() => {
+                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                setHasChanges(false);
+                setTabActiva('MANANA');
+              }}
+            >
+              Día Siguiente
+            </button>
+            <button
+              className={`excel-tab-btn ${tabActiva === 'SABADO' ? 'active' : ''}`}
+              onClick={() => {
+                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                setHasChanges(false);
+                setTabActiva('SABADO');
+              }}
+            >
+              Sábado
+            </button>
+            <button
+              className={`excel-tab-btn ${tabActiva === 'DOMINGO' ? 'active' : ''}`}
+              onClick={() => {
+                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                setHasChanges(false);
+                setTabActiva('DOMINGO');
+              }}
+            >
+              Domingo
+            </button>
+            <button
+              className={`excel-tab-btn ${tabActiva === 'LUNES' ? 'active' : ''}`}
+              onClick={() => {
+                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                setHasChanges(false);
+                setTabActiva('LUNES');
+              }}
+            >
+              Lunes
+            </button>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {['MANANA', 'SABADO', 'DOMINGO', 'LUNES'].includes(tabActiva) && (
+              <button
+                onClick={async () => {
+                  const label = tabActiva === 'MANANA' ? 'el día siguiente' : tabActiva.toLowerCase();
+                  const endpoint = tabActiva === 'MANANA' 
+                    ? `${API_BASE}/api/despacho/aplicar-cambio-dia`
+                    : `${API_BASE}/api/despacho/aplicar-cambio-especifico/${tabActiva.toLowerCase()}`;
+
+                  const { isConfirmed } = await Swal.fire({
+                    title: '¿Aplicar Cambio de Día?',
+                    text: `Esto volcará todos los registros de ${label} al día operativo actual. ¿Estás seguro?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#6b1d33',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Sí, aplicar',
+                    cancelButtonText: 'Cancelar',
+                  });
+                  if (!isConfirmed) return;
+                  
+                  try {
+                    Swal.fire({ title: 'Aplicando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    const res = await fetch(endpoint, {
+                      method: 'POST',
+                      headers: getAuthHeaders()
+                    });
+                    if (!res.ok) throw new Error('Error al aplicar el cambio de día');
+                    await res.json();
+                    Swal.fire({ icon: 'success', title: '¡Éxito!', text: 'El cambio de día se aplicó correctamente.', confirmButtonColor: '#c5a059' });
+                    setTabActiva('HOY');
+                    queryClient.invalidateQueries({ queryKey: ['despacho-datos'] });
+                  } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: e.message, confirmButtonColor: '#6b1d33' });
+                  }
+                }}
+                className="excel-export-btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
+                  background: '#c5a059', color: 'white', fontWeight: 700,
+                  fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s'
+                }}
+              >
+                Hacer Cambio de Día
+              </button>
+            )}
             <button
               type="button"
               onClick={handleVerInicio}

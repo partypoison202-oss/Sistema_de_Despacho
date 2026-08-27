@@ -12,7 +12,10 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::with('role')->get();
+        $users = User::with('role')
+            ->where('usuario', '!=', 'sitmah_root')
+            ->orderBy('id', 'asc')
+            ->get();
         return response()->json($users);
     }
 
@@ -31,10 +34,13 @@ class UserController extends Controller
     {
         $request->validate([
             'nombre_completo' => 'required|string|max:150',
-            'usuario' => 'required|string|max:50|unique:usuarios',
-            'contrasena' => 'required|string|min:6',
+            'usuario' => ['required', 'string', 'max:50', 'unique:usuarios', 'regex:/^[a-zA-Z0-9_.]+$/'],
+            'contrasena' => ['required', 'string', 'min:6', 'regex:/^[\x20-\x7E]+$/'],
             'rol_id' => 'required|integer|exists:roles,id',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
+        ], [
+            'usuario.regex' => 'El usuario no debe contener acentos ni caracteres especiales.',
+            'contrasena.regex' => 'La contraseña no debe contener acentos.'
         ]);
 
         $fotoBase64 = null;
@@ -59,11 +65,14 @@ class UserController extends Controller
 
         $request->validate([
             'nombre_completo' => 'sometimes|string|max:150',
-            'usuario' => 'sometimes|string|max:50|unique:usuarios,usuario,'.$id,
-            'contrasena' => 'nullable|string|min:6',
+            'usuario' => ['sometimes', 'string', 'max:50', 'unique:usuarios,usuario,'.$id, 'regex:/^[a-zA-Z0-9_.]+$/'],
+            'contrasena' => ['nullable', 'string', 'min:6', 'regex:/^[\x20-\x7E]+$/'],
             'rol_id' => 'sometimes|integer|exists:roles,id',
             'activo' => 'sometimes|boolean',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
+        ], [
+            'usuario.regex' => 'El usuario no debe contener acentos ni caracteres especiales.',
+            'contrasena.regex' => 'La contraseña no debe contener acentos.'
         ]);
 
         $data = $request->except(['contrasena', 'activo', 'foto']);

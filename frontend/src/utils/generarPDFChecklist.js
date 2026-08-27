@@ -19,8 +19,9 @@ const PUNTOS = [
     { id: 'documentacion', label: 'Documentación' },
     { id: 'tecnologia', label: 'Tecnología' },
     { id: 'alerta_tablero', label: 'Alerta en tablero' },
+    { id: 'mecanica_general', label: 'Mecánica general' },
+    { id: 'mantenimiento_preventivo', label: 'Mantenimiento preventivo' },
 ];
-
 // Colores institucionales
 const COLOR_GUINDA     = [96, 26, 42];  // #601a2a (Color oficial SITMAH)
 const COLOR_GUINDA_DK  = [70, 15, 30];  // Tono más oscuro para contrastes

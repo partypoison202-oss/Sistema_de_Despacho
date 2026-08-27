@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
@@ -13,6 +13,41 @@ export default function DashboardBitacora() {
   const [fecha, setFecha] = useState(today);
   const [registros, setRegistros] = useState([]);
   const [cargando, setCargando] = useState(false);
+  const [fechas, setFechas] = useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    fetchFechasDisponibles();
+  }, []);
+
+  const fetchFechasDisponibles = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/historial-operativo/fechas`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFechas(data || []);
+      }
+    } catch (e) {
+      console.error('Error fetching fechas:', e);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetchBitacoras(fecha);
@@ -110,14 +145,39 @@ export default function DashboardBitacora() {
           </div>
           
           <div className="dashboard-bitacora-controls">
-            <input 
-              type="date" 
-              className="bitacora-date-picker" 
-              value={fecha}
-              max={today}
-              onChange={(e) => setFecha(e.target.value)}
-              title="Filtrar por fecha"
-            />
+            <div className="custom-dropdown-container" ref={dropdownRef}>
+              <button
+                type="button"
+                className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
+                onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
+                disabled={cargando}
+                style={{ width: '160px' }}
+              >
+                {fecha || 'SELECCIONAR'}
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 10l5 5 5-5H7z" />
+                </svg>
+              </button>
+              {isDropdownOpen && (
+                <div className="custom-dropdown-menu">
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {fechas.map(f => (
+                      <button
+                        key={f}
+                        type="button"
+                        className={`custom-dropdown-item ${fecha === f ? 'selected' : ''}`}
+                        onClick={() => { setFecha(f); setIsDropdownOpen(false); }}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                    {fechas.length === 0 && (
+                      <div className="custom-dropdown-item" style={{ color: '#9ca3af' }}>Sin fechas disponibles</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <button 
               type="button" 
               className="bitacora-btn-back"

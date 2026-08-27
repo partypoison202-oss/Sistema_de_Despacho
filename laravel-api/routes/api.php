@@ -16,6 +16,81 @@ use App\Http\Controllers\API\BitacoraController;
 use App\Http\Controllers\API\InfraccionController;
 use App\Http\Controllers\ObservacionCatalogoController;
 
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+
+Route::get('/fix-manana-table', function() {
+    if (!Schema::hasTable('informacion_operativa_manana')) {
+        Schema::create('informacion_operativa_manana', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('unidad_id')->constrained('unidades');
+            $table->string('ruta', 20)->nullable();
+            $table->string('numero_tarjeton', 20)->nullable();
+            $table->string('nombre_conductor', 200)->nullable();
+            $table->string('tipo', 50)->nullable();
+            $table->string('estatus', 20)->nullable();
+            $table->string('falla', 50)->nullable();
+            $table->integer('corridas')->nullable();
+            $table->string('ciclo', 10)->nullable();
+            $table->string('motivo', 50)->nullable();
+            $table->string('hora_programada', 20)->nullable();
+            $table->string('hora_salida', 20)->nullable();
+            $table->string('acople', 50)->nullable();
+            $table->string('cambio_desde', 50)->nullable();
+            $table->string('cambio_motivo', 200)->nullable();
+            $table->string('motivo_estatus', 200)->nullable();
+            $table->text('observaciones')->nullable();
+            $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
+            $table->string('nombre_maniobrista', 200)->nullable()->default('');
+            $table->timestamp('fecha_registro')->nullable()->useCurrent();
+        });
+        return 'Tabla informacion_operativa_manana creada con éxito.';
+    }
+    return 'La tabla ya existe.';
+});
+
+Route::get('/fix-findesemana-tables', function() {
+    $diasFinSemana = ['sabado', 'domingo', 'lunes'];
+    $creadas = [];
+    foreach ($diasFinSemana as $dia) {
+        $tableName = 'informacion_operativa_' . $dia;
+        if (!Schema::hasTable($tableName)) {
+            Schema::create($tableName, function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('unidad_id')->constrained('unidades');
+                $table->string('ruta', 20)->nullable();
+                $table->string('numero_tarjeton', 20)->nullable();
+                $table->string('nombre_conductor', 200)->nullable();
+                $table->string('tipo', 50)->nullable();
+                $table->string('estatus', 20)->nullable();
+                $table->string('falla', 50)->nullable();
+                $table->integer('corridas')->nullable();
+                $table->string('ciclo', 10)->nullable();
+                $table->string('motivo', 50)->nullable();
+                $table->string('hora_programada', 20)->nullable();
+                $table->string('hora_salida', 20)->nullable();
+                $table->string('acople', 50)->nullable();
+                $table->string('cambio_desde', 50)->nullable();
+                $table->string('cambio_motivo', 200)->nullable();
+                $table->string('motivo_estatus', 200)->nullable();
+                $table->text('observaciones')->nullable();
+                $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
+                $table->string('nombre_maniobrista', 200)->nullable()->default('');
+                $table->timestamp('fecha_registro')->nullable()->useCurrent();
+            });
+            $creadas[] = $tableName;
+        }
+    }
+    
+    // Opcional: Eliminar la tabla de fin de semana genérica si existe
+    if (Schema::hasTable('informacion_operativa_findesemana')) {
+        Schema::dropIfExists('informacion_operativa_findesemana');
+    }
+
+    if (empty($creadas)) return 'Las 3 tablas ya existen.';
+    return 'Tablas creadas con éxito: ' . implode(', ', $creadas);
+});
+
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
@@ -39,8 +114,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/despacho/actualizar-ruta', [DespachoController::class, 'actualizarRuta']);
     Route::get('/despacho/hoy', [DespachoController::class, 'obtenerDatosHoy']);
     Route::get('/despacho/inicio-hoy', [DespachoController::class, 'obtenerInicioHoy']);
+    Route::get('/despacho/manana', [DespachoController::class, 'obtenerDatosManana']);
+    Route::get('/despacho/especifico/{dia}', [DespachoController::class, 'obtenerDatosEspecifico']);
     Route::post('/despacho/importar', [DespachoController::class, 'importar']);
     Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
+    Route::post('/despacho/actualizar-manana', [DespachoController::class, 'actualizarManana']);
+    Route::post('/despacho/actualizar-especifico/{dia}', [DespachoController::class, 'actualizarEspecifico']);
+    Route::post('/despacho/aplicar-cambio-dia', [DespachoController::class, 'aplicarCambioDia']);
+    Route::post('/despacho/aplicar-cambio-especifico/{dia}', [DespachoController::class, 'aplicarCambioDiaEspecifico']);
     Route::post('/despacho/actualizar-adicionales', [DespachoController::class, 'actualizarAdicionales']);
     Route::post('/despacho/actualizar-tarjeton', [DespachoController::class, 'actualizarTarjeton']);
     Route::post('/despacho/actualizar-tarjeton-maniobrista', [DespachoController::class, 'actualizarTarjetonManiobrista']);
@@ -87,11 +168,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/fechas', [HistorialOperativoController::class, 'getFechas']);
     Route::get('/historial-operativo/despacho/{fecha}', [HistorialOperativoController::class, 'getHistorialDespacho']);
     Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
+    Route::get('/historial-operativo/mantenimiento/{fecha}', [HistorialOperativoController::class, 'getHistorialMantenimiento']);
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
     Route::get('/bitacoras-diarias', [\App\Http\Controllers\API\BitacorasCentroController::class, 'getBitacoras']);
 
     // Rutas para TITAN
+    Route::get('/titan/notificaciones-pendientes', [TitanReporteController::class, 'notificacionesPendientes']);
     Route::get('/titan/unidades', [TitanController::class, 'getUnidadesOperacion']);
     Route::get('/titan/historico', [TitanController::class, 'getAllReportes']);
     Route::post('/titan/reporte', [TitanController::class, 'guardarReporte']);

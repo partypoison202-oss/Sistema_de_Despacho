@@ -136,7 +136,7 @@ class ManiobristaController extends Controller
         $request->validate([
             'nombre' => 'sometimes|required|string|max:200',
             'tipo_tarjeton' => 'sometimes|required|string|max:50',
-            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta'
+            'estado_servicio' => 'sometimes|required|string|in:disponible,en_servicio,falta,incapacidad,descanso'
         ]);
 
         if ($request->has('nombre')) {

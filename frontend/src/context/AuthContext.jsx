@@ -5,6 +5,58 @@ import Swal from 'sweetalert2';
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
 
+// ── Mapa: código de módulo → ruta frontend ────────────────────────────────
+export const MODULO_RUTAS = {
+  despacho        : '/dashboard',
+  encierro        : '/encierro/dashboard',
+  capturista      : '/cargar-excel',
+  relevos         : '/cargar-excel',
+  mantenimiento   : '/mantenimiento',
+  centro_control  : '/centro-control',
+  historial       : '/historial',
+  titan           : '/titan/dashboard',
+  infraccion      : '/infraccion/dashboard',
+  mesa_control    : '/mesa-control',
+  operadores      : '/operadores',
+  maniobristas    : '/maniobristas',
+  carga_combustible: '/carga-combustible',
+  general         : '/general',
+};
+
+/**
+ * Decide la ruta a la que debe ir el usuario tras el login:
+ *  - 1 módulo único → va directo a ese módulo (bypass del menú)
+ *  - 2+ módulos o admin/lectura → va al /menu
+ */
+export function getDefaultRoute(user) {
+  const rol     = user?.role?.codigo;
+  const modulos = user?.modulos ?? [];
+
+  if (rol === 'ADMINISTRADOR' || rol === 'LECTURA') return '/menu';
+
+  if (modulos.length === 1) {
+    return MODULO_RUTAS[modulos[0]] ?? '/menu';
+  }
+
+  if (modulos.length > 1) return '/menu';
+
+  // Fallback por rol (compatibilidad con cuentas sin módulos asignados)
+  const fallback = {
+    PROGRAMACION      : '/menu',
+    CARGA_DE_COMBUSTIBLE: '/menu',
+    GESTOR_OPERADORES : '/operadores',
+    ENCIERRO          : '/encierro/dashboard',
+    CENTRO_CONTROL    : '/centro-control',
+    TITAN             : '/titan/dashboard',
+    INFRACCION        : '/infraccion/dashboard',
+    GENERAL           : '/general',
+    DESPACHO          : '/dashboard',
+    PLATAFORMA        : '/dashboard',
+    MANTENIMIENTO     : '/mantenimiento',
+  };
+  return fallback[rol] ?? '/menu';
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => {
@@ -18,7 +70,6 @@ export const AuthProvider = ({ children }) => {
   const inactivityTimerRef = useRef(null);
   const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutos
 
-  // Función para cerrar sesión por inactividad
   const logoutDueToInactivity = () => {
     console.log("Sesión expirada por inactividad");
     logout();
@@ -36,23 +87,18 @@ export const AuthProvider = ({ children }) => {
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
     }
-    // Solo activar el temporizador si NO está activo el "remember me" y hay token
     if (!rememberMe && token) {
       inactivityTimerRef.current = setTimeout(logoutDueToInactivity, TIMEOUT_MS);
     }
   };
 
-  // Efecto para escuchar la inactividad
   useEffect(() => {
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    
-    const handleActivity = () => {
-      resetTimer();
-    };
+    const handleActivity = () => resetTimer();
 
     if (!rememberMe && token) {
       events.forEach(event => document.addEventListener(event, handleActivity));
-      resetTimer(); // Iniciar la primera vez
+      resetTimer();
     }
 
     return () => {
@@ -63,11 +109,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      // Validate token and get user info
       fetch(`${API_BASE}/api/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => {
         if (!res.ok) throw new Error('Token invalido');
@@ -91,7 +134,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     setToken(authToken);
     setRememberMe(isRememberMe);
-    
+
     if (isRememberMe) {
       localStorage.setItem('token', authToken);
       sessionStorage.removeItem('token');
@@ -105,9 +148,7 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       fetch(`${API_BASE}/api/logout`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       }).catch(err => console.error(err));
     }
     setUser(null);

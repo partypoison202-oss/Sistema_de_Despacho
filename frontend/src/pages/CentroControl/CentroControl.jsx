@@ -178,7 +178,7 @@ export default function CentroControl() {
       // Usamos los mismos datos calculados que ya están en el componente:
       // totales, modelData, y eficienciaGlobal
       await generarPDFEstadisticasCentro(totales, modelData, eficienciaGlobal);
-      
+
       Swal.fire({
         icon: 'success',
         title: '¡Reporte Generado!',
@@ -211,7 +211,7 @@ export default function CentroControl() {
   const getRuta = (d) =>
     d.RUTA ?? d.NOMBRE_RUTA ?? d.NO_RUTA ?? d.RUTA_ASIGNADA ?? 'Sin ruta asignada';
   const getConductor = (d) =>
-    d.CONDUCTOR ?? d.NOMBRE_CONDUCTOR ?? d.CHOFER ?? d.NOMBRE_CHOFER ?? d.OPERADOR ?? 'Sin conductor asignado';
+    d.CONDUCTOR ?? d.NOMBRE_CONDUCTOR ?? d.CHOFER ?? d.NOMBRE_CHOFER ?? d.OPERADOR ?? 'Sin persona conductora asignada';
   const getTarjeton = (d) =>
     d.TARJETON ?? d.TARJETON_CONDUCTOR ?? d.NO_TARJETON ?? '—';
   const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
@@ -260,14 +260,14 @@ export default function CentroControl() {
         <main className="centro-main">
           <div className="centro-welcome">
             <p className="centro-eyebrow">Visión general de la flota</p>
-            <h1 className="centro-title">Centro de Control</h1>
+            <h1 className="centro-title">MONITOREO DE OPERACIONES</h1>
             <p className="centro-date">{fechaActual}</p>
             <p className="centro-subtitle">
               Consulta el total de unidades programadas, su estatus operativo
-              y genera reportes generales del despacho.
+              y genera reportes generales de la mesa de control.
             </p>
           </div>
- 
+
           <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
 
             {/* Botón Titanes */}
@@ -634,7 +634,7 @@ export default function CentroControl() {
               className="centro-btn centro-btn--secondary"
               onClick={() => navigate('/resumen-despacho')}
             >
-              Ver Resumen de Despacho
+              Ver Resumen de Mesa de Control
             </button>
           </section>
         </main>

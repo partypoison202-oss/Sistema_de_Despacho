@@ -1,7 +1,7 @@
 import { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
-import { AuthContext } from '../../context/AuthContext';
+import { AuthContext, getDefaultRoute } from '../../context/AuthContext';
 import AjustesModal from './AjustesModal';
 import UserAvatar from '../UserAvatar/UserAvatar';
 import Swal from 'sweetalert2';
@@ -63,26 +63,6 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
   };
 
   const handleBackClick = () => {
-    if (location.pathname === '/general') {
-      navigate(user?.role?.codigo === 'ADMINISTRADOR' ? '/menu' : '/general');
-      return;
-    }
-
-    if (location.pathname.startsWith('/despacho/')) {
-      navigate('/general');
-      return;
-    }
-
-    if (location.pathname === '/cargar-excel') {
-      navigate('/menu');
-      return;
-    }
-
-    if (location.pathname === '/mantenimiento' || location.pathname === '/encierro/dashboard' || location.pathname === '/carga-combustible') {
-      navigate('/menu');
-      return;
-    }
-
     navigate(-1);
   };
 
@@ -91,24 +71,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       navigate('/');
       return;
     }
-    const role = user.role?.codigo;
-    if (role === 'ADMINISTRADOR' || role === 'PROGRAMACION' || role === 'CARGA_DE_COMBUSTIBLE') {
-      navigate('/menu');
-    } else if (role === 'SISTEMAS') {
-      navigate('/cargar-excel');
-    } else if (role === 'ENCIERRO') {
-      navigate('/encierro/dashboard');
-    } else if (role === 'CENTRO_CONTROL') {
-      navigate('/centro-control');
-    } else if (role === 'GENERAL') {
-      navigate('/general');
-    } else if (role === 'TITAN') {
-      navigate('/titan/dashboard');
-    } else if (role === 'INFRACCION') {
-      navigate('/infraccion/dashboard');
-    } else {
-      navigate('/dashboard');
-    }
+    navigate(getDefaultRoute(user));
   };
 
   useEffect(() => {
@@ -125,20 +88,20 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
 
   let showBackButton = false;
   if (!hideBackButton && user && location.pathname !== '/') {
-    if (user.role?.codigo === 'ADMINISTRADOR' || user.role?.codigo === 'PROGRAMACION' || user.role?.codigo === 'CARGA_DE_COMBUSTIBLE') {
-      showBackButton = location.pathname !== '/menu';
-    } else {
-      const isDashboard = location.pathname === '/dashboard' ||
-                          location.pathname === '/encierro/dashboard' ||
-                          location.pathname === '/centro-control' ||
-                          location.pathname === '/cargar-excel' ||
-                          location.pathname === '/general' ||
-                          location.pathname === '/titan/dashboard' ||
-                          location.pathname === '/infraccion/dashboard' ||
-                          location.pathname === '/mantenimiento' ||
-                          location.pathname === '/carga-combustible';
-      showBackButton = !isDashboard;
-    }
+    const isDashboard = location.pathname === '/menu' || 
+                        location.pathname === '/dashboard' ||
+                        location.pathname === '/encierro/dashboard' ||
+                        location.pathname === '/centro-control' ||
+                        location.pathname === '/cargar-excel' ||
+                        location.pathname === '/general' ||
+                        location.pathname === '/titan/dashboard' ||
+                        location.pathname === '/infraccion/dashboard' ||
+                        location.pathname === '/mantenimiento' ||
+                        location.pathname === '/carga-combustible' ||
+                        location.pathname === '/operadores' ||
+                        location.pathname === '/maniobristas' ||
+                        location.pathname === '/mesa-control';
+    showBackButton = !isDashboard;
   }
 
   return (
@@ -218,25 +181,25 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   }}>
                     Ajustes
                   </button>
-                  {['ADMINISTRADOR', 'GESTOR_OPERADORES', 'DESPACHO'].includes(user.role.codigo) && (
-                    <>
-                      <button className="profile-menu-btn" onClick={() => {
-                        handleConfirmExit(() => {
-                          setShowProfileMenu(false);
-                          navigate('/operadores');
-                        });
-                      }}>
-                        Gestión de Operadores
-                      </button>
-                      <button className="profile-menu-btn" onClick={() => {
-                        handleConfirmExit(() => {
-                          setShowProfileMenu(false);
-                          navigate('/maniobristas');
-                        });
-                      }}>
-                        Gestión de Maniobristas
-                      </button>
-                    </>
+                  {((user.modulos && user.modulos.includes('operadores')) || ['ADMINISTRADOR', 'LECTURA'].includes(user.role.codigo)) && (
+                    <button className="profile-menu-btn" onClick={() => {
+                      handleConfirmExit(() => {
+                        setShowProfileMenu(false);
+                        navigate('/operadores');
+                      });
+                    }}>
+                      Gestión de T6
+                    </button>
+                  )}
+                  {((user.modulos && user.modulos.includes('maniobristas')) || ['ADMINISTRADOR', 'LECTURA'].includes(user.role.codigo)) && (
+                    <button className="profile-menu-btn" onClick={() => {
+                      handleConfirmExit(() => {
+                        setShowProfileMenu(false);
+                        navigate('/maniobristas');
+                      });
+                    }}>
+                      Gestión de Maniobristas
+                    </button>
                   )}
                   {user.role.codigo === 'ADMINISTRADOR' && (
                     <button className="profile-menu-btn" onClick={() => {

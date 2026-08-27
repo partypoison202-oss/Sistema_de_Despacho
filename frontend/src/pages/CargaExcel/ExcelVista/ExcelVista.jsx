@@ -15,6 +15,8 @@ const HEADER_TRANSLATIONS = {
   ESTATUS: 'Estatus',
   HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
   HORA_DE_ACOPLE: 'HORA DE ENTRADA PROGRAMADA',
+  ACOPLE: 'HORA DE ACOPLE',
+  HORA_SALIDA: 'HORA DE SALIDA',
   CORRIDAS: 'Corrida',
 };
 
@@ -59,6 +61,8 @@ export default function ExcelPreview({
   } else {
     headers.push('HORA_DE_ACOPLE');
   }
+  headers.push('ACOPLE');
+  headers.push('HORA_SALIDA');
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
@@ -269,7 +273,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_PROGRAMADA') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_PROGRAMADA' || h === 'ACOPLE' || h === 'HORA_SALIDA') ? 'center' : 'left',
                             }}>
                               {displayValue}
                             </div>
@@ -287,7 +291,7 @@ export default function ExcelPreview({
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                           const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt];
-                        } else if (h === 'HORA_DE_ACOPLE') {
+                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_SALIDA') {
                           displayValue = fila[h] || '00:00';
                         }
                         return (
@@ -297,7 +301,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_SALIDA') ? 'center' : 'left',
                             }}>
                               {displayValue}
                             </div>
@@ -306,7 +310,7 @@ export default function ExcelPreview({
                       }
                       // ── Fin bloque REVELOS ───────────────────────────────────────
 
-                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_PROGRAMADA') {
+                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_PROGRAMADA' || h === 'ACOPLE' || h === 'HORA_SALIDA') {
                         const isOpen = activeTimePickerRow === originalIndex && activeTimePickerField === h;
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>

@@ -12,8 +12,8 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'usuario' => 'required|string',
-            'contrasena' => 'required|string',
+            'usuario'   => 'required|string',
+            'contrasena'=> 'required|string',
         ]);
 
         $user = User::with('role')->where('usuario', $request->usuario)->first();
@@ -32,10 +32,13 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // Cargar módulos del usuario
+        $modulos = $user->modulos()->pluck('modulo_codigo')->toArray();
+
         return response()->json([
             'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user
+            'token_type'   => 'Bearer',
+            'user'         => array_merge($user->toArray(), ['modulos' => $modulos]),
         ]);
     }
 
@@ -50,7 +53,11 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user()->load('role'));
+        $user    = $request->user()->load('role');
+        $modulos = $user->modulos()->pluck('modulo_codigo')->toArray();
+
+        return response()->json(
+            array_merge($user->toArray(), ['modulos' => $modulos])
+        );
     }
 }
-

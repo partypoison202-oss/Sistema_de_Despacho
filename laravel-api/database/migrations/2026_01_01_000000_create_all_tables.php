@@ -79,7 +79,9 @@ return new class extends Migration
                 $table->string('numero_eco', 20)->unique();
                 $table->string('tipo', 50)->nullable();
                 $table->string('nivel_combustible', 10)->nullable();
+                $table->string('litros_combustible', 20)->nullable();
                 $table->string('nivel_adblue', 10)->nullable();
+                $table->string('litros_adblue', 20)->nullable();
                 $table->string('numero_cincho', 20)->nullable();
                 $table->string('numero_cincho_adblue', 20)->nullable();
                 $table->date('fecha_ultima_carga')->nullable();
@@ -90,7 +92,9 @@ return new class extends Migration
             foreach ([
                 'tipo'                 => fn($t) => $t->string('tipo', 50)->nullable(),
                 'nivel_combustible'    => fn($t) => $t->string('nivel_combustible', 10)->nullable(),
+                'litros_combustible'   => fn($t) => $t->string('litros_combustible', 20)->nullable(),
                 'nivel_adblue'         => fn($t) => $t->string('nivel_adblue', 10)->nullable(),
+                'litros_adblue'        => fn($t) => $t->string('litros_adblue', 20)->nullable(),
                 'numero_cincho'        => fn($t) => $t->string('numero_cincho', 20)->nullable(),
                 'numero_cincho_adblue' => fn($t) => $t->string('numero_cincho_adblue', 20)->nullable(),
                 'fecha_ultima_carga'   => fn($t) => $t->date('fecha_ultima_carga')->nullable(),
@@ -341,6 +345,108 @@ return new class extends Migration
             }
         }
 
+        // ─── Información Operativa (Día Siguiente) ────────────────────
+        if (!Schema::hasTable('informacion_operativa_manana')) {
+            Schema::create('informacion_operativa_manana', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('unidad_id')->constrained('unidades');
+                $table->string('ruta', 20)->nullable();
+                $table->string('numero_tarjeton', 20)->nullable();
+                $table->string('nombre_conductor', 200)->nullable();
+                $table->string('tipo', 50)->nullable();
+                $table->string('estatus', 20)->nullable();
+                $table->string('falla', 50)->nullable();
+                $table->integer('corridas')->nullable();
+                $table->string('ciclo', 10)->nullable();
+                $table->string('motivo', 50)->nullable();
+                $table->string('hora_programada', 20)->nullable();
+                $table->string('hora_salida', 20)->nullable();
+                $table->string('acople', 50)->nullable();
+                $table->string('cambio_desde', 50)->nullable();
+                $table->string('cambio_motivo', 200)->nullable();
+                $table->string('motivo_estatus', 200)->nullable();
+                $table->text('observaciones')->nullable();
+                $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
+                $table->string('nombre_maniobrista', 200)->nullable()->default('');
+                $table->timestamp('fecha_registro')->nullable()->useCurrent();
+            });
+        } else {
+            foreach ([
+                'tipo'                 => fn($t) => $t->string('tipo', 50)->nullable(),
+                'estatus'              => fn($t) => $t->string('estatus', 20)->nullable(),
+                'falla'                => fn($t) => $t->string('falla', 50)->nullable(),
+                'corridas'             => fn($t) => $t->integer('corridas')->nullable(),
+                'ciclo'                => fn($t) => $t->string('ciclo', 10)->nullable(),
+                'motivo'               => fn($t) => $t->string('motivo', 50)->nullable(),
+                'hora_programada'      => fn($t) => $t->string('hora_programada', 20)->nullable(),
+                'hora_salida'          => fn($t) => $t->string('hora_salida', 20)->nullable(),
+                'acople'               => fn($t) => $t->string('acople', 50)->nullable(),
+                'cambio_desde'         => fn($t) => $t->string('cambio_desde', 50)->nullable(),
+                'cambio_motivo'        => fn($t) => $t->string('cambio_motivo', 200)->nullable(),
+                'motivo_estatus'       => fn($t) => $t->string('motivo_estatus', 200)->nullable(),
+                'observaciones'        => fn($t) => $t->text('observaciones')->nullable(),
+                'tarjeton_maniobrista' => fn($t) => $t->string('tarjeton_maniobrista', 50)->nullable()->default(''),
+                'nombre_maniobrista'   => fn($t) => $t->string('nombre_maniobrista', 200)->nullable()->default(''),
+            ] as $col => $def) {
+                if (!Schema::hasColumn('informacion_operativa_manana', $col)) {
+                    Schema::table('informacion_operativa_manana', $def);
+                }
+            }
+        }
+
+        // ─── Información Operativa (Fin de Semana) ────────────────────
+        $diasFinSemana = ['sabado', 'domingo', 'lunes'];
+        foreach ($diasFinSemana as $dia) {
+            $tableName = 'informacion_operativa_' . $dia;
+            if (!Schema::hasTable($tableName)) {
+                Schema::create($tableName, function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('unidad_id')->constrained('unidades');
+                    $table->string('ruta', 20)->nullable();
+                    $table->string('numero_tarjeton', 20)->nullable();
+                    $table->string('nombre_conductor', 200)->nullable();
+                    $table->string('tipo', 50)->nullable();
+                    $table->string('estatus', 20)->nullable();
+                    $table->string('falla', 50)->nullable();
+                    $table->integer('corridas')->nullable();
+                    $table->string('ciclo', 10)->nullable();
+                    $table->string('motivo', 50)->nullable();
+                    $table->string('hora_programada', 20)->nullable();
+                    $table->string('hora_salida', 20)->nullable();
+                    $table->string('acople', 50)->nullable();
+                    $table->string('cambio_desde', 50)->nullable();
+                    $table->string('cambio_motivo', 200)->nullable();
+                    $table->string('motivo_estatus', 200)->nullable();
+                    $table->text('observaciones')->nullable();
+                    $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
+                    $table->string('nombre_maniobrista', 200)->nullable()->default('');
+                    $table->timestamp('fecha_registro')->nullable()->useCurrent();
+                });
+            } else {
+                foreach ([
+                    'tipo'                 => fn($t) => $t->string('tipo', 50)->nullable(),
+                    'estatus'              => fn($t) => $t->string('estatus', 20)->nullable(),
+                    'falla'                => fn($t) => $t->string('falla', 50)->nullable(),
+                    'corridas'             => fn($t) => $t->integer('corridas')->nullable(),
+                    'ciclo'                => fn($t) => $t->string('ciclo', 10)->nullable(),
+                    'motivo'               => fn($t) => $t->string('motivo', 50)->nullable(),
+                    'hora_programada'      => fn($t) => $t->string('hora_programada', 20)->nullable(),
+                    'hora_salida'          => fn($t) => $t->string('hora_salida', 20)->nullable(),
+                    'acople'               => fn($t) => $t->string('acople', 50)->nullable(),
+                    'cambio_desde'         => fn($t) => $t->string('cambio_desde', 50)->nullable(),
+                    'cambio_motivo'        => fn($t) => $t->string('cambio_motivo', 200)->nullable(),
+                    'motivo_estatus'       => fn($t) => $t->string('motivo_estatus', 200)->nullable(),
+                    'observaciones'        => fn($t) => $t->text('observaciones')->nullable(),
+                    'tarjeton_maniobrista' => fn($t) => $t->string('tarjeton_maniobrista', 50)->nullable()->default(''),
+                    'nombre_maniobrista'   => fn($t) => $t->string('nombre_maniobrista', 200)->nullable()->default(''),
+                ] as $col => $def) {
+                    if (!Schema::hasColumn($tableName, $col)) {
+                        Schema::table($tableName, $def);
+                    }
+                }
+            }
+        }
+
         // ─── Bitacoras (Diarias) ──────────────────────────────────────
         if (!Schema::hasTable('bitacoras')) {
             Schema::create('bitacoras', function (Blueprint $table) {
@@ -524,7 +630,9 @@ return new class extends Migration
                 $table->string('odometro', 20)->nullable();
                 $table->string('tipo_vehiculo', 50)->nullable();
                 $table->string('nivel_combustible', 20)->nullable();
+                $table->string('litros_combustible', 20)->nullable();
                 $table->string('nivel_adblue', 20)->nullable();
+                $table->string('litros_adblue', 20)->nullable();
                 $table->date('fecha_ultima_carga')->nullable();
                 $table->string('kilometraje', 20)->nullable();
                 $table->timestamp('fecha_mantenimiento')->nullable()->useCurrent();
@@ -538,7 +646,9 @@ return new class extends Migration
                 'odometro'             => fn($t) => $t->string('odometro', 20)->nullable(),
                 'tipo_vehiculo'        => fn($t) => $t->string('tipo_vehiculo', 50)->nullable(),
                 'nivel_combustible'    => fn($t) => $t->string('nivel_combustible', 20)->nullable(),
+                'litros_combustible'   => fn($t) => $t->string('litros_combustible', 20)->nullable(),
                 'nivel_adblue'         => fn($t) => $t->string('nivel_adblue', 20)->nullable(),
+                'litros_adblue'        => fn($t) => $t->string('litros_adblue', 20)->nullable(),
                 'fecha_ultima_carga'   => fn($t) => $t->date('fecha_ultima_carga')->nullable(),
                 'kilometraje'          => fn($t) => $t->string('kilometraje', 20)->nullable(),
                 'fecha_registro'       => fn($t) => $t->timestamp('fecha_registro')->nullable()->useCurrent(),
@@ -684,6 +794,11 @@ return new class extends Migration
         Schema::dropIfExists('checklists');
         Schema::dropIfExists('historial_operativo');
         Schema::dropIfExists('bitacoras');
+        Schema::dropIfExists('informacion_operativa_lunes');
+        Schema::dropIfExists('informacion_operativa_domingo');
+        Schema::dropIfExists('informacion_operativa_sabado');
+        Schema::dropIfExists('informacion_operativa_findesemana');
+        Schema::dropIfExists('informacion_operativa_manana');
         Schema::dropIfExists('informacion_operativa');
         Schema::dropIfExists('maniobristas');
         Schema::dropIfExists('conductores');

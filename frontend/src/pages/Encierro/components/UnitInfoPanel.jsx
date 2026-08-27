@@ -46,7 +46,7 @@ export default function UnitInfoPanel({
         <p className="data-item__value">{selectedOption}</p>
       </div>
       <div className="data-item">
-        <h3 className="data-item__label">Conductor Asignado</h3>
+        <h3 className="data-item__label">Persona Conductora</h3>
         {editandoConductor ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
             <input
