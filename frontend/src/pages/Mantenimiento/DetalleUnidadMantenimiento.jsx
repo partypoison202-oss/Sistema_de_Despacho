@@ -728,6 +728,7 @@ export default function DetalleUnidadMantenimiento() {
       const confirmacion = await Swal.fire(swalOptions);
       if (!confirmacion.isConfirmed) return;
       motivoCapturado = confirmacion.value || null;
+      }
     }
 
     // Si es mismo estatus, mantener el estatus actual en el payload
@@ -2020,9 +2021,6 @@ export default function DetalleUnidadMantenimiento() {
               });
               
               return Promise.resolve();
-            } catch (error) {
-              // El wizard mostrará el error de forma inline (sin Swal que queda detrás del modal)
-              throw error;
             } finally {
               setCambiandoEstatus(false);
             }
