@@ -340,7 +340,8 @@ class DespachoController extends Controller
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
-                'informacion_operativa.observaciones'
+                'informacion_operativa.observaciones',
+                'unidades.kilometraje'
             )
             ->first();
 
@@ -1613,7 +1614,7 @@ class DespachoController extends Controller
         $request->validate([
             'numero_eco' => 'required',
             'tipo' => 'required',
-            'estatus' => 'required|in:operacion,mantenimiento,reserva',
+            'estatus' => 'required|in:operacion,mantenimiento,reserva,percance',
             'motivo_estatus' => 'nullable|string',
             'cambio_unidad_activo' => 'nullable|boolean',
             'eco_reemplazo' => 'nullable|string',
@@ -1675,7 +1676,7 @@ class DespachoController extends Controller
             $updateData['firma_base64'] = $request->firma_base64;
         }
 
-        if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') {
+        if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance') {
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;
@@ -1735,7 +1736,7 @@ class DespachoController extends Controller
         BitacoraHelper::registrarCambio(
             $unidad->id,
             'CAMBIO_ESTATUS',
-            ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento')
+            ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance')
                 ? "CAMBIO DE ESTATUS DE " . strtoupper($registroOperativo->estatus ?? '') . " A " . strtoupper($nuevoEstatus) . ($motivoEstatus ? " POR MOTIVO: " . strtoupper($motivoEstatus) : "") . ($cambioUnidadActivo ? " (UNIDAD REEMPLAZADA)" : "")
                 : "CAMBIO DE ESTATUS DE " . strtoupper($registroOperativo->estatus ?? '') . " A " . strtoupper($nuevoEstatus),
             $registroOperativo->estatus ?? null,
@@ -1812,76 +1813,6 @@ class DespachoController extends Controller
             }
         }
 
-
-        // Si es un cambio de unidad, procesar el reemplazo
-        $conductorAsignado = null;
-        $rutaAsignada = null;
-        $tarjetonAsignado = null;
-        if ($cambioUnidadActivo && $request->eco_reemplazo) {
-            $ecoReemplazo = str_pad(ltrim(trim($request->eco_reemplazo), '0'), 3, '0', STR_PAD_LEFT);
-            $tarjetonReemplazo = trim($request->tarjeton_reemplazo);
-            $rutaReemplazo = trim($request->ruta_reemplazo);
-            $corridaReemplazo = trim($request->corrida_reemplazo);
-
-            $unidadReemplazo = DB::table('unidades')->where('numero_eco', $ecoReemplazo)->first();
-            
-            if ($unidadReemplazo) {
-                $conductorReemplazo = DB::table('conductores')->where('tarjeton', $tarjetonReemplazo)->first();
-                $nombreConductorReemplazo = $conductorReemplazo ? $conductorReemplazo->nombre : null;
-
-                // Desasignar cualquier otra unidad que tenga este tarjetón
-                if ($tarjetonReemplazo) {
-                    DB::table('informacion_operativa')
-                        ->where('numero_tarjeton', $tarjetonReemplazo)
-                        ->update([
-                            'numero_tarjeton' => null,
-                            'nombre_conductor' => null
-                        ]);
-                        
-                    DB::table('conductores')
-                        ->where('tarjeton', $tarjetonReemplazo)
-                        ->update(['estado_servicio' => 'en_servicio']);
-                }
-
-                $registroReemplazo = DB::table('informacion_operativa')
-                    ->where('unidad_id', $unidadReemplazo->id)
-                    ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
-                    ->first();
-
-                $reemplazoData = [
-                    'estatus' => 'operacion',
-                    'numero_tarjeton' => $tarjetonReemplazo,
-                    'nombre_conductor' => $nombreConductorReemplazo,
-                    'ruta' => $rutaReemplazo,
-                    'corridas' => $corridaReemplazo === '' ? null : (int)$corridaReemplazo,
-                    'motivo_estatus' => null,
-                    'falla' => null
-                ];
-
-                if ($registroReemplazo) {
-                    DB::table('informacion_operativa')
-                        ->where('id', $registroReemplazo->id)
-                        ->update($reemplazoData);
-                } else {
-                    $reemplazoData['unidad_id'] = $unidadReemplazo->id;
-                    $reemplazoData['tipo'] = strtolower($tipoNormalizado);
-                    $reemplazoData['fecha_registro'] = now();
-                    DB::table('informacion_operativa')->insert($reemplazoData);
-                }
-
-                BitacoraHelper::registrarCambio(
-                    $unidadReemplazo->id,
-                    'CAMBIO_UNIDAD_REEMPLAZO',
-                    "UNIDAD ASIGNADA COMO REEMPLAZO DE ECO " . $unidad->numero_eco . " - CONDUCTOR: " . strtoupper($nombreConductorReemplazo) . ", RUTA: " . strtoupper($rutaReemplazo),
-                    $registroReemplazo->estatus ?? 'reserva',
-                    'operacion'
-                );
-
-                $conductorAsignado = $nombreConductorReemplazo;
-                $rutaAsignada = $rutaReemplazo;
-                $tarjetonAsignado = $tarjetonReemplazo;
-            }
-        }
 
 
         return response()->json([
@@ -1968,6 +1899,27 @@ class DespachoController extends Controller
             ->select('id', 'numero_eco', 'tipo')
             ->orderBy('numero_eco')
             ->get();
+        return response()->json($unidades, 200);
+    }
+
+    public function obtenerPendientesMantenimiento()
+    {
+        $unidades = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->where('informacion_operativa.estatus', 'mantenimiento')
+            ->select(
+                'unidades.numero_eco',
+                'informacion_operativa.tipo',
+                'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.falla_reportada',
+                'informacion_operativa.diagnostico',
+                'informacion_operativa.motivo_estatus',
+                'informacion_operativa.fecha_folio_mantenimiento',
+                'informacion_operativa.fecha_registro'
+            )
+            ->orderBy('unidades.numero_eco')
+            ->get();
+            
         return response()->json($unidades, 200);
     }
 

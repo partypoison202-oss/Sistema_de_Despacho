@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
+import { generarPDFPendientesMantenimiento } from '../../utils/generarPDFPendientesMantenimiento';
 import { transportModules } from '../../config/transportModules';
 import './Mantenimiento.css';
 import '../CentroControl/CentroControl.css';
@@ -90,7 +91,6 @@ export default function Mantenimiento() {
 
       const coincidencia = resultados.find(Boolean);
       if (coincidencia) {
-        // Ajusta la ruta destino según cómo manejes el mantenimiento/inspección por unidad
         navigate(`${isInspeccion ? '/carga-combustible' : '/mantenimiento'}/${coincidencia.modulo.id}?eco=${eco}`);
         return;
       }
@@ -128,7 +128,7 @@ export default function Mantenimiento() {
   const { data: conteos = {}, isLoading: cargando } = useQuery({
     queryKey: ['conteo-unidades-global'],
     queryFn: fetchConteos,
-    refetchInterval: 30000, // Actualiza silenciosamente cada 30 segundos
+    refetchInterval: 30000,
   });
 
   const handleGenerarPDF = async () => {
@@ -142,23 +142,22 @@ export default function Mantenimiento() {
       });
       if (!res.ok) throw new Error('Error al obtener datos');
       const json = await res.json();
-      
+
       if (json.status === 'success') {
         setPdfData(json.data);
         setPdfTotales(json.totales);
-        
-        // Esperar un breve instante para que React renderice el componente oculto
+
         setTimeout(async () => {
           if (pdfRef.current) {
             const canvas = await html2canvas(pdfRef.current, { scale: 2 });
             const imgData = canvas.toDataURL('image/png');
-            
+
             const pdf = new jsPDF({
               orientation: 'landscape',
               unit: 'px',
               format: [canvas.width, canvas.height]
             });
-            
+
             pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
             const todayStr = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
             pdf.save(`Reporte_Combustible_${todayStr}.pdf`);
@@ -183,22 +182,49 @@ export default function Mantenimiento() {
     }
   };
 
+  const handleDescargarPendientes = async (tipo) => {
+    try {
+      Swal.fire({
+        title: 'Generando reporte...',
+        text: 'Por favor espere.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      const response = await fetch(`${API_BASE}/api/despacho/pendientes-mantenimiento`, {
+        headers: {
+          'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`
+        }
+      });
+      if (!response.ok) throw new Error('Error al obtener datos');
+      const data = await response.json();
+      generarPDFPendientesMantenimiento(data, tipo);
+      Swal.close();
+      Swal.fire('Éxito', 'Reporte generado exitosamente.', 'success');
+    } catch (error) {
+      console.error('Error generando reporte de pendientes:', error);
+      Swal.close();
+      Swal.fire('Error', 'No se pudo generar el reporte', 'error');
+    }
+  };
+
   return (
     <>
       <div className="mantenimiento">
         <Header />
         <main className="mantenimiento__main">
-          <p className="centro-eyebrow text-[#c5a059] dark:text-[#c5a059]">Seleccione el tipo de transporte</p>
-          <h1 className="centro-title">
+          <p className="page-eyebrow">SELECCIONE EL TIPO DE TRANSPORTE</p>
+          <h1 className="page-title">
             {isInspeccion ? 'CARGA DE COMBUSTIBLE' : 'MANTENIMIENTO PARQUE VEHICULAR'}
           </h1>
-          <p className="centro-subtitle">
+          <p className="mantenimiento__subtitle text-gray-500 dark:text-gray-300">
             {isInspeccion
               ? 'Toque la imagen del transporte para comenzar la carga de combustible'
               : 'Toque la imagen del transporte para comenzar el mantenimiento'}
           </p>
 
-          <form className="mantenimiento__search mt-16" onSubmit={handleBuscarUnidad}>
+          <form className="mantenimiento__search" onSubmit={handleBuscarUnidad}>
             <input
               type="text"
               value={busquedaEco}
@@ -228,29 +254,67 @@ export default function Mantenimiento() {
               />
             ))}
           </div>
-          
+
+          {/* Botones de reportes — al fondo */}
+          {!isInspeccion && (
+            <div className="mantenimiento__actions">
+              <p className="mantenimiento__actions-label">Reportes de unidades pendientes en mantenimiento</p>
+              <div className="mantenimiento__actions-btns">
+                <button
+                  className="mant-btn mant-btn--autobuses"
+                  onClick={() => handleDescargarPendientes('autobuses')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="12" x2="12" y2="18" />
+                    <polyline points="9 15 12 18 15 15" />
+                  </svg>
+                  <span>
+                    <strong>Reporte Autobuses</strong>
+                    <small>Pendientes en mantenimiento</small>
+                  </span>
+                </button>
+
+                <button
+                  className="mant-btn mant-btn--vagonetas"
+                  onClick={() => handleDescargarPendientes('vagonetas')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="12" x2="12" y2="18" />
+                    <polyline points="9 15 12 18 15 15" />
+                  </svg>
+                  <span>
+                    <strong>Reporte Vagonetas</strong>
+                    <small>Pendientes en mantenimiento</small>
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {isInspeccion && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem', marginBottom: '2rem' }}>
-              <button 
-                onClick={handleGenerarPDF}
-                disabled={generandoPDF}
-                style={{ 
-                  background: '#6b1d33', 
-                  color: '#fff', 
-                  padding: '12px 24px', 
-                  borderRadius: '5px', 
-                  fontWeight: 'bold',
-                  fontSize: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  cursor: generandoPDF ? 'not-allowed' : 'pointer',
-                  opacity: generandoPDF ? 0.7 : 1,
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                }}
-              >
-                {generandoPDF ? 'Generando Reporte...' : '📄 Generar Reporte PDF'}
-              </button>
+            <div className="mantenimiento__actions">
+              <div className="mantenimiento__actions-btns">
+                <button
+                  className="mant-btn mant-btn--autobuses"
+                  onClick={handleGenerarPDF}
+                  disabled={generandoPDF}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="12" x2="12" y2="18" />
+                    <polyline points="9 15 12 18 15 15" />
+                  </svg>
+                  <span>
+                    <strong>{generandoPDF ? 'Generando...' : 'Reporte de Combustible'}</strong>
+                    <small>Descargar PDF general</small>
+                  </span>
+                </button>
+              </div>
             </div>
           )}
 

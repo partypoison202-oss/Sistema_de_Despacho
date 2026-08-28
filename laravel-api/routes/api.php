@@ -128,6 +128,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/despacho/actualizar-horas', [DespachoController::class, 'actualizarHoras']);
     Route::post('/despacho/validar', [DespachoController::class, 'validarDespacho']);
     Route::get('/despacho/catalogo/unidades', [DespachoController::class, 'obtenerCatalogoUnidades']);
+    Route::get('/despacho/pendientes-mantenimiento', [DespachoController::class, 'obtenerPendientesMantenimiento']);
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
     Route::post('/mantenimiento/guardar', [DespachoController::class, 'guardarMantenimiento']);
     Route::get('/mantenimiento/ultimo-registro/{eco}', [DespachoController::class, 'ultimoRegistroMantenimiento']);
