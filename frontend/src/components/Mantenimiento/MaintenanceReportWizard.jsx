@@ -13,6 +13,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   const [realTimeClock, setRealTimeClock] = useState('');
   const printableRef = useRef(null);
   const hasInitialized = useRef(false);
+  const hasPrinted = useRef(false);
 
   // Form Data
   const [folio, setFolio] = useState('');
@@ -63,12 +64,14 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     // Reset hasInitialized when closed so it can re-init next time
     if (!isOpen) {
       hasInitialized.current = false;
+      hasPrinted.current = false;
     }
   }, [isOpen, initialData, initialStep]);
 
   // Si printOnly es true, generar PDF automáticamente después de inicializar
   useEffect(() => {
-    if (isOpen && printOnly && hasInitialized.current && !loading) {
+    if (isOpen && printOnly && hasInitialized.current && !loading && !hasPrinted.current) {
+      hasPrinted.current = true;
       const autoPrint = async () => {
         setLoading(true);
         await handleGeneratePDF();
@@ -78,7 +81,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       // Pequeño timeout para permitir que el DOM se pinte completamente
       setTimeout(autoPrint, 300);
     }
-  }, [isOpen, printOnly]);
+  }, [isOpen, printOnly, loading]);
 
   // Reloj en tiempo real parpadeante
   useEffect(() => {
@@ -166,6 +169,7 @@ const handleNext = () => {
     
     setLoading(true);
     setErrorMsg('');
+    hasPrinted.current = true; // Prevent double printing if printOnly triggers
     
     try {
       // Generamos y descargamos el PDF inmediatamente para mejor experiencia de usuario
@@ -178,7 +182,8 @@ const handleNext = () => {
         fecha_folio_mantenimiento: new Date().toISOString(),
         falla_reportada: formData.falla_reportada,
         diagnostico: formData.diagnostico,
-        firma_base64: formData.firma_base64
+        firma_base64: formData.firma_base64,
+        kilometraje: formData.km
       });
       
       onClose();
@@ -226,17 +231,17 @@ const handleNext = () => {
 
   const renderStep2 = () => (
     <div className="flex flex-col h-full max-h-[85vh]">
-      <div className="flex justify-between items-center bg-[#6b1d33] text-white p-4 rounded-t-xl shrink-0">
-        <h2 className="text-lg font-bold">Reporte de Falla / Orden de Mantenimiento</h2>
-        <button onClick={onClose} className="text-white hover:text-gray-200 text-2xl font-bold leading-none">&times;</button>
+      <div className="flex justify-between items-center bg-gradient-to-r from-[#6b1d33] to-[#8d2846] text-white p-5 rounded-t-xl shrink-0 shadow-md">
+        <h2 className="text-lg font-bold tracking-wide">Reporte de Falla / Orden de Mantenimiento</h2>
+        <button onClick={onClose} className="text-white/80 hover:text-white transition-colors text-2xl font-bold leading-none focus:outline-none">&times;</button>
       </div>
       
-      <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Folio (Incidencia)</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Folio</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{folio}</div>
             </div>
             <div>
@@ -262,33 +267,33 @@ const handleNext = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-5 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio</label>
-              <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]" placeholder="Ej. RA 3" />
+              <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Ej. RA 3" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida</label>
-              <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]" placeholder="Ej. 2" />
+              <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Ej. 2" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM <span className="text-red-500">*</span></label>
-              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]" placeholder="Ej. 1488" />
+              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Ej. 1488" />
             </div>
           </div>
 
-          <div className="space-y-4 mb-6">
+          <div className="space-y-5 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Falla Reportada <span className="text-red-500">*</span></label>
-              <textarea name="falla_reportada" value={formData.falla_reportada} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]" placeholder="Describa la falla..."></textarea>
+              <textarea name="falla_reportada" value={formData.falla_reportada} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Describa la falla..."></textarea>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Diagnóstico (Opcional)</label>
-              <textarea name="diagnostico" value={formData.diagnostico} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]"></textarea>
+              <textarea name="diagnostico" value={formData.diagnostico} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm"></textarea>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción de Mantenimiento (Opcional)</label>
-              <textarea name="descripcion_mantenimiento" value={formData.descripcion_mantenimiento} onChange={handleInputChange} rows="2" className="w-full border border-gray-300 rounded p-2 text-sm focus:border-[#6b1d33] focus:ring-1 focus:ring-[#6b1d33]"></textarea>
+              <textarea name="descripcion_mantenimiento" value={formData.descripcion_mantenimiento} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm"></textarea>
             </div>
           </div>
 
@@ -312,23 +317,23 @@ const handleNext = () => {
         </div>
       )}
 
-      <div className="p-4 bg-white border-t border-gray-200 rounded-b-xl shrink-0 flex justify-end gap-3 shadow-up">
+      <div className="p-5 bg-white border-t border-gray-100 rounded-b-xl shrink-0 flex justify-end gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-10">
         <button 
           onClick={() => { setStep(1); setErrorMsg(''); }}
-          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium"
+          className="px-5 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
         >
-          Editar Folio
+          Atrás (Cambiar Folio)
         </button>
         <button 
           onClick={handleSave}
           disabled={!isFormValid() || loading}
-          className={`px-6 py-2 rounded-md font-medium text-white shadow-sm flex items-center gap-2
-            ${(!isFormValid() || loading) ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#6b1d33] hover:bg-[#832641]'}`}
+          className={`px-6 py-2.5 rounded-lg font-medium text-white shadow-md flex items-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-[#6b1d33]/50 focus:ring-offset-1
+            ${(!isFormValid() || loading) ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-[#6b1d33] to-[#8d2846] hover:shadow-lg hover:-translate-y-0.5'}`}
         >
           {loading ? 'Procesando...' : (
             <>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-              Guardar e Imprimir Orden
+              Generar y Descargar PDF
             </>
           )}
         </button>

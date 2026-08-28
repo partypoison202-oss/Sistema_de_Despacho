@@ -580,6 +580,10 @@ const InfraccionDashboard = () => {
       <Header title="Módulo de Infracciones" eyebrow="Inspección y Control de Carril Confinado Troncal (URBANUSS)" />
 
       <main className="infraccion-main">
+        <div className="page-header-container">
+          <p className="page-eyebrow">CONTROL Y REGISTRO</p>
+          <h1 className="page-title">INFRACCIÓN</h1>
+        </div>
         {/* Banner Informativo Troncal URBANUSS */}
         <div className="troncal-header-banner">
           <div className="troncal-banner-icon">

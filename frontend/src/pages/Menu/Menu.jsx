@@ -17,7 +17,7 @@ const menuItems = [
         <line x1="15" y1="6" x2="15" y2="21" />
       </svg>
     ),
-    label: 'MESA DE CONTROL DASHBOARD',
+    label: 'Despacho de unidades',
     color: 'maroon',
   },
   {
@@ -32,7 +32,7 @@ const menuItems = [
         <path d="M7 16h6" />
       </svg>
     ),
-    label: 'MONITOR OPERATIVO',
+    label: 'Monitor operativo',
     color: 'orange',
   },
   {
@@ -45,7 +45,7 @@ const menuItems = [
         <path d="M9 21v-8h6v8" />
       </svg>
     ),
-    label: 'MANTENIMIENTO DASHBOARD',
+    label: 'Encierro de unidades',
     color: 'gold',
   },
   {
@@ -59,7 +59,7 @@ const menuItems = [
         <line x1="12" y1="3" x2="12" y2="15" />
       </svg>
     ),
-    label: 'PROGRAMACIÓN Y LOGÍSTICA',
+    label: 'Programación y Logística',
     color: 'green',
   },
   {
@@ -74,7 +74,7 @@ const menuItems = [
         <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
       </svg>
     ),
-    label: 'RELEVOS DE T6',
+    label: 'Relevos de t6',
     color: 'teal',
   },
   {
@@ -86,7 +86,7 @@ const menuItems = [
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
       </svg>
     ),
-    label: 'MANTENIMIENTO PARQUE VEHICULAR',
+    label: 'Mantenimiento parque vehicular',
     color: 'brown',
   },
   {
@@ -100,7 +100,7 @@ const menuItems = [
         <circle cx="12" cy="12" r="2" />
       </svg>
     ),
-    label: 'MONITOREO DE LA OPERACIÓN',
+    label: 'Monitoreo de la operación',
     color: 'blue',
   },
   {
@@ -114,7 +114,7 @@ const menuItems = [
         <path d="M12 7v5l4 2" />
       </svg>
     ),
-    label: 'HISTÓRICO DE LA OPERACIÓN',
+    label: 'Histórico de la operación',
     color: 'orange',
   },
   {
@@ -128,7 +128,7 @@ const menuItems = [
         <path d="M12 16h.01" />
       </svg>
     ),
-    label: 'INSPECTORES DE OPERACIÓN',
+    label: 'Inspectores de operación',
     color: 'maroon',
   },
   {
@@ -143,13 +143,12 @@ const menuItems = [
         <line x1="12" y1="20" x2="12.01" y2="20" />
       </svg>
     ),
-    label: 'INFRACCIÓN',
+    label: 'Infracción',
     color: 'red',
   },
-  // ========== CAMBIO: PLATAFORMA → MESA DE CONTROL ==========
   {
-    id: 'mesa-control',          // antes 'plataforma'
-    redirectTo: '/mesa-control', // antes '/dashboard'
+    id: 'mesa-control',
+    redirectTo: '/mesa-control',
     modulo: 'mesa_control',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -158,10 +157,9 @@ const menuItems = [
         <line x1="12" y1="17" x2="12" y2="21"></line>
       </svg>
     ),
-    label: 'MESA DE CONTROL',
+    label: 'Mesa de control',
     color: 'blue',
   },
-  // ========================================================
   {
     id: 'operadores',
     redirectTo: '/operadores',
@@ -175,7 +173,7 @@ const menuItems = [
         <line x1="15" y1="11" x2="19" y2="11" />
       </svg>
     ),
-    label: 'GESTIÓN DE T6',
+    label: 'Control de personas conductoras',
     color: 'gold',
   },
   {
@@ -197,7 +195,7 @@ const menuItems = [
         <path d="M16.9 13.4l.7-.7" />
       </svg>
     ),
-    label: 'GESTIÓN DE MANIOBRISTAS',
+    label: 'Gestión de maniobristas',
     color: 'orange',
   },
   {
@@ -212,27 +210,10 @@ const menuItems = [
         <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" />
       </svg>
     ),
-    label: 'CONTROL DE COMBUSTIBLE',
+    label: 'Control de combustible',
     color: 'teal',
   }
 ];
-
-const MENU_MODULES_CONFIG = {
-  'MESA DE CONTROL DASHBOARD': 'MESA DE CONTROL',
-  'GENERAL': 'MONITOR OPERATIVO',
-  'MANTENIMIENTO DASHBOARD': 'MANTENIMIENTO PARQUE VEHICULAR',
-  'CAPTURISTA': 'PROGRAMACIÓN Y LOGÍSTICA',
-  'RELEVOS': 'RELEVOS DE T6',
-  'MANTENIMIENTO': 'MANTENIMIENTO PARQUE VEHICULAR',
-  'CENTRO DE CONTROL': 'MONITOREO DE LA OPERACIÓN',
-  'HISTORIAL': 'HISTÓRICO DE LA OPERACIÓN',
-  'TITÁN': 'INSPECTORES DE OPERACIÓN',
-  'MESA DE CONTROL': 'MESA DE CONTROL',
-  'GESTIÓN DE T6': 'CONTROL DE PERSONAS CONDUCTORAS',
-  'GESTIÓN DE MANIOBRISTAS': 'GESTIÓN DE MANIOBRISTAS',
-  'CARGA DE COMBUSTIBLE': 'CONTROL DE COMBUSTIBLE',
-  'INFRACCIÓN': 'INFRACCIÓN'
-};
 
 export default function Menu() {
   const navigate = useNavigate();
@@ -310,8 +291,10 @@ export default function Menu() {
                 {item.icon}
               </div>
               <div className="dashboard-card__body">
-                <span className="dashboard-card__label">{MENU_MODULES_CONFIG[item.label] || item.label}</span>
-                <span className="dashboard-card__desc">{item.description}</span>
+                <span className="dashboard-card__label">{item.label}</span>
+                {item.description && (
+                  <span className="dashboard-card__desc">{item.description}</span>
+                )}
               </div>
               <div className="dashboard-card__arrow" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

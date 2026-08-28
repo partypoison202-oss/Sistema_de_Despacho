@@ -45,12 +45,12 @@
   align-items: center;
   gap: 0.75rem;
   max-width: 640px;
-  margin: 0 auto 5rem;
+  margin: 0 auto 2.5rem;
   padding: 0.85rem 1rem;
-  border: 1px solid #e5d2b3;
+  border: 1px solid var(--tw-color-gray-200);
   border-radius: 999px;
-  background: linear-gradient(135deg, #fffaf2 0%, #ffffff 100%);
-  box-shadow: 0 10px 30px rgba(96, 26, 42, 0.08);
+  background-color: var(--tw-color-white);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .mantenimiento__search-input {
@@ -147,4 +147,94 @@ html.dark .mantenimiento__search-input::placeholder {
 html.dark .mantenimiento__search {
   background-color: #1d1d22 !important;
   border-color: #3a3a44 !important;
+}
+
+/* ── Acciones / Reportes ─────────────────────────────── */
+
+.mantenimiento__actions {
+  margin-top: 3.5rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.mantenimiento__actions-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a7d61;
+  margin-bottom: 1.25rem;
+}
+
+.mantenimiento__actions-btns {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mant-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.mant-btn svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.mant-btn span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mant-btn strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mant-btn small {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.mant-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.mant-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Variante Autobuses (granate del sistema) */
+.mant-btn--autobuses {
+  background: linear-gradient(135deg, #6b1d33 0%, #8d2846 100%);
+  color: #fff;
+}
+
+/* Variante Vagonetas (marrón cálido) */
+.mant-btn--vagonetas {
+  background: linear-gradient(135deg, #7a4a1e 0%, #a06025 100%);
+  color: #fff;
+}
+
+/* Modo oscuro */
+html.dark .mantenimiento__actions-label {
+  color: #b8956a;
 }

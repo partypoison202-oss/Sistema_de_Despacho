@@ -120,8 +120,8 @@ export default function DashboardMesaControl() {
     <div className="mantenimiento"> {/* Usamos la misma clase que Mantenimiento para heredar estilos */}
       <Header />
       <main className="mantenimiento__main">
-        <p className="mantenimiento__eyebrow text-[#c5a059]">Mesa de Control</p>
-        <h1 className="mantenimiento__title text-gray-900">Flota de Unidades</h1>
+        <p className="page-eyebrow">MONITOREO Y GESTIÓN</p>
+        <h1 className="page-title">MESA DE CONTROL</h1>
         <p className="mantenimiento__subtitle text-gray-500">
           Toque la imagen del transporte para gestionar la unidad
         </p>

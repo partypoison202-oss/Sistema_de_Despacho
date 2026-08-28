@@ -738,9 +738,18 @@ export default function CargaExcel() {
       <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
       <main className="excel-main-content">
         <div className="excel-top-bar">
-          <div className="excel-title-section">
-            <h1>Captura de Despacho Diario</h1>
-            <p className="excel-subtitle">Organiza, edita y concilia la programación operativa directamente en el sistema</p>
+          <div className="page-header-container" style={{ margin: '0 auto 20px auto' }}>
+            <p className="page-eyebrow">
+              {isRelevos ? 'GESTIÓN DE OPERACIONES' : 'SISTEMA DE'}
+            </p>
+            <h1 className="page-title">
+              {isRelevos ? 'RELEVOS DE T6' : 'PROGRAMACIÓN Y LOGÍSTICA'}
+            </h1>
+            <p className="excel-subtitle">
+              {isRelevos 
+                ? 'Gestiona, asiste y concilia los relevos operativos de los T6'
+                : 'Organiza, edita y concilia la programación operativa directamente en el sistema'}
+            </p>
           </div>
 
           <div className="excel-tabs-container">

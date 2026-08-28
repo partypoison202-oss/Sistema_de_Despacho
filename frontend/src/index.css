@@ -197,3 +197,24 @@ body {
 /* Fix global de tablas cortadas */
 .table-responsive { width: 100%; overflow-x: auto; }
 table { max-width: 100%; white-space: nowrap; min-width: 100%; }
+
+/* --- Estilos globales de encabezados de página --- */
+.page-header-container {
+  margin-bottom: 28px;
+  text-align: center;
+}
+.page-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--brand-gold-text);
+  margin: 0 0 6px;
+}
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--brand-maroon-text);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}

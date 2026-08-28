@@ -101,8 +101,9 @@ export default function MenuHistorial() {
       <Header hideBackButton={false} />
 
       <main className="dashboard-main">
-        <div className="dashboard-welcome">
-          <h2 className="dashboard-heading">Seleccione un <span className="text-highlight">Historial</span></h2>
+        <div className="page-header-container">
+          <p className="page-eyebrow">SELECCIONE EL MÓDULO</p>
+          <h1 className="page-title">HISTÓRICO DE LA OPERACIÓN</h1>
         </div>
 
         <div className="menu-dashboard-grid">

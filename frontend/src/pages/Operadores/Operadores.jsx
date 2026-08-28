@@ -903,11 +903,10 @@ export default function Operadores() {
 
       <main className="operadores-main-content">
         <div className="operadores-top-bar">
-          <div className="operadores-title-section">
-            <h1>Gestión de T6</h1>
-            <p className="operadores-subtitle">
-              Administra el alta, baja y edición de conductores (T6). El tarjetón se genera automáticamente.
-            </p>
+          <div className="page-header-container" style={{ margin: '0 auto 20px auto' }}>
+            <p className="page-eyebrow">GESTIÓN DE PERSONAL</p>
+            <h1 className="page-title">CONTROL DE PERSONAS CONDUCTORAS</h1>
+            <p className="op-subtitle">Administra los conductores registrados en el sistema</p>
           </div>
 
           {canEdit && (

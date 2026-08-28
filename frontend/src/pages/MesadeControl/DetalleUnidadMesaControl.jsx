@@ -53,7 +53,7 @@ export default function DetalleUnidadMesaControl() {
   const [modalEstatusRuta, setModalEstatusRuta] = useState('');
   const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
   const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
-  
+
   // Estados para cambio de unidad en modal de estatus
   const [cambioUnidadActivo, setCambioUnidadActivo] = useState(false);
   const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
@@ -188,8 +188,8 @@ export default function DetalleUnidadMesaControl() {
     unidadesList.filter((u) => u.estado === estado);
 
   const isTroncal = configActual?.id === 'urbanuss';
-  const conductoresDisponibles = dbConductores.filter(c => 
-    c.estado_servicio === 'disponible' && 
+  const conductoresDisponibles = dbConductores.filter(c =>
+    c.estado_servicio === 'disponible' &&
     (!isTroncal || c.tipo_tarjeton === 'C')
   );
 
@@ -264,15 +264,15 @@ export default function DetalleUnidadMesaControl() {
         const token = getToken();
         if (!token) return;
         const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
-           headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-           const data = await res.json();
-            if (configActual?.id === 'urbanuss') {
-              setRutasOpciones(data.troncales || []);
-            } else {
-              setRutasOpciones(data.alimentadoras || []);
-            }
+          const data = await res.json();
+          if (configActual?.id === 'urbanuss') {
+            setRutasOpciones(data.troncales || []);
+          } else {
+            setRutasOpciones(data.alimentadoras || []);
+          }
         }
       } catch (err) {
         console.error('Error fetching rutas', err);
@@ -305,11 +305,11 @@ export default function DetalleUnidadMesaControl() {
       typeof unidad === 'object' && unidad !== null
         ? unidad
         : unidadesList.find(
-            (item) =>
-              item.display === unidad ||
-              item.eco === unidad ||
-              String(item.tarjeton ?? '').trim() === String(unidad ?? '').trim()
-          ) || null;
+          (item) =>
+            item.display === unidad ||
+            item.eco === unidad ||
+            String(item.tarjeton ?? '').trim() === String(unidad ?? '').trim()
+        ) || null;
 
     if (!unidadSeleccionada) {
       console.warn('Unidad no encontrada:', unidad);
@@ -454,7 +454,7 @@ export default function DetalleUnidadMesaControl() {
         fetchConductores();
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
-        
+
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({
           icon: 'success',
@@ -513,24 +513,24 @@ export default function DetalleUnidadMesaControl() {
         queryClient.invalidateQueries(['maniobristas-list']);
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
-        
+
         const Swal = (await import('sweetalert2')).default;
         if (nuevoTarjeton === '') {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Maniobrista Removido!',
-                text: 'Se removió el maniobrista de esta unidad.',
-                confirmButtonColor: 'var(--tw-color-gray-300)',
-                timer: 2000,
-            });
+          Swal.fire({
+            icon: 'success',
+            title: '¡Maniobrista Removido!',
+            text: 'Se removió el maniobrista de esta unidad.',
+            confirmButtonColor: 'var(--tw-color-gray-300)',
+            timer: 2000,
+          });
         } else {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Maniobrista Asignado!',
-                text: `Se asignó al maniobrista: ${resultado.maniobrista}`,
-                confirmButtonColor: 'var(--tw-color-gray-300)',
-                timer: 2000,
-            });
+          Swal.fire({
+            icon: 'success',
+            title: '¡Maniobrista Asignado!',
+            text: `Se asignó al maniobrista: ${resultado.maniobrista}`,
+            confirmButtonColor: 'var(--tw-color-gray-300)',
+            timer: 2000,
+          });
         }
       } else {
         const Swal = (await import('sweetalert2')).default;
@@ -590,10 +590,10 @@ export default function DetalleUnidadMesaControl() {
     try {
       const token = getToken();
       if (!token) throw new Error('No token');
-      
+
       const matchNumeros = selectedOption.match(/\d+/);
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-      
+
       const payload = {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
@@ -683,7 +683,7 @@ export default function DetalleUnidadMesaControl() {
   // ========== FUNCIONES DE CAMBIO DE ESTATUS (ya existentes) ==========
   const handleCambiarEstatus = async (nuevoEstatus) => {
     if (!selectedOption) return;
-    
+
     if (datosOperativos.estatus === nuevoEstatus) return;
 
     // Ir directo al modal sin Swal intermedio
@@ -715,7 +715,7 @@ export default function DetalleUnidadMesaControl() {
         return;
       }
     }
-    
+
     // Validación para cambio de unidad
     if (cambioUnidadActivo) {
       if (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()) {
@@ -761,17 +761,20 @@ export default function DetalleUnidadMesaControl() {
         Swal.fire({
           icon: 'success',
           title: 'Estatus Actualizado',
-          text: `La unidad cambió a operación.`,
+          text: `La unidad actualizó su estatus correctamente.`,
           timer: 2000,
           showConfirmButton: false,
         });
-        
+
+        const isMantenimientoOrReserva = ['mantenimiento', 'reserva', 'percance'].includes(modalEstatusNuevo);
+        const shouldClearConductor = isMantenimientoOrReserva;
+
         setDatosOperativos((prev) => ({
           ...prev,
           estatus: modalEstatusNuevo,
-          conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || prev.conductor),
-          ruta: modalEstatusRuta || data.ruta_asignada || prev.ruta,
-          tarjeton: modalEstatusConductor || data.tarjeton || prev.tarjeton,
+          conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || prev.conductor)),
+          ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || prev.ruta),
+          tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || prev.tarjeton),
         }));
         setSelectedEstado(modalEstatusNuevo);
         queryClient.invalidateQueries(['conductores-list']);
@@ -782,10 +785,10 @@ export default function DetalleUnidadMesaControl() {
           return {
             ...old,
             estatus: modalEstatusNuevo,
-            conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || old.conductor),
-            ruta: modalEstatusRuta || data.ruta_asignada || old.ruta,
-            tarjeton: modalEstatusConductor || data.tarjeton || old.tarjeton,
-            asignado: true
+            conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || old.conductor)),
+            ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || old.ruta),
+            tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || old.tarjeton),
+            asignado: !shouldClearConductor
           };
         });
 
@@ -795,9 +798,18 @@ export default function DetalleUnidadMesaControl() {
               return {
                 ...u,
                 estatus: modalEstatusNuevo,
-                nombre_conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor),
-                ruta: modalEstatusRuta || data.ruta_asignada || u.ruta,
-                tarjeton: modalEstatusConductor || data.tarjeton || u.tarjeton,
+                nombre_conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor)),
+                ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || u.ruta),
+                tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || u.tarjeton),
+              };
+            }
+            if (cambioUnidadActivo && unidadReemplazoSeleccionada && String(u.eco).padStart(3, '0') === String(unidadReemplazoSeleccionada.eco).padStart(3, '0')) {
+              return {
+                ...u,
+                estatus: 'operacion',
+                nombre_conductor: data.conductor_asignado || (foundConductor ? foundConductor.nombre : null),
+                ruta: data.ruta_asignada || modalEstatusRuta,
+                tarjeton: data.tarjeton || modalEstatusConductor,
               };
             }
             return u;
@@ -827,10 +839,10 @@ export default function DetalleUnidadMesaControl() {
       />
       <main className="main-content">
         <div className="unit-control-panel">
-          <LocalSearchBar 
-            unidades={unidadesList} 
-            onSelectUnit={handleSelectUnit} 
-            moduleName={configActual?.title || 'esta sección'} 
+          <LocalSearchBar
+            unidades={unidadesList}
+            onSelectUnit={handleSelectUnit}
+            moduleName={configActual?.title || 'esta sección'}
           />
           <div className="unit-control-panel__selectors">
             <UnitSelector
@@ -869,11 +881,23 @@ export default function DetalleUnidadMesaControl() {
               configActual={configActual}
               onSelectUnit={handleSelectUnit}
             />
+            <UnitSelector
+              isOpen={openDropdown === 'percance'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'percance' : null)}
+              selectedOption={selectedOption}
+              selectedEstado={selectedEstado}
+              estado="percance"
+              titulo="Percance"
+              unidades={unidadesPorEstado('percance')}
+              cargandoUnidades={cargandoUnidades}
+              configActual={configActual}
+              onSelectUnit={handleSelectUnit}
+            />
             {/* RESERVA T6 (Conductores Disponibles) */}
             <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
               <div style={{ position: 'relative', display: 'inline-block' }}>
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'reservaT6' ? null : 'reservaT6')} 
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'reservaT6' ? null : 'reservaT6')}
                   className={`dropdown-trigger ${openDropdown === 'reservaT6' ? 'dropdown-trigger--open' : ''}`}
                 >
                   <div className="dropdown-trigger__icon-container">
@@ -934,8 +958,8 @@ export default function DetalleUnidadMesaControl() {
             {/* MANIOBRISTAS (NUEVO) */}
             <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
               <div style={{ position: 'relative', display: 'inline-block' }}>
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'maniobristas' ? null : 'maniobristas')} 
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'maniobristas' ? null : 'maniobristas')}
                   className={`dropdown-trigger ${openDropdown === 'maniobristas' ? 'dropdown-trigger--open' : ''}`}
                 >
                   <div className="dropdown-trigger__icon-container" style={{ background: '#f59e0b20' }}>
@@ -1041,6 +1065,7 @@ export default function DetalleUnidadMesaControl() {
                           { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
                           { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
                           { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' },
+                          { id: 'percance', label: 'PERCANCE', color: '#b91c1c', bgActive: '#fef2f2' },
                         ].map((st) => {
                           const isActive = datosOperativos.estatus === st.id;
                           return (
@@ -1404,11 +1429,12 @@ export default function DetalleUnidadMesaControl() {
         >
           <div className="custom-modal-content">
             <h2 className="custom-modal-title">
-              {modalEstatusNuevo === 'operacion' ? 'Asignar Conductor y Ruta' : 
-               modalEstatusNuevo === 'reserva' ? 'Cambiar a RESERVA' : 
-               'Cambiar a MANTENIMIENTO'}
+              {modalEstatusNuevo === 'operacion' ? 'Asignar Conductor y Ruta' :
+                modalEstatusNuevo === 'reserva' ? 'Cambiar a RESERVA' :
+                  modalEstatusNuevo === 'percance' ? 'Cambiar a PERCANCE' :
+                    'Cambiar a MANTENIMIENTO'}
             </h2>
-            
+
             {/* Sección de Información Actual */}
             <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
               <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
@@ -1430,7 +1456,7 @@ export default function DetalleUnidadMesaControl() {
                 </p>
               )}
             </div>
-            
+
             {/* Checkbox para cambiar unidad */}
             {datosOperativos.estatus === 'operacion' && (
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 700, cursor: 'pointer', marginBottom: '1.5rem', marginTop: '1rem', padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
@@ -1440,10 +1466,10 @@ export default function DetalleUnidadMesaControl() {
                   onChange={(e) => {
                     setCambioUnidadActivo(e.target.checked);
                     if (e.target.checked) {
-                      setReemplazoForm({ 
-                        tarjeton: datosOperativos.tarjeton || '', 
-                        ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '', 
-                        corrida: datosOperativos.corrida || '' 
+                      setReemplazoForm({
+                        tarjeton: datosOperativos.tarjeton || '',
+                        ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '',
+                        corrida: datosOperativos.corrida || ''
                       });
                     } else {
                       setUnidadReemplazoSeleccionada(null);
@@ -1479,9 +1505,9 @@ export default function DetalleUnidadMesaControl() {
                       <span>
                         {modalEstatusConductor
                           ? (() => {
-                              const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor || c.tarjeton === modalEstatusConductor);
-                              return found ? `${found.nombre} (${found.tarjeton})` : 'Seleccione un conductor...';
-                            })()
+                            const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor || c.tarjeton === modalEstatusConductor);
+                            return found ? `${found.nombre} (${found.tarjeton})` : 'Seleccione un conductor...';
+                          })()
                           : 'Seleccione un conductor...'}
                       </span>
                       <svg
@@ -1582,7 +1608,7 @@ export default function DetalleUnidadMesaControl() {
               </>
             ) : (
               <div style={{ display: 'grid', gap: '1.25rem', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc', marginBottom: '1.5rem' }}>
-                
+
                 {/* Número de ECO - Dropdown */}
                 <div style={{ display: 'grid', gap: '0.4rem', position: 'relative' }} ref={ecoReemplazoRef}>
                   <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>Número de ECO</span>
@@ -1656,24 +1682,24 @@ export default function DetalleUnidadMesaControl() {
                       </div>
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem', overflowY: 'auto' }}>
                         {(conductoresDisponibles || [])
-                          .filter(c => 
-                            String(c.tarjeton || '').toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()) || 
+                          .filter(c =>
+                            String(c.tarjeton || '').toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()) ||
                             (c.nombre && c.nombre.toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()))
                           )
                           .map(c => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: reemplazoForm.tarjeton === c.tarjeton ? 'bold' : '500', textAlign: 'left', width: '100%' }}
-                            onClick={() => {
-                              setReemplazoForm((prev) => ({ ...prev, tarjeton: c.tarjeton }));
-                              setDropdownReemplazoTarjetonOpen(false);
-                            }}
-                          >
-                            {c.tarjeton} — {c.nombre}
-                          </button>
-                        ))}
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                              style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: reemplazoForm.tarjeton === c.tarjeton ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                              onClick={() => {
+                                setReemplazoForm((prev) => ({ ...prev, tarjeton: c.tarjeton }));
+                                setDropdownReemplazoTarjetonOpen(false);
+                              }}
+                            >
+                              {c.tarjeton} — {c.nombre}
+                            </button>
+                          ))}
                         {(conductoresDisponibles || []).filter(c => String(c.tarjeton || '').toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()) || (c.nombre && c.nombre.toLowerCase().includes(busquedaReemplazoTarjeton.toLowerCase()))).length === 0 && (
                           <div style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
                             No se encontraron conductores.
@@ -1760,15 +1786,15 @@ export default function DetalleUnidadMesaControl() {
                   (modalEstatusNuevo === 'operacion' && (!modalEstatusConductor || !modalEstatusRuta)) ||
                   (cambioUnidadActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()))
                 }
-                style={{ 
+                style={{
                   opacity: (
                     (modalEstatusNuevo === 'operacion' && (!modalEstatusConductor || !modalEstatusRuta)) ||
                     (cambioUnidadActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()))
-                  ) ? 0.5 : 1, 
+                  ) ? 0.5 : 1,
                   cursor: (
                     (modalEstatusNuevo === 'operacion' && (!modalEstatusConductor || !modalEstatusRuta)) ||
                     (cambioUnidadActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !String(reemplazoForm.corrida || '').trim()))
-                  ) ? 'not-allowed' : 'pointer' 
+                  ) ? 'not-allowed' : 'pointer'
                 }}
               >
                 Guardar

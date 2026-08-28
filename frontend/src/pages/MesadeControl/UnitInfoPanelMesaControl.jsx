@@ -59,7 +59,7 @@ export default function UnitInfoPanel({
   const [dropdownTarjetonManiobristaOpen, setDropdownTarjetonManiobristaOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
 
-  const isReservaOrMantenimiento = ['reserva', 'mantenimiento'].includes((datosOperativos.estatus || '').toLowerCase());
+  const isReservaOrMantenimiento = ['reserva', 'mantenimiento', 'percance'].includes((datosOperativos.estatus || '').toLowerCase());
 
   // ⏰ Reloj en tiempo real para Hora de salida (HH:MM:SS con parpadeo)
   const [liveTime, setLiveTime] = useState(() => {
@@ -1393,7 +1393,7 @@ export default function UnitInfoPanel({
                   {platEstatusDropdown && (
                     <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
-                        {['RESERVA', 'MANTENIMIENTO'].map(r => (
+                        {['RESERVA', 'MANTENIMIENTO', 'PERCANCE'].map(r => (
                           <button
                             key={r}
                             type="button"

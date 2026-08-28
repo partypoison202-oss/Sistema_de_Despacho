@@ -116,7 +116,7 @@ export default function UnitInfoPanel({
   const [dropdownObservacionesOpen, setDropdownObservacionesOpen] = useState(false);
   const [formObservaciones, setFormObservaciones] = useState('');
 
-  const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO';
+  const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'PERCANCE';
 
   // Inicializar hora programada y observaciones desde datosOperativos
   useEffect(() => {
@@ -1227,7 +1227,7 @@ export default function UnitInfoPanel({
                   {platEstatusDropdown && (
                     <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
-                        {['RESERVA', 'MANTENIMIENTO'].map(r => (
+                        {['RESERVA', 'MANTENIMIENTO', 'PERCANCE'].map(r => (
                           <button
                             key={r}
                             type="button"

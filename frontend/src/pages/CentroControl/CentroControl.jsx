@@ -259,8 +259,8 @@ export default function CentroControl() {
 
         <main className="centro-main">
           <div className="centro-welcome">
-            <p className="centro-eyebrow">Visión general de la flota</p>
-            <h1 className="centro-title">MONITOREO DE OPERACIONES</h1>
+            <p className="page-eyebrow">Visión general de la flota</p>
+            <h1 className="page-title">MONITOREO DE LA OPERACIÓN</h1>
             <p className="centro-date">{fechaActual}</p>
             <p className="centro-subtitle">
               Consulta el total de unidades programadas, su estatus operativo

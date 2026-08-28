@@ -241,8 +241,8 @@ export default function Dashboard() {
     <div className="dashboard">
       <Header />
       <main className="dashboard__main">
-        <p className="dashboard__eyebrow">Seleccione el tipo de transporte</p>
-        <h1 className="dashboard__title">Flota de Unidades</h1>
+        <p className="page-eyebrow">VISIÓN GENERAL DE LA FLOTA</p>
+        <h1 className="page-title">MONITOR OPERATIVO</h1>
         <p className="dashboard__subtitle">
           Toque la imagen del transporte para ver la información de despacho
         </p>

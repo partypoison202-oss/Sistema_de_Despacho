@@ -1046,7 +1046,7 @@ export default function DetalleUnidadMantenimiento() {
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                           </svg>
-                          {datosOperativos.folio_mantenimiento ? 'Descargar Orden PDF' : 'Editar / Imprimir Orden'}
+                          {datosOperativos.folio_mantenimiento ? 'Descargar Orden PDF' : 'Generar Orden PDF'}
                         </button>
                     </div>
                   )}
@@ -1378,27 +1378,6 @@ export default function DetalleUnidadMantenimiento() {
                           })}
                         </div>
 
-                        {/* <-- NUEVO: Mostrar motivo si está en mantenimiento */}
-                        {datosOperativos.estatus === 'mantenimiento' && datosOperativos.motivo_estatus && (
-                          <div style={{
-                            marginTop: '1rem',
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#fef3c7',
-                            border: '1px solid #f59e0b',
-                            borderRadius: '0.5rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.85rem',
-                            fontWeight: '600',
-                            color: '#92400e',
-                          }}>
-                            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Motivo: <span style={{ textTransform: 'capitalize' }}>{datosOperativos.motivo_estatus}</span></span>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -1934,7 +1913,7 @@ export default function DetalleUnidadMantenimiento() {
           onSuccess={async (data) => {
             try {
               setCambiandoEstatus(true);
-              const token = localStorage.getItem('token');
+              const token = getToken();
               // Extraer solo los dígitos del ECO seleccionado (ej: "ECO023" -> "023")
               const ecoLimpio = String(selectedOption ?? '').trim().toUpperCase().match(/\d+/)?.[0]?.padStart(3, '0') ?? selectedOption;
               const url = `${API_BASE}/api/unidades/cambiar-estatus`;
@@ -1948,7 +1927,8 @@ export default function DetalleUnidadMantenimiento() {
                 fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
                 falla_reportada: data.falla_reportada,
                 diagnostico: data.diagnostico,
-                firma_base64: data.firma_base64
+                firma_base64: data.firma_base64,
+                kilometraje: data.kilometraje
               };
 
               const response = await fetch(url, {
@@ -1974,7 +1954,8 @@ export default function DetalleUnidadMantenimiento() {
                 fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
                 falla_reportada: data.falla_reportada,
                 diagnostico: data.diagnostico,
-                firma_base64: data.firma_base64
+                firma_base64: data.firma_base64,
+                kilometraje: data.kilometraje
               }));
 
               setSelectedEstado('mantenimiento');

@@ -402,11 +402,10 @@ export default function Operadores() {
 
       <main className="maniobristas-main-content">
         <div className="maniobristas-top-bar">
-          <div className="maniobristas-title-section">
-            <h1>Catálogo de Maniobristas</h1>
-            <p className="maniobristas-subtitle">
-              Administra el alta y edición de maniobristas. El tarjetón se genera automáticamente.
-            </p>
+          <div className="page-header-container" style={{ margin: '0 auto 20px auto' }}>
+            <p className="page-eyebrow">GESTIÓN DE PERSONAL</p>
+            <h1 className="page-title">GESTIÓN DE MANIOBRISTAS</h1>
+            <p className="op-subtitle">Administra los maniobristas registrados en el sistema</p>
           </div>
           {/* Botón Nuevo Maniobrista eliminado ya que se extraen todos los conductores */}
         </div>
@@ -423,7 +422,7 @@ export default function Operadores() {
               placeholder="Buscar por nombre, tarjetón o tipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 text-slate-800 text-[0.95rem] rounded-full focus:ring-2 focus:ring-[#6b1d33]/20 focus:border-[#6b1d33] focus:bg-white transition-all outline-none placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 shadow-sm text-slate-800 text-[0.95rem] rounded-full focus:ring-2 focus:ring-[#6b1d33]/20 focus:border-[#6b1d33] transition-all outline-none placeholder:text-slate-400"
             />
             {searchTerm && (
               <button
