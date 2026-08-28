@@ -2092,8 +2092,6 @@ class DespachoController extends Controller
         return response()->json($unidades, 200);
     }
 
-
-
     /**
      * Genera las estadísticas diarias de combustible por tipo de unidad.
      */
