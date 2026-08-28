@@ -967,8 +967,8 @@ class DespachoController extends Controller
             // Opcional: Si queremos dejar la tabla en blanco luego de aplicarla, descomentamos la siguiente línea
             // DB::table($tableName)->delete();
 
-            DB::table('conductores')->update(['en_operacion' => 0]);
-            DB::table('maniobristas')->update(['en_operacion' => 0]);
+            DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+            DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
 
             $conductoresAsignados = DB::table('informacion_operativa')
                 ->whereNotNull('numero_tarjeton')
@@ -977,7 +977,7 @@ class DespachoController extends Controller
                 ->toArray();
             
             if (!empty($conductoresAsignados)) {
-                DB::table('conductores')->whereIn('tarjeton', $conductoresAsignados)->update(['en_operacion' => 1]);
+                DB::table('conductores')->whereIn('tarjeton', $conductoresAsignados)->update(['estado_servicio' => 'en_servicio']);
             }
 
             $maniobristasAsignados = DB::table('informacion_operativa')
@@ -987,7 +987,7 @@ class DespachoController extends Controller
                 ->toArray();
             
             if (!empty($maniobristasAsignados)) {
-                DB::table('maniobristas')->whereIn('tarjeton', $maniobristasAsignados)->update(['en_operacion' => 1]);
+                DB::table('maniobristas')->whereIn('tarjeton', $maniobristasAsignados)->update(['estado_servicio' => 'en_servicio']);
             }
 
             DB::commit();
