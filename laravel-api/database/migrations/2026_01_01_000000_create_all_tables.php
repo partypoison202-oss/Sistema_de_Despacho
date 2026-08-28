@@ -403,7 +403,7 @@ return new class extends Migration
         }
 
         // ─── Información Operativa (Fin de Semana) ────────────────────
-        $diasFinSemana = ['sabado', 'domingo', 'lunes'];
+        $diasFinSemana = ['sabado', 'domingo', 'lunes', 'festivo'];
         foreach ($diasFinSemana as $dia) {
             $tableName = 'informacion_operativa_' . $dia;
             if (!Schema::hasTable($tableName)) {
@@ -808,6 +808,7 @@ return new class extends Migration
         Schema::dropIfExists('bitacoras');
         Schema::dropIfExists('informacion_operativa_lunes');
         Schema::dropIfExists('informacion_operativa_domingo');
+        Schema::dropIfExists('informacion_operativa_festivo');
         Schema::dropIfExists('informacion_operativa_sabado');
         Schema::dropIfExists('informacion_operativa_findesemana');
         Schema::dropIfExists('informacion_operativa_manana');

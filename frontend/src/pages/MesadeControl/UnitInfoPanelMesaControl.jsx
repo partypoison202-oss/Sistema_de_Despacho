@@ -1615,7 +1615,7 @@ export default function UnitInfoPanel({
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                           zIndex: 40
                         }}>
-                          {['RESERVA', 'MANIOBRISTA', 'FALTA'].map((estatus) => (
+                          {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO'].map((estatus) => (
                             <button
                               key={estatus}
                               type="button"
@@ -1675,7 +1675,7 @@ export default function UnitInfoPanel({
                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                         zIndex: 40
                       }}>
-                        {['RESERVA', 'MANIOBRISTA', 'FALTA'].map((estatus) => (
+                        {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO'].map((estatus) => (
                           <button
                             key={estatus}
                             type="button"

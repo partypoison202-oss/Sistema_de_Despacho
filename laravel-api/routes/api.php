@@ -50,7 +50,7 @@ Route::get('/fix-manana-table', function() {
 });
 
 Route::get('/fix-findesemana-tables', function() {
-    $diasFinSemana = ['sabado', 'domingo', 'lunes'];
+    $diasFinSemana = ['sabado', 'domingo', 'lunes', 'festivo'];
     $creadas = [];
     foreach ($diasFinSemana as $dia) {
         $tableName = 'informacion_operativa_' . $dia;
@@ -74,6 +74,10 @@ Route::get('/fix-findesemana-tables', function() {
                 $table->string('cambio_motivo', 200)->nullable();
                 $table->string('motivo_estatus', 200)->nullable();
                 $table->text('observaciones')->nullable();
+                // Columnas de mantenimiento
+                $table->string('folio_mantenimiento', 50)->nullable();
+                $table->date('fecha_folio_mantenimiento')->nullable();
+                
                 $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
                 $table->string('nombre_maniobrista', 200)->nullable()->default('');
                 $table->timestamp('fecha_registro')->nullable()->useCurrent();

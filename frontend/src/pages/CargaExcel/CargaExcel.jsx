@@ -79,7 +79,7 @@ export default function CargaExcel() {
     const headers = getAuthHeaders();
     let url = `${API_BASE}/api/despacho/hoy`;
     if (tab === 'MANANA') url = `${API_BASE}/api/despacho/manana`;
-    else if (['SABADO', 'DOMINGO', 'LUNES'].includes(tab)) url = `${API_BASE}/api/despacho/especifico/${tab.toLowerCase()}`;
+    else if (['SABADO', 'DOMINGO', 'LUNES', 'FESTIVO'].includes(tab)) url = `${API_BASE}/api/despacho/especifico/${tab.toLowerCase()}`;
 
     const response = await fetch(url, {
       headers
@@ -514,7 +514,7 @@ export default function CargaExcel() {
     try {
       let url = `${API_BASE}/api/despacho/actualizar`;
       if (tabActiva === 'MANANA') url = `${API_BASE}/api/despacho/actualizar-manana`;
-      else if (['SABADO', 'DOMINGO', 'LUNES'].includes(tabActiva)) url = `${API_BASE}/api/despacho/actualizar-especifico/${tabActiva.toLowerCase()}`;
+      else if (['SABADO', 'DOMINGO', 'LUNES', 'FESTIVO'].includes(tabActiva)) url = `${API_BASE}/api/despacho/actualizar-especifico/${tabActiva.toLowerCase()}`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -803,10 +803,20 @@ export default function CargaExcel() {
             >
               Lunes
             </button>
+            <button
+              className={`excel-tab-btn ${tabActiva === 'FESTIVO' ? 'active' : ''}`}
+              onClick={() => {
+                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                setHasChanges(false);
+                setTabActiva('FESTIVO');
+              }}
+            >
+              Días Festivos
+            </button>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {['MANANA', 'SABADO', 'DOMINGO', 'LUNES'].includes(tabActiva) && (
+            {['MANANA', 'SABADO', 'DOMINGO', 'LUNES', 'FESTIVO'].includes(tabActiva) && (
               <button
                 onClick={async () => {
                   const label = tabActiva === 'MANANA' ? 'el día siguiente' : tabActiva.toLowerCase();

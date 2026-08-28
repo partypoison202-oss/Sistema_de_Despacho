@@ -6,6 +6,7 @@ import Header from '../../components/Header/Header';
 import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
+import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
@@ -24,6 +25,7 @@ export default function CentroControl() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingStats, setIsGeneratingStats] = useState(false);
+  const [isGeneratingOperacional, setIsGeneratingOperacional] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -199,6 +201,37 @@ export default function CentroControl() {
       });
     } finally {
       setIsGeneratingStats(false);
+    }
+  };
+
+  const handleGenerarReporteOperacionalPorHora = async () => {
+    setIsGeneratingOperacional(true);
+    try {
+      if (!apiData || apiData.length === 0) {
+        throw new Error('No hay datos disponibles para generar el reporte.');
+      }
+      await generarPDFReporteOperacionalPorHora(apiData);
+      
+      Swal.fire({
+        icon: 'success',
+        title: '¡Reporte Generado!',
+        text: 'El reporte operacional por hora se ha descargado correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    } catch (error) {
+      console.error('Error al generar reporte operacional:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'Ocurrió un error al generar el reporte operacional por hora.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setIsGeneratingOperacional(false);
     }
   };
 
@@ -635,6 +668,20 @@ export default function CentroControl() {
               onClick={() => navigate('/resumen-despacho')}
             >
               Ver Resumen de Mesa de Control
+            </button>
+            
+            <button
+              className="centro-btn centro-btn--primary"
+              onClick={handleGenerarReporteOperacionalPorHora}
+              disabled={isGeneratingOperacional || cargando}
+            >
+              {isGeneratingOperacional ? (
+                <>
+                  <span className="centro-spinner"></span> Generando...
+                </>
+              ) : (
+                'Reporte Operativo por Hora'
+              )}
             </button>
           </section>
         </main>

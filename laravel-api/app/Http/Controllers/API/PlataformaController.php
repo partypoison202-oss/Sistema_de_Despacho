@@ -99,12 +99,25 @@ class PlataformaController extends Controller
 
                     $estatusAnteriorReemplazo = strtoupper(trim($registroReemplazo->estatus ?? 'RESERVA'));
 
+                    $nombreConductorReemplazo = null;
+                    if ($request->tarjeton_reemplazo) {
+                        $conductorR = DB::table('conductores')->where('tarjeton', $request->tarjeton_reemplazo)->first();
+                        if ($conductorR) {
+                            $nombreConductorReemplazo = trim($conductorR->nombres . ' ' . $conductorR->apellidos);
+                        }
+                    }
+
                     $datosReemplazo = [
-                        'estatus'         => 'operacion',
-                        'numero_tarjeton' => $request->tarjeton_reemplazo ?? null,
-                        'ruta'            => $request->ruta_reemplazo     ?? null,
+                        'estatus'          => 'operacion',
+                        'numero_tarjeton'  => $request->tarjeton_reemplazo ?? null,
+                        'nombre_conductor' => $nombreConductorReemplazo,
+                        'ruta'             => $request->ruta_reemplazo     ?? null,
                         'corridas'         => $request->corrida_reemplazo  ?? null,
                     ];
+                    
+                    // Limpiamos el conductor de la unidad original, ya que se pasó al reemplazo
+                    $datosUpdate['numero_tarjeton'] = null;
+                    $datosUpdate['nombre_conductor'] = null;
 
                     if ($registroReemplazo) {
                         DB::table('informacion_operativa')
