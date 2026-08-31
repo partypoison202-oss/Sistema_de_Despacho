@@ -60,52 +60,12 @@ export function getDefaultRoute(user) {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => {
-    return localStorage.getItem('token') || sessionStorage.getItem('token') || null;
-  });
-  const [rememberMe, setRememberMe] = useState(() => {
-    return localStorage.getItem('token') !== null;
+    return localStorage.getItem('token') || null;
   });
   const [loading, setLoading] = useState(true);
 
-  const inactivityTimerRef = useRef(null);
-  const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutos
-
-  const logoutDueToInactivity = () => {
-    console.log("Sesión expirada por inactividad");
-    logout();
-    Swal.fire({
-      icon: 'info',
-      title: 'Sesión expirada',
-      text: 'Por tu seguridad, hemos cerrado la sesión debido a un periodo prolongado de inactividad.',
-      confirmButtonColor: '#c5a059',
-      confirmButtonText: 'Volver a iniciar sesión',
-      allowOutsideClick: false
-    });
-  };
-
-  const resetTimer = () => {
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-    }
-    if (!rememberMe && token) {
-      inactivityTimerRef.current = setTimeout(logoutDueToInactivity, TIMEOUT_MS);
-    }
-  };
-
-  useEffect(() => {
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    const handleActivity = () => resetTimer();
-
-    if (!rememberMe && token) {
-      events.forEach(event => document.addEventListener(event, handleActivity));
-      resetTimer();
-    }
-
-    return () => {
-      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
-      events.forEach(event => document.removeEventListener(event, handleActivity));
-    };
-  }, [rememberMe, token]);
+  // El cierre de sesión por inactividad fue removido por solicitud del usuario.
+  // La sesión persistirá hasta que el token expire en el backend (ej. días después) o cierren sesión.
 
   useEffect(() => {
     if (token) {
@@ -130,18 +90,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  const login = (userData, authToken, isRememberMe = false) => {
+  const login = (userData, authToken) => {
     setUser(userData);
     setToken(authToken);
-    setRememberMe(isRememberMe);
-
-    if (isRememberMe) {
-      localStorage.setItem('token', authToken);
-      sessionStorage.removeItem('token');
-    } else {
-      sessionStorage.setItem('token', authToken);
-      localStorage.removeItem('token');
-    }
+    localStorage.setItem('token', authToken);
+    sessionStorage.removeItem('token'); // Limpiamos por si quedó de versiones anteriores
   };
 
   const logout = () => {
@@ -153,7 +106,6 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(null);
     setToken(null);
-    setRememberMe(false);
     localStorage.removeItem('token');
     sessionStorage.removeItem('token');
   };

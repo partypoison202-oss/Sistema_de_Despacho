@@ -118,6 +118,34 @@ export default function UnitInfoPanel({
 
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'PERCANCE';
 
+  // Bloquear scroll de fondo cuando hay modales abiertos
+  useEffect(() => {
+    if (modalPlataformaVisible || showChecklist || lightboxDibujo) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.setAttribute('data-scroll-y', scrollY);
+    } else {
+      const scrollY = document.body.getAttribute('data-scroll-y');
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0'));
+        document.body.removeAttribute('data-scroll-y');
+      }
+    }
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+    };
+  }, [modalPlataformaVisible, showChecklist, lightboxDibujo]);
+
   // Inicializar hora programada y observaciones desde datosOperativos
   useEffect(() => {
     if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
@@ -188,10 +216,7 @@ export default function UnitInfoPanel({
     };
     fetchRutas();
   }, [configActual]);
-  const [guardandoPerdida, setGuardandoPerdida] = useState(false);
-  const navigate = useNavigate();
 
-  // Modals de Plataforma
   const [modalPlataformaVisible, setModalPlataformaVisible] = useState(null);
   const [platMotivo, setPlatMotivo] = useState('');
   const [platEstatus, setPlatEstatus] = useState('');
@@ -536,17 +561,6 @@ export default function UnitInfoPanel({
             <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
           </div>
         </div>
-        {(datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'mantenimiento') && (
-          <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-             <div style={{ fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Folio Asignado</div>
-             <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
-             {datosOperativos.fecha_folio_mantenimiento && (
-               <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '2px' }}>
-                 {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleDateString('es-MX')}
-               </div>
-             )}
-          </div>
-        )}
       </div>
 
       <div className="detalle-dashboard-grid">
@@ -888,11 +902,11 @@ export default function UnitInfoPanel({
               disabled={isPlataforma || isReservaOrMantenimiento}
             />
 
-            {/* Corridas Perdidas */}
+            {/* Ciclos Perdidos */}
             {!isPlataforma && (
               <div className="info-card__item">
                 <span className="info-card__label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span>¿Hubo corridas perdidas?</span>
+                  <span>¿Hubo ciclos perdidos?</span>
                   <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '999px', padding: '0.2rem' }}>
                     <button
                       type="button"
@@ -1112,8 +1126,8 @@ export default function UnitInfoPanel({
 
       {/* REACT MODAL PARA PLATAFORMA */}
       {modalPlataformaVisible && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setModalPlataformaVisible(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm" style={{ overscrollBehavior: 'none' }} onClick={() => setModalPlataformaVisible(null)} onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" style={{ overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 'Desincorporar Unidad'}
             </h2>
@@ -1127,7 +1141,7 @@ export default function UnitInfoPanel({
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
                     }}
-                    onClick={() => setPlatConductorDropdown(!platConductorDropdown)}
+                    onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
                       {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
@@ -1165,7 +1179,7 @@ export default function UnitInfoPanel({
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
                     }}
-                    onClick={() => setPlatRutaDropdown(!platRutaDropdown)}
+                    onClick={() => { setPlatRutaDropdown(!platRutaDropdown); setPlatConductorDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
                       {platRuta || 'Seleccione una ruta...'}

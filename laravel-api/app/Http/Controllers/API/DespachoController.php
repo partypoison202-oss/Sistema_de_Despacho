@@ -206,6 +206,7 @@ class DespachoController extends Controller
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
             ->select(
+                'unidades.id as unidad_id',
                 'unidades.numero_eco',
                 'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.estatus',
@@ -217,7 +218,11 @@ class DespachoController extends Controller
                 'informacion_operativa.corridas',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.hora_salida',
+                'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.fecha_folio_mantenimiento',
+                'informacion_operativa.falla_reportada',
+                'informacion_operativa.diagnostico'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -227,7 +232,26 @@ class DespachoController extends Controller
                 if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
                     $estatus = 'operacion';
                 }
+
+                // Recuperar último conductor si está en mantenimiento o reserva y los datos actuales están vacíos
+                if (($estatus === 'mantenimiento' || $estatus === 'reserva') && empty($unidad->nombre_conductor)) {
+                    $lastRecord = DB::table('historial_operativo')
+                        ->where('unidad_id', $unidad->unidad_id)
+                        ->whereNotNull('nombre_conductor')
+                        ->where('nombre_conductor', '!=', '')
+                        ->orderBy('id', 'desc')
+                        ->first();
+                        
+                    if ($lastRecord) {
+                        $unidad->nombre_conductor = $lastRecord->nombre_conductor;
+                        $unidad->tarjeton = $lastRecord->numero_tarjeton;
+                        $unidad->ruta = $lastRecord->ruta;
+                        $unidad->corridas = $lastRecord->corridas;
+                    }
+                }
+
                 return [
+                    'unidad_id' => $unidad->unidad_id,
                     'numero_eco' => $unidad->numero_eco,
                     'tarjeton' => $unidad->tarjeton,
                     'estatus' => $estatus,
@@ -240,6 +264,10 @@ class DespachoController extends Controller
                     'hora_programada' => $unidad->hora_programada,
                     'acople' => $unidad->acople,
                     'hora_salida' => $unidad->hora_salida,
+                    'folio_mantenimiento' => $unidad->folio_mantenimiento,
+                    'fecha_folio_mantenimiento' => $unidad->fecha_folio_mantenimiento,
+                    'falla_reportada' => $unidad->falla_reportada,
+                    'diagnostico' => $unidad->diagnostico,
                 ];
             });
 
@@ -1661,7 +1689,21 @@ class DespachoController extends Controller
         ];
 
         if ($request->has('folio_mantenimiento')) {
-            $updateData['folio_mantenimiento'] = $request->folio_mantenimiento;
+            $folioReq = trim($request->folio_mantenimiento);
+            if (!empty($folioReq)) {
+                $existe = DB::table('informacion_operativa')
+                    ->where('folio_mantenimiento', $folioReq)
+                    ->where('id', '!=', $registroOperativo->id)
+                    ->exists();
+                
+                if ($existe) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "El número de incidencia '$folioReq' ya está siendo usado por otra unidad. Por favor verifica."
+                    ], 400);
+                }
+            }
+            $updateData['folio_mantenimiento'] = $folioReq;
         }
         if ($request->has('fecha_folio_mantenimiento')) {
             $updateData['fecha_folio_mantenimiento'] = $request->fecha_folio_mantenimiento;
@@ -1725,6 +1767,9 @@ class DespachoController extends Controller
             }
             if (array_key_exists('ruta', $allInputs)) {
                 $updateData['ruta'] = $request->ruta;
+            }
+            if (array_key_exists('corrida', $allInputs)) {
+                $updateData['corridas'] = $request->corrida;
             }
         }
 
@@ -1821,7 +1866,8 @@ class DespachoController extends Controller
             'estatus' => $nuevoEstatus,
             'conductor_asignado' => $conductorAsignado,
             'ruta_asignada' => $rutaAsignada,
-            'tarjeton' => $tarjetonAsignado
+            'tarjeton' => $tarjetonAsignado,
+            'corridas' => $request->corrida
         ], 200);
     }
 
@@ -1921,6 +1967,76 @@ class DespachoController extends Controller
             ->get();
             
         return response()->json($unidades, 200);
+    }
+
+    /**
+     * Genera un folio de mantenimiento a partir del ID de la incidencia activa.
+     */
+    public function generarFolioMantenimiento(Request $request)
+    {
+        try {
+            $request->validate([
+                'numero_eco' => 'required|string',
+            ]);
+
+            $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
+
+            // 1. Encontrar la unidad
+            $unidad = DB::table('unidades')->where('numero_eco', $numeroEco)->first();
+            if (!$unidad) {
+                return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada'], 404);
+            }
+
+            // 2. Encontrar el registro operativo activo (en mantenimiento, reserva, percance, etc.)
+            $registroOperativo = DB::table('informacion_operativa')
+                ->where('unidad_id', $unidad->id)
+                ->first();
+
+            if (!$registroOperativo) {
+                return response()->json(['status' => 'error', 'message' => 'No hay registro operativo para esta unidad'], 404);
+            }
+
+            if ($registroOperativo->folio_mantenimiento && strpos($registroOperativo->folio_mantenimiento, 'MANT-') === 0) {
+                return response()->json(['status' => 'error', 'message' => 'La unidad ya tiene un folio de mantenimiento asignado'], 400);
+            }
+
+            // 3. Generar el folio (MANT-{ID}-ECO{ECO})
+            // Si ya hay un número en folio_mantenimiento, ese es el ID de incidencia ingresado manualmente
+            $incidencia = $registroOperativo->folio_mantenimiento ?: $registroOperativo->id;
+            $folio = "MANT-" . $incidencia . "-ECO" . $numeroEco;
+            $fechaActual = now()->toDateTimeString();
+
+            // 4. Actualizar tabla informacion_operativa
+            DB::table('informacion_operativa')
+                ->where('id', $registroOperativo->id)
+                ->update([
+                    'folio_mantenimiento' => $folio,
+                    'fecha_folio_mantenimiento' => $fechaActual
+                ]);
+
+            // 5. Opcional: Actualizar unidad si tiene columnas de mantenimiento pendientes o bitacora
+            BitacoraHelper::registrarCambio(
+                $unidad->id,
+                'GENERAR_FOLIO',
+                "SE GENERÓ EL FOLIO DE MANTENIMIENTO: $folio",
+                null,
+                $folio
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Folio generado correctamente',
+                'folio' => $folio,
+                'fecha_folio' => $fechaActual
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('[generarFolioMantenimiento] Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al generar el folio de mantenimiento'
+            ], 500);
+        }
     }
 
     /**
@@ -2197,4 +2313,50 @@ class DespachoController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Error al generar el reporte'], 500);
         }
     }
+    public function asignarIncidencia(Request $request)
+    {
+        try {
+            $request->validate([
+                'numero_eco' => 'required',
+                'tipo' => 'required',
+                'incidencia' => 'required|string|max:255'
+            ]);
+
+            $registroOperativo = DB::table('informacion_operativa')
+                ->where('numero_eco', $request->numero_eco)
+                ->where('tipo', $request->tipo)
+                ->first();
+
+            if (!$registroOperativo) {
+                return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada en operación'], 404);
+            }
+
+            DB::table('informacion_operativa')
+                ->where('id', $registroOperativo->id)
+                ->update([
+                    'folio_mantenimiento' => $request->incidencia,
+                ]);
+
+            BitacoraHelper::registrarCambio(
+                $registroOperativo->unidad_id,
+                'ASIGNACION_INCIDENCIA',
+                "ASIGNÓ NÚMERO DE INCIDENCIA: " . $request->incidencia
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Número de incidencia asignado exitosamente',
+                'incidencia' => $request->incidencia
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en asignarIncidencia: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocurrió un error al asignar la incidencia',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
+

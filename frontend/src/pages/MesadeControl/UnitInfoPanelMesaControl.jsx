@@ -174,12 +174,28 @@ export default function UnitInfoPanel({
   // Bloquear scroll de fondo cuando hay modales abiertos
   useEffect(() => {
     if (modalPlataformaVisible || showChecklist || lightboxDibujo) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
+      document.body.setAttribute('data-scroll-y', scrollY);
     } else {
-      document.body.style.overflow = 'unset';
+      const scrollY = document.body.getAttribute('data-scroll-y');
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0'));
+        document.body.removeAttribute('data-scroll-y');
+      }
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
     };
   }, [modalPlataformaVisible, showChecklist, lightboxDibujo]);
 
@@ -654,17 +670,6 @@ export default function UnitInfoPanel({
             <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
           </div>
         </div>
-        {(datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'mantenimiento') && (
-          <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-             <div style={{ fontSize: '0.8rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Folio Asignado</div>
-             <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
-             {datosOperativos.fecha_folio_mantenimiento && (
-               <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '2px' }}>
-                 {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleDateString('es-MX')}
-               </div>
-             )}
-          </div>
-        )}
       </div>
 
       {/* Se cambia a 2 columnas en desktop para que ocupe todo el ancho de la pantalla y no quede amontonado a la izquierda */}
@@ -887,7 +892,7 @@ export default function UnitInfoPanel({
               </div>
             </div>)}
 
-            {/* ✅ Hora de salida - reloj en tiempo real */}
+            {/* ✅ Hora de salida */}
             {!isReservaOrMantenimiento && (<div className="info-card__item">
               <span className="info-card__label">Hora de salida</span>
               <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1 }}>
@@ -895,19 +900,15 @@ export default function UnitInfoPanel({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '1px' }}>
-                  <span>{liveTime.h}</span>
-                  <span style={{ opacity: liveTime.blink ? 1 : 0.15, transition: 'opacity 0.1s' }}>:</span>
-                  <span>{liveTime.m}</span>
-                  <span style={{ opacity: liveTime.blink ? 1 : 0.15, transition: 'opacity 0.1s' }}>:</span>
-                  <span>{liveTime.s}</span>
+                  <span>{datosOperativos.hora_salida || '--:--'}</span>
                 </span>
               </div>
             </div>)}
 
-            {/* Toggle: ¿Hubo corridas perdidas? */}
+            {/* Toggle: ¿Hubo ciclos perdidos? */}
             <div className="info-card__item">
               <span className="info-card__label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span>¿Hubo corridas perdidas?</span>
+                <span>¿Hubo ciclos perdidos?</span>
                 <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '999px', padding: '0.2rem' }}>
                   <button
                     type="button"
@@ -1031,7 +1032,7 @@ export default function UnitInfoPanel({
                         transition: 'all 0.2s'
                       }}
                     >
-                      {guardandoPerdida ? 'GUARDANDO...' : 'GUARDAR CORRIDAS PERDIDAS'}
+                      {guardandoPerdida ? 'GUARDANDO...' : 'GUARDAR CICLOS PERDIDOS'}
                     </button>
                   </div>
                 </div>
@@ -1145,12 +1146,15 @@ export default function UnitInfoPanel({
       {modalPlataformaVisible && createPortal(
         <div
           className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          style={{ overscrollBehavior: 'none' }}
           onClick={(e) => { if (e.target === e.currentTarget) setModalPlataformaVisible(null); }}
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
           role="button"
           tabIndex={-1}
           onKeyDown={(e) => { if (e.key === 'Escape') setModalPlataformaVisible(null); }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflow: (modalPlataformaVisible === 'RETIRO_CONDUCTOR' || modalPlataformaVisible === 'ASIGNACION_CONDUCTOR') ? 'visible' : 'hidden auto', minWidth: '22rem' }}>
+          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflow: 'visible', minWidth: '22rem' }} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 
                modalPlataformaVisible === 'DESINCORPORACION' ? 'Desincorporar Unidad' :
@@ -1167,7 +1171,7 @@ export default function UnitInfoPanel({
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
                     }}
-                    onClick={() => setPlatConductorDropdown(!platConductorDropdown)}
+                    onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
@@ -1205,7 +1209,7 @@ export default function UnitInfoPanel({
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
                     }}
-                    onClick={() => setPlatRutaDropdown(!platRutaDropdown)}
+                    onClick={() => { setPlatRutaDropdown(!platRutaDropdown); setPlatConductorDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {platRuta || 'Seleccione una ruta...'}
@@ -1381,7 +1385,7 @@ export default function UnitInfoPanel({
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
                     }}
-                    onClick={() => setPlatEstatusDropdown(!platEstatusDropdown)}
+                    onClick={() => { setPlatEstatusDropdown(!platEstatusDropdown); setPlatConductorDropdown(false); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platEstatus ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {platEstatus || 'Destino de la unidad...'}
@@ -1423,7 +1427,7 @@ export default function UnitInfoPanel({
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem'
                     }}
-                    onClick={() => setPlatConductorDropdown(!platConductorDropdown)}
+                    onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
                       {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
@@ -1641,7 +1645,7 @@ export default function UnitInfoPanel({
                     <div style={{ display: 'block', color: '#0b162c', fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.5rem' }}>Motivo de Retiro:</div>
                     <button
                       type="button"
-                      onClick={() => setPlatMotivoDropdown(!platMotivoDropdown)}
+                      onClick={() => { setPlatMotivoDropdown(!platMotivoDropdown); setPlatConductorDropdown(false); setPlatRutaDropdown(false); setPlatEstatusDropdown(false); }}
                       style={{
                         width: '100%',
                         padding: '0.75rem',
