@@ -85,7 +85,7 @@ export default function Login() {
   const [errorPassword, setErrorPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [animating, setAnimating] = useState(false);
   const { login, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -147,10 +147,8 @@ export default function Login() {
         return;
       }
 
-      // Guardar sesión
-      login(data.user, data.access_token, rememberMe);
+      login(data.user, data.access_token);
       
-      // Redirigir según módulos o rol
       const route = getDefaultRoute(data.user);
       navigate(route);
       
@@ -214,11 +212,15 @@ export default function Login() {
                         setUsername(e.target.value);
                         if (errorUsuario) setErrorUsuario('');
                     }}
-                    placeholder="Ingrese su usuario"
+                    placeholder=""
                     disabled={isSubmitting}
                     className={errorUsuario ? "border-red-500" : ""}
                   />
-                  {errorUsuario && <span className="text-red-500 text-xs font-semibold mt-1">{errorUsuario}</span>}
+                  {errorUsuario ? (
+                    <span className="text-red-500 text-xs font-semibold mt-1 block">{errorUsuario}</span>
+                  ) : (
+                    <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe tu nombre de usuario (ej. jperez).</span>
+                  )}
                 </div>
 
                 <div className="login__field">
@@ -237,7 +239,7 @@ export default function Login() {
                       }}
                       onKeyUp={checkCapsLock}
                       onKeyDown={checkCapsLock}
-                      placeholder="••••••••"
+                      placeholder=""
                       disabled={isSubmitting}
                       className={errorPassword ? "border-red-500" : ""}
                     />
@@ -252,7 +254,11 @@ export default function Login() {
                     </button>
                   </div>
 
-                  {errorPassword && <span className="text-red-500 text-xs font-semibold mt-1">{errorPassword}</span>}
+                  {errorPassword ? (
+                    <span className="text-red-500 text-xs font-semibold mt-1 block">{errorPassword}</span>
+                  ) : (
+                    <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Ingresa tu contraseña respetando mayúsculas y minúsculas.</span>
+                  )}
                   {capsLockOn && (
                     <span className="login__caps-warning">
                       ⚠ Bloq Mayús está activado
@@ -260,19 +266,10 @@ export default function Login() {
                   )}
                 </div>
 
-                <div className="login__remember">
-                  <label className="login__remember-label">
-                    <input 
-                      type="checkbox" 
-                      className="login__remember-checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      disabled={isSubmitting}
-                    />
-                    <span>Mantener sesión activa</span>
-                  </label>
+                <div className="login__options">
+                  <a href="#" className="login__forgot-link">¿Olvidaste tu contraseña?</a>
                 </div>
-
+                
                 <button type="submit" className="login__submit-btn" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>

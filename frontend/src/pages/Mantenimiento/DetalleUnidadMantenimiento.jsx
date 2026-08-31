@@ -54,6 +54,85 @@ export default function DetalleUnidadMantenimiento() {
   const [selectedEstado, setSelectedEstado] = useState(null);
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
+  const [isGenerandoFolio, setIsGenerandoFolio] = useState(false);
+  
+  const [isIncidenciaModalOpen, setIsIncidenciaModalOpen] = useState(false);
+  const [incidenciaFormValue, setIncidenciaFormValue] = useState('');
+  const [isGuardandoIncidencia, setIsGuardandoIncidencia] = useState(false);
+
+  useEffect(() => {
+    if (isIncidenciaModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'visible';
+    }
+    return () => {
+      document.body.style.overflow = 'visible';
+    };
+  }, [isIncidenciaModalOpen]);
+
+  const handleGuardarIncidencia = async () => {
+    if (!incidenciaFormValue.trim()) {
+      Swal.fire('Atención', 'Debes ingresar un número de incidencia.', 'warning');
+      return;
+    }
+    setIsGuardandoIncidencia(true);
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          numero_eco: selectedOption.replace(/\D/g, '').padStart(3, '0'),
+          tipo: tipoTransporte,
+          estatus: 'mantenimiento',
+          motivo_estatus: 'MANTENIMIENTO',
+          folio_mantenimiento: incidenciaFormValue.trim()
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.status === 'success') {
+        setDatosOperativos(prev => ({
+          ...prev,
+          estatus: 'mantenimiento',
+          motivo_estatus: 'MANTENIMIENTO',
+          folio_mantenimiento: incidenciaFormValue.trim()
+        }));
+        setSelectedEstado('mantenimiento');
+        setIsIncidenciaModalOpen(false);
+        setIncidenciaFormValue('');
+        Swal.fire({
+          icon: 'success',
+          title: 'Unidad en Mantenimiento',
+          text: `Número de incidencia: ${incidenciaFormValue.trim()}`,
+          timer: 1500,
+          showConfirmButton: false
+        });
+        // Invalidar query para refrescar todo
+        queryClient.invalidateQueries(['unidadesList', tipoTransporte]);
+      } else {
+        Swal.fire('Error', data.message || 'Error al asignar la incidencia', 'error');
+      }
+    } catch (error) {
+      Swal.fire('Error', 'Error de red al asignar la incidencia', 'error');
+    } finally {
+      setIsGuardandoIncidencia(false);
+    }
+  };
+
+  const handleGenerarFolio = async () => {
+    if (!selectedOption) return;
+    if (!datosOperativos.folio_mantenimiento) {
+        Swal.fire('Atención', 'Debes asignar un número de incidencia primero.', 'warning');
+        return;
+    }
+    // En lugar de llamar al backend directamente, abre el Wizard para llenar los datos
+    setIsMaintenanceWizardOpen(true);
+    // El resto de la lógica de generar-folio ya no está aquí, está en el Wizard
+  };
 
   // <-- NUEVO: agregamos motivo_estatus al estado
   const [datosOperativos, setDatosOperativos] = useState({
@@ -97,6 +176,7 @@ export default function DetalleUnidadMantenimiento() {
   const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
   const [modalEstatusConductor, setModalEstatusConductor] = useState('');
   const [modalEstatusRuta, setModalEstatusRuta] = useState('');
+  const [modalEstatusCorrida, setModalEstatusCorrida] = useState('');
   const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
   const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
   const [isMaintenanceWizardOpen, setIsMaintenanceWizardOpen] = useState(false);
@@ -104,6 +184,7 @@ export default function DetalleUnidadMantenimiento() {
 
   const modalConductorRef = useRef(null);
   const modalRutaRef = useRef(null);
+  const unitSelectorsRef = useRef(null);
 
   const configActual = transportModules.find((m) => m.id === tipoTransporte);
 
@@ -534,6 +615,7 @@ export default function DetalleUnidadMantenimiento() {
         setModalEstatusNuevo('operacion');
         setModalEstatusConductor(tieneConductor ? String(datosOperativos.tarjeton).trim() : '');
         setModalEstatusRuta(tieneRuta ? datosOperativos.ruta : '');
+        setModalEstatusCorrida(datosOperativos.corrida ? datosOperativos.corrida : '');
         setModalEstatusConductorDropdown(false);
         setModalEstatusRutaDropdown(false);
         setModalEstatusOpen(true);
@@ -554,8 +636,8 @@ export default function DetalleUnidadMantenimiento() {
       // Configurar el Swal para seleccionar motivo (el mismo código existente)
 
       if (nuevoEstatus === 'mantenimiento') {
-        setIsMaintenanceWizardOpen(true);
-        return; // Salimos, el Wizard se encargará de hacer la petición al guardar
+        setIsIncidenciaModalOpen(true);
+        return; // Salimos, el Incidence Modal se encargará de hacer la petición al guardar
       } else {
       const motivosPredefinidos = [
         'FALTA DE OPERADOR',
@@ -841,6 +923,8 @@ export default function DetalleUnidadMantenimiento() {
       nombre_conductor: foundConductor ? foundConductor.nombre : '',
       numero_tarjeton: modalEstatusConductor,
       ruta: modalEstatusRuta,
+      corrida: modalEstatusCorrida,
+      cambio_unidad_activo: reemplazoActivo ? 1 : 0,
     };
 
     try {
@@ -869,6 +953,7 @@ export default function DetalleUnidadMantenimiento() {
           conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || prev.conductor),
           ruta: modalEstatusRuta || data.ruta_asignada || prev.ruta,
           tarjeton: modalEstatusConductor || data.tarjeton || prev.tarjeton,
+          corrida: modalEstatusCorrida || data.corridas || prev.corrida,
           motivo_estatus: null, // <-- NUEVO: al pasar a operación, limpiar motivo
         }));
         setSelectedEstado(modalEstatusNuevo);
@@ -883,6 +968,7 @@ export default function DetalleUnidadMantenimiento() {
             conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || old.conductor),
             ruta: modalEstatusRuta || data.ruta_asignada || old.ruta,
             tarjeton: modalEstatusConductor || data.tarjeton || old.tarjeton,
+            corrida: modalEstatusCorrida || data.corridas || old.corrida,
             asignado: true,
           };
         });
@@ -897,6 +983,7 @@ export default function DetalleUnidadMantenimiento() {
                 nombre_conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor),
                 ruta: modalEstatusRuta || data.ruta_asignada || u.ruta,
                 tarjeton: modalEstatusConductor || data.tarjeton || u.tarjeton,
+                corridas: modalEstatusCorrida || data.corridas || u.corridas,
               };
             }
             return u;
@@ -959,7 +1046,7 @@ export default function DetalleUnidadMantenimiento() {
             onSelectUnit={handleSelectUnit} 
             moduleName={configActual?.title || 'esta sección'} 
           />
-          <div className="unit-control-panel__selectors">
+          <div className="unit-control-panel__selectors" ref={unitSelectorsRef}>
             <UnitSelector
               isOpen={openDropdown === 'operacion'}
               setIsOpen={(open) => setOpenDropdown(open ? 'operacion' : null)}
@@ -1027,29 +1114,78 @@ export default function DetalleUnidadMantenimiento() {
                            })}
                          </div>
                        )}
-                        <button
-                          onClick={() => setIsMaintenanceWizardOpen(true)}
-                          style={{
-                            background: 'rgba(255,255,255,0.2)',
-                            border: '1px solid rgba(255,255,255,0.4)',
-                            borderRadius: '4px',
-                            padding: '4px 8px',
-                            color: 'white',
-                            fontSize: '0.75rem',
-                            marginTop: '8px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                          </svg>
-                          {datosOperativos.folio_mantenimiento ? 'Descargar Orden PDF' : 'Generar Orden PDF'}
-                        </button>
-                    </div>
-                  )}
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px' }}>
+                           {!datosOperativos.folio_mantenimiento ? (
+                             <button
+                               onClick={() => setIsIncidenciaModalOpen(true)}
+                               className="flex items-center gap-1.5 hover:bg-white/10 active:scale-95 transition-all"
+                               style={{
+                                 background: 'transparent',
+                                 border: '1px solid rgba(255,255,255,0.3)',
+                                 borderRadius: '6px',
+                                 padding: '5px 12px',
+                                 color: 'rgba(255,255,255,0.9)',
+                                 fontSize: '0.75rem',
+                                 fontWeight: '500',
+                                 cursor: 'pointer',
+                               }}
+                             >
+                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                               </svg>
+                               Registrar incidencia
+                             </button>
+                           ) : (
+                             !(datosOperativos.folio_mantenimiento.startsWith('MANT-')) && (
+                               <button
+                                 onClick={handleGenerarFolio}
+                                 className="flex items-center gap-1.5 hover:scale-105 active:scale-95 shadow-md"
+                                 style={{
+                                   background: 'white',
+                                   border: 'none',
+                                   borderRadius: '6px',
+                                   padding: '6px 14px',
+                                   color: 'var(--brand-maroon, #601a2a)',
+                                   fontSize: '0.75rem',
+                                   fontWeight: '800',
+                                   cursor: 'pointer',
+                                   transition: 'all 0.2s',
+                                 }}
+                               >
+                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                 </svg>
+                                 GENERAR FOLIO
+                               </button>
+                             )
+                           )}
+                         </div>
+                         
+                         {datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-') && (
+                           <button
+                             onClick={() => setIsMaintenanceWizardOpen(true)}
+                             style={{
+                               background: 'rgba(255,255,255,0.2)',
+                               border: '1px solid rgba(255,255,255,0.4)',
+                               borderRadius: '4px',
+                               padding: '4px 8px',
+                               color: 'white',
+                               fontSize: '0.75rem',
+                               marginTop: '8px',
+                               cursor: 'pointer',
+                               display: 'flex',
+                               alignItems: 'center',
+                               gap: '4px'
+                             }}
+                           >
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                             </svg>
+                             Descargar Orden PDF
+                           </button>
+                         )}
+                     </div>
+                   )}
                 </div>
 
                 <div className="detalle-dashboard-grid">
@@ -1269,7 +1405,7 @@ export default function DetalleUnidadMantenimiento() {
                               </div>
 
                               <div style={{ display: 'grid', gap: '0.25rem' }}>
-                                <span className="info-card__label">Corridas Perdidas</span>
+                                <span className="info-card__label">Ciclos Perdidos</span>
                                 <select
                                   value={reemplazoForm.corridaPerdida}
                                   onChange={(e) => handleCorridaPerdidaChange(e.target.value)}
@@ -1285,7 +1421,7 @@ export default function DetalleUnidadMantenimiento() {
 
                               {reemplazoForm.corridaPerdida === 'OTRO' && (
                                 <div style={{ display: 'grid', gap: '0.25rem' }}>
-                                  <span className="info-card__label">Especifique corridas perdidas</span>
+                                  <span className="info-card__label">Especifique ciclos perdidos</span>
                                   <input
                                     type="text"
                                     value={reemplazoForm.corridaPerdidaOtro}
@@ -1849,6 +1985,29 @@ export default function DetalleUnidadMantenimiento() {
               </div>
             </div>
 
+            {/* --- Corrida --- */}
+            <div style={{ textAlign: 'left', marginBottom: '1.5rem', marginTop: '1.5rem' }}>
+              <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
+                Corrida
+              </label>
+              <input
+                type="text"
+                value={modalEstatusCorrida}
+                onChange={(e) => setModalEstatusCorrida(e.target.value)}
+                className="interactive-input"
+                placeholder="Ingrese la corrida..."
+                style={{
+                  width: '100%',
+                  padding: '0 0.85rem',
+                  height: '2.5rem',
+                  fontSize: '0.9rem',
+                  borderRadius: '0.6rem',
+                  border: '1.5px solid var(--tw-color-gray-200)',
+                  color: 'var(--tw-color-gray-900)'
+                }}
+              />
+            </div>
+
             <div className="custom-modal-actions">
               <button
                 type="button"
@@ -1877,7 +2036,8 @@ export default function DetalleUnidadMantenimiento() {
           isOpen={isMaintenanceWizardOpen}
           onClose={() => setIsMaintenanceWizardOpen(false)}
           initialStep={(datosOperativos.estatus || '').toLowerCase() === 'mantenimiento' ? 2 : 1}
-          printOnly={!!datosOperativos?.folio_mantenimiento}
+          printOnly={!!datosOperativos?.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')}
+          conductores={dbConductores}
           initialData={{
             numero_eco: selectedOption ? String(selectedOption.replace(/\D/g, '')).padStart(3, '0') : '',
             tipoTransporte: configActual.id,
@@ -1945,13 +2105,32 @@ export default function DetalleUnidadMantenimiento() {
                 throw new Error(resData.message || 'Error al cambiar estatus');
               }
 
+              // Generar Folio Oficial si no empieza con MANT-
+              let folioFinal = data.folio_mantenimiento;
+              let fechaFolioFinal = data.fecha_folio_mantenimiento;
+              if (folioFinal && !folioFinal.startsWith('MANT-')) {
+                const resFolio = await fetch(`${API_BASE}/api/mantenimiento/generar-folio`, {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                  },
+                  body: JSON.stringify({ numero_eco: ecoLimpio })
+                });
+                const dataFolio = await resFolio.json();
+                if (dataFolio.status === 'success') {
+                  folioFinal = dataFolio.folio;
+                  fechaFolioFinal = dataFolio.fecha_folio;
+                }
+              }
+
               // Refrescar estado local
               setDatosOperativos(prev => ({
                 ...prev,
                 estatus: 'mantenimiento',
                 motivo_estatus: data.motivo,
-                folio_mantenimiento: data.folio_mantenimiento,
-                fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
+                folio_mantenimiento: folioFinal,
+                fecha_folio_mantenimiento: fechaFolioFinal,
                 falla_reportada: data.falla_reportada,
                 diagnostico: data.diagnostico,
                 firma_base64: data.firma_base64,
@@ -1977,6 +2156,58 @@ export default function DetalleUnidadMantenimiento() {
             }
           }}
         />
+      )}
+
+      {/* MODAL PARA ASIGNAR NÚMERO DE INCIDENCIA */}
+      {isIncidenciaModalOpen && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
+          style={{ overscrollBehavior: 'none' }}
+          onClick={() => setIsIncidenciaModalOpen(false)}
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">Asignar Número de Incidencia</h2>
+            
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Asignar número de incidencia:
+                </label>
+                <input
+                  type="text"
+                  placeholder=""
+                  value={incidenciaFormValue}
+                  onChange={(e) => setIncidenciaFormValue(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
+                  autoFocus
+                />
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número de la incidencia.</span>
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsIncidenciaModalOpen(false)}
+                  className="flex-1 py-2 bg-slate-400 text-white font-bold rounded-lg hover:bg-slate-500 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGuardarIncidencia}
+                  disabled={isGuardandoIncidencia}
+                  className="flex-1 py-2 text-white font-bold rounded-lg transition-colors"
+                  style={{ background: 'var(--brand-maroon-text, #601a2a)' }}
+                >
+                  {isGuardandoIncidencia ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

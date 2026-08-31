@@ -51,6 +51,7 @@ export default function DetalleUnidadMesaControl() {
   const [modalEstatusNuevo, setModalEstatusNuevo] = useState(null);
   const [modalEstatusConductor, setModalEstatusConductor] = useState('');
   const [modalEstatusRuta, setModalEstatusRuta] = useState('');
+  const [modalEstatusCorrida, setModalEstatusCorrida] = useState('');
   const [modalEstatusConductorDropdown, setModalEstatusConductorDropdown] = useState(false);
   const [modalEstatusRutaDropdown, setModalEstatusRutaDropdown] = useState(false);
 
@@ -690,6 +691,7 @@ export default function DetalleUnidadMesaControl() {
     setModalEstatusNuevo(nuevoEstatus);
     setModalEstatusConductor(datosOperativos.tarjeton ? String(datosOperativos.tarjeton).trim() : '');
     setModalEstatusRuta(datosOperativos.ruta ? datosOperativos.ruta : '');
+    setModalEstatusCorrida(datosOperativos.corrida ? datosOperativos.corrida : '');
     setModalEstatusConductorDropdown(false);
     setModalEstatusRutaDropdown(false);
     // Resetear estados de cambio de unidad
@@ -739,6 +741,7 @@ export default function DetalleUnidadMesaControl() {
       nombre_conductor: foundConductor ? foundConductor.nombre : '',
       numero_tarjeton: modalEstatusConductor,
       ruta: modalEstatusRuta,
+      corrida: modalEstatusCorrida,
       cambio_unidad_activo: cambioUnidadActivo ? 1 : 0,
       eco_reemplazo: cambioUnidadActivo ? unidadReemplazoSeleccionada.eco : null,
       tarjeton_reemplazo: cambioUnidadActivo ? reemplazoForm.tarjeton : null,
@@ -775,6 +778,7 @@ export default function DetalleUnidadMesaControl() {
           conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || prev.conductor)),
           ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || prev.ruta),
           tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || prev.tarjeton),
+          corrida: shouldClearConductor ? null : (modalEstatusCorrida || data.corridas || prev.corrida),
         }));
         setSelectedEstado(modalEstatusNuevo);
         queryClient.invalidateQueries(['conductores-list']);

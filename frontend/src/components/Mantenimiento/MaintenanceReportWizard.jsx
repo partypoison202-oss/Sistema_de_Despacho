@@ -6,7 +6,7 @@ import PrintableMaintenanceOrder from './PrintableMaintenanceOrder';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1, printOnly = false }) {
+export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1, printOnly = false, conductores = [] }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -47,7 +47,10 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
       setFormData({
         eco: initialData?.numero_eco || initialData?.eco || '',
-        operador: initialData?.conductorNombre || initialData?.conductor || '',
+        operador: (() => {
+          const name = initialData?.conductorNombre || initialData?.conductor || '';
+          return (name.toLowerCase().includes('no reportado') || name.toLowerCase().includes('sin asignar') || name.toLowerCase().includes('desconocido')) ? '' : name;
+        })(),
         tarjeton: initialData?.tarjeton || '',
         fecha: fechaActual,
         hora_reporte: horaActual,
@@ -121,7 +124,24 @@ const handleNext = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Auto-completar operador si el tarjetón coincide
+      if (name === 'tarjeton') {
+        const valStr = String(value).trim();
+        const valueNum = Number(valStr);
+        const found = conductores.find(c => Number(c.tarjeton) === valueNum && valStr !== '');
+        if (found) {
+          newData.operador = found.nombre;
+        } else {
+          newData.operador = '';
+        }
+      }
+      
+      return newData;
+    });
   };
 
   const isFormValid = () => {
@@ -195,13 +215,34 @@ const handleNext = () => {
     }
   };
 
+  const handleAssignIncidencia = async () => {
+    if (!folio) {
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar un número de incidencia.' });
+      return;
+    }
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      await onSuccess({
+        folio_mantenimiento: folio, // Funciona como ID de incidencia
+        motivo: 'MANTENIMIENTO'
+      });
+      onClose();
+    } catch (error) {
+      console.error(error);
+      setErrorMsg(error?.message || 'Ocurrió un error al guardar. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderStep1 = () => (
     <div className="flex flex-col items-center p-6 max-w-md mx-auto">
 
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Asignar Folio de Mantenimiento</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Asignar Número de Incidencia</h2>
       
       <div className="w-full text-left mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Asignar folio de Mantenimiento:</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Asignar número de incidencia:</label>
         <input 
           type="text" 
           value={folio}
@@ -212,16 +253,18 @@ const handleNext = () => {
         />
       </div>
 
-      <div className="flex gap-4 w-full justify-center mt-2">
+      <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
         <button 
-          onClick={handleNext}
-          className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors"
+          onClick={handleAssignIncidencia}
+          disabled={loading}
+          className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
         >
-          Siguiente
+          {loading ? 'Guardando...' : 'Guardar'}
         </button>
         <button 
           onClick={onClose}
-          className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+          disabled={loading}
+          className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
         >
           Cancelar
         </button>
@@ -236,7 +279,7 @@ const handleNext = () => {
         <button onClick={onClose} className="text-white/80 hover:text-white transition-colors text-2xl font-bold leading-none focus:outline-none">&times;</button>
       </div>
       
-      <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+      <div className="p-6 overflow-y-auto overscroll-contain flex-1 bg-gray-50/50">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -259,41 +302,38 @@ const handleNext = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Operador</label>
-              <div className="text-base font-medium text-gray-900 border-b-2 border-gray-200 pb-1">{formData.operador || 'No asignado'}</div>
+              <input type="text" name="operador" value={formData.operador} readOnly className="w-full border border-gray-200 bg-gray-50 rounded-lg p-2.5 text-sm text-gray-500 cursor-not-allowed shadow-sm" placeholder="" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón)</label>
-              <div className="text-base font-medium text-gray-900 border-b-2 border-gray-200 pb-1">{formData.tarjeton || 'N/A'}</div>
+              <input type="text" name="tarjeton" value={formData.tarjeton} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. 12345</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-5 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio</label>
-              <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Ej. RA 3" />
+              <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. RA 3</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida</label>
-              <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Ej. 2" />
+              <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. 2</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM <span className="text-red-500">*</span></label>
-              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Ej. 1488" />
+              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. 1488</p>
             </div>
           </div>
 
           <div className="space-y-5 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Falla Reportada <span className="text-red-500">*</span></label>
-              <textarea name="falla_reportada" value={formData.falla_reportada} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="Describa la falla..."></textarea>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Diagnóstico (Opcional)</label>
-              <textarea name="diagnostico" value={formData.diagnostico} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm"></textarea>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción de Mantenimiento (Opcional)</label>
-              <textarea name="descripcion_mantenimiento" value={formData.descripcion_mantenimiento} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm"></textarea>
+              <textarea name="falla_reportada" value={formData.falla_reportada} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder=""></textarea>
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Describa la falla lo más detallado posible.</p>
             </div>
           </div>
 
@@ -349,7 +389,7 @@ const handleNext = () => {
 
   if (printOnly) {
     return createPortal(
-      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-4 overscroll-none">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-4"></div>
         <p className="text-white text-lg font-semibold animate-pulse">Generando e imprimiendo Orden de Mantenimiento...</p>
         {/* Contenedor Oculto para la plantilla PDF */}
@@ -362,7 +402,7 @@ const handleNext = () => {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-none">
       <div 
         className="bg-white rounded-xl shadow-2xl w-full relative overflow-hidden"
         style={{ maxWidth: step === 1 ? '500px' : '800px', transition: 'max-width 0.3s ease-in-out' }}

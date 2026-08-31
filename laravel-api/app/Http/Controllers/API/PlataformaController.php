@@ -20,7 +20,7 @@ class PlataformaController extends Controller
             'conductor' => 'nullable|string',
             'ruta' => 'nullable|string',
             'motivo' => 'nullable|string',
-            'estatus_nuevo' => 'nullable|string|in:RESERVA,MANTENIMIENTO,PATIO NORTE',
+            'estatus_nuevo' => 'nullable|string|in:RESERVA,MANTENIMIENTO,PATIO NORTE,PERCANCE',
             'reemplazo_activo' => 'nullable|boolean',
             'eco_reemplazo' => 'nullable|string',
             'unidad_reemplazo' => 'nullable|string',
@@ -62,6 +62,7 @@ class PlataformaController extends Controller
             $estatusAnteriorRaw = $registroOperativo->estatus ?? 'RESERVA';
             $estatusAnterior = strtoupper(trim($estatusAnteriorRaw));
             $estatusNuevo = $estatusAnterior;
+
             $datosUpdate = [];
             $mensajeBitacora = "";
 
@@ -79,6 +80,19 @@ class PlataformaController extends Controller
                 }
                 $estatusNuevo = $request->estatus_nuevo ?? 'RESERVA';
                 $datosUpdate['estatus'] = strtolower($estatusNuevo);
+                
+                // Limpiar conductor y ruta al desincorporar
+                if ($registroOperativo && $registroOperativo->numero_tarjeton) {
+                    DB::table('conductores')
+                        ->where('tarjeton', $registroOperativo->numero_tarjeton)
+                        ->update(['estado_servicio' => 'disponible']);
+                }
+                $datosUpdate['nombre_conductor'] = null;
+                $datosUpdate['numero_tarjeton'] = null;
+                $datosUpdate['ruta'] = null;
+                $datosUpdate['corridas'] = null;
+                $datosUpdate['ciclo'] = null;
+
                 $mensajeBitacora = "DESINCORPORACIÓN A " . strtoupper($estatusNuevo) . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
 
                 // ✅ Procesar unidad de reemplazo
