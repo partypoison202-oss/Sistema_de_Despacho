@@ -1248,8 +1248,6 @@ class DespachoController extends Controller
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
                 'informacion_operativa.patio_norte'
-                'informacion_operativa.hora_salida',
-                'informacion_operativa.patio_norte'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
