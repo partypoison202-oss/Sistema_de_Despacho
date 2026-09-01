@@ -1,0 +1,201 @@
+.patio-custom-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 99999;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+    overflow-y: auto;
+    padding: 2rem 1rem;
+}
+.patio-custom-modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    text-align: center;
+    animation: scaleUp 0.2s ease-out;
+    position: relative;
+    margin: auto;
+}
+.patio-custom-modal-title {
+    color: var(--brand-maroon, #6b1d33);
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.patio-custom-modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 1.5rem;
+}
+.patio-custom-modal-btn-save {
+    background: var(--brand-maroon, #6b1d33);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+.patio-custom-modal-btn-save:hover { opacity: 0.9; }
+.patio-custom-modal-btn-cancel {
+    background: #9ca3af;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s;
+}
+.patio-custom-modal-btn-cancel:hover { opacity: 0.9; }
+
+/* Custom dropdown menu styles based on DetalleUnidadMesaControl */
+.patio-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.patio-dropdown-search-wrapper {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    background: white;
+}
+
+.patio-dropdown-search {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.patio-dropdown-search:focus {
+    border-color: #6b1d33;
+}
+
+.patio-dropdown-item {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    color: #111827;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    transition: background 0.1s;
+}
+
+.patio-dropdown-item:hover {
+    background: #f3f4f6;
+}
+
+.patio-person-list-container {
+    text-align: left;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+    padding-right: 4px;
+}
+
+/* Custom scrollbar for list */
+.patio-person-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+.patio-person-list-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.patio-person-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+.patio-person-card:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.patio-person-card:last-child {
+    margin-bottom: 0;
+}
+
+.patio-person-avatar {
+    width: 36px;
+    height: 36px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #6b1d33;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.patio-person-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.patio-person-name {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 13px;
+    margin-bottom: 3px;
+}
+
+.patio-person-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+}
+
+.patio-person-role {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.patio-person-eco {
+    color: #64748b;
+    font-weight: 500;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
