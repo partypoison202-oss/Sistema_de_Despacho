@@ -128,7 +128,7 @@ export default function DetalleUnidadMesaControl() {
   };
 
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
-    queryKey: ['unidades-list', tipoTransporte],
+    queryKey: ['unidades-list-mesacontrol', tipoTransporte],
     queryFn: fetchUnidades,
     staleTime: 0,
     refetchInterval: 5000,
@@ -359,7 +359,7 @@ export default function DetalleUnidadMesaControl() {
           display: formatearEco(resultado.unidad.numero_eco),
           estado: resultado.unidad.estatus || 'operacion',
         };
-        queryClient.setQueryData(['unidades-list', tipoTransporte], (prev = []) => {
+        queryClient.setQueryData(['unidades-list-mesacontrol', tipoTransporte], (prev = []) => {
           if (prev.some((item) => item.eco === unidadRemota.eco)) return prev;
           return [...prev, unidadRemota];
         });
@@ -453,7 +453,7 @@ export default function DetalleUnidadMesaControl() {
         setTarjetonBusqueda(resultado.tarjeton);
         queryClient.invalidateQueries(['conductores-list']);
         fetchConductores();
-        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['unidades-list-mesacontrol', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
 
         const Swal = (await import('sweetalert2')).default;
@@ -512,7 +512,7 @@ export default function DetalleUnidadMesaControl() {
           nombre_maniobrista: resultado.maniobrista,
         }));
         queryClient.invalidateQueries(['maniobristas-list']);
-        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['unidades-list-mesacontrol', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
 
         const Swal = (await import('sweetalert2')).default;
@@ -796,7 +796,7 @@ export default function DetalleUnidadMesaControl() {
           };
         });
 
-        queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) => {
+        queryClient.setQueryData(['unidades-list-mesacontrol', tipoTransporte], (old = []) => {
           return old.map(u => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
               return {
@@ -820,7 +820,7 @@ export default function DetalleUnidadMesaControl() {
           });
         });
 
-        queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['unidades-list-mesacontrol', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
       } else {

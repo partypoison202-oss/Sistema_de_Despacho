@@ -55,7 +55,7 @@ export default function ExcelPreview({
   const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
 
   // Las cabeceras del editor directo
-  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS'];
+  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS', 'PATIO_NORTE'];
   if (isRelevos) {
     headers.push('HORA_DE_ACOPLE');
     headers.push('HORA_PROGRAMADA');
@@ -377,6 +377,22 @@ export default function ExcelPreview({
                               </>,
                               document.body
                             )}
+                          </td>
+                        );
+                      }
+
+                      if (h === 'PATIO_NORTE') {
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <input
+                              type="checkbox"
+                              checked={!!fila[h]}
+                              onChange={(e) => {
+                                onUpdate && onUpdate(originalIndex, h, e.target.checked);
+                              }}
+                              disabled={isRowDisabled || readOnly}
+                              style={{ transform: 'scale(1.4)', cursor: (isRowDisabled || readOnly) ? 'not-allowed' : 'pointer', accentColor: '#6b1d33' }}
+                            />
                           </td>
                         );
                       }

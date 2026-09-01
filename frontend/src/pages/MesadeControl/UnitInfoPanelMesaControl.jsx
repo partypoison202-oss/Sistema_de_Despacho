@@ -900,7 +900,7 @@ export default function UnitInfoPanel({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '1px' }}>
-                  <span>{datosOperativos.hora_salida || '--:--'}</span>
+                  <span>{datosOperativos.horaSalida || '--:--'}</span>
                 </span>
               </div>
             </div>)}

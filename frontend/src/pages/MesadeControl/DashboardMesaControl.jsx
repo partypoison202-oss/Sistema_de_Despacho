@@ -36,7 +36,7 @@ export default function DashboardMesaControl() {
       return;
     }
 
-    const allCached = transportModules.every(m => queryClient.getQueryData(['unidades-list', m.id])?.length > 0);
+    const allCached = transportModules.every(m => queryClient.getQueryData(['unidades-list-mesacontrol', m.id])?.length > 0);
     if (!allCached) setBuscandoUnidad(true);
 
     try {
@@ -44,7 +44,7 @@ export default function DashboardMesaControl() {
       const resultados = await Promise.all(
         transportModules.map(async (modulo) => {
           try {
-            const cachedData = queryClient.getQueryData(['unidades-list', modulo.id]);
+            const cachedData = queryClient.getQueryData(['unidades-list-mesacontrol', modulo.id]);
             let unidades = cachedData || [];
 
             if (unidades.length === 0) {

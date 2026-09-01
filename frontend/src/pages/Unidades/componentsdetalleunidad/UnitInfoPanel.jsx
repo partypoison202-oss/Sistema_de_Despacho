@@ -116,6 +116,15 @@ export default function UnitInfoPanel({
   const [dropdownObservacionesOpen, setDropdownObservacionesOpen] = useState(false);
   const [formObservaciones, setFormObservaciones] = useState('');
 
+  const [modalPlataformaVisible, setModalPlataformaVisible] = useState(null);
+  const [platMotivo, setPlatMotivo] = useState('');
+  const [platEstatus, setPlatEstatus] = useState('');
+  const [platEstatusDropdown, setPlatEstatusDropdown] = useState(false);
+  const [platConductor, setPlatConductor] = useState('');
+  const [platConductorDropdown, setPlatConductorDropdown] = useState(false);
+  const [platRuta, setPlatRuta] = useState('');
+  const [platRutaDropdown, setPlatRutaDropdown] = useState(false);
+
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'PERCANCE';
 
 

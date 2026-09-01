@@ -912,6 +912,24 @@ export default function CargaExcel() {
             </button>
             <button
               type="button"
+              onClick={() => setShowTrasladoModal(true)}
+              className="excel-export-btn"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
+                background: '#6b1d33', color: 'white', fontWeight: 700,
+                fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = '#4a1020'}
+              onMouseOut={(e) => e.currentTarget.style.background = '#6b1d33'}
+            >
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Traslado Patio Norte
+            </button>
+            <button
+              type="button"
               onClick={handleExportExcel}
               className="excel-export-btn"
               style={{

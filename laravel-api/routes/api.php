@@ -78,6 +78,8 @@ Route::get('/fix-findesemana-tables', function() {
                 $table->string('folio_mantenimiento', 50)->nullable();
                 $table->date('fecha_folio_mantenimiento')->nullable();
                 
+                $table->boolean('patio_norte')->default(false);
+                
                 $table->string('tarjeton_maniobrista', 50)->nullable()->default('');
                 $table->string('nombre_maniobrista', 200)->nullable()->default('');
                 $table->timestamp('fecha_registro')->nullable()->useCurrent();
@@ -93,6 +95,27 @@ Route::get('/fix-findesemana-tables', function() {
 
     if (empty($creadas)) return 'Las 3 tablas ya existen.';
     return 'Tablas creadas con éxito: ' . implode(', ', $creadas);
+});
+
+Route::get('/fix-add-patio-norte', function() {
+    $tables = [
+        'informacion_operativa',
+        'informacion_operativa_manana',
+        'informacion_operativa_sabado',
+        'informacion_operativa_domingo',
+        'informacion_operativa_lunes',
+        'informacion_operativa_festivo'
+    ];
+    $added = [];
+    foreach ($tables as $t) {
+        if (Schema::hasTable($t) && !Schema::hasColumn($t, 'patio_norte')) {
+            Schema::table($t, function (Blueprint $table) {
+                $table->boolean('patio_norte')->default(false);
+            });
+            $added[] = $t;
+        }
+    }
+    return empty($added) ? 'La columna patio_norte ya existe en todas las tablas.' : 'Columna agregada a: ' . implode(', ', $added);
 });
 
 // Autenticación pública (no requiere token)

@@ -54,7 +54,9 @@ export function useGlobalPrefetch() {
       ruta: String(u.ruta ?? '').trim(),
       acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       kilometraje: u.kilometraje || '',
-      socio: String(u.socio ?? '').trim()
+      socio: String(u.socio ?? '').trim(),
+      horaSalida: String(u.hora_salida ?? '').trim(),
+      horaProgramada: String(u.hora_programada ?? '').trim()
     });
 
     // Prefetch transport modules (Mesa Control / Despacho / Mantenimiento)
@@ -62,6 +64,18 @@ export function useGlobalPrefetch() {
       // Para Despacho y Mesa Control
       queryClient.prefetchQuery({
         queryKey: ['unidades-list', modulo.id],
+        queryFn: async () => {
+          const res = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, { headers });
+          if (!res.ok) return [];
+          const data = await res.json();
+          return (Array.isArray(data) ? data : []).map(mapUnidad);
+        },
+        staleTime: 60000,
+      });
+
+      // Para Mesa Control (nueva key)
+      queryClient.prefetchQuery({
+        queryKey: ['unidades-list-mesacontrol', modulo.id],
         queryFn: async () => {
           const res = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, { headers });
           if (!res.ok) return [];

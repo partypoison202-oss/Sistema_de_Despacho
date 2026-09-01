@@ -533,6 +533,9 @@ class DespachoController extends Controller
             $horaProgVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
+            $horaProgVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
+            $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
+            $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
@@ -1245,6 +1248,8 @@ class DespachoController extends Controller
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
                 'informacion_operativa.patio_norte'
+                'informacion_operativa.hora_salida',
+                'informacion_operativa.patio_norte'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
@@ -1322,6 +1327,8 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.motivo_estatus',
                 'informacion_operativa_manana.hora_programada',
                 'informacion_operativa_manana.acople',
+                'informacion_operativa_manana.hora_salida',
+                'informacion_operativa_manana.patio_norte'
                 'informacion_operativa_manana.hora_salida',
                 'informacion_operativa_manana.patio_norte'
             )
@@ -1403,6 +1410,8 @@ class DespachoController extends Controller
                 "{$tableName}.acople",
                 "{$tableName}.hora_salida",
                 "{$tableName}.patio_norte"
+                "{$tableName}.hora_salida",
+                "{$tableName}.patio_norte"
             )
             ->orderBy("{$tableName}.tipo")
             ->orderBy('unidades.numero_eco')
@@ -1475,7 +1484,8 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.motivo_estatus',
                 'informacion_operativa_manana.hora_programada',
                 'informacion_operativa_manana.acople',
-                'informacion_operativa_manana.hora_salida'
+                'informacion_operativa_manana.hora_salida',
+                'informacion_operativa_manana.patio_norte'
             )
             ->orderBy('informacion_operativa_manana.tipo')
             ->orderBy('unidades.numero_eco')
@@ -1499,7 +1509,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida
+                'HORA_SALIDA' => $reg->hora_salida,
+                'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
             ];
         });
 
@@ -1540,7 +1551,8 @@ class DespachoController extends Controller
                 "{$tableName}.motivo_estatus",
                 "{$tableName}.hora_programada",
                 "{$tableName}.acople",
-                "{$tableName}.hora_salida"
+                "{$tableName}.hora_salida",
+                "{$tableName}.patio_norte"
             )
             ->orderBy("{$tableName}.tipo")
             ->orderBy('unidades.numero_eco')
@@ -1564,7 +1576,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida
+                'HORA_SALIDA' => $reg->hora_salida,
+                'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
 
             ];
         });
@@ -1890,7 +1903,7 @@ class DespachoController extends Controller
             
             if ($unidadReemplazo) {
                 $conductorReemplazo = DB::table('conductores')->where('tarjeton', $tarjetonReemplazo)->first();
-                $nombreConductorReemplazo = $conductorReemplazo ? $conductorReemplazo->nombre : null;
+                $nombreConductorReemplazo = $conductorReemplazo ? trim(($conductorReemplazo->nombres ?? '') . ' ' . ($conductorReemplazo->apellidos ?? '')) : null;
 
                 // Desasignar cualquier otra unidad que tenga este tarjetón
                 if ($tarjetonReemplazo) {
