@@ -225,7 +225,8 @@ const handleNext = () => {
     try {
       await onSuccess({
         folio_mantenimiento: folio, // Funciona como ID de incidencia
-        motivo: 'MANTENIMIENTO'
+        motivo: 'MANTENIMIENTO',
+        falla_reportada: formData.falla_reportada // Se guarda desde el paso 1
       });
       onClose();
     } catch (error) {
@@ -247,10 +248,18 @@ const handleNext = () => {
           type="text" 
           value={folio}
           onChange={(e) => setFolio(e.target.value.replace(/\D/g, ''))}
-          className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors"
+          className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-4"
           placeholder="Ej. 1234"
           autoFocus
         />
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Falla Reportada:</label>
+        <textarea 
+          value={formData.falla_reportada}
+          onChange={(e) => setFormData(prev => ({ ...prev, falla_reportada: e.target.value }))}
+          className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:outline-none transition-colors"
+          placeholder="Describa la falla brevemente..."
+          rows="3"
+        ></textarea>
       </div>
 
       <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
@@ -314,8 +323,34 @@ const handleNext = () => {
           <div className="grid grid-cols-3 gap-5 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio</label>
-              <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. RA 3</p>
+              {(() => {
+                const tipo = String(initialData?.tipo || '').toLowerCase();
+                const esUrbanuss = ['urbanuss', 'zafiro', 'orion'].includes(tipo);
+                const esAlimentadora = ['vagoneta', 'alimentadora', 'urvan'].includes(tipo);
+                const opciones = esUrbanuss
+                  ? ['RA 1','RA 2','RA 3','RA 4','RA 5','RA 6','RA 7','RA 8','RA 9','RA 10','RA 11','RA 12','RA 13','RA 14','RA 15','RA 16','RA 17','RA 18']
+                  : esAlimentadora
+                  ? ['A 1','A 2','A 3','A 4','A 5','A 6','A 7','A 8','A 9','A 10','A 11','A 12','Especial','Sin ruta asignada']
+                  : [];
+                return opciones.length > 0 ? (
+                  <select
+                    name="servicio"
+                    value={formData.servicio}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm bg-white"
+                  >
+                    <option value="">— Seleccionar —</option>
+                    {opciones.map(o => (
+                      <option key={o} value={o} selected={formData.servicio === o}>{o}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
+                );
+              })()}
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">
+                {String(initialData?.tipo || '').toLowerCase() === '' ? 'Ej. RA 3' : `Rutas disponibles para ${String(initialData?.tipo || '').toUpperCase()}`}
+              </p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida</label>

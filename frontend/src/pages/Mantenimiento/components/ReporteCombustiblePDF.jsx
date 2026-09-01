@@ -1,6 +1,20 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 
+// ── Logo STM — T abstracta oficial (Sitmah-Flotilla) ──
+function LogoSTM({ className = '' }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" className={className} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+            <rect x="130" y="20" width="270" height="110" fill="#c2a165" />
+            <rect x="30" y="130" width="100" height="100" fill="#c2a165" />
+            <path
+                d="M 130 230 L 130 400 A 150 150 0 0 0 280 550 L 400 550 L 400 430 L 280 430 A 30 30 0 0 1 250 400 L 250 230 Z"
+                fill="#c2a165"
+            />
+        </svg>
+    );
+}
+
 /**
  * Componente que se renderiza oculto en pantalla para ser capturado por html2canvas.
  * Su diseño imita el mock "REPORTE DE COMBUSTIBLE".
@@ -9,7 +23,7 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
   if (!data || !totales) return null;
 
   const todayStr = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const folio = "001"; // TODO: Podría ser dinámico si se requiere.
+  const folio = totales.folio || "S/F"; 
 
   // Helper para formatear números
   const formatNum = (num) => Number(num || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -43,7 +57,10 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
       }}
     >
       {/* HEADER */}
-      <div style={{ background: darkRed, color: '#fff', textAlign: 'center', padding: '15px 0' }}>
+      <div style={{ background: darkRed, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px 20px', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <LogoSTM style={{ height: '40px' }} />
+        </div>
         <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', letterSpacing: '1px' }}>SISTEMA DE TRANSPORTE METROPOLITANO</h2>
       </div>
       <div style={{ background: '#7e2439', color: '#fff', textAlign: 'center', padding: '10px 0', borderBottom: '4px solid #fff' }}>

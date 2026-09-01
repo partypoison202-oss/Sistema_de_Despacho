@@ -134,26 +134,6 @@ const PrintableMaintenanceOrder = React.forwardRef(({ data }, ref) => {
           </div>
         </div>
 
-        {/* === FOOTER LOGOS === */}
-        <div className="mt-auto flex justify-between items-center px-4 pt-4 border-t-2" style={{ borderColor: '#e5e7eb' }}>
-          <img src={stmLogo} alt="STM" className="h-10 opacity-80" />
-          <div className="font-black text-xl tracking-widest uppercase text-gray-400">sitmah</div>
-          <div className="text-sm font-bold text-center leading-tight uppercase text-gray-500">
-            Hidalgo<br/><span className="font-normal text-xs text-gray-400">Primero el pueblo</span>
-          </div>
-          <div className="text-sm font-bold text-right leading-tight uppercase text-gray-500">
-            Movilidad<br/><span className="font-normal text-[9px] tracking-wider text-gray-400">Sistema Integrado de Transporte</span>
-          </div>
-        </div>
-        
-      </div>
-      
-      {/* MARCA DE AGUA (Fondo absoluto detrás del texto) */}
-      <div 
-        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-        style={{ fontSize: '120px', fontWeight: '900', textAlign: 'center', lineHeight: '0.9', opacity: 0.03 }}
-      >
-        <span className="block transform -rotate-12 mt-12 text-[#6b1d33]">ESTADO LIBRE Y SOBERANO<br/>DE HIDALGO</span>
       </div>
     </div>
   );

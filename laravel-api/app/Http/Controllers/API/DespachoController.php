@@ -2055,6 +2055,7 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('informacion_operativa.estatus', 'mantenimiento')
             ->select(
+                'informacion_operativa.id as numero_incidencia',
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.folio_mantenimiento',
@@ -2379,7 +2380,7 @@ class DespachoController extends Controller
                 
                 $combustibleStr = in_array($tipo, ['urbanuss', 'zafiro', 'orion']) ? 'Diésel' : 'Gasolina';
                 $nombreDisplay = ucfirst($tipo);
-                if ($nombreDisplay === 'Urbanuss') $nombreDisplay = 'Urbanus';
+                // Mantenemos "Urbanuss" con doble 's' según solicitud
                 if ($nombreDisplay === 'Orion') $nombreDisplay = 'Orión';
 
                 $reporte[] = [
@@ -2414,6 +2415,51 @@ class DespachoController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Error al generar el reporte'], 500);
         }
     }
+    /**
+     * Registra un reporte de combustible con folio único COMB-XXX y guarda el historial.
+     */
+    public function registrarReporteCombustible(Request $request)
+    {
+        try {
+            $request->validate([
+                'data'    => 'required|array',
+                'totales' => 'required|array',
+            ]);
+
+            // Generar folio incremental: contar registros existentes + 1
+            $count = DB::table('reportes_combustible')->count();
+            $folio = 'COMB-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+
+            // Asegurarnos de que el folio no exista (por si se generaron dos al mismo tiempo)
+            while (DB::table('reportes_combustible')->where('folio', $folio)->exists()) {
+                $count++;
+                $folio = 'COMB-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+            }
+
+            // Obtener el nombre del usuario autenticado
+            $usuario = $request->user();
+            $generadoPor = $usuario ? $usuario->nombre_completo : 'Sistema';
+
+            DB::table('reportes_combustible')->insert([
+                'folio'          => $folio,
+                'fecha_reporte'  => now()->toDateString(),
+                'generado_por'   => $generadoPor,
+                'datos_resumen'  => json_encode($request->totales),
+                'datos_detalle'  => json_encode($request->data),
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'folio'  => $folio,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[registrarReporteCombustible] Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Error al registrar el reporte'], 500);
+        }
+    }
+
     public function asignarIncidencia(Request $request)
     {
         try {

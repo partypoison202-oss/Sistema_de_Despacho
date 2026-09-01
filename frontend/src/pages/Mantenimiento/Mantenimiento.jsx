@@ -134,18 +134,33 @@ export default function Mantenimiento() {
   const handleGenerarPDF = async () => {
     try {
       setGenerandoPDF(true);
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      // 1. Obtener los datos del reporte
       const res = await fetch(`${API_BASE}/api/mantenimiento/reporte-combustible`, {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       if (!res.ok) throw new Error('Error al obtener datos');
       const json = await res.json();
 
       if (json.status === 'success') {
+        // 2. Registrar el reporte en la BD y obtener el folio único COMB-XXX
+        const resReg = await fetch(`${API_BASE}/api/mantenimiento/reporte-combustible`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ data: json.data, totales: json.totales }),
+        });
+        const jsonReg = await resReg.json();
+        const folioGenerado = jsonReg.status === 'success' ? jsonReg.folio : 'COMB-???';
+
         setPdfData(json.data);
-        setPdfTotales(json.totales);
+        setPdfTotales({ ...json.totales, folio: folioGenerado });
 
         setTimeout(async () => {
           if (pdfRef.current) {
@@ -160,14 +175,14 @@ export default function Mantenimiento() {
 
             pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
             const todayStr = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-            pdf.save(`Reporte_Combustible_${todayStr}.pdf`);
+            pdf.save(`Reporte_Combustible_${folioGenerado}_${todayStr}.pdf`);
           }
           setPdfData(null);
           setPdfTotales(null);
           setGenerandoPDF(false);
           Swal.fire({
-            title: '¡Reporte Generado!',
-            text: 'El PDF se ha descargado correctamente.',
+            title: `¡Reporte Generado! (${folioGenerado})`,
+            text: 'El PDF se ha descargado correctamente y el registro ha sido guardado.',
             icon: 'success',
             confirmButtonColor: '#6b1d33'
           });
@@ -199,8 +214,11 @@ export default function Mantenimiento() {
       });
       if (!response.ok) throw new Error('Error al obtener datos');
       const data = await response.json();
-      generarPDFPendientesMantenimiento(data, tipo);
-      Swal.close();
+      if (data && data.length > 0) {
+        await generarPDFPendientesMantenimiento(data, tipo);
+      } else {
+        Swal.close();
+      }
       Swal.fire('Éxito', 'Reporte generado exitosamente.', 'success');
     } catch (error) {
       console.error('Error generando reporte de pendientes:', error);
@@ -258,11 +276,11 @@ export default function Mantenimiento() {
           {/* Botones de reportes — al fondo */}
           {!isInspeccion && (
             <div className="mantenimiento__actions">
-              <p className="mantenimiento__actions-label">Reportes de unidades pendientes en mantenimiento</p>
+              <p className="mantenimiento__actions-label">Reportes del Parque Vehicular</p>
               <div className="mantenimiento__actions-btns">
                 <button
                   className="mant-btn mant-btn--autobuses"
-                  onClick={() => handleDescargarPendientes('autobuses')}
+                  onClick={() => handleDescargarPendientes('pendientes')}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -271,14 +289,14 @@ export default function Mantenimiento() {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   <span>
-                    <strong>Reporte Autobuses</strong>
-                    <small>Pendientes en mantenimiento</small>
+                    <strong>Pendientes de Mantenimiento</strong>
+                    <small>Sin orden de mantenimiento asignada</small>
                   </span>
                 </button>
 
                 <button
                   className="mant-btn mant-btn--vagonetas"
-                  onClick={() => handleDescargarPendientes('vagonetas')}
+                  onClick={() => handleDescargarPendientes('en-mantenimiento')}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -287,8 +305,8 @@ export default function Mantenimiento() {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   <span>
-                    <strong>Reporte Vagonetas</strong>
-                    <small>Pendientes en mantenimiento</small>
+                    <strong>Ya en Mantenimiento</strong>
+                    <small>Con orden de mantenimiento activa</small>
                   </span>
                 </button>
               </div>

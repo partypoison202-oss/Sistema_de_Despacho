@@ -162,6 +162,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/mantenimiento/asignar-incidencia', [DespachoController::class, 'asignarIncidencia']);
     Route::post('/mantenimiento/generar-folio', [DespachoController::class, 'generarFolioMantenimiento']);
     Route::get('/mantenimiento/reporte-combustible', [DespachoController::class, 'reporteCombustibleDiario']);
+    Route::post('/mantenimiento/reporte-combustible', [DespachoController::class, 'registrarReporteCombustible']);
 
 
     // Gestión de Conductores
