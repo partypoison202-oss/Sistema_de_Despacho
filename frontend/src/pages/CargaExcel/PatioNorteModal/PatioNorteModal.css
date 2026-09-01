@@ -132,35 +132,37 @@
 .patio-person-card {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    transition: all 0.2s ease;
+    gap: 14px;
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .patio-person-card:hover {
-    background: #ffffff;
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transform: translateY(-2px);
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 .patio-person-card:last-child {
     margin-bottom: 0;
 }
 
 .patio-person-avatar {
-    width: 36px;
-    height: 36px;
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     color: #6b1d33;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 15px;
     flex-shrink: 0;
 }
 
@@ -171,30 +173,50 @@
 }
 
 .patio-person-name {
-    font-weight: 600;
-    color: #1f2937;
-    font-size: 13px;
-    margin-bottom: 3px;
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 14px;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
 }
 
 .patio-person-details {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
+    gap: 10px;
+    font-size: 12px;
 }
 
 .patio-person-role {
-    background: #e2e8f0;
-    color: #475569;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
     font-weight: 600;
+    letter-spacing: 0.02em;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+.role-conductor {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.role-maniobrista {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .patio-person-eco {
     color: #64748b;
-    font-weight: 500;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.eco-icon {
+    width: 14px;
+    height: 14px;
+    color: #94a3b8;
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
