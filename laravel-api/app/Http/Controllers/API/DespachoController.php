@@ -222,7 +222,8 @@ class DespachoController extends Controller
                 'informacion_operativa.folio_mantenimiento',
                 'informacion_operativa.fecha_folio_mantenimiento',
                 'informacion_operativa.falla_reportada',
-                'informacion_operativa.diagnostico'
+                'informacion_operativa.diagnostico',
+                'informacion_operativa.transporte_patio_norte'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -268,6 +269,7 @@ class DespachoController extends Controller
                     'fecha_folio_mantenimiento' => $unidad->fecha_folio_mantenimiento,
                     'falla_reportada' => $unidad->falla_reportada,
                     'diagnostico' => $unidad->diagnostico,
+                    'transporte_patio_norte' => $unidad->transporte_patio_norte
                 ];
             });
 
@@ -369,54 +371,10 @@ class DespachoController extends Controller
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
                 'informacion_operativa.observaciones',
+                'informacion_operativa.transporte_patio_norte',
                 'unidades.kilometraje'
             )
             ->first();
-
-        $horaSalidaLegacy = null;
-        if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
-            $registroBitacora = DB::table('bitacora_cambios_unidades')
-                ->where('unidad_id', $unidadBase->id)
-                ->where('tipo_accion', 'VALIDAR_DESPACHO')
-                ->orderByDesc('created_at')
-                ->first();
-
-            if ($registroBitacora && !empty($registroBitacora->detalles)) {
-                if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
-                    $horaSalidaLegacy = strtoupper($matches[1]);
-                }
-            }
-        }
-
-        $horaSalidaLegacy = null;
-        if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
-            $registroBitacora = DB::table('bitacora_cambios_unidades')
-                ->where('unidad_id', $unidadBase->id)
-                ->where('tipo_accion', 'VALIDAR_DESPACHO')
-                ->orderByDesc('created_at')
-                ->first();
-
-            if ($registroBitacora && !empty($registroBitacora->detalles)) {
-                if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
-                    $horaSalidaLegacy = strtoupper($matches[1]);
-                }
-            }
-        }
-
-        $horaSalidaLegacy = null;
-        if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
-            $registroBitacora = DB::table('bitacora_cambios_unidades')
-                ->where('unidad_id', $unidadBase->id)
-                ->where('tipo_accion', 'VALIDAR_DESPACHO')
-                ->orderByDesc('created_at')
-                ->first();
-
-            if ($registroBitacora && !empty($registroBitacora->detalles)) {
-                if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
-                    $horaSalidaLegacy = strtoupper($matches[1]);
-                }
-            }
-        }
 
         $horaSalidaLegacy = null;
         if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
@@ -464,8 +422,7 @@ class DespachoController extends Controller
                 'acople'    => $info->acople,
                 'hora_salida' => $info->hora_salida,
                 'observaciones' => $info->observaciones,
-                // Nuevos campos de mantenimiento
-                'observaciones' => $info->observaciones,
+                'transporte_patio_norte' => $info->transporte_patio_norte,
                 // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
@@ -483,11 +440,10 @@ class DespachoController extends Controller
                 'ciclo'     => null,
                 'motivo'    => null,
                 'motivo_estatus' => null,
-                'motivo_estatus' => null,
                 'hora_programada' => null,
                 'acople'    => null,
                 'hora_salida' => null,
-                // Nuevos campos de mantenimiento aunque no esté asignado operativamente
+                'transporte_patio_norte' => null,
                 // Nuevos campos de mantenimiento aunque no esté asignado operativamente
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
@@ -528,13 +484,10 @@ class DespachoController extends Controller
         $unidadesProcesadasIds = [];
         $tarjetonesEnServicio = [];
         $maniobristasEnServicio = [];
-        $maniobristasEnServicio = [];
         $actualizados = 0;
         $creados = 0;
         $errores = [];
 
-        DB::table('conductores')->update(['estado_servicio' => 'disponible']);
-        DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
         DB::table('conductores')->update(['estado_servicio' => 'disponible']);
         DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
 
@@ -550,7 +503,6 @@ class DespachoController extends Controller
 
             $unidadesProcesadasIds[] = $unidad->id;
 
-            // Procesar Conductor
             // Procesar Conductor
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
@@ -577,21 +529,10 @@ class DespachoController extends Controller
                 }
             }
 
-            // Procesar Maniobrista
-            $tarjetonManiobristaVal = trim((string) ($fila['TARJETON_MANIOBRISTA'] ?? ''));
-            $maniobristaNombre = '';
-            if ($tarjetonManiobristaVal !== '') {
-                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal);
-                if ($maniobristaCatalog) {
-                    $maniobristaNombre = $maniobristaCatalog->nombre;
-                    $maniobristasEnServicio[] = $tarjetonManiobristaVal;
-                } else {
-                    $maniobristaNombre = trim((string) ($fila['NOMBRE_MANIOBRISTA'] ?? ''));
-                }
-            }
-
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-            $horaSalidaVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? '')) ?: trim((string) ($fila['HORA_DE_ACOPLE'] ?? ''));
+            $horaProgVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
+            $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
+            $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
@@ -606,7 +547,9 @@ class DespachoController extends Controller
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
-                'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
+                'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
+                'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
             if ($registroId) {
@@ -638,12 +581,6 @@ class DespachoController extends Controller
         if (!empty($tarjetonesEnServicio)) {
             DB::table('conductores')
                 ->whereIn('tarjeton', array_unique($tarjetonesEnServicio))
-                ->update(['estado_servicio' => 'en_servicio']);
-        }
-
-        if (!empty($maniobristasEnServicio)) {
-            DB::table('maniobristas')
-                ->whereIn('tarjeton', array_unique($maniobristasEnServicio))
                 ->update(['estado_servicio' => 'en_servicio']);
         }
 
@@ -750,7 +687,9 @@ class DespachoController extends Controller
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
-                'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
+                'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
+                'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
             if ($registroId) {
@@ -880,7 +819,9 @@ class DespachoController extends Controller
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
-                'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion'))
+                'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
+                'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
             if ($registroId) {
@@ -939,7 +880,14 @@ class DespachoController extends Controller
 
             foreach ($manana as $row) {
                 unset($row->id);
-                DB::table('informacion_operativa')->insert((array)$row);
+                $arrayRow = (array)$row;
+                if (array_key_exists('patio_norte', $arrayRow)) {
+                    $arrayRow['patio_norte'] = $arrayRow['patio_norte'] ? 'true' : 'false';
+                }
+                if (array_key_exists('transporte_patio_norte', $arrayRow)) {
+                    $arrayRow['transporte_patio_norte'] = $arrayRow['transporte_patio_norte'] ? 'true' : 'false';
+                }
+                DB::table('informacion_operativa')->insert($arrayRow);
 
                 if (!empty($row->numero_tarjeton)) $tarjetones[] = $row->numero_tarjeton;
                 if (!empty($row->tarjeton_maniobrista)) $maniobristas[] = $row->tarjeton_maniobrista;
@@ -989,7 +937,14 @@ class DespachoController extends Controller
 
             foreach ($registros as $reg) {
                 unset($reg->id);
-                DB::table('informacion_operativa')->insert((array)$reg);
+                $arrayRow = (array)$reg;
+                if (array_key_exists('patio_norte', $arrayRow)) {
+                    $arrayRow['patio_norte'] = $arrayRow['patio_norte'] ? 'true' : 'false';
+                }
+                if (array_key_exists('transporte_patio_norte', $arrayRow)) {
+                    $arrayRow['transporte_patio_norte'] = $arrayRow['transporte_patio_norte'] ? 'true' : 'false';
+                }
+                DB::table('informacion_operativa')->insert($arrayRow);
             }
 
             // Opcional: Si queremos dejar la tabla en blanco luego de aplicarla, descomentamos la siguiente línea
@@ -1181,66 +1136,82 @@ class DespachoController extends Controller
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
-
-
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
 
-        $registro = DB::table('informacion_operativa')
-            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->where('unidades.numero_eco', $numeroEcoClean)
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select('informacion_operativa.id', 'informacion_operativa.hora_programada', 'informacion_operativa.acople', 'informacion_operativa.unidad_id')
-            ->first();
+        try {
+            return DB::transaction(function () use ($request, $tipoNormalizado, $numeroEcoClean) {
+                // Primero obtenemos la unidad
+                $unidad = DB::table('unidades')->where('numero_eco', $numeroEcoClean)->first();
+                if (!$unidad) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Unidad no encontrada'
+                    ], 404);
+                }
 
-        if (!$registro) {
+                // Ahora obtenemos el registro operativo con bloqueo para evitar concurrencia
+                $registro = DB::table('informacion_operativa')
+                    ->where('unidad_id', $unidad->id)
+                    ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$registro) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Unidad no encontrada en el registro operativo'
+                    ], 404);
+                }
+
+                // Verificación de concurrencia para la validación de salida
+                if ($request->has('hora_salida') && !empty($request->hora_salida)) {
+                    if (!empty($registro->hora_salida)) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'Esta unidad ya fue validada por otro usuario (Concurrencia).'
+                        ], 422);
+                    }
+                }
+
+                $updateData = [
+                    'hora_programada' => $request->hora_programada,
+                    'acople' => $request->acople
+                ];
+
+                if ($request->has('hora_salida')) {
+                    $updateData['hora_salida'] = $request->hora_salida;
+                }
+
+                if ($request->has('observaciones')) {
+                    $updateData['observaciones'] = $request->observaciones;
+                }
+
+                DB::table('informacion_operativa')
+                    ->where('id', $registro->id)
+                    ->update($updateData);
+
+                // Registrar acción en la bitácora de cambios
+                \App\Helpers\BitacoraHelper::registrarCambio(
+                    $registro->unidad_id,
+                    'CAMBIO_HORAS',
+                    "ACTUALIZÓ HORA PROGRAMADA (ANTERIOR: " . ($registro->hora_programada ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->hora_programada ?? 'SIN ASIGNAR') . ") Y ACOPLE (ANTERIOR: " . ($registro->acople ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->acople ?? 'SIN ASIGNAR') . ")"
+                );
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Horas actualizadas exitosamente',
+                    'hora_programada' => $request->hora_programada,
+                    'acople' => $request->acople,
+                    'hora_salida' => $request->hora_salida ?? null
+                ], 200);
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error en actualizarHoras: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unidad no encontrada en el registro operativo'
-            ], 404);
+                'message' => 'Error al actualizar las horas: ' . $e->getMessage()
+            ], 500);
         }
-
-        $updateData = [
-            'hora_programada' => $request->hora_programada,
-            'acople' => $request->acople
-        ];
-
-        if ($request->has('hora_salida')) {
-            $updateData['hora_salida'] = $request->hora_salida;
-        }
-
-        if ($request->has('observaciones')) {
-            $updateData['observaciones'] = $request->observaciones;
-        }
-
-        if ($request->has('observaciones')) {
-            $updateData['observaciones'] = $request->observaciones;
-        }
-
-        $actualizado = DB::table('informacion_operativa')
-            ->where('id', $registro->id)
-            ->update($updateData);
-
-        if ($actualizado !== false) {
-            // Registrar acción en la bitácora de cambios
-            // Registrar acción en la bitácora de cambios
-            BitacoraHelper::registrarCambio(
-                $registro->unidad_id,
-                'CAMBIO_HORAS',
-                "ACTUALIZÓ HORA PROGRAMADA (ANTERIOR: " . ($registro->hora_programada ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->hora_programada ?? 'SIN ASIGNAR') . ") Y ACOPLE (ANTERIOR: " . ($registro->acople ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->acople ?? 'SIN ASIGNAR') . ")"
-            );
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Horas actualizadas exitosamente',
-                'hora_programada' => $request->hora_programada,
-                'acople' => $request->acople,
-                'hora_salida' => $request->hora_salida ?? null
-            ], 200);
-        }
-
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Error al actualizar las horas'
-        ], 500);
     }
 
     /**
@@ -1272,7 +1243,8 @@ class DespachoController extends Controller
                 'informacion_operativa.firma_base64',
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.hora_salida',
+                'informacion_operativa.patio_norte'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
@@ -1301,7 +1273,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida
+                'HORA_SALIDA' => $reg->hora_salida,
+                'PATIO_NORTE' => (bool)$reg->patio_norte
             ];
         });
 
@@ -1313,11 +1286,21 @@ class DespachoController extends Controller
         // Si la tabla de mañana está vacía, la inicializamos con la programación actual
         if (DB::table('informacion_operativa_manana')->count() === 0) {
             $hoy = DB::table('informacion_operativa')->get();
+            $targetCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('informacion_operativa_manana'));
             foreach ($hoy as $row) {
                 unset($row->id);
-                // Limpiar campos que son exclusivos del transcurso del día si se desea, 
-                // o dejar tal cual para que el usuario parta de la misma plantilla.
-                DB::table('informacion_operativa_manana')->insert((array)$row);
+                $arrayRow = (array)$row;
+                $insertRow = [];
+                foreach ($arrayRow as $key => $val) {
+                    if (isset($targetCols[$key])) {
+                        if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
+                            $insertRow[$key] = $val ? 'true' : 'false';
+                        } else {
+                            $insertRow[$key] = $val;
+                        }
+                    }
+                }
+                DB::table('informacion_operativa_manana')->insert($insertRow);
             }
         }
 
@@ -1339,7 +1322,8 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.motivo_estatus',
                 'informacion_operativa_manana.hora_programada',
                 'informacion_operativa_manana.acople',
-                'informacion_operativa_manana.hora_salida'
+                'informacion_operativa_manana.hora_salida',
+                'informacion_operativa_manana.patio_norte'
             )
             ->orderBy('informacion_operativa_manana.tipo')
             ->orderBy('unidades.numero_eco')
@@ -1363,7 +1347,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida
+                'HORA_SALIDA' => $reg->hora_salida,
+                'PATIO_NORTE' => (bool)$reg->patio_norte
             ];
         });
 
@@ -1380,9 +1365,21 @@ class DespachoController extends Controller
         // Inicializamos con la programación actual si está vacía
         if (DB::table($tableName)->count() === 0) {
             $hoy = DB::table('informacion_operativa')->get();
+            $targetCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing($tableName));
             foreach ($hoy as $row) {
                 unset($row->id);
-                DB::table($tableName)->insert((array)$row);
+                $arrayRow = (array)$row;
+                $insertRow = [];
+                foreach ($arrayRow as $key => $val) {
+                    if (isset($targetCols[$key])) {
+                        if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
+                            $insertRow[$key] = $val ? 'true' : 'false';
+                        } else {
+                            $insertRow[$key] = $val;
+                        }
+                    }
+                }
+                DB::table($tableName)->insert($insertRow);
             }
         }
 
@@ -1404,7 +1401,8 @@ class DespachoController extends Controller
                 "{$tableName}.motivo_estatus",
                 "{$tableName}.hora_programada",
                 "{$tableName}.acople",
-                "{$tableName}.hora_salida"
+                "{$tableName}.hora_salida",
+                "{$tableName}.patio_norte"
             )
             ->orderBy("{$tableName}.tipo")
             ->orderBy('unidades.numero_eco')
@@ -1428,8 +1426,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida
-
+                'HORA_SALIDA' => $reg->hora_salida,
+                'PATIO_NORTE' => (bool)$reg->patio_norte
             ];
         });
 
@@ -1441,11 +1439,21 @@ class DespachoController extends Controller
         // Si la tabla de mañana está vacía, la inicializamos con la programación actual
         if (DB::table('informacion_operativa_manana')->count() === 0) {
             $hoy = DB::table('informacion_operativa')->get();
+            $targetCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('informacion_operativa_manana'));
             foreach ($hoy as $row) {
                 unset($row->id);
-                // Limpiar campos que son exclusivos del transcurso del día si se desea, 
-                // o dejar tal cual para que el usuario parta de la misma plantilla.
-                DB::table('informacion_operativa_manana')->insert((array)$row);
+                $arrayRow = (array)$row;
+                $insertRow = [];
+                foreach ($arrayRow as $key => $val) {
+                    if (isset($targetCols[$key])) {
+                        if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
+                            $insertRow[$key] = $val ? 'true' : 'false';
+                        } else {
+                            $insertRow[$key] = $val;
+                        }
+                    }
+                }
+                DB::table('informacion_operativa_manana')->insert($insertRow);
             }
         }
 
@@ -1585,16 +1593,28 @@ class DespachoController extends Controller
             'historial_operativo.corridas',
             'historial_operativo.ciclo',
             'historial_operativo.motivo',
-            'historial_operativo.motivo_estatus',
-            'historial_operativo.hora_programada',
-            'historial_operativo.acople',
-            'historial_operativo.hora_salida'
+            'historial_operativo.motivo_estatus'
         ];
 
         $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
         if ($hasManiobrista) {
             $columns[] = 'historial_operativo.tarjeton_maniobrista';
             $columns[] = 'historial_operativo.nombre_maniobrista';
+        }
+
+        $hasHoraProgramada = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_programada');
+        if ($hasHoraProgramada) {
+            $columns[] = 'historial_operativo.hora_programada';
+        }
+
+        $hasAcople = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople');
+        if ($hasAcople) {
+            $columns[] = 'historial_operativo.acople';
+        }
+
+        $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida');
+        if ($hasHoraSalida) {
+            $columns[] = 'historial_operativo.hora_salida';
         }
 
         $registros = DB::table('historial_operativo')
@@ -1606,7 +1626,7 @@ class DespachoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        $formateados = $registros->map(function ($reg) use ($hasManiobrista) {
+        $formateados = $registros->map(function ($reg) use ($hasManiobrista, $hasHoraProgramada, $hasAcople, $hasHoraSalida) {
             return [
                 'TIPO_DE_UNIDAD' => $reg->tipo,
                 'RUTA' => $reg->ruta,
@@ -1621,14 +1641,82 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
-                'HORA_DE_ACOPLE' => $reg->hora_programada,
-                'HORA_PROGRAMADA' => $reg->hora_programada,
-                'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida
+                'HORA_DE_ACOPLE' => $hasHoraProgramada ? $reg->hora_programada : '',
+                'HORA_PROGRAMADA' => $hasHoraProgramada ? $reg->hora_programada : '',
+                'ACOPLE' => $hasAcople ? $reg->acople : '',
+                'HORA_SALIDA' => $hasHoraSalida ? $reg->hora_salida : ''
             ];
         });
 
         return response()->json($formateados, 200);
+    }
+
+    public function validarDespacho(Request $request)
+    {
+        $request->validate([
+            'tipo' => 'required',
+            'numero_eco' => 'required'
+        ]);
+
+        $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
+        $tipoNormalizado = strtolower(trim($request->tipo));
+
+        try {
+            return DB::transaction(function () use ($numeroEco, $tipoNormalizado, $request) {
+                $unidad = DB::table('unidades')->where('numero_eco', $numeroEco)->first();
+
+                if (!$unidad) {
+                    return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada'], 404);
+                }
+
+                $registroOperativo = DB::table('informacion_operativa')
+                    ->where('unidad_id', $unidad->id)
+                    ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$registroOperativo) {
+                    return response()->json(['status' => 'error', 'message' => 'Sin registro operativo'], 404);
+                }
+
+                if ($registroOperativo->hora_salida !== null && $registroOperativo->hora_salida !== '') {
+                    return response()->json(['status' => 'error', 'message' => 'Esta unidad ya fue validada por otro usuario (Concurrencia).'], 422);
+                }
+
+                $updateData = [];
+                if ($request->has('ruta')) $updateData['ruta'] = $request->ruta;
+                if ($request->has('tarjeton')) $updateData['numero_tarjeton'] = $request->tarjeton;
+                if ($request->has('conductor')) $updateData['nombre_conductor'] = $request->conductor;
+                if ($request->has('hora_programada')) $updateData['hora_programada'] = $request->hora_programada;
+                if ($request->has('acople')) $updateData['acople'] = $request->acople;
+                if ($request->has('ciclo')) $updateData['ciclo'] = $request->ciclo;
+                if ($request->has('motivo')) $updateData['motivo'] = $request->motivo;
+                if ($request->has('falla')) $updateData['falla'] = $request->falla;
+                if ($request->has('hora_salida')) $updateData['hora_salida'] = $request->hora_salida;
+
+                DB::table('informacion_operativa')
+                    ->where('id', $registroOperativo->id)
+                    ->update($updateData);
+
+                \App\Helpers\BitacoraHelper::registrarCambio(
+                    $unidad->id,
+                    'VALIDAR_DESPACHO',
+                    "UNIDAD VALIDADA Y DESPACHADA."
+                );
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Despacho validado exitosamente',
+                    'hora_salida' => $request->hora_salida,
+                    'ruta' => $request->ruta,
+                    'tarjeton' => $request->tarjeton,
+                    'conductor' => $request->conductor
+                ]);
+            });
+        } catch (\Exception $e) {
+            \Log::error('Error en validarDespacho: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Error al validar: ' . $e->getMessage()], 500);
+        }
     }
 
 

@@ -118,33 +118,6 @@ export default function UnitInfoPanel({
 
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'PERCANCE';
 
-  // Bloquear scroll de fondo cuando hay modales abiertos
-  useEffect(() => {
-    if (modalPlataformaVisible || showChecklist || lightboxDibujo) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      document.body.setAttribute('data-scroll-y', scrollY);
-    } else {
-      const scrollY = document.body.getAttribute('data-scroll-y');
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.overflow = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0'));
-        document.body.removeAttribute('data-scroll-y');
-      }
-    }
-    return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.body.style.overflow = '';
-    };
-  }, [modalPlataformaVisible, showChecklist, lightboxDibujo]);
 
   // Inicializar hora programada y observaciones desde datosOperativos
   useEffect(() => {
@@ -218,6 +191,34 @@ export default function UnitInfoPanel({
   }, [configActual]);
 
   const [modalPlataformaVisible, setModalPlataformaVisible] = useState(null);
+
+  // Bloquear scroll de fondo cuando hay modales abiertos
+  useEffect(() => {
+    if (modalPlataformaVisible || showChecklist || lightboxDibujo) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.setAttribute('data-scroll-y', scrollY);
+    } else {
+      const scrollY = document.body.getAttribute('data-scroll-y');
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0'));
+        document.body.removeAttribute('data-scroll-y');
+      }
+    }
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+    };
+  }, [modalPlataformaVisible, showChecklist, lightboxDibujo]);
   const [platMotivo, setPlatMotivo] = useState('');
   const [platEstatus, setPlatEstatus] = useState('');
   const [platEstatusDropdown, setPlatEstatusDropdown] = useState(false);
@@ -1042,6 +1043,13 @@ export default function UnitInfoPanel({
                       }
                     } catch (e) {
                       console.error(e);
+                      const Swal = (await import('sweetalert2')).default;
+                      Swal.fire({
+                        icon: 'error',
+                        title: 'No se pudo validar',
+                        text: e.message || 'Hubo un error al validar la unidad.',
+                        confirmButtonColor: '#601a2a'
+                      });
                     } finally {
                       setGuardandoSalida(false);
                     }

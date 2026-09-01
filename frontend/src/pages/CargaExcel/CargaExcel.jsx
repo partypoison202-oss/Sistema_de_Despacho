@@ -8,6 +8,7 @@ import autoTable from 'jspdf-autotable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
+import PatioNorteModal from './PatioNorteModal/PatioNorteModal';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 
@@ -22,6 +23,7 @@ export default function CargaExcel() {
   const [inicioData, setInicioData] = useState([]);
   const [cargandoInicio, setCargandoInicio] = useState(false);
   const [tabActiva, setTabActiva] = useState('HOY');
+  const [isPatioModalOpen, setIsPatioModalOpen] = useState(false);
 
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
@@ -864,6 +866,24 @@ export default function CargaExcel() {
             )}
             <button
               type="button"
+              onClick={() => setIsPatioModalOpen(true)}
+              className="excel-export-btn"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
+                background: '#475569', color: 'white', fontWeight: 700, fontSize: '0.9rem',
+                cursor: 'pointer', transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = '#334155'}
+              onMouseOut={(e) => e.currentTarget.style.background = '#475569'}
+            >
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              Patio Norte
+            </button>
+            <button
+              type="button"
               onClick={handleVerInicio}
               disabled={cargandoInicio}
               className="excel-export-btn"
@@ -936,6 +956,21 @@ export default function CargaExcel() {
           />
         )}
       </main>
+
+      {isPatioModalOpen && (
+        <PatioNorteModal
+          previewData={previewData}
+          onClose={() => setIsPatioModalOpen(false)}
+          onSelectUnidad={(eco) => {
+            const updatedData = previewData.map(fila => ({
+              ...fila,
+              TRANSPORTE_PATIO_NORTE: fila.ECONOMICO === eco ? true : false
+            }));
+            setPreviewData(updatedData);
+            setHasChanges(true);
+          }}
+        />
+      )}
     </div>
   );
 }

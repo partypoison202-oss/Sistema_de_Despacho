@@ -32,7 +32,7 @@ const menuItems = [
         <path d="M7 16h6" />
       </svg>
     ),
-    label: 'Monitor operativo',
+    label: 'Monitoreo operativo',
     color: 'orange',
   },
   {
@@ -128,7 +128,7 @@ const menuItems = [
         <path d="M12 16h.01" />
       </svg>
     ),
-    label: 'Inspectores de operación',
+    label: 'Inspección de operación',
     color: 'maroon',
   },
   {

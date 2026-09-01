@@ -18,6 +18,7 @@ const HEADER_TRANSLATIONS = {
   ACOPLE: 'HORA DE ACOPLE',
   HORA_SALIDA: 'HORA DE SALIDA',
   CORRIDAS: 'Corrida',
+  PATIO_NORTE: 'Patio Norte',
 };
 
 const EXCLUDED_KEYS = ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS', 'HORA_PROGRAMADA'];
@@ -63,6 +64,7 @@ export default function ExcelPreview({
   }
   headers.push('ACOPLE');
   headers.push('HORA_SALIDA');
+  headers.push('PATIO_NORTE');
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
@@ -775,10 +777,13 @@ export default function ExcelPreview({
                                   handleOpenDropdown(e, originalIndex, 'ESTATUS');
                                 }
                               }}
+                              disabled={isRowDisabled}
                               className={`edit-input dropdown-trigger ${isEstatusOpen ? 'active-trigger' : ''}`}
-                              style={{ cursor: 'pointer' }}
+                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
                             >
-                              <span>{estatusTranslations[currentStatus]}</span>
+                              <span style={{ color: statusStyle.text, fontWeight: '600' }}>
+                                {estatusTranslations[currentStatus]}
+                              </span>
                               <svg style={{ transform: isEstatusOpen ? 'rotate(90deg)' : 'none' }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
                               </svg>
@@ -798,25 +803,19 @@ export default function ExcelPreview({
                                     left: `${dropdownCoords.left}px`,
                                     right: 'auto',
                                     width: `${dropdownCoords.width}px`,
-                                    minWidth: '130px',
                                     marginTop: dropdownCoords.openUp ? '0' : '0.4rem',
                                     marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
                                     zIndex: 9999
                                   }}
                                 >
                                   <div className="dropdown-menu__scroll">
-                                    {Object.entries(estatusTranslations).map(([key, label], idx) => {
+                                    {Object.entries(estatusTranslations).map(([key, label]) => {
                                       const isSelected = currentStatus === key;
-                                      const optStyle = estatusColors[key];
                                       return (
                                         <button
-                                          key={idx}
+                                          key={key}
                                           type="button"
                                           className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
-                                          style={{
-                                            color: isSelected ? 'var(--brand-maroon-bg)' : optStyle.text,
-                                            fontWeight: isSelected ? '700' : '600'
-                                          }}
                                           onClick={() => {
                                             onUpdate && onUpdate(originalIndex, h, key);
                                             setOpenDropdown({ rowIndex: null, field: null });
@@ -836,6 +835,30 @@ export default function ExcelPreview({
                               </>,
                               document.body
                             )}
+                          </td>
+                        );
+                      }
+
+                      if (h === 'PATIO_NORTE') {
+                        const isPatioNorte = fila[h] === true || fila[h] === 1 || fila[h] === '1' || fila[h] === 'true';
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <label className="toggle-switch" style={{ display: 'inline-flex', alignItems: 'center', cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isPatioNorte}
+                                disabled={isRowDisabled}
+                                onChange={(e) => {
+                                  onUpdate && onUpdate(originalIndex, h, e.target.checked);
+                                }}
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  cursor: 'inherit',
+                                  accentColor: '#10b981'
+                                }}
+                              />
+                            </label>
                           </td>
                         );
                       }
