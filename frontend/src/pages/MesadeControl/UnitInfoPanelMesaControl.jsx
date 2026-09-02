@@ -98,11 +98,12 @@ export default function UnitInfoPanel({
       const ahora = new Date();
       const horas = String(ahora.getHours()).padStart(2, '0');
       const minutos = String(ahora.getMinutes()).padStart(2, '0');
-      setFormAcople(`${horas}:${minutos}`);
+      const segundos = String(ahora.getSeconds()).padStart(2, '0');
+      setFormAcople(`${horas}:${minutos}:${segundos}`);
     } else {
       setFormAcople('');
     }
-  }, [selectedOption]);
+  }, [selectedOption, datosOperativos]);
 
   const [rutasOpciones, setRutasOpciones] = useState([]);
   const [rutaOptionsByType, setRutaOptionsByType] = useState({ troncales: [], alimentadoras: [] });
@@ -200,8 +201,6 @@ export default function UnitInfoPanel({
       document.body.style.overflow = '';
     };
   }, [modalPlataformaVisible, showChecklist, lightboxDibujo]);
-
-  // useMemo para filtrar unidades removido - ya no necesario
 
   const ciclosRef = useRef(null);
   const rutaRef = useRef(null);
@@ -328,7 +327,7 @@ export default function UnitInfoPanel({
         }
         datosOperativos.ciclo = cicloVal || '';
         datosOperativos.motivo = motivoVal || '';
-        setEditandoCiclos(false); // Resetear estado de edición al guardar
+        setEditandoCiclos(false);
       } else {
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({
@@ -345,72 +344,7 @@ export default function UnitInfoPanel({
     }
   };
 
-  const handlePlataformaMovimiento = (tipoMovimiento) => {
-    setModalPlataformaVisible(tipoMovimiento);
-    setPlatMotivo('');
-    setPlatEstatus('');
-    setPlatConductor('');
-    setPlatRuta('');
-    setPlatError('');
-    setReemplazoActivo(false);
-    setUnidadReemplazoSeleccionada(null);
-    setDropdownEcoOpen(false);
-    setReemplazoForm({
-      tarjeton: '',
-      ruta: '',
-      corrida: '',
-    });
-    setCambioOperadorActivo(false);
-    setOperadorReemplazoSeleccionado(null);
-    setDropdownOperadorOpen(false);
-    setOperadorBusqueda('');
-    setOperadorMotivo('');
-    setOperadorMotivoDropdown(false);
-  };
-
-  const handleToggleReemplazo = () => {
-    const nuevo = !reemplazoActivo;
-    setReemplazoActivo(nuevo);
-    if (nuevo) {
-      // Cargar datos de la unidad original
-      setUnidadReemplazoSeleccionada(null);
-      setReemplazoForm({
-        tarjeton: datosOperativos.tarjeton || '',
-        ruta: datosOperativos.ruta || '',
-        corrida: datosOperativos.corrida || '',
-      });
-    } else {
-      // Limpiar formulario
-      setUnidadReemplazoSeleccionada(null);
-      setReemplazoForm({
-        tarjeton: '',
-        ruta: '',
-        corrida: '',
-      });
-    }
-  };
-
-  const handleToggleCambioOperador = () => {
-    const nuevo = !cambioOperadorActivo;
-    setCambioOperadorActivo(nuevo);
-    setOperadorReemplazoSeleccionado(null);
-    setOperadorMotivo('');
-    setOperadorBusqueda('');
-  };
-
-  const handleRutaTipoChange = (tipo) => {
-    setRutaTipoSeleccionada(tipo);
-    setReemplazoForm((prev) => ({ ...prev, ruta: '' }));
-  };
-
-  const handleSelectReservaUnit = (unidad) => {
-    setUnidadReemplazoSeleccionada(unidad);
-    // No sobrescribir el tarjetón aquí, ya que queremos conservar el de la unidad original (el conductor que se pasa a la unidad de reserva)
-    setDropdownEcoOpen(false);
-  };
-
-
-  const handleConfirmarPlataforma = async () => {
+  const handleConfirmPlataforma = async () => {
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
       const ecoNum = selectedOption.replace(/\D/g, '');
@@ -474,7 +408,6 @@ export default function UnitInfoPanel({
         errorMessage = 'Error al asignar conductor';
       } else if (modalPlataformaVisible === 'RETIRO_CONDUCTOR') {
         if (cambioOperadorActivo) {
-          // Si hay cambio de operador
           if (!operadorReemplazoSeleccionado || !operadorMotivo) {
             setPlatError('Completa el conductor y el estatus para el cambio de conductor.');
             return;
@@ -491,7 +424,6 @@ export default function UnitInfoPanel({
           successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
           errorMessage = 'Error al cambiar conductor';
         } else {
-          // Sin cambio de operador, solo retiro
           if (!platMotivo) {
             setPlatError('Debe ingresar un motivo para el retiro.');
             return;
@@ -522,7 +454,6 @@ export default function UnitInfoPanel({
       });
       const result = await response.json();
       if (!response.ok) {
-        console.error('❌ Error response:', result);
         throw new Error(result.error || result.message || errorMessage);
       }
       if (typeof onUpdate === 'function') onUpdate();
@@ -530,16 +461,11 @@ export default function UnitInfoPanel({
       const Swal = (await import('sweetalert2')).default;
       Swal.fire({ icon: 'success', title: 'Éxito', text: successMessage, confirmButtonColor: '#6b1d33' });
     } catch (error) {
-      console.error(error);
       const Swal = (await import('sweetalert2')).default;
       Swal.fire('Error', error.message || 'Ocurrió un error en el movimiento.', 'error');
     } finally {
       setGuardandoPerdida(false);
     }
-  };
-
-  const handleHacerCheckList = () => {
-    setShowChecklist(true);
   };
 
   const getConductorDisplay = () => {
@@ -551,12 +477,6 @@ export default function UnitInfoPanel({
       if (found) return found.nombre;
     }
     return val;
-  };
-
-  const handleRevisarCheckList = () => {
-    if (recentChecklist) {
-      setViewingChecklist(true);
-    }
   };
 
   const checkHistory = async (ecoNumber) => {
@@ -596,10 +516,6 @@ export default function UnitInfoPanel({
     }
   }, [selectedOption]);
 
-  useEffect(() => {
-    setFormTarjeton(datosOperativos.tarjeton || '');
-  }, [datosOperativos.tarjeton]);
-
   const handleConfirmTarjeton = async (overrideValue = null) => {
     const val = typeof overrideValue === 'string' ? overrideValue : formTarjeton;
     if (!val.trim() || val === datosOperativos.tarjeton) {
@@ -615,28 +531,6 @@ export default function UnitInfoPanel({
     } finally {
       setGuardandoTarjeton(false);
     }
-  };
-
-  const handleConfirmTarjetonManiobrista = async (overrideValue = null) => {
-    const val = typeof overrideValue === 'string' ? overrideValue : formTarjetonManiobrista;
-    if (val === datosOperativos.tarjeton_maniobrista) {
-      setDropdownTarjetonManiobristaOpen(false);
-      return;
-    }
-    setGuardandoTarjetonManiobrista(true);
-    try {
-      await handleSaveTarjetonManiobrista(val.trim());
-      setDropdownTarjetonManiobristaOpen(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setGuardandoTarjetonManiobrista(false);
-    }
-  };
-
-  const handleCancelTarjetonEdit = () => {
-    setFormTarjeton(datosOperativos.tarjeton || '');
-    setEditandoTarjeton(false);
   };
 
   const handleConfirmRuta = async (nuevaRutaStr = null) => {
@@ -666,15 +560,8 @@ export default function UnitInfoPanel({
     }
   };
 
-  const handleCancelRutaEdit = () => {
-    setFormRuta(datosOperativos.ruta || '');
-    setEditandoRuta(false);
-  };
-
-  // ==================== JSX ====================
   return (
     <div className="unit-dashboard-container animate-fade-in-up">
-      {/* CARD ENCABEZADO DE UNIDAD */}
       <div className="dashboard-header-card">
         <div className="dashboard-header-card__left">
           <div className="dashboard-header-card__icon-box">
@@ -687,9 +574,7 @@ export default function UnitInfoPanel({
         </div>
       </div>
 
-      {/* Se cambia a 2 columnas en desktop para que ocupe todo el ancho de la pantalla y no quede amontonado a la izquierda */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* CARD 1: INFORMACIÓN DE TRABAJO */}
         <div className="info-card">
           <div className="info-card__header">
             <svg className="info-card__header-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -710,11 +595,7 @@ export default function UnitInfoPanel({
               </div>
             </div>
 
-
-            {/* Ruta Asignada y Corrida - Lado a lado */}
             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.85rem' }}>
-              
-              {/* Ruta Asignada */}
               <div className="info-card__item" style={{ flex: 1.5, minWidth: 0 }}>
               <span className="info-card__label">Ruta Asignada</span>
               {!isPlataforma && !isReservaOrMantenimiento ? (
@@ -724,18 +605,7 @@ export default function UnitInfoPanel({
                       type="button"
                       className="interactive-input"
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 0.85rem',
-                        cursor: guardandoRuta ? 'not-allowed' : 'pointer',
-                        textAlign: 'left',
-                        background: 'var(--tw-color-white)',
-                        height: '2.3rem',
-                        fontSize: '0.85rem',
-                        width: '100%',
-                        fontWeight: 'bold',
-                        opacity: guardandoRuta ? 0.7 : 1
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: guardandoRuta ? 'not-allowed' : 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.3rem', fontSize: '0.85rem', width: '100%', fontWeight: 'bold', opacity: guardandoRuta ? 0.7 : 1
                       }}
                       onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
                     >
@@ -746,7 +616,7 @@ export default function UnitInfoPanel({
                         </div>
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'SELECCIONAR')}</span>
+                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'ERROR: Verifique capa 8')}</span>
                           <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
                             <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
                           </svg>
@@ -787,7 +657,8 @@ export default function UnitInfoPanel({
                         </div>
                       </div>
                     )}
-                  </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
+                </div>
                 </div>
               ) : (
                 <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1, height: '2.3rem', marginTop: '0.15rem' }}>
@@ -1067,7 +938,7 @@ export default function UnitInfoPanel({
                     )}
                     <button
                       type="button"
-                      disabled={guardandoPerdida || (!editandoCiclos && !datosOperativos.ciclo) || (editandoCiclos && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'OTRO' && !perdidaMotivoOtro.trim())))}
+                      disabled={guardandoPerdida || (!editandoCiclos && !datosOperativos.ciclo) ? false : (editandoCiclos && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'OTRO' && !perdidaMotivoOtro.trim())))}
                       onClick={() => {
                         if (!!datosOperativos.ciclo && !editandoCiclos) {
                           setEditandoCiclos(true);
@@ -1233,7 +1104,7 @@ export default function UnitInfoPanel({
                     onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
+                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1259,6 +1130,7 @@ export default function UnitInfoPanel({
                       </div>
                     </div>
                   )}
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione un conductor de la lista.</p>
                 </div>
 
                 <div style={{ position: 'relative' }}>
@@ -1271,7 +1143,7 @@ export default function UnitInfoPanel({
                     onClick={() => { setPlatRutaDropdown(!platRutaDropdown); setPlatConductorDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platRuta ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {platRuta || 'Seleccione una ruta...'}
+                      {platRuta || 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${platRutaDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platRutaDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1297,6 +1169,7 @@ export default function UnitInfoPanel({
                       </div>
                     </div>
                   )}
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
                 </div>
               </div>
             )}
@@ -1330,7 +1203,7 @@ export default function UnitInfoPanel({
                         onClick={() => setDropdownEcoOpen(!dropdownEcoOpen)}
                       >
                         <span style={{ fontWeight: 600, color: unidadReemplazoSeleccionada ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                          {unidadReemplazoSeleccionada ? unidadReemplazoSeleccionada.display : 'Seleccione una unidad en reserva...'}
+                          {unidadReemplazoSeleccionada ? unidadReemplazoSeleccionada.display : 'SELECCIONAR'}
                         </span>
                         <svg className={`arrow-icon ${dropdownEcoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownEcoOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                           <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1356,7 +1229,8 @@ export default function UnitInfoPanel({
                           </div>
                         </div>
                       )}
-                    </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una unidad de la lista.</p>
+                </div>
 
                     {/* Tarjetón - Solo lectura (No editable en reemplazo) */}
                     <div style={{ display: 'grid', gap: '0.25rem' }}>
@@ -1385,7 +1259,7 @@ export default function UnitInfoPanel({
                         onClick={() => setDropdownRutaOpen(!dropdownRutaOpen)}
                       >
                         <span style={{ fontWeight: 600, color: reemplazoForm.ruta ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                          {reemplazoForm.ruta || 'Seleccione una ruta...'}
+                          {reemplazoForm.ruta || 'SELECCIONAR'}
                         </span>
                         <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                           <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1411,7 +1285,8 @@ export default function UnitInfoPanel({
                           </div>
                         </div>
                       )}
-                    </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
+                </div>
 
                     {/* Corrida - Input editable */}
                     <div style={{ display: 'grid', gap: '0.25rem' }}>
@@ -1489,7 +1364,7 @@ export default function UnitInfoPanel({
                     onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'Seleccione un conductor...'}
+                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1515,6 +1390,7 @@ export default function UnitInfoPanel({
                       </div>
                     </div>
                   )}
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione un conductor de la lista.</p>
                 </div>
 
                 <textarea
@@ -1634,7 +1510,8 @@ export default function UnitInfoPanel({
                                 No se encontraron conductores.
                               </div>
                             )}
-                          </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione un conductor de la lista.</p>
+                </div>
                         </div>
                       )}
                     </div>
