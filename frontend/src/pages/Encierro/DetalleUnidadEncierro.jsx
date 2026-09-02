@@ -465,7 +465,14 @@ export default function DetalleUnidadEncierro() {
     fetchConductores();
   }, []);
 
-  const conductoresDisponibles = dbConductores.filter(c => c.estado_servicio === 'disponible' || c.estado_servicio === 'falta');
+  const conductoresDisponibles = dbConductores.filter(c => {
+    if (c.estado_servicio !== 'disponible' && c.estado_servicio !== 'falta') return false;
+    if (isTroncal) {
+      return c.tipo_tarjeton === 'C';
+    } else {
+      return c.tipo_tarjeton === 'B' || c.tipo_tarjeton === 'C';
+    }
+  });
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {

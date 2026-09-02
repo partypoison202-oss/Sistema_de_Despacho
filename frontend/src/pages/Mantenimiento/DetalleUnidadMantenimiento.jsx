@@ -257,13 +257,25 @@ export default function DetalleUnidadMantenimiento() {
     }
   }, [_rutasData, configActual]);
 
-  const conductoresDisponibles = dbConductores.filter(
-    (c) => c.estado_servicio === 'disponible' || c.estado_servicio === 'falta'
-  );
+  const isTroncal = configActual?.id === 'urbanuss';
 
-  const conductoresSoloDisponibles = dbConductores.filter(
-    (c) => c.estado_servicio === 'disponible'
-  );
+  const conductoresDisponibles = dbConductores.filter((c) => {
+    if (c.estado_servicio !== 'disponible' && c.estado_servicio !== 'falta') return false;
+    if (isTroncal) {
+      return c.tipo_tarjeton === 'C';
+    } else {
+      return c.tipo_tarjeton === 'B' || c.tipo_tarjeton === 'C';
+    }
+  });
+
+  const conductoresSoloDisponibles = dbConductores.filter((c) => {
+    if (c.estado_servicio !== 'disponible') return false;
+    if (isTroncal) {
+      return c.tipo_tarjeton === 'C';
+    } else {
+      return c.tipo_tarjeton === 'B' || c.tipo_tarjeton === 'C';
+    }
+  });
 
   const rutaOptionsByType = useMemo(() => ({
     troncales: _rutasData?.troncales || [],
@@ -1478,7 +1490,7 @@ export default function DetalleUnidadMantenimiento() {
                         <h3 className="info-card__title">Encierro Operativo</h3>
                       </div>
                       <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                           {[
                             { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
                             { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
@@ -1876,14 +1888,6 @@ export default function DetalleUnidadMantenimiento() {
                 {modalEstatusConductorDropdown && (
                   <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
                     <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                      <button
-                        type="button"
-                        className="dropdown-menu__item"
-                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                        onClick={() => { setModalEstatusConductor(''); setModalEstatusConductorDropdown(false); }}
-                      >
-                        Seleccione un conductor...
-                      </button>
                       {(conductoresDisponibles || []).map((c) => (
                         <button
                           key={c.id}
@@ -1927,6 +1931,7 @@ export default function DetalleUnidadMantenimiento() {
                   </div>
                 )}
               </div>
+              <p style={{ fontSize: "11px", color: "#9ca3af", marginTop: "4px" }}>* Seleccione un conductor de la lista.</p>
             </div>
 
             <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
@@ -1960,14 +1965,6 @@ export default function DetalleUnidadMantenimiento() {
                 {modalEstatusRutaDropdown && (
                   <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
                     <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                      <button
-                        type="button"
-                        className="dropdown-menu__item"
-                        style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                        onClick={() => { setModalEstatusRuta(''); setModalEstatusRutaDropdown(false); }}
-                      >
-                        Seleccione una ruta...
-                      </button>
                       {(rutasOpciones || []).map((r) => (
                         <button
                           key={r}
@@ -1983,6 +1980,7 @@ export default function DetalleUnidadMantenimiento() {
                   </div>
                 )}
               </div>
+              <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
             </div>
 
             {/* --- Corrida --- */}

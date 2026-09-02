@@ -97,6 +97,7 @@ export default function UnitInfoPanel({
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
+  const [perdidaMotivoOtro, setPerdidaMotivoOtro] = useState('');
   const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
@@ -108,6 +109,7 @@ export default function UnitInfoPanel({
   const [descargandoPDF, setDescargandoPDF] = useState(false);
   const [observaciones, setObservaciones] = useState('');
   const [guardandoSalida, setGuardandoSalida] = useState(false);
+  const [guardandoPerdida, setGuardandoPerdida] = useState(false);
 
   const observacionesRef = useRef(null);
   const observacionesInputRef = useRef(null);
@@ -996,7 +998,7 @@ export default function UnitInfoPanel({
                         {dropdownMotivoOpen && (
                           <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
                             <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                              {['Falla Mecánica', 'Accidente', 'Tráfico', 'Falta de Operador', 'Falta de Unidad', 'Otro'].map(mot => (
+                              {['FALLA MECÁNICA', 'ACCIDENTE', 'TRÁFICO', 'FALTA DE OPERADOR', 'FALTA DE UNIDAD', 'OTRO'].map(mot => (
                                 <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); }}>
                                   {mot}
                                 </button>
@@ -1005,6 +1007,20 @@ export default function UnitInfoPanel({
                           </div>
                         )}
                       </div>
+                      
+                      {perdidaMotivo === 'OTRO' && (
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <input
+                            type="text"
+                            className="interactive-input"
+                            style={{ width: '100%', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.85rem', background: 'var(--tw-color-white)' }}
+                            placeholder="Especifique el motivo..."
+                            value={perdidaMotivoOtro}
+                            onChange={(e) => setPerdidaMotivoOtro(e.target.value ? e.target.value.toUpperCase() : '')}
+                            disabled={guardandoPerdida}
+                          />
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1014,7 +1030,7 @@ export default function UnitInfoPanel({
             <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">
                <button
                   type="button"
-                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))}
+                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'OTRO' && !perdidaMotivoOtro.trim())))}
                   onClick={async () => {
                     setGuardandoSalida(true);
                     const now = new Date();
@@ -1028,7 +1044,8 @@ export default function UnitInfoPanel({
                         await handleSaveHoras(formHoraProgramada, calculatedAcople, horaParaGuardar, observaciones);
                         
                         if (huboCorridasPerdidas && perdidaCiclos && perdidaMotivo) {
-                          await handleSavePerdida(perdidaCiclos, perdidaMotivo);
+                          const finalMotivo = perdidaMotivo === 'OTRO' ? perdidaMotivoOtro.trim() : perdidaMotivo;
+                          await handleSavePerdida(perdidaCiclos, finalMotivo);
                         }
 
                         setSalidaCongelada(horaParaGuardar);

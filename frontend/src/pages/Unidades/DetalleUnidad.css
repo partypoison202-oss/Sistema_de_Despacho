@@ -764,7 +764,7 @@
     border-radius: 12px;
     padding: 24px;
     width: 100%;
-    max-width: 450px;
+    max-width: 550px;
     box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
     text-align: center;
     animation: scaleUp 0.2s ease-out;
@@ -772,37 +772,48 @@
     margin: auto;
 }
 .custom-modal-title {
-    color: var(--brand-maroon, #6b1d33);
+    color: #1e293b;
     font-weight: 700;
-    font-size: 1.5rem;
+    font-size: 1.125rem;
     margin-bottom: 1.5rem;
 }
 .custom-modal-actions {
     display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-top: 1.5rem;
+    width: 100%;
+    margin-top: 2rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
 }
 .custom-modal-btn-save {
-    background: var(--brand-maroon, #6b1d33);
+    flex: 1;
+    background: #c29b53;
     color: white;
     border: none;
-    padding: 0.6rem 1.5rem;
-    border-radius: 0.5rem;
+    padding: 0;
     cursor: pointer;
-    font-weight: 600;
-    transition: opacity 0.2s;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    border-radius: 0;
 }
 .custom-modal-btn-save:hover { opacity: 0.9; }
+.custom-modal-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .custom-modal-btn-cancel {
-    background: #9ca3af;
+    flex: 1;
+    background: #6b1d33;
     color: white;
     border: none;
-    padding: 0.6rem 1.5rem;
-    border-radius: 0.5rem;
+    border-left: 1px solid #e5e7eb;
+    padding: 0;
     cursor: pointer;
-    font-weight: 600;
-    transition: opacity 0.2s;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    border-radius: 0;
 }
 .custom-modal-btn-cancel:hover { opacity: 0.9; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
