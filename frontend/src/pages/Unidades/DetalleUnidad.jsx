@@ -373,6 +373,15 @@ export default function DetalleUnidad() {
 
   // Seleccionar unidad (desde dropdown o búsqueda)
   const handleSelectUnit = async (unidad) => {
+    if (!unidad) {
+      setSelectedOption(null);
+      setSelectedEstado(null);
+      setTarjetonBusqueda('');
+      setFallaTexto('');
+      setOpenDropdown(null);
+      return;
+    }
+
     const unidadSeleccionada =
       typeof unidad === 'object' && unidad !== null
         ? unidad
@@ -666,46 +675,10 @@ export default function DetalleUnidad() {
 
   // Guardar Horas
   const advanceToNextPendingUnit = (numeroLimpio) => {
-    let currentList = [];
-    if (selectedTroncal && isTroncal) {
-      currentList = unidadesPorTroncalList;
-    } else if (selectedEstado) {
-      currentList = unidadesPorEstado(selectedEstado);
-    } else if (selectedRuta && esAlimentadora) {
-      currentList = unidadesPorRutaList;
-    } else {
-      currentList = unidadesDisponiblesBusqueda;
-    }
-
-    const currentIndex = currentList.findIndex((u) => String(u.eco).padStart(3, '0') === numeroLimpio);
-    let nextUnitEco = null;
-
-    if (currentIndex !== -1) {
-      for (let i = currentIndex + 1; i < currentList.length; i++) {
-        if (!currentList[i].horaSalida) {
-          nextUnitEco = currentList[i].eco;
-          break;
-        }
-      }
-      if (!nextUnitEco) {
-        for (let i = 0; i < currentIndex; i++) {
-          if (!currentList[i].horaSalida) {
-            nextUnitEco = currentList[i].eco;
-            break;
-          }
-        }
-      }
-    }
-
-    if (nextUnitEco) {
-      const nextFormatted = `ECO${String(nextUnitEco).padStart(3, '0')}`;
-      setSelectedOption(nextFormatted);
-      return nextFormatted;
-    } else {
-      setSelectedOption(null);
-      setSelectedEstado(null);
-      return null;
-    }
+    setSelectedOption(null);
+    setSelectedEstado(null);
+    setTarjetonBusqueda('');
+    return null;
   };
 
   const handleSaveHoras = async (horaProgramada, acople, horaSalida = null, observaciones = null) => {

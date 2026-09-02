@@ -302,6 +302,15 @@ export default function DetalleUnidadMesaControl() {
 
   // ========== FUNCIONES (COPIADAS EXACTAMENTE DEL DETALLE ORIGINAL) ==========
   const handleSelectUnit = async (unidad) => {
+    if (!unidad) {
+      setSelectedOption(null);
+      setSelectedEstado(null);
+      setTarjetonBusqueda('');
+      setFallaTexto('');
+      setOpenDropdown(null);
+      return;
+    }
+
     const unidadSeleccionada =
       typeof unidad === 'object' && unidad !== null
         ? unidad

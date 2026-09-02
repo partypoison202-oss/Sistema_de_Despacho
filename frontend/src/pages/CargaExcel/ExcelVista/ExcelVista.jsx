@@ -55,7 +55,7 @@ export default function ExcelPreview({
   const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
 
   // Las cabeceras del editor directo
-  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS', 'PATIO_NORTE'];
+  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS'];
   if (isRelevos) {
     headers.push('HORA_DE_ACOPLE');
     headers.push('HORA_PROGRAMADA');
@@ -793,9 +793,8 @@ export default function ExcelPreview({
                                   handleOpenDropdown(e, originalIndex, 'ESTATUS');
                                 }
                               }}
-                              disabled={isRowDisabled}
                               className={`edit-input dropdown-trigger ${isEstatusOpen ? 'active-trigger' : ''}`}
-                              style={{ cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}
+                              style={{ cursor: 'pointer' }}
                             >
                               <span style={{ color: statusStyle.text, fontWeight: '600' }}>
                                 {estatusTranslations[currentStatus]}
