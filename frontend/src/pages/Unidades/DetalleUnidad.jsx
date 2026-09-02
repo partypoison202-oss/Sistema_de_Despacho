@@ -300,10 +300,14 @@ export default function DetalleUnidad() {
     setOpenDropdown(null);
   };
 
-  const conductoresDisponibles = dbConductores.filter(c => 
-    (c.estado_servicio === 'disponible' || c.estado_servicio === 'falta') && 
-    (!isTroncal || c.tipo_tarjeton === 'C')
-  );
+  const conductoresDisponibles = dbConductores.filter(c => {
+    if (c.estado_servicio !== 'disponible' && c.estado_servicio !== 'falta') return false;
+    if (isTroncal) {
+      return c.tipo_tarjeton === 'C';
+    } else {
+      return c.tipo_tarjeton === 'B' || c.tipo_tarjeton === 'C';
+    }
+  });
 
   useEffect(() => {
     const fetchRutas = async () => {
