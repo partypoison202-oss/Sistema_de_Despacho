@@ -189,10 +189,14 @@ export default function DetalleUnidadMesaControl() {
     unidadesList.filter((u) => u.estado === estado);
 
   const isTroncal = configActual?.id === 'urbanuss';
-  const conductoresDisponibles = dbConductores.filter(c =>
-    c.estado_servicio === 'disponible' &&
-    (!isTroncal || c.tipo_tarjeton === 'C')
-  );
+  const conductoresDisponibles = dbConductores.filter(c => {
+    if (c.estado_servicio !== 'disponible') return false;
+    if (isTroncal) {
+      return c.tipo_tarjeton === 'C';
+    } else {
+      return c.tipo_tarjeton === 'B' || c.tipo_tarjeton === 'C';
+    }
+  });
 
   // Mostrar todos los maniobristas (no solo disponibles) para visualización en el panel
   const maniobristasDisponibles = dbManiobristas;
@@ -947,7 +951,7 @@ export default function DetalleUnidadMesaControl() {
                       conductoresDisponibles.map((c) => (
                         <div key={c.tarjeton} className="dropdown-menu__item" style={{ cursor: 'default' }}>
                           <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
-                            {c.tarjeton}
+                            {c.tarjeton} - {c.tipo_tarjeton}
                           </span>
                         </div>
                       ))
@@ -1064,7 +1068,7 @@ export default function DetalleUnidadMesaControl() {
                       <h3 className="info-card__title">Movilidad y Estatus</h3>
                     </div>
                     <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                         {[
                           { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
                           { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
@@ -1433,31 +1437,17 @@ export default function DetalleUnidadMesaControl() {
         >
           <div className="custom-modal-content">
             <h2 className="custom-modal-title">
-              {modalEstatusNuevo === 'operacion' ? 'Asignar Conductor y Ruta' :
-                modalEstatusNuevo === 'reserva' ? 'Cambiar a RESERVA' :
-                  modalEstatusNuevo === 'percance' ? 'Cambiar a PERCANCE' :
-                    'Cambiar a MANTENIMIENTO'}
+              {modalEstatusNuevo === 'operacion' ? '¿Asignar Conductor y Ruta?' :
+                modalEstatusNuevo === 'reserva' ? '¿Cambiar a RESERVA?' :
+                  modalEstatusNuevo === 'percance' ? '¿Cambiar a PERCANCE?' :
+                    '¿Cambiar a MANTENIMIENTO?'}
             </h2>
 
             {/* Sección de Información Actual */}
-            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
-              <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
-                <strong>ECO:</strong> {selectedOption}
-              </p>
+            <div style={{ padding: '0.5rem 1rem', background: 'transparent', marginBottom: '1.5rem', color: '#545454', fontSize: '1.125rem' }}>
+              <p style={{ marginBottom: '0.25rem' }}>Estás a punto de modificar el estatus de la unidad <strong>{selectedOption}</strong>.</p>
               {datosOperativos.conductor && (
-                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
-                  <strong>Conductor:</strong> {datosOperativos.conductor}
-                </p>
-              )}
-              {datosOperativos.tarjeton && (
-                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
-                  <strong>Tarjetón:</strong> {datosOperativos.tarjeton}
-                </p>
-              )}
-              {datosOperativos.ruta && (
-                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
-                  <strong>Ruta:</strong> {datosOperativos.ruta}
-                </p>
+                <p style={{ fontSize: '0.95rem', color: '#718096' }}>Conductor actual: {datosOperativos.conductor} ({datosOperativos.tarjeton})</p>
               )}
             </div>
 
@@ -1529,14 +1519,6 @@ export default function DetalleUnidadMesaControl() {
                     {modalEstatusConductorDropdown && (
                       <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
                         <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                          <button
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                            onClick={() => { setModalEstatusConductor(''); setModalEstatusConductorDropdown(false); }}
-                          >
-                            Seleccione un conductor...
-                          </button>
                           {(conductoresDisponibles || []).map(c => (
                             <button
                               key={c.id}
@@ -1552,6 +1534,7 @@ export default function DetalleUnidadMesaControl() {
                       </div>
                     )}
                   </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione un conductor de la lista.</p>
                 </div>
 
                 <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
@@ -1585,14 +1568,6 @@ export default function DetalleUnidadMesaControl() {
                     {modalEstatusRutaDropdown && (
                       <div className="dropdown-menu" style={{ display: 'block', width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', zIndex: 9999 }}>
                         <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                          <button
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--tw-color-gray-900)' }}
-                            onClick={() => { setModalEstatusRuta(''); setModalEstatusRutaDropdown(false); }}
-                          >
-                            Seleccione una ruta...
-                          </button>
                           {(rutasOpciones || []).map(r => (
                             <button
                               key={r}
@@ -1608,6 +1583,7 @@ export default function DetalleUnidadMesaControl() {
                       </div>
                     )}
                   </div>
+                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
                 </div>
               </>
             ) : (

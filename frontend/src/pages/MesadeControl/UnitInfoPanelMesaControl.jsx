@@ -48,6 +48,8 @@ export default function UnitInfoPanel({
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [perdidaCiclos, setPerdidaCiclos] = useState('');
   const [perdidaMotivo, setPerdidaMotivo] = useState('');
+  const [perdidaMotivoOtro, setPerdidaMotivoOtro] = useState('');
+  const [editandoCiclos, setEditandoCiclos] = useState(false);
   const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
@@ -213,8 +215,20 @@ export default function UnitInfoPanel({
 
   useEffect(() => {
     setPerdidaCiclos(datosOperativos.ciclo || '');
-    setPerdidaMotivo(datosOperativos.motivo || '');
+    
+    const dbMotivo = datosOperativos.motivo || '';
+    const predefinedMotivos = ['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL', 'OTRO'];
+    
+    if (dbMotivo && !predefinedMotivos.includes(dbMotivo)) {
+      setPerdidaMotivo('OTRO');
+      setPerdidaMotivoOtro(dbMotivo);
+    } else {
+      setPerdidaMotivo(dbMotivo);
+      setPerdidaMotivoOtro('');
+    }
+
     setHuboCorridasPerdidas(!!datosOperativos.ciclo);
+    setEditandoCiclos(false);
   }, [datosOperativos]);
 
   useEffect(() => {
@@ -314,6 +328,7 @@ export default function UnitInfoPanel({
         }
         datosOperativos.ciclo = cicloVal || '';
         datosOperativos.motivo = motivoVal || '';
+        setEditandoCiclos(false); // Resetear estado de edición al guardar
       } else {
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({
@@ -959,16 +974,24 @@ export default function UnitInfoPanel({
                   <div ref={ciclosRef} style={{ position: 'relative' }}>
                     <button
                       type="button"
+                      disabled={guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)}
                       className="interactive-input"
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
-                        opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                        padding: '0 0.85rem', width: '100%', height: '2.3rem', 
+                        background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
+                        color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit',
+                        opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1, 
+                        cursor: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 'not-allowed' : 'pointer'
                       }}
-                      onClick={() => !guardandoPerdida && setDropdownCiclosOpen(!dropdownCiclosOpen)}
+                      onClick={() => {
+                        if (!guardandoPerdida && !(!!datosOperativos.ciclo && !editandoCiclos)) {
+                          setDropdownCiclosOpen(!dropdownCiclosOpen);
+                        }
+                      }}
                     >
                       <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? (ciclosOptions.find(opt => opt.value === String(perdidaCiclos))?.label || perdidaCiclos) : 'Ciclos'}</span>
-                      <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                      {!(!!datosOperativos.ciclo && !editandoCiclos) && <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>}
                     </button>
                     {dropdownCiclosOpen && (
                       <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', zIndex: 999 }}>
@@ -987,21 +1010,27 @@ export default function UnitInfoPanel({
                   <div ref={motivoRef} style={{ position: 'relative' }}>
                     <button
                       type="button"
+                      disabled={guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)}
                       className="interactive-input"
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '0 0.85rem', width: '100%', height: '2.3rem', background: 'var(--tw-color-white)',
-                        opacity: guardandoPerdida ? 0.7 : 1, cursor: guardandoPerdida ? 'not-allowed' : 'pointer'
+                        padding: '0 0.85rem', width: '100%', height: '2.3rem', 
+                        background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
+                        color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit',
+                        opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1, 
+                        cursor: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 'not-allowed' : 'pointer'
                       }}
-                      onClick={() => !guardandoPerdida && setDropdownMotivoOpen(!dropdownMotivoOpen)}
+                      onClick={() => {
+                        setDropdownMotivoOpen(!dropdownMotivoOpen);
+                      }}
                     >
                       <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perdidaMotivo || 'Motivo'}</span>
-                      <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
+                      {!(!!datosOperativos.ciclo && !editandoCiclos) && <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>}
                     </button>
                     {dropdownMotivoOpen && (
                       <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
                         <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                          {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL'].map(mot => (
+                          {['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL', 'OTRO'].map(mot => (
                             <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); }}>
                               {mot}
                             </button>
@@ -1011,28 +1040,58 @@ export default function UnitInfoPanel({
                     )}
                   </div>
 
-                  {/* Guardar */}
+                  {perdidaMotivo === 'OTRO' && (
+                    <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                      <input
+                        type="text"
+                        className="interactive-input"
+                        style={{ 
+                          width: '100%', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.85rem', 
+                          background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
+                          color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit'
+                        }}
+                        placeholder="Especifique el motivo..."
+                        value={perdidaMotivoOtro}
+                        onChange={(e) => setPerdidaMotivoOtro(e.target.value ? e.target.value.toUpperCase() : '')}
+                        disabled={guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Guardar / Editar */}
                   <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                    {(!!datosOperativos.ciclo && !editandoCiclos) && (
+                      <p style={{ fontSize: '0.75rem', color: '#9ca3af', textAlign: 'center', marginBottom: '0.5rem', fontStyle: 'italic' }}>
+                        * Información bloqueada por seguridad. Presione "EDITAR CICLOS" para modificar.
+                      </p>
+                    )}
                     <button
                       type="button"
-                      disabled={guardandoPerdida || !perdidaCiclos || !perdidaMotivo}
-                      onClick={() => handleSavePerdida(perdidaCiclos, perdidaMotivo)}
+                      disabled={guardandoPerdida || (!editandoCiclos && !datosOperativos.ciclo) || (editandoCiclos && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'OTRO' && !perdidaMotivoOtro.trim())))}
+                      onClick={() => {
+                        if (!!datosOperativos.ciclo && !editandoCiclos) {
+                          setEditandoCiclos(true);
+                        } else {
+                          const finalMotivo = perdidaMotivo === 'OTRO' ? perdidaMotivoOtro.trim() : perdidaMotivo;
+                          handleSavePerdida(perdidaCiclos, finalMotivo);
+                        }
+                      }}
                       className="interactive-input"
                       style={{
                         width: '100%',
                         padding: '0.5rem',
-                        background: (!perdidaCiclos || !perdidaMotivo) ? 'var(--tw-color-gray-300)' : '#601a2a',
+                        background: (editandoCiclos && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'OTRO' && !perdidaMotivoOtro.trim()))) ? 'var(--tw-color-gray-300)' : '#601a2a',
                         color: 'white',
                         border: 'none',
                         borderRadius: '0.5rem',
                         fontWeight: 700,
                         fontSize: '0.85rem',
-                        cursor: (!perdidaCiclos || !perdidaMotivo || guardandoPerdida) ? 'not-allowed' : 'pointer',
+                        cursor: (guardandoPerdida || (editandoCiclos && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'OTRO' && !perdidaMotivoOtro.trim())))) ? 'not-allowed' : 'pointer',
                         opacity: guardandoPerdida ? 0.7 : 1,
                         transition: 'all 0.2s'
                       }}
                     >
-                      {guardandoPerdida ? 'GUARDANDO...' : 'GUARDAR CICLOS PERDIDOS'}
+                      {guardandoPerdida ? 'GUARDANDO...' : ((!!datosOperativos.ciclo && !editandoCiclos) ? 'EDITAR CICLOS' : 'GUARDAR CICLOS')}
                     </button>
                   </div>
                 </div>

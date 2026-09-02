@@ -230,7 +230,7 @@ class DespachoController extends Controller
             ->get()
             ->map(function ($unidad) {
                 $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
-                if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+                if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                     $estatus = 'operacion';
                 }
 
@@ -298,7 +298,7 @@ class DespachoController extends Controller
 
         if ($unidad) {
             $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
-            if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+            if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                 $estatus = 'operacion';
             }
         }
@@ -393,7 +393,7 @@ class DespachoController extends Controller
 
         if ($info) {
             $estatus = strtolower(trim($info->estatus ?? 'operacion'));
-            if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+            if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                 $estatus = 'operacion';
             }
         }
@@ -548,12 +548,15 @@ class DespachoController extends Controller
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
                 'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
-                'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
+
+            if ($horaSalidaRealVal !== '') {
+                $data['hora_salida'] = $horaSalidaRealVal;
+            }
 
             if ($registroId) {
                 try {
@@ -688,12 +691,15 @@ class DespachoController extends Controller
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
                 'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
-                'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
+
+            if ($horaSalidaRealVal !== '') {
+                $data['hora_salida'] = $horaSalidaRealVal;
+            }
 
             if ($registroId) {
                 try {
@@ -820,12 +826,15 @@ class DespachoController extends Controller
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
                 'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
-                'hora_salida'          => $horaSalidaRealVal === '' ? null : $horaSalidaRealVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
+
+            if ($horaSalidaRealVal !== '') {
+                $data['hora_salida'] = $horaSalidaRealVal;
+            }
 
             if ($registroId) {
                 try {
@@ -2285,7 +2294,7 @@ class DespachoController extends Controller
             ->get()
             ->map(function ($unidad) {
                 $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
-                if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva'], true)) {
+                if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                     $estatus = 'operacion';
                 }
                 return [
