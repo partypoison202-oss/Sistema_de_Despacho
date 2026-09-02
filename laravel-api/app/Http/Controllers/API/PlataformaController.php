@@ -72,6 +72,16 @@ class PlataformaController extends Controller
                 }
                 $estatusNuevo = 'OPERACION';
                 $datosUpdate['estatus'] = strtolower($estatusNuevo);
+                
+                // Asignar conductor y ruta al incorporar
+                $datosUpdate['numero_tarjeton'] = $request->conductor;
+                if ($request->conductor) {
+                    $cond = DB::table('conductores')->where('tarjeton', $request->conductor)->first();
+                    $datosUpdate['nombre_conductor'] = $cond ? trim($cond->nombres . ' ' . $cond->apellidos) : null;
+                    DB::table('conductores')->where('tarjeton', $request->conductor)->update(['estado_servicio' => 'en_servicio']);
+                }
+                $datosUpdate['ruta'] = $request->ruta;
+
                 $mensajeBitacora = "INCORPORACIÓN - CONDUCTOR: " . strtoupper($request->conductor ?? 'SIN ASIGNAR') . ", RUTA: " . strtoupper($request->ruta ?? 'SIN RUTA');
 
             } else if ($tipoMovimiento === 'DESINCORPORACION') {
