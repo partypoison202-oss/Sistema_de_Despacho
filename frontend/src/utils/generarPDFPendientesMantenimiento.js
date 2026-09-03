@@ -138,8 +138,7 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
 
   const tableBody = unidadesFiltradas.map((u, idx) => [
     (idx + 1).toString(),
-    // folio_mantenimiento ya contiene: el N° de incidencia para pendientes, o MANT-XXX para los que ya tienen orden
-    u.folio_mantenimiento || '—',
+    u.numero_incidencia || '—',
     u.numero_eco,
     String(u.tipo || '').toUpperCase(),
     String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),

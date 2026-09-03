@@ -91,8 +91,10 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          folio_mantenimiento: incidenciaFormValue.trim(),
-          falla_reportada: fallaReportadaFormValue.trim()
+          numero_incidencia: incidenciaFormValue.trim(),
+          falla_reportada: fallaReportadaFormValue.trim(),
+          folio_mantenimiento: '',
+          fecha_folio_mantenimiento: ''
         })
       });
       const data = await response.json();
@@ -101,8 +103,10 @@ export default function DetalleUnidadMantenimiento() {
           ...prev,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          folio_mantenimiento: incidenciaFormValue.trim(),
-          falla_reportada: fallaReportadaFormValue.trim()
+          numero_incidencia: incidenciaFormValue.trim(),
+          falla_reportada: fallaReportadaFormValue.trim(),
+          folio_mantenimiento: '',
+          fecha_folio_mantenimiento: ''
         }));
         setSelectedEstado('mantenimiento');
         setIsIncidenciaModalOpen(false);
@@ -127,15 +131,12 @@ export default function DetalleUnidadMantenimiento() {
     }
   };
 
-  const handleGenerarFolio = async () => {
-    if (!selectedOption) return;
-    if (!datosOperativos.folio_mantenimiento) {
-        Swal.fire('Atención', 'Debes asignar un número de incidencia primero.', 'warning');
-        return;
+  const handleOpenMaintenanceWizard = () => {
+    if (!datosOperativos.numero_incidencia) {
+      Swal.fire('Atención', 'Primero debes registrar la incidencia.', 'warning');
+      return;
     }
-    // En lugar de llamar al backend directamente, abre el Wizard para llenar los datos
     setIsMaintenanceWizardOpen(true);
-    // El resto de la lógica de generar-folio ya no está aquí, está en el Wizard
   };
 
   // <-- NUEVO: agregamos motivo_estatus al estado
@@ -555,6 +556,7 @@ export default function DetalleUnidadMantenimiento() {
           horaProgramada: resultado.hora_programada || null,
           horaDespacho,
           folio_mantenimiento: resultado.folio_mantenimiento || null,
+          numero_incidencia: resultado.numero_incidencia || null,
           fecha_folio_mantenimiento: resultado.fecha_folio_mantenimiento || null,
           falla_reportada: resultado.falla_reportada || null,
           diagnostico: resultado.diagnostico || null,
@@ -1127,17 +1129,17 @@ export default function DetalleUnidadMantenimiento() {
                    {(datosOperativos.estatus === 'mantenimiento' || datosOperativos.estatus === 'MANTENIMIENTO') && (
                     <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: '2px' }}>
                        <div style={{ fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '-2px' }}>Incidencia Asignada</div>
-                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.1' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
-                       {datosOperativos.fecha_folio_mantenimiento && (
+                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.1' }}>{datosOperativos.numero_incidencia || 'Sin Asignar'}</div>
+                       {datosOperativos.numero_incidencia && datosOperativos.fecha_folio_mantenimiento && (
                          <div style={{ fontSize: '0.8rem', opacity: 0.85, fontWeight: 500 }}>
                            {new Date(datosOperativos.fecha_folio_mantenimiento).toLocaleString('es-MX', { 
-                             day: '2-digit', month: '2-digit', year: 'numeric', 
-                             hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+                             day: '2-digit', month: '2-digit', year: 'numeric',
+                             hour: '2-digit', minute: '2-digit'
                            })}
                          </div>
                        )}
                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px' }}>
-                           {!datosOperativos.folio_mantenimiento ? (
+                           {!datosOperativos.numero_incidencia ? (
                              <button
                                onClick={() => setIsIncidenciaModalOpen(true)}
                                className="flex items-center gap-1.5 hover:bg-white/10 active:scale-95 transition-all"
@@ -1158,9 +1160,9 @@ export default function DetalleUnidadMantenimiento() {
                                Registrar incidencia
                              </button>
                            ) : (
-                             !(datosOperativos.folio_mantenimiento.startsWith('MANT-')) && (
+                             !(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) && (
                                <button
-                                 onClick={handleGenerarFolio}
+                                 onClick={handleOpenMaintenanceWizard}
                                  className="flex items-center gap-1.5 hover:scale-105 active:scale-95 shadow-md"
                                  style={{
                                    background: 'white',
@@ -1183,27 +1185,26 @@ export default function DetalleUnidadMantenimiento() {
                            )}
                          </div>
                          
-                         {datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-') && (
+                         {datosOperativos.numero_incidencia && datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-') && (
                            <button
                              onClick={() => setIsMaintenanceWizardOpen(true)}
+                             className="flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 shadow-md mt-2"
                              style={{
-                               background: 'rgba(255,255,255,0.2)',
-                               border: '1px solid rgba(255,255,255,0.4)',
-                               borderRadius: '4px',
-                               padding: '4px 8px',
-                               color: 'white',
+                               background: 'white',
+                               border: 'none',
+                               borderRadius: '6px',
+                               padding: '6px 14px',
+                               color: 'var(--brand-maroon, #601a2a)',
                                fontSize: '0.75rem',
-                               marginTop: '8px',
+                               fontWeight: '800',
                                cursor: 'pointer',
-                               display: 'flex',
-                               alignItems: 'center',
-                               gap: '4px'
+                               transition: 'all 0.2s',
                              }}
                            >
-                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                              </svg>
-                             Descargar Orden PDF
+                             DESCARGAR ORDEN PDF
                            </button>
                          )}
                      </div>
@@ -2039,6 +2040,7 @@ export default function DetalleUnidadMantenimiento() {
       )}
 
       {/* === MODAL/WIZARD DE REPORTE DE FALLA === */}
+{/* === MODAL/WIZARD DE REPORTE DE FALLA === */}
       {isMaintenanceWizardOpen && (
         <MaintenanceReportWizard 
           isOpen={isMaintenanceWizardOpen}
@@ -2049,17 +2051,18 @@ export default function DetalleUnidadMantenimiento() {
           initialData={{
             numero_eco: selectedOption ? String(selectedOption.replace(/\D/g, '')).padStart(3, '0') : '',
             tipoTransporte: configActual.id,
+            numero_incidencia: datosOperativos.numero_incidencia || '',
             folio_mantenimiento: datosOperativos.folio_mantenimiento || '',
             fecha_folio_mantenimiento: datosOperativos.fecha_folio_mantenimiento || '',
             conductorNombre: (() => {
-              const cond = (datosOperativos.conductor || '').trim();
+              const cond = (datosOperativos.mantenimiento_conductor || datosOperativos.conductor || '').trim();
               if (cond && cond !== 'Sin asignar' && cond !== 'NO ASIGNADO' && cond !== 'Desconocido') return cond;
               return '';
             })(),
-            tarjeton: datosOperativos.tarjeton || '',
-            corrida: datosOperativos.corrida || '',
+            tarjeton: datosOperativos.mantenimiento_tarjeton || datosOperativos.tarjeton || '',
+            corrida: datosOperativos.mantenimiento_corrida || datosOperativos.corrida || '',
             servicio: (() => {
-              let r = datosOperativos.ruta || '';
+              let r = datosOperativos.mantenimiento_ruta || datosOperativos.ruta || '';
               if (r === 'Sin ruta') r = '';
               if (configActual.id === 'URBANUSS') {
                 if (r.includes('T-01')) return 'T01';
@@ -2069,14 +2072,13 @@ export default function DetalleUnidadMantenimiento() {
                 if (r.includes('ESPECIAL')) return 'SE';
                 if (r.includes('METROPOLITANO')) return 'TM';
                 if (r.includes('POTENCIA')) return 'HP';
-                if (r.includes('MOVILIDAD')) return 'TLM';
               }
               return r;
             })(),
             falla_reportada: datosOperativos.falla_reportada || '',
             diagnostico: datosOperativos.diagnostico || '',
             firma_base64: datosOperativos.firma_base64 || '',
-            km: datosOperativos.kilometraje || ''
+            km: datosOperativos.mantenimiento_kilometraje || datosOperativos.kilometraje || ''
           }}
           onSuccess={async (data) => {
             try {
@@ -2096,7 +2098,12 @@ export default function DetalleUnidadMantenimiento() {
                 falla_reportada: data.falla_reportada,
                 diagnostico: data.diagnostico,
                 firma_base64: data.firma_base64,
-                kilometraje: data.kilometraje
+                kilometraje: data.kilometraje,
+                mantenimiento_conductor: data.mantenimiento_conductor,
+                mantenimiento_tarjeton: data.mantenimiento_tarjeton,
+                mantenimiento_ruta: data.mantenimiento_ruta,
+                mantenimiento_corrida: data.mantenimiento_corrida,
+                mantenimiento_kilometraje: data.mantenimiento_kilometraje
               };
 
               const response = await fetch(url, {
@@ -2142,7 +2149,12 @@ export default function DetalleUnidadMantenimiento() {
                 falla_reportada: data.falla_reportada,
                 diagnostico: data.diagnostico,
                 firma_base64: data.firma_base64,
-                kilometraje: data.kilometraje
+                kilometraje: data.kilometraje,
+                mantenimiento_conductor: data.mantenimiento_conductor,
+                mantenimiento_tarjeton: data.mantenimiento_tarjeton,
+                mantenimiento_ruta: data.mantenimiento_ruta,
+                mantenimiento_corrida: data.mantenimiento_corrida,
+                mantenimiento_kilometraje: data.mantenimiento_kilometraje
               }));
 
               setSelectedEstado('mantenimiento');
