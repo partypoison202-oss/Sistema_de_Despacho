@@ -44,7 +44,7 @@ const agregarEncabezado = (pdf, logoDataUrl, titulo, subtitulo) => {
 
   // Logo en la esquina superior izquierda
   if (logoDataUrl) {
-    pdf.addImage(logoDataUrl, 'PNG', 6, 2, 24, 24);
+    pdf.addImage(logoDataUrl, 'PNG', 6, 6, 40, 16);
   }
 
   // Título centrado
@@ -149,6 +149,7 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
 
   autoTable(pdf, {
     startY: 50,
+    margin: { top: 40 },
     head: tableHeaders,
     body: tableBody,
     theme: 'grid',
