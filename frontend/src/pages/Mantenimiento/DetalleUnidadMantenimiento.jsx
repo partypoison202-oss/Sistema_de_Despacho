@@ -550,10 +550,16 @@ export default function DetalleUnidadMantenimiento() {
           corrida: resultado.corrida || resultado.corridas || '',
           tarjeton: resultado.tarjeton || '',
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
-          motivo_estatus: resultado.motivo_estatus || null, // <-- NUEVO: obtener motivo
+          motivo_estatus: resultado.motivo_estatus || null,
           horaSalida: resultado.hora_salida || null,
           horaProgramada: resultado.hora_programada || null,
           horaDespacho,
+          folio_mantenimiento: resultado.folio_mantenimiento || null,
+          fecha_folio_mantenimiento: resultado.fecha_folio_mantenimiento || null,
+          falla_reportada: resultado.falla_reportada || null,
+          diagnostico: resultado.diagnostico || null,
+          firma_base64: resultado.firma_base64 || null,
+          kilometraje: resultado.kilometraje || null,
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
       } else {
