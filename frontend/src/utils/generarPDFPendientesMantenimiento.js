@@ -142,7 +142,7 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
     u.folio_mantenimiento || '—',
     u.numero_eco,
     String(u.tipo || '').toUpperCase(),
-    u.falla_reportada || u.motivo_estatus || '—',
+    String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
     formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
     calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
   ]);
