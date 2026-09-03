@@ -77,7 +77,6 @@ const IOSPickerWheel = ({ options, value, onChange }) => {
 export default function IOSTimePicker({ value, onChange, onClose, onSave }) {
   const [hours, setHours] = useState('00');
   const [minutes, setMinutes] = useState('00');
-  const [seconds, setSeconds] = useState('00');
   const [isSaving, setIsSaving] = useState(false);
 
   const hourOptions = React.useMemo(
@@ -88,20 +87,15 @@ export default function IOSTimePicker({ value, onChange, onClose, onSave }) {
     () => Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')),
     []
   );
-  const secondOptions = React.useMemo(
-    () => Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')),
-    []
-  );
 
   // Inicializa el picker con el valor recibido SOLO al montar (al abrirse).
   // No sincronizamos en cada cambio de "value" para no crear un ida-y-vuelta
   // con el padre mientras el usuario edita.
   useEffect(() => {
     if (value) {
-      const [h, m, s] = value.split(':');
+      const [h, m] = value.split(':');
       if (h) setHours(h);
       if (m) setMinutes(m);
-      if (s) setSeconds(s);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -113,7 +107,7 @@ export default function IOSTimePicker({ value, onChange, onClose, onSave }) {
 
   const handleGuardar = async (e) => {
     e.stopPropagation();
-    const nuevoValor = `${hours}:${minutes}:${seconds}`;
+    const nuevoValor = `${hours}:${minutes}`;
     onChange(nuevoValor);
 
     if (onSave) {
@@ -166,10 +160,8 @@ export default function IOSTimePicker({ value, onChange, onClose, onSave }) {
         }}></div>
 
         <IOSPickerWheel options={hourOptions} value={hours} onChange={setHours} />
-        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#6b1d33', margin: '0 0.25rem' }}>:</span>
+        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#6b1d33', margin: '0 0.5rem' }}>:</span>
         <IOSPickerWheel options={minuteOptions} value={minutes} onChange={setMinutes} />
-        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#6b1d33', margin: '0 0.25rem' }}>:</span>
-        <IOSPickerWheel options={secondOptions} value={seconds} onChange={setSeconds} />
       </div>
 
       <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
