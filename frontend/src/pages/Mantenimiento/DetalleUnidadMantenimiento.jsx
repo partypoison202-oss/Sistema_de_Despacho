@@ -1120,7 +1120,7 @@ export default function DetalleUnidadMantenimiento() {
 
                    {(datosOperativos.estatus === 'mantenimiento' || datosOperativos.estatus === 'MANTENIMIENTO') && (
                     <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: '2px' }}>
-                       <div style={{ fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '-2px' }}>Folio Asignado</div>
+                       <div style={{ fontSize: '0.75rem', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '-2px' }}>Incidencia Asignada</div>
                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', lineHeight: '1.1' }}>{datosOperativos.folio_mantenimiento || 'Sin Asignar'}</div>
                        {datosOperativos.fecha_folio_mantenimiento && (
                          <div style={{ fontSize: '0.8rem', opacity: 0.85, fontWeight: 500 }}>
