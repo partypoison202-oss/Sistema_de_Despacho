@@ -10,6 +10,12 @@
     "editor.wordHighlightBackground": "#8ab4f860",
     "editor.wordHighlightBorder": "#00000000",
     "editor.wordHighlightStrongBackground": "#8ab4f860",
-    "editor.wordHighlightStrongBorder": "#00000000"
+    "editor.wordHighlightStrongBorder": "#00000000",
+    "activityBar.background": "#42b883",
+    "statusBar.background": "#42b883",
+    "statusBar.noFolderBackground": "#42b883",
+    "activityBar.foreground": "#000000",
+    "activityBar.inactiveForeground": "#000000",
+    "statusBar.foreground": "#000000"
   }
 }
