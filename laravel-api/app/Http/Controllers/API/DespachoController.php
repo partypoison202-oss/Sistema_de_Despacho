@@ -1748,6 +1748,7 @@ class DespachoController extends Controller
             'tipo' => 'required',
             'estatus' => 'required|in:operacion,mantenimiento,reserva,percance',
             'motivo_estatus' => 'nullable|string',
+            'falla_reportada' => 'nullable|string',
             'cambio_unidad_activo' => 'nullable|boolean',
             'eco_reemplazo' => 'nullable|string',
             'tarjeton_reemplazo' => 'nullable|string',
@@ -1790,6 +1791,10 @@ class DespachoController extends Controller
             'estatus' => $nuevoEstatus,
             'motivo_estatus' => $motivoEstatus
         ];
+
+        if ($request->has('falla_reportada')) {
+            $updateData['falla_reportada'] = trim($request->falla_reportada);
+        }
 
         if ($request->has('folio_mantenimiento')) {
             $folioReq = trim($request->folio_mantenimiento);

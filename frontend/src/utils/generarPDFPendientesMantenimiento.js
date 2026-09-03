@@ -133,7 +133,7 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
 
   // Tabla
   const tableHeaders = [
-    ['NO', 'FOLIO', 'ECO', 'TIPO', 'FALLA REPORTADA', 'FECHA INGRESO', 'DÍAS FUERA'],
+    ['NO', 'N° INCIDENCIA', 'ECO', 'TIPO', 'FALLA REPORTADA', 'FECHA INGRESO', 'DÍAS FUERA'],
   ];
 
   const tableBody = unidadesFiltradas.map((u, idx) => [

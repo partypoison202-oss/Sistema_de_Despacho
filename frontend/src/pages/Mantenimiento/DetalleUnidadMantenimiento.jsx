@@ -58,6 +58,7 @@ export default function DetalleUnidadMantenimiento() {
   
   const [isIncidenciaModalOpen, setIsIncidenciaModalOpen] = useState(false);
   const [incidenciaFormValue, setIncidenciaFormValue] = useState('');
+  const [fallaReportadaFormValue, setFallaReportadaFormValue] = useState('');
   const [isGuardandoIncidencia, setIsGuardandoIncidencia] = useState(false);
 
   useEffect(() => {
@@ -90,7 +91,8 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          folio_mantenimiento: incidenciaFormValue.trim()
+          folio_mantenimiento: incidenciaFormValue.trim(),
+          falla_reportada: fallaReportadaFormValue.trim()
         })
       });
       const data = await response.json();
@@ -99,11 +101,13 @@ export default function DetalleUnidadMantenimiento() {
           ...prev,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          folio_mantenimiento: incidenciaFormValue.trim()
+          folio_mantenimiento: incidenciaFormValue.trim(),
+          falla_reportada: fallaReportadaFormValue.trim()
         }));
         setSelectedEstado('mantenimiento');
         setIsIncidenciaModalOpen(false);
         setIncidenciaFormValue('');
+        setFallaReportadaFormValue('');
         Swal.fire({
           icon: 'success',
           title: 'Unidad en Mantenimiento',
@@ -2182,6 +2186,18 @@ export default function DetalleUnidadMantenimiento() {
                   autoFocus
                 />
                 <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número de la incidencia.</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Falla reportada:
+                </label>
+                <textarea
+                  value={fallaReportadaFormValue}
+                  onChange={(e) => setFallaReportadaFormValue(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon resize-none h-24"
+                  placeholder="Describe la falla reportada..."
+                />
               </div>
 
               <div className="flex gap-2 mt-4">
