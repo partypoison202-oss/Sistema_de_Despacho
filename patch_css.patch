@@ -1,0 +1,40 @@
+--- frontend/src/pages/Unidades/DetalleUnidad.css
++++ frontend/src/pages/Unidades/DetalleUnidad.css
+@@ -774,21 +774,21 @@
+ .custom-modal-actions {
+     display: flex;
+     justify-content: center;
+-    gap: 12px;
+-    margin-top: 1.5rem;
++    gap: 15px;
++    margin-top: 2rem;
+ }
+ .custom-modal-btn-save {
+-    background: var(--brand-maroon, #6b1d33);
++    background: #7066e0;
+     color: white;
+     border: none;
+-    padding: 0.6rem 1.5rem;
++    padding: 0.6rem 2rem;
+     border-radius: 0.5rem;
+     cursor: pointer;
+     font-weight: 600;
++    font-size: 1rem;
+     transition: opacity 0.2s;
+ }
+ .custom-modal-btn-save:hover { opacity: 0.9; }
+ .custom-modal-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+ .custom-modal-btn-cancel {
+-    background: #9ca3af;
++    background: #e53935;
+     color: white;
+     border: none;
+-    padding: 0.6rem 1.5rem;
++    padding: 0.6rem 2rem;
+     border-radius: 0.5rem;
+     cursor: pointer;
+     font-weight: 600;
++    font-size: 1rem;
+     transition: opacity 0.2s;
+ }
+ .custom-modal-btn-cancel:hover { opacity: 0.9; }

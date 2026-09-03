@@ -16,7 +16,8 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   const hasPrinted = useRef(false);
 
   // Form Data
-  const [folio, setFolio] = useState('');
+  const [incidencia, setIncidencia] = useState('');
+  const [folioOrden, setFolioOrden] = useState('');
   const [formData, setFormData] = useState({
     eco: '',
     operador: '',
@@ -35,11 +36,26 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   useEffect(() => {
     if (isOpen && !hasInitialized.current) {
       hasInitialized.current = true;
-      // Si hay folio existente en initialData, ir directo al paso 2
-      const folioExistente = initialData?.folio_mantenimiento || '';
-      const pasoInicial = (initialStep === 2 || folioExistente) ? 2 : 1;
+      // Extraemos el folio de la orden si ya existe
+      const tieneFolio = initialData?.folio_mantenimiento && initialData.folio_mantenimiento.startsWith('MANT-');
+      
+      // Si hay incidencia existente, vamos al paso 2. Si ya tiene folio, vamos directo al paso 3.
+      const incidenciaExistente = initialData?.numero_incidencia || '';
+      let pasoInicial = 1;
+      if (initialStep === 2 || incidenciaExistente) {
+        pasoInicial = 2;
+      }
+      if (tieneFolio) {
+        pasoInicial = 3;
+      }
+      
       setStep(pasoInicial);
-      setFolio(folioExistente);
+      setIncidencia(incidenciaExistente);
+      
+      // Extraemos el folio de la orden si ya existe
+      if (initialData?.folio_mantenimiento && initialData.folio_mantenimiento.startsWith('MANT-')) {
+        setFolioOrden(initialData.folio_mantenimiento.replace('MANT-', ''));
+      }
       
       const now = new Date();
       const fechaActual = now.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -112,11 +128,23 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     }
   }, [isOpen]);
 
+  // Bloquear scroll de fondo cuando el wizard está abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
 if (!isOpen) return null;
 
 const handleNext = () => {
-  if (!String(folio || '').trim()) {
-      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el folio de mantenimiento.' });
+  if (!String(incidencia || '').trim()) {
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el número de incidencia.' });
       return;
     }
     setStep(2);
@@ -146,6 +174,10 @@ const handleNext = () => {
 
   const isFormValid = () => {
     return (
+      String(formData.operador || '').trim() !== '' &&
+      String(formData.tarjeton || '').trim() !== '' &&
+      String(formData.servicio || '').trim() !== '' &&
+      String(formData.corrida || '').trim() !== '' &&
       String(formData.falla_reportada || '').trim() !== '' &&
       String(formData.km || '').trim() !== '' &&
       formData.firma_base64 !== ''
@@ -172,7 +204,7 @@ const handleNext = () => {
       const pdfUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = pdfUrl;
-      link.download = `Orden_Mantenimiento_${formData.eco}_${folio || 'REIMPRESION'}.pdf`;
+      link.download = `Orden_Mantenimiento_${formData.eco}_MANT-${folioOrden || 'REIMPRESION'}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -197,13 +229,19 @@ const handleNext = () => {
       
       // Luego guardamos en backend
       await onSuccess({
-        folio_mantenimiento: folio,
+        numero_incidencia: incidencia,
+        folio_mantenimiento: folioOrden ? `MANT-${folioOrden}` : '',
         motivo: 'MANTENIMIENTO',
         fecha_folio_mantenimiento: new Date().toISOString(),
         falla_reportada: formData.falla_reportada,
         diagnostico: formData.diagnostico,
         firma_base64: formData.firma_base64,
-        kilometraje: formData.km
+        kilometraje: formData.km,
+        mantenimiento_conductor: formData.operador,
+        mantenimiento_tarjeton: formData.tarjeton,
+        mantenimiento_ruta: formData.servicio,
+        mantenimiento_corrida: formData.corrida,
+        mantenimiento_kilometraje: formData.km
       });
       
       onClose();
@@ -216,7 +254,7 @@ const handleNext = () => {
   };
 
   const handleAssignIncidencia = async () => {
-    if (!folio) {
+    if (!incidencia) {
       Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar un número de incidencia.' });
       return;
     }
@@ -224,9 +262,11 @@ const handleNext = () => {
     setErrorMsg('');
     try {
       await onSuccess({
-        folio_mantenimiento: folio, // Funciona como ID de incidencia
+        numero_incidencia: incidencia,
         motivo: 'MANTENIMIENTO',
-        falla_reportada: formData.falla_reportada // Se guarda desde el paso 1
+        falla_reportada: formData.falla_reportada, // Se guarda desde el paso 1
+        folio_mantenimiento: '',
+        fecha_folio_mantenimiento: ''
       });
       onClose();
     } catch (error) {
@@ -246,8 +286,8 @@ const handleNext = () => {
         <label className="block text-sm font-semibold text-gray-700 mb-2">Asignar número de incidencia:</label>
         <input 
           type="text" 
-          value={folio}
-          onChange={(e) => setFolio(e.target.value.replace(/\D/g, ''))}
+          value={incidencia}
+          onChange={(e) => setIncidencia(e.target.value.replace(/\D/g, ''))}
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-4"
           placeholder="Ej. 1234"
           autoFocus
@@ -282,6 +322,46 @@ const handleNext = () => {
   );
 
   const renderStep2 = () => (
+    <div className="flex flex-col items-center p-6 max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Asignar Folio de Mantenimiento</h2>
+      
+      <div className="w-full text-left mb-6">
+        <input 
+          type="text" 
+          value={folioOrden}
+          onChange={(e) => setFolioOrden(e.target.value.replace(/\D/g, ''))}
+          className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-2"
+          autoFocus
+        />
+        <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NÚMERO DE FOLIO</p>
+      </div>
+
+      <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
+        <button 
+          onClick={() => {
+            if (!folioOrden) {
+              Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el número de folio.' });
+              return;
+            }
+            setStep(3);
+          }}
+          disabled={loading}
+          className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+        >
+          Continuar
+        </button>
+        <button 
+          onClick={onClose}
+          disabled={loading}
+          className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
     <div className="flex flex-col h-full max-h-[85vh]">
       <div className="flex justify-between items-center bg-gradient-to-r from-[#6b1d33] to-[#8d2846] text-white p-5 rounded-t-xl shrink-0 shadow-md">
         <h2 className="text-lg font-bold tracking-wide">Reporte de Falla / Orden de Mantenimiento</h2>
@@ -291,18 +371,22 @@ const handleNext = () => {
       <div className="p-6 overflow-y-auto overscroll-contain flex-1 bg-gray-50/50">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Folio</label>
-              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{folio}</div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">N° INCIDENCIA</label>
+              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{incidencia}</div>
             </div>
-            <div>
+            <div className="md:col-span-3">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">FOLIO (MANT-)</label>
+              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{folioOrden}</div>
+            </div>
+            <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ECO</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{formData.eco}</div>
             </div>
-            <div>
+            <div className="md:col-span-5">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha / Hora</label>
-              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">
+              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1 whitespace-nowrap">
                 {formData.fecha} - <span style={{ fontFamily: 'monospace' }}>{realTimeClock || formData.hora_reporte}</span>
               </div>
             </div>
@@ -310,21 +394,22 @@ const handleNext = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Operador</label>
-              <input type="text" name="operador" value={formData.operador} readOnly className="w-full border border-gray-200 bg-gray-50 rounded-lg p-2.5 text-sm text-gray-500 cursor-not-allowed shadow-sm" placeholder="" />
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Operador <span className="text-red-500">*</span></label>
+              <input type="text" name="operador" value={formData.operador} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm bg-white" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NOMBRE DEL OPERADOR</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón)</label>
-              <input type="text" name="tarjeton" value={formData.tarjeton} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. 12345</p>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón) <span className="text-red-500">*</span></label>
+              <input type="text" name="tarjeton" value={formData.tarjeton} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NÚMERO DE TARJETÓN (EJ. 12345)</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-5 mb-6">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio <span className="text-red-500">*</span></label>
               {(() => {
-                const tipo = String(initialData?.tipo || '').toLowerCase();
+                const tipo = String(initialData?.tipoTransporte || initialData?.tipo || '').toLowerCase();
                 const esUrbanuss = ['urbanuss', 'zafiro', 'orion'].includes(tipo);
                 const esAlimentadora = ['vagoneta', 'alimentadora', 'urvan'].includes(tipo);
                 const opciones = esUrbanuss
@@ -333,42 +418,45 @@ const handleNext = () => {
                   ? ['A 1','A 2','A 3','A 4','A 5','A 6','A 7','A 8','A 9','A 10','A 11','A 12','Especial','Sin ruta asignada']
                   : [];
                 return opciones.length > 0 ? (
-                  <select
-                    name="servicio"
-                    value={formData.servicio}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm bg-white"
-                  >
-                    <option value="">— Seleccionar —</option>
-                    {opciones.map(o => (
-                      <option key={o} value={o} selected={formData.servicio === o}>{o}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="servicio"
+                      value={formData.servicio}
+                      onChange={handleInputChange}
+                      className="appearance-none w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm bg-white pr-8"
+                    >
+                      <option value="">— Seleccionar —</option>
+                      {opciones.map(o => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
                 ) : (
-                  <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
+                  <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
                 );
               })()}
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">
-                {String(initialData?.tipo || '').toLowerCase() === '' ? 'Ej. RA 3' : `Rutas disponibles para ${String(initialData?.tipo || '').toUpperCase()}`}
-              </p>
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SELECCIONE LA RUTA ASIGNADA (EJ. RA 3)</p>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida</label>
-              <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. 2</p>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida <span className="text-red-500">*</span></label>
+              <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NÚMERO DE CORRIDA (EJ. 2)</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">KM <span className="text-red-500">*</span></label>
-              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder="" />
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Ej. 1488</p>
+              <input type="text" name="km" value={formData.km} onChange={(e) => setFormData(prev => ({ ...prev, km: e.target.value.replace(/\D/g, '') }))} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL KILOMETRAJE ACTUAL (SOLO NÚMEROS)</p>
             </div>
           </div>
 
           <div className="space-y-5 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Falla Reportada <span className="text-red-500">*</span></label>
-              <textarea name="falla_reportada" value={formData.falla_reportada} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" placeholder=""></textarea>
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium">Describa la falla lo más detallado posible.</p>
+              <textarea name="falla_reportada" value={formData.falla_reportada} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm"></textarea>
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">DESCRIBA LA FALLA LO MÁS DETALLADO POSIBLE</p>
             </div>
           </div>
 
@@ -394,7 +482,7 @@ const handleNext = () => {
 
       <div className="p-5 bg-white border-t border-gray-100 rounded-b-xl shrink-0 flex justify-end gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-10">
         <button 
-          onClick={() => { setStep(1); setErrorMsg(''); }}
+          onClick={() => { setStep(2); setErrorMsg(''); }}
           className="px-5 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
         >
           Atrás (Cambiar Folio)
@@ -417,7 +505,7 @@ const handleNext = () => {
 
       {/* Contenedor Oculto para la plantilla PDF */}
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-        <PrintableMaintenanceOrder ref={printableRef} data={{...formData, folio}} />
+        <PrintableMaintenanceOrder ref={printableRef} data={{...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : ''}} />
       </div>
     </div>
   );
@@ -429,7 +517,7 @@ const handleNext = () => {
         <p className="text-white text-lg font-semibold animate-pulse">Generando e imprimiendo Orden de Mantenimiento...</p>
         {/* Contenedor Oculto para la plantilla PDF */}
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-          <PrintableMaintenanceOrder ref={printableRef} data={{...formData, folio}} />
+          <PrintableMaintenanceOrder ref={printableRef} data={{...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : ''}} />
         </div>
       </div>,
       document.body
@@ -440,9 +528,9 @@ const handleNext = () => {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-none">
       <div 
         className="bg-white rounded-xl shadow-2xl w-full relative overflow-hidden"
-        style={{ maxWidth: step === 1 ? '500px' : '800px', transition: 'max-width 0.3s ease-in-out' }}
+        style={{ maxWidth: (step === 1 || step === 2) ? '500px' : '800px', transition: 'max-width 0.3s ease-in-out' }}
       >
-        {step === 1 ? renderStep1() : renderStep2()}
+        {step === 1 ? renderStep1() : step === 2 ? renderStep2() : renderStep3()}
       </div>
     </div>,
     document.body

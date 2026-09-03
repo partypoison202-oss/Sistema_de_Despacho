@@ -220,10 +220,16 @@ class DespachoController extends Controller
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
                 'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.numero_incidencia',
                 'informacion_operativa.fecha_folio_mantenimiento',
                 'informacion_operativa.falla_reportada',
                 'informacion_operativa.diagnostico',
-                'informacion_operativa.transporte_patio_norte'
+                'informacion_operativa.transporte_patio_norte',
+                'informacion_operativa.mantenimiento_conductor',
+                'informacion_operativa.mantenimiento_tarjeton',
+                'informacion_operativa.mantenimiento_ruta',
+                'informacion_operativa.mantenimiento_corrida',
+                'informacion_operativa.mantenimiento_kilometraje'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -266,10 +272,16 @@ class DespachoController extends Controller
                     'acople' => $unidad->acople,
                     'hora_salida' => $unidad->hora_salida,
                     'folio_mantenimiento' => $unidad->folio_mantenimiento,
+                    'numero_incidencia' => $unidad->numero_incidencia,
                     'fecha_folio_mantenimiento' => $unidad->fecha_folio_mantenimiento,
                     'falla_reportada' => $unidad->falla_reportada,
                     'diagnostico' => $unidad->diagnostico,
-                    'transporte_patio_norte' => $unidad->transporte_patio_norte
+                    'transporte_patio_norte' => $unidad->transporte_patio_norte,
+                    'mantenimiento_conductor' => $unidad->mantenimiento_conductor,
+                    'mantenimiento_tarjeton' => $unidad->mantenimiento_tarjeton,
+                    'mantenimiento_ruta' => $unidad->mantenimiento_ruta,
+                    'mantenimiento_corrida' => $unidad->mantenimiento_corrida,
+                    'mantenimiento_kilometraje' => $unidad->mantenimiento_kilometraje
                 ];
             });
 
@@ -363,6 +375,7 @@ class DespachoController extends Controller
                 'informacion_operativa.motivo',
                 'informacion_operativa.motivo_estatus',
                 'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.numero_incidencia',
                 'informacion_operativa.fecha_folio_mantenimiento',
                 'informacion_operativa.falla_reportada',
                 'informacion_operativa.diagnostico',
@@ -372,7 +385,12 @@ class DespachoController extends Controller
                 'informacion_operativa.hora_salida',
                 'informacion_operativa.observaciones',
                 'informacion_operativa.transporte_patio_norte',
-                'unidades.kilometraje'
+                'unidades.kilometraje',
+                'informacion_operativa.mantenimiento_conductor',
+                'informacion_operativa.mantenimiento_tarjeton',
+                'informacion_operativa.mantenimiento_ruta',
+                'informacion_operativa.mantenimiento_corrida',
+                'informacion_operativa.mantenimiento_kilometraje'
             )
             ->first();
 
@@ -414,6 +432,7 @@ class DespachoController extends Controller
                 'motivo'    => $info->motivo,
                 'motivo_estatus' => $info->motivo_estatus,
                 'folio_mantenimiento' => $info->folio_mantenimiento,
+                'numero_incidencia' => $info->numero_incidencia,
                 'fecha_folio_mantenimiento' => $info->fecha_folio_mantenimiento,
                 'falla_reportada' => $info->falla_reportada,
                 'diagnostico' => $info->diagnostico,
@@ -423,6 +442,11 @@ class DespachoController extends Controller
                 'hora_salida' => $info->hora_salida,
                 'observaciones' => $info->observaciones,
                 'transporte_patio_norte' => $info->transporte_patio_norte,
+                'mantenimiento_conductor' => $info->mantenimiento_conductor,
+                'mantenimiento_tarjeton' => $info->mantenimiento_tarjeton,
+                'mantenimiento_ruta' => $info->mantenimiento_ruta,
+                'mantenimiento_corrida' => $info->mantenimiento_corrida,
+                'mantenimiento_kilometraje' => $info->mantenimiento_kilometraje,
                 // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
@@ -694,7 +718,7 @@ class DespachoController extends Controller
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_Norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
             if ($horaSalidaRealVal !== '') {
@@ -1256,7 +1280,12 @@ class DespachoController extends Controller
                 'informacion_operativa.hora_programada',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_salida',
-                'informacion_operativa.patio_norte'
+                'informacion_operativa.patio_norte',
+                'informacion_operativa.mantenimiento_conductor',
+                'informacion_operativa.mantenimiento_tarjeton',
+                'informacion_operativa.mantenimiento_ruta',
+                'informacion_operativa.mantenimiento_corrida',
+                'informacion_operativa.mantenimiento_kilometraje'
             )
             ->orderBy('informacion_operativa.tipo')
             ->orderBy('unidades.numero_eco')
@@ -1286,7 +1315,12 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_salida,
-                'PATIO_NORTE' => (bool)$reg->patio_norte
+                'PATIO_NORTE' => (bool)$reg->patio_norte,
+                'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
+                'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
+                'MANTENIMIENTO_RUTA' => $reg->mantenimiento_ruta,
+                'MANTENIMIENTO_CORRIDA' => $reg->mantenimiento_corrida,
+                'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje
             ];
         });
 
@@ -1748,6 +1782,8 @@ class DespachoController extends Controller
             'tipo' => 'required',
             'estatus' => 'required|in:operacion,mantenimiento,reserva,percance',
             'motivo_estatus' => 'nullable|string',
+            'falla_reportada' => 'nullable|string',
+            'numero_incidencia' => 'nullable|string',
             'cambio_unidad_activo' => 'nullable|boolean',
             'eco_reemplazo' => 'nullable|string',
             'tarjeton_reemplazo' => 'nullable|string',
@@ -1791,6 +1827,10 @@ class DespachoController extends Controller
             'motivo_estatus' => $motivoEstatus
         ];
 
+        if ($request->has('falla_reportada')) {
+            $updateData['falla_reportada'] = trim($request->falla_reportada);
+        }
+
         if ($request->has('folio_mantenimiento')) {
             $folioReq = trim($request->folio_mantenimiento);
             if (!empty($folioReq)) {
@@ -1802,12 +1842,31 @@ class DespachoController extends Controller
                 if ($existe) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => "El número de incidencia '$folioReq' ya está siendo usado por otra unidad. Por favor verifica."
+                        'message' => "El número de folio '$folioReq' ya está siendo usado por otra unidad. Por favor verifica."
                     ], 400);
                 }
             }
             $updateData['folio_mantenimiento'] = $folioReq;
         }
+
+        if ($request->has('numero_incidencia')) {
+            $incReq = trim($request->numero_incidencia);
+            if (!empty($incReq)) {
+                $existeInc = DB::table('informacion_operativa')
+                    ->where('numero_incidencia', $incReq)
+                    ->where('id', '!=', $registroOperativo->id)
+                    ->exists();
+                
+                if ($existeInc) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "El número de incidencia '$incReq' ya está siendo usado por otra unidad. Por favor verifica."
+                    ], 400);
+                }
+            }
+            $updateData['numero_incidencia'] = $incReq;
+        }
+
         if ($request->has('fecha_folio_mantenimiento')) {
             $updateData['fecha_folio_mantenimiento'] = $request->fecha_folio_mantenimiento;
         }
@@ -1819,6 +1878,22 @@ class DespachoController extends Controller
         }
         if ($request->has('firma_base64')) {
             $updateData['firma_base64'] = $request->firma_base64;
+        }
+
+        if ($request->has('mantenimiento_conductor')) {
+            $updateData['mantenimiento_conductor'] = $request->mantenimiento_conductor;
+        }
+        if ($request->has('mantenimiento_tarjeton')) {
+            $updateData['mantenimiento_tarjeton'] = $request->mantenimiento_tarjeton;
+        }
+        if ($request->has('mantenimiento_ruta')) {
+            $updateData['mantenimiento_ruta'] = $request->mantenimiento_ruta;
+        }
+        if ($request->has('mantenimiento_corrida')) {
+            $updateData['mantenimiento_corrida'] = $request->mantenimiento_corrida;
+        }
+        if ($request->has('mantenimiento_kilometraje')) {
+            $updateData['mantenimiento_kilometraje'] = $request->mantenimiento_kilometraje;
         }
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance') {
@@ -2065,7 +2140,12 @@ class DespachoController extends Controller
                 'informacion_operativa.diagnostico',
                 'informacion_operativa.motivo_estatus',
                 'informacion_operativa.fecha_folio_mantenimiento',
-                'informacion_operativa.fecha_registro'
+                'informacion_operativa.fecha_registro',
+                'informacion_operativa.mantenimiento_conductor',
+                'informacion_operativa.mantenimiento_tarjeton',
+                'informacion_operativa.mantenimiento_ruta',
+                'informacion_operativa.mantenimiento_corrida',
+                'informacion_operativa.mantenimiento_kilometraje'
             )
             ->orderBy('unidades.numero_eco')
             ->get();

@@ -1,0 +1,64 @@
+--- frontend/src/pages/MesadeControl/UnitInfoPanelMesaControl.jsx
++++ frontend/src/pages/MesadeControl/UnitInfoPanelMesaControl.jsx
+@@ -957,17 +957,18 @@
+                       <div ref={ciclosRef} style={{ position: 'relative' }}>
+                         <button
+                           type="button"
++                          disabled={guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)}
+                           className="interactive-input"
+                           style={{
+                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                             padding: '0 0.85rem', width: '100%', height: '2.3rem', 
+                             background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
++                            color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit',
+                             opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1, 
+                             cursor: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 'not-allowed' : 'pointer'
+                           }}
+                           onClick={() => {
+-                            if (!guardandoPerdida && !(!!datosOperativos.ciclo && !editandoCiclos)) {
+-                              setDropdownCiclosOpen(!dropdownCiclosOpen);
+-                            }
++                            setDropdownCiclosOpen(!dropdownCiclosOpen);
+                           }}
+                         >
+                           <span style={{ fontSize: '0.85rem' }}>{perdidaCiclos ? (ciclosOptions.find(opt => opt.value === String(perdidaCiclos))?.label || perdidaCiclos) : 'Ciclos'}</span>
+-                          <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
++                          {!(!!datosOperativos.ciclo && !editandoCiclos) && <svg className={`arrow-icon ${dropdownCiclosOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownCiclosOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem' }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>}
+                         </button>
+                         {dropdownCiclosOpen && (
+@@ -984,17 +985,18 @@
+                   <div ref={motivoRef} style={{ position: 'relative' }}>
+                     <button
+                       type="button"
++                      disabled={guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)}
+                       className="interactive-input"
+                       style={{
+                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                         padding: '0 0.85rem', width: '100%', height: '2.3rem', 
+                         background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
++                        color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit',
+                         opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1, 
+                         cursor: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 'not-allowed' : 'pointer'
+                       }}
+                       onClick={() => {
+-                        if (!guardandoPerdida && !(!!datosOperativos.ciclo && !editandoCiclos)) {
+-                          setDropdownMotivoOpen(!dropdownMotivoOpen);
+-                        }
++                        setDropdownMotivoOpen(!dropdownMotivoOpen);
+                       }}
+                     >
+                       <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perdidaMotivo || 'Motivo'}</span>
+-                      <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>
++                      {!(!!datosOperativos.ciclo && !editandoCiclos) && <svg className={`arrow-icon ${dropdownMotivoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownMotivoOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24"><path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" /></svg>}
+                     </button>
+                     {dropdownMotivoOpen && (
+@@ -1013,7 +1015,8 @@
+                         className="interactive-input"
+                         style={{ 
+                           width: '100%', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.85rem', 
+-                          background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)' 
++                          background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
++                          color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit'
+                         }}
+                         placeholder="Especifique el motivo..."
+                         value={perdidaMotivoOtro}
