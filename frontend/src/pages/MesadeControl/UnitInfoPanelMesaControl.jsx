@@ -344,6 +344,14 @@ export default function UnitInfoPanel({
     }
   };
 
+  const handlePlataformaMovimiento = (tipoMovimiento) => {
+    setModalPlataformaVisible(tipoMovimiento);
+    setPlatMotivo('');
+    setPlatEstatus('');
+    setPlatConductor('');
+    setPlatRuta('');
+  };
+
   const handleConfirmPlataforma = async () => {
     try {
       const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
