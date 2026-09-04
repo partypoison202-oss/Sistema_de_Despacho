@@ -401,7 +401,7 @@ export default function CargaExcel() {
     });
 
     // ── TABLA ──
-    const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Prog.', 'Acople', 'Hora Salida', 'Corrida'];
+    const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Acople', 'Hora Salida', 'Patio Norte', 'Acople', 'Corrida'];
     const filas = previewData.map(fila => [
       fila.ECONOMICO ?? '',
       fila.TIPO_DE_UNIDAD ?? '',
@@ -410,8 +410,9 @@ export default function CargaExcel() {
       fila.TARJETON ?? '',
       fila.NOMBRE_CONDUCTOR ?? '',
       fila.HORA_DE_ACOPLE ?? '',
-      fila.ACOPLE ?? '',
       fila.HORA_SALIDA ?? '',
+      (fila.PATIO_NORTE || fila.TRANSPORTE_PATIO_NORTE || String(fila.PATIO_NORTE).toLowerCase() === 'true') ? 'SÍ' : '',
+      fila.ACOPLE ?? '',
       fila.CORRIDAS ?? '',
     ]);
 
