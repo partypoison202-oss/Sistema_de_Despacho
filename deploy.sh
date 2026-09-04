@@ -80,6 +80,10 @@ echo -e "${BLUE}🧹 4. Limpiando caché de Laravel...${NC}"
 echo -e "${BLUE}🔐 5. Asignando permisos críticos a storage y bootstrap/cache...${NC}"
 chmod -R 775 storage bootstrap/cache
 
+# Paso 5.5: Corregir permisos estructurales y columnas de mantenimiento
+echo -e "${BLUE}🛠️ 5.5. Ejecutando reparador interno de base de datos...${NC}"
+"$PHP_BIN" artisan db:arreglar-permisos
+
 # Paso 6: Ejecución de migraciones (solo estructura, CERO inserts)
 echo -e "${BLUE}🗄️ 6. Ejecutando migraciones de base de datos (solo nuevas tablas/cambios)...${NC}"
 "$PHP_BIN" artisan migrate --force
