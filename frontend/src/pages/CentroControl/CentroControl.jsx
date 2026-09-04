@@ -63,7 +63,11 @@ export default function CentroControl() {
       );
       const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
-      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      const unidadesOperacion = units.filter((d) => {
+        const isOper = getEstatus(d).includes('OPERACI');
+        const isValidadaOMesa = !!d.HORA_SALIDA || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
+        return isOper && isValidadaOMesa;
+      });
       const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
       const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
 

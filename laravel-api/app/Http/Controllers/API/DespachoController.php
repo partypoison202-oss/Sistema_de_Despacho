@@ -1370,6 +1370,8 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.acople',
                 'informacion_operativa_manana.hora_salida',
                 'informacion_operativa_manana.patio_norte'
+                'informacion_operativa_manana.hora_salida',
+                'informacion_operativa_manana.patio_norte'
             )
             ->orderBy('informacion_operativa_manana.tipo')
             ->orderBy('unidades.numero_eco')
@@ -1449,6 +1451,8 @@ class DespachoController extends Controller
                 "{$tableName}.acople",
                 "{$tableName}.hora_salida",
                 "{$tableName}.patio_norte"
+                "{$tableName}.hora_salida",
+                "{$tableName}.patio_norte"
             )
             ->orderBy("{$tableName}.tipo")
             ->orderBy('unidades.numero_eco')
@@ -1523,6 +1527,8 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.acople',
                 'informacion_operativa_manana.hora_salida',
                 'informacion_operativa_manana.patio_norte'
+                'informacion_operativa_manana.hora_salida',
+                'informacion_operativa_manana.patio_norte'
             )
             ->orderBy('informacion_operativa_manana.tipo')
             ->orderBy('unidades.numero_eco')
@@ -1546,6 +1552,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
+                'HORA_SALIDA' => $reg->hora_salida,
+                'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
                 'HORA_SALIDA' => $reg->hora_salida,
                 'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
             ];
@@ -1590,6 +1598,8 @@ class DespachoController extends Controller
                 "{$tableName}.acople",
                 "{$tableName}.hora_salida",
                 "{$tableName}.patio_norte"
+                "{$tableName}.hora_salida",
+                "{$tableName}.patio_norte"
             )
             ->orderBy("{$tableName}.tipo")
             ->orderBy('unidades.numero_eco')
@@ -1613,6 +1623,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $reg->hora_programada,
                 'HORA_PROGRAMADA' => $reg->hora_programada,
                 'ACOPLE' => $reg->acople,
+                'HORA_SALIDA' => $reg->hora_salida,
+                'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
                 'HORA_SALIDA' => $reg->hora_salida,
                 'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
 
@@ -1980,6 +1992,7 @@ class DespachoController extends Controller
             
             if ($unidadReemplazo) {
                 $conductorReemplazo = DB::table('conductores')->where('tarjeton', $tarjetonReemplazo)->first();
+                $nombreConductorReemplazo = $conductorReemplazo ? trim(($conductorReemplazo->nombres ?? '') . ' ' . ($conductorReemplazo->apellidos ?? '')) : null;
                 $nombreConductorReemplazo = $conductorReemplazo ? trim(($conductorReemplazo->nombres ?? '') . ' ' . ($conductorReemplazo->apellidos ?? '')) : null;
 
                 // Desasignar cualquier otra unidad que tenga este tarjetón

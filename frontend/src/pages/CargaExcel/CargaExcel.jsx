@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
-import PatioNorteModal from './PatioNorteModal/PatioNorteModal';
+import ModalTrasladoPatioNorte from './ModalTrasladoPatioNorte';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 
@@ -23,7 +23,7 @@ export default function CargaExcel() {
   const [inicioData, setInicioData] = useState([]);
   const [cargandoInicio, setCargandoInicio] = useState(false);
   const [tabActiva, setTabActiva] = useState('HOY');
-  const [isPatioModalOpen, setIsPatioModalOpen] = useState(false);
+  const [showTrasladoModal, setShowTrasladoModal] = useState(false);
 
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
@@ -402,24 +402,45 @@ export default function CargaExcel() {
 
     // ── TABLA ──
     const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Acople', 'Hora Salida', 'Patio Norte', 'Acople', 'Corrida'];
-    const filas = previewData.map(fila => [
-      fila.ECONOMICO ?? '',
-      fila.TIPO_DE_UNIDAD ?? '',
-      (fila.ESTATUS ?? '').toUpperCase(),
-      fila.RUTA ?? '',
-      fila.TARJETON ?? '',
-      fila.NOMBRE_CONDUCTOR ?? '',
-      fila.HORA_DE_ACOPLE ?? '',
-      fila.HORA_SALIDA ?? '',
-      (fila.PATIO_NORTE || fila.TRANSPORTE_PATIO_NORTE || String(fila.PATIO_NORTE).toLowerCase() === 'true') ? 'SÍ' : '',
-      fila.ACOPLE ?? '',
-      fila.CORRIDAS ?? '',
-    ]);
+    const filas = previewData.map(fila => {
+      const isPatioNorte = fila.PATIO_NORTE === true || fila.PATIO_NORTE === 1 || fila.PATIO_NORTE === '1' || String(fila.PATIO_NORTE).toLowerCase() === 'true' || String(fila.PATIO_NORTE).toUpperCase() === 'SÍ' || String(fila.PATIO_NORTE).toUpperCase() === 'SI' || fila.TRANSPORTE_PATIO_NORTE === true || fila.TRANSPORTE_PATIO_NORTE === 1 || fila.TRANSPORTE_PATIO_NORTE === '1' || String(fila.TRANSPORTE_PATIO_NORTE).toLowerCase() === 'true' || String(fila.TRANSPORTE_PATIO_NORTE).toUpperCase() === 'SÍ' || String(fila.TRANSPORTE_PATIO_NORTE).toUpperCase() === 'SI' || fila['PATIO NORTE'] || fila['Patio Norte'];
+      return [
+        fila.ECONOMICO ?? '',
+        fila.TIPO_DE_UNIDAD ?? '',
+        (fila.ESTATUS ?? '').toUpperCase(),
+        fila.RUTA ?? '',
+        fila.TARJETON ?? '',
+        fila.NOMBRE_CONDUCTOR ?? '',
+        fila.HORA_DE_ACOPLE ?? '',
+        fila.HORA_SALIDA ?? '',
+        isPatioNorte ? 'SÍ' : '',
+        fila.ACOPLE ?? '',
+        fila.CORRIDAS ?? '',
+      ];
+    });
+
+    // ── LEYENDA DE COLORES (arriba de la tabla) ──
+    const leyenda = [
+      { color: [198, 239, 206], label: 'Operación' },
+      { color: [221, 235, 247], label: 'Reserva' },
+      { color: [255, 242, 204], label: 'Mantenimiento' },
+      { color: [252, 228, 228], label: 'Percance' },
+    ];
+    let legendX = 14;
+    doc.setFontSize(7.5);
+    leyenda.forEach(item => {
+      doc.setFillColor(...item.color);
+      doc.setDrawColor(200, 200, 200);
+      doc.roundedRect(legendX, resumenY + 18, 4, 4, 0.5, 0.5, 'FD');
+      doc.setTextColor(...grisTexto);
+      doc.text(item.label, legendX + 6, resumenY + 21.2);
+      legendX += doc.getTextWidth(item.label) + 16;
+    });
 
     autoTable(doc, {
       head: [columnas],
       body: filas,
-      startY: resumenY + 20,
+      startY: resumenY + 28,
       margin: { left: 14, right: 14 },
       styles: {
         fontSize: 8.5,
@@ -458,6 +479,11 @@ export default function CargaExcel() {
             data.cell.styles.textColor = [130, 95, 10];
             data.cell.styles.fontStyle = 'bold';
           }
+          if (estatus === 'percance') {
+            data.cell.styles.fillColor = [252, 228, 228];
+            data.cell.styles.textColor = [150, 40, 40];
+            data.cell.styles.fontStyle = 'bold';
+          }
         }
       },
       didDrawPage: () => {
@@ -476,26 +502,6 @@ export default function CargaExcel() {
         doc.text(`Página ${currentPage} de ${pageCount}`, pageWidth - 14, pageHeight - 7, { align: 'right' });
       },
     });
-
-    // ── LEYENDA DE COLORES (debajo de la tabla, en la última página) ──
-    const finalY = doc.lastAutoTable.finalY + 6;
-    if (finalY < pageHeight - 20) {
-      const leyenda = [
-        { color: [198, 239, 206], label: 'Operación' },
-        { color: [221, 235, 247], label: 'Reserva' },
-        { color: [255, 242, 204], label: 'Mantenimiento' },
-      ];
-      let legendX = 14;
-      doc.setFontSize(7.5);
-      leyenda.forEach(item => {
-        doc.setFillColor(...item.color);
-        doc.setDrawColor(200, 200, 200);
-        doc.roundedRect(legendX, finalY, 4, 4, 0.5, 0.5, 'FD');
-        doc.setTextColor(...grisTexto);
-        doc.text(item.label, legendX + 6, finalY + 3.2);
-        legendX += doc.getTextWidth(item.label) + 16;
-      });
-    }
 
     // Retorna solo el base64 sin el prefijo data URI
     return doc.output('datauristring').split(',')[1];
@@ -896,7 +902,7 @@ export default function CargaExcel() {
             </button>
             <button
               type="button"
-              onClick={() => setIsPatioModalOpen(true)}
+              onClick={() => setShowTrasladoModal(true)}
               className="excel-export-btn"
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
@@ -959,20 +965,12 @@ export default function CargaExcel() {
         )}
       </main>
 
-      {isPatioModalOpen && (
-        <PatioNorteModal
-          previewData={previewData}
-          onClose={() => setIsPatioModalOpen(false)}
-          onSelectUnidad={(eco) => {
-            const updatedData = previewData.map(fila => ({
-              ...fila,
-              TRANSPORTE_PATIO_NORTE: fila.ECONOMICO === eco ? true : false
-            }));
-            setPreviewData(updatedData);
-            setHasChanges(true);
-          }}
-        />
-      )}
+      <ModalTrasladoPatioNorte 
+        isOpen={showTrasladoModal} 
+        onClose={() => setShowTrasladoModal(false)} 
+        previewData={previewData} 
+        logoUrl="/images/logo_tuzobus.png" 
+      />
     </div>
   );
 }
