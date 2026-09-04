@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->string('mantenimiento_conductor')->nullable();
-            $table->string('mantenimiento_tarjeton')->nullable();
-            $table->string('mantenimiento_ruta')->nullable();
-            $table->string('mantenimiento_corrida')->nullable();
-            $table->string('mantenimiento_kilometraje')->nullable();
-        });
+        if (!Schema::hasColumn('informacion_operativa', 'mantenimiento_conductor')) {
+            Schema::table('informacion_operativa', function (Blueprint $table) {
+                $table->string('mantenimiento_conductor')->nullable();
+                $table->string('mantenimiento_tarjeton')->nullable();
+                $table->string('mantenimiento_ruta')->nullable();
+                $table->string('mantenimiento_corrida')->nullable();
+                $table->string('mantenimiento_kilometraje')->nullable();
+            });
+        }
     }
 
     /**
@@ -25,14 +27,16 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->dropColumn([
-                'mantenimiento_conductor',
-                'mantenimiento_tarjeton',
-                'mantenimiento_ruta',
-                'mantenimiento_corrida',
-                'mantenimiento_kilometraje'
-            ]);
-        });
+        if (Schema::hasColumn('informacion_operativa', 'mantenimiento_conductor')) {
+            Schema::table('informacion_operativa', function (Blueprint $table) {
+                $table->dropColumn([
+                    'mantenimiento_conductor',
+                    'mantenimiento_tarjeton',
+                    'mantenimiento_ruta',
+                    'mantenimiento_corrida',
+                    'mantenimiento_kilometraje'
+                ]);
+            });
+        }
     }
 };

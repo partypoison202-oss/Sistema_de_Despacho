@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->string('numero_incidencia', 50)->nullable()->after('folio_mantenimiento');
-        });
+        if (!Schema::hasColumn('informacion_operativa', 'numero_incidencia')) {
+            Schema::table('informacion_operativa', function (Blueprint $table) {
+                $table->string('numero_incidencia', 50)->nullable()->after('folio_mantenimiento');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('informacion_operativa', function (Blueprint $table) {
-            $table->dropColumn('numero_incidencia');
-        });
+        if (Schema::hasColumn('informacion_operativa', 'numero_incidencia')) {
+            Schema::table('informacion_operativa', function (Blueprint $table) {
+                $table->dropColumn('numero_incidencia');
+            });
+        }
     }
 };
