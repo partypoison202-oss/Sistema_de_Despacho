@@ -7,6 +7,7 @@ import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
+import { generarPDFProgramacionOperativa } from '../../utils/generarPDFProgramacionOperativa';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
@@ -26,6 +27,7 @@ export default function CentroControl() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingStats, setIsGeneratingStats] = useState(false);
   const [isGeneratingOperacional, setIsGeneratingOperacional] = useState(false);
+  const [isGeneratingProgramacion, setIsGeneratingProgramacion] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -236,6 +238,33 @@ export default function CentroControl() {
       });
     } finally {
       setIsGeneratingOperacional(false);
+    }
+  };
+
+  const handleGenerarProgramacionOperativa = async () => {
+    setIsGeneratingProgramacion(true);
+    try {
+      await generarPDFProgramacionOperativa(apiData, 'download');
+      Swal.fire({
+        icon: 'success',
+        title: '¡Reporte Generado!',
+        text: 'La Programación Operativa se ha descargado correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    } catch (error) {
+      console.error('Error al generar programación operativa:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ocurrió un error al generar el PDF de la Programación Operativa.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setIsGeneratingProgramacion(false);
     }
   };
 
@@ -685,6 +714,20 @@ export default function CentroControl() {
                 </>
               ) : (
                 'Reporte Operativo por Hora'
+              )}
+            </button>
+
+            <button
+              className="centro-btn centro-btn--primary"
+              onClick={handleGenerarProgramacionOperativa}
+              disabled={isGeneratingProgramacion || cargando || !apiData.length}
+            >
+              {isGeneratingProgramacion ? (
+                <>
+                  <span className="centro-spinner"></span> Generando...
+                </>
+              ) : (
+                'Descargar Programación Operativa'
               )}
             </button>
           </section>
