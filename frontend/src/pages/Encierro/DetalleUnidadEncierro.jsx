@@ -1957,18 +1957,21 @@ export default function DetalleUnidadEncierro() {
                           <div
                             style={{
                               position: 'absolute',
-                              top: obsDropdownPos.top,
+                              top: obsDropdownPos.top + 4,
                               left: obsDropdownPos.left,
                               width: obsDropdownPos.width,
-                              background: '#ffffff',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '0.5rem',
-                              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                              background: 'rgba(255, 255, 255, 0.95)',
+                              backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
+                              border: '1px solid rgba(0, 0, 0, 0.08)',
+                              borderRadius: '0.75rem',
+                              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
                               zIndex: 99999,
                               overflowX: 'hidden',
                               overflowY: 'auto',
-                              maxHeight: '16rem',
+                              maxHeight: '18rem',
                               boxSizing: 'border-box',
+                              padding: '0.35rem',
                             }}
                           >
                             {observacionesCatalogo
@@ -1993,16 +1996,25 @@ export default function DetalleUnidadEncierro() {
                                       display: 'block',
                                       width: '100%',
                                       textAlign: 'left',
-                                      padding: '0.5rem 0.85rem',
+                                      padding: '0.65rem 0.85rem',
                                       fontSize: '0.85rem',
+                                      fontWeight: '500',
                                       background: 'transparent',
                                       border: 'none',
+                                      borderRadius: '0.4rem',
                                       cursor: 'pointer',
-                                      color: '#374151',
+                                      color: '#4B5563',
                                       boxSizing: 'border-box',
+                                      transition: 'all 0.15s ease',
                                     }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    onMouseEnter={e => {
+                                      e.currentTarget.style.background = '#fdf2f2';
+                                      e.currentTarget.style.color = '#7a1921';
+                                    }}
+                                    onMouseLeave={e => {
+                                      e.currentTarget.style.background = 'transparent';
+                                      e.currentTarget.style.color = '#4B5563';
+                                    }}
                                   >
                                     {label}
                                   </button>
