@@ -292,7 +292,13 @@ export default function CentroControl() {
         let colorClass = 'otros';
         let labelStatus = 'Otro estatus';
 
-        if (estatus.includes('OPERACI')) { colorClass = 'operacion'; labelStatus = 'Operación'; }
+        if (estatus.includes('OPERACI')) { 
+          if (u.HORA_SALIDA && u.HORA_SALIDA.trim() !== '') {
+            colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
+          } else {
+            colorClass = 'otros'; labelStatus = 'Programada (Sin salir)'; 
+          }
+        }
         else if (estatus.includes('MANTENIMIENTO')) { colorClass = 'mantenimiento'; labelStatus = 'Mantenimiento'; }
         else if (estatus.includes('RESERVA')) { colorClass = 'reserva'; labelStatus = 'Reserva'; }
 

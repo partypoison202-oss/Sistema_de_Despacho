@@ -923,6 +923,11 @@ class DespachoController extends Controller
                 if (array_key_exists('transporte_patio_norte', $arrayRow)) {
                     $arrayRow['transporte_patio_norte'] = $arrayRow['transporte_patio_norte'] ? 'true' : 'false';
                 }
+
+                // Reiniciar campos de validación para el nuevo día
+                if (array_key_exists('hora_salida', $arrayRow)) $arrayRow['hora_salida'] = null;
+                if (array_key_exists('firma_base64', $arrayRow)) $arrayRow['firma_base64'] = null;
+
                 DB::table('informacion_operativa')->insert($arrayRow);
 
                 if (!empty($row->numero_tarjeton)) $tarjetones[] = $row->numero_tarjeton;
@@ -980,6 +985,11 @@ class DespachoController extends Controller
                 if (array_key_exists('transporte_patio_norte', $arrayRow)) {
                     $arrayRow['transporte_patio_norte'] = $arrayRow['transporte_patio_norte'] ? 'true' : 'false';
                 }
+
+                // Reiniciar campos de validación para el nuevo día
+                if (array_key_exists('hora_salida', $arrayRow)) $arrayRow['hora_salida'] = null;
+                if (array_key_exists('firma_base64', $arrayRow)) $arrayRow['firma_base64'] = null;
+
                 DB::table('informacion_operativa')->insert($arrayRow);
             }
 
@@ -1346,6 +1356,11 @@ class DespachoController extends Controller
                         }
                     }
                 }
+
+                // Evitar copiar el estatus de despachado/validado al día de mañana
+                if (array_key_exists('hora_salida', $insertRow)) $insertRow['hora_salida'] = null;
+                if (array_key_exists('firma_base64', $insertRow)) $insertRow['firma_base64'] = null;
+
                 DB::table('informacion_operativa_manana')->insert($insertRow);
             }
         }
@@ -1499,6 +1514,11 @@ class DespachoController extends Controller
                         }
                     }
                 }
+
+                // Evitar copiar el estatus de despachado/validado al duplicar
+                if (array_key_exists('hora_salida', $insertRow)) $insertRow['hora_salida'] = null;
+                if (array_key_exists('firma_base64', $insertRow)) $insertRow['firma_base64'] = null;
+
                 DB::table('informacion_operativa_manana')->insert($insertRow);
             }
         }
