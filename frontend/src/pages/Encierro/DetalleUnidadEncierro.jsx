@@ -1960,14 +1960,15 @@ export default function DetalleUnidadEncierro() {
                               top: obsDropdownPos.top,
                               left: obsDropdownPos.left,
                               width: obsDropdownPos.width,
-                              background: 'white',
-                              border: '1px solid rgba(226, 232, 240, 0.8)',
-                              borderRadius: '0.875rem',
-                              boxShadow: '0 12px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
-                              zIndex: 9999,
-                              overflow: 'hidden',
-                              maxHeight: '8rem',
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '0.5rem',
+                              boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                              zIndex: 99999,
+                              overflowX: 'hidden',
                               overflowY: 'auto',
+                              maxHeight: '16rem',
+                              boxSizing: 'border-box',
                             }}
                           >
                             {observacionesCatalogo
@@ -1992,12 +1993,13 @@ export default function DetalleUnidadEncierro() {
                                       display: 'block',
                                       width: '100%',
                                       textAlign: 'left',
-                                      padding: '0.6rem 1rem',
+                                      padding: '0.5rem 0.85rem',
                                       fontSize: '0.85rem',
                                       background: 'transparent',
                                       border: 'none',
                                       cursor: 'pointer',
                                       color: '#374151',
+                                      boxSizing: 'border-box',
                                     }}
                                     onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
