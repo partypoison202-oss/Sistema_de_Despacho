@@ -233,10 +233,29 @@ class HistorialOperativoController extends Controller
                 ->get();
         }
 
+        // 4. Encierros del día
+        $encierros = DB::table('historial_operativo')
+            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->where('fecha_historial', $fecha)
+            ->where('momento', 'ENCIERRO')
+            ->select(
+                'unidades.numero_eco as economico',
+                'historial_operativo.tipo',
+                'historial_operativo.ruta',
+                'historial_operativo.numero_tarjeton as tarjeton',
+                'historial_operativo.nombre_conductor',
+                'historial_operativo.estatus',
+                'historial_operativo.motivo_estatus',
+                'historial_operativo.hora_encierro'
+            )
+            ->orderBy('historial_operativo.hora_encierro')
+            ->get();
+
         return response()->json([
             'inicio' => $inicio,
             'cambios' => $cambios,
-            'fin' => $fin
+            'fin' => $fin,
+            'encierros' => $encierros
         ]);
     }
 

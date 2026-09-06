@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/despacho/catalogo/unidades', [DespachoController::class, 'obtenerCatalogoUnidades']);
     Route::get('/despacho/pendientes-mantenimiento', [DespachoController::class, 'obtenerPendientesMantenimiento']);
     Route::get('/despacho/conteo-unidades', [DespachoController::class, 'conteoUnidadesPorTipo']);
+    Route::get('/despacho/conteo-unidades-encierro', [DespachoController::class, 'conteoUnidadesEncierro']);
     Route::post('/mantenimiento/guardar', [DespachoController::class, 'guardarMantenimiento']);
     Route::get('/mantenimiento/ultimo-registro/{eco}', [DespachoController::class, 'ultimoRegistroMantenimiento']);
     Route::post('/mantenimiento/asignar-incidencia', [DespachoController::class, 'asignarIncidencia']);
@@ -180,6 +181,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas de Unidades
     Route::post('/unidades/cambiar-estatus', [DespachoController::class, 'cambiarEstatus']);
+    Route::post('/unidades/encerrar', [DespachoController::class, 'registrarEncierro']);
     Route::get('/unidades/buscar-tarjeton/{tipo}/{tarjeton}', [DespachoController::class, 'buscarUnidadPorTarjeton']);
     Route::get('/unidades/detalle/{tipo}/{numeroEco}', [DespachoController::class, 'obtenerDetalleUnidad']);
     Route::get('/unidades/listar/{tipo}', [DespachoController::class, 'listarUnidadesPorTipo']);

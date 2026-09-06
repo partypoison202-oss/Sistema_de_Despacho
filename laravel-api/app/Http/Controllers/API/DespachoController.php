@@ -194,6 +194,39 @@ class DespachoController extends Controller
         return response()->json($resultado, 200);
     }
 
+    public function conteoUnidadesEncierro(Request $request)
+    {
+        $hoy = \Carbon\Carbon::now('America/Mexico_City')->toDateString();
+
+        $conteos = DB::table('informacion_operativa')
+            ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
+            ->whereNotNull('hora_salida')
+            ->whereRaw("TRIM(hora_salida) != ''")
+            ->whereNotExists(function ($query) use ($hoy) {
+                $query->select(DB::raw(1))
+                      ->from('historial_operativo')
+                      ->whereColumn('historial_operativo.unidad_id', 'informacion_operativa.unidad_id')
+                      ->where('historial_operativo.momento', 'ENCIERRO')
+                      ->where('historial_operativo.fecha_historial', $hoy);
+            })
+            ->groupBy('tipo')
+            ->get();
+
+        $resultado = [];
+        foreach ($conteos as $item) {
+            if (!empty($item->tipo)) {
+                $tipo = strtolower(trim($item->tipo));
+                if (isset($resultado[$tipo])) {
+                    $resultado[$tipo] += (int)$item->total;
+                } else {
+                    $resultado[$tipo] = (int)$item->total;
+                }
+            }
+        }
+
+        return response()->json($resultado, 200);
+    }
+
     /**
      * Obtiene el listado de unidades que tienen registro operativo para hoy
      * y pertenecen al tipo de transporte solicitado.
@@ -257,6 +290,15 @@ class DespachoController extends Controller
                     }
                 }
 
+                $yaEncerrada = false;
+                if (!empty($unidad->hora_salida)) {
+                    $yaEncerrada = DB::table('historial_operativo')
+                        ->where('unidad_id', $unidad->unidad_id)
+                        ->where('momento', 'ENCIERRO')
+                        ->where('fecha_historial', date('Y-m-d'))
+                        ->exists();
+                }
+
                 return [
                     'unidad_id' => $unidad->unidad_id,
                     'numero_eco' => $unidad->numero_eco,
@@ -281,7 +323,8 @@ class DespachoController extends Controller
                     'mantenimiento_tarjeton' => $unidad->mantenimiento_tarjeton,
                     'mantenimiento_ruta' => $unidad->mantenimiento_ruta,
                     'mantenimiento_corrida' => $unidad->mantenimiento_corrida,
-                    'mantenimiento_kilometraje' => $unidad->mantenimiento_kilometraje
+                    'mantenimiento_kilometraje' => $unidad->mantenimiento_kilometraje,
+                    'ya_encerrada' => $yaEncerrada
                 ];
             });
 
@@ -414,6 +457,21 @@ class DespachoController extends Controller
             if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                 $estatus = 'operacion';
             }
+
+            // Siempre buscamos si hay un encierro hoy, porque las unidades encerradas ahora se mantienen en 'operacion'
+            $encierroHoy = DB::table('historial_operativo')
+                ->where('unidad_id', $unidadBase->id)
+                ->where('momento', 'ENCIERRO')
+                ->where('fecha_historial', date('Y-m-d'))
+                ->orderByDesc('id')
+                ->first();
+            if ($encierroHoy) {
+                $info->ruta = $encierroHoy->ruta;
+                $info->nombre_conductor = $encierroHoy->nombre_conductor;
+                $info->numero_tarjeton = $encierroHoy->numero_tarjeton;
+                $info->corridas = $encierroHoy->corridas;
+                $info->hora_encierro = $encierroHoy->hora_encierro;
+            }
         }
 
         \Log::info('[obtenerDetalleUnidad] Fin', ['info' => (array)$info]);
@@ -440,8 +498,11 @@ class DespachoController extends Controller
                 'hora_programada' => $info->hora_programada,
                 'acople'    => $info->acople,
                 'hora_salida' => $info->hora_salida,
+                'hora_encierro' => $info->hora_encierro ?? null,
                 'observaciones' => $info->observaciones,
+                'hora_salida_legacy' => $horaSalidaLegacy,
                 'transporte_patio_norte' => $info->transporte_patio_norte,
+                'kilometraje' => $info->kilometraje,
                 'mantenimiento_conductor' => $info->mantenimiento_conductor,
                 'mantenimiento_tarjeton' => $info->mantenimiento_tarjeton,
                 'mantenimiento_ruta' => $info->mantenimiento_ruta,
@@ -1171,6 +1232,8 @@ class DespachoController extends Controller
             'observaciones' => 'nullable|string|max:150'
         ]);
 
+        \Log::info('[actualizarHoras] Payload: ', $request->all());
+
         $tipoNormalizado = strtolower(trim($request->tipo));
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
 
@@ -1195,7 +1258,7 @@ class DespachoController extends Controller
                 if (!$registro) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Unidad no encontrada en el registro operativo'
+                        'message' => 'Unidad no encontrada en el registro operativo. Debug: ID=' . $unidad->id . ', tipo=' . $tipoNormalizado
                     ], 404);
                 }
 
@@ -1773,6 +1836,54 @@ class DespachoController extends Controller
     /**
      * Cambia el estatus operativo de una unidad (para el rol Encierro).
      */
+    public function registrarEncierro(Request $request)
+    {
+        $request->validate([
+            'numero_eco' => 'required',
+            'tipo' => 'required',
+            'motivo_estatus' => 'nullable|string'
+        ]);
+
+        $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
+        $tipoNormalizado = strtolower(trim($request->tipo));
+
+        $unidad = DB::table('unidades')
+            ->where('numero_eco', $numeroEco)
+            ->first();
+
+        if (!$unidad) {
+            return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada'], 404);
+        }
+
+        $registroOperativo = DB::table('informacion_operativa')->where('unidad_id', $unidad->id)->first();
+        if (!$registroOperativo) {
+            return response()->json(['status' => 'error', 'message' => 'No hay información operativa para la unidad'], 400);
+        }
+
+        $horaEncierro = date('H:i:s');
+        DB::table('historial_operativo')->insert([
+            'unidad_id' => $unidad->id,
+            'ruta' => $registroOperativo->ruta,
+            'numero_tarjeton' => $registroOperativo->numero_tarjeton,
+            'nombre_conductor' => $registroOperativo->nombre_conductor,
+            'corridas' => $registroOperativo->corridas,
+            'tipo' => $registroOperativo->tipo,
+            'estatus' => $registroOperativo->estatus,
+            'motivo_estatus' => $request->motivo_estatus ?? 'Fin de turno (Encierro regular)',
+            'momento' => 'ENCIERRO',
+            'hora_encierro' => $horaEncierro,
+            'fecha_historial' => date('Y-m-d'),
+            'fecha_registro' => now(),
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Encierro registrado exitosamente',
+            'hora_encierro' => $horaEncierro
+        ]);
+    }
     public function cambiarEstatus(Request $request)
     {
         \Illuminate\Support\Facades\Log::info('cambiarEstatus request data', $request->all());
@@ -2036,7 +2147,26 @@ class DespachoController extends Controller
             }
         }
 
-
+        $horaEncierro = null;
+        if (($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') && !empty($registroOperativo->hora_salida)) {
+            $horaEncierro = date('H:i:s');
+            DB::table('historial_operativo')->insert([
+                'unidad_id' => $unidad->id,
+                'ruta' => $registroOperativo->ruta,
+                'numero_tarjeton' => $registroOperativo->numero_tarjeton,
+                'nombre_conductor' => $registroOperativo->nombre_conductor,
+                'corridas' => $registroOperativo->corridas,
+                'tipo' => $registroOperativo->tipo,
+                'estatus' => $nuevoEstatus,
+                'motivo_estatus' => $motivoEstatus,
+                'momento' => 'ENCIERRO',
+                'hora_encierro' => $horaEncierro,
+                'fecha_historial' => date('Y-m-d'),
+                'fecha_registro' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -2045,7 +2175,8 @@ class DespachoController extends Controller
             'conductor_asignado' => $conductorAsignado,
             'ruta_asignada' => $rutaAsignada,
             'tarjeton' => $tarjetonAsignado,
-            'corridas' => $request->corrida
+            'corridas' => $request->corrida,
+            'hora_encierro' => $horaEncierro
         ], 200);
     }
 

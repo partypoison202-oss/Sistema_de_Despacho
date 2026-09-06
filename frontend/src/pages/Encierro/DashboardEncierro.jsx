@@ -92,7 +92,7 @@ export default function DashboardEncierro() {
   };
 
   const fetchConteos = async () => {
-    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
+    const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades-encierro`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
@@ -103,9 +103,10 @@ export default function DashboardEncierro() {
   };
 
   const { data: conteos = {}, isLoading: cargando } = useQuery({
-    queryKey: ['conteo-unidades-global'],
+    queryKey: ['conteo-unidades-encierro-global'],
     queryFn: fetchConteos,
-    refetchInterval: 30000,
+    staleTime: 0,        // Siempre datos frescos al cargar el dashboard
+    refetchInterval: 15000, // Refrescar cada 15s para que los cambios en Despacho se reflejen rápido
   });
 
   const normalizarNumeroEco = (eco) => {

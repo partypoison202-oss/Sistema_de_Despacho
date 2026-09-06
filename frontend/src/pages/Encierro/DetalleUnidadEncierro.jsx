@@ -33,12 +33,12 @@ const LiveClockAcople = ({ horaCongelada }) => {
     const parpadeo = ahora.getSeconds() % 2 === 0;
     separador = parpadeo ? ':' : ' ';
   }
-  
+
   const horaMostrada = `${horas12}${separador}${minutos}${separador}${segundos} ${ampm}`;
 
   return (
     <div className="info-card__item">
-      <span className="info-card__label">Hora de Desincorporación</span>
+      <span className="info-card__label">Hora de encierro</span>
       <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: '0.25rem' }}>
         <div className="badge-display badge-display--gold" style={{ flex: 1 }}>
           <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -89,15 +89,13 @@ export default function DetalleUnidadEncierro() {
   });
 
   const getUnitStatusVisual = (u) => {
-    // En encierro, si el estado no es operacion, se considera "Encerrada"
-    const isEncerrada = u.estado !== 'operacion' && u.estado !== 'en_servicio';
-    return isEncerrada ? 'validated_ontime' : 'pending';
+    return u.yaEncerrada ? 'validated_ontime' : 'pending';
   };
 
   const getUnitColor = (unidad, isSelected) => {
     const status = getUnitStatusVisual(unidad);
     let base = { bg: 'var(--tw-color-white)', text: '#374151', border: '#e5e7eb' };
-    
+
     if (status === 'validated_ontime') {
       base = { bg: '#dcfce7', text: '#166534', border: '#86efac' }; // Verde claro
     } else {
@@ -106,9 +104,9 @@ export default function DetalleUnidadEncierro() {
 
     if (isSelected) {
       if (status === 'pending') {
-          return { bg: '#6b1d33', text: '#ffffff', border: '#6b1d33', scale: 1.05 }; 
+        return { bg: '#6b1d33', text: '#ffffff', border: '#6b1d33', scale: 1.05 };
       } else {
-          return { bg: '#14532d', text: '#ffffff', border: '#14532d', scale: 1.05 }; 
+        return { bg: '#14532d', text: '#ffffff', border: '#14532d', scale: 1.05 };
       }
     }
 
@@ -139,7 +137,7 @@ export default function DetalleUnidadEncierro() {
   const [recentChecklist, setRecentChecklist] = useState(null);
   const [lightboxDibujo, setLightboxDibujo] = useState(null);
   const [observaciones, setObservaciones] = useState('');
-  
+
   const [acopleCongelado, setAcopleCongelado] = useState(null);
   const [guardandoAcople, setGuardandoAcople] = useState(false);
 
@@ -173,7 +171,7 @@ export default function DetalleUnidadEncierro() {
     setFormObservaciones(datosOperativos.observaciones || '');
   }, [datosOperativos]);
 
-  
+
 
   useEffect(() => {
     const fetchObservacionesCatalogo = async () => {
@@ -335,8 +333,8 @@ export default function DetalleUnidadEncierro() {
     }
     if (!respuesta.ok) throw new Error('Error al obtener la lista de unidades');
     const datos = await respuesta.json();
-    console.debug('[Encierro] fetchUnidades: muestra ejemplo de datos:', Array.isArray(datos) ? datos.slice(0,5) : datos);
-    return (Array.isArray(datos) ? datos : []).map((u) => ({
+    console.debug('[Encierro] fetchUnidades: muestra ejemplo de datos:', Array.isArray(datos) ? datos.slice(0, 5) : datos);
+    const mapped = (Array.isArray(datos) ? datos : []).map((u) => ({
       eco: String(u.numero_eco ?? '').padStart(3, '0'),
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
@@ -344,13 +342,26 @@ export default function DetalleUnidadEncierro() {
       ruta: u.ruta || null,
       acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       horaSalida: String(u.hora_salida ?? '').trim(),
+      yaEncerrada: u.ya_encerrada || false
     }));
+
+    return mapped.filter(u => {
+      // Solo unidades que ya fueron despachadas hoy (tienen hora de salida asignada)
+      if (u.horaSalida === '') return false;
+
+      // Si ya fue encerrada HOY, la mantenemos (para mostrar en "Unidades Encerradas")
+      if (u.yaEncerrada) return true;
+
+      // Cualquier unidad con hora_salida puede encerrarse, sin importar su estatus actual
+      // (puede haber sufrido un percance o mantenimiento durante la ruta)
+      return true;
+    });
   };
 
-  const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
-    queryKey: ['unidades-list-encierro', tipoTransporte],
+  const { data: unidadesList = [], isLoading: cargandoUnidades, isFetching: refrescandoUnidades } = useQuery({
+    queryKey: ['unidades-encierro-detalle', tipoTransporte],  // Key propia, separada del prefetch global
     queryFn: fetchUnidades,
-    staleTime: 60000,
+    staleTime: 0,           // Siempre datos frescos con ya_encerrada y filtro horaSalida
     refetchInterval: 30000,
   });
 
@@ -392,7 +403,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedRuta);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '';
     });
   }, [unidadesList, selectedRuta]);
   const unidadesPorTroncalList = useMemo(() => {
@@ -400,7 +411,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && !u.acople;
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '';
     });
   }, [unidadesList, selectedTroncal]);
   const cargandoUnidadesPorRuta = false;
@@ -416,14 +427,25 @@ export default function DetalleUnidadEncierro() {
     setSelectedRuta(null);
     setOpenDropdown(null);
   };
-  const totalProgramadasOperacion = useMemo(
-    () => unidadesList.filter((u) => u.estado === 'operacion').length,
-    [unidadesList]
-  );
+  const totalProgramadasOperacion = useMemo(() => {
+    let total = [...unidadesList];
+    if (selectedRuta && esAlimentadora) {
+      const ecos = unidadesPorRutaList.map(u => u.eco);
+      total = total.filter(u => ecos.includes(u.eco));
+    }
+    if (selectedTroncal && isTroncal) {
+      const ecos = unidadesPorTroncalList.map(u => u.eco);
+      total = total.filter(u => ecos.includes(u.eco));
+    }
+    return total.length;
+  }, [unidadesList, selectedRuta, esAlimentadora, selectedTroncal, isTroncal, unidadesPorRutaList, unidadesPorTroncalList]);
 
 
   const unidadesPorEstado = (estado) => {
-    let filtradas = unidadesList.filter((u) => u.estado === estado && !u.acople);
+    // En encierro, mostramos todas las unidades despachadas (con hora_salida) 
+    // sin importar su estatus actual (operacion, mantenimiento, etc.)
+    let filtradas = [...unidadesList];
+
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
       filtradas = filtradas.filter((u) => ecosEnRuta.includes(u.eco));
@@ -573,36 +595,56 @@ export default function DetalleUnidadEncierro() {
       const matchNumeros = selectedOption ? selectedOption.match(/\d+/) : null;
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
       if (!numeroLimpio) return;
-      
+
       const payload = {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
-        hora_programada: datosOperativos.hora_programada || null,
-        acople: horaCapturada
+        motivo_estatus: observaciones || 'Fin de turno (Encierro regular)',
       };
-      if (observaciones !== null) {
-          payload.observaciones = observaciones;
-      }
-      
-      const res = await fetch(`${API_BASE}/api/despacho/actualizar-horas`, {
+
+      const res = await fetch(`${API_BASE}/api/unidades/encerrar`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'success') {
-          setDatosOperativos(prev => ({ ...prev, acople: horaCapturada }));
-          queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (oldUnidades = []) => {
+          // Actualizamos el estado local para reflejar que ya está encerrada (estado reserva)
+          setSelectedEstado('reserva');
+          setDatosOperativos(prev => ({ ...prev, estatus: 'reserva' }));
+
+          queryClient.setQueryData(['unidades-encierro-detalle', tipoTransporte], (oldUnidades = []) => {
             const ecoNum = String(numeroLimpio).padStart(3, '0');
             return oldUnidades.map((u) =>
-              u.eco === ecoNum ? { ...u, acople: horaCapturada } : u
+              u.eco === ecoNum ? { ...u, yaEncerrada: true } : u
             );
           });
+          queryClient.invalidateQueries(['conteo-unidades-encierro-global']);
+
           const Swal = (await import('sweetalert2')).default;
           Swal.fire({
-            icon: 'success', title: 'Guardado', text: 'Hora de desincorporación registrada.', confirmButtonColor: '#601a2a', timer: 1500, showConfirmButton: false
+            icon: 'success', title: 'Guardado', text: 'Unidad encerrada exitosamente.', confirmButtonColor: '#601a2a', timer: 1500, showConfirmButton: false
           });
+
+          // Limpiar la selección para volver a la pantalla inicial
+          setSelectedOption(null);
+          setSelectedEstado(null);
+          setDatosOperativos({
+            conductor: 'Seleccione una unidad...',
+            ruta: 'Seleccione una unidad...',
+            tarjeton: '',
+            hora_encierro: '',
+            estatus: 'operacion',
+            ciclo: '',
+            motivo: '',
+            corrida: '',
+            acople: '',
+            hora_programada: '',
+            hora_salida: ''
+          });
+          setAcopleCongelado(null);
         }
       }
     } catch (error) {
@@ -619,16 +661,6 @@ export default function DetalleUnidadEncierro() {
     const ecoSeleccionado = unidadSeleccionada
       ? formatearEco(unidadSeleccionada.eco)
       : formatearEco(extraerNumeroEco(unidad));
-
-    if (unidadSeleccionada?.acople) {
-      Swal.fire({
-        icon: 'info',
-        title: 'Unidad ya validada',
-        text: `${ecoSeleccionado} ya fue validada y no está disponible en el selector.`,
-        confirmButtonColor: '#601a2a',
-      });
-      return;
-    }
 
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(unidadSeleccionada ? unidadSeleccionada.estado : null);
@@ -677,9 +709,10 @@ export default function DetalleUnidadEncierro() {
           corrida: resultado.corridas || '',
           acople: resultado.acople || '',
           hora_programada: resultado.hora_programada || '',
+          hora_salida: resultado.hora_salida || '',
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
-        setAcopleCongelado(resultado.acople || null);
+        setAcopleCongelado(resultado.hora_encierro || null);
       } else {
         setDatosOperativos({
           conductor: 'No reportado hoy',
@@ -692,6 +725,7 @@ export default function DetalleUnidadEncierro() {
           corrida: '',
           acople: '',
           hora_programada: '',
+          hora_salida: '',
         });
         setAcopleCongelado(null);
       }
@@ -705,7 +739,8 @@ export default function DetalleUnidadEncierro() {
         estatus: 'operacion',
         corrida: '',
         acople: '',
-        hora_programada: ''
+        hora_programada: '',
+        hora_salida: '',
       });
     } finally {
       setCargandoDatos(false);
@@ -739,7 +774,7 @@ export default function DetalleUnidadEncierro() {
           conductor: resultado.conductor,
         }));
         fetchConductores();
-        queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
+        queryClient.invalidateQueries(['unidades-encierro-detalle', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
 
         Swal.fire({
@@ -750,7 +785,7 @@ export default function DetalleUnidadEncierro() {
           timer: 2000,
         });
 
-        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (prev = []) => prev.map(u => {
+        queryClient.setQueryData(['unidades-encierro-detalle', tipoTransporte], (prev = []) => prev.map(u => {
           if (String(u.eco).padStart(3, '0') === numeroLimpio) {
             return { ...u, tarjeton: String(resultado.tarjeton).trim() };
           }
@@ -926,17 +961,17 @@ export default function DetalleUnidadEncierro() {
           };
         };
       } else {
-      const motivosPredefinidos = [
-        'FALTA DE OPERADOR',
-        'MANTENIMIENTO',
-        'ACCIDENTE',
-        'FALTA DE COMBUSTIBLE',
-        'CONDICIONES CLIMATICAS',
-        'DESVIO OPERACIONAL',
-        'OTRO'
-      ];
+        const motivosPredefinidos = [
+          'FALTA DE OPERADOR',
+          'MANTENIMIENTO',
+          'ACCIDENTE',
+          'FALTA DE COMBUSTIBLE',
+          'CONDICIONES CLIMATICAS',
+          'DESVIO OPERACIONAL',
+          'OTRO'
+        ];
 
-      swalOptions.html = `
+        swalOptions.html = `
         <div style="text-align: left; margin-top: 0.5rem; position: relative;">
           <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
             Seleccione el motivo de ${nuevoEstatus.toUpperCase()}:
@@ -967,120 +1002,120 @@ export default function DetalleUnidadEncierro() {
         </div>
       `;
 
-      swalOptions.didOpen = () => {
-        const popup = Swal.getPopup();
-        if (popup) popup.style.overflow = 'visible';
+        swalOptions.didOpen = () => {
+          const popup = Swal.getPopup();
+          if (popup) popup.style.overflow = 'visible';
 
-        const htmlContainer = Swal.getHtmlContainer();
-        if (htmlContainer) {
-          htmlContainer.style.overflow = 'visible';
-          htmlContainer.style.position = 'relative';
-          htmlContainer.style.zIndex = '100';
-        }
+          const htmlContainer = Swal.getHtmlContainer();
+          if (htmlContainer) {
+            htmlContainer.style.overflow = 'visible';
+            htmlContainer.style.position = 'relative';
+            htmlContainer.style.zIndex = '100';
+          }
 
-        const actions = Swal.getActions();
-        if (actions) {
-          actions.style.position = 'relative';
-          actions.style.zIndex = '1';
-        }
+          const actions = Swal.getActions();
+          if (actions) {
+            actions.style.position = 'relative';
+            actions.style.zIndex = '1';
+          }
 
-        const trigger = document.getElementById('swal-motivo-trigger');
-        const triggerText = document.getElementById('swal-motivo-trigger-text');
-        const arrow = document.getElementById('swal-motivo-arrow');
-        const menu = document.getElementById('swal-motivo-menu');
-        const hiddenInput = document.getElementById('swal-motivo-hidden');
-        const customContainer = document.getElementById('swal-motivo-custom-container');
-        const textarea = document.getElementById('swal-motivo-textarea');
-        const counter = document.getElementById('swal-motivo-counter');
+          const trigger = document.getElementById('swal-motivo-trigger');
+          const triggerText = document.getElementById('swal-motivo-trigger-text');
+          const arrow = document.getElementById('swal-motivo-arrow');
+          const menu = document.getElementById('swal-motivo-menu');
+          const hiddenInput = document.getElementById('swal-motivo-hidden');
+          const customContainer = document.getElementById('swal-motivo-custom-container');
+          const textarea = document.getElementById('swal-motivo-textarea');
+          const counter = document.getElementById('swal-motivo-counter');
 
-        let isOpen = false;
+          let isOpen = false;
 
-        const toggleMenu = () => {
-          isOpen = !isOpen;
-          if (menu) menu.style.display = isOpen ? 'block' : 'none';
-          if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
-          if (trigger) trigger.style.borderColor = isOpen ? '#6b1d33' : '#e5e7eb';
+          const toggleMenu = () => {
+            isOpen = !isOpen;
+            if (menu) menu.style.display = isOpen ? 'block' : 'none';
+            if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+            if (trigger) trigger.style.borderColor = isOpen ? '#6b1d33' : '#e5e7eb';
+          };
+
+          if (trigger) {
+            trigger.addEventListener('click', (e) => {
+              e.stopPropagation();
+              toggleMenu();
+            });
+          }
+
+          const items = document.querySelectorAll('.swal-motivo-item');
+          items.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+              item.style.background = '#f9fafb';
+              item.style.color = '#1f2937';
+            });
+            item.addEventListener('mouseleave', () => {
+              item.style.background = 'none';
+              item.style.color = '#4b5563';
+            });
+            item.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const val = item.getAttribute('data-value');
+              if (hiddenInput) hiddenInput.value = val;
+              if (triggerText) {
+                triggerText.innerText = val;
+                triggerText.style.color = '#1f2937';
+              }
+
+              toggleMenu();
+
+              if (val === 'OTRO') {
+                if (customContainer) customContainer.style.display = 'block';
+                if (textarea) textarea.focus();
+              } else {
+                if (customContainer) customContainer.style.display = 'none';
+                if (textarea) textarea.value = '';
+              }
+            });
+          });
+
+          document.addEventListener('click', (e) => {
+            if (isOpen && menu && trigger && !menu.contains(e.target) && !trigger.contains(e.target)) {
+              isOpen = false;
+              menu.style.display = 'none';
+              if (arrow) arrow.style.transform = 'rotate(0deg)';
+              if (trigger) trigger.style.borderColor = '#e5e7eb';
+            }
+          });
+
+          if (textarea) {
+            textarea.addEventListener('input', () => {
+              const len = textarea.value.length;
+              if (counter) {
+                counter.innerText = `${len}/70`;
+                counter.style.color = len >= 70 ? '#ef4444' : '#9ca3af';
+              }
+            });
+          }
         };
 
-        if (trigger) {
-          trigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleMenu();
-          });
-        }
+        swalOptions.preConfirm = () => {
+          const hiddenInput = document.getElementById('swal-motivo-hidden');
+          const textarea = document.getElementById('swal-motivo-textarea');
 
-        const items = document.querySelectorAll('.swal-motivo-item');
-        items.forEach(item => {
-          item.addEventListener('mouseenter', () => {
-            item.style.background = '#f9fafb';
-            item.style.color = '#1f2937';
-          });
-          item.addEventListener('mouseleave', () => {
-            item.style.background = 'none';
-            item.style.color = '#4b5563';
-          });
-          item.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const val = item.getAttribute('data-value');
-            if (hiddenInput) hiddenInput.value = val;
-            if (triggerText) {
-              triggerText.innerText = val;
-              triggerText.style.color = '#1f2937';
-            }
-
-            toggleMenu();
-
-            if (val === 'OTRO') {
-              if (customContainer) customContainer.style.display = 'block';
-              if (textarea) textarea.focus();
-            } else {
-              if (customContainer) customContainer.style.display = 'none';
-              if (textarea) textarea.value = '';
-            }
-          });
-        });
-
-        document.addEventListener('click', (e) => {
-          if (isOpen && menu && trigger && !menu.contains(e.target) && !trigger.contains(e.target)) {
-            isOpen = false;
-            menu.style.display = 'none';
-            if (arrow) arrow.style.transform = 'rotate(0deg)';
-            if (trigger) trigger.style.borderColor = '#e5e7eb';
-          }
-        });
-
-        if (textarea) {
-          textarea.addEventListener('input', () => {
-            const len = textarea.value.length;
-            if (counter) {
-              counter.innerText = `${len}/70`;
-              counter.style.color = len >= 70 ? '#ef4444' : '#9ca3af';
-            }
-          });
-        }
-      };
-
-      swalOptions.preConfirm = () => {
-        const hiddenInput = document.getElementById('swal-motivo-hidden');
-        const textarea = document.getElementById('swal-motivo-textarea');
-
-        const val = hiddenInput ? hiddenInput.value : '';
-        if (!val) {
-          Swal.showValidationMessage('Debe seleccionar un motivo.');
-          return false;
-        }
-
-        if (val === 'OTRO') {
-          const customVal = textarea ? textarea.value.trim() : '';
-          if (!customVal) {
-            Swal.showValidationMessage('Por favor escriba el motivo en el cuadro de texto.');
+          const val = hiddenInput ? hiddenInput.value : '';
+          if (!val) {
+            Swal.showValidationMessage('Debe seleccionar un motivo.');
             return false;
           }
-          return customVal;
-        }
 
-        return val;
-      };
+          if (val === 'OTRO') {
+            const customVal = textarea ? textarea.value.trim() : '';
+            if (!customVal) {
+              Swal.showValidationMessage('Por favor escriba el motivo en el cuadro de texto.');
+              return false;
+            }
+            return customVal;
+          }
+
+          return val;
+        };
       } // end else
     }
 
@@ -1126,12 +1161,13 @@ export default function DetalleUnidadEncierro() {
       const result = await response.json();
 
       if (response.ok && result.status === 'success') {
+        const titleText = result.hora_encierro ? `Unidad Encerrada a las ${result.hora_encierro}` : 'Estatus Actualizado';
         Swal.fire({
           icon: 'success',
-          title: 'Estatus Actualizado',
+          title: titleText,
           text: `La unidad ${selectedOption} ahora está en ${nuevoEstatus.toUpperCase()}`,
           confirmButtonColor: '#c5a059',
-          timer: 2000,
+          timer: 3000,
           showConfirmButton: false
         });
         setDatosOperativos((prev) => {
@@ -1161,7 +1197,7 @@ export default function DetalleUnidadEncierro() {
           };
         });
 
-        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (old = []) => {
+        queryClient.setQueryData(['unidades-encierro-detalle', tipoTransporte], (old = []) => {
           return old.map(u => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
               const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
@@ -1177,7 +1213,7 @@ export default function DetalleUnidadEncierro() {
           });
         });
 
-        queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
+        queryClient.invalidateQueries(['unidades-encierro-detalle', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         // ✅ NUEVO: invalidar también el filtro por ruta
         queryClient.invalidateQueries(['unidades-por-ruta-encierro', tipoTransporte]);
@@ -1254,7 +1290,7 @@ export default function DetalleUnidadEncierro() {
           };
         });
 
-        queryClient.setQueryData(['unidades-list-encierro', tipoTransporte], (old = []) => {
+        queryClient.setQueryData(['unidades-encierro-detalle', tipoTransporte], (old = []) => {
           return old.map(u => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
               return {
@@ -1269,7 +1305,7 @@ export default function DetalleUnidadEncierro() {
           });
         });
 
-        queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
+        queryClient.invalidateQueries(['unidades-encierro-detalle', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidades-por-ruta-encierro', tipoTransporte]);
       } else {
@@ -1292,12 +1328,32 @@ export default function DetalleUnidadEncierro() {
 
       <main className="main-content">
         <div className="unit-control-panel">
-          <LocalSearchBar 
-            unidades={unidadesList} 
-            onSelectUnit={handleSelectUnit} 
-            moduleName={configActual?.title || 'esta sección'} 
+          <LocalSearchBar
+            unidades={unidadesList}
+            onSelectUnit={handleSelectUnit}
+            moduleName={configActual?.title || 'esta sección'}
           />
-          <div className="unit-control-panel__selectors">
+          <div className="unit-control-panel__selectors" style={{ position: 'relative' }}>
+            {/* Indicador de refresco en fondo: sutil, no bloquea */}
+            {refrescandoUnidades && !cargandoUnidades && (
+              <div style={{
+                position: 'absolute', top: 0, right: 0,
+                display: 'flex', alignItems: 'center', gap: '0.35rem',
+                fontSize: '0.7rem', color: '#9ca3af', fontWeight: 500,
+                background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(4px)',
+                padding: '0.2rem 0.6rem', borderRadius: '999px',
+                border: '1px solid #e5e7eb', zIndex: 5,
+              }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  border: '2px solid rgba(96,26,42,0.2)',
+                  borderTopColor: 'var(--color-maroon)',
+                  display: 'inline-block',
+                  animation: 'spin 0.8s linear infinite',
+                }} />
+                Actualizando…
+              </div>
+            )}
             {/* ✅ NUEVO: contenedor con flex y gap para los dos selectores */}
             <div style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <UnitSelector
@@ -1378,7 +1434,20 @@ export default function DetalleUnidadEncierro() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dcfce7', border: '1px solid #86efac' }}></span> Unidad Encerrada</div>
                 </div>
 
-                {cargandoUnidadesPorRuta ? (
+                {cargandoUnidades && !unidadesList.length ? (
+                  /* Skeleton shimmer mientras carga por primera vez */
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', padding: '0.25rem 0' }}>
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="unit-btn-skeleton" style={{
+                        height: '2.4rem', borderRadius: '0.5rem',
+                        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'skeleton-shimmer 1.4s ease infinite',
+                      }} />
+                    ))}
+                    <style>{`@keyframes skeleton-shimmer{0%{background-position:200% 0}to{background-position:-200% 0}}`}</style>
+                  </div>
+                ) : cargandoUnidadesPorRuta ? (
                   <div className="p-4 text-center" style={{ color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     <span className="unidad-spinner" style={{ borderColor: 'rgba(96, 26, 42, 0.2)', borderTopColor: 'var(--color-maroon)', width: '20px', height: '20px', borderWidth: '3px' }}></span>
                     Cargando unidades de la ruta...
@@ -1398,7 +1467,7 @@ export default function DetalleUnidadEncierro() {
                           {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) === 'pending').length}
                         </span>
                       </div>
-                      
+
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                         {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) === 'pending').map((unidad) => {
                           const colors = getUnitColor(unidad, selectedOption === unidad.display);
@@ -1428,7 +1497,7 @@ export default function DetalleUnidadEncierro() {
                         })}
                       </div>
                     </div>
-                    
+
                     {/* SECCIÓN: ENCERRADAS */}
                     {unidadesPorRutaList.some(u => getUnitStatusVisual(u) !== 'pending') && (
                       <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
@@ -1441,7 +1510,7 @@ export default function DetalleUnidadEncierro() {
                             {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) !== 'pending').length}
                           </span>
                         </div>
-                        
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                           {unidadesPorRutaList.filter(u => getUnitStatusVisual(u) !== 'pending').map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
@@ -1526,7 +1595,7 @@ export default function DetalleUnidadEncierro() {
                           {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) === 'pending').length}
                         </span>
                       </div>
-                      
+
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                         {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) === 'pending').map((unidad) => {
                           const colors = getUnitColor(unidad, selectedOption === unidad.display);
@@ -1556,7 +1625,7 @@ export default function DetalleUnidadEncierro() {
                         })}
                       </div>
                     </div>
-                    
+
                     {/* SECCIÓN: ENCERRADAS */}
                     {unidadesPorTroncalList.some(u => getUnitStatusVisual(u) !== 'pending') && (
                       <div className="dispatch-section dispatch-section--dispatched" style={{ background: '#f9fafb', borderRadius: '12px', padding: '1rem', border: '1px solid #f3f4f6' }}>
@@ -1569,7 +1638,7 @@ export default function DetalleUnidadEncierro() {
                             {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) !== 'pending').length}
                           </span>
                         </div>
-                        
+
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
                           {unidadesPorTroncalList.filter(u => getUnitStatusVisual(u) !== 'pending').map((unidad) => {
                             const colors = getUnitColor(unidad, selectedOption === unidad.display);
@@ -1874,18 +1943,18 @@ export default function DetalleUnidadEncierro() {
                     </div>
                     <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       <div className="info-card__item">
-                        <span className="info-card__label">Hora de Salida Programada</span>
+                        <span className="info-card__label">Hora de salida programada</span>
                         <div className="badge-display badge-display--gold">
                           <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="badge-display__text">
-                            {cargandoDatos ? '...' : (datosOperativos.hora_programada || '--:--')}
+                            {cargandoDatos ? '...' : (datosOperativos.hora_salida || '--:--')}
                           </span>
                         </div>
                       </div>
 
-                      <LiveClockAcople 
+                      <LiveClockAcople
                         key={selectedOption || 'none'}
                         horaCongelada={acopleCongelado}
                       />
@@ -2035,13 +2104,13 @@ export default function DetalleUnidadEncierro() {
                             const horas24 = String(now.getHours()).padStart(2, '0');
                             const minutos = String(now.getMinutes()).padStart(2, '0');
                             const segundos = String(now.getSeconds()).padStart(2, '0');
-                            
+
                             const ampm = parseInt(horas24, 10) >= 12 ? 'P.M.' : 'A.M.';
                             const horas12 = String(parseInt(horas24, 10) % 12 || 12).padStart(2, '0');
-                            
+
                             const horaParaGuardar = `${horas24}:${minutos}:${segundos}`;
                             const stringCongelado = `${horas24}:${minutos}:${segundos}`; // LiveClock parses 24h
-                            
+
                             await handleGuardarAcople(horaParaGuardar, observaciones);
                             setAcopleCongelado(stringCongelado);
                             setGuardandoAcople(false);
