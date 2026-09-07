@@ -7,6 +7,7 @@ import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
+import { generarPDFProgramacionOperativa } from '../../utils/generarPDFProgramacionOperativa';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
@@ -26,6 +27,7 @@ export default function CentroControl() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingStats, setIsGeneratingStats] = useState(false);
   const [isGeneratingOperacional, setIsGeneratingOperacional] = useState(false);
+  const [isGeneratingProgramacion, setIsGeneratingProgramacion] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -63,7 +65,11 @@ export default function CentroControl() {
       );
       const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
-      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      const unidadesOperacion = units.filter((d) => {
+        const isOper = getEstatus(d).includes('OPERACI');
+        const isValidadaOMesa = !!d.HORA_SALIDA || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
+        return isOper && isValidadaOMesa;
+      });
       const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
       const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
 
@@ -235,6 +241,33 @@ export default function CentroControl() {
     }
   };
 
+  const handleGenerarProgramacionOperativa = async () => {
+    setIsGeneratingProgramacion(true);
+    try {
+      await generarPDFProgramacionOperativa(apiData, 'download');
+      Swal.fire({
+        icon: 'success',
+        title: '¡Reporte Generado!',
+        text: 'La Programación Operativa se ha descargado correctamente.',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+    } catch (error) {
+      console.error('Error al generar programación operativa:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ocurrió un error al generar el PDF de la Programación Operativa.',
+        confirmButtonColor: '#601a2a',
+      });
+    } finally {
+      setIsGeneratingProgramacion(false);
+    }
+  };
+
   // Helper para % de cada segmento de la barra apilada
   const pct = (value, total) => (total > 0 ? (value / total) * 100 : 0);
 
@@ -259,7 +292,13 @@ export default function CentroControl() {
         let colorClass = 'otros';
         let labelStatus = 'Otro estatus';
 
-        if (estatus.includes('OPERACI')) { colorClass = 'operacion'; labelStatus = 'Operación'; }
+        if (estatus.includes('OPERACI')) { 
+          if (u.HORA_SALIDA && u.HORA_SALIDA.trim() !== '') {
+            colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
+          } else {
+            colorClass = 'otros'; labelStatus = 'Programada (Sin salir)'; 
+          }
+        }
         else if (estatus.includes('MANTENIMIENTO')) { colorClass = 'mantenimiento'; labelStatus = 'Mantenimiento'; }
         else if (estatus.includes('RESERVA')) { colorClass = 'reserva'; labelStatus = 'Reserva'; }
 
@@ -681,6 +720,20 @@ export default function CentroControl() {
                 </>
               ) : (
                 'Reporte Operativo por Hora'
+              )}
+            </button>
+
+            <button
+              className="centro-btn centro-btn--primary"
+              onClick={handleGenerarProgramacionOperativa}
+              disabled={isGeneratingProgramacion || cargando || !apiData.length}
+            >
+              {isGeneratingProgramacion ? (
+                <>
+                  <span className="centro-spinner"></span> Generando...
+                </>
+              ) : (
+                'Descargar Programación Operativa'
               )}
             </button>
           </section>
