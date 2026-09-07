@@ -133,12 +133,13 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
 
   // Tabla
   const tableHeaders = [
-    ['NO', 'N° INCIDENCIA', 'ECO', 'TIPO', 'FALLA REPORTADA', 'FECHA INGRESO', 'DÍAS FUERA'],
+    ['NO', 'N° INCIDENCIA', 'N° FOLIO', 'ECO', 'TIPO', 'FALLA REPORTADA', 'FECHA INGRESO', 'DÍAS FUERA'],
   ];
 
   const tableBody = unidadesFiltradas.map((u, idx) => [
     (idx + 1).toString(),
     u.numero_incidencia || '—',
+    u.folio_mantenimiento || '—',
     u.numero_eco,
     String(u.tipo || '').toUpperCase(),
     String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
@@ -169,8 +170,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
       cellPadding: 3,
     },
     columnStyles: {
-      4: { halign: 'left', cellWidth: 55 },
-      5: { halign: 'left', cellWidth: 45 },
+      5: { halign: 'left', cellWidth: 50 },
+      6: { halign: 'left', cellWidth: 35 },
     },
     // Repetir encabezado en cada página
     didDrawPage: (hookData) => {
