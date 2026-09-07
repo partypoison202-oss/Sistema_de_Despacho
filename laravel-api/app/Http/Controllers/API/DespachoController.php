@@ -472,6 +472,23 @@ class DespachoController extends Controller
                 $info->corridas = $encierroHoy->corridas;
                 $info->hora_encierro = $encierroHoy->hora_encierro;
             }
+
+            // Recuperar último conductor/ruta si están vacíos (p. ej. por cambio a mantenimiento/reserva antes del encierro)
+            if (empty($info->nombre_conductor) || empty($info->ruta)) {
+                $lastRecord = DB::table('historial_operativo')
+                    ->where('unidad_id', $unidadBase->id)
+                    ->whereNotNull('nombre_conductor')
+                    ->where('nombre_conductor', '!=', '')
+                    ->orderBy('id', 'desc')
+                    ->first();
+                    
+                if ($lastRecord) {
+                    $info->nombre_conductor = empty($info->nombre_conductor) ? $lastRecord->nombre_conductor : $info->nombre_conductor;
+                    $info->numero_tarjeton = empty($info->numero_tarjeton) ? $lastRecord->numero_tarjeton : $info->numero_tarjeton;
+                    $info->ruta = empty($info->ruta) ? $lastRecord->ruta : $info->ruta;
+                    $info->corridas = empty($info->corridas) ? $lastRecord->corridas : $info->corridas;
+                }
+            }
         }
 
         \Log::info('[obtenerDetalleUnidad] Fin', ['info' => (array)$info]);
