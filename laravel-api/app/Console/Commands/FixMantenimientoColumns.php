@@ -38,6 +38,7 @@ class FixMantenimientoColumns extends Command
             ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_ruta varchar(100) null;
             ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_corrida varchar(100) null;
             ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_kilometraje decimal(10,2) null;
+            ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS hora_encierro varchar(20) null;
         ";
 
         try {
@@ -62,7 +63,8 @@ class FixMantenimientoColumns extends Command
         
         $migraciones = [
             '2026_09_03_144654_add_numero_incidencia_to_informacion_operativa',
-            '2026_09_03_171543_add_mantenimiento_fields_to_informacion_operativa'
+            '2026_09_03_171543_add_mantenimiento_fields_to_informacion_operativa',
+            '2026_09_04_141635_add_hora_encierro_to_historial_operativo'
         ];
 
         foreach($migraciones as $migracion) {
