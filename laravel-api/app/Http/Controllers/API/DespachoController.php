@@ -2587,5 +2587,217 @@ class DespachoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtiene el monitoreo general de conductores para Mesa de Control:
+     * Compara el conductor inicial de Programación y Logística con el conductor actual
+     * e identifica cambios y relevos ocurridos en el día.
+     */
+    public function monitoreoConductoresDia($tipo)
+    {
+        try {
+            $tipoNormalizado = strtolower(trim($tipo));
+            $hoy = Carbon::today()->toDateString();
+
+            // 1. Asegurar snapshot de inicio si no existe
+            BitacoraHelper::ensureInicioSnapshot();
+
+            // 2. Obtener conductores del catálogo para autocompletar nombres si faltan
+            $catalogoConductores = DB::table('conductores')
+                ->select('tarjeton', DB::raw("TRIM(CONCAT(COALESCE(nombres, ''), ' ', COALESCE(apellidos, ''))) as nombre_completo"))
+                ->get()
+                ->keyBy(function ($c) {
+                    return trim($c->tarjeton);
+                });
+
+            // 3. Obtener asignaciones de inicio de operación (Programación y Logística)
+            $historialInicio = DB::table('historial_operativo')
+                ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->where('historial_operativo.fecha_historial', $hoy)
+                ->where('historial_operativo.momento', 'INICIO')
+                ->select(
+                    'unidades.id as unidad_id',
+                    'unidades.numero_eco',
+                    'historial_operativo.tipo',
+                    'historial_operativo.ruta as ruta_inicial',
+                    'historial_operativo.corridas as corrida_inicial',
+                    'historial_operativo.numero_tarjeton as tarjeton_inicial',
+                    'historial_operativo.nombre_conductor as conductor_inicial',
+                    'historial_operativo.hora_programada as hora_programada_inicial',
+                    'historial_operativo.estatus as estatus_inicial'
+                )
+                ->get()
+                ->keyBy('unidad_id');
+
+            // 4. Obtener estado operativo actual
+            $queryActual = DB::table('informacion_operativa')
+                ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->select(
+                    'unidades.id as unidad_id',
+                    'unidades.numero_eco',
+                    'informacion_operativa.tipo',
+                    'informacion_operativa.ruta as ruta_actual',
+                    'informacion_operativa.corridas as corrida_actual',
+                    'informacion_operativa.numero_tarjeton as tarjeton_actual',
+                    'informacion_operativa.nombre_conductor as conductor_actual',
+                    'informacion_operativa.estatus as estatus_actual',
+                    'informacion_operativa.hora_programada',
+                    'informacion_operativa.hora_salida',
+                    'informacion_operativa.acople',
+                    'informacion_operativa.motivo',
+                    'informacion_operativa.motivo_estatus'
+                );
+
+            if ($tipoNormalizado !== 'todos') {
+                if ($tipoNormalizado === 'urbanuss' || $tipoNormalizado === 'urbanus') {
+                    $queryActual->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), ['urbanuss', 'urbanus']);
+                } else {
+                    $queryActual->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]);
+                }
+            }
+
+            $unidadesActuales = $queryActual->get();
+
+            // 5. Movimientos de hoy en plataforma y bitácora
+            $movimientosHoy = DB::table('plataforma_movimientos')
+                ->whereDate('created_at', $hoy)
+                ->whereIn('tipo_movimiento', ['ASIGNACION_CONDUCTOR', 'RETIRO_CONDUCTOR', 'INCORPORACION'])
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('unidad_id');
+
+            $bitacoraHoy = DB::table('bitacora_cambios_unidades')
+                ->where('fecha', $hoy)
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('unidad_id');
+
+            // 6. Construir lista procesada
+            $lista = [];
+            $totalTitulares = 0;
+            $totalRelevos = 0;
+            $totalSinConductor = 0;
+            $totalOperacion = 0;
+
+            foreach ($unidadesActuales as $u) {
+                $uid = $u->unidad_id;
+                $regInicio = $historialInicio->get($uid);
+
+                $tarjetonIni = trim((string)($regInicio->tarjeton_inicial ?? ''));
+                $conductorIni = trim((string)($regInicio->conductor_inicial ?? ''));
+                if (empty($conductorIni) && !empty($tarjetonIni) && isset($catalogoConductores[$tarjetonIni])) {
+                    $conductorIni = $catalogoConductores[$tarjetonIni]->nombre_completo;
+                }
+
+                $tarjetonAct = trim((string)($u->tarjeton_actual ?? ''));
+                $conductorAct = trim((string)($u->conductor_actual ?? ''));
+                if (empty($conductorAct) && !empty($tarjetonAct) && isset($catalogoConductores[$tarjetonAct])) {
+                    $conductorAct = $catalogoConductores[$tarjetonAct]->nombre_completo;
+                }
+
+                $estatusActual = strtolower(trim((string)($u->estatus_actual ?? 'operacion')));
+                if ($estatusActual === 'operacion') {
+                    $totalOperacion++;
+                }
+
+                // Revisar movimientos de conductor registrados hoy
+                $movimientosUnidad = $movimientosHoy->get($uid);
+                $bitacoraUnidad = $bitacoraHoy->get($uid);
+                $ultimoMov = $movimientosUnidad ? $movimientosUnidad->first() : null;
+
+                $horaMovimiento = null;
+                $motivoMovimiento = null;
+                $tipoMovimientoRegistrado = null;
+
+                if ($ultimoMov) {
+                    $horaMovimiento = Carbon::parse($ultimoMov->created_at)->format('H:i');
+                    $motivoMovimiento = $ultimoMov->motivo;
+                    $tipoMovimientoRegistrado = $ultimoMov->tipo_movimiento;
+                } elseif ($bitacoraUnidad) {
+                    $bItem = $bitacoraUnidad->first(function ($b) {
+                        return str_contains($b->detalles ?? '', 'CONDUCTOR') || str_contains($b->detalles ?? '', 'TARJETÓN');
+                    });
+                    if ($bItem) {
+                        $horaMovimiento = Carbon::parse($bItem->created_at)->format('H:i');
+                        $motivoMovimiento = $bItem->detalles;
+                        $tipoMovimientoRegistrado = $bItem->tipo_accion;
+                    }
+                }
+
+                // Determinar estado del conductor
+                $tieneRelevo = false;
+                $estadoVisual = 'titular';
+                $descripcionEstado = 'Titular sin cambios';
+
+                if (empty($tarjetonAct) && empty($conductorAct)) {
+                    $estadoVisual = 'sin_conductor';
+                    $descripcionEstado = !empty($tarjetonIni) ? 'Conductor Retirado' : 'Sin Conductor';
+                    $totalSinConductor++;
+                } elseif (!empty($tarjetonIni) && $tarjetonAct !== $tarjetonIni) {
+                    $tieneRelevo = true;
+                    $estadoVisual = 'relevo';
+                    $descripcionEstado = 'Relevo / Cambio Realizado';
+                    $totalRelevos++;
+                } elseif ($ultimoMov && in_array($ultimoMov->tipo_movimiento, ['ASIGNACION_CONDUCTOR', 'RETIRO_CONDUCTOR'])) {
+                    $tieneRelevo = true;
+                    $estadoVisual = 'relevo';
+                    $descripcionEstado = 'Relevo / Asignación en Plataforma';
+                    $totalRelevos++;
+                } else {
+                    $totalTitulares++;
+                }
+
+                $lista[] = [
+                    'unidad_id'            => $uid,
+                    'numero_eco'           => str_pad((string)$u->numero_eco, 3, '0', STR_PAD_LEFT),
+                    'tipo'                 => $u->tipo,
+                    'estatus'              => $estatusActual,
+                    'ruta_inicial'         => $regInicio->ruta_inicial ?? null,
+                    'corrida_inicial'      => $regInicio->corrida_inicial ?? null,
+                    'hora_programada'      => $u->hora_programada ?? ($regInicio->hora_programada_inicial ?? null),
+                    'ruta_actual'          => $u->ruta_actual ?: 'Sin ruta',
+                    'corrida_actual'       => $u->corrida_actual,
+                    'tarjeton_inicial'     => $tarjetonIni ?: null,
+                    'conductor_inicial'    => $conductorIni ?: 'No asignado al inicio',
+                    'tarjeton_actual'      => $tarjetonAct ?: null,
+                    'conductor_actual'     => $conductorAct ?: 'Sin conductor actual',
+                    'tiene_relevo'         => $tieneRelevo,
+                    'estado_visual'        => $estadoVisual,
+                    'descripcion_estado'   => $descripcionEstado,
+                    'hora_movimiento'      => $horaMovimiento,
+                    'motivo_movimiento'    => $motivoMovimiento ?: ($tieneRelevo ? 'Relevo de operación' : null),
+                    'tipo_movimiento'      => $tipoMovimientoRegistrado,
+                ];
+            }
+
+            // Ordenar por número económico
+            usort($lista, function ($a, $b) {
+                return (int)$a['numero_eco'] - (int)$b['numero_eco'];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'fecha'  => $hoy,
+                'tipo'   => $tipo,
+                'kpis'   => [
+                    'total_flota'         => count($lista),
+                    'total_operacion'     => $totalOperacion,
+                    'total_titulares'     => $totalTitulares,
+                    'total_relevos'       => $totalRelevos,
+                    'total_sin_conductor' => $totalSinConductor,
+                ],
+                'unidades' => $lista,
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en monitoreoConductoresDia: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Error al consultar monitoreo de conductores',
+                'detalle' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
+
 

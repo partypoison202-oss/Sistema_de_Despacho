@@ -7,6 +7,7 @@ import Header from '../../components/Header/Header';
 import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
 import UnitInfoPanelMesaControl from './UnitInfoPanelMesaControl';
+import ModalMonitoreoConductores from './ModalMonitoreoConductores';
 import ChecklistForm from '../CheckList/CheckList';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 
@@ -63,6 +64,7 @@ export default function DetalleUnidadMesaControl() {
   const [dropdownReemplazoTarjetonOpen, setDropdownReemplazoTarjetonOpen] = useState(false);
   const [busquedaReemplazoTarjeton, setBusquedaReemplazoTarjeton] = useState('');
   const [dropdownReemplazoRutaOpen, setDropdownReemplazoRutaOpen] = useState(false);
+  const [modalMonitoreoOpen, setModalMonitoreoOpen] = useState(false);
 
   const modalConductorRef = useRef(null);
   const modalRutaRef = useRef(null);
@@ -200,6 +202,22 @@ export default function DetalleUnidadMesaControl() {
 
   // Mostrar todos los maniobristas (no solo disponibles) para visualización en el panel
   const maniobristasDisponibles = dbManiobristas;
+
+  // Consulta de relevos y conductores del día para la etiqueta general
+  const { data: dataMonitoreo } = useQuery({
+    queryKey: ['monitoreo-conductores-dia', tipoTransporte],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token || !tipoTransporte) return null;
+      const res = await fetch(`${API_BASE}/api/despacho/monitoreo-conductores/${tipoTransporte}`, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 12000,
+  });
+  const totalRelevosDia = dataMonitoreo?.kpis?.total_relevos || 0;
 
   // Efecto para resetear campos cuando se selecciona una unidad de reemplazo
   useEffect(() => {
@@ -856,11 +874,70 @@ export default function DetalleUnidadMesaControl() {
       />
       <main className="main-content">
         <div className="unit-control-panel">
-          <LocalSearchBar
-            unidades={unidadesList}
-            onSelectUnit={handleSelectUnit}
-            moduleName={configActual?.title || 'esta sección'}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setModalMonitoreoOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.75rem',
+                border: '1px solid #e2e8f0',
+                background: '#ffffff',
+                color: '#1e293b',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                marginBottom: '1.5rem',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#6b1d33';
+                e.currentTarget.style.background = '#fdf8f9';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 8px rgba(107, 29, 51, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#e2e8f0';
+                e.currentTarget.style.background = '#ffffff';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.04)';
+              }}
+              title="Ver pantalla de conductores y relevos del día"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>Conductores y Relevos</span>
+              {totalRelevosDia > 0 && (
+                <span
+                  style={{
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
+                    borderRadius: '9999px',
+                    padding: '0.1rem 0.5rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  {totalRelevosDia} {totalRelevosDia === 1 ? 'relevo' : 'relevos'}
+                </span>
+              )}
+            </button>
+
+            <LocalSearchBar
+              unidades={unidadesList}
+              onSelectUnit={handleSelectUnit}
+              moduleName={configActual?.title || 'esta sección'}
+            />
+          </div>
           <div className="unit-control-panel__selectors">
             <UnitSelector
               isOpen={openDropdown === 'operacion'}
@@ -1825,6 +1902,18 @@ export default function DetalleUnidadMesaControl() {
         </div>,
         document.body
       )}
+
+      {/* Modal Pantalla General de Conductores y Relevos */}
+      <ModalMonitoreoConductores
+        isOpen={modalMonitoreoOpen}
+        onClose={() => setModalMonitoreoOpen(false)}
+        tipoTransporte={tipoTransporte}
+        configActual={configActual}
+        onSelectUnit={(eco) => {
+          handleSelectUnit(eco);
+          setModalMonitoreoOpen(false);
+        }}
+      />
     </div>
   );
 }
