@@ -8,7 +8,7 @@ import './Historial.css';
 export default function HistorialEncierro() {
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('inicio'); // 'inicio', 'cambios', 'fin'
+  const [activeTab, setActiveTab] = useState('inicio'); // 'inicio', 'cambios', 'fin', 'encierros'
   const dropdownRef = useRef(null);
 
   // 1. Obtener listado de fechas únicas (Cacheado por 5 minutos)
@@ -45,8 +45,8 @@ export default function HistorialEncierro() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 2. Obtener el historial estructurado (inicio, cambios, fin)
-  const { data: datos = { inicio: [], cambios: [], fin: [] }, isLoading: isLoadingDatos } = useQuery({
+  // 2. Obtener el historial estructurado (inicio, cambios, fin, encierros)
+  const { data: datos = { inicio: [], cambios: [], fin: [], encierros: [] }, isLoading: isLoadingDatos } = useQuery({
     queryKey: ['historial-encierro', selectedFecha],
     queryFn: async () => {
       const response = await fetch(`${API_BASE}/api/historial-operativo/encierro/${selectedFecha}`, {
@@ -72,6 +72,7 @@ export default function HistorialEncierro() {
   const getActiveData = () => {
     if (activeTab === 'inicio') return datos.inicio || [];
     if (activeTab === 'cambios') return datos.cambios || [];
+    if (activeTab === 'encierros') return datos.encierros || [];
     return datos.fin || [];
   };
 
@@ -90,6 +91,17 @@ export default function HistorialEncierro() {
         'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
         'DETALLES': d.detalles || '',
         'USUARIO': d.usuario_nombre || 'SISTEMA'
+      }));
+    } else if (activeTab === 'encierros') {
+      worksheetData = activeData.map(d => ({
+        'HORA ENCIERRO': d.hora_encierro || '',
+        'ECO': d.economico || '',
+        'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
+        'ESTATUS': d.estatus ? String(d.estatus).toUpperCase() : '',
+        'MOTIVO': d.motivo_estatus || '',
+        'RUTA': d.ruta || '',
+        'TARJETON': d.tarjeton || '',
+        'CONDUCTOR': d.nombre_conductor || ''
       }));
     } else {
       worksheetData = activeData.map(d => ({
@@ -200,6 +212,13 @@ export default function HistorialEncierro() {
           </button>
           <button
             type="button"
+            className={`historial-tab-btn ${activeTab === 'encierros' ? 'active' : ''}`}
+            onClick={() => setActiveTab('encierros')}
+          >
+            Encierros del Día
+          </button>
+          <button
+            type="button"
             className={`historial-tab-btn ${activeTab === 'fin' ? 'active' : ''}`}
             onClick={() => setActiveTab('fin')}
           >
@@ -248,6 +267,46 @@ export default function HistorialEncierro() {
                 {activeData.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay modificaciones registradas por Encierro en este día.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : activeTab === 'encierros' ? (
+          <div className="table-responsive">
+            <table className="historial-table">
+              <thead>
+                <tr>
+                  <th>HORA ENCIERRO</th>
+                  <th>ECO</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>ESTATUS</th>
+                  <th>MOTIVO</th>
+                  <th>RUTA</th>
+                  <th>TARJETÓN</th>
+                  <th>CONDUCTOR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeData.map((d, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: '700', color: '#64748b' }}>{d.hora_encierro || '-'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{d.tipo ? String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase() : '-'}</td>
+                    <td>
+                      <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
+                        {d.estatus || '-'}
+                      </span>
+                    </td>
+                    <td>{d.motivo_estatus || '-'}</td>
+                    <td style={{ fontWeight: '600' }}>{d.ruta || '-'}</td>
+                    <td>{d.tarjeton || '-'}</td>
+                    <td>{d.nombre_conductor || '-'}</td>
+                  </tr>
+                ))}
+                {activeData.length === 0 && (
+                  <tr>
+                    <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay encierros registrados en este día.</td>
                   </tr>
                 )}
               </tbody>
