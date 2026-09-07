@@ -187,6 +187,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ✅ NUEVA RUTA: unidades por ruta
     Route::get('/despacho/unidades-por-ruta/{tipo}/{ruta}', [DespachoController::class, 'unidadesPorRuta']);
+    Route::get('/despacho/monitoreo-conductores/{tipo}', [DespachoController::class, 'monitoreoConductoresDia']);
 
     // Rutas de reportes
     Route::get('/despacho/reporte-general', [ReporteController::class, 'generarReporteGeneralData']);
