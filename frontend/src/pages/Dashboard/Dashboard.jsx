@@ -198,7 +198,7 @@ export default function Dashboard() {
   const { data: conteos = {}, isLoading: cargando } = useQuery({
     queryKey: ['conteo-unidades-global'],
     queryFn: fetchConteos,
-    refetchInterval: 30000, // Actualiza silenciosamente cada 30 segundos
+    refetchInterval: 5000, // Actualiza silenciosamente cada 5 segundos
   });
 
   return (
