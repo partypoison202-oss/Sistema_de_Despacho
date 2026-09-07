@@ -344,12 +344,55 @@ export default function UnitInfoPanel({
     }
   };
 
+  const handleToggleReemplazo = () => {
+    const nuevoEstado = !reemplazoActivo;
+    setReemplazoActivo(nuevoEstado);
+    if (nuevoEstado) {
+      setRutaTipoSeleccionada(configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
+      setReemplazoForm({
+        tarjeton: datosOperativos.tarjeton || '',
+        ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '',
+        corrida: datosOperativos.corrida || '',
+      });
+    } else {
+      setUnidadReemplazoSeleccionada(null);
+      setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+      setDropdownEcoOpen(false);
+      setDropdownRutaOpen(false);
+    }
+  };
+
+  const handleSelectReservaUnit = (unidad) => {
+    setUnidadReemplazoSeleccionada(unidad);
+    setDropdownEcoOpen(false);
+  };
+
+  const handleToggleCambioOperador = () => {
+    const nuevo = !cambioOperadorActivo;
+    setCambioOperadorActivo(nuevo);
+    if (!nuevo) {
+      setOperadorReemplazoSeleccionado(null);
+      setOperadorMotivo('');
+      setDropdownOperadorOpen(false);
+      setOperadorMotivoDropdown(false);
+      setOperadorBusqueda('');
+    }
+  };
+
   const handlePlataformaMovimiento = (tipoMovimiento) => {
     setModalPlataformaVisible(tipoMovimiento);
     setPlatMotivo('');
     setPlatEstatus('');
     setPlatConductor('');
     setPlatRuta('');
+    setPlatError('');
+    setReemplazoActivo(false);
+    setUnidadReemplazoSeleccionada(null);
+    setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+    setCambioOperadorActivo(false);
+    setOperadorReemplazoSeleccionado(null);
+    setOperadorMotivo('');
+    setOperadorBusqueda('');
   };
 
   const handleConfirmPlataforma = async () => {
@@ -426,7 +469,7 @@ export default function UnitInfoPanel({
             tipo: configActual.id,
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 1,
-            numero_tarjeton_nuevo: operadorReemplazoSeleccionado.id != null ? String(operadorReemplazoSeleccionado.id) : null,
+            numero_tarjeton_nuevo: operadorReemplazoSeleccionado.tarjeton || (operadorReemplazoSeleccionado.id != null ? String(operadorReemplazoSeleccionado.id) : null),
             motivo: operadorMotivo
           };
           successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
@@ -475,6 +518,8 @@ export default function UnitInfoPanel({
       setGuardandoPerdida(false);
     }
   };
+
+  const handleConfirmarPlataforma = handleConfirmPlataforma;
 
   const getConductorDisplay = () => {
     const val = datosOperativos.conductor;
