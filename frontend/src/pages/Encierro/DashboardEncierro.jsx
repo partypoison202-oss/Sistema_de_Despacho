@@ -106,7 +106,7 @@ export default function DashboardEncierro() {
     queryKey: ['conteo-unidades-encierro-global'],
     queryFn: fetchConteos,
     staleTime: 0,        // Siempre datos frescos al cargar el dashboard
-    refetchInterval: 15000, // Refrescar cada 15s para que los cambios en Despacho se reflejen rápido
+    refetchInterval: 5000, // Refrescar cada 5s para que los cambios en Despacho se reflejen rápido
   });
 
   const normalizarNumeroEco = (eco) => {

@@ -41,7 +41,7 @@ export default function DetalleUnidad() {
   const { data: registrosHoy = [], isLoading: cargando, error } = useQuery({
     queryKey: ['despacho-hoy'],
     queryFn: fetchDespachoHoy,
-    refetchInterval: 30000,
+    refetchInterval: 5000,
   });
 
   const unidades = React.useMemo(() => {

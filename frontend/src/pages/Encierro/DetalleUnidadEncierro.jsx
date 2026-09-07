@@ -362,7 +362,7 @@ export default function DetalleUnidadEncierro() {
     queryKey: ['unidades-encierro-detalle', tipoTransporte],  // Key propia, separada del prefetch global
     queryFn: fetchUnidades,
     staleTime: 0,           // Siempre datos frescos con ya_encerrada y filtro horaSalida
-    refetchInterval: 30000,
+    refetchInterval: 5000,
   });
 
   useEffect(() => {
