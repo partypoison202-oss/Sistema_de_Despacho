@@ -17,7 +17,6 @@ return new class extends Migration
             'codigo' => 'MESA_CONTROL',
             'nombre' => 'Mesa de Control',
             'descripcion' => 'Mesa de Control y Monitoreo',
-            'updated_at' => now(),
         ]);
 
         // 2. A los usuarios con rol MESA_CONTROL (antes PLATAFORMA), ponerles los modulos exactos
