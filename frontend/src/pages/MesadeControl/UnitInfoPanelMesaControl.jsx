@@ -172,7 +172,9 @@ export default function UnitInfoPanel({
   const [dropdownOperadorOpen, setDropdownOperadorOpen] = useState(false);
   const [operadorBusqueda, setOperadorBusqueda] = useState('');
   const [operadorMotivo, setOperadorMotivo] = useState('');
+  const [operadorMotivoOtro, setOperadorMotivoOtro] = useState('');
   const [operadorMotivoDropdown, setOperadorMotivoDropdown] = useState(false);
+  const [platMotivoOtro, setPlatMotivoOtro] = useState('');
 
   // Bloquear scroll de fondo cuando hay modales abiertos
   useEffect(() => {
@@ -214,10 +216,10 @@ export default function UnitInfoPanel({
 
   useEffect(() => {
     setPerdidaCiclos(datosOperativos.ciclo || '');
-    
+
     const dbMotivo = datosOperativos.motivo || '';
     const predefinedMotivos = ['FALTA DE OPERADOR', 'MANTENIMIENTO', 'ACCIDENTE', 'FALTA DE COMBUSTIBLE', 'CONDICIONES CLIMATICAS', 'DESVIO OPERACIONAL', 'OTRO'];
-    
+
     if (dbMotivo && !predefinedMotivos.includes(dbMotivo)) {
       setPerdidaMotivo('OTRO');
       setPerdidaMotivoOtro(dbMotivo);
@@ -373,6 +375,7 @@ export default function UnitInfoPanel({
     if (!nuevo) {
       setOperadorReemplazoSeleccionado(null);
       setOperadorMotivo('');
+      setOperadorMotivoOtro('');
       setDropdownOperadorOpen(false);
       setOperadorMotivoDropdown(false);
       setOperadorBusqueda('');
@@ -382,6 +385,7 @@ export default function UnitInfoPanel({
   const handlePlataformaMovimiento = (tipoMovimiento) => {
     setModalPlataformaVisible(tipoMovimiento);
     setPlatMotivo('');
+    setPlatMotivoOtro('');
     setPlatEstatus('');
     setPlatConductor('');
     setPlatRuta('');
@@ -392,6 +396,7 @@ export default function UnitInfoPanel({
     setCambioOperadorActivo(false);
     setOperadorReemplazoSeleccionado(null);
     setOperadorMotivo('');
+    setOperadorMotivoOtro('');
     setOperadorBusqueda('');
   };
 
@@ -460,17 +465,22 @@ export default function UnitInfoPanel({
       } else if (modalPlataformaVisible === 'RETIRO_CONDUCTOR') {
         if (cambioOperadorActivo) {
           if (!operadorReemplazoSeleccionado || !operadorMotivo) {
-            setPlatError('Completa el conductor y el estatus para el cambio de conductor.');
+            setPlatError('Completa el conductor y el motivo para el cambio de conductor.');
+            return;
+          }
+          if (operadorMotivo === 'OTRO' && !operadorMotivoOtro.trim()) {
+            setPlatError('Especifica el motivo del cambio de conductor.');
             return;
           }
           setPlatError('');
+          const motivoFinal = operadorMotivo === 'OTRO' ? operadorMotivoOtro.trim().toUpperCase() : operadorMotivo;
           payload = {
             numero_eco: ecoNum,
             tipo: configActual.id,
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 1,
             numero_tarjeton_nuevo: operadorReemplazoSeleccionado.tarjeton || (operadorReemplazoSeleccionado.id != null ? String(operadorReemplazoSeleccionado.id) : null),
-            motivo: operadorMotivo
+            motivo: motivoFinal
           };
           successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
           errorMessage = 'Error al cambiar conductor';
@@ -479,13 +489,18 @@ export default function UnitInfoPanel({
             setPlatError('Debe ingresar un motivo para el retiro.');
             return;
           }
+          if (platMotivo === 'OTRO' && !platMotivoOtro.trim()) {
+            setPlatError('Especifica el motivo de retiro.');
+            return;
+          }
           setPlatError('');
+          const motivoFinal = platMotivo === 'OTRO' ? platMotivoOtro.trim().toUpperCase() : platMotivo;
           payload = {
             numero_eco: ecoNum,
             tipo: configActual.id,
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 0,
-            motivo: platMotivo
+            motivo: motivoFinal
           };
           successMessage = `Conductor retirado de ECO${ecoNum}.`;
           errorMessage = 'Error al retirar conductor';
@@ -650,97 +665,97 @@ export default function UnitInfoPanel({
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.85rem' }}>
               <div className="info-card__item" style={{ flex: 1.5, minWidth: 0 }}>
-              <span className="info-card__label">Ruta Asignada</span>
-              {!isPlataforma && !isReservaOrMantenimiento ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
-                  <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
-                    <button
-                      type="button"
-                      className="interactive-input"
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: guardandoRuta ? 'not-allowed' : 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.3rem', fontSize: '0.85rem', width: '100%', fontWeight: 'bold', opacity: guardandoRuta ? 0.7 : 1
-                      }}
-                      onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
-                    >
-                      {guardandoRuta ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
-                          <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                          <span style={{ overflowWrap: 'anywhere', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'ERROR: Verifique capa 8')}</span>
-                          <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
+                <span className="info-card__label">Ruta Asignada</span>
+                {!isPlataforma && !isReservaOrMantenimiento ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
+                    <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
+                      <button
+                        type="button"
+                        className="interactive-input"
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.85rem', cursor: guardandoRuta ? 'not-allowed' : 'pointer', textAlign: 'left', background: 'var(--tw-color-white)', height: '2.3rem', fontSize: '0.85rem', width: '100%', fontWeight: 'bold', opacity: guardandoRuta ? 0.7 : 1
+                        }}
+                        onClick={() => !guardandoRuta && setDropdownRutaOpen(!dropdownRutaOpen)}
+                      >
+                        {guardandoRuta ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(0,0,0,0.1)', borderTopColor: 'var(--tw-color-gray-600)', margin: 0 }}></span>
+                            <span style={{ color: 'var(--tw-color-gray-600)', fontWeight: 'normal' }}>Guardando...</span>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <span style={{ overflowWrap: 'anywhere', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{formRuta || (datosOperativos.ruta || 'ERROR: Verifique capa 8')}</span>
+                            <svg className={`arrow-icon ${dropdownRutaOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownRutaOpen ? 'rotate(180deg)' : 'none', width: '0.85rem', height: '0.85rem', marginLeft: '0.5rem', flexShrink: 0 }} fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
 
-                    {dropdownRutaOpen && (
-                      <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
-                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
-                          <button
-                            type="button"
-                            className="dropdown-menu__item"
-                            style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
-                            onClick={() => {
-                              setFormRuta('');
-                              setDropdownRutaOpen(false);
-                              handleConfirmRuta('');
-                            }}
-                          >
-                            SELECCIONAR
-                          </button>
-                          {rutasOpciones.map((r, i) => (
+                      {dropdownRutaOpen && (
+                        <div className="dropdown-menu" style={{ width: '100%', minWidth: 'unset', top: '100%', background: 'var(--tw-color-white)', opacity: 1, zIndex: 999 }}>
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
                             <button
-                              key={i}
                               type="button"
                               className="dropdown-menu__item"
-                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
+                              style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)' }}
                               onClick={() => {
-                                setFormRuta(r);
+                                setFormRuta('');
                                 setDropdownRutaOpen(false);
-                                handleConfirmRuta(r);
+                                handleConfirmRuta('');
                               }}
                             >
-                              {r}
+                              SELECCIONAR
                             </button>
-                          ))}
+                            {rutasOpciones.map((r, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                className="dropdown-menu__item"
+                                style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', background: 'var(--tw-color-white)', color: 'var(--tw-color-gray-600)', fontWeight: formRuta === r ? 'bold' : 'normal' }}
+                                onClick={() => {
+                                  setFormRuta(r);
+                                  setDropdownRutaOpen(false);
+                                  handleConfirmRuta(r);
+                                }}
+                              >
+                                {r}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
-                </div>
-                </div>
-              ) : (
-                <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1, height: '2.3rem', marginTop: '0.15rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <p className="info-card__value" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
-                    </p>
+                      )}
+                      <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="info-card__value-wrapper" style={{ justifyContent: 'space-between', opacity: isReservaOrMantenimiento ? 0.6 : 1, height: '2.3rem', marginTop: '0.15rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <p className="info-card__value" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            {/* Corrida */}
-            <div className="info-card__item" style={{ flex: 1, minWidth: 0 }}>
-              <span className="info-card__label">Corrida</span>
-              <div className="info-card__value-wrapper" style={{ height: '2.3rem', marginTop: '0.15rem' }}>
-                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-                <p className="info-card__value" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
-                </p>
+              {/* Corrida */}
+              <div className="info-card__item" style={{ flex: 1, minWidth: 0 }}>
+                <span className="info-card__label">Corrida</span>
+                <div className="info-card__value-wrapper" style={{ height: '2.3rem', marginTop: '0.15rem' }}>
+                  <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                  </svg>
+                  <p className="info-card__value" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
             {/* Número de Tarjetón (Editable) */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
@@ -902,10 +917,10 @@ export default function UnitInfoPanel({
                       className="interactive-input"
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '0 0.85rem', width: '100%', height: '2.3rem', 
+                        padding: '0 0.85rem', width: '100%', height: '2.3rem',
                         background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
                         color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit',
-                        opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1, 
+                        opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1,
                         cursor: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 'not-allowed' : 'pointer'
                       }}
                       onClick={() => {
@@ -929,7 +944,7 @@ export default function UnitInfoPanel({
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Motivo */}
                   <div ref={motivoRef} style={{ position: 'relative' }}>
                     <button
@@ -938,10 +953,10 @@ export default function UnitInfoPanel({
                       className="interactive-input"
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '0 0.85rem', width: '100%', height: '2.3rem', 
+                        padding: '0 0.85rem', width: '100%', height: '2.3rem',
                         background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
                         color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit',
-                        opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1, 
+                        opacity: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 0.7 : 1,
                         cursor: (guardandoPerdida || (!!datosOperativos.ciclo && !editandoCiclos)) ? 'not-allowed' : 'pointer'
                       }}
                       onClick={() => {
@@ -969,8 +984,8 @@ export default function UnitInfoPanel({
                       <input
                         type="text"
                         className="interactive-input"
-                        style={{ 
-                          width: '100%', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.85rem', 
+                        style={{
+                          width: '100%', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.85rem',
                           background: (!!datosOperativos.ciclo && !editandoCiclos) ? '#f3f4f6' : 'var(--tw-color-white)',
                           color: (!!datosOperativos.ciclo && !editandoCiclos) ? '#6b7280' : 'inherit'
                         }}
@@ -1139,10 +1154,10 @@ export default function UnitInfoPanel({
         >
           <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflow: 'visible', minWidth: '22rem' }} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
-              {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' : 
-               modalPlataformaVisible === 'DESINCORPORACION' ? 'Desincorporar Unidad' :
-               modalPlataformaVisible === 'ASIGNACION_CONDUCTOR' ? 'Asignar Conductor' :
-               modalPlataformaVisible === 'RETIRO_CONDUCTOR' ? 'Retirar Conductor' : 'Movimiento'}
+              {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' :
+                modalPlataformaVisible === 'DESINCORPORACION' ? 'Desincorporar Unidad' :
+                  modalPlataformaVisible === 'ASIGNACION_CONDUCTOR' ? 'Asignar Conductor' :
+                    modalPlataformaVisible === 'RETIRO_CONDUCTOR' ? 'Retirar Conductor' : 'Movimiento'}
             </h2>
 
             {modalPlataformaVisible === 'INCORPORACION' && (
@@ -1243,7 +1258,7 @@ export default function UnitInfoPanel({
 
                 {!isReservaOrMantenimiento && reemplazoActivo && (
                   <div style={{ display: 'grid', gap: '1rem', padding: '1rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc' }}>
-                    
+
                     {/* Número de ECO - Editable con dropdown */}
                     <div style={{ display: 'grid', gap: '0.25rem', position: 'relative' }} ref={ecoReemplazoRef}>
                       <span className="info-card__label">Número de ECO</span>
@@ -1282,8 +1297,8 @@ export default function UnitInfoPanel({
                           </div>
                         </div>
                       )}
-                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una unidad de la lista.</p>
-                </div>
+                      <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una unidad de la lista.</p>
+                    </div>
 
                     {/* Tarjetón - Solo lectura (No editable en reemplazo) */}
                     <div style={{ display: 'grid', gap: '0.25rem' }}>
@@ -1338,8 +1353,8 @@ export default function UnitInfoPanel({
                           </div>
                         </div>
                       )}
-                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
-                </div>
+                      <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
+                    </div>
 
                     {/* Corrida - Input editable */}
                     <div style={{ display: 'grid', gap: '0.25rem' }}>
@@ -1540,8 +1555,8 @@ export default function UnitInfoPanel({
                           </div>
                           <div style={{ overflowY: 'auto', flex: 1 }}>
                             {conductoresDisponibles && conductoresDisponibles
-                              .filter(c => 
-                                String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) || 
+                              .filter(c =>
+                                String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) ||
                                 (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))
                               )
                               .map((c) => (
@@ -1563,8 +1578,8 @@ export default function UnitInfoPanel({
                                 No se encontraron conductores.
                               </div>
                             )}
-                  <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione un conductor de la lista.</p>
-                </div>
+                            <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione un conductor de la lista.</p>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1608,7 +1623,7 @@ export default function UnitInfoPanel({
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                           zIndex: 40
                         }}>
-                          {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO'].map((estatus) => (
+                          {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
                             <button
                               key={estatus}
                               type="button"
@@ -1616,6 +1631,7 @@ export default function UnitInfoPanel({
                               style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                               onClick={() => {
                                 setOperadorMotivo(estatus);
+                                if (estatus !== 'OTRO') setOperadorMotivoOtro('');
                                 setOperadorMotivoDropdown(false);
                               }}
                             >
@@ -1623,6 +1639,25 @@ export default function UnitInfoPanel({
                             </button>
                           ))}
                         </div>
+                      )}
+
+                      {operadorMotivo === 'OTRO' && (
+                        <input
+                          type="text"
+                          placeholder="Especifique el motivo..."
+                          value={operadorMotivoOtro}
+                          onChange={(e) => setOperadorMotivoOtro(e.target.value.toUpperCase())}
+                          style={{
+                            marginTop: '0.5rem',
+                            width: '100%',
+                            padding: '0.75rem',
+                            borderRadius: '0.75rem',
+                            border: '1px solid #e5e7eb',
+                            fontSize: '0.9rem',
+                            color: '#0b162c',
+                            background: 'white'
+                          }}
+                        />
                       )}
                     </div>
                   </>
@@ -1668,7 +1703,7 @@ export default function UnitInfoPanel({
                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                         zIndex: 40
                       }}>
-                        {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO'].map((estatus) => (
+                        {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
                           <button
                             key={estatus}
                             type="button"
@@ -1676,6 +1711,7 @@ export default function UnitInfoPanel({
                             style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
                               setPlatMotivo(estatus);
+                              if (estatus !== 'OTRO') setPlatMotivoOtro('');
                               setPlatMotivoDropdown(false);
                             }}
                           >
@@ -1684,6 +1720,25 @@ export default function UnitInfoPanel({
                         ))}
                       </div>
                     )}
+
+                    {platMotivo === 'OTRO' && (
+                      <input
+                        type="text"
+                        placeholder="Especifique el motivo..."
+                        value={platMotivoOtro}
+                        onChange={(e) => setPlatMotivoOtro(e.target.value.toUpperCase())}
+                        style={{
+                          marginTop: '0.5rem',
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '0.75rem',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '0.9rem',
+                          color: '#0b162c',
+                          background: 'white'
+                        }}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -1691,7 +1746,7 @@ export default function UnitInfoPanel({
 
             {platError && (
               <div style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontWeight: '500' }}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                 <span>{platError}</span>
               </div>
             )}
@@ -1705,11 +1760,11 @@ export default function UnitInfoPanel({
                   flex: 1, border: 'none', background: '#c29b53', color: 'white', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
                 }}
               >
-                {guardandoPerdida ? 'GUARDANDO...' : 
-                 modalPlataformaVisible === 'INCORPORACION' ? 'INCORPORAR' : 
-                 modalPlataformaVisible === 'DESINCORPORACION' ? 'DESINCORPORAR' :
-                 modalPlataformaVisible === 'ASIGNACION_CONDUCTOR' ? 'ASIGNAR' :
-                 modalPlataformaVisible === 'RETIRO_CONDUCTOR' ? 'RETIRAR' : 'GUARDAR'}
+                {guardandoPerdida ? 'GUARDANDO...' :
+                  modalPlataformaVisible === 'INCORPORACION' ? 'INCORPORAR' :
+                    modalPlataformaVisible === 'DESINCORPORACION' ? 'DESINCORPORAR' :
+                      modalPlataformaVisible === 'ASIGNACION_CONDUCTOR' ? 'ASIGNAR' :
+                        modalPlataformaVisible === 'RETIRO_CONDUCTOR' ? 'RETIRAR' : 'GUARDAR'}
               </button>
               <button
                 type="button"
