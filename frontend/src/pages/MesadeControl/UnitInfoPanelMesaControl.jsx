@@ -157,6 +157,7 @@ export default function UnitInfoPanel({
   const [platError, setPlatError] = useState('');
 
   const [reemplazoActivo, setReemplazoActivo] = useState(false);
+  const handleToggleReemplazo = () => setReemplazoActivo(!reemplazoActivo);
   const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
   const [dropdownEcoOpen, setDropdownEcoOpen] = useState(false);
   const [rutaTipoSeleccionada, setRutaTipoSeleccionada] = useState(configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
