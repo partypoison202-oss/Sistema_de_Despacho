@@ -32,8 +32,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Cargar módulos del usuario
-        $modulos = $user->modulos()->pluck('modulo_codigo')->toArray();
+        // Cargar módulos del usuario (con fallback por rol si no tiene registros)
+        $modulos = $this->resolverModulosUsuario($user);
 
         return response()->json([
             'access_token' => $token,
@@ -54,10 +54,55 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user    = $request->user()->load('role');
-        $modulos = $user->modulos()->pluck('modulo_codigo')->toArray();
+        $modulos = $this->resolverModulosUsuario($user);
 
         return response()->json(
             array_merge($user->toArray(), ['modulos' => $modulos])
         );
+    }
+
+    /**
+     * Resuelve los módulos disponibles para el usuario, aplicando
+     * fallback inteligente por rol en caso de no tener módulos asignados en BD.
+     */
+    private function resolverModulosUsuario($user): array
+    {
+        $modulos = $user->modulos()->pluck('modulo_codigo')->toArray();
+
+        if (empty($modulos) && $user->role) {
+            $defaultModulesByRole = [
+                'ADMINISTRADOR'        => [
+                    'despacho','encierro','capturista','relevos','mantenimiento',
+                    'centro_control','historial','titan','infraccion','mesa_control',
+                    'operadores','maniobristas','carga_combustible','general'
+                ],
+                'LECTURA'              => [
+                    'despacho','encierro','capturista','relevos','mantenimiento',
+                    'centro_control','historial','titan','infraccion','mesa_control',
+                    'operadores','maniobristas','carga_combustible','general'
+                ],
+                'DESPACHO'             => ['despacho'],
+                'PLATAFORMA'           => ['mesa_control'],
+                'MESA_CONTROL'         => ['mesa_control', 'relevos', 'centro_control'],
+                'PROGRAMACION'         => ['capturista', 'relevos'],
+                'GESTOR_OPERADORES'    => ['operadores'],
+                'ENCIERRO'             => ['encierro'],
+                'CENTRO_CONTROL'       => ['centro_control'],
+                'TITAN'                => ['titan'],
+                'INFRACCION'           => ['infraccion'],
+                'GENERAL'              => ['general'],
+                'MANTENIMIENTO'        => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'CARGA_DE_COMBUSTIBLE' => ['carga_combustible'],
+            ];
+
+            // Caso especial usuario Miguel_Odon (perfil mixto)
+            if ($user->usuario === 'Miguel_Odon') {
+                return ['despacho', 'operadores'];
+            }
+
+            return $defaultModulesByRole[$user->role->codigo] ?? [];
+        }
+
+        return $modulos;
     }
 }
