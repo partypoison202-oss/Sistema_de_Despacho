@@ -1143,7 +1143,7 @@ export default function UnitInfoPanel({
       {/* REACT MODAL PARA PLATAFORMA */}
       {modalPlataformaVisible && createPortal(
         <div
-          className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50 backdrop-blur-sm"
           style={{ overscrollBehavior: 'none' }}
           onClick={(e) => { if (e.target === e.currentTarget) setModalPlataformaVisible(null); }}
           onWheel={(e) => e.stopPropagation()}
@@ -1152,7 +1152,7 @@ export default function UnitInfoPanel({
           tabIndex={-1}
           onKeyDown={(e) => { if (e.key === 'Escape') setModalPlataformaVisible(null); }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', minWidth: '22rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflow: 'visible', minWidth: '22rem' }} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' :
                 modalPlataformaVisible === 'DESINCORPORACION' ? 'Desincorporar Unidad' :
@@ -1611,19 +1611,8 @@ export default function UnitInfoPanel({
                       </button>
 
                       {operadorMotivoDropdown && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          marginTop: '0.25rem',
-                          background: 'white',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                          zIndex: 50
-                        }}>
-                          <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem', overflowY: 'auto' }}>
+                        <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem', overflowY: 'auto' }}>
                             {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
                               <button
                                 key={estatus}
@@ -1693,19 +1682,8 @@ export default function UnitInfoPanel({
                     </button>
 
                     {platMotivoDropdown && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: '0.25rem',
-                        background: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '0.5rem',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                        zIndex: 50
-                      }}>
-                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem', overflowY: 'auto' }}>
+                      <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem' }}>
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '10rem', overflowY: 'auto' }}>
                           {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
                             <button
                               key={estatus}
