@@ -131,21 +131,46 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   pdf.text(fechaStr, pageW - 10, 38, { align: 'right' });
   pdf.text(horaStr, pageW - 10, 44, { align: 'right' });
 
-  // Tabla
-  const tableHeaders = [
-    ['NO', 'N° INCIDENCIA', 'N° FOLIO', 'ECO', 'TIPO', 'FALLA REPORTADA', 'FECHA INGRESO', 'DÍAS FUERA'],
-  ];
+  let tableHeaders;
+  let tableBody;
+  let colStyles;
 
-  const tableBody = unidadesFiltradas.map((u, idx) => [
-    (idx + 1).toString(),
-    u.numero_incidencia || '—',
-    u.folio_mantenimiento || '—',
-    u.numero_eco,
-    String(u.tipo || '').toUpperCase(),
-    String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
-    formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
-    calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
-  ]);
+  if (tipo === 'pendientes') {
+    tableHeaders = [
+      ['NO', 'N° INCIDENCIA', 'ECO', 'TIPO', 'FALLA REPORTADA', 'FECHA INGRESO', 'DÍAS FUERA'],
+    ];
+    tableBody = unidadesFiltradas.map((u, idx) => [
+      (idx + 1).toString(),
+      u.numero_incidencia || '—',
+      u.numero_eco,
+      String(u.tipo || '').toUpperCase(),
+      String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
+      formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
+      calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
+    ]);
+    colStyles = {
+      4: { halign: 'left', cellWidth: 50 },
+      5: { halign: 'left', cellWidth: 35 },
+    };
+  } else {
+    tableHeaders = [
+      ['NO', 'N° INCIDENCIA', 'N° FOLIO', 'ECO', 'TIPO', 'FALLA REPORTADA', 'FECHA INGRESO', 'DÍAS FUERA'],
+    ];
+    tableBody = unidadesFiltradas.map((u, idx) => [
+      (idx + 1).toString(),
+      u.numero_incidencia || '—',
+      u.folio_mantenimiento || '—',
+      u.numero_eco,
+      String(u.tipo || '').toUpperCase(),
+      String(u.falla_reportada || u.motivo_estatus || '—').toUpperCase(),
+      formatDate(u.fecha_folio_mantenimiento || u.fecha_registro),
+      calcularDias(u.fecha_folio_mantenimiento || u.fecha_registro),
+    ]);
+    colStyles = {
+      5: { halign: 'left', cellWidth: 50 },
+      6: { halign: 'left', cellWidth: 35 },
+    };
+  }
 
   autoTable(pdf, {
     startY: 50,
@@ -169,10 +194,7 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
     styles: {
       cellPadding: 3,
     },
-    columnStyles: {
-      5: { halign: 'left', cellWidth: 50 },
-      6: { halign: 'left', cellWidth: 35 },
-    },
+    columnStyles: colStyles,
     // Repetir encabezado en cada página
     didDrawPage: (hookData) => {
       if (hookData.pageNumber > 1) {
