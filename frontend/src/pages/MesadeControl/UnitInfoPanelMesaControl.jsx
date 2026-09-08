@@ -1143,7 +1143,7 @@ export default function UnitInfoPanel({
       {/* REACT MODAL PARA PLATAFORMA */}
       {modalPlataformaVisible && createPortal(
         <div
-          className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
           style={{ overscrollBehavior: 'none' }}
           onClick={(e) => { if (e.target === e.currentTarget) setModalPlataformaVisible(null); }}
           onWheel={(e) => e.stopPropagation()}
@@ -1152,7 +1152,7 @@ export default function UnitInfoPanel({
           tabIndex={-1}
           onKeyDown={(e) => { if (e.key === 'Escape') setModalPlataformaVisible(null); }}
         >
-          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 120px)', overflow: 'visible', minWidth: '22rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-xl p-6 shadow-2xl animate-fade-in-up" style={{ maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', minWidth: '22rem' }} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-bold text-slate-800 text-center mb-6">
               {modalPlataformaVisible === 'INCORPORACION' ? 'Incorporar Unidad' :
                 modalPlataformaVisible === 'DESINCORPORACION' ? 'Desincorporar Unidad' :
@@ -1621,23 +1621,25 @@ export default function UnitInfoPanel({
                           border: '1px solid #e5e7eb',
                           borderRadius: '0.5rem',
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                          zIndex: 40
+                          zIndex: 50
                         }}>
-                          {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
-                            <button
-                              key={estatus}
-                              type="button"
-                              className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                              style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
-                              onClick={() => {
-                                setOperadorMotivo(estatus);
-                                if (estatus !== 'OTRO') setOperadorMotivoOtro('');
-                                setOperadorMotivoDropdown(false);
-                              }}
-                            >
-                              {estatus}
-                            </button>
-                          ))}
+                          <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem', overflowY: 'auto' }}>
+                            {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
+                              <button
+                                key={estatus}
+                                type="button"
+                                className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                                style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                                onClick={() => {
+                                  setOperadorMotivo(estatus);
+                                  if (estatus !== 'OTRO') setOperadorMotivoOtro('');
+                                  setOperadorMotivoDropdown(false);
+                                }}
+                              >
+                                {estatus}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
 
@@ -1701,23 +1703,25 @@ export default function UnitInfoPanel({
                         border: '1px solid #e5e7eb',
                         borderRadius: '0.5rem',
                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                        zIndex: 40
+                        zIndex: 50
                       }}>
-                        {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
-                          <button
-                            key={estatus}
-                            type="button"
-                            className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
-                            onClick={() => {
-                              setPlatMotivo(estatus);
-                              if (estatus !== 'OTRO') setPlatMotivoOtro('');
-                              setPlatMotivoDropdown(false);
-                            }}
-                          >
-                            {estatus}
-                          </button>
-                        ))}
+                        <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem', overflowY: 'auto' }}>
+                          {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
+                            <button
+                              key={estatus}
+                              type="button"
+                              className="dropdown-menu__item hover:bg-slate-50 transition-colors"
+                              style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                              onClick={() => {
+                                setPlatMotivo(estatus);
+                                if (estatus !== 'OTRO') setPlatMotivoOtro('');
+                                setPlatMotivoDropdown(false);
+                              }}
+                            >
+                              {estatus}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
