@@ -8,42 +8,62 @@ import { lazy, Suspense } from 'react';
 // ── Carga inmediata (siempre necesarios) ──────────────────────────────────────
 import Login from './pages/Login/Login';
 
+
+// ── Función para evitar ChunkLoadError en actualizaciones de Vite ─────────────
+const lazyRetry = function(componentImport) {
+  return new Promise((resolve, reject) => {
+    const hasRefreshed = JSON.parse(
+      window.sessionStorage.getItem('retry-lazy-refreshed') || 'false'
+    );
+    componentImport().then((component) => {
+      window.sessionStorage.setItem('retry-lazy-refreshed', 'false');
+      resolve(component);
+    }).catch((error) => {
+      if (!hasRefreshed) {
+        window.sessionStorage.setItem('retry-lazy-refreshed', 'true');
+        return window.location.reload();
+      }
+      reject(error);
+    });
+  });
+};
+
 // ── Carga diferida (se descargan solo cuando el usuario navega a esa ruta) ───
-const Dashboard              = lazy(() => import('./pages/Dashboard/Dashboard'));
-const DetalleUnidad          = lazy(() => import('./pages/Unidades/DetalleUnidad'));
-const DashboardGeneral       = lazy(() => import('./pages/General/DashboardGeneral'));
-const DetalleUnidadGeneral   = lazy(() => import('./pages/General/DetalleUnidad'));
-const CargaExcel             = lazy(() => import('./pages/CargaExcel/CargaExcel'));
-const Usuarios               = lazy(() => import('./pages/Usuarios/Usuarios'));
-const DashboardEncierro      = lazy(() => import('./pages/Encierro/DashboardEncierro'));
-const DetalleUnidadEncierro  = lazy(() => import('./pages/Encierro/DetalleUnidadEncierro'));
-const ResumenDespacho        = lazy(() => import('./pages/Reportes/ResumenDespacho'));
-const Menu                   = lazy(() => import('./pages/Menu/Menu'));
-const MenuCheckList          = lazy(() => import('./pages/Menu/MenuCheckList'));
-const CheckList              = lazy(() => import('./pages/CheckList/CheckList'));
-const HistorialCheckList     = lazy(() => import('./pages/CheckList/HistorialCheckList'));
-const MenuHistorial          = lazy(() => import('./pages/Historial/MenuHistorial'));
-const HistorialGeneral       = lazy(() => import('./pages/Historial/HistorialGeneral'));
-const HistorialDespacho      = lazy(() => import('./pages/Historial/HistorialDespacho'));
-const HistorialEncierro      = lazy(() => import('./pages/Historial/HistorialEncierro'));
-const HistorialMantenimiento = lazy(() => import('./pages/Historial/HistorialMantenimiento'));
-const FleetSelection         = lazy(() => import('./components/Checklist/FleetSelection'));
-const CentroControl          = lazy(() => import('./pages/CentroControl/CentroControl'));
-const DashboardInfracciones  = lazy(() => import('./pages/CentroControl/DashboardInfracciones'));
-const DetalleUnidades        = lazy(() => import('./pages/CentroControl/Detalle/DetalleUnidades'));
-const DashboardBitacora      = lazy(() => import('./pages/CentroControl/DashboardBitacora'));
-const PatioDashboard         = lazy(() => import('./pages/Patio/PatioDashboard'));
-const DashboardTitan         = lazy(() => import('./pages/Titan/DashboardTitan'));
-const DetalleUnidadTitan     = lazy(() => import('./pages/Titan/DetalleUnidadTitan'));
-const Mantenimiento          = lazy(() => import('./pages/Mantenimiento/Mantenimiento'));
-const DetalleUnidadMantenimiento = lazy(() => import('./pages/Mantenimiento/DetalleUnidadMantenimiento'));
-const ReportesTitanes        = lazy(() => import('./pages/CentroControl/ReporteTitanes/ReporteTitanes'));
-const HistorialReportesTitanes = lazy(() => import('./pages/Historial/HistorialReportesTitanes'));
-const Operadores             = lazy(() => import('./pages/Operadores/Operadores'));
-const Maniobristas           = lazy(() => import('./pages/Maniobristas/Maniobristas'));
-const InfraccionDashboard    = lazy(() => import('./pages/Infraccion/InfraccionDashboard'));
-const DashboardMesaControl   = lazy(() => import('./pages/MesadeControl/DashboardMesaControl'));
-const DetalleUnidadMesaControl = lazy(() => import('./pages/MesadeControl/DetalleUnidadMesaControl'));
+const Dashboard              = lazy(() => lazyRetry(() => import('./pages/Dashboard/Dashboard')));
+const DetalleUnidad          = lazy(() => lazyRetry(() => import('./pages/Unidades/DetalleUnidad')));
+const DashboardGeneral       = lazy(() => lazyRetry(() => import('./pages/General/DashboardGeneral')));
+const DetalleUnidadGeneral   = lazy(() => lazyRetry(() => import('./pages/General/DetalleUnidad')));
+const CargaExcel             = lazy(() => lazyRetry(() => import('./pages/CargaExcel/CargaExcel')));
+const Usuarios               = lazy(() => lazyRetry(() => import('./pages/Usuarios/Usuarios')));
+const DashboardEncierro      = lazy(() => lazyRetry(() => import('./pages/Encierro/DashboardEncierro')));
+const DetalleUnidadEncierro  = lazy(() => lazyRetry(() => import('./pages/Encierro/DetalleUnidadEncierro')));
+const ResumenDespacho        = lazy(() => lazyRetry(() => import('./pages/Reportes/ResumenDespacho')));
+const Menu                   = lazy(() => lazyRetry(() => import('./pages/Menu/Menu')));
+const MenuCheckList          = lazy(() => lazyRetry(() => import('./pages/Menu/MenuCheckList')));
+const CheckList              = lazy(() => lazyRetry(() => import('./pages/CheckList/CheckList')));
+const HistorialCheckList     = lazy(() => lazyRetry(() => import('./pages/CheckList/HistorialCheckList')));
+const MenuHistorial          = lazy(() => lazyRetry(() => import('./pages/Historial/MenuHistorial')));
+const HistorialGeneral       = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialGeneral')));
+const HistorialDespacho      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialDespacho')));
+const HistorialEncierro      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialEncierro')));
+const HistorialMantenimiento = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialMantenimiento')));
+const FleetSelection         = lazy(() => lazyRetry(() => import('./components/Checklist/FleetSelection')));
+const CentroControl          = lazy(() => lazyRetry(() => import('./pages/CentroControl/CentroControl')));
+const DashboardInfracciones  = lazy(() => lazyRetry(() => import('./pages/CentroControl/DashboardInfracciones')));
+const DetalleUnidades        = lazy(() => lazyRetry(() => import('./pages/CentroControl/Detalle/DetalleUnidades')));
+const DashboardBitacora      = lazy(() => lazyRetry(() => import('./pages/CentroControl/DashboardBitacora')));
+const PatioDashboard         = lazy(() => lazyRetry(() => import('./pages/Patio/PatioDashboard')));
+const DashboardTitan         = lazy(() => lazyRetry(() => import('./pages/Titan/DashboardTitan')));
+const DetalleUnidadTitan     = lazy(() => lazyRetry(() => import('./pages/Titan/DetalleUnidadTitan')));
+const Mantenimiento          = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/Mantenimiento')));
+const DetalleUnidadMantenimiento = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/DetalleUnidadMantenimiento')));
+const ReportesTitanes        = lazy(() => lazyRetry(() => import('./pages/CentroControl/ReporteTitanes/ReporteTitanes')));
+const HistorialReportesTitanes = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialReportesTitanes')));
+const Operadores             = lazy(() => lazyRetry(() => import('./pages/Operadores/Operadores')));
+const Maniobristas           = lazy(() => lazyRetry(() => import('./pages/Maniobristas/Maniobristas')));
+const InfraccionDashboard    = lazy(() => lazyRetry(() => import('./pages/Infraccion/InfraccionDashboard')));
+const DashboardMesaControl   = lazy(() => lazyRetry(() => import('./pages/MesadeControl/DashboardMesaControl')));
+const DetalleUnidadMesaControl = lazy(() => lazyRetry(() => import('./pages/MesadeControl/DetalleUnidadMesaControl')));
 
 // ── Spinner de carga mientras se descarga el chunk de la ruta ─────────────────
 function PageLoader() {
