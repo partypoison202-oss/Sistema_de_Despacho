@@ -172,7 +172,9 @@ export default function UnitInfoPanel({
   const [dropdownOperadorOpen, setDropdownOperadorOpen] = useState(false);
   const [operadorBusqueda, setOperadorBusqueda] = useState('');
   const [operadorMotivo, setOperadorMotivo] = useState('');
+  const [operadorMotivoOtro, setOperadorMotivoOtro] = useState('');
   const [operadorMotivoDropdown, setOperadorMotivoDropdown] = useState(false);
+  const [platMotivoOtro, setPlatMotivoOtro] = useState('');
 
   // Bloquear scroll de fondo cuando hay modales abiertos
   useEffect(() => {
@@ -373,6 +375,7 @@ export default function UnitInfoPanel({
     if (!nuevo) {
       setOperadorReemplazoSeleccionado(null);
       setOperadorMotivo('');
+      setOperadorMotivoOtro('');
       setDropdownOperadorOpen(false);
       setOperadorMotivoDropdown(false);
       setOperadorBusqueda('');
@@ -382,6 +385,7 @@ export default function UnitInfoPanel({
   const handlePlataformaMovimiento = (tipoMovimiento) => {
     setModalPlataformaVisible(tipoMovimiento);
     setPlatMotivo('');
+    setPlatMotivoOtro('');
     setPlatEstatus('');
     setPlatConductor('');
     setPlatRuta('');
@@ -392,6 +396,7 @@ export default function UnitInfoPanel({
     setCambioOperadorActivo(false);
     setOperadorReemplazoSeleccionado(null);
     setOperadorMotivo('');
+    setOperadorMotivoOtro('');
     setOperadorBusqueda('');
   };
 
@@ -460,17 +465,22 @@ export default function UnitInfoPanel({
       } else if (modalPlataformaVisible === 'RETIRO_CONDUCTOR') {
         if (cambioOperadorActivo) {
           if (!operadorReemplazoSeleccionado || !operadorMotivo) {
-            setPlatError('Completa el conductor y el estatus para el cambio de conductor.');
+            setPlatError('Completa el conductor y el motivo para el cambio de conductor.');
+            return;
+          }
+          if (operadorMotivo === 'OTRO' && !operadorMotivoOtro.trim()) {
+            setPlatError('Especifica el motivo del cambio de conductor.');
             return;
           }
           setPlatError('');
+          const motivoFinal = operadorMotivo === 'OTRO' ? operadorMotivoOtro.trim().toUpperCase() : operadorMotivo;
           payload = {
             numero_eco: ecoNum,
             tipo: configActual.id,
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 1,
             numero_tarjeton_nuevo: operadorReemplazoSeleccionado.tarjeton || (operadorReemplazoSeleccionado.id != null ? String(operadorReemplazoSeleccionado.id) : null),
-            motivo: operadorMotivo
+            motivo: motivoFinal
           };
           successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
           errorMessage = 'Error al cambiar conductor';
@@ -479,13 +489,18 @@ export default function UnitInfoPanel({
             setPlatError('Debe ingresar un motivo para el retiro.');
             return;
           }
+          if (platMotivo === 'OTRO' && !platMotivoOtro.trim()) {
+            setPlatError('Especifica el motivo de retiro.');
+            return;
+          }
           setPlatError('');
+          const motivoFinal = platMotivo === 'OTRO' ? platMotivoOtro.trim().toUpperCase() : platMotivo;
           payload = {
             numero_eco: ecoNum,
             tipo: configActual.id,
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 0,
-            motivo: platMotivo
+            motivo: motivoFinal
           };
           successMessage = `Conductor retirado de ECO${ecoNum}.`;
           errorMessage = 'Error al retirar conductor';
@@ -1608,7 +1623,7 @@ export default function UnitInfoPanel({
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                           zIndex: 40
                         }}>
-                          {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO'].map((estatus) => (
+                          {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
                             <button
                               key={estatus}
                               type="button"
@@ -1616,6 +1631,7 @@ export default function UnitInfoPanel({
                               style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                               onClick={() => {
                                 setOperadorMotivo(estatus);
+                                if (estatus !== 'OTRO') setOperadorMotivoOtro('');
                                 setOperadorMotivoDropdown(false);
                               }}
                             >
@@ -1623,6 +1639,25 @@ export default function UnitInfoPanel({
                             </button>
                           ))}
                         </div>
+                      )}
+
+                      {operadorMotivo === 'OTRO' && (
+                        <input
+                          type="text"
+                          placeholder="Especifique el motivo..."
+                          value={operadorMotivoOtro}
+                          onChange={(e) => setOperadorMotivoOtro(e.target.value.toUpperCase())}
+                          style={{
+                            marginTop: '0.5rem',
+                            width: '100%',
+                            padding: '0.75rem',
+                            borderRadius: '0.75rem',
+                            border: '1px solid #e5e7eb',
+                            fontSize: '0.9rem',
+                            color: '#0b162c',
+                            background: 'white'
+                          }}
+                        />
                       )}
                     </div>
                   </>
@@ -1668,7 +1703,7 @@ export default function UnitInfoPanel({
                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                         zIndex: 40
                       }}>
-                        {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO'].map((estatus) => (
+                        {['RESERVA', 'MANIOBRISTA', 'FALTA', 'PERMISO', 'ENFERMEDAD', 'OTRO'].map((estatus) => (
                           <button
                             key={estatus}
                             type="button"
@@ -1676,6 +1711,7 @@ export default function UnitInfoPanel({
                             style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platMotivo === estatus ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
                               setPlatMotivo(estatus);
+                              if (estatus !== 'OTRO') setPlatMotivoOtro('');
                               setPlatMotivoDropdown(false);
                             }}
                           >
@@ -1683,6 +1719,25 @@ export default function UnitInfoPanel({
                           </button>
                         ))}
                       </div>
+                    )}
+
+                    {platMotivo === 'OTRO' && (
+                      <input
+                        type="text"
+                        placeholder="Especifique el motivo..."
+                        value={platMotivoOtro}
+                        onChange={(e) => setPlatMotivoOtro(e.target.value.toUpperCase())}
+                        style={{
+                          marginTop: '0.5rem',
+                          width: '100%',
+                          padding: '0.75rem',
+                          borderRadius: '0.75rem',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '0.9rem',
+                          color: '#0b162c',
+                          background: 'white'
+                        }}
+                      />
                     )}
                   </div>
                 )}
