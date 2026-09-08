@@ -86,15 +86,22 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [animating, setAnimating] = useState(false);
-  const { login, user, loading } = useContext(AuthContext);
+  const { login, logout, user, loading } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Redirección automática si ya hay sesión
+  // Redirección automática si ya hay sesión o logout forzado por parámetro
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('logout') === 'true' || params.get('clear') === '1') {
+      logout();
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+
     if (!loading && user) {
       navigate(getDefaultRoute(user));
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, logout]);
 
   const handleLogin = async (e) => {
     e.preventDefault();

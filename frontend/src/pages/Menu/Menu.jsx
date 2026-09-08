@@ -217,19 +217,7 @@ const menuItems = [
 
 export default function Menu() {
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
-
-  useEffect(() => {
-    if (!user) return;
-    
-    const rol = user.role?.codigo;
-    const modulos = user.modulos || [];
-    
-    // Si no es admin/lectura y no tiene modulos, kick
-    if (rol !== 'ADMINISTRADOR' && rol !== 'LECTURA' && modulos.length === 0) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+  const { user, logout } = useContext(AuthContext);
 
   if (!user) return null;
 
@@ -280,30 +268,71 @@ export default function Menu() {
           </h2>
         </div>
 
-        <div className="menu-dashboard-grid">
-          {visibleMenuItems.map((item) => (
+        {visibleMenuItems.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '3rem 2rem',
+            background: 'white',
+            borderRadius: '1.25rem',
+            maxWidth: '520px',
+            margin: '2rem auto',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>⚠️</div>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem' }}>
+              Sin módulos asignados
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: '1.6' }}>
+              El usuario <strong>{user?.nombre_completo || user?.usuario}</strong> no tiene módulos ni permisos asignados en el sistema actualmente.
+              <br />
+              Por favor contacta al administrador o ingresa con otra cuenta.
+            </p>
             <button
-              key={item.id}
-              className={`dashboard-card dashboard-card--${item.color}`}
-              onClick={() => handleClick(item)}
+              type="button"
+              onClick={logout}
+              style={{
+                background: '#6b1d33',
+                color: 'white',
+                padding: '0.85rem 2rem',
+                borderRadius: '0.75rem',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(107, 29, 51, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
             >
-              <div className="dashboard-card__icon" aria-hidden="true">
-                {item.icon}
-              </div>
-              <div className="dashboard-card__body">
-                <span className="dashboard-card__label">{item.label}</span>
-                {item.description && (
-                  <span className="dashboard-card__desc">{item.description}</span>
-                )}
-              </div>
-              <div className="dashboard-card__arrow" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </div>
+              Cerrar Sesión / Cambiar de Usuario
             </button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="menu-dashboard-grid">
+            {visibleMenuItems.map((item) => (
+              <button
+                key={item.id}
+                className={`dashboard-card dashboard-card--${item.color}`}
+                onClick={() => handleClick(item)}
+              >
+                <div className="dashboard-card__icon" aria-hidden="true">
+                  {item.icon}
+                </div>
+                <div className="dashboard-card__body">
+                  <span className="dashboard-card__label">{item.label}</span>
+                  {item.description && (
+                    <span className="dashboard-card__desc">{item.description}</span>
+                  )}
+                </div>
+                <div className="dashboard-card__arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

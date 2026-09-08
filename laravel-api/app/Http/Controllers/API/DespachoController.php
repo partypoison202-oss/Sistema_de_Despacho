@@ -394,7 +394,6 @@ class DespachoController extends Controller
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
         try {
-            \Log::info('[obtenerDetalleUnidad] Inicio', ['tipo' => $tipo, 'eco' => $numeroEco]);
             $tipoNormalizado = strtolower(trim($tipo));
 
             $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
@@ -492,8 +491,6 @@ class DespachoController extends Controller
             }
         }
 
-        \Log::info('[obtenerDetalleUnidad] Fin', ['info' => (array)$info]);
-
         return response()->json(
             $info ? [
                 'status'    => 'success',
@@ -556,7 +553,9 @@ class DespachoController extends Controller
             200
         );
         } catch (\Throwable $e) {
-            \Log::error('[obtenerDetalleUnidad] Error 500: ' . $e->getMessage() . ' en la linea ' . $e->getLine());
+            try {
+                \Log::error('[obtenerDetalleUnidad] Error 500: ' . $e->getMessage() . ' en la linea ' . $e->getLine());
+            } catch (\Throwable $logEx) {}
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error 500: ' . $e->getMessage(),

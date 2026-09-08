@@ -88,6 +88,14 @@ echo -e "${BLUE}🛠️ 5.5. Ejecutando reparador interno de base de datos...${N
 echo -e "${BLUE}🗄️ 6. Ejecutando migraciones de base de datos (solo nuevas tablas/cambios)...${NC}"
 "$PHP_BIN" artisan migrate --force
 
+# Paso 6.5: Garantizar permisos y propiedad post-artisan en storage y logs
+echo -e "${BLUE}🔐 6.5. Asegurando permisos post-artisan en storage y logs...${NC}"
+mkdir -p storage/logs
+touch storage/logs/laravel.log
+chmod -R 777 storage bootstrap/cache
+chmod 666 storage/logs/laravel.log 2>/dev/null || chmod 777 storage/logs/laravel.log 2>/dev/null || true
+chown -R nginx:nginx storage bootstrap/cache 2>/dev/null || chown -R apache:apache storage bootstrap/cache 2>/dev/null || chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
 cd ..
 
 # Paso 7: Reinicio del servicio web Nginx
