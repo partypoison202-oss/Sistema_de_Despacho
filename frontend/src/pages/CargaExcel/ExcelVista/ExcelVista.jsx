@@ -508,7 +508,7 @@ export default function ExcelPreview({
                         const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
 
                         const filteredDrivers = (catalogConductores || []).filter(c => {
-                          if (isTroncal && String(c.tipo_tarjeton).toUpperCase() !== 'C') return false;
+                          // if (isTroncal && String(c.tipo_tarjeton).toUpperCase() !== 'C') return false;
 
                           return String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
                             String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
