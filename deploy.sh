@@ -78,7 +78,7 @@ echo -e "${BLUE}🧹 4. Limpiando caché de Laravel...${NC}"
 
 # Paso 5: Asignación de permisos en storage y bootstrap/cache ANTES de ejecutar artisan
 echo -e "${BLUE}🔐 5. Asignando permisos críticos a storage y bootstrap/cache...${NC}"
-chmod -R 775 storage bootstrap/cache
+chmod -R 777 storage bootstrap/cache
 
 # Paso 5.5: Corregir permisos estructurales y columnas de mantenimiento
 echo -e "${BLUE}🛠️ 5.5. Ejecutando reparador interno de base de datos...${NC}"
