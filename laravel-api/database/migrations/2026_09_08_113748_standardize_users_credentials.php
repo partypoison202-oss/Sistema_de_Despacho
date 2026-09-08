@@ -59,7 +59,7 @@ return new class extends Migration
                 'nombre_completo' => $u['nombre_completo'],
                 'usuario' => $u['usuario'],
                 'contrasena' => Hash::make($u['contrasena']),
-                'updated_at' => now(),
+                'fecha_actualizacion' => now(),
             ]);
         }
     }
