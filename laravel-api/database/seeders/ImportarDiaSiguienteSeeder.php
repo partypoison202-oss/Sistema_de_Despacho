@@ -182,7 +182,7 @@ CSV;
             $numero_economico = trim($data[0] ?? '');
             if (!$numero_economico) continue;
 
-            $unidad = DB::table('unidades')->where('numero_economico', $numero_economico)->first();
+            $unidad = DB::table('unidades')->where('numero_eco', $numero_economico)->first();
             
             if ($unidad) {
                 $corridasStr = trim($data[9] ?? '');
