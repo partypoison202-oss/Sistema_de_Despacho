@@ -191,7 +191,7 @@ export default function DetalleUnidad() {
       display: formatearEco(u.numero_eco),
       estado: String(u.estatus ?? 'operacion').trim().toLowerCase(),
       ruta: String(u.ruta ?? '').trim(),
-      acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
+      acople: String(u.acople ?? '').trim(),
       horaSalida: String(u.hora_salida ?? '').trim(),
       horaProgramada: String(u.hora_programada ?? '').trim(),
     }));
@@ -250,7 +250,7 @@ export default function DetalleUnidad() {
         display: formatearEco(u.numero_eco ?? u.eco),
         estado: u.estatus || u.estado || 'operacion',
         horaProgramada: String(u.hora_programada ?? '').trim(),
-        acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
+        acople: String(u.acople ?? '').trim(),
         horaSalida: String(u.hora_salida ?? '').trim(),
       })).sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
     },

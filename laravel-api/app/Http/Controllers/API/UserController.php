@@ -34,12 +34,12 @@ class UserController extends Controller
     {
         $request->validate([
             'nombre_completo' => 'required|string|max:150',
-            'usuario' => ['required', 'string', 'max:50', 'unique:usuarios', 'regex:/^[a-zA-Z0-9_.]+$/'],
+            'usuario' => ['required', 'string', 'max:50', 'unique:usuarios', 'regex:/^[a-zA-Z0-9_.ñÑ]+$/'],
             'contrasena' => ['required', 'string', 'min:6', 'regex:/^[\x20-\x7E]+$/'],
             'rol_id' => 'required|integer|exists:roles,id',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ], [
-            'usuario.regex' => 'El usuario no debe contener acentos ni caracteres especiales.',
+            'usuario.regex' => 'El usuario solo puede contener letras, números, puntos, guiones bajos y la letra ñ.',
             'contrasena.regex' => 'La contraseña no debe contener acentos.'
         ]);
 
@@ -65,13 +65,13 @@ class UserController extends Controller
 
         $request->validate([
             'nombre_completo' => 'sometimes|string|max:150',
-            'usuario' => ['sometimes', 'string', 'max:50', 'unique:usuarios,usuario,'.$id, 'regex:/^[a-zA-Z0-9_.]+$/'],
+            'usuario' => ['sometimes', 'string', 'max:50', 'unique:usuarios,usuario,'.$id, 'regex:/^[a-zA-Z0-9_.ñÑ]+$/'],
             'contrasena' => ['nullable', 'string', 'min:6', 'regex:/^[\x20-\x7E]+$/'],
             'rol_id' => 'sometimes|integer|exists:roles,id',
             'activo' => 'sometimes|boolean',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ], [
-            'usuario.regex' => 'El usuario no debe contener acentos ni caracteres especiales.',
+            'usuario.regex' => 'El usuario solo puede contener letras, números, puntos, guiones bajos y la letra ñ.',
             'contrasena.regex' => 'La contraseña no debe contener acentos.'
         ]);
 

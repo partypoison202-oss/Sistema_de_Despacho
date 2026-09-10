@@ -151,19 +151,7 @@ export default function UnitInfoPanel({
     setSalidaCongelada(datosOperativos.horaSalida || null);
   }, [datosOperativos.horaSalida, selectedOption]);
 
-  const calculateAcople = (timeStr) => {
-    if (!timeStr) return '--:--';
-    const [hStr, mStr] = timeStr.split(':');
-    const h = parseInt(hStr, 10);
-    const m = parseInt(mStr, 10);
-    if (isNaN(h) || isNaN(m)) return '--:--';
-    const totalMins = h * 60 + m + 30;
-    const newH = Math.floor(totalMins / 60) % 24;
-    const newM = totalMins % 60;
-    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
-  };
-
-  const calculatedAcople = calculateAcople(formHoraProgramada);
+  const calculatedAcople = (datosOperativos && datosOperativos.acople) ? datosOperativos.acople : '--:--';
 
 
   const [rutasOpciones, setRutasOpciones] = useState([]);

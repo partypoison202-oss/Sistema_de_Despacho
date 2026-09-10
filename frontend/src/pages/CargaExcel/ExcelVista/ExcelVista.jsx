@@ -10,18 +10,101 @@ const HEADER_TRANSLATIONS = {
   ECONOMICO: 'Económico',
   TARJETON: 'Tarjetón',
   NOMBRE_CONDUCTOR: 'Conductor',
-  HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
   RELEVO_TARJETON: 'Tarjetón Relevo',
   RELEVO_CONDUCTOR: 'Conductor Relevo',
   RELEVO_HORA: 'Hora Relevo',
   TARJETON_MANIOBRISTA: 'Tarjetón Maniobrista',
   NOMBRE_MANIOBRISTA: 'Maniobrista',
   ESTATUS: 'Estatus',
-  HORA_DE_ACOPLE: 'HORA DE ENTRADA PROGRAMADA',
-  ACOPLE: 'HORA DE ACOPLE',
-  HORA_SALIDA: 'HORA DE SALIDA',
+  HORA_DE_ACOPLE: 'HORA PROGRAMADA',   // mismo nombre que Despacho -> campo hora_programada en BD
+  ACOPLE: 'HORA DE ACOPLE',            // campo acople en BD
   CORRIDAS: 'Corrida',
   PATIO_NORTE: 'Patio Norte',
+};
+
+const SmartTimeInput = ({ value, onChange, disabled }) => {
+  const [internalValue, setInternalValue] = useState(value || '');
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setInternalValue(value || '');
+    }
+  }, [value, isFocused]);
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    let cleaned = internalValue.replace(/[^\d:]/g, '');
+    
+    // Si borraron todo
+    if (!cleaned || cleaned === ':') {
+      onChange('');
+      setInternalValue('');
+      return;
+    }
+
+    // Auto formateo inteligente
+    if (!cleaned.includes(':')) {
+      if (cleaned.length === 1 || cleaned.length === 2) {
+        cleaned = `${cleaned.padStart(2, '0')}:00`;
+      } else if (cleaned.length === 3) {
+        cleaned = `0${cleaned.slice(0,1)}:${cleaned.slice(1,3)}`;
+      } else if (cleaned.length >= 4) {
+        cleaned = `${cleaned.slice(0,2)}:${cleaned.slice(2,4)}`;
+      }
+    }
+
+    // Asegurar validacion de horas reales
+    const parts = cleaned.split(':');
+    let h = parseInt(parts[0], 10) || 0;
+    let m = parseInt(parts[1], 10) || 0;
+    
+    if (h > 23) h = 23;
+    if (m > 59) m = 59;
+
+    const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    setInternalValue(formatted);
+    onChange(formatted);
+  };
+
+  return (
+    <input
+      type="text"
+      value={internalValue}
+      disabled={disabled}
+      placeholder="--:--"
+      onFocus={(e) => {
+        setIsFocused(true);
+        e.target.select();
+      }}
+      onBlur={handleBlur}
+      onChange={(e) => setInternalValue(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.target.blur();
+      }}
+      style={{
+        textAlign: 'center',
+        height: '42px',
+        width: '100%',
+        maxWidth: '120px',
+        margin: '0 auto',
+        fontWeight: '700',
+        borderRadius: '10px',
+        cursor: disabled ? 'not-allowed' : 'text',
+        opacity: disabled ? 0.6 : 1,
+        padding: '0 4px',
+        border: isFocused ? '2px solid #8B1A2F' : '1px solid #d1d5db',
+        background: isFocused ? '#fff' : '#f3f4f6',
+        display: 'block',
+        color: '#111827',
+        fontSize: '0.95rem',
+        outline: 'none',
+        boxSizing: 'border-box',
+        transition: 'all 0.2s ease',
+        boxShadow: isFocused ? '0 4px 6px -1px rgba(139, 26, 47, 0.1)' : 'none'
+      }}
+    />
+  );
 };
 
 const EXCLUDED_KEYS = ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS', 'HORA_PROGRAMADA'];
@@ -59,7 +142,9 @@ export default function ExcelPreview({
 
   // Las cabeceras del editor directo, filtradas por departamento
   const baseHeaders = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS'];
-  const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_PROGRAMADA', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_SALIDA'];
+  // HORA_PROGRAMADA fue eliminada — era duplicado de HORA_DE_ACOPLE (mismo campo en BD: hora_programada)
+  // HORA_SALIDA fue eliminada — la registra Despacho en tiempo real, no se programa aquí
+  const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE'];
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE'];
 
@@ -315,70 +400,17 @@ export default function ExcelPreview({
                       }
 
                       if (h === 'HORA_DE_ACOPLE' || h === 'HORA_PROGRAMADA' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'RELEVO_HORA') {
-                        const isOpen = activeTimePickerRow === originalIndex && activeTimePickerField === h;
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                if (!isOpen) {
-                                  handleOpenTimePicker(e, originalIndex, h, fila[h]);
-                                } else {
-                                  setActiveTimePickerRow(null);
-                                  setActiveTimePickerField(null);
-                                }
-                              }}
-                              disabled={isRowDisabled}
-                              className={`edit-input dropdown-trigger ${isOpen ? 'active-trigger' : ''}`}
-                              style={{
-                                textAlign: 'center',
-                                height: '52px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '80px',
-                                margin: '0 auto',
-                                fontWeight: '600',
-                                borderRadius: '14px',
-                                cursor: isRowDisabled ? 'not-allowed' : 'pointer',
-                                opacity: isRowDisabled ? 0.6 : 1
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', gap: '4px' }}>
-                                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{fila[h] || '00:00'}</span>
-                              </div>
-                            </button>
-                            {isOpen && createPortal(
-                              <>
-                                <div
-                                  style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
-                                  onClick={(e) => { e.stopPropagation(); setActiveTimePickerRow(null); setActiveTimePickerField(null); }}
-                                />
-                                <div className="ios-time-picker-popover" style={{
-                                  position: 'fixed',
-                                  top: dropdownCoords.openUp ? 'auto' : `${dropdownCoords.top}px`,
-                                  bottom: dropdownCoords.openUp ? `${window.innerHeight - dropdownCoords.top}px` : 'auto',
-                                  left: `${dropdownCoords.left}px`,
-                                  transform: 'translateX(-50%)',
-                                  zIndex: 9999,
-                                  width: '220px',
-                                  marginBottom: dropdownCoords.openUp ? '0.4rem' : '0',
-                                  marginTop: dropdownCoords.openUp ? '0' : '0.4rem'
-                                }}>
-                                  <IOSTimePicker
-                                    value={tempTime}
-                                    onChange={setTempTime}
-                                    onClose={() => { setActiveTimePickerRow(null); setActiveTimePickerField(null); }}
-                                    onSave={async (finalTime) => {
-                                      onUpdate && onUpdate(originalIndex, h, finalTime);
-                                      setActiveTimePickerRow(null);
-                                      setActiveTimePickerField(null);
-                                    }}
-                                  />
-                                </div>
-                              </>,
-                              document.body
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '0.2rem' }}>
+                              <SmartTimeInput
+                                value={fila[h]}
+                                disabled={isRowDisabled}
+                                onChange={(val) => {
+                                  onUpdate && onUpdate(originalIndex, h, val);
+                                }}
+                              />
+                            </div>
                           </td>
                         );
                       }
@@ -919,7 +951,13 @@ export default function ExcelPreview({
                                   opacity: isRowDisabled ? 0.6 : 1,
                                   width: h === 'CORRIDAS' ? '3.5rem' : '100%',
                                   margin: h === 'CORRIDAS' ? '0 auto' : '0',
-                                  textAlign: h === 'CORRIDAS' ? 'center' : 'left'
+                                  textAlign: h === 'CORRIDAS' ? 'center' : 'left',
+                                  border: '1px solid #d1d5db',
+                                  background: '#f3f4f6',
+                                  borderRadius: '10px',
+                                  height: '42px',
+                                  color: '#111827',
+                                  outline: 'none',
                                 }}
                               />
                             </div>

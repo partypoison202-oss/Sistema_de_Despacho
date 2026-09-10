@@ -17,7 +17,8 @@ export default function Usuarios() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
-    nombre_completo: '',
+    nombres: '',
+    apellidos: '',
     usuario: '',
     contrasena: '',
     rol_id: '',
@@ -88,9 +89,26 @@ export default function Usuarios() {
   // Manejar apertura del modal (edición o creación)
   const handleOpenModal = (user = null) => {
     if (user) {
+      const parts = user.nombre_completo ? user.nombre_completo.split(' ') : [];
+      let n = '';
+      let a = '';
+      if (parts.length >= 4) {
+        n = parts[0] + ' ' + parts[1];
+        a = parts.slice(2).join(' ');
+      } else if (parts.length === 3) {
+        n = parts[0];
+        a = parts[1] + ' ' + parts[2];
+      } else if (parts.length === 2) {
+        n = parts[0];
+        a = parts[1];
+      } else {
+        n = parts[0] || '';
+      }
+
       setFormData({
         id: user.id,
-        nombre_completo: user.nombre_completo,
+        nombres: n,
+        apellidos: a,
         usuario: user.usuario,
         contrasena: '', // No mostrar contraseña
         rol_id: user.rol_id,
@@ -105,7 +123,8 @@ export default function Usuarios() {
     } else {
       setFormData({
         id: null,
-        nombre_completo: '',
+        nombres: '',
+    apellidos: '',
         usuario: '',
         contrasena: '',
         rol_id: '',
@@ -179,10 +198,90 @@ export default function Usuarios() {
   };
 
   const handleUsernameChange = (e) => {
-    // Preservar exactamente el texto tal como lo escribe el usuario
-    const val = e.target.value;
+    // Permitir letras (incluyendo ñ), números, puntos y guiones bajos. Filtrar caracteres especiales.
+    const val = e.target.value.replace(/[^a-zA-Z0-9_.ñÑ]/g, '');
     setFormData({ ...formData, usuario: val });
   };
+
+  // Auto-generar usuario y contraseña al crear
+  useEffect(() => {
+    if (!formData.id) {
+      if (!formData.nombres && !formData.apellidos) {
+        setFormData(prev => ({
+          ...prev,
+          usuario: '',
+          contrasena: ''
+        }));
+        return;
+      }
+
+      const nom = formData.nombres.trim().split(/\s+/)[0] || '';
+      const ape = formData.apellidos.trim().split(/\s+/)[0] || '';
+      
+      if (nom || ape) {
+        // 1. Generar Usuario: Nombre_Apellido
+        let autoUser = nom;
+        if (ape) autoUser += `_${ape}`;
+        
+        // Quitar acentos pero conservar la ñ/Ñ
+        autoUser = autoUser.replace(/[áäâà]/gi, 'a')
+                           .replace(/[éëêè]/gi, 'e')
+                           .replace(/[íïîì]/gi, 'i')
+                           .replace(/[óöôò]/gi, 'o')
+                           .replace(/[úüûù]/gi, 'u')
+                           .replace(/[^a-zA-Z0-9_.ñÑ]/g, '');
+                           
+        // 2. Generar Contraseña: Iniciales_Sufijo26
+        let initials = '';
+        const apellidosArr = formData.apellidos.trim().split(/\s+/).filter(w => w.length > 0);
+        const nombresArr = formData.nombres.trim().split(/\s+/).filter(w => w.length > 0);
+        
+        if (apellidosArr.length > 1 && nombresArr.length > 0) {
+          initials = (apellidosArr[0].charAt(0) + apellidosArr[1].charAt(0) + nombresArr[0].charAt(0)).toUpperCase();
+        } else if (apellidosArr.length === 1 && nombresArr.length > 0) {
+          initials = (apellidosArr[0].charAt(0) + nombresArr[0].charAt(0)).toUpperCase();
+        } else if (nombresArr.length > 0) {
+          initials = (nombresArr[0].charAt(0)).toUpperCase();
+        } else if (apellidosArr.length > 0) {
+          initials = (apellidosArr[0].charAt(0)).toUpperCase();
+        }
+        
+        initials = initials.replace(/[ÁÄÂÀ]/g, 'A')
+                           .replace(/[ÉËÊÈ]/g, 'E')
+                           .replace(/[ÍÏÎÌ]/g, 'I')
+                           .replace(/[ÓÖÔÒ]/g, 'O')
+                           .replace(/[ÚÜÛÙ]/g, 'U');
+
+        let suffix = 'GN';
+        if (formData.rol_id) {
+          const role = roles.find(r => r.id.toString() === formData.rol_id.toString());
+          if (role) {
+            const lower = role.nombre.toLowerCase();
+            if (lower === 'administrador') suffix = 'A';
+            else if (lower.includes('programaci')) suffix = 'PY';
+            else if (lower === 'centro de control') suffix = 'ME';
+            else if (lower === 'despacho') suffix = 'DD';
+            else if (lower === 'encierro') suffix = 'EN';
+            else if (lower.includes('gestor')) suffix = 'CD';
+            else if (lower === 'lectura') suffix = 'L';
+            else if (lower === 'mantenimiento') suffix = 'ME';
+            else if (lower === 'mesa de control') suffix = 'MC';
+            else if (lower.includes('infracci')) suffix = 'IN';
+            else if (lower === 'titan') suffix = 'T';
+            else if (lower.includes('combustible')) suffix = 'CC';
+          }
+        }
+
+        const autoPass = `${initials}_${suffix}26`;
+
+        setFormData(prev => ({
+          ...prev,
+          usuario: autoUser,
+          contrasena: autoPass
+        }));
+      }
+    }
+  }, [formData.nombres, formData.apellidos, formData.rol_id, formData.id, roles]);
 
   // Envío del formulario (con FormData)
   const handleSubmit = async (e) => {
@@ -381,7 +480,8 @@ export default function Usuarios() {
 
   // Validación del formulario
   const isFormValid =
-    formData.nombre_completo.trim() !== '' &&
+    formData.nombres.trim() !== '' &&
+    formData.apellidos.trim() !== '' &&
     formData.usuario.trim() !== '' &&
     formData.rol_id !== '' &&
     (formData.id || formData.contrasena.length >= 6);
@@ -556,20 +656,117 @@ export default function Usuarios() {
           <div className="modal-content">
             <h2>{formData.id ? 'Editar Usuario' : 'Crear Usuario'}</h2>
             <form onSubmit={handleSubmit}>
+              {/* Campo para foto de perfil centrado y arriba */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
+                <div 
+                  style={{ 
+                    width: '120px', 
+                    height: '120px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#f3f4f6', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    marginBottom: '1rem',
+                    border: '3px solid #e5e7eb',
+                    position: 'relative'
+                  }}
+                >
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Vista previa"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <svg style={{width: '60px', height: '60px', color: '#9ca3af'}} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  )}
+                </div>
+                
+                <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                  <button type="button" style={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #d1d5db', 
+                    padding: '0.5rem 1rem', 
+                    borderRadius: '0.5rem', 
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    color: '#374151',
+                    fontWeight: '500'
+                  }}>
+                    Subir foto de perfil
+                  </button>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleFileChange}
+                    disabled={isSubmitting}
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      opacity: 0,
+                      width: '100%',
+                      height: '100%',
+                      cursor: 'pointer'
+                    }}
+                  />
+                </div>
+                <span className="form-hint" style={{marginTop: '0.5rem', textAlign: 'center'}}>JPG, PNG, GIF, WEBP (máx. 2 MB)</span>
+              </div>
               <div className="form-group">
-                <label>Nombre Completo</label>
-                <input
-                  type="text"
-                  value={formData.nombre_completo}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nombre_completo: e.target.value })
-                  }
+                <label>Rol</label>
+                <select
+                  value={formData.rol_id}
+                  onChange={(e) => setFormData({ ...formData, rol_id: e.target.value })}
                   required
                   disabled={isSubmitting}
-                  placeholder="Ej. Juan Pérez"
-                />
-                <span className="form-hint">Nombre real del empleado.</span>
+                >
+                  <option value="">Seleccione un rol</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {formatRoleName(role.nombre)}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <div className="form-group-row" style={{ display: 'flex', gap: '1rem', marginBottom: '0.2rem' }}>
+                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <label>Nombre(s)</label>
+                  <input
+                    type="text"
+                    value={formData.nombres}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nombres: e.target.value })
+                    }
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Ej. Juan"
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                  <label>Apellido(s)</label>
+                  <input
+                    type="text"
+                    value={formData.apellidos}
+                    onChange={(e) =>
+                      setFormData({ ...formData, apellidos: e.target.value })
+                    }
+                    required
+                    disabled={isSubmitting}
+                    placeholder="Ej. Pérez Gómez"
+                  />
+                </div>
+              </div>
+              <span className="form-hint" style={{display: 'block', marginBottom: '1.5rem', marginTop: '0.5rem'}}>Nombre real del empleado.</span>
 
               <div className="form-group">
                 <label>Nombre de Usuario</label>
@@ -578,12 +775,16 @@ export default function Usuarios() {
                   value={formData.usuario}
                   onChange={handleUsernameChange}
                   required
-                  disabled={isSubmitting}
-                  placeholder="Ej. juanperez"
+                  disabled={!formData.id || isSubmitting}
+                  readOnly={!formData.id}
+                  placeholder="Ej. juan_perez"
                   autoComplete="username"
+                  style={!formData.id ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: '#666' } : {}}
                 />
                 <span className="form-hint">
-                  Se usará para iniciar sesión. Sin espacios y en minúsculas.
+                  {!formData.id 
+                    ? "Generado automáticamente (Bloqueado)." 
+                    : "Se usará para iniciar sesión. Sin espacios."}
                 </span>
               </div>
 
@@ -591,18 +792,20 @@ export default function Usuarios() {
                 <label>Contraseña {formData.id && '(Opcional para mantener la actual)'}</label>
                 <div className="password-input-wrapper">
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword || !formData.id ? 'text' : 'password'}
                     value={formData.contrasena}
                     onChange={(e) =>
                       setFormData({ ...formData, contrasena: e.target.value })
                     }
                     required={!formData.id}
-                    disabled={isSubmitting}
+                    disabled={!formData.id || isSubmitting}
+                    readOnly={!formData.id}
                     placeholder={
-                      formData.id ? 'Nueva contraseña (opcional)' : 'Mínimo 6 caracteres'
+                      formData.id ? 'Nueva contraseña (opcional)' : 'Generando contraseña...'
                     }
                     autoComplete="new-password"
                     minLength={6}
+                    style={!formData.id ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: '#666' } : {}}
                   />
                   <button
                     type="button"
@@ -658,48 +861,8 @@ export default function Usuarios() {
                 </span>
               </div>
 
-              <div className="form-group">
-                <label>Rol</label>
-                <select
-                  value={formData.rol_id}
-                  onChange={(e) => setFormData({ ...formData, rol_id: e.target.value })}
-                  required
-                  disabled={isSubmitting}
-                >
-                  <option value="">Seleccione un rol</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {formatRoleName(role.nombre)}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              {/* Campo para foto de perfil */}
-              <div className="form-group">
-                <label>Foto de perfil</label>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handleFileChange}
-                  disabled={isSubmitting}
-                />
-                {previewUrl && (
-                  <div style={{ marginTop: '0.5rem' }}>
-                    <img
-                      src={previewUrl}
-                      alt="Vista previa"
-                      style={{
-                        maxWidth: '100px',
-                        maxHeight: '100px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  </div>
-                )}
-                <span className="form-hint">Formatos: JPG, PNG, GIF, WEBP (máx. 2 MB)</span>
-              </div>
+
 
               <div className="modal-actions">
                 <button
