@@ -56,6 +56,14 @@ class BitacoraHelper
                             $item['nombre_maniobrista'] = $registro->nombre_maniobrista ?? null;
                         }
 
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople')) {
+                            $item['acople'] = $registro->acople ?? null;
+                        }
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida')) {
+                            $item['hora_salida'] = $registro->hora_salida ?? null;
+                        }
+
                         return $item;
                     })->toArray();
 
