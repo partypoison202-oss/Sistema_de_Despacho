@@ -352,9 +352,8 @@ export default function DetalleUnidadEncierro() {
       // Si ya fue encerrada HOY, la mantenemos (para mostrar en "Unidades Encerradas")
       if (u.yaEncerrada) return true;
 
-      // Cualquier unidad con hora_salida puede encerrarse, sin importar su estatus actual
-      // (puede haber sufrido un percance o mantenimiento durante la ruta)
-      return true;
+      // Las unidades pendientes de encierro deben estar en operación activa (no desincorporadas/en mantenimiento)
+      return u.estado === 'operacion';
     });
   };
 
@@ -403,7 +402,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedRuta);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '';
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '' && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedRuta]);
   const unidadesPorTroncalList = useMemo(() => {
@@ -411,7 +410,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '';
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '' && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedTroncal]);
   const cargandoUnidadesPorRuta = false;
@@ -428,7 +427,7 @@ export default function DetalleUnidadEncierro() {
     setOpenDropdown(null);
   };
   const totalProgramadasOperacion = useMemo(() => {
-    let total = [...unidadesList];
+    let total = unidadesList.filter((u) => u.estado === 'operacion' || u.yaEncerrada);
     if (selectedRuta && esAlimentadora) {
       const ecos = unidadesPorRutaList.map(u => u.eco);
       total = total.filter(u => ecos.includes(u.eco));
@@ -442,9 +441,8 @@ export default function DetalleUnidadEncierro() {
 
 
   const unidadesPorEstado = (estado) => {
-    // En encierro, mostramos todas las unidades despachadas (con hora_salida) 
-    // sin importar su estatus actual (operacion, mantenimiento, etc.)
-    let filtradas = [...unidadesList];
+    // En encierro, el dropdown de Operación muestra las unidades en operación que están pendientes de encierro
+    let filtradas = unidadesList.filter((u) => u.estado === 'operacion' && !u.yaEncerrada);
 
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);

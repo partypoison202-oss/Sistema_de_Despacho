@@ -200,6 +200,7 @@ class DespachoController extends Controller
 
         $conteos = DB::table('informacion_operativa')
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
+            ->whereRaw("LOWER(estatus) = 'operacion'")
             ->whereNotNull('hora_salida')
             ->whereRaw("TRIM(hora_salida) != ''")
             ->whereNotExists(function ($query) use ($hoy) {
@@ -2180,7 +2181,6 @@ class DespachoController extends Controller
             if ($unidadReemplazo) {
                 $conductorReemplazo = DB::table('conductores')->where('tarjeton', $tarjetonReemplazo)->first();
                 $nombreConductorReemplazo = $conductorReemplazo ? trim(($conductorReemplazo->nombres ?? '') . ' ' . ($conductorReemplazo->apellidos ?? '')) : null;
-                $nombreConductorReemplazo = $conductorReemplazo ? trim(($conductorReemplazo->nombres ?? '') . ' ' . ($conductorReemplazo->apellidos ?? '')) : null;
 
                 // Desasignar cualquier otra unidad que tenga este tarjetón
                 if ($tarjetonReemplazo) {
@@ -2201,12 +2201,18 @@ class DespachoController extends Controller
                     ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
                     ->first();
 
+                // La unidad de reemplazo entra en operación activa y hereda la hora_salida (o la hora actual)
+                $horaSalidaParaReemplazo = !empty($registroOperativo->hora_salida)
+                    ? $registroOperativo->hora_salida
+                    : date('H:i:s');
+
                 $reemplazoData = [
                     'estatus' => 'operacion',
                     'numero_tarjeton' => $tarjetonReemplazo,
                     'nombre_conductor' => $nombreConductorReemplazo,
                     'ruta' => $rutaReemplazo,
                     'corridas' => $corridaReemplazo === '' ? null : (int)$corridaReemplazo,
+                    'hora_salida' => $horaSalidaParaReemplazo,
                     'motivo_estatus' => null,
                     'falla' => null
                 ];
@@ -2221,6 +2227,30 @@ class DespachoController extends Controller
                     $reemplazoData['fecha_registro'] = now();
                     DB::table('informacion_operativa')->insert($reemplazoData);
                 }
+
+                // A la unidad saliente (reemplazada) le quitamos hora_salida para que no figure en encierro pendiente
+                DB::table('informacion_operativa')
+                    ->where('id', $registroOperativo->id)
+                    ->update(['hora_salida' => null]);
+
+                // Registrar en historial_operativo que la unidad original fue desincorporada/encerrada por reemplazo
+                $horaEncierroSaliente = date('H:i:s');
+                DB::table('historial_operativo')->insert([
+                    'unidad_id' => $unidad->id,
+                    'ruta' => $registroOperativo->ruta,
+                    'numero_tarjeton' => $registroOperativo->numero_tarjeton,
+                    'nombre_conductor' => $registroOperativo->nombre_conductor,
+                    'corridas' => $registroOperativo->corridas,
+                    'tipo' => $registroOperativo->tipo,
+                    'estatus' => $nuevoEstatus,
+                    'motivo_estatus' => "DESINCORPORADA / REEMPLAZADA POR ECO " . $ecoReemplazo . ($motivoEstatus ? " - " . $motivoEstatus : ""),
+                    'momento' => 'ENCIERRO',
+                    'hora_encierro' => $horaEncierroSaliente,
+                    'fecha_historial' => date('Y-m-d'),
+                    'fecha_registro' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
 
                 BitacoraHelper::registrarCambio(
                     $unidadReemplazo->id,
@@ -2237,7 +2267,7 @@ class DespachoController extends Controller
         }
 
         $horaEncierro = null;
-        if (($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento') && !empty($registroOperativo->hora_salida)) {
+        if (!$cambioUnidadActivo && ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance') && !empty($registroOperativo->hora_salida)) {
             $horaEncierro = date('H:i:s');
             DB::table('historial_operativo')->insert([
                 'unidad_id' => $unidad->id,
@@ -2255,6 +2285,11 @@ class DespachoController extends Controller
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            // Limpiamos hora_salida en informacion_operativa para que no figure despachada activa
+            DB::table('informacion_operativa')
+                ->where('id', $registroOperativo->id)
+                ->update(['hora_salida' => null]);
         }
 
         return response()->json([
@@ -2623,8 +2658,20 @@ class DespachoController extends Controller
             $informacion = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
             $transportes = DB::table('transportes')->get()->keyBy('id');
 
+            // Cargar historial de mantenimiento con kilometraje/odometro para calcular rendimiento
+            $historialPorUnidad = DB::table('historial_mantenimiento')
+                ->where(function($q) {
+                    $q->whereNotNull('kilometraje')->orWhereNotNull('odometro');
+                })
+                ->orderBy('id', 'desc')
+                ->get()
+                ->groupBy('unidad_id');
+
             $reporte = [];
             $tipos = ['urbanuss', 'zafiro', 'urvan', 'orion'];
+
+            $totalesKm = 0;
+            $totalesLitrosKm = 0;
 
             foreach ($tipos as $tipo) {
                 $unidadesTipo = $unidades->filter(function($u) use ($tipo, $transportes) {
@@ -2646,6 +2693,52 @@ class DespachoController extends Controller
                 $litrosTotal = $unidadesCargaron->sum('litros_combustible');
                 
                 $porcentaje = $parque > 0 ? round(($cargaronCount / $parque) * 100) : 0;
+
+                // Cálculo de Rendimiento (km/L)
+                $kmDeltaTipo = 0;
+                $litrosDeltaTipo = 0;
+
+                foreach ($unidadesCargaron as $u) {
+                    $litrosU = floatval($u->litros_combustible);
+                    if ($litrosU <= 0) continue;
+
+                    $records = $historialPorUnidad->get($u->id);
+                    if ($records && $records->count() >= 2) {
+                        $curr = $records->first();
+                        $prev = $records->skip(1)->first();
+
+                        $currKm = floatval($curr->kilometraje ?: $curr->odometro);
+                        $prevKm = floatval($prev->kilometraje ?: $prev->odometro);
+
+                        if ($currKm > $prevKm && $prevKm > 0) {
+                            $diff = $currKm - $prevKm;
+                            if ($diff > 0 && $diff <= 2500) {
+                                $kmDeltaTipo += $diff;
+                                $litrosDeltaTipo += $litrosU;
+                            }
+                        } elseif ($currKm > 0 && $currKm <= 800) {
+                            $kmDeltaTipo += $currKm;
+                            $litrosDeltaTipo += $litrosU;
+                        }
+                    } elseif ($records && $records->count() === 1) {
+                        $curr = $records->first();
+                        $currKm = floatval($curr->kilometraje ?: $curr->odometro);
+                        if ($currKm > 0 && $currKm <= 800) {
+                            $kmDeltaTipo += $currKm;
+                            $litrosDeltaTipo += $litrosU;
+                        }
+                    } else {
+                        $currKm = floatval($u->kilometraje ?: $u->odometro);
+                        if ($currKm > 0 && $currKm <= 800) {
+                            $kmDeltaTipo += $currKm;
+                            $litrosDeltaTipo += $litrosU;
+                        }
+                    }
+                }
+
+                $rendimiento = $litrosDeltaTipo > 0 ? round($kmDeltaTipo / $litrosDeltaTipo, 2) : null;
+                $totalesKm += $kmDeltaTipo;
+                $totalesLitrosKm += $litrosDeltaTipo;
                 
                 $motivo = '';
                 $obs = '';
@@ -2692,6 +2785,7 @@ class DespachoController extends Controller
                     'litros_cargados' => $litrosTotal,
                     'unidades_cargaron' => $cargaronCount,
                     'unidades_sin_cargar' => $sinCargarCount,
+                    'rendimiento' => $rendimiento,
                     'porcentaje' => $porcentaje,
                     'motivo_no_carga' => $motivo,
                     'observaciones' => $obs,
@@ -2703,6 +2797,7 @@ class DespachoController extends Controller
                 'litros_totales' => collect($reporte)->sum('litros_cargados'),
                 'unidades_cargaron' => collect($reporte)->sum('unidades_cargaron'),
                 'unidades_sin_cargar' => collect($reporte)->sum('unidades_sin_cargar'),
+                'rendimiento' => $totalesLitrosKm > 0 ? round($totalesKm / $totalesLitrosKm, 2) : null,
             ];
             $parqueTotal = collect($reporte)->sum('parque');
             $totales['porcentaje'] = $parqueTotal > 0 ? round(($totales['unidades_cargaron'] / $parqueTotal) * 100) : 0;
@@ -3015,6 +3110,178 @@ class DespachoController extends Controller
                 'status'  => 'error',
                 'message' => 'Error al consultar monitoreo de conductores',
                 'detalle' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtiene la programación inicial (Apertura de las 04:30 AM) para Mesa de Control.
+     * Retorna el snapshot congelado de historial_operativo con momento = 'INICIO'.
+     */
+    public function obtenerProgramacionApertura($tipo)
+    {
+        try {
+            $tipoNormalizado = strtolower(trim($tipo));
+            $hoy = Carbon::today()->toDateString();
+
+            // 1. Asegurar snapshot de inicio si no existe aún para el día
+            BitacoraHelper::ensureInicioSnapshot();
+
+            // 2. Definir columnas defensivas
+            $columns = [
+                'unidades.id as unidad_id',
+                'unidades.numero_eco',
+                'historial_operativo.tipo',
+                'historial_operativo.ruta',
+                'historial_operativo.corridas',
+                'historial_operativo.ciclo',
+                'historial_operativo.numero_tarjeton as tarjeton',
+                'historial_operativo.nombre_conductor',
+                'historial_operativo.estatus',
+                'historial_operativo.falla',
+                'historial_operativo.motivo',
+                'historial_operativo.motivo_estatus'
+            ];
+
+            $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
+            if ($hasManiobrista) {
+                $columns[] = 'historial_operativo.tarjeton_maniobrista';
+                $columns[] = 'historial_operativo.nombre_maniobrista';
+            }
+
+            $hasHoraProg = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_programada');
+            if ($hasHoraProg) {
+                $columns[] = 'historial_operativo.hora_programada';
+            }
+
+            $hasAcople = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople');
+            if ($hasAcople) {
+                $columns[] = 'historial_operativo.acople';
+            }
+
+            $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida');
+            if ($hasHoraSalida) {
+                $columns[] = 'historial_operativo.hora_salida';
+            }
+
+            // 3. Consultar snapshot INICIO de hoy
+            $query = DB::table('historial_operativo')
+                ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->where('historial_operativo.fecha_historial', $hoy)
+                ->where('historial_operativo.momento', 'INICIO')
+                ->select($columns);
+
+            if ($tipoNormalizado !== 'todos') {
+                if ($tipoNormalizado === 'urbanuss' || $tipoNormalizado === 'urbanus') {
+                    $query->whereIn(DB::raw('LOWER(historial_operativo.tipo)'), ['urbanuss', 'urbanus']);
+                } else {
+                    $query->whereRaw('LOWER(historial_operativo.tipo) = ?', [$tipoNormalizado]);
+                }
+            }
+
+            $registros = $query
+                ->orderBy('historial_operativo.tipo')
+                ->orderBy('unidades.numero_eco')
+                ->get();
+
+            // Si por alguna razón histórica no hubiera registros en historial_operativo para hoy,
+            // usamos la tabla informacion_operativa como fallback para que nunca quede vacío.
+            if ($registros->isEmpty()) {
+                $queryFallback = DB::table('informacion_operativa')
+                    ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                    ->select(
+                        'unidades.id as unidad_id',
+                        'unidades.numero_eco',
+                        'informacion_operativa.tipo',
+                        'informacion_operativa.ruta',
+                        'informacion_operativa.corridas',
+                        'informacion_operativa.ciclo',
+                        'informacion_operativa.numero_tarjeton as tarjeton',
+                        'informacion_operativa.nombre_conductor',
+                        'informacion_operativa.estatus',
+                        'informacion_operativa.falla',
+                        'informacion_operativa.motivo',
+                        'informacion_operativa.motivo_estatus',
+                        'informacion_operativa.tarjeton_maniobrista',
+                        'informacion_operativa.nombre_maniobrista',
+                        'informacion_operativa.hora_programada',
+                        'informacion_operativa.acople',
+                        'informacion_operativa.hora_salida'
+                    );
+
+                if ($tipoNormalizado !== 'todos') {
+                    if ($tipoNormalizado === 'urbanuss' || $tipoNormalizado === 'urbanus') {
+                        $queryFallback->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), ['urbanuss', 'urbanus']);
+                    } else {
+                        $queryFallback->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado]);
+                    }
+                }
+
+                $registros = $queryFallback
+                    ->orderBy('informacion_operativa.tipo')
+                    ->orderBy('unidades.numero_eco')
+                    ->get();
+            }
+
+            $kpis = [
+                'total_flota' => $registros->count(),
+                'total_operacion' => 0,
+                'total_reserva' => 0,
+                'total_mantenimiento' => 0,
+                'con_conductor' => 0,
+                'sin_conductor' => 0,
+            ];
+
+            $unidadesFormateadas = $registros->map(function ($r) use (&$kpis, $hasManiobrista, $hasHoraProg, $hasAcople, $hasHoraSalida) {
+                $estatus = strtolower(trim($r->estatus ?? 'reserva'));
+                if ($estatus === 'operacion') $kpis['total_operacion']++;
+                elseif ($estatus === 'reserva') $kpis['total_reserva']++;
+                elseif ($estatus === 'mantenimiento') $kpis['total_mantenimiento']++;
+                else $kpis['total_reserva']++;
+
+                $tieneConductor = !empty(trim($r->nombre_conductor ?? '')) || !empty(trim($r->tarjeton ?? ''));
+                if ($tieneConductor) {
+                    $kpis['con_conductor']++;
+                } else if ($estatus === 'operacion') {
+                    $kpis['sin_conductor']++;
+                }
+
+                return [
+                    'unidad_id'            => $r->unidad_id ?? null,
+                    'numero_eco'           => $r->numero_eco,
+                    'tipo'                 => strtoupper($r->tipo ?? ''),
+                    'ruta'                 => $r->ruta ?? '',
+                    'corridas'             => $r->corridas ?? '',
+                    'ciclo'                => $r->ciclo ?? '',
+                    'tarjeton'             => $r->tarjeton ?? '',
+                    'nombre_conductor'     => $r->nombre_conductor ?? '',
+                    'tarjeton_maniobrista' => $hasManiobrista ? ($r->tarjeton_maniobrista ?? '') : '',
+                    'nombre_maniobrista'   => $hasManiobrista ? ($r->nombre_maniobrista ?? '') : '',
+                    'estatus'              => $estatus,
+                    'falla'                => $r->falla ?? '',
+                    'motivo'               => $r->motivo ?? '',
+                    'motivo_estatus'       => $r->motivo_estatus ?? '',
+                    'hora_programada'      => $hasHoraProg ? ($r->hora_programada ?? '') : '',
+                    'acople'               => $hasAcople ? ($r->acople ?? '') : '',
+                    'hora_salida'          => $hasHoraSalida ? ($r->hora_salida ?? '') : ''
+                ];
+            });
+
+            return response()->json([
+                'status'     => 'success',
+                'fecha'      => $hoy,
+                'corte'      => 'Apertura (04:30 AM)',
+                'kpis'       => $kpis,
+                'unidades'   => $unidadesFormateadas
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en obtenerProgramacionApertura: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Error al cargar programación de apertura: ' . $e->getMessage()
             ], 500);
         }
     }

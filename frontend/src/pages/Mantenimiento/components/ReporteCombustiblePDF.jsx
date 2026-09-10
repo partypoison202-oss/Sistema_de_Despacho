@@ -103,6 +103,12 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
             {totales.unidades_sin_cargar}
           </div>
         </div>
+        <div style={{ flex: 1, borderRight: '2px solid ' + darkRed }}>
+          <div style={{ background: darkRed, color: '#fff', padding: '5px', fontSize: '12px', fontWeight: 'bold' }}>RENDIMIENTO PROMEDIO</div>
+          <div style={{ fontSize: '28px', fontWeight: 'bold', color: darkRed, padding: '10px 0' }}>
+            {totales.rendimiento ? `${formatNum(totales.rendimiento)} km/L` : '—'}
+          </div>
+        </div>
         <div style={{ flex: 1 }}>
           <div style={{ background: darkRed, color: '#fff', padding: '5px', fontSize: '12px', fontWeight: 'bold' }}>% ABASTECIMIENTO</div>
           <div style={{ fontSize: '28px', fontWeight: 'bold', color: darkRed, padding: '10px 0' }}>
@@ -124,6 +130,7 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
             <th style={{ padding: '8px', border: '1px solid #fff' }}>Litros cargados</th>
             <th style={{ padding: '8px', border: '1px solid #fff' }}>Unidades que cargaron</th>
             <th style={{ padding: '8px', border: '1px solid #fff' }}>Unidades sin cargar</th>
+            <th style={{ padding: '8px', border: '1px solid #fff' }}>Rendimiento</th>
             <th style={{ padding: '8px', border: '1px solid #fff' }}>% abastecimiento</th>
             <th style={{ padding: '8px', border: '1px solid #fff' }}>Motivo de no carga</th>
             <th style={{ padding: '8px', border: '1px solid #fff' }}>Observaciones</th>
@@ -139,6 +146,9 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
               <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{row.unidades_cargaron || ''}</td>
               <td style={{ padding: '8px', border: '1px solid ' + darkRed, color: row.unidades_sin_cargar > 0 ? 'red' : 'inherit' }}>
                 {row.unidades_sin_cargar}
+              </td>
+              <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>
+                {row.rendimiento ? `${formatNum(row.rendimiento)} km/L` : '—'}
               </td>
               <td style={{ 
                 padding: '8px', 
@@ -159,6 +169,7 @@ const ReporteCombustiblePDF = React.forwardRef(({ data, totales }, ref) => {
             <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{formatNum(totales.litros_totales)}</td>
             <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{totales.unidades_cargaron}</td>
             <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{totales.unidades_sin_cargar}</td>
+            <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{totales.rendimiento ? `${formatNum(totales.rendimiento)} km/L` : '—'}</td>
             <td style={{ padding: '8px', border: '1px solid ' + darkRed }}>{totales.porcentaje}%</td>
             <td colSpan={2} style={{ padding: '8px', border: '1px solid ' + darkRed }}></td>
           </tr>

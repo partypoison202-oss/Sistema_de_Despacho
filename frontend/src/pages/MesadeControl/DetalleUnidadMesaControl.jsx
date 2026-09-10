@@ -8,6 +8,7 @@ import LocalSearchBar from '../../components/LocalSearchBar/LocalSearchBar';
 import UnitSelector from '../Unidades/componentsdetalleunidad/UnitSelector';
 import UnitInfoPanelMesaControl from './UnitInfoPanelMesaControl';
 import ModalMonitoreoConductores from './ModalMonitoreoConductores';
+import ModalProgramacionApertura from './ModalProgramacionApertura';
 import ChecklistForm from '../CheckList/CheckList';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 
@@ -65,6 +66,7 @@ export default function DetalleUnidadMesaControl() {
   const [busquedaReemplazoTarjeton, setBusquedaReemplazoTarjeton] = useState('');
   const [dropdownReemplazoRutaOpen, setDropdownReemplazoRutaOpen] = useState(false);
   const [modalMonitoreoOpen, setModalMonitoreoOpen] = useState(false);
+  const [modalAperturaOpen, setModalAperturaOpen] = useState(false);
 
   const modalConductorRef = useRef(null);
   const modalRutaRef = useRef(null);
@@ -218,6 +220,22 @@ export default function DetalleUnidadMesaControl() {
     refetchInterval: 12000,
   });
   const totalRelevosDia = dataMonitoreo?.kpis?.total_relevos || 0;
+
+  // Consulta de resumen de programación de apertura (04:30 AM)
+  const { data: dataApertura } = useQuery({
+    queryKey: ['programacion-apertura-resumen', tipoTransporte],
+    queryFn: async () => {
+      const token = getToken();
+      if (!token || !tipoTransporte) return null;
+      const res = await fetch(`${API_BASE}/api/despacho/programacion-apertura/${tipoTransporte}`, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+  const totalApertura = dataApertura?.kpis?.total_flota || 0;
 
   // Efecto para resetear campos cuando se selecciona una unidad de reemplazo
   useEffect(() => {
@@ -874,63 +892,118 @@ export default function DetalleUnidadMesaControl() {
       />
       <main className="main-content">
         <div className="unit-control-panel">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setModalMonitoreoOpen(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.75rem',
-                border: '1px solid #e2e8f0',
-                background: '#ffffff',
-                color: '#1e293b',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                marginBottom: '1.5rem',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#6b1d33';
-                e.currentTarget.style.background = '#fdf8f9';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 8px rgba(107, 29, 51, 0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.04)';
-              }}
-              title="Ver pantalla de conductores y relevos del día"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-              <span>Conductores y Relevos</span>
-              {totalRelevosDia > 0 && (
-                <span
-                  style={{
-                    backgroundColor: '#fef3c7',
-                    color: '#92400e',
-                    border: '1px solid #fde68a',
-                    borderRadius: '9999px',
-                    padding: '0.1rem 0.5rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                  }}
-                >
-                  {totalRelevosDia} {totalRelevosDia === 1 ? 'relevo' : 'relevos'}
-                </span>
-              )}
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setModalMonitoreoOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.75rem',
+                  border: '1px solid #e2e8f0',
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#6b1d33';
+                  e.currentTarget.style.background = '#fdf8f9';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(107, 29, 51, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.04)';
+                }}
+                title="Ver pantalla de conductores y relevos del día"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>Conductores y Relevos</span>
+                {totalRelevosDia > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a',
+                      borderRadius: '9999px',
+                      padding: '0.1rem 0.5rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {totalRelevosDia} {totalRelevosDia === 1 ? 'relevo' : 'relevos'}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalAperturaOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.75rem',
+                  border: '1px solid #e2e8f0',
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#6b1d33';
+                  e.currentTarget.style.background = '#fdf8f9';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(107, 29, 51, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.04)';
+                }}
+                title="Ver tabla con la programación inicial de apertura (04:30 AM)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span>Programación de Apertura</span>
+                {totalApertura > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: '#f1f5f9',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '9999px',
+                      padding: '0.1rem 0.5rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {totalApertura} {totalApertura === 1 ? 'unidad' : 'unidades'}
+                  </span>
+                )}
+              </button>
+            </div>
 
             <LocalSearchBar
               unidades={unidadesList}
@@ -1912,6 +1985,18 @@ export default function DetalleUnidadMesaControl() {
         onSelectUnit={(eco) => {
           handleSelectUnit(eco);
           setModalMonitoreoOpen(false);
+        }}
+      />
+
+      {/* Modal Programación de Apertura (04:30 AM) */}
+      <ModalProgramacionApertura
+        isOpen={modalAperturaOpen}
+        onClose={() => setModalAperturaOpen(false)}
+        tipoTransporte={tipoTransporte}
+        configActual={configActual}
+        onSelectUnit={(eco) => {
+          handleSelectUnit(eco);
+          setModalAperturaOpen(false);
         }}
       />
     </div>
