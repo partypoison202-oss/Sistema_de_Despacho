@@ -123,6 +123,9 @@ export default function CargaExcel() {
         updatedData[index]['RUTA'] = '';
         updatedData[index]['TARJETON'] = '';
         updatedData[index]['NOMBRE_CONDUCTOR'] = '';
+        updatedData[index]['RELEVO_TARJETON'] = '';
+        updatedData[index]['RELEVO_CONDUCTOR'] = '';
+        updatedData[index]['RELEVO_HORA'] = '';
         updatedData[index]['HORA_DE_ACOPLE'] = '';
         updatedData[index]['ACOPLE'] = '';
         updatedData[index]['HORA_SALIDA'] = '';
@@ -133,6 +136,65 @@ export default function CargaExcel() {
       setPreviewData(updatedData);
       setHasChanges(true);
       return;
+    }
+
+    if (field === 'RELEVO_TARJETON') {
+      if (valStr === '') {
+        updatedData[index]['RELEVO_TARJETON'] = '';
+        updatedData[index]['RELEVO_CONDUCTOR'] = '';
+        setPreviewData(updatedData);
+        setHasChanges(true);
+        return;
+      }
+
+      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.RELEVO_TARJETON) === valStr);
+      const newDriverConductor = catalogConductores.find(c => trimString(c.tarjeton) === valStr);
+      const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
+
+      if (newDriverConductor && newDriverConductor.estado_servicio === 'falta') {
+        const confirm = await Swal.fire({
+          title: 'Confirmar asignación',
+          text: `El operador ${newDriverName} está en estatus de FALTA. ¿Deseas asignarlo a la unidad ${updatedData[index]['ECONOMICO']} como relevo y cambiar su estatus a en servicio?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#c5a059',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, asignar',
+          cancelButtonText: 'Cancelar'
+        });
+        if (!confirm.isConfirmed) return;
+        newDriverConductor.estado_servicio = 'en_servicio';
+      }
+
+      if (existingRowIndex !== -1) {
+        const existingRow = updatedData[existingRowIndex];
+        const currentUnitDriverTarjeton = updatedData[index]['RELEVO_TARJETON'];
+        const currentUnitDriverName = updatedData[index]['RELEVO_CONDUCTOR'];
+
+        const confirm = await Swal.fire({
+          title: 'Conductor en servicio',
+          text: `El conductor de relevo ${newDriverName} ya está asignado a la unidad ${existingRow.ECONOMICO}. ¿Deseas hacer el cambio?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#c5a059',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Sí, hacer cambio',
+          cancelButtonText: 'Cancelar'
+        });
+
+        if (confirm.isConfirmed) {
+          updatedData[index]['RELEVO_TARJETON'] = valStr;
+          updatedData[index]['RELEVO_CONDUCTOR'] = newDriverName;
+          updatedData[existingRowIndex]['RELEVO_TARJETON'] = currentUnitDriverTarjeton;
+          updatedData[existingRowIndex]['RELEVO_CONDUCTOR'] = currentUnitDriverName;
+          setPreviewData(updatedData);
+          setHasChanges(true);
+        }
+        return;
+      } else {
+        updatedData[index]['RELEVO_TARJETON'] = valStr;
+        updatedData[index]['RELEVO_CONDUCTOR'] = newDriverName;
+      }
     }
 
     if (field === 'TARJETON') {

@@ -116,41 +116,82 @@ export default function CentroControl() {
 
   const handleGenerarReporte = async () => {
     setIsGenerating(true);
-    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
 
     try {
-      const [respRutas, respUnidades] = await Promise.all([
-        fetch(`${API_BASE}/api/despacho/reporte-general`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`${API_BASE}/api/despacho/reporte-unidades`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }),
-      ]);
-
-      if (!respRutas.ok || !respUnidades.ok) {
-        let errorMsg = 'Error al obtener los datos';
-        if (!respRutas.ok) {
-          const errData = await respRutas.json().catch(() => ({}));
-          errorMsg = errData.error || errorMsg;
-        } else {
-          const errData = await respUnidades.json().catch(() => ({}));
-          errorMsg = errData.error || errorMsg;
+      // 1. Data de Unidades por Tipo
+      const dataUnidades = {
+        tipos: modelData.map((m) => ({
+          tipo: m.id,
+          programadas: m.programadas,
+          en_servicio: m.operacion,
+          imagen: 'default.png'
+        })),
+        totales: {
+          programadas: totales.programadas,
+          en_servicio: totales.operacion
         }
-        throw new Error(errorMsg);
+      };
+
+      // 2. Data de Rutas (Troncales y Alimentadoras)
+      const mapeoRutas = {
+        'T-01': 'T01', 'T-02': 'T02', 'T-04': 'T04', 'T-05': 'T05',
+        'RA 2A': '2A', 'RA 2B': '2B', '20B': '20B', 'RA 2D': '2D', 
+        'RA 3': '03', 'RA 4': '04', 'RA 6': '06', 'RA 8': '08', 
+        'RA 11': '11', 'RA 14': '14', 'RA 15A': '15A', 'RA 15B': '15B',
+      };
+
+      const rutasContadores = {};
+      Object.keys(mapeoRutas).forEach(r => {
+        rutasContadores[r] = { en_operacion: 0, en_mantenimiento: 0 };
+      });
+      rutasContadores['T-SIN ASIGNAR'] = { en_operacion: 0, en_mantenimiento: 0 };
+      rutasContadores['RA-SIN ASIGNAR'] = { en_operacion: 0, en_mantenimiento: 0 };
+
+      (Array.isArray(apiData) ? apiData : []).forEach(reg => {
+        const estatus = (reg.ESTATUS || '').toUpperCase().trim();
+        const tipo = (reg.TIPO_DE_UNIDAD || '').toUpperCase().trim();
+        const isOper = estatus.includes('OPERACI') && (!!reg.HORA_SALIDA || !!reg.MOTIVO_ESTATUS || !!reg.CAMBIO_DESDE);
+        const isManto = estatus.includes('MANTENIMIENTO');
+
+        // Para unidades en mantenimiento, la ruta original a menudo se guarda en MANTENIMIENTO_RUTA
+        const rutaExcel = (reg.MANTENIMIENTO_RUTA || reg.RUTA || '').toUpperCase().trim();
+        let matched = false;
+
+        for (const [nombreReporte, prefijoExcel] of Object.entries(mapeoRutas)) {
+          // Buscamos si la ruta de la unidad incluye el prefijo (ej: 'T01', 'T-01', '2A')
+          if (rutaExcel.includes(prefijoExcel) || rutaExcel.includes(nombreReporte)) {
+            if (isOper) rutasContadores[nombreReporte].en_operacion++;
+            else if (isManto) rutasContadores[nombreReporte].en_mantenimiento++;
+            matched = true;
+            break;
+          }
+        }
+
+        // Si la unidad no tiene ruta asignada o no coincide con ninguna, y está en operación o mantenimiento, la agrupamos
+        if (!matched && (isOper || isManto)) {
+          if (tipo === 'URBANUS') {
+            if (isOper) rutasContadores['T-SIN ASIGNAR'].en_operacion++;
+            else if (isManto) rutasContadores['T-SIN ASIGNAR'].en_mantenimiento++;
+          } else {
+            if (isOper) rutasContadores['RA-SIN ASIGNAR'].en_operacion++;
+            else if (isManto) rutasContadores['RA-SIN ASIGNAR'].en_mantenimiento++;
+          }
+        }
+      });
+
+      // Combinar 20B con RA 2B
+      if (rutasContadores['20B'] && rutasContadores['RA 2B']) {
+        rutasContadores['RA 2B'].en_operacion += rutasContadores['20B'].en_operacion;
+        rutasContadores['RA 2B'].en_mantenimiento += rutasContadores['20B'].en_mantenimiento;
+        delete rutasContadores['20B'];
       }
-      const dataRutas = await respRutas.json();
-      const dataUnidades = await respUnidades.json();
+
+      const dataRutas = Object.keys(rutasContadores).map(ruta => ({
+        ruta,
+        en_operacion: rutasContadores[ruta].en_operacion,
+        en_mantenimiento: rutasContadores[ruta].en_mantenimiento,
+        total: rutasContadores[ruta].en_operacion + rutasContadores[ruta].en_mantenimiento
+      }));
 
       // Generar PDF nativos
       await generarPDFReporteGeneral(dataRutas);
@@ -467,7 +508,7 @@ export default function CentroControl() {
                 </svg>
               </div>
               <span className="centro-kpi__value">{cargando ? '—' : totales.programadas}</span>
-              <span className="centro-kpi__label">Total Programadas</span>
+              <span className="centro-kpi__label">Total Parque Vehicular</span>
             </div>
 
             <div className="centro-kpi centro-kpi--operacion">
@@ -478,7 +519,7 @@ export default function CentroControl() {
                 </svg>
               </div>
               <span className="centro-kpi__value">{cargando ? '—' : totales.operacion}</span>
-              <span className="centro-kpi__label">En Operación</span>
+              <span className="centro-kpi__label">Total Unidades Programadas</span>
             </div>
 
             <div className="centro-kpi centro-kpi--reserva">
