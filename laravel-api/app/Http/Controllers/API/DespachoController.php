@@ -1357,6 +1357,8 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
+        $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
+
         $registros = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->select(
@@ -1367,9 +1369,9 @@ class DespachoController extends Controller
                 'informacion_operativa.nombre_conductor',
                 'informacion_operativa.tarjeton_maniobrista',
                 'informacion_operativa.nombre_maniobrista',
-                'informacion_operativa.relevo_tarjeton',
-                'informacion_operativa.relevo_conductor',
-                'informacion_operativa.relevo_hora',
+                $hasRelevo ? 'informacion_operativa.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevo ? 'informacion_operativa.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                $hasRelevo ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora'),
                 'informacion_operativa.estatus',
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
@@ -1404,9 +1406,9 @@ class DespachoController extends Controller
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
-                'RELEVO_TARJETON' => $reg->relevo_tarjeton,
-                'RELEVO_CONDUCTOR' => $reg->relevo_conductor,
-                'RELEVO_HORA' => $reg->relevo_hora,
+                'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
+                'RELEVO_CONDUCTOR' => $reg->relevo_conductor ?? '',
+                'RELEVO_HORA' => $reg->relevo_hora ?? '',
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,
@@ -1462,6 +1464,8 @@ class DespachoController extends Controller
             }
         }
 
+        $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
+
         $registros = DB::table('informacion_operativa_manana')
             ->join('unidades', 'informacion_operativa_manana.unidad_id', '=', 'unidades.id')
             ->select(
@@ -1472,9 +1476,9 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.nombre_conductor',
                 'informacion_operativa_manana.tarjeton_maniobrista',
                 'informacion_operativa_manana.nombre_maniobrista',
-                'informacion_operativa_manana.relevo_tarjeton',
-                'informacion_operativa_manana.relevo_conductor',
-                'informacion_operativa_manana.relevo_hora',
+                $hasRelevo ? 'informacion_operativa_manana.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevo ? 'informacion_operativa_manana.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                $hasRelevo ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
                 'informacion_operativa_manana.estatus',
                 'informacion_operativa_manana.falla',
                 'informacion_operativa_manana.corridas',
@@ -1499,9 +1503,9 @@ class DespachoController extends Controller
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
-                'RELEVO_TARJETON' => $reg->relevo_tarjeton,
-                'RELEVO_CONDUCTOR' => $reg->relevo_conductor,
-                'RELEVO_HORA' => $reg->relevo_hora,
+                'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
+                'RELEVO_CONDUCTOR' => $reg->relevo_conductor ?? '',
+                'RELEVO_HORA' => $reg->relevo_hora ?? '',
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,
@@ -1547,6 +1551,8 @@ class DespachoController extends Controller
             }
         }
 
+        $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn($tableName, 'relevo_tarjeton');
+
         $registros = DB::table($tableName)
             ->join('unidades', "{$tableName}.unidad_id", '=', 'unidades.id')
             ->select(
@@ -1557,9 +1563,9 @@ class DespachoController extends Controller
                 "{$tableName}.nombre_conductor",
                 "{$tableName}.tarjeton_maniobrista",
                 "{$tableName}.nombre_maniobrista",
-                "{$tableName}.relevo_tarjeton",
-                "{$tableName}.relevo_conductor",
-                "{$tableName}.relevo_hora",
+                $hasRelevo ? "{$tableName}.relevo_tarjeton" : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevo ? "{$tableName}.relevo_conductor" : DB::raw('NULL as relevo_conductor'),
+                $hasRelevo ? "{$tableName}.relevo_hora" : DB::raw('NULL as relevo_hora'),
                 "{$tableName}.estatus",
                 "{$tableName}.falla",
                 "{$tableName}.corridas",
@@ -1584,9 +1590,9 @@ class DespachoController extends Controller
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
-                'RELEVO_TARJETON' => $reg->relevo_tarjeton,
-                'RELEVO_CONDUCTOR' => $reg->relevo_conductor,
-                'RELEVO_HORA' => $reg->relevo_hora,
+                'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
+                'RELEVO_CONDUCTOR' => $reg->relevo_conductor ?? '',
+                'RELEVO_HORA' => $reg->relevo_hora ?? '',
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,
@@ -1632,6 +1638,8 @@ class DespachoController extends Controller
             }
         }
 
+        $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
+
         $registros = DB::table('informacion_operativa_manana')
             ->join('unidades', 'informacion_operativa_manana.unidad_id', '=', 'unidades.id')
             ->select(
@@ -1642,9 +1650,9 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.nombre_conductor',
                 'informacion_operativa_manana.tarjeton_maniobrista',
                 'informacion_operativa_manana.nombre_maniobrista',
-                'informacion_operativa_manana.relevo_tarjeton',
-                'informacion_operativa_manana.relevo_conductor',
-                'informacion_operativa_manana.relevo_hora',
+                $hasRelevo ? 'informacion_operativa_manana.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevo ? 'informacion_operativa_manana.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                $hasRelevo ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
                 'informacion_operativa_manana.estatus',
                 'informacion_operativa_manana.falla',
                 'informacion_operativa_manana.corridas',
@@ -1669,9 +1677,9 @@ class DespachoController extends Controller
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
-                'RELEVO_TARJETON' => $reg->relevo_tarjeton,
-                'RELEVO_CONDUCTOR' => $reg->relevo_conductor,
-                'RELEVO_HORA' => $reg->relevo_hora,
+                'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
+                'RELEVO_CONDUCTOR' => $reg->relevo_conductor ?? '',
+                'RELEVO_HORA' => $reg->relevo_hora ?? '',
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,
@@ -1705,6 +1713,8 @@ class DespachoController extends Controller
             }
         }
 
+        $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn($tableName, 'relevo_tarjeton');
+
         $registros = DB::table($tableName)
             ->join('unidades', "{$tableName}.unidad_id", '=', 'unidades.id')
             ->select(
@@ -1715,9 +1725,9 @@ class DespachoController extends Controller
                 "{$tableName}.nombre_conductor",
                 "{$tableName}.tarjeton_maniobrista",
                 "{$tableName}.nombre_maniobrista",
-                "{$tableName}.relevo_tarjeton",
-                "{$tableName}.relevo_conductor",
-                "{$tableName}.relevo_hora",
+                $hasRelevo ? "{$tableName}.relevo_tarjeton" : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevo ? "{$tableName}.relevo_conductor" : DB::raw('NULL as relevo_conductor'),
+                $hasRelevo ? "{$tableName}.relevo_hora" : DB::raw('NULL as relevo_hora'),
                 "{$tableName}.estatus",
                 "{$tableName}.falla",
                 "{$tableName}.corridas",
@@ -1742,9 +1752,9 @@ class DespachoController extends Controller
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
-                'RELEVO_TARJETON' => $reg->relevo_tarjeton,
-                'RELEVO_CONDUCTOR' => $reg->relevo_conductor,
-                'RELEVO_HORA' => $reg->relevo_hora,
+                'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
+                'RELEVO_CONDUCTOR' => $reg->relevo_conductor ?? '',
+                'RELEVO_HORA' => $reg->relevo_hora ?? '',
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
                 'CORRIDAS' => $reg->corridas,

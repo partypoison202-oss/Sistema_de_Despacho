@@ -11,8 +11,10 @@ return new class extends Migration
      */
     protected $tables = [
         'informacion_operativa',
-        'programacion_manana',
-        'programacion_semana',
+        'informacion_operativa_manana',
+        'informacion_operativa_sabado',
+        'informacion_operativa_domingo',
+        'informacion_operativa_lunes',
         'informacion_operativa_festivo'
     ];
 

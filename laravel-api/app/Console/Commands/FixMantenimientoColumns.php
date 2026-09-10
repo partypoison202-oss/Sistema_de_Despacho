@@ -40,22 +40,27 @@ class FixMantenimientoColumns extends Command
             ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_kilometraje decimal(10,2) null;
             ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS hora_encierro varchar(20) null;
 
-            -- Columnas de relevos
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS relevo_tarjeton varchar(255) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS relevo_conductor varchar(255) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null;
-
-            ALTER TABLE programacion_manana ADD COLUMN IF NOT EXISTS relevo_tarjeton varchar(255) null;
-            ALTER TABLE programacion_manana ADD COLUMN IF NOT EXISTS relevo_conductor varchar(255) null;
-            ALTER TABLE programacion_manana ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null;
-
-            ALTER TABLE programacion_semana ADD COLUMN IF NOT EXISTS relevo_tarjeton varchar(255) null;
-            ALTER TABLE programacion_semana ADD COLUMN IF NOT EXISTS relevo_conductor varchar(255) null;
-            ALTER TABLE programacion_semana ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null;
-
-            ALTER TABLE informacion_operativa_festivo ADD COLUMN IF NOT EXISTS relevo_tarjeton varchar(255) null;
-            ALTER TABLE informacion_operativa_festivo ADD COLUMN IF NOT EXISTS relevo_conductor varchar(255) null;
-            ALTER TABLE informacion_operativa_festivo ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null;
+            -- Inyectar columnas de relevo de forma segura en todas las tablas operativas que existan
+            DO \$\$
+            DECLARE
+                t text;
+                tables text[] := ARRAY[
+                    'informacion_operativa',
+                    'informacion_operativa_manana',
+                    'informacion_operativa_sabado',
+                    'informacion_operativa_domingo',
+                    'informacion_operativa_lunes',
+                    'informacion_operativa_festivo'
+                ];
+            BEGIN
+                FOREACH t IN ARRAY tables LOOP
+                    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = t) THEN
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_tarjeton varchar(255) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_conductor varchar(255) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null';
+                    END IF;
+                END LOOP;
+            END \$\$;
         ";
 
         $dbUser = config('database.connections.pgsql.username') ?: env('DB_USERNAME', 'postgres');
