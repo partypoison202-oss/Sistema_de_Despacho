@@ -86,8 +86,8 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     const boxHeight = 24;
     
     const kpis = [
-        { label: 'TOTAL PROGRAMADAS', value: totales.programadas, color: COLOR_GUINDA },
-        { label: 'EN OPERACIÓN', value: totales.operacion, color: COLOR_GREEN },
+        { label: 'TOTAL PARQUE VEHICULAR', value: totales.programadas, color: COLOR_GUINDA },
+        { label: 'TOTAL UNIDADES PROGRAMADAS', value: totales.operacion, color: COLOR_GREEN },
         { label: 'EN RESERVA', value: totales.reserva, color: COLOR_GOLD },
         { label: 'EN MANTENIMIENTO', value: totales.mantenimiento, color: COLOR_RED },
         { label: 'EFICIENCIA OPERATIVA', value: `${eficienciaGlobal}%`, color: COLOR_GOLD, bg: [254, 243, 199] }

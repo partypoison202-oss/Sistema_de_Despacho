@@ -129,7 +129,7 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
   });
 
   // ── TABLA ──
-  const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Acople', 'Hora Salida', 'Patio Norte', 'Acople', 'Corrida'];
+  const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Rel. Tarjetón', 'Rel. Conductor', 'Rel. Hora', 'Hora Acople', 'Hora Salida', 'Patio Norte', 'Acople', 'Corrida'];
   const filas = previewData.map(fila => {
     const isPatioNorte = fila.PATIO_NORTE === true || fila.PATIO_NORTE === 1 || fila.PATIO_NORTE === '1' || String(fila.PATIO_NORTE).toLowerCase() === 'true' || String(fila.PATIO_NORTE).toUpperCase() === 'SÍ' || String(fila.PATIO_NORTE).toUpperCase() === 'SI' || fila.TRANSPORTE_PATIO_NORTE === true || fila.TRANSPORTE_PATIO_NORTE === 1 || fila.TRANSPORTE_PATIO_NORTE === '1' || String(fila.TRANSPORTE_PATIO_NORTE).toLowerCase() === 'true' || String(fila.TRANSPORTE_PATIO_NORTE).toUpperCase() === 'SÍ' || String(fila.TRANSPORTE_PATIO_NORTE).toUpperCase() === 'SI' || fila['PATIO NORTE'] || fila['Patio Norte'];
     return [
@@ -139,6 +139,9 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
       fila.RUTA ?? '',
       fila.TARJETON ?? '',
       fila.NOMBRE_CONDUCTOR ?? '',
+      fila.RELEVO_TARJETON ?? '',
+      fila.RELEVO_CONDUCTOR ?? '',
+      fila.RELEVO_HORA ?? '',
       fila.HORA_DE_ACOPLE ?? '',
       fila.HORA_SALIDA ?? '',
       isPatioNorte ? 'SÍ' : '',

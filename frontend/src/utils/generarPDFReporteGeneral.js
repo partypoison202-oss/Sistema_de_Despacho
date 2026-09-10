@@ -22,8 +22,8 @@ export const generarPDFReporteGeneral = async (data) => {
         throw new Error("No hay datos para generar el reporte.");
     }
 
-    const troncales = data.filter(item => ['T-01', 'T-02', 'T-04', 'T-05'].includes(item.ruta));
-    const alimentadoras = data.filter(item => item.ruta.startsWith('RA') || item.ruta.startsWith('ORION'));
+    const troncales = data.filter(item => ['T-01', 'T-02', 'T-04', 'T-05', 'T-SIN ASIGNAR'].includes(item.ruta) && (item.en_operacion > 0 || item.en_mantenimiento > 0 || item.ruta !== 'T-SIN ASIGNAR'));
+    const alimentadoras = data.filter(item => (item.ruta.startsWith('RA') || item.ruta.startsWith('ORION')) && (item.en_operacion > 0 || item.en_mantenimiento > 0 || item.ruta !== 'RA-SIN ASIGNAR'));
 
     const troncalOperacion     = troncales.reduce((s, r) => s + Number(r.en_operacion), 0);
     const troncalMantenimiento = troncales.reduce((s, r) => s + Number(r.en_mantenimiento), 0);

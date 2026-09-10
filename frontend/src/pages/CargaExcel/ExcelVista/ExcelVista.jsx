@@ -10,10 +10,13 @@ const HEADER_TRANSLATIONS = {
   ECONOMICO: 'Económico',
   TARJETON: 'Tarjetón',
   NOMBRE_CONDUCTOR: 'Conductor',
+  HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
+  RELEVO_TARJETON: 'Tarjetón Relevo',
+  RELEVO_CONDUCTOR: 'Conductor Relevo',
+  RELEVO_HORA: 'Hora Relevo',
   TARJETON_MANIOBRISTA: 'Tarjetón Maniobrista',
   NOMBRE_MANIOBRISTA: 'Maniobrista',
   ESTATUS: 'Estatus',
-  HORA_PROGRAMADA: 'HORA DE SALIDA PROGRAMADA',
   HORA_DE_ACOPLE: 'HORA DE ENTRADA PROGRAMADA',
   ACOPLE: 'HORA DE ACOPLE',
   HORA_SALIDA: 'HORA DE SALIDA',
@@ -54,17 +57,15 @@ export default function ExcelPreview({
   const [dropdownSearch, setDropdownSearch] = useState('');
   const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0, openUp: false });
 
-  // Las cabeceras del editor directo
-  const headers = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'TARJETON', 'NOMBRE_CONDUCTOR', 'ESTATUS'];
-  if (isRelevos) {
-    headers.push('HORA_DE_ACOPLE');
-    headers.push('HORA_PROGRAMADA');
-  } else {
-    headers.push('HORA_DE_ACOPLE');
-  }
-  headers.push('ACOPLE');
-  headers.push('HORA_SALIDA');
-  headers.push('PATIO_NORTE');
+  // Las cabeceras del editor directo, filtradas por departamento
+  const baseHeaders = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS'];
+  const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_PROGRAMADA', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_SALIDA'];
+  const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
+  const tailHeaders = ['ESTATUS', 'PATIO_NORTE'];
+
+  const headers = isRelevos 
+    ? [...baseHeaders, ...relevosHeaders, ...tailHeaders]
+    : [...baseHeaders, ...titularHeaders, ...tailHeaders];
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
@@ -283,19 +284,21 @@ export default function ExcelPreview({
                         );
                       }
 
-                      const isReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR';
+                      let isFieldReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR' || h === 'RELEVO_CONDUCTOR';
+                      if (isRelevos && (h === 'TARJETON' || h === 'HORA_PROGRAMADA')) isFieldReadOnly = true;
+                      if (!isRelevos && (h === 'RELEVO_TARJETON' || h === 'RELEVO_HORA')) isFieldReadOnly = true;
 
-                      // ── REVELOS: sólo texto plano, excepto TARJETON y HORA_PROGRAMADA ──────────────
-                      if (isRelevos && h !== 'TARJETON' && h !== 'HORA_PROGRAMADA') {
-                        // Para ESTATUS usamos la traducción; para HORA_DE_ACOPLE valor por defecto; resto directo
+                      // Si el campo es de solo lectura, mostrar texto plano (o insignias para Estatus)
+                      if (isFieldReadOnly) {
                         let displayValue = fila[h] ?? '';
                         if (h === 'ESTATUS') {
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                           const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
-                          displayValue = estatusTranslations[curSt];
-                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_SALIDA') {
+                          displayValue = estatusTranslations[curSt] || fila[h];
+                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'HORA_PROGRAMADA' || h === 'RELEVO_HORA') {
                           displayValue = fila[h] || '00:00';
                         }
+                        
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`}>
                             <div style={{
@@ -303,16 +306,15 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_SALIDA') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'HORA_PROGRAMADA' || h === 'RELEVO_HORA') ? 'center' : 'left',
                             }}>
                               {displayValue}
                             </div>
                           </td>
                         );
                       }
-                      // ── Fin bloque REVELOS ───────────────────────────────────────
 
-                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_PROGRAMADA' || h === 'ACOPLE' || h === 'HORA_SALIDA') {
+                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_PROGRAMADA' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'RELEVO_HORA') {
                         const isOpen = activeTimePickerRow === originalIndex && activeTimePickerField === h;
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
@@ -502,8 +504,8 @@ export default function ExcelPreview({
                         );
                       }
 
-                      if (h === 'TARJETON') {
-                        const isTarjetonOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON';
+                      if (h === 'TARJETON' || h === 'RELEVO_TARJETON') {
+                        const isTarjetonOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === h;
 
                         const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
 
@@ -523,7 +525,7 @@ export default function ExcelPreview({
                                   setOpenDropdown({ rowIndex: null, field: null });
                                 } else {
                                   setActiveTimePickerRow(null);
-                                  handleOpenDropdown(e, originalIndex, 'TARJETON');
+                                  handleOpenDropdown(e, originalIndex, h);
                                 }
                               }}
                               disabled={isRowDisabled}
@@ -880,7 +882,7 @@ export default function ExcelPreview({
 
                       return (
                         <td key={h} className={`cell-${h.toLowerCase()}`}>
-                          {isReadOnly ? (
+                          {readOnly ? (
                             <div style={{
                               padding: '0.45rem 0.6rem',
                               fontSize: '0.875rem',
