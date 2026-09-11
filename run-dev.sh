@@ -79,7 +79,7 @@ sleep 2
 # Iniciar Laravel API
 start_service "Laravel API" \
     "$PROJECT_DIR/laravel-api" \
-    "PHP_CLI_SERVER_WORKERS=5 php -d max_execution_time=300 -d extension=pdo_pgsql -d extension=pgsql artisan serve --host=0.0.0.0" \
+    "PHP_CLI_SERVER_WORKERS=5 php artisan serve --host=0.0.0.0 --no-reload" \
     "8000"
 
 sleep 2
