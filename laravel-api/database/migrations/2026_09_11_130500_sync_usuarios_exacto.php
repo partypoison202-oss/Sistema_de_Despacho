@@ -74,7 +74,7 @@ return new class extends Migration
                     'rol_id' => $rolId,
                     'fecha_creacion' => $now,
                     'fecha_actualizacion' => $now,
-                    'activo' => true
+                    'activo' => DB::raw('true')
                 ]);
             }
 
