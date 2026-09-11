@@ -125,8 +125,8 @@ export default function CargaExcel({ isPasteles = false }) {
     const valStr = String(value ?? '').trim();
 
     if (field === 'ESTATUS') {
-      if (valStr === 'mantenimiento' || valStr === 'reserva') {
-        if (isPasteles) {
+      if (valStr === 'mantenimiento' || valStr === 'reserva' || valStr === 'no_programada') {
+        if (isPasteles && (valStr === 'mantenimiento' || valStr === 'reserva')) {
           const currentEco = updatedData[index]?.ECONOMICO;
           const hasService = Boolean(
             updatedData[index]['RUTA'] ||

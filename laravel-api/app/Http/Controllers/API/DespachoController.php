@@ -175,6 +175,7 @@ class DespachoController extends Controller
     {
         $conteos = DB::table('informacion_operativa')
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
+            ->whereRaw("LOWER(COALESCE(estatus, '')) != 'no_programada'")
             ->groupBy('tipo')
             ->get();
 
@@ -239,6 +240,7 @@ class DespachoController extends Controller
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereRaw("LOWER(COALESCE(informacion_operativa.estatus, '')) != 'no_programada'")
             ->select(
                 'unidades.id as unidad_id',
                 'unidades.numero_eco',
@@ -651,7 +653,7 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva', 'no_programada'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -813,7 +815,7 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_Norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva', 'no_programada'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -964,7 +966,7 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva', 'no_programada'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -2136,8 +2138,13 @@ class DespachoController extends Controller
             $updateData['ruta'] = null;
             $updateData['corridas'] = null;
             $updateData['ciclo'] = null;
-            $updateData['falla'] = null;
-            $updateData['motivo'] = null;
+            if ($nuevoEstatus !== 'mantenimiento') {
+                $updateData['falla'] = null;
+            } else if (empty($updateData['falla'])) {
+                $updateData['falla'] = $motivoEstatus ?: 'MANTENIMIENTO';
+            }
+            $updateData['motivo'] = $motivoEstatus ?: strtoupper($nuevoEstatus);
+            $updateData['motivo_estatus'] = $motivoEstatus ?: strtoupper($nuevoEstatus);
             $updateData['hora_programada'] = null;
             $updateData['acople'] = null;
             $updateData['hora_salida'] = null;
@@ -2155,6 +2162,11 @@ class DespachoController extends Controller
                     ->update(['estado_servicio' => 'disponible']);
             }
         } else {
+            $updateData['hora_salida'] = !empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s');
+            $updateData['motivo_estatus'] = $motivoEstatus ?: 'OPERACION';
+            $updateData['falla'] = null;
+            $updateData['motivo'] = null;
+
             $allInputs = $request->all();
             if (array_key_exists('nombre_conductor', $allInputs)) {
                 $updateData['nombre_conductor'] = $request->nombre_conductor;
@@ -2223,12 +2235,46 @@ class DespachoController extends Controller
             $unidadReemplazo = DB::table('unidades')->where('numero_eco', $ecoReemplazo)->first();
             
             if ($unidadReemplazo) {
-                $conductorReemplazo = DB::table('conductores')->where('tarjeton', $tarjetonReemplazo)->first();
-                $nombreConductorReemplazo = $conductorReemplazo ? trim(($conductorReemplazo->nombres ?? '') . ' ' . ($conductorReemplazo->apellidos ?? '')) : null;
+                // 1. Determinar tipo de transporte
+                $tipoParaReemplazo = !empty($registroOperativo->tipo)
+                    ? strtolower(trim($registroOperativo->tipo))
+                    : strtolower(trim($tipoNormalizado ?? 'urbanuss'));
+
+                // 2. Tarjetón y Conductor
+                $tarjetonReemplazo = !empty($tarjetonReemplazo)
+                    ? $tarjetonReemplazo
+                    : ($registroOperativo->numero_tarjeton ?? null);
+
+                $nombreConductorReemplazo = null;
+                if ($tarjetonReemplazo) {
+                    $tarjetonClean = ltrim($tarjetonReemplazo, '0');
+                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonCandidates = array_values(array_unique([$tarjetonReemplazo, $tarjetonClean, $tarjetonPad]));
+
+                    $conductorReemplazo = DB::table('conductores')
+                        ->whereIn('tarjeton', $tarjetonCandidates)
+                        ->orWhere('id', is_numeric($tarjetonReemplazo) ? (int)$tarjetonReemplazo : 0)
+                        ->first();
+
+                    if ($conductorReemplazo) {
+                        $tarjetonReemplazo = $conductorReemplazo->tarjeton;
+                        $nombreConductorReemplazo = trim(($conductorReemplazo->nombres ?? '') . ' ' . ($conductorReemplazo->apellidos ?? ''));
+                        if (empty($nombreConductorReemplazo)) {
+                            $nombreConductorReemplazo = trim(($conductorReemplazo->apellidos ?? '') . ' ' . ($conductorReemplazo->nombres ?? ''));
+                        }
+                    }
+                }
+
+                if (empty($nombreConductorReemplazo)) {
+                    $nombreConductorReemplazo = !empty($request->conductor_reemplazo)
+                        ? trim($request->conductor_reemplazo)
+                        : (!empty($request->nombre_conductor) ? trim($request->nombre_conductor) : ($registroOperativo->nombre_conductor ?? null));
+                }
 
                 // Desasignar cualquier otra unidad que tenga este tarjetón
                 if ($tarjetonReemplazo) {
                     DB::table('informacion_operativa')
+                        ->where('unidad_id', '!=', $unidadReemplazo->id)
                         ->where('numero_tarjeton', $tarjetonReemplazo)
                         ->update([
                             'numero_tarjeton' => null,
@@ -2240,9 +2286,16 @@ class DespachoController extends Controller
                         ->update(['estado_servicio' => 'en_servicio']);
                 }
 
+                $rutaReemplazo = (!empty($rutaReemplazo) && !in_array($rutaReemplazo, ['Sin ruta', 'Sin ruta asignada', 'SELECCIONAR'], true))
+                    ? $rutaReemplazo
+                    : ($registroOperativo->ruta ?? null);
+
+                $corridaReemplazoVal = ($corridaReemplazo !== '' && $corridaReemplazo !== null)
+                    ? (int)$corridaReemplazo
+                    : ($registroOperativo->corridas ?? null);
+
                 $registroReemplazo = DB::table('informacion_operativa')
                     ->where('unidad_id', $unidadReemplazo->id)
-                    ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
                     ->first();
 
                 // La unidad de reemplazo entra en operación activa y hereda la hora_salida (o la hora actual)
@@ -2251,14 +2304,29 @@ class DespachoController extends Controller
                     : date('H:i:s');
 
                 $reemplazoData = [
-                    'estatus' => 'operacion',
-                    'numero_tarjeton' => $tarjetonReemplazo,
-                    'nombre_conductor' => $nombreConductorReemplazo,
-                    'ruta' => $rutaReemplazo,
-                    'corridas' => $corridaReemplazo === '' ? null : (int)$corridaReemplazo,
-                    'hora_salida' => $horaSalidaParaReemplazo,
-                    'motivo_estatus' => null,
-                    'falla' => null
+                    'tipo'                  => $tipoParaReemplazo,
+                    'estatus'               => 'operacion',
+                    'numero_tarjeton'       => $tarjetonReemplazo,
+                    'nombre_conductor'      => $nombreConductorReemplazo,
+                    'ruta'                  => $rutaReemplazo,
+                    'corridas'              => $corridaReemplazoVal,
+                    'hora_programada'       => $registroOperativo->hora_programada ?? null,
+                    'acople'                => $registroOperativo->acople ?? null,
+                    'hora_salida'           => $horaSalidaParaReemplazo,
+                    'ciclo'                 => $registroOperativo->ciclo ?? null,
+                    'relevo_tarjeton'       => $registroOperativo->relevo_tarjeton ?? null,
+                    'relevo_conductor'      => $registroOperativo->relevo_conductor ?? null,
+                    'relevo_hora'           => $registroOperativo->relevo_hora ?? null,
+                    'tarjeton_maniobrista'  => $registroOperativo->tarjeton_maniobrista ?? null,
+                    'nombre_maniobrista'    => $registroOperativo->nombre_maniobrista ?? null,
+                    'transporte_patio_norte'=> $registroOperativo->transporte_patio_norte ?? 'false',
+                    'patio_norte'           => $registroOperativo->patio_norte ?? 'false',
+                    'motivo_estatus'        => 'REEMPLAZO DE ECO ' . $numeroEco,
+                    'cambio_desde'          => $numeroEco,
+                    'cambio_motivo'         => $motivoEstatus ?: 'REEMPLAZO',
+                    'falla'                 => null,
+                    'motivo'                => null,
+                    'updated_at'            => now(),
                 ];
 
                 if ($registroReemplazo) {
@@ -2267,8 +2335,8 @@ class DespachoController extends Controller
                         ->update($reemplazoData);
                 } else {
                     $reemplazoData['unidad_id'] = $unidadReemplazo->id;
-                    $reemplazoData['tipo'] = strtolower($tipoNormalizado);
                     $reemplazoData['fecha_registro'] = now();
+                    $reemplazoData['created_at'] = now();
                     DB::table('informacion_operativa')->insert($reemplazoData);
                 }
 

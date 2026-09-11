@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 
 import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 import { AuthContext } from '../../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function UnitInfoPanel({
   selectedOption,
@@ -34,6 +35,7 @@ export default function UnitInfoPanel({
   onUpdate,
 }) {
   const { user } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const isPlataforma = user?.role?.codigo === 'PLATAFORMA' || localStorage.getItem('dashboardMode') === 'PLATAFORMA';
 
   const [editandoTarjeton, setEditandoTarjeton] = useState(false);
@@ -162,6 +164,7 @@ export default function UnitInfoPanel({
   const [rutaTipoSeleccionada, setRutaTipoSeleccionada] = useState(configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
   const [reemplazoForm, setReemplazoForm] = useState({
     tarjeton: '',
+    conductor: '',
     ruta: '',
     corrida: '',
   });
@@ -353,12 +356,13 @@ export default function UnitInfoPanel({
       setRutaTipoSeleccionada(configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
       setReemplazoForm({
         tarjeton: datosOperativos.tarjeton || '',
-        ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '',
+        conductor: (datosOperativos.conductor && datosOperativos.conductor !== 'No reportado hoy' && datosOperativos.conductor !== 'Sin conductor') ? datosOperativos.conductor : '',
+        ruta: (datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' && datosOperativos.ruta !== 'Sin ruta asignada') ? datosOperativos.ruta : '',
         corrida: datosOperativos.corrida || '',
       });
     } else {
       setUnidadReemplazoSeleccionada(null);
-      setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+      setReemplazoForm({ tarjeton: '', conductor: '', ruta: '', corrida: '' });
       setDropdownEcoOpen(false);
       setDropdownRutaOpen(false);
     }
@@ -428,8 +432,8 @@ export default function UnitInfoPanel({
           setPlatError('Debe ingresar un motivo y seleccionar un destino.');
           return;
         }
-        if (reemplazoActivo && (!unidadReemplazoSeleccionada || !reemplazoForm.tarjeton || !reemplazoForm.ruta || !reemplazoForm.corrida)) {
-          setPlatError('Completa la unidad de reserva, tarjetón, ruta y corrida para el cambio de unidad.');
+        if (reemplazoActivo && !unidadReemplazoSeleccionada) {
+          setPlatError('Selecciona la unidad de reserva para el cambio.');
           return;
         }
         setPlatError('');
@@ -441,11 +445,14 @@ export default function UnitInfoPanel({
           estatus_nuevo: platEstatus.toUpperCase(),
           reemplazo_activo: reemplazoActivo ? 1 : 0,
           eco_reemplazo: reemplazoActivo ? unidadReemplazoSeleccionada.eco : null,
-          tarjeton_reemplazo: reemplazoActivo && reemplazoForm.tarjeton != null ? String(reemplazoForm.tarjeton) : null,
-          ruta_reemplazo: reemplazoActivo && reemplazoForm.ruta != null ? String(reemplazoForm.ruta) : null,
-          corrida_reemplazo: reemplazoActivo && reemplazoForm.corrida != null ? String(reemplazoForm.corrida) : null,
+          tarjeton_reemplazo: reemplazoActivo && reemplazoForm.tarjeton ? String(reemplazoForm.tarjeton).trim() : null,
+          conductor_reemplazo: reemplazoActivo && reemplazoForm.conductor ? String(reemplazoForm.conductor).trim() : null,
+          ruta_reemplazo: reemplazoActivo && reemplazoForm.ruta ? String(reemplazoForm.ruta).trim() : null,
+          corrida_reemplazo: reemplazoActivo && reemplazoForm.corrida != null && String(reemplazoForm.corrida).trim() !== '' ? String(reemplazoForm.corrida).trim() : null,
         };
-        successMessage = `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`;
+        successMessage = reemplazoActivo
+          ? `Unidad ECO${ecoNum} desincorporada a ${platEstatus}. ECO${unidadReemplazoSeleccionada.eco} entra en operación.`
+          : `Unidad ECO${ecoNum} desincorporada a ${platEstatus}.`;
         errorMessage = 'Error al desincorporar unidad';
       } else if (modalPlataformaVisible === 'ASIGNACION_CONDUCTOR') {
         if (!platConductor) {
@@ -522,7 +529,13 @@ export default function UnitInfoPanel({
       if (!response.ok) {
         throw new Error(result.error || result.message || errorMessage);
       }
-      if (typeof onUpdate === 'function') onUpdate();
+      queryClient.invalidateQueries(['unidades-list-mesacontrol']);
+      queryClient.invalidateQueries(['unidad-detalle']);
+      queryClient.invalidateQueries(['despacho-hoy']);
+      queryClient.invalidateQueries(['conteo-unidades-global']);
+      queryClient.invalidateQueries(['conductores-list']);
+      queryClient.invalidateQueries(['monitoreo-conductores-dia']);
+      if (typeof onUpdate === 'function') onUpdate(ecoNum, reemplazoActivo ? unidadReemplazoSeleccionada?.eco : null);
       setModalPlataformaVisible(null);
       const Swal = (await import('sweetalert2')).default;
       Swal.fire({ icon: 'success', title: 'Éxito', text: successMessage, confirmButtonColor: '#6b1d33' });
@@ -1300,17 +1313,19 @@ export default function UnitInfoPanel({
                       <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una unidad de la lista.</p>
                     </div>
 
-                    {/* Tarjetón - Solo lectura (No editable en reemplazo) */}
+                    {/* Operador Asignado / Tarjetón - Heredado de la unidad saliente */}
                     <div style={{ display: 'grid', gap: '0.25rem' }}>
-                      <span className="info-card__label">Número de Tarjetón</span>
+                      <span className="info-card__label">Operador Asignado (Tarjetón)</span>
                       <div
                         className="interactive-input"
                         style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '0 0.85rem', background: '#f1f5f9', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem', opacity: 0.8
+                          display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '0 0.85rem', background: '#f1f5f9', height: '2.8rem', fontSize: '0.9rem', width: '100%', border: '1px solid #e5e7eb', borderRadius: '0.75rem', opacity: 0.9
                         }}
                       >
-                        <span style={{ fontWeight: 600, color: '#64748b', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3 }}>
-                          {reemplazoForm.tarjeton || 'Sin tarjetón'}
+                        <span style={{ fontWeight: 600, color: '#334155', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3 }}>
+                          {reemplazoForm.tarjeton
+                            ? `${reemplazoForm.tarjeton}${reemplazoForm.conductor ? ` - ${reemplazoForm.conductor}` : ''}`
+                            : (reemplazoForm.conductor || 'Sin conductor')}
                         </span>
                       </div>
                     </div>

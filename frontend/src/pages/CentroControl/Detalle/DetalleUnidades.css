@@ -183,6 +183,7 @@
 .detalle-tab--operacion.is-active { background: var(--status-green-text); border-color: var(--status-green-text); }
 .detalle-tab--reserva.is-active { background: var(--status-blue-text); border-color: var(--status-blue-text); }
 .detalle-tab--mantenimiento.is-active { background: var(--status-yellow-text); border-color: var(--status-yellow-text); }
+.detalle-tab--percance.is-active { background: #b91c1c; border-color: #b91c1c; }
 .detalle-tab--otros.is-active { background: var(--state-gray-text); border-color: var(--state-gray-text); }
 
 /* ---------- Tabla de unidades ---------- */
@@ -272,6 +273,11 @@
 .detalle-table__status--mantenimiento {
   color: var(--status-yellow-text);
   background: var(--status-yellow-light);
+}
+
+.detalle-table__status--percance {
+  color: #b91c1c;
+  background: #fef2f2;
 }
 
 .detalle-table__status--otros {

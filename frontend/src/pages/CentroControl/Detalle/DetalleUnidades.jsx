@@ -40,6 +40,7 @@ const STATUS_TABS = [
   { key: 'unidadesOperacion', label: 'Operación', color: 'operacion' },
   { key: 'unidadesReserva', label: 'Reserva', color: 'reserva' },
   { key: 'unidadesMantenimiento', label: 'Mantenimiento', color: 'mantenimiento' },
+  { key: 'unidadesPercance', label: 'Percance', color: 'percance' },
   { key: 'unidadesOtros', label: 'Otro estatus', color: 'otros' },
 ];
 

@@ -60,9 +60,12 @@ export default function CentroControl() {
 
   const modelData = React.useMemo(() => {
     return modelsConfig.map((mc) => {
-      const units = (Array.isArray(apiData) ? apiData : []).filter((d) =>
-        d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id)
-      );
+      const units = (Array.isArray(apiData) ? apiData : []).filter((d) => {
+        const matchesModel = d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id);
+        const est = (d.ESTATUS || '').toLowerCase().trim();
+        const isNoProgramada = est === 'no_programada' || est === 'no programada';
+        return matchesModel && !isNoProgramada;
+      });
       const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
       const unidadesOperacion = units.filter((d) => {
@@ -72,17 +75,20 @@ export default function CentroControl() {
       });
       const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
       const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
+      const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
       const programadas = units.length;
       const operacion = unidadesOperacion.length;
       const mantenimiento = unidadesMantenimiento.length;
       const reserva = unidadesReserva.length;
-      const otros = Math.max(programadas - operacion - mantenimiento - reserva, 0);
+      const percance = unidadesPercance.length;
+      const otros = Math.max(programadas - operacion - mantenimiento - reserva - percance, 0);
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
         ...unidadesMantenimiento,
         ...unidadesReserva,
+        ...unidadesPercance,
       ]);
       const unidadesOtros = units.filter((d) => !idsConEstatus.has(d));
 
@@ -92,10 +98,12 @@ export default function CentroControl() {
         operacion,
         reserva,
         mantenimiento,
+        percance,
         otros,
         unidadesOperacion,
         unidadesReserva,
         unidadesMantenimiento,
+        unidadesPercance,
         unidadesOtros,
         units,
       };
@@ -337,11 +345,12 @@ export default function CentroControl() {
           if (u.HORA_SALIDA && u.HORA_SALIDA.trim() !== '') {
             colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
           } else {
-            colorClass = 'otros'; labelStatus = 'Programada (Sin salir)'; 
+            colorClass = 'operacion'; labelStatus = 'Operación'; 
           }
         }
         else if (estatus.includes('MANTENIMIENTO')) { colorClass = 'mantenimiento'; labelStatus = 'Mantenimiento'; }
         else if (estatus.includes('RESERVA')) { colorClass = 'reserva'; labelStatus = 'Reserva'; }
+        else if (estatus.includes('PERCANCE')) { colorClass = 'percance'; labelStatus = 'Percance'; }
 
         return { ...u, __modelInfo: m, __statusColor: colorClass, __statusLabel: labelStatus };
       })
@@ -508,7 +517,7 @@ export default function CentroControl() {
                 </svg>
               </div>
               <span className="centro-kpi__value">{cargando ? '—' : totales.programadas}</span>
-              <span className="centro-kpi__label">Total Parque Vehicular</span>
+              <span className="centro-kpi__label">Total Programadas</span>
             </div>
 
             <div className="centro-kpi centro-kpi--operacion">
