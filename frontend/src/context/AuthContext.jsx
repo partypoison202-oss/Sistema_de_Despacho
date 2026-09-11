@@ -21,6 +21,7 @@ export const MODULO_RUTAS = {
   maniobristas    : '/maniobristas',
   carga_combustible: '/carga-combustible',
   general         : '/general',
+  programacion_pasteles: '/programacion-pasteles',
 };
 
 /**
@@ -43,6 +44,7 @@ export function getDefaultRoute(user) {
   // Fallback por rol (compatibilidad con cuentas sin módulos asignados)
   const fallback = {
     PROGRAMACION      : '/menu',
+    PASTELES          : '/menu',
     CARGA_DE_COMBUSTIBLE: '/menu',
     GESTOR_OPERADORES : '/operadores',
     ENCIERRO          : '/encierro/dashboard',

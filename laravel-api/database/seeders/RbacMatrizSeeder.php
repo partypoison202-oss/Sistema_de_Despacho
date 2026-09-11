@@ -20,7 +20,7 @@ class RbacMatrizSeeder extends Seeder
         $TODOS = [
             'despacho','encierro','capturista','relevos','mantenimiento',
             'centro_control','historial','titan','infraccion','mesa_control',
-            'operadores','maniobristas','carga_combustible','general',
+            'operadores','maniobristas','carga_combustible','general','programacion_pasteles',
         ];
 
         // ── USUARIOS A CREAR / ACTUALIZAR ─────────────────────────────────

@@ -7,6 +7,7 @@ const ROLE_DEFAULT_MODULES = {
   PLATAFORMA: ['mesa_control'],
   MESA_CONTROL: ['mesa_control', 'relevos', 'centro_control'],
   PROGRAMACION: ['capturista', 'relevos'],
+  PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles'],
   GESTOR_OPERADORES: ['operadores'],
   ENCIERRO: ['encierro'],
   CENTRO_CONTROL: ['centro_control'],
@@ -35,9 +36,15 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
   }
 
   const rol = user.role?.codigo;
-  const modulos = (user.modulos && user.modulos.length > 0)
-    ? user.modulos
+  let modulos = (user.modulos && user.modulos.length > 0)
+    ? [...user.modulos]
     : (ROLE_DEFAULT_MODULES[rol] || []);
+
+  if (rol === 'PASTELES') {
+    ['centro_control', 'mesa_control', 'programacion_pasteles'].forEach(m => {
+      if (!modulos.includes(m)) modulos.push(m);
+    });
+  }
 
   // Los ADMIN y LECTURA tienen acceso universal, a menos que el módulo esté explícitamente bloqueado (usualmente no)
   const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';

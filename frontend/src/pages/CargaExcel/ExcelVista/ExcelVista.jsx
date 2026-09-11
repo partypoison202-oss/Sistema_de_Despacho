@@ -120,7 +120,9 @@ export default function ExcelPreview({
   onSave,
   hasChanges,
   isSaving,
-  readOnly = false
+  readOnly = false,
+  isPasteles = false,
+  onOpenCambioUnidad = null,
 }) {
   const { user } = useContext(AuthContext);
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
@@ -391,8 +393,51 @@ export default function ExcelPreview({
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
                               textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'HORA_PROGRAMADA' || h === 'RELEVO_HORA') ? 'center' : 'left',
+                              display: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'flex' : 'block',
+                              alignItems: 'center',
+                              justifyContent: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'center' : 'initial',
+                              gap: '0.35rem',
                             }}>
-                              {displayValue}
+                              <span>{displayValue}</span>
+                              {h === 'ECONOMICO' && isPasteles && !readOnly && onOpenCambioUnidad && (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenCambioUnidad(fila, originalIndex)}
+                                  title="Cambiar esta unidad por una en reserva"
+                                  style={{
+                                    background: 'rgba(197, 160, 89, 0.15)',
+                                    border: '1px solid rgba(197, 160, 89, 0.4)',
+                                    color: '#8c6d23',
+                                    borderRadius: '4px',
+                                    padding: '2px 5px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                    lineHeight: 1,
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.background = '#c5a059';
+                                    e.currentTarget.style.color = '#ffffff';
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.background = 'rgba(197, 160, 89, 0.15)';
+                                    e.currentTarget.style.color = '#8c6d23';
+                                  }}
+                                >
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M16 3h5v5" />
+                                    <path d="M4 20L21 3" />
+                                    <path d="M21 16v5h-5" />
+                                    <path d="M15 15l6 6" />
+                                    <path d="M4 4l5 5" />
+                                  </svg>
+                                  <span>Cambio</span>
+                                </button>
+                              )}
                             </div>
                           </td>
                         );

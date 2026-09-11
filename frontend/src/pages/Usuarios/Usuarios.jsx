@@ -47,6 +47,7 @@ export default function Usuarios() {
     if (lower === 'mantenimiento') return 'role-mantenimiento';
     if (lower === 'centro_control' || lower === 'centro de control') return 'role-centro';
     if (lower === 'programacion' || lower === 'programación') return 'role-programacion';
+    if (lower === 'pasteles') return 'role-pasteles';
     if (lower === 'gestor_operadores' || lower.includes('gestor')) return 'role-gestor';
     return 'role-default';
   };

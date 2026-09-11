@@ -111,6 +111,17 @@ class PlataformaController extends Controller
                 $datosUpdate['ruta'] = null;
                 $datosUpdate['corridas'] = null;
                 $datosUpdate['ciclo'] = null;
+                $datosUpdate['falla'] = null;
+                $datosUpdate['hora_programada'] = null;
+                $datosUpdate['acople'] = null;
+                $datosUpdate['hora_salida'] = null;
+                $datosUpdate['relevo_tarjeton'] = null;
+                $datosUpdate['relevo_conductor'] = null;
+                $datosUpdate['relevo_hora'] = null;
+                $datosUpdate['tarjeton_maniobrista'] = null;
+                $datosUpdate['nombre_maniobrista'] = null;
+                $datosUpdate['patio_norte'] = 'false';
+                $datosUpdate['transporte_patio_norte'] = 'false';
 
                 $mensajeBitacora = "DESINCORPORACIÓN A " . strtoupper($estatusNuevo) . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
 

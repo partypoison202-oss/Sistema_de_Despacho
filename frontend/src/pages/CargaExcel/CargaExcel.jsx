@@ -9,10 +9,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
 import ModalTrasladoPatioNorte from './ModalTrasladoPatioNorte';
+import ModalCambioUnidad from './ModalCambioUnidad';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 
-export default function CargaExcel() {
+export default function CargaExcel({ isPasteles = false }) {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
@@ -24,6 +25,12 @@ export default function CargaExcel() {
   const [cargandoInicio, setCargandoInicio] = useState(false);
   const [tabActiva, setTabActiva] = useState('HOY');
   const [showTrasladoModal, setShowTrasladoModal] = useState(false);
+  const [modalCambioData, setModalCambioData] = useState({
+    isOpen: false,
+    unidadSaliente: null,
+    outgoingIndex: null,
+    nuevoEstatus: 'mantenimiento',
+  });
 
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
@@ -119,6 +126,27 @@ export default function CargaExcel() {
 
     if (field === 'ESTATUS') {
       if (valStr === 'mantenimiento' || valStr === 'reserva') {
+        if (isPasteles) {
+          const currentEco = updatedData[index]?.ECONOMICO;
+          const hasService = Boolean(
+            updatedData[index]['RUTA'] ||
+            updatedData[index]['TARJETON'] ||
+            updatedData[index]['NOMBRE_CONDUCTOR'] ||
+            updatedData[index]['CORRIDAS'] ||
+            String(updatedData[index]['ESTATUS'] || '').toLowerCase() === 'operacion'
+          );
+
+          if (hasService) {
+            setModalCambioData({
+              isOpen: true,
+              unidadSaliente: { ...updatedData[index] },
+              outgoingIndex: index,
+              nuevoEstatus: valStr,
+            });
+            return;
+          }
+        }
+
         updatedData[index]['ESTATUS'] = valStr;
         updatedData[index]['RUTA'] = '';
         updatedData[index]['TARJETON'] = '';
@@ -127,9 +155,17 @@ export default function CargaExcel() {
         updatedData[index]['RELEVO_CONDUCTOR'] = '';
         updatedData[index]['RELEVO_HORA'] = '';
         updatedData[index]['HORA_DE_ACOPLE'] = '';
+        updatedData[index]['HORA_PROGRAMADA'] = '';
         updatedData[index]['ACOPLE'] = '';
         updatedData[index]['HORA_SALIDA'] = '';
         updatedData[index]['CORRIDAS'] = null;
+        updatedData[index]['PATIO_NORTE'] = false;
+        updatedData[index]['TARJETON_MANIOBRISTA'] = '';
+        updatedData[index]['NOMBRE_MANIOBRISTA'] = '';
+        updatedData[index]['FALLA'] = '';
+        updatedData[index]['CICLO'] = '';
+        updatedData[index]['MOTIVO'] = '';
+        updatedData[index]['MOTIVO_ESTATUS'] = '';
       } else {
         updatedData[index]['ESTATUS'] = valStr;
       }
@@ -814,11 +850,13 @@ export default function CargaExcel() {
               {isRelevos ? 'GESTIÓN DE OPERACIONES' : 'SISTEMA DE'}
             </p>
             <h1 className="page-title">
-              {isRelevos ? 'RELEVOS DE T6' : 'PROGRAMACIÓN Y LOGÍSTICA'}
+              {isRelevos ? 'RELEVOS DE T6' : isPasteles ? 'PROGRAMACIÓN Y LOGÍSTICA (PASTELES)' : 'PROGRAMACIÓN Y LOGÍSTICA'}
             </h1>
             <p className="excel-subtitle">
               {isRelevos 
                 ? 'Gestiona, asiste y concilia los relevos operativos de los T6'
+                : isPasteles
+                ? 'Organiza la programación operativa y gestiona el cambio de unidades por unidades en reserva'
                 : 'Organiza, edita y concilia la programación operativa directamente en el sistema'}
             </p>
           </div>
@@ -1023,6 +1061,15 @@ export default function CargaExcel() {
             onSave={handleSaveChanges}
             hasChanges={hasChanges}
             isSaving={isSaving}
+            isPasteles={isPasteles}
+            onOpenCambioUnidad={(fila, originalIndex) => {
+              setModalCambioData({
+                isOpen: true,
+                unidadSaliente: { ...fila },
+                outgoingIndex: originalIndex,
+                nuevoEstatus: 'reserva',
+              });
+            }}
           />
         )}
       </main>
@@ -1032,6 +1079,122 @@ export default function CargaExcel() {
         onClose={() => setShowTrasladoModal(false)} 
         previewData={previewData} 
         logoUrl="/images/logo_tuzobus.png" 
+      />
+
+      {/* Modal para sustitución de unidad en modo Pasteles */}
+      <ModalCambioUnidad
+        isOpen={modalCambioData.isOpen}
+        onClose={() => setModalCambioData(prev => ({ ...prev, isOpen: false }))}
+        unidadSaliente={modalCambioData.unidadSaliente}
+        nuevoEstatus={modalCambioData.nuevoEstatus}
+        unidadesDisponibles={previewData.filter(u => String(u.ESTATUS || '').toLowerCase().trim() === 'reserva')}
+        onConfirmarCambio={(unidadReserva, nuevoEstatus) => {
+          const updatedData = [...previewData];
+          const outIdx = modalCambioData.outgoingIndex;
+          if (outIdx === null || outIdx === undefined || !updatedData[outIdx]) return;
+
+          const outgoing = { ...updatedData[outIdx] };
+          const reserveIdx = updatedData.findIndex(
+            (row, idx) => idx !== outIdx && String(row.ECONOMICO).trim() === String(unidadReserva.ECONOMICO).trim()
+          );
+
+          if (reserveIdx === -1) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Unidad no encontrada',
+              text: `No se encontró la unidad en reserva Eco #${unidadReserva.ECONOMICO} en la lista.`,
+              confirmButtonColor: '#6b1d33'
+            });
+            return;
+          }
+
+          // Solo si la unidad original ya estaba despachada/validada, la sustituta conserva esa hora de salida para mostrarse en encierro.
+          // Si la unidad original aún NO se despachaba, HORA_SALIDA queda vacía para quedarse en despacho hasta ser validada.
+          const fueDespachada = Boolean(outgoing.HORA_SALIDA && String(outgoing.HORA_SALIDA).trim() !== '');
+
+          // 1. La unidad de reserva recibe la corrida completa y pasa a 'operacion'
+          updatedData[reserveIdx] = {
+            ...updatedData[reserveIdx],
+            ESTATUS: 'operacion',
+            RUTA: outgoing.RUTA,
+            CORRIDAS: outgoing.CORRIDAS,
+            TARJETON: outgoing.TARJETON,
+            NOMBRE_CONDUCTOR: outgoing.NOMBRE_CONDUCTOR,
+            RELEVO_TARJETON: outgoing.RELEVO_TARJETON,
+            RELEVO_CONDUCTOR: outgoing.RELEVO_CONDUCTOR,
+            RELEVO_HORA: outgoing.RELEVO_HORA,
+            HORA_DE_ACOPLE: outgoing.HORA_DE_ACOPLE || outgoing.HORA_PROGRAMADA || '',
+            HORA_PROGRAMADA: outgoing.HORA_PROGRAMADA || outgoing.HORA_DE_ACOPLE || '',
+            ACOPLE: outgoing.ACOPLE,
+            HORA_SALIDA: fueDespachada ? outgoing.HORA_SALIDA : '',
+            PATIO_NORTE: outgoing.PATIO_NORTE,
+            TARJETON_MANIOBRISTA: outgoing.TARJETON_MANIOBRISTA,
+            NOMBRE_MANIOBRISTA: outgoing.NOMBRE_MANIOBRISTA,
+          };
+
+          // 2. La unidad saliente pasa al nuevo estatus (mantenimiento o reserva) y se liberan sus campos
+          updatedData[outIdx] = {
+            ...updatedData[outIdx],
+            ESTATUS: nuevoEstatus,
+            RUTA: '',
+            CORRIDAS: null,
+            TARJETON: '',
+            NOMBRE_CONDUCTOR: '',
+            RELEVO_TARJETON: '',
+            RELEVO_CONDUCTOR: '',
+            RELEVO_HORA: '',
+            HORA_DE_ACOPLE: '',
+            HORA_PROGRAMADA: '',
+            ACOPLE: '',
+            HORA_SALIDA: '',
+            PATIO_NORTE: false,
+            TARJETON_MANIOBRISTA: '',
+            NOMBRE_MANIOBRISTA: '',
+            FALLA: '',
+            CICLO: '',
+            MOTIVO: '',
+            MOTIVO_ESTATUS: '',
+          };
+
+          setPreviewData(updatedData);
+          setHasChanges(true);
+          setModalCambioData({ isOpen: false, unidadSaliente: null, outgoingIndex: null, nuevoEstatus: 'mantenimiento' });
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Sustitución realizada',
+            html: `Se asignó el servicio a la unidad <b>Eco #${unidadReserva.ECONOMICO}</b>.<br/><br/>La unidad <b>Eco #${outgoing.ECONOMICO}</b> pasó a <b>${nuevoEstatus.toUpperCase()}</b>.<br/><br/><small style="color: #64748b;">Recuerda hacer clic en "Guardar cambios" para guardar en el sistema.</small>`,
+            confirmButtonColor: '#c5a059'
+          });
+        }}
+        onContinuarSinCambio={(nuevoEstatus) => {
+          const updatedData = [...previewData];
+          const outIdx = modalCambioData.outgoingIndex;
+          if (outIdx !== null && outIdx !== undefined && updatedData[outIdx]) {
+            updatedData[outIdx]['ESTATUS'] = nuevoEstatus;
+            updatedData[outIdx]['RUTA'] = '';
+            updatedData[outIdx]['TARJETON'] = '';
+            updatedData[outIdx]['NOMBRE_CONDUCTOR'] = '';
+            updatedData[outIdx]['RELEVO_TARJETON'] = '';
+            updatedData[outIdx]['RELEVO_CONDUCTOR'] = '';
+            updatedData[outIdx]['RELEVO_HORA'] = '';
+            updatedData[outIdx]['HORA_DE_ACOPLE'] = '';
+            updatedData[outIdx]['HORA_PROGRAMADA'] = '';
+            updatedData[outIdx]['ACOPLE'] = '';
+            updatedData[outIdx]['HORA_SALIDA'] = '';
+            updatedData[outIdx]['CORRIDAS'] = null;
+            updatedData[outIdx]['PATIO_NORTE'] = false;
+            updatedData[outIdx]['TARJETON_MANIOBRISTA'] = '';
+            updatedData[outIdx]['NOMBRE_MANIOBRISTA'] = '';
+            updatedData[outIdx]['FALLA'] = '';
+            updatedData[outIdx]['CICLO'] = '';
+            updatedData[outIdx]['MOTIVO'] = '';
+            updatedData[outIdx]['MOTIVO_ESTATUS'] = '';
+            setPreviewData(updatedData);
+            setHasChanges(true);
+          }
+          setModalCambioData({ isOpen: false, unidadSaliente: null, outgoingIndex: null, nuevoEstatus: 'mantenimiento' });
+        }}
       />
     </div>
   );

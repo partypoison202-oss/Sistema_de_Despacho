@@ -69,22 +69,28 @@ class AuthController extends Controller
     {
         $modulos = $user->modulos()->pluck('modulo_codigo')->toArray();
 
+        if ($user->role && $user->role->codigo === 'PASTELES') {
+            $defaultPasteles = ['centro_control', 'mesa_control', 'programacion_pasteles'];
+            return array_values(array_unique(array_merge($modulos, $defaultPasteles)));
+        }
+
         if (empty($modulos) && $user->role) {
             $defaultModulesByRole = [
                 'ADMINISTRADOR'        => [
                     'despacho','encierro','capturista','relevos','mantenimiento',
                     'centro_control','historial','titan','infraccion','mesa_control',
-                    'operadores','maniobristas','carga_combustible','general'
+                    'operadores','maniobristas','carga_combustible','general','programacion_pasteles'
                 ],
                 'LECTURA'              => [
                     'despacho','encierro','capturista','relevos','mantenimiento',
                     'centro_control','historial','titan','infraccion','mesa_control',
-                    'operadores','maniobristas','carga_combustible','general'
+                    'operadores','maniobristas','carga_combustible','general','programacion_pasteles'
                 ],
                 'DESPACHO'             => ['despacho'],
                 'PLATAFORMA'           => ['mesa_control'],
                 'MESA_CONTROL'         => ['mesa_control', 'relevos', 'centro_control'],
                 'PROGRAMACION'         => ['capturista', 'relevos'],
+                'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles'],
                 'GESTOR_OPERADORES'    => ['operadores'],
                 'ENCIERRO'             => ['encierro'],
                 'CENTRO_CONTROL'       => ['centro_control'],

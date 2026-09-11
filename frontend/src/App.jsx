@@ -176,6 +176,13 @@ function App() {
               </ProtectedRoute>
             } />
 
+            {/* Programación y Logística (Pasteles) */}
+            <Route path="/programacion-pasteles" element={
+              <ProtectedRoute allowedModules={['programacion_pasteles']}>
+                <CargaExcel isPasteles={true} />
+              </ProtectedRoute>
+            } />
+
             {/* Operadores */}
             <Route path="/operadores" element={
               <ProtectedRoute allowedModules={['operadores', 'maniobristas', 'despacho', 'centro_control', 'general', 'mantenimiento', 'carga_combustible']}>
