@@ -75,6 +75,10 @@ class PlataformaController extends Controller
                 }
                 $estatusNuevo = 'OPERACION';
                 $datosUpdate['estatus'] = strtolower($estatusNuevo);
+                $datosUpdate['hora_salida'] = !empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s');
+                $datosUpdate['motivo_estatus'] = 'INCORPORACION';
+                $datosUpdate['falla'] = null;
+                $datosUpdate['motivo'] = null;
                 
                 // Asignar conductor y ruta al incorporar
                 $datosUpdate['numero_tarjeton'] = $request->conductor;
@@ -99,6 +103,11 @@ class PlataformaController extends Controller
                 }
                 $estatusNuevo = $request->estatus_nuevo ?? 'RESERVA';
                 $datosUpdate['estatus'] = strtolower($estatusNuevo);
+                $datosUpdate['motivo_estatus'] = $request->motivo ? strtoupper($request->motivo) : strtoupper($estatusNuevo);
+                $datosUpdate['motivo'] = $request->motivo ? strtoupper($request->motivo) : strtoupper($estatusNuevo);
+                if (strtoupper($estatusNuevo) === 'MANTENIMIENTO') {
+                    $datosUpdate['falla'] = $request->motivo ? strtoupper($request->motivo) : 'MANTENIMIENTO';
+                }
                 
                 // Limpiar conductor y ruta al desincorporar
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
@@ -111,7 +120,9 @@ class PlataformaController extends Controller
                 $datosUpdate['ruta'] = null;
                 $datosUpdate['corridas'] = null;
                 $datosUpdate['ciclo'] = null;
-                $datosUpdate['falla'] = null;
+                if (strtoupper($estatusNuevo) !== 'MANTENIMIENTO') {
+                    $datosUpdate['falla'] = null;
+                }
                 $datosUpdate['hora_programada'] = null;
                 $datosUpdate['acople'] = null;
                 $datosUpdate['hora_salida'] = null;
@@ -146,23 +157,114 @@ class PlataformaController extends Controller
 
                     $estatusAnteriorReemplazo = strtoupper(trim($registroReemplazo->estatus ?? 'RESERVA'));
 
+                    // 1. Tipo de transporte (esencial para filtros y vistas)
+                    $tipoParaReemplazo = !empty($registroOperativo->tipo)
+                        ? strtolower(trim($registroOperativo->tipo))
+                        : strtolower(trim($request->tipo ?? 'urbanuss'));
+
+                    // 2. Tarjetón y Conductor
+                    $tarjetonReemplazo = !empty($request->tarjeton_reemplazo)
+                        ? trim($request->tarjeton_reemplazo)
+                        : ($registroOperativo->numero_tarjeton ?? null);
+
                     $nombreConductorReemplazo = null;
-                    if ($request->tarjeton_reemplazo) {
+                    if ($tarjetonReemplazo) {
+                        $tarjetonClean = ltrim($tarjetonReemplazo, '0');
+                        $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+                        $tarjetonCandidates = array_values(array_unique([$tarjetonReemplazo, $tarjetonClean, $tarjetonPad]));
+
                         $conductorR = DB::table('conductores')
-                            ->where('tarjeton', $request->tarjeton_reemplazo)
-                            ->orWhere('id', is_numeric($request->tarjeton_reemplazo) ? (int)$request->tarjeton_reemplazo : 0)
+                            ->whereIn('tarjeton', $tarjetonCandidates)
+                            ->orWhere('id', is_numeric($tarjetonReemplazo) ? (int)$tarjetonReemplazo : 0)
                             ->first();
+
                         if ($conductorR) {
-                            $nombreConductorReemplazo = trim($conductorR->nombres . ' ' . $conductorR->apellidos);
+                            $tarjetonReemplazo = $conductorR->tarjeton;
+                            $nombreConductorReemplazo = trim(($conductorR->nombres ?? '') . ' ' . ($conductorR->apellidos ?? ''));
+                            if (empty($nombreConductorReemplazo)) {
+                                $nombreConductorReemplazo = trim(($conductorR->apellidos ?? '') . ' ' . ($conductorR->nombres ?? ''));
+                            }
+                            // Marcar al conductor en servicio
+                            DB::table('conductores')->where('id', $conductorR->id)->update(['estado_servicio' => 'en_servicio']);
                         }
                     }
 
+                    if (empty($nombreConductorReemplazo)) {
+                        $nombreConductorReemplazo = !empty($request->conductor_reemplazo)
+                            ? trim($request->conductor_reemplazo)
+                            : ($registroOperativo->nombre_conductor ?? null);
+                    }
+
+                    // Si hay tarjetón, evitar duplicidad en cualquier otra unidad
+                    if ($tarjetonReemplazo) {
+                        DB::table('informacion_operativa')
+                            ->where('unidad_id', '!=', $unidadReemplazo->id)
+                            ->where('numero_tarjeton', $tarjetonReemplazo)
+                            ->update([
+                                'numero_tarjeton' => null,
+                                'nombre_conductor' => null
+                            ]);
+                    }
+
+                    // 3. Ruta y Corridas
+                    $rutaReemplazo = (!empty($request->ruta_reemplazo) && !in_array($request->ruta_reemplazo, ['Sin ruta', 'Sin ruta asignada', 'SELECCIONAR'], true))
+                        ? trim($request->ruta_reemplazo)
+                        : ($registroOperativo->ruta ?? null);
+
+                    $corridaReemplazo = ($request->corrida_reemplazo !== null && trim((string)$request->corrida_reemplazo) !== '')
+                        ? trim((string)$request->corrida_reemplazo)
+                        : ($registroOperativo->corridas ?? null);
+
+                    // 4. Horas y ciclo
+                    $horaProgramadaParaReemplazo = !empty($registroOperativo->hora_programada)
+                        ? $registroOperativo->hora_programada
+                        : null;
+
+                    $acopleParaReemplazo = !empty($registroOperativo->acople)
+                        ? $registroOperativo->acople
+                        : null;
+
+                    $horaSalidaParaReemplazo = !empty($registroOperativo->hora_salida)
+                        ? $registroOperativo->hora_salida
+                        : date('H:i:s');
+
+                    $cicloParaReemplazo = !empty($registroOperativo->ciclo)
+                        ? $registroOperativo->ciclo
+                        : null;
+
+                    // 5. Relevos y maniobristas
+                    $relevoTarjeton = $registroOperativo->relevo_tarjeton ?? null;
+                    $relevoConductor = $registroOperativo->relevo_conductor ?? null;
+                    $relevoHora = $registroOperativo->relevo_hora ?? null;
+                    $tarjetonManiobrista = $registroOperativo->tarjeton_maniobrista ?? null;
+                    $nombreManiobrista = $registroOperativo->nombre_maniobrista ?? null;
+                    $transportePatioNorte = $registroOperativo->transporte_patio_norte ?? 'false';
+                    $patioNorte = $registroOperativo->patio_norte ?? 'false';
+
                     $datosReemplazo = [
-                        'estatus'          => 'operacion',
-                        'numero_tarjeton'  => $request->tarjeton_reemplazo ?? null,
-                        'nombre_conductor' => $nombreConductorReemplazo,
-                        'ruta'             => $request->ruta_reemplazo     ?? null,
-                        'corridas'         => $request->corrida_reemplazo  ?? null,
+                        'tipo'                  => $tipoParaReemplazo,
+                        'estatus'               => 'operacion',
+                        'numero_tarjeton'       => $tarjetonReemplazo,
+                        'nombre_conductor'      => $nombreConductorReemplazo,
+                        'ruta'                  => $rutaReemplazo,
+                        'corridas'              => ($corridaReemplazo !== null && $corridaReemplazo !== '') ? (int)$corridaReemplazo : null,
+                        'hora_programada'       => $horaProgramadaParaReemplazo,
+                        'acople'                => $acopleParaReemplazo,
+                        'hora_salida'           => $horaSalidaParaReemplazo,
+                        'ciclo'                 => $cicloParaReemplazo,
+                        'relevo_tarjeton'       => $relevoTarjeton,
+                        'relevo_conductor'      => $relevoConductor,
+                        'relevo_hora'           => $relevoHora,
+                        'tarjeton_maniobrista'  => $tarjetonManiobrista,
+                        'nombre_maniobrista'    => $nombreManiobrista,
+                        'transporte_patio_norte'=> $transportePatioNorte,
+                        'patio_norte'           => $patioNorte,
+                        'motivo_estatus'        => 'REEMPLAZO DE ECO ' . $numeroEco,
+                        'cambio_desde'          => $numeroEco,
+                        'cambio_motivo'         => $request->motivo ? strtoupper($request->motivo) : 'REEMPLAZO',
+                        'falla'                 => null,
+                        'motivo'                => null,
+                        'updated_at'            => Carbon::now(),
                     ];
                     
                     // Limpiamos el conductor de la unidad original, ya que se pasó al reemplazo
@@ -177,12 +279,31 @@ class PlataformaController extends Controller
                         DB::table('informacion_operativa')->insert(array_merge(
                             $datosReemplazo,
                             [
-                                'unidad_id'  => $unidadReemplazo->id,
-                                'created_at' => Carbon::now(),
-                                'updated_at' => Carbon::now(),
+                                'unidad_id'      => $unidadReemplazo->id,
+                                'fecha_registro' => Carbon::now(),
+                                'created_at'     => Carbon::now(),
                             ]
                         ));
                     }
+
+                    // Registrar en historial_operativo que la unidad original fue reemplazada/desincorporada
+                    $horaEncierroSaliente = date('H:i:s');
+                    DB::table('historial_operativo')->insert([
+                        'unidad_id'       => $unidadId,
+                        'ruta'            => $registroOperativo->ruta ?? null,
+                        'numero_tarjeton' => $registroOperativo->numero_tarjeton ?? null,
+                        'nombre_conductor'=> $registroOperativo->nombre_conductor ?? null,
+                        'corridas'        => $registroOperativo->corridas ?? null,
+                        'tipo'            => $registroOperativo->tipo ?? $tipoParaReemplazo,
+                        'estatus'         => strtolower($estatusNuevo),
+                        'motivo_estatus'  => "DESINCORPORADA / REEMPLAZADA POR ECO " . $ecoReemplazo . ($request->motivo ? " - " . strtoupper($request->motivo) : ""),
+                        'momento'         => 'ENCIERRO',
+                        'hora_encierro'   => $horaEncierroSaliente,
+                        'fecha_historial' => date('Y-m-d'),
+                        'fecha_registro'  => Carbon::now(),
+                        'created_at'      => Carbon::now(),
+                        'updated_at'      => Carbon::now(),
+                    ]);
 
                     DB::table('plataforma_movimientos')->insert([
                         'unidad_id'          => $unidadReemplazo->id,
@@ -190,8 +311,8 @@ class PlataformaController extends Controller
                         'tipo_movimiento'    => 'INCORPORACION',
                         'estatus_anterior'   => $estatusAnteriorReemplazo,
                         'estatus_nuevo'      => 'OPERACION',
-                        'conductor_asignado' => $request->tarjeton_reemplazo ?? null,
-                        'ruta_asignada'      => $request->ruta_reemplazo    ?? null,
+                        'conductor_asignado' => $tarjetonReemplazo ?? $nombreConductorReemplazo,
+                        'ruta_asignada'      => $rutaReemplazo,
                         'motivo'             => 'REEMPLAZO DE ECO ' . $numeroEco,
                         'created_at'         => Carbon::now(),
                         'updated_at'         => Carbon::now(),
@@ -201,8 +322,10 @@ class PlataformaController extends Controller
                         $unidadReemplazo->id,
                         'INCORPORACION',
                         'INCORPORACIÓN POR REEMPLAZO DE ECO ' . $numeroEco
-                            . ' - TARJETÓN: ' . ($request->tarjeton_reemplazo ?? 'SIN ASIGNAR')
-                            . ', RUTA: '      . ($request->ruta_reemplazo     ?? 'SIN RUTA'),
+                            . ' - CONDUCTOR: ' . ($nombreConductorReemplazo ?? 'SIN ASIGNAR')
+                            . ', TARJETÓN: ' . ($tarjetonReemplazo ?? 'SIN ASIGNAR')
+                            . ', RUTA: '      . ($rutaReemplazo ?? 'SIN RUTA')
+                            . ', CORRIDA: '   . ($corridaReemplazo ?? 'SIN CORRIDA'),
                         $estatusAnteriorReemplazo,
                         'OPERACION'
                     );
