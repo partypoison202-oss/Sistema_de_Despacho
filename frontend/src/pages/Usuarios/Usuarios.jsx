@@ -465,16 +465,30 @@ export default function Usuarios() {
         (user.role?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
-      const isAdminA = a.role?.nombre?.toLowerCase() === 'administrador';
-      const isAdminB = b.role?.nombre?.toLowerCase() === 'administrador';
+      const roleA = (a.role?.nombre || '').toLowerCase();
+      const roleB = (b.role?.nombre || '').toLowerCase();
 
+      const isAdminA = roleA === 'administrador';
+      const isAdminB = roleB === 'administrador';
+
+      // 1. Administradores siempre arriba
       if (isAdminA && !isAdminB) return -1;
       if (!isAdminA && isAdminB) return 1;
 
+      // 2. Ordenar alfabéticamente por Rol
+      if (roleA < roleB) return -1;
+      if (roleA > roleB) return 1;
+
+      // 3. Activos primero
       if (a.activo && !b.activo) return -1;
       if (!a.activo && b.activo) return 1;
 
-      // Preserve backend matrix order (which maps to ID)
+      // 4. Ordenar alfabéticamente por Nombre
+      const nameA = (a.nombre_completo || '').toLowerCase();
+      const nameB = (b.nombre_completo || '').toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+
       return a.id - b.id;
     });
 
