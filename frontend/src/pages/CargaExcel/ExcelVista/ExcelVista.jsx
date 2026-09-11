@@ -35,7 +35,7 @@ const SmartTimeInput = ({ value, onChange, disabled }) => {
   const handleBlur = () => {
     setIsFocused(false);
     let cleaned = internalValue.replace(/[^\d:]/g, '');
-    
+
     // Si borraron todo
     if (!cleaned || cleaned === ':') {
       onChange('');
@@ -48,9 +48,9 @@ const SmartTimeInput = ({ value, onChange, disabled }) => {
       if (cleaned.length === 1 || cleaned.length === 2) {
         cleaned = `${cleaned.padStart(2, '0')}:00`;
       } else if (cleaned.length === 3) {
-        cleaned = `0${cleaned.slice(0,1)}:${cleaned.slice(1,3)}`;
+        cleaned = `0${cleaned.slice(0, 1)}:${cleaned.slice(1, 3)}`;
       } else if (cleaned.length >= 4) {
-        cleaned = `${cleaned.slice(0,2)}:${cleaned.slice(2,4)}`;
+        cleaned = `${cleaned.slice(0, 2)}:${cleaned.slice(2, 4)}`;
       }
     }
 
@@ -58,7 +58,7 @@ const SmartTimeInput = ({ value, onChange, disabled }) => {
     const parts = cleaned.split(':');
     let h = parseInt(parts[0], 10) || 0;
     let m = parseInt(parts[1], 10) || 0;
-    
+
     if (h > 23) h = 23;
     if (m > 59) m = 59;
 
@@ -148,7 +148,7 @@ export default function ExcelPreview({
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE'];
 
-  const headers = isRelevos 
+  const headers = isRelevos
     ? [...baseHeaders, ...relevosHeaders, ...tailHeaders]
     : [...baseHeaders, ...titularHeaders, ...tailHeaders];
 
@@ -240,16 +240,15 @@ export default function ExcelPreview({
 
   useEffect(() => {
     const handleScroll = (e) => {
-      const target = e.target;
-      // Solo cerramos si el scroll ocurre específicamente dentro de la tabla
-      if (target && target.classList && target.classList.contains('table-wrapper')) {
-        setOpenDropdown({ rowIndex: null, field: null });
-        setActiveTimePickerRow(null);
-        setActiveTimePickerField(null);
-      }
+      // Cerramos sin importar dónde ocurra el scroll para evitar el desfase
+      setOpenDropdown({ rowIndex: null, field: null });
+      setActiveTimePickerRow(null);
+      setActiveTimePickerField(null);
     };
     window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, []);
 
   return (
@@ -258,8 +257,8 @@ export default function ExcelPreview({
         <div className="excel-table-header-left">
           <h3>{readOnly ? 'Programación de Inicio (Hoy)' : 'Programación Operativa Diaria'}</h3>
           <p className="excel-table-subtitle">
-            {readOnly 
-              ? 'Consulta histórica de cómo inició la programación para el día de hoy (Solo Lectura)' 
+            {readOnly
+              ? 'Consulta histórica de cómo inició la programación para el día de hoy (Solo Lectura)'
               : 'Captura, edita y concilia las unidades en ruta para el día de hoy'
             }
           </p>
@@ -353,7 +352,7 @@ export default function ExcelPreview({
                             </td>
                           );
                         }
-                        
+
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`}>
                             <div style={{
@@ -383,7 +382,7 @@ export default function ExcelPreview({
                         } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'HORA_PROGRAMADA' || h === 'RELEVO_HORA') {
                           displayValue = fila[h] || '00:00';
                         }
-                        
+
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`}>
                             <div style={{
@@ -893,8 +892,8 @@ export default function ExcelPreview({
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                             <label className="toggle-switch" style={{ display: 'inline-flex', alignItems: 'center', cursor: isRowDisabled ? 'not-allowed' : 'pointer', opacity: isRowDisabled ? 0.6 : 1 }}>
-                              <input 
-                                type="checkbox" 
+                              <input
+                                type="checkbox"
                                 checked={isPatioNorte}
                                 disabled={isRowDisabled}
                                 onChange={(e) => {
