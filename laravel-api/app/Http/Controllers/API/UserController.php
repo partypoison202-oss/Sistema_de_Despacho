@@ -56,6 +56,8 @@ class UserController extends Controller
             'foto_url' => $fotoBase64
         ]);
 
+        $this->sincronizarModulosPorRol($user->id, $user->rol_id);
+
         return response()->json($user->load('role'), 201);
     }
 
@@ -91,6 +93,10 @@ class UserController extends Controller
             $user->update($data);
         }
 
+        if ($request->has('rol_id')) {
+            $this->sincronizarModulosPorRol($user->id, $request->rol_id);
+        }
+
         if ($request->has('activo')) {
             $isActivo = filter_var($request->activo, FILTER_VALIDATE_BOOLEAN);
             // Actualizar usando Query Builder para evitar el 'cast' del modelo Eloquent
@@ -101,6 +107,50 @@ class UserController extends Controller
         }
 
         return response()->json($user->load('role'));
+    }
+
+    private function sincronizarModulosPorRol($userId, $rolId): void
+    {
+        $role = Role::find($rolId);
+        if (!$role) return;
+
+        $defaultModulesByRole = [
+            'ADMINISTRADOR'        => [
+                'despacho','encierro','capturista','relevos','mantenimiento',
+                'centro_control','historial','titan','infraccion','mesa_control',
+                'operadores','maniobristas','carga_combustible','general','programacion_pasteles'
+            ],
+            'LECTURA'              => [
+                'despacho','encierro','capturista','relevos','mantenimiento',
+                'centro_control','historial','titan','infraccion','mesa_control',
+                'operadores','maniobristas','carga_combustible','general','programacion_pasteles'
+            ],
+            'DESPACHO'             => ['despacho'],
+            'PLATAFORMA'           => ['mesa_control'],
+            'MESA_CONTROL'         => ['mesa_control', 'relevos', 'centro_control'],
+            'PROGRAMACION'         => ['capturista', 'relevos'],
+            'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles'],
+            'GESTOR_OPERADORES'    => ['operadores'],
+            'ENCIERRO'             => ['encierro'],
+            'CENTRO_CONTROL'       => ['centro_control'],
+            'TITAN'                => ['titan'],
+            'INFRACCION'           => ['infraccion'],
+            'GENERAL'              => ['general'],
+            'MANTENIMIENTO'        => ['mantenimiento', 'encierro', 'carga_combustible'],
+            'CARGA_DE_COMBUSTIBLE' => ['carga_combustible'],
+        ];
+
+        $modulos = $defaultModulesByRole[$role->codigo] ?? [];
+        if (!empty($modulos)) {
+            \Illuminate\Support\Facades\DB::table('usuario_modulos')->where('usuario_id', $userId)->delete();
+            $inserts = array_map(fn($m) => [
+                'usuario_id' => $userId,
+                'modulo_codigo' => $m,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $modulos);
+            \Illuminate\Support\Facades\DB::table('usuario_modulos')->insert($inserts);
+        }
     }
 
     public function destroy($id)

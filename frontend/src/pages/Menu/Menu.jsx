@@ -63,6 +63,22 @@ const menuItems = [
     color: 'green',
   },
   {
+    id: 'programacion-pasteles',
+    redirectTo: '/programacion-pasteles',
+    modulo: 'programacion_pasteles',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+        <path d="M16 3h5v5" />
+        <path d="M8 21H3v-5" />
+      </svg>
+    ),
+    label: 'Programación y Logística (Pasteles)',
+    color: 'teal',
+  },
+  {
     id: 'relevos',
     redirectTo: '/cargar-excel',
     modulo: 'relevos',
@@ -224,9 +240,13 @@ export default function Menu() {
   const rol = user.role?.codigo;
   const modulos = user.modulos || [];
   const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
+  const isPasteles = rol === 'PASTELES';
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (isSuper) return true;
+    if (isPasteles && ['centro_control', 'mesa_control', 'programacion_pasteles'].includes(item.modulo)) {
+      return true;
+    }
     if (!item.modulo) return true;
     return modulos.includes(item.modulo);
   });
@@ -242,7 +262,7 @@ export default function Menu() {
     // Vista previa de rol: RELEVOS y CAPTURISTA
     if (item.id === 'relevos') {
       sessionStorage.setItem('vistaPreview', 'RELEVOS');
-    } else if (item.id === 'capturista') {
+    } else if (item.id === 'capturista' || item.id === 'programacion-pasteles') {
       sessionStorage.removeItem('vistaPreview');
     }
 

@@ -13,6 +13,7 @@ INSERT INTO "roles" ("id", "codigo", "nombre", "descripcion") VALUES ('9', 'PLAT
 INSERT INTO "roles" ("id", "codigo", "nombre", "descripcion") VALUES ('10', 'INFRACCION', 'INFRACCION', 'Gestión de infracciones.') ON CONFLICT (id) DO UPDATE SET "codigo" = EXCLUDED."codigo", "nombre" = EXCLUDED."nombre", "descripcion" = EXCLUDED."descripcion";
 INSERT INTO "roles" ("id", "codigo", "nombre", "descripcion") VALUES ('11', 'GESTOR_OPERADORES', 'Gestor de Operadores', 'Gestión del catálogo de operadores.') ON CONFLICT (id) DO UPDATE SET "codigo" = EXCLUDED."codigo", "nombre" = EXCLUDED."nombre", "descripcion" = EXCLUDED."descripcion";
 INSERT INTO "roles" ("id", "codigo", "nombre", "descripcion") VALUES ('13', 'CARGA_DE_COMBUSTIBLE', 'Carga de Combustible', 'Control de carga de combustible.') ON CONFLICT (id) DO UPDATE SET "codigo" = EXCLUDED."codigo", "nombre" = EXCLUDED."nombre", "descripcion" = EXCLUDED."descripcion";
+INSERT INTO "roles" ("id", "codigo", "nombre", "descripcion") VALUES ('14', 'PASTELES', 'Pasteles', 'Monitoreo, Mesa de Control y Programación (Pasteles).') ON CONFLICT (id) DO UPDATE SET "codigo" = EXCLUDED."codigo", "nombre" = EXCLUDED."nombre", "descripcion" = EXCLUDED."descripcion";
 SELECT setval(pg_get_serial_sequence('roles', 'id'), COALESCE((SELECT MAX(id) FROM "roles"), 1));
 
 -- Tabla: transportes

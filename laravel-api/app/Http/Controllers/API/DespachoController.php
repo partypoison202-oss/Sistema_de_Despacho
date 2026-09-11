@@ -274,23 +274,6 @@ class DespachoController extends Controller
                     $estatus = 'operacion';
                 }
 
-                // Recuperar último conductor si está en mantenimiento o reserva y los datos actuales están vacíos
-                if (($estatus === 'mantenimiento' || $estatus === 'reserva') && empty($unidad->nombre_conductor)) {
-                    $lastRecord = DB::table('historial_operativo')
-                        ->where('unidad_id', $unidad->unidad_id)
-                        ->whereNotNull('nombre_conductor')
-                        ->where('nombre_conductor', '!=', '')
-                        ->orderBy('id', 'desc')
-                        ->first();
-                        
-                    if ($lastRecord) {
-                        $unidad->nombre_conductor = $lastRecord->nombre_conductor;
-                        $unidad->tarjeton = $lastRecord->numero_tarjeton;
-                        $unidad->ruta = $lastRecord->ruta;
-                        $unidad->corridas = $lastRecord->corridas;
-                    }
-                }
-
                 $yaEncerrada = false;
                 if (!empty($unidad->hora_salida)) {
                     $yaEncerrada = DB::table('historial_operativo')
@@ -668,8 +651,27 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if ($horaSalidaRealVal !== '') {
-                $data['hora_salida'] = $horaSalidaRealVal;
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+                $data['ruta'] = '';
+                $data['numero_tarjeton'] = '';
+                $data['nombre_conductor'] = '';
+                $data['tarjeton_maniobrista'] = '';
+                $data['nombre_maniobrista'] = '';
+                $data['relevo_tarjeton'] = '';
+                $data['relevo_conductor'] = '';
+                $data['relevo_hora'] = '';
+                $data['corridas'] = null;
+                $data['hora_programada'] = null;
+                $data['acople'] = null;
+                $data['hora_salida'] = null;
+                $data['patio_norte'] = 'false';
+                $data['transporte_patio_norte'] = 'false';
+                $data['falla'] = null;
+                $data['ciclo'] = null;
+                $data['motivo'] = null;
+                $data['motivo_estatus'] = null;
+            } else {
+                $data['hora_salida'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
             }
 
             if ($registroId) {
@@ -811,8 +813,24 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_Norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if ($horaSalidaRealVal !== '') {
-                $data['hora_salida'] = $horaSalidaRealVal;
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+                $data['ruta'] = '';
+                $data['numero_tarjeton'] = '';
+                $data['nombre_conductor'] = '';
+                $data['tarjeton_maniobrista'] = '';
+                $data['nombre_maniobrista'] = '';
+                $data['corridas'] = null;
+                $data['hora_programada'] = null;
+                $data['acople'] = null;
+                $data['hora_salida'] = null;
+                $data['patio_norte'] = 'false';
+                $data['transporte_patio_norte'] = 'false';
+                $data['falla'] = null;
+                $data['ciclo'] = null;
+                $data['motivo'] = null;
+                $data['motivo_estatus'] = null;
+            } else {
+                $data['hora_salida'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
             }
 
             if ($registroId) {
@@ -946,8 +964,24 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if ($horaSalidaRealVal !== '') {
-                $data['hora_salida'] = $horaSalidaRealVal;
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+                $data['ruta'] = '';
+                $data['numero_tarjeton'] = '';
+                $data['nombre_conductor'] = '';
+                $data['tarjeton_maniobrista'] = '';
+                $data['nombre_maniobrista'] = '';
+                $data['corridas'] = null;
+                $data['hora_programada'] = null;
+                $data['acople'] = null;
+                $data['hora_salida'] = null;
+                $data['patio_norte'] = 'false';
+                $data['transporte_patio_norte'] = 'false';
+                $data['falla'] = null;
+                $data['ciclo'] = null;
+                $data['motivo'] = null;
+                $data['motivo_estatus'] = null;
+            } else {
+                $data['hora_salida'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
             }
 
             if ($registroId) {
@@ -2104,6 +2138,16 @@ class DespachoController extends Controller
             $updateData['ciclo'] = null;
             $updateData['falla'] = null;
             $updateData['motivo'] = null;
+            $updateData['hora_programada'] = null;
+            $updateData['acople'] = null;
+            $updateData['hora_salida'] = null;
+            $updateData['relevo_tarjeton'] = null;
+            $updateData['relevo_conductor'] = null;
+            $updateData['relevo_hora'] = null;
+            $updateData['tarjeton_maniobrista'] = null;
+            $updateData['nombre_maniobrista'] = null;
+            $updateData['patio_norte'] = 'false';
+            $updateData['transporte_patio_norte'] = 'false';
 
             if ($registroOperativo->numero_tarjeton) {
                 DB::table('conductores')
