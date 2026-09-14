@@ -69,9 +69,8 @@ export default function CentroControl() {
       const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
       const unidadesOperacion = units.filter((d) => {
-        const isOper = getEstatus(d).includes('OPERACI');
-        const isValidadaOMesa = !!d.HORA_REAL_SALIDA_PATIO || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
-        return isOper && isValidadaOMesa;
+        const est = getEstatus(d);
+        return est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
       });
       const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
       const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
@@ -82,7 +81,7 @@ export default function CentroControl() {
       const mantenimiento = unidadesMantenimiento.length;
       const reserva = unidadesReserva.length;
       const percance = unidadesPercance.length;
-      const otros = Math.max(programadas - operacion - mantenimiento - reserva - percance, 0);
+      const otros = 0;
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
@@ -90,7 +89,7 @@ export default function CentroControl() {
         ...unidadesReserva,
         ...unidadesPercance,
       ]);
-      const unidadesOtros = units.filter((d) => !idsConEstatus.has(d));
+      const unidadesOtros = [];
 
       return {
         ...mc,
@@ -158,7 +157,7 @@ export default function CentroControl() {
       (Array.isArray(apiData) ? apiData : []).forEach(reg => {
         const estatus = (reg.ESTATUS || '').toUpperCase().trim();
         const tipo = (reg.TIPO_DE_UNIDAD || '').toUpperCase().trim();
-        const isOper = estatus.includes('OPERACI') && (!!reg.HORA_REAL_SALIDA_PATIO || !!reg.MOTIVO_ESTATUS || !!reg.CAMBIO_DESDE);
+        const isOper = estatus.includes('OPERACI') && (!!(reg.HORA_REAL_SALIDA_PATIO || reg.HORA_SALIDA) || !!reg.MOTIVO_ESTATUS || !!reg.CAMBIO_DESDE);
         const isManto = estatus.includes('MANTENIMIENTO');
 
         // Para unidades en mantenimiento, la ruta original a menudo se guarda en MANTENIMIENTO_RUTA
@@ -338,11 +337,12 @@ export default function CentroControl() {
     const allUnits = modelData.flatMap((m) =>
       (m.units || []).map((u) => {
         const estatus = getEstatus(u);
-        let colorClass = 'otros';
-        let labelStatus = 'Otro estatus';
+        const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
+        let colorClass = 'operacion';
+        let labelStatus = horaSalida !== '' ? 'Operación (Circulando)' : 'Operación';
 
         if (estatus.includes('OPERACI')) { 
-          if (u.HORA_REAL_SALIDA_PATIO && u.HORA_REAL_SALIDA_PATIO.trim() !== '') {
+          if (horaSalida !== '') {
             colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
           } else {
             colorClass = 'operacion'; labelStatus = 'Operación'; 

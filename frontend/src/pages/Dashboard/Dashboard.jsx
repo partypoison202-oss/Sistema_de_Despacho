@@ -7,6 +7,7 @@ import { transportModules } from '../../config/transportModules';
 import './Dashboard.css';
 import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
+import { ejecutarDescargaReportesGenerales } from '../../utils/reporteGeneralUtils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
 import API_BASE from '../../config/api';
@@ -121,44 +122,24 @@ export default function Dashboard() {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
 
     try {
-      // Obtener ambos reportes en paralelo
-      const [respRutas, respUnidades] = await Promise.all([
-        fetch(`${API_BASE}/api/despacho/reporte-general`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`${API_BASE}/api/despacho/reporte-unidades`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }),
-      ]);
+      const resp = await fetch(`${API_BASE}/api/despacho/hoy`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (!respRutas.ok || !respUnidades.ok) {
-        let errorMsg = 'Error al obtener los datos';
-        if (!respRutas.ok) {
-          const errData = await respRutas.json().catch(() => ({}));
-          errorMsg = errData.error || errorMsg;
-        } else {
-          const errData = await respUnidades.json().catch(() => ({}));
-          errorMsg = errData.error || errorMsg;
-        }
+      if (!resp.ok) {
+        let errorMsg = 'Error al obtener los datos de la operación';
+        const errData = await resp.json().catch(() => ({}));
+        errorMsg = errData.message || errData.error || errorMsg;
         throw new Error(errorMsg);
       }
 
-      const dataRutas = await respRutas.json();
-      const dataUnidades = await respUnidades.json();
-
-      // Generar PDF nativos
-      await generarPDFReporteGeneral(dataRutas);
-      await generarPDFReporteUnidades(dataUnidades);
+      const apiData = await resp.json();
+      await ejecutarDescargaReportesGenerales(apiData);
 
       Swal.fire({
         icon: 'success',
@@ -256,7 +237,7 @@ export default function Dashboard() {
                     <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
                     Generando reportes...
                   </>
-                ) : 'Generar Reportes PDF'}
+                ) : 'Reporte General'}
               </button>
           </div>
         </main>

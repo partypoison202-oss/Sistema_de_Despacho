@@ -1354,6 +1354,9 @@ class DespachoController extends Controller
 
                 if ($request->has('hora_real_salida_patio')) {
                     $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio;
+                    if (!empty($request->hora_real_salida_patio)) {
+                        $updateData['estatus'] = 'operacion';
+                    }
                 }
 
                 if ($request->has('observaciones')) {
@@ -1461,6 +1464,7 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_real_salida_patio,
+                'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => (bool)$reg->patio_norte,
                 'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
                 'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
@@ -1553,6 +1557,7 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_real_salida_patio,
+                'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => (bool)$reg->patio_norte
             ];
         });
@@ -1640,6 +1645,7 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_real_salida_patio,
+                'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => (bool)$reg->patio_norte
             ];
         });
@@ -1727,6 +1733,7 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_real_salida_patio,
+                'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
             ];
         });
@@ -1802,6 +1809,7 @@ class DespachoController extends Controller
                 'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
                 'HORA_SALIDA' => $reg->hora_real_salida_patio,
+                'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
 
             ];
@@ -1882,7 +1890,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $hasHoraSalidaPatio ? $reg->hora_salida_patio : '',
                 'HORA_PROGRAMADA' => $hasHoraSalidaPatio ? $reg->hora_salida_patio : '',
                 'ACOPLE' => $hasAcople ? $reg->acople : '',
-                'HORA_SALIDA' => $hasHoraSalida ? $reg->hora_real_salida_patio : ''
+                'HORA_SALIDA' => $hasHoraSalida ? $reg->hora_real_salida_patio : '',
+                'HORA_REAL_SALIDA_PATIO' => $hasHoraSalida ? $reg->hora_real_salida_patio : ''
             ];
         });
 
@@ -1931,6 +1940,7 @@ class DespachoController extends Controller
                 if ($request->has('motivo')) $updateData['motivo'] = $request->motivo;
                 if ($request->has('falla')) $updateData['falla'] = $request->falla;
                 if ($request->has('hora_real_salida_patio')) $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio;
+                $updateData['estatus'] = 'operacion';
 
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
@@ -2162,7 +2172,7 @@ class DespachoController extends Controller
                     ->update(['estado_servicio' => 'disponible']);
             }
         } else {
-            $updateData['hora_salida'] = !empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s');
+            $updateData['hora_real_salida_patio'] = !empty($registroOperativo->hora_real_salida_patio) ? $registroOperativo->hora_real_salida_patio : date('H:i:s');
             $updateData['motivo_estatus'] = $motivoEstatus ?: 'OPERACION';
             $updateData['falla'] = null;
             $updateData['motivo'] = null;
@@ -2765,7 +2775,16 @@ class DespachoController extends Controller
     public function reporteCombustibleDiario(Request $request)
     {
         try {
-            $today = \Carbon\Carbon::today()->toDateString();
+            $fechaFiltro = $request->query('fecha');
+            if (!$fechaFiltro) {
+                // Al registrarse con fecha del día anterior, buscar la fecha más reciente registrada
+                $maxFecha = DB::table('unidades')
+                    ->whereNotNull('litros_combustible')
+                    ->where('litros_combustible', '>', 0)
+                    ->max('fecha_ultima_carga');
+                $fechaFiltro = $maxFecha ?: \Carbon\Carbon::yesterday()->toDateString();
+            }
+            $today = $fechaFiltro;
             $unidades = DB::table('unidades')->get();
             $informacion = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
             $transportes = DB::table('transportes')->get()->keyBy('id');
