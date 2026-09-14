@@ -741,7 +741,7 @@ const PatioDashboard = () => {
 
   // --- Estadísticas ----------------------------------------------------
   const totalFleetCount = apiUnits.length;
-  const activeCount = apiUnits.filter((u) => u.estatus === 'operacion' && u.hora_salida && u.hora_salida.trim() !== '').length;
+  const activeCount = apiUnits.filter((u) => u.estatus === 'operacion' && u.hora_real_salida_patio && u.hora_real_salida_patio.trim() !== '').length;
   const maintenanceCount = apiUnits.filter((u) => u.estatus === 'mantenimiento').length;
   const reserveCount = apiUnits.filter((u) => u.estatus === 'reserva').length;
 

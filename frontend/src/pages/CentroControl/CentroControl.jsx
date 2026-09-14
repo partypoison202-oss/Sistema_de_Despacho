@@ -67,7 +67,7 @@ export default function CentroControl() {
 
       const unidadesOperacion = units.filter((d) => {
         const isOper = getEstatus(d).includes('OPERACI');
-        const isValidadaOMesa = !!d.HORA_SALIDA || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
+        const isValidadaOMesa = !!d.HORA_REAL_SALIDA_PATIO || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
         return isOper && isValidadaOMesa;
       });
       const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
@@ -150,7 +150,7 @@ export default function CentroControl() {
       (Array.isArray(apiData) ? apiData : []).forEach(reg => {
         const estatus = (reg.ESTATUS || '').toUpperCase().trim();
         const tipo = (reg.TIPO_DE_UNIDAD || '').toUpperCase().trim();
-        const isOper = estatus.includes('OPERACI') && (!!reg.HORA_SALIDA || !!reg.MOTIVO_ESTATUS || !!reg.CAMBIO_DESDE);
+        const isOper = estatus.includes('OPERACI') && (!!reg.HORA_REAL_SALIDA_PATIO || !!reg.MOTIVO_ESTATUS || !!reg.CAMBIO_DESDE);
         const isManto = estatus.includes('MANTENIMIENTO');
 
         // Para unidades en mantenimiento, la ruta original a menudo se guarda en MANTENIMIENTO_RUTA
@@ -334,7 +334,7 @@ export default function CentroControl() {
         let labelStatus = 'Otro estatus';
 
         if (estatus.includes('OPERACI')) { 
-          if (u.HORA_SALIDA && u.HORA_SALIDA.trim() !== '') {
+          if (u.HORA_REAL_SALIDA_PATIO && u.HORA_REAL_SALIDA_PATIO.trim() !== '') {
             colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
           } else {
             colorClass = 'otros'; labelStatus = 'Programada (Sin salir)'; 

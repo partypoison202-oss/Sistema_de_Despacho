@@ -53,7 +53,7 @@ export default function ResumenDespacho() {
           const oper = units.filter(d => {
             const status = (d.ESTATUS || '').toUpperCase().trim();
             const isOper = status.includes('OPERACI');
-            const isValidadaOMesa = !!d.HORA_SALIDA || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
+            const isValidadaOMesa = !!d.HORA_REAL_SALIDA_PATIO || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
             return isOper && isValidadaOMesa;
           }).length;
           const mantUnits = units.filter(d => {

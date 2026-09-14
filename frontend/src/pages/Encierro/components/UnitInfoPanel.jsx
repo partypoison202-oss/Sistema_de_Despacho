@@ -21,7 +21,7 @@ export default function UnitInfoPanel({
   onCancelarEdicion,
 }) {
   // Estado para la hora de salida (automática)
-  const [horaSalida, setHoraSalida] = useState('');
+  const [horaRealSalidaPatio, setHoraSalida] = useState('');
 
   // Actualizar la hora cada vez que cambia la unidad seleccionada
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function UnitInfoPanel({
       <div className="data-item">
         <h3 className="data-item__label">Hora de salida</h3>
         <p className="data-item__value" style={{ fontWeight: '600', color: 'var(--brand-maroon-text)' }}>
-          {selectedOption ? horaSalida : '—'}
+          {selectedOption ? horaRealSalidaPatio : '—'}
         </p>
         <p style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '0.2rem' }}>
           {selectedOption ? 'Hora actual al seleccionar la unidad' : 'Selecciona una unidad para mostrar la hora'}

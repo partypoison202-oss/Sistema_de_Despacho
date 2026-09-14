@@ -89,7 +89,7 @@ class DespachoController extends Controller
                 }
             }
 
-            $horaAcople = trim((string) ($fila['HORA_PROGRAMADA'] ?? '')) ?: trim((string) ($fila['HORA_DE_ACOPLE'] ?? ''));
+            $horaAcople = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? '')) ?: trim((string) ($fila['HORA_DE_ACOPLE'] ?? ''));
 
             // Usamos unidad_id como clave para sobrescribir duplicados si existen en el mismo Excel
             $registrosParaInsertar[$unidad->id] = [
@@ -100,7 +100,7 @@ class DespachoController extends Controller
                 'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'Sin estatus')),
                 'corridas' => trim((string) ($fila['CORRIDA'] ?? '')) === '' ? null : (int) trim((string) ($fila['CORRIDA'] ?? '')),
-                'hora_programada' => $horaAcople === '' ? null : $horaAcople,
+                'hora_salida_patio' => $horaAcople === '' ? null : $horaAcople,
                 'fecha_registro' => now(),
             ];
         }
@@ -201,8 +201,8 @@ class DespachoController extends Controller
         $conteos = DB::table('informacion_operativa')
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
             ->whereRaw("LOWER(estatus) = 'operacion'")
-            ->whereNotNull('hora_salida')
-            ->whereRaw("TRIM(hora_salida) != ''")
+            ->whereNotNull('hora_real_salida_patio')
+            ->whereRaw("TRIM(hora_real_salida_patio) != ''")
             ->whereNotExists(function ($query) use ($hoy) {
                 $query->select(DB::raw(1))
                       ->from('historial_operativo')
@@ -250,9 +250,9 @@ class DespachoController extends Controller
                 'informacion_operativa.nombre_maniobrista',
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
-                'informacion_operativa.hora_programada',
+                'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida',
+                'informacion_operativa.hora_real_salida_patio',
                 'informacion_operativa.folio_mantenimiento',
                 'informacion_operativa.numero_incidencia',
                 'informacion_operativa.fecha_folio_mantenimiento',
@@ -275,7 +275,7 @@ class DespachoController extends Controller
                 }
 
                 $yaEncerrada = false;
-                if (!empty($unidad->hora_salida)) {
+                if (!empty($unidad->hora_real_salida_patio)) {
                     $yaEncerrada = DB::table('historial_operativo')
                         ->where('unidad_id', $unidad->unidad_id)
                         ->where('momento', 'ENCIERRO')
@@ -294,9 +294,9 @@ class DespachoController extends Controller
                     'nombre_maniobrista' => $unidad->nombre_maniobrista,
                     'falla' => $unidad->falla,
                     'corridas' => $unidad->corridas,
-                    'hora_programada' => $unidad->hora_programada,
+                    'hora_salida_patio' => $unidad->hora_salida_patio,
                     'acople' => $unidad->acople,
-                    'hora_salida' => $unidad->hora_salida,
+                    'hora_real_salida_patio' => $unidad->hora_real_salida_patio,
                     'folio_mantenimiento' => $unidad->folio_mantenimiento,
                     'numero_incidencia' => $unidad->numero_incidencia,
                     'fecha_folio_mantenimiento' => $unidad->fecha_folio_mantenimiento,
@@ -407,9 +407,9 @@ class DespachoController extends Controller
                 'informacion_operativa.falla_reportada',
                 'informacion_operativa.diagnostico',
                 'informacion_operativa.firma_base64',
-                'informacion_operativa.hora_programada',
+                'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida',
+                'informacion_operativa.hora_real_salida_patio',
                 'informacion_operativa.observaciones',
                 'informacion_operativa.transporte_patio_norte',
                 'unidades.kilometraje',
@@ -422,7 +422,7 @@ class DespachoController extends Controller
             ->first();
 
         $horaSalidaLegacy = null;
-        if ($info && empty($info->hora_salida) && empty($info->hora_programada) && empty($info->acople)) {
+        if ($info && empty($info->hora_real_salida_patio) && empty($info->hora_salida_patio) && empty($info->acople)) {
             $registroBitacora = DB::table('bitacora_cambios_unidades')
                 ->where('unidad_id', $unidadBase->id)
                 ->where('tipo_accion', 'VALIDAR_DESPACHO')
@@ -494,12 +494,12 @@ class DespachoController extends Controller
                 'falla_reportada' => $info->falla_reportada,
                 'diagnostico' => $info->diagnostico,
                 'firma_base64' => $info->firma_base64,
-                'hora_programada' => $info->hora_programada,
+                'hora_salida_patio' => $info->hora_salida_patio,
                 'acople'    => $info->acople,
-                'hora_salida' => $info->hora_salida,
+                'hora_real_salida_patio' => $info->hora_real_salida_patio,
                 'hora_encierro' => $info->hora_encierro ?? null,
                 'observaciones' => $info->observaciones,
-                'hora_salida_legacy' => $horaSalidaLegacy,
+                'hora_real_salida_patio_legacy' => $horaSalidaLegacy,
                 'transporte_patio_norte' => $info->transporte_patio_norte,
                 'kilometraje' => $info->kilometraje,
                 'mantenimiento_conductor' => $info->mantenimiento_conductor,
@@ -524,9 +524,9 @@ class DespachoController extends Controller
                 'ciclo'     => null,
                 'motivo'    => null,
                 'motivo_estatus' => null,
-                'hora_programada' => null,
+                'hora_salida_patio' => null,
                 'acople'    => null,
-                'hora_salida' => null,
+                'hora_real_salida_patio' => null,
                 'transporte_patio_norte' => null,
                 // Nuevos campos de mantenimiento aunque no esté asignado operativamente
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
@@ -624,10 +624,10 @@ class DespachoController extends Controller
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-            $horaProgVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
+            $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
-            $horaProgVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
+            $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
@@ -643,7 +643,7 @@ class DespachoController extends Controller
                 'relevo_conductor'     => trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')),
                 'relevo_hora'          => trim((string) ($fila['RELEVO_HORA'] ?? '')),
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
-                'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
+                'hora_salida_patio'      => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
@@ -661,9 +661,9 @@ class DespachoController extends Controller
                 $data['relevo_conductor'] = '';
                 $data['relevo_hora'] = '';
                 $data['corridas'] = null;
-                $data['hora_programada'] = null;
+                $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_salida'] = null;
+                $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
                 $data['falla'] = null;
@@ -671,7 +671,7 @@ class DespachoController extends Controller
                 $data['motivo'] = null;
                 $data['motivo_estatus'] = null;
             } else {
-                $data['hora_salida'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
+                $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
             }
 
             if ($registroId) {
@@ -792,7 +792,7 @@ class DespachoController extends Controller
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-            $horaProgVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
+            $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
@@ -805,7 +805,7 @@ class DespachoController extends Controller
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista'   => $maniobristaNombre,
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
-                'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
+                'hora_salida_patio'      => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
@@ -820,9 +820,9 @@ class DespachoController extends Controller
                 $data['tarjeton_maniobrista'] = '';
                 $data['nombre_maniobrista'] = '';
                 $data['corridas'] = null;
-                $data['hora_programada'] = null;
+                $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_salida'] = null;
+                $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
                 $data['falla'] = null;
@@ -830,7 +830,7 @@ class DespachoController extends Controller
                 $data['motivo'] = null;
                 $data['motivo_estatus'] = null;
             } else {
-                $data['hora_salida'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
+                $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
             }
 
             if ($registroId) {
@@ -943,7 +943,7 @@ class DespachoController extends Controller
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-            $horaProgVal = trim((string) ($fila['HORA_PROGRAMADA'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
+            $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
@@ -956,7 +956,7 @@ class DespachoController extends Controller
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista'   => $maniobristaNombre,
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
-                'hora_programada'      => $horaProgVal === '' ? null : $horaProgVal,
+                'hora_salida_patio'      => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
@@ -971,9 +971,9 @@ class DespachoController extends Controller
                 $data['tarjeton_maniobrista'] = '';
                 $data['nombre_maniobrista'] = '';
                 $data['corridas'] = null;
-                $data['hora_programada'] = null;
+                $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_salida'] = null;
+                $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
                 $data['falla'] = null;
@@ -981,7 +981,7 @@ class DespachoController extends Controller
                 $data['motivo'] = null;
                 $data['motivo_estatus'] = null;
             } else {
-                $data['hora_salida'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
+                $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
             }
 
             if ($registroId) {
@@ -1049,7 +1049,7 @@ class DespachoController extends Controller
                 }
 
                 // Reiniciar campos de validación para el nuevo día
-                if (array_key_exists('hora_salida', $arrayRow)) $arrayRow['hora_salida'] = null;
+                if (array_key_exists('hora_real_salida_patio', $arrayRow)) $arrayRow['hora_real_salida_patio'] = null;
                 if (array_key_exists('firma_base64', $arrayRow)) $arrayRow['firma_base64'] = null;
 
                 DB::table('informacion_operativa')->insert($arrayRow);
@@ -1111,7 +1111,7 @@ class DespachoController extends Controller
                 }
 
                 // Reiniciar campos de validación para el nuevo día
-                if (array_key_exists('hora_salida', $arrayRow)) $arrayRow['hora_salida'] = null;
+                if (array_key_exists('hora_real_salida_patio', $arrayRow)) $arrayRow['hora_real_salida_patio'] = null;
                 if (array_key_exists('firma_base64', $arrayRow)) $arrayRow['firma_base64'] = null;
 
                 DB::table('informacion_operativa')->insert($arrayRow);
@@ -1292,16 +1292,16 @@ class DespachoController extends Controller
     }
 
     /**
-     * Actualiza la hora programada y el acople de una unidad en el día actual
+     * Actualiza la hora de salida de patio y el acople de una unidad en el día actual
      */
     public function actualizarHoras(Request $request)
     {
         $request->validate([
             'tipo' => 'required|string',
             'numero_eco' => 'required|string',
-            'hora_programada' => 'nullable|string',
+            'hora_salida_patio' => 'nullable|string',
             'acople' => 'nullable|string',
-            'hora_salida' => 'nullable|string',
+            'hora_real_salida_patio' => 'nullable|string',
             'observaciones' => 'nullable|string|max:150'
         ]);
 
@@ -1336,8 +1336,8 @@ class DespachoController extends Controller
                 }
 
                 // Verificación de concurrencia para la validación de salida
-                if ($request->has('hora_salida') && !empty($request->hora_salida)) {
-                    if (!empty($registro->hora_salida)) {
+                if ($request->has('hora_real_salida_patio') && !empty($request->hora_real_salida_patio)) {
+                    if (!empty($registro->hora_real_salida_patio)) {
                         return response()->json([
                             'status' => 'error',
                             'message' => 'Esta unidad ya fue validada por otro usuario (Concurrencia).'
@@ -1346,12 +1346,12 @@ class DespachoController extends Controller
                 }
 
                 $updateData = [
-                    'hora_programada' => $request->hora_programada,
+                    'hora_salida_patio' => $request->hora_salida_patio,
                     'acople' => $request->acople
                 ];
 
-                if ($request->has('hora_salida')) {
-                    $updateData['hora_salida'] = $request->hora_salida;
+                if ($request->has('hora_real_salida_patio')) {
+                    $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio;
                 }
 
                 if ($request->has('observaciones')) {
@@ -1366,15 +1366,15 @@ class DespachoController extends Controller
                 \App\Helpers\BitacoraHelper::registrarCambio(
                     $registro->unidad_id,
                     'CAMBIO_HORAS',
-                    "ACTUALIZÓ HORA PROGRAMADA (ANTERIOR: " . ($registro->hora_programada ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->hora_programada ?? 'SIN ASIGNAR') . ") Y ACOPLE (ANTERIOR: " . ($registro->acople ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->acople ?? 'SIN ASIGNAR') . ")"
+                    "ACTUALIZÓ HORA DE SALIDA DE PATIO (ANTERIOR: " . ($registro->hora_salida_patio ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->hora_salida_patio ?? 'SIN ASIGNAR') . ") Y ACOPLE (ANTERIOR: " . ($registro->acople ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->acople ?? 'SIN ASIGNAR') . ")"
                 );
 
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Horas actualizadas exitosamente',
-                    'hora_programada' => $request->hora_programada,
+                    'hora_salida_patio' => $request->hora_salida_patio,
                     'acople' => $request->acople,
-                    'hora_salida' => $request->hora_salida ?? null
+                    'hora_real_salida_patio' => $request->hora_real_salida_patio ?? null
                 ], 200);
             });
         } catch (\Exception $e) {
@@ -1418,9 +1418,9 @@ class DespachoController extends Controller
                 'informacion_operativa.falla_reportada',
                 'informacion_operativa.diagnostico',
                 'informacion_operativa.firma_base64',
-                'informacion_operativa.hora_programada',
+                'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida',
+                'informacion_operativa.hora_real_salida_patio',
                 'informacion_operativa.patio_norte',
                 'informacion_operativa.mantenimiento_conductor',
                 'informacion_operativa.mantenimiento_tarjeton',
@@ -1455,10 +1455,10 @@ class DespachoController extends Controller
                 'FALLA_REPORTADA' => $reg->falla_reportada,
                 'DIAGNOSTICO' => $reg->diagnostico,
                 'FIRMA_BASE64' => $reg->firma_base64,
-                'HORA_DE_ACOPLE' => $reg->hora_programada,
-                'HORA_PROGRAMADA' => $reg->hora_programada,
+                'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
+                'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida,
+                'HORA_SALIDA' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => (bool)$reg->patio_norte,
                 'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
                 'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
@@ -1492,7 +1492,7 @@ class DespachoController extends Controller
                 }
 
                 // Evitar copiar el estatus de despachado/validado al día de mañana
-                if (array_key_exists('hora_salida', $insertRow)) $insertRow['hora_salida'] = null;
+                if (array_key_exists('hora_real_salida_patio', $insertRow)) $insertRow['hora_real_salida_patio'] = null;
                 if (array_key_exists('firma_base64', $insertRow)) $insertRow['firma_base64'] = null;
 
                 DB::table('informacion_operativa_manana')->insert($insertRow);
@@ -1520,9 +1520,9 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.ciclo',
                 'informacion_operativa_manana.motivo',
                 'informacion_operativa_manana.motivo_estatus',
-                'informacion_operativa_manana.hora_programada',
+                'informacion_operativa_manana.hora_salida_patio',
                 'informacion_operativa_manana.acople',
-                'informacion_operativa_manana.hora_salida',
+                'informacion_operativa_manana.hora_real_salida_patio',
                 'informacion_operativa_manana.patio_norte'
             )
             ->orderBy('informacion_operativa_manana.tipo')
@@ -1547,10 +1547,10 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
-                'HORA_DE_ACOPLE' => $reg->hora_programada,
-                'HORA_PROGRAMADA' => $reg->hora_programada,
+                'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
+                'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida,
+                'HORA_SALIDA' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => (bool)$reg->patio_norte
             ];
         });
@@ -1607,9 +1607,9 @@ class DespachoController extends Controller
                 "{$tableName}.ciclo",
                 "{$tableName}.motivo",
                 "{$tableName}.motivo_estatus",
-                "{$tableName}.hora_programada",
+                "{$tableName}.hora_salida_patio",
                 "{$tableName}.acople",
-                "{$tableName}.hora_salida",
+                "{$tableName}.hora_real_salida_patio",
                 "{$tableName}.patio_norte"
             )
             ->orderBy("{$tableName}.tipo")
@@ -1634,10 +1634,10 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
-                'HORA_DE_ACOPLE' => $reg->hora_programada,
-                'HORA_PROGRAMADA' => $reg->hora_programada,
+                'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
+                'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida,
+                'HORA_SALIDA' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => (bool)$reg->patio_norte
             ];
         });
@@ -1666,7 +1666,7 @@ class DespachoController extends Controller
                 }
 
                 // Evitar copiar el estatus de despachado/validado al duplicar
-                if (array_key_exists('hora_salida', $insertRow)) $insertRow['hora_salida'] = null;
+                if (array_key_exists('hora_real_salida_patio', $insertRow)) $insertRow['hora_real_salida_patio'] = null;
                 if (array_key_exists('firma_base64', $insertRow)) $insertRow['firma_base64'] = null;
 
                 DB::table('informacion_operativa_manana')->insert($insertRow);
@@ -1694,9 +1694,9 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.ciclo',
                 'informacion_operativa_manana.motivo',
                 'informacion_operativa_manana.motivo_estatus',
-                'informacion_operativa_manana.hora_programada',
+                'informacion_operativa_manana.hora_salida_patio',
                 'informacion_operativa_manana.acople',
-                'informacion_operativa_manana.hora_salida',
+                'informacion_operativa_manana.hora_real_salida_patio',
                 'informacion_operativa_manana.patio_norte'
             )
             ->orderBy('informacion_operativa_manana.tipo')
@@ -1721,10 +1721,10 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
-                'HORA_DE_ACOPLE' => $reg->hora_programada,
-                'HORA_PROGRAMADA' => $reg->hora_programada,
+                'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
+                'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida,
+                'HORA_SALIDA' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
             ];
         });
@@ -1769,9 +1769,9 @@ class DespachoController extends Controller
                 "{$tableName}.ciclo",
                 "{$tableName}.motivo",
                 "{$tableName}.motivo_estatus",
-                "{$tableName}.hora_programada",
+                "{$tableName}.hora_salida_patio",
                 "{$tableName}.acople",
-                "{$tableName}.hora_salida",
+                "{$tableName}.hora_real_salida_patio",
                 "{$tableName}.patio_norte"
             )
             ->orderBy("{$tableName}.tipo")
@@ -1796,10 +1796,10 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
-                'HORA_DE_ACOPLE' => $reg->hora_programada,
-                'HORA_PROGRAMADA' => $reg->hora_programada,
+                'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
+                'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_salida,
+                'HORA_SALIDA' => $reg->hora_real_salida_patio,
                 'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN)
 
             ];
@@ -1838,9 +1838,9 @@ class DespachoController extends Controller
             $columns[] = 'historial_operativo.nombre_maniobrista';
         }
 
-        $hasHoraProgramada = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_programada');
-        if ($hasHoraProgramada) {
-            $columns[] = 'historial_operativo.hora_programada';
+        $hasHoraSalidaPatio = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida_patio');
+        if ($hasHoraSalidaPatio) {
+            $columns[] = 'historial_operativo.hora_salida_patio';
         }
 
         $hasAcople = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople');
@@ -1848,9 +1848,9 @@ class DespachoController extends Controller
             $columns[] = 'historial_operativo.acople';
         }
 
-        $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida');
+        $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
         if ($hasHoraSalida) {
-            $columns[] = 'historial_operativo.hora_salida';
+            $columns[] = 'historial_operativo.hora_real_salida_patio';
         }
 
         $registros = DB::table('historial_operativo')
@@ -1862,7 +1862,7 @@ class DespachoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        $formateados = $registros->map(function ($reg) use ($hasManiobrista, $hasHoraProgramada, $hasAcople, $hasHoraSalida) {
+        $formateados = $registros->map(function ($reg) use ($hasManiobrista, $hasHoraSalidaPatio, $hasAcople, $hasHoraSalida) {
             return [
                 'TIPO_DE_UNIDAD' => $reg->tipo,
                 'RUTA' => $reg->ruta,
@@ -1877,10 +1877,10 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
-                'HORA_DE_ACOPLE' => $hasHoraProgramada ? $reg->hora_programada : '',
-                'HORA_PROGRAMADA' => $hasHoraProgramada ? $reg->hora_programada : '',
+                'HORA_DE_ACOPLE' => $hasHoraSalidaPatio ? $reg->hora_salida_patio : '',
+                'HORA_PROGRAMADA' => $hasHoraSalidaPatio ? $reg->hora_salida_patio : '',
                 'ACOPLE' => $hasAcople ? $reg->acople : '',
-                'HORA_SALIDA' => $hasHoraSalida ? $reg->hora_salida : ''
+                'HORA_SALIDA' => $hasHoraSalida ? $reg->hora_real_salida_patio : ''
             ];
         });
 
@@ -1915,7 +1915,7 @@ class DespachoController extends Controller
                     return response()->json(['status' => 'error', 'message' => 'Sin registro operativo'], 404);
                 }
 
-                if ($registroOperativo->hora_salida !== null && $registroOperativo->hora_salida !== '') {
+                if ($registroOperativo->hora_real_salida_patio !== null && $registroOperativo->hora_real_salida_patio !== '') {
                     return response()->json(['status' => 'error', 'message' => 'Esta unidad ya fue validada por otro usuario (Concurrencia).'], 422);
                 }
 
@@ -1923,12 +1923,12 @@ class DespachoController extends Controller
                 if ($request->has('ruta')) $updateData['ruta'] = $request->ruta;
                 if ($request->has('tarjeton')) $updateData['numero_tarjeton'] = $request->tarjeton;
                 if ($request->has('conductor')) $updateData['nombre_conductor'] = $request->conductor;
-                if ($request->has('hora_programada')) $updateData['hora_programada'] = $request->hora_programada;
+                if ($request->has('hora_salida_patio')) $updateData['hora_salida_patio'] = $request->hora_salida_patio;
                 if ($request->has('acople')) $updateData['acople'] = $request->acople;
                 if ($request->has('ciclo')) $updateData['ciclo'] = $request->ciclo;
                 if ($request->has('motivo')) $updateData['motivo'] = $request->motivo;
                 if ($request->has('falla')) $updateData['falla'] = $request->falla;
-                if ($request->has('hora_salida')) $updateData['hora_salida'] = $request->hora_salida;
+                if ($request->has('hora_real_salida_patio')) $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio;
 
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
@@ -1943,7 +1943,7 @@ class DespachoController extends Controller
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Despacho validado exitosamente',
-                    'hora_salida' => $request->hora_salida,
+                    'hora_real_salida_patio' => $request->hora_real_salida_patio,
                     'ruta' => $request->ruta,
                     'tarjeton' => $request->tarjeton,
                     'conductor' => $request->conductor
@@ -2138,9 +2138,9 @@ class DespachoController extends Controller
             $updateData['ciclo'] = null;
             $updateData['falla'] = null;
             $updateData['motivo'] = null;
-            $updateData['hora_programada'] = null;
+            $updateData['hora_salida_patio'] = null;
             $updateData['acople'] = null;
-            $updateData['hora_salida'] = null;
+            $updateData['hora_real_salida_patio'] = null;
             $updateData['relevo_tarjeton'] = null;
             $updateData['relevo_conductor'] = null;
             $updateData['relevo_hora'] = null;
@@ -2245,9 +2245,9 @@ class DespachoController extends Controller
                     ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
                     ->first();
 
-                // La unidad de reemplazo entra en operación activa y hereda la hora_salida (o la hora actual)
-                $horaSalidaParaReemplazo = !empty($registroOperativo->hora_salida)
-                    ? $registroOperativo->hora_salida
+                // La unidad de reemplazo entra en operación activa y hereda la hora_real_salida_patio (o la hora actual)
+                $horaSalidaParaReemplazo = !empty($registroOperativo->hora_real_salida_patio)
+                    ? $registroOperativo->hora_real_salida_patio
                     : date('H:i:s');
 
                 $reemplazoData = [
@@ -2256,7 +2256,7 @@ class DespachoController extends Controller
                     'nombre_conductor' => $nombreConductorReemplazo,
                     'ruta' => $rutaReemplazo,
                     'corridas' => $corridaReemplazo === '' ? null : (int)$corridaReemplazo,
-                    'hora_salida' => $horaSalidaParaReemplazo,
+                    'hora_real_salida_patio' => $horaSalidaParaReemplazo,
                     'motivo_estatus' => null,
                     'falla' => null
                 ];
@@ -2272,10 +2272,10 @@ class DespachoController extends Controller
                     DB::table('informacion_operativa')->insert($reemplazoData);
                 }
 
-                // A la unidad saliente (reemplazada) le quitamos hora_salida para que no figure en encierro pendiente
+                // A la unidad saliente (reemplazada) le quitamos hora_real_salida_patio para que no figure en encierro pendiente
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
-                    ->update(['hora_salida' => null]);
+                    ->update(['hora_real_salida_patio' => null]);
 
                 // Registrar en historial_operativo que la unidad original fue desincorporada/encerrada por reemplazo
                 $horaEncierroSaliente = date('H:i:s');
@@ -2311,7 +2311,7 @@ class DespachoController extends Controller
         }
 
         $horaEncierro = null;
-        if (!$cambioUnidadActivo && ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance') && !empty($registroOperativo->hora_salida)) {
+        if (!$cambioUnidadActivo && ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance') && !empty($registroOperativo->hora_real_salida_patio)) {
             $horaEncierro = date('H:i:s');
             DB::table('historial_operativo')->insert([
                 'unidad_id' => $unidad->id,
@@ -2330,10 +2330,10 @@ class DespachoController extends Controller
                 'updated_at' => now()
             ]);
 
-            // Limpiamos hora_salida en informacion_operativa para que no figure despachada activa
+            // Limpiamos hora_real_salida_patio en informacion_operativa para que no figure despachada activa
             DB::table('informacion_operativa')
                 ->where('id', $registroOperativo->id)
-                ->update(['hora_salida' => null]);
+                ->update(['hora_real_salida_patio' => null]);
         }
 
         return response()->json([
@@ -2664,9 +2664,9 @@ class DespachoController extends Controller
                 'informacion_operativa.estatus',
                 'informacion_operativa.ruta',
                 'informacion_operativa.nombre_conductor',
-                'informacion_operativa.hora_programada',
+                'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_salida'
+                'informacion_operativa.hora_real_salida_patio'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -2682,9 +2682,9 @@ class DespachoController extends Controller
                     'estatus'          => $estatus,
                     'ruta'             => $unidad->ruta,
                     'nombre_conductor' => $unidad->nombre_conductor,
-                    'hora_programada'  => $unidad->hora_programada,
+                    'hora_salida_patio'  => $unidad->hora_salida_patio,
                     'acople'           => $unidad->acople,
-                    'hora_salida'      => $unidad->hora_salida,
+                    'hora_real_salida_patio'      => $unidad->hora_real_salida_patio,
                 ];
             });
 
@@ -2982,7 +2982,7 @@ class DespachoController extends Controller
                     'historial_operativo.corridas as corrida_inicial',
                     'historial_operativo.numero_tarjeton as tarjeton_inicial',
                     'historial_operativo.nombre_conductor as conductor_inicial',
-                    'historial_operativo.hora_programada as hora_programada_inicial',
+                    'historial_operativo.hora_salida_patio as hora_salida_patio_inicial',
                     'historial_operativo.estatus as estatus_inicial'
                 )
                 ->get()
@@ -3000,8 +3000,8 @@ class DespachoController extends Controller
                     'informacion_operativa.numero_tarjeton as tarjeton_actual',
                     'informacion_operativa.nombre_conductor as conductor_actual',
                     'informacion_operativa.estatus as estatus_actual',
-                    'informacion_operativa.hora_programada',
-                    'informacion_operativa.hora_salida',
+                    'informacion_operativa.hora_salida_patio',
+                    'informacion_operativa.hora_real_salida_patio',
                     'informacion_operativa.acople',
                     'informacion_operativa.motivo',
                     'informacion_operativa.motivo_estatus'
@@ -3113,7 +3113,7 @@ class DespachoController extends Controller
                     'estatus'              => $estatusActual,
                     'ruta_inicial'         => $regInicio->ruta_inicial ?? null,
                     'corrida_inicial'      => $regInicio->corrida_inicial ?? null,
-                    'hora_programada'      => $u->hora_programada ?? ($regInicio->hora_programada_inicial ?? null),
+                    'hora_salida_patio'      => $u->hora_salida_patio ?? ($regInicio->hora_salida_patio_inicial ?? null),
                     'ruta_actual'          => $u->ruta_actual ?: 'Sin ruta',
                     'corrida_actual'       => $u->corrida_actual,
                     'tarjeton_inicial'     => $tarjetonIni ?: null,
@@ -3193,9 +3193,9 @@ class DespachoController extends Controller
                 $columns[] = 'historial_operativo.nombre_maniobrista';
             }
 
-            $hasHoraProg = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_programada');
+            $hasHoraProg = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida_patio');
             if ($hasHoraProg) {
-                $columns[] = 'historial_operativo.hora_programada';
+                $columns[] = 'historial_operativo.hora_salida_patio';
             }
 
             $hasAcople = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople');
@@ -3203,9 +3203,9 @@ class DespachoController extends Controller
                 $columns[] = 'historial_operativo.acople';
             }
 
-            $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida');
+            $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
             if ($hasHoraSalida) {
-                $columns[] = 'historial_operativo.hora_salida';
+                $columns[] = 'historial_operativo.hora_real_salida_patio';
             }
 
             // 3. Consultar snapshot INICIO de hoy
@@ -3248,9 +3248,9 @@ class DespachoController extends Controller
                         'informacion_operativa.motivo_estatus',
                         'informacion_operativa.tarjeton_maniobrista',
                         'informacion_operativa.nombre_maniobrista',
-                        'informacion_operativa.hora_programada',
+                        'informacion_operativa.hora_salida_patio',
                         'informacion_operativa.acople',
-                        'informacion_operativa.hora_salida'
+                        'informacion_operativa.hora_real_salida_patio'
                     );
 
                 if ($tipoNormalizado !== 'todos') {
@@ -3305,9 +3305,9 @@ class DespachoController extends Controller
                     'falla'                => $r->falla ?? '',
                     'motivo'               => $r->motivo ?? '',
                     'motivo_estatus'       => $r->motivo_estatus ?? '',
-                    'hora_programada'      => $hasHoraProg ? ($r->hora_programada ?? '') : '',
+                    'hora_salida_patio'      => $hasHoraProg ? ($r->hora_salida_patio ?? '') : '',
                     'acople'               => $hasAcople ? ($r->acople ?? '') : '',
-                    'hora_salida'          => $hasHoraSalida ? ($r->hora_salida ?? '') : ''
+                    'hora_real_salida_patio'          => $hasHoraSalida ? ($r->hora_real_salida_patio ?? '') : ''
                 ];
             });
 

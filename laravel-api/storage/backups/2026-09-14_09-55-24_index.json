@@ -1,0 +1,14 @@
+{
+    "timestamp": "2026-09-14_09-55-24",
+    "razon": "Respaldo previo a renombramiento de hora_programada \u2192 hora_salida_patio",
+    "tablas": [
+        "informacion_operativa",
+        "historial_operativo",
+        "informacion_operativa_manana",
+        "informacion_operativa_sabado",
+        "informacion_operativa_domingo",
+        "informacion_operativa_lunes",
+        "informacion_operativa_festivo"
+    ],
+    "total_registros": 5039
+}

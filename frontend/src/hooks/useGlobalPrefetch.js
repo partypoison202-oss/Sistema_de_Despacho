@@ -55,8 +55,8 @@ export function useGlobalPrefetch() {
       acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
       kilometraje: u.kilometraje || '',
       socio: String(u.socio ?? '').trim(),
-      horaSalida: String(u.hora_salida ?? '').trim(),
-      horaProgramada: String(u.hora_programada ?? '').trim()
+      horaRealSalidaPatio: String(u.hora_real_salida_patio ?? '').trim(),
+      horaSalidaPatio: String(u.hora_salida_patio ?? '').trim()
     });
 
     // Prefetch transport modules (Mesa Control / Despacho / Mantenimiento)

@@ -22,7 +22,7 @@ class TitanController extends Controller
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',
                     'informacion_operativa.nombre_conductor',
-                    'informacion_operativa.hora_programada',
+                    'informacion_operativa.hora_salida_patio',
                     'informacion_operativa.corridas as corrida'
                 )
                 ->whereRaw('LOWER(informacion_operativa.estatus) LIKE ?', ['%operaci%'])

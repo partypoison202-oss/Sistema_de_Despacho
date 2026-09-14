@@ -21,7 +21,7 @@ class InformacionOperativa extends Model
         'numero_tarjeton',
         'nombre_conductor',
         'fecha_registro',
-        'hora_programada',
+        'hora_salida_patio',
         'acople'
     ];
 

@@ -23,7 +23,7 @@ class HistorialOperativo extends Model
         'corridas',
         'ciclo',
         'motivo',
-        'hora_programada',
+        'hora_salida_patio',
         'motivo_estatus',
         'fecha_registro',
     ];

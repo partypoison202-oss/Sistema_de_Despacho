@@ -149,7 +149,7 @@ export default function ModalCambioUnidad({
               <div className="saliente-field">
                 <span className="saliente-label">Acople / Salida</span>
                 <span className="saliente-value">
-                  {unidadSaliente.HORA_DE_ACOPLE || unidadSaliente.ACOPLE || '00:00'} / {unidadSaliente.HORA_SALIDA || '00:00'}
+                  {unidadSaliente.HORA_DE_ACOPLE || unidadSaliente.ACOPLE || '00:00'} / {unidadSaliente.HORA_REAL_SALIDA_PATIO || '00:00'}
                 </span>
               </div>
             </div>

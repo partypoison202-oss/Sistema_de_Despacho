@@ -155,9 +155,9 @@ export default function CargaExcel({ isPasteles = false }) {
         updatedData[index]['RELEVO_CONDUCTOR'] = '';
         updatedData[index]['RELEVO_HORA'] = '';
         updatedData[index]['HORA_DE_ACOPLE'] = '';
-        updatedData[index]['HORA_PROGRAMADA'] = '';
+        updatedData[index]['HORA_SALIDA_PATIO'] = '';
         updatedData[index]['ACOPLE'] = '';
-        updatedData[index]['HORA_SALIDA'] = '';
+        updatedData[index]['HORA_REAL_SALIDA_PATIO'] = '';
         updatedData[index]['CORRIDAS'] = null;
         updatedData[index]['PATIO_NORTE'] = false;
         updatedData[index]['TARJETON_MANIOBRISTA'] = '';
@@ -354,9 +354,9 @@ export default function CargaExcel({ isPasteles = false }) {
       if (unidad) {
         updatedData[index]['TIPO_DE_UNIDAD'] = normalizarTipoUnidad(unidad.tipo);
       }
-    } else if (field === 'HORA_DE_ACOPLE' || field === 'HORA_PROGRAMADA') {
+    } else if (field === 'HORA_DE_ACOPLE' || field === 'HORA_SALIDA_PATIO') {
       updatedData[index]['HORA_DE_ACOPLE'] = value;
-      updatedData[index]['HORA_PROGRAMADA'] = value;
+      updatedData[index]['HORA_SALIDA_PATIO'] = value;
     } else {
       updatedData[index][field] = value;
     }
@@ -510,7 +510,7 @@ export default function CargaExcel({ isPasteles = false }) {
         fila.TARJETON ?? '',
         fila.NOMBRE_CONDUCTOR ?? '',
         fila.HORA_DE_ACOPLE ?? '',
-        fila.HORA_SALIDA ?? '',
+        fila.HORA_REAL_SALIDA_PATIO ?? '',
         isPatioNorte ? 'SÍ' : '',
         fila.ACOPLE ?? '',
         fila.CORRIDAS ?? '',
@@ -745,8 +745,8 @@ export default function CargaExcel({ isPasteles = false }) {
       return;
     }
 
-    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_SALIDA', 'CORRIDAS'];
-    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Programada', 'Acople', 'Hora Salida', 'Corrida'];
+    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS'];
+    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida'];
 
     const datosHoja = [
       encabezados,
@@ -1109,8 +1109,8 @@ export default function CargaExcel({ isPasteles = false }) {
           }
 
           // Solo si la unidad original ya estaba despachada/validada, la sustituta conserva esa hora de salida para mostrarse en encierro.
-          // Si la unidad original aún NO se despachaba, HORA_SALIDA queda vacía para quedarse en despacho hasta ser validada.
-          const fueDespachada = Boolean(outgoing.HORA_SALIDA && String(outgoing.HORA_SALIDA).trim() !== '');
+          // Si la unidad original aún NO se despachaba, HORA_REAL_SALIDA_PATIO queda vacía para quedarse en despacho hasta ser validada.
+          const fueDespachada = Boolean(outgoing.HORA_REAL_SALIDA_PATIO && String(outgoing.HORA_REAL_SALIDA_PATIO).trim() !== '');
 
           // 1. La unidad de reserva recibe la corrida completa y pasa a 'operacion'
           updatedData[reserveIdx] = {
@@ -1123,10 +1123,10 @@ export default function CargaExcel({ isPasteles = false }) {
             RELEVO_TARJETON: outgoing.RELEVO_TARJETON,
             RELEVO_CONDUCTOR: outgoing.RELEVO_CONDUCTOR,
             RELEVO_HORA: outgoing.RELEVO_HORA,
-            HORA_DE_ACOPLE: outgoing.HORA_DE_ACOPLE || outgoing.HORA_PROGRAMADA || '',
-            HORA_PROGRAMADA: outgoing.HORA_PROGRAMADA || outgoing.HORA_DE_ACOPLE || '',
+            HORA_DE_ACOPLE: outgoing.HORA_DE_ACOPLE || outgoing.HORA_SALIDA_PATIO || '',
+            HORA_SALIDA_PATIO: outgoing.HORA_SALIDA_PATIO || outgoing.HORA_DE_ACOPLE || '',
             ACOPLE: outgoing.ACOPLE,
-            HORA_SALIDA: fueDespachada ? outgoing.HORA_SALIDA : '',
+            HORA_REAL_SALIDA_PATIO: fueDespachada ? outgoing.HORA_REAL_SALIDA_PATIO : '',
             PATIO_NORTE: outgoing.PATIO_NORTE,
             TARJETON_MANIOBRISTA: outgoing.TARJETON_MANIOBRISTA,
             NOMBRE_MANIOBRISTA: outgoing.NOMBRE_MANIOBRISTA,
@@ -1144,9 +1144,9 @@ export default function CargaExcel({ isPasteles = false }) {
             RELEVO_CONDUCTOR: '',
             RELEVO_HORA: '',
             HORA_DE_ACOPLE: '',
-            HORA_PROGRAMADA: '',
+            HORA_SALIDA_PATIO: '',
             ACOPLE: '',
-            HORA_SALIDA: '',
+            HORA_REAL_SALIDA_PATIO: '',
             PATIO_NORTE: false,
             TARJETON_MANIOBRISTA: '',
             NOMBRE_MANIOBRISTA: '',
@@ -1179,9 +1179,9 @@ export default function CargaExcel({ isPasteles = false }) {
             updatedData[outIdx]['RELEVO_CONDUCTOR'] = '';
             updatedData[outIdx]['RELEVO_HORA'] = '';
             updatedData[outIdx]['HORA_DE_ACOPLE'] = '';
-            updatedData[outIdx]['HORA_PROGRAMADA'] = '';
+            updatedData[outIdx]['HORA_SALIDA_PATIO'] = '';
             updatedData[outIdx]['ACOPLE'] = '';
-            updatedData[outIdx]['HORA_SALIDA'] = '';
+            updatedData[outIdx]['HORA_REAL_SALIDA_PATIO'] = '';
             updatedData[outIdx]['CORRIDAS'] = null;
             updatedData[outIdx]['PATIO_NORTE'] = false;
             updatedData[outIdx]['TARJETON_MANIOBRISTA'] = '';

@@ -48,7 +48,7 @@ const LiveClockSalida = ({ horaCongelada, onGuardar, disabled }) => {
 
   return (
     <div className="info-card__item">
-      <span className="info-card__label">Hora de Salida</span>
+      <span className="info-card__label">Hora real de salida de patio</span>
       <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginTop: '0.25rem' }}>
         <div className="badge-display badge-display--maroon" style={{ flex: 1, padding: '0.5rem 1rem' }}>
           <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@ export default function UnitInfoPanel({
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
   const [salidaCongelada, setSalidaCongelada] = useState(null);
 
-  const [formHoraProgramada, setFormHoraProgramada] = useState('');
+  const [formHoraSalidaPatio, setFormHoraSalidaPatio] = useState('');
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
@@ -122,9 +122,9 @@ export default function UnitInfoPanel({
   const isReservaOrMantenimiento = datosOperativos.estatus === 'RESERVA' || datosOperativos.estatus === 'MANTENIMIENTO' || datosOperativos.estatus === 'PERCANCE';
 
 
-  // Inicializar hora programada y observaciones desde datosOperativos
+  // Inicializar hora de salida de patio y observaciones desde datosOperativos
   useEffect(() => {
-    if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
+    if (datosOperativos.horaSalidaPatio) setFormHoraSalidaPatio(datosOperativos.horaSalidaPatio);
     setObservaciones(datosOperativos.observaciones || '');
     setFormObservaciones(datosOperativos.observaciones || '');
   }, [datosOperativos]);
@@ -148,8 +148,8 @@ export default function UnitInfoPanel({
   }, []);
 
   useEffect(() => {
-    setSalidaCongelada(datosOperativos.horaSalida || null);
-  }, [datosOperativos.horaSalida, selectedOption]);
+    setSalidaCongelada(datosOperativos.horaRealSalidaPatio || null);
+  }, [datosOperativos.horaRealSalidaPatio, selectedOption]);
 
   const calculatedAcople = (datosOperativos && datosOperativos.acople) ? datosOperativos.acople : '--:--';
 
@@ -821,9 +821,9 @@ export default function UnitInfoPanel({
           </div>
           <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
 
-            {/* 4. Hora Programada */}
+            {/* 4. Hora de salida de patio */}
             <div className="info-card__item">
-              <span className="info-card__label">Hora Programada</span>
+              <span className="info-card__label">Hora de salida de patio</span>
               <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
@@ -845,7 +845,7 @@ export default function UnitInfoPanel({
                   }}
                 >
                   <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>
-                    {formHoraProgramada || '--:--'}
+                    {formHoraSalidaPatio || '--:--'}
                   </span>
                 </button>
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
@@ -859,13 +859,13 @@ export default function UnitInfoPanel({
                       onClick={(e) => { e.stopPropagation(); setDropdownHoraOpen(false); }}
                     />
                     <IOSTimePicker
-                      value={formHoraProgramada}
-                      onChange={setFormHoraProgramada}
+                      value={formHoraSalidaPatio}
+                      onChange={setFormHoraSalidaPatio}
                       onClose={() => setDropdownHoraOpen(false)}
                       onSave={async () => {
-                        // Al guardar la hora programada no guardamos acople al backend, o si es necesario se le pasa calculatedAcople
+                        // Al guardar la hora de salida de patio no guardamos acople al backend, o si es necesario se le pasa calculatedAcople
                         if (handleSaveHoras) {
-                          await handleSaveHoras(formHoraProgramada, calculatedAcople);
+                          await handleSaveHoras(formHoraSalidaPatio, calculatedAcople);
                         }
                       }}
                     />
@@ -874,7 +874,14 @@ export default function UnitInfoPanel({
               </div>
             </div>
 
-            {/* 5. Hora de Acople (+30 min) */}
+            {/* 5. Hora de Salida (Manual confirm) */}
+            <LiveClockSalida
+              key={selectedOption || 'none'}
+              horaCongelada={salidaCongelada}
+              disabled={isPlataforma || isReservaOrMantenimiento}
+            />
+
+            {/* 6. Hora de Acople (+30 min) */}
             <div className="info-card__item">
               <span className="info-card__label">Hora de Acople</span>
               <div className="badge-display badge-display--gray" style={{ padding: '0.5rem 1rem', opacity: 1, border: '1px solid #e5e7eb', background: '#f9fafb' }}>
@@ -886,13 +893,6 @@ export default function UnitInfoPanel({
                 </span>
               </div>
             </div>
-
-            {/* 6. Hora de Salida (Manual confirm) */}
-            <LiveClockSalida
-              key={selectedOption || 'none'}
-              horaCongelada={salidaCongelada}
-              disabled={isPlataforma || isReservaOrMantenimiento}
-            />
 
             {/* Ciclos Perdidos */}
             {!isPlataforma && (
@@ -1029,7 +1029,7 @@ export default function UnitInfoPanel({
                     
                     try {
                       if (handleSaveHoras) {
-                        await handleSaveHoras(formHoraProgramada, calculatedAcople, horaParaGuardar, observaciones);
+                        await handleSaveHoras(formHoraSalidaPatio, calculatedAcople, horaParaGuardar, observaciones);
                         
                         if (huboCorridasPerdidas && perdidaCiclos && perdidaMotivo) {
                           const finalMotivo = perdidaMotivo === 'OTRO' ? perdidaMotivoOtro.trim() : perdidaMotivo;

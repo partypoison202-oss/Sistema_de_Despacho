@@ -148,7 +148,7 @@
 .excel-preview-table th.col-economico,
 .excel-preview-table th.col-tarjeton,
 .excel-preview-table th.col-corridas,
-.excel-preview-table th.col-hora_programada,
+.excel-preview-table th.col-hora_salida_patio,
 .excel-preview-table th.col-ruta {
   text-align: center;
 }
@@ -204,7 +204,7 @@
 .cell-economico .edit-input:not(.dropdown-trigger),
 .cell-tarjeton .edit-input:not(.dropdown-trigger),
 .cell-corridas .edit-input:not(.dropdown-trigger),
-.cell-hora_programada .edit-input:not(.dropdown-trigger),
+.cell-hora_salida_patio .edit-input:not(.dropdown-trigger),
 .cell-ruta .edit-input:not(.dropdown-trigger) {
   text-align: center;
 }

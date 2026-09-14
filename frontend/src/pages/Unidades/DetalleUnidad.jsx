@@ -29,7 +29,7 @@ export default function DetalleUnidad() {
     ruta: 'Seleccione una unidad...',
     tarjeton: '',
     corrida: '',
-    horaSalida: '',
+    horaRealSalidaPatio: '',
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [tarjetonBusqueda, setTarjetonBusqueda] = useState('');
@@ -90,11 +90,11 @@ export default function DetalleUnidad() {
   };
 
   const getUnitStatusVisual = (u) => {
-    if (!u.horaProgramada) return u.horaSalida ? 'validated_ontime' : 'pending';
+    if (!u.horaSalidaPatio) return u.horaRealSalidaPatio ? 'validated_ontime' : 'pending';
     
     let targetTime = null;
-    if (u.horaSalida) {
-      const doneTime = u.horaSalida;
+    if (u.horaRealSalidaPatio) {
+      const doneTime = u.horaRealSalidaPatio;
       // Extract first valid time string "HH:MM"
       const timeMatch = doneTime.toString().match(/\d{2}:\d{2}/);
       const timeStr = timeMatch ? timeMatch[0] : (doneTime.length >= 5 ? doneTime.substring(0, 5) : doneTime);
@@ -108,7 +108,7 @@ export default function DetalleUnidad() {
       targetTime = new Date();
     }
 
-    const [h, m] = u.horaProgramada.split(':').map(Number);
+    const [h, m] = u.horaSalidaPatio.split(':').map(Number);
     const prog = new Date();
     prog.setHours(h, m, 0, 0);
     let diffMins = (targetTime - prog) / 60000;
@@ -122,7 +122,7 @@ export default function DetalleUnidad() {
       diffMins -= 1440;
     }
 
-    if (u.horaSalida) {
+    if (u.horaRealSalidaPatio) {
       if (diffMins > 15) return 'validated_missed';
       if (diffMins > 0) return 'validated_delayed';
       return 'validated_ontime';
@@ -192,8 +192,8 @@ export default function DetalleUnidad() {
       estado: String(u.estatus ?? 'operacion').trim().toLowerCase(),
       ruta: String(u.ruta ?? '').trim(),
       acople: String(u.acople ?? '').trim(),
-      horaSalida: String(u.hora_salida ?? '').trim(),
-      horaProgramada: String(u.hora_programada ?? '').trim(),
+      horaRealSalidaPatio: String(u.hora_real_salida_patio ?? '').trim(),
+      horaSalidaPatio: String(u.hora_salida_patio ?? '').trim(),
     }));
   };
 
@@ -249,10 +249,10 @@ export default function DetalleUnidad() {
         tarjeton: String(u.tarjeton ?? '').trim(),
         display: formatearEco(u.numero_eco ?? u.eco),
         estado: u.estatus || u.estado || 'operacion',
-        horaProgramada: String(u.hora_programada ?? '').trim(),
+        horaSalidaPatio: String(u.hora_salida_patio ?? '').trim(),
         acople: String(u.acople ?? '').trim(),
-        horaSalida: String(u.hora_salida ?? '').trim(),
-      })).sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
+        horaRealSalidaPatio: String(u.hora_real_salida_patio ?? '').trim(),
+      })).sort((a, b) => parseTimeToMinutes(a.horaSalidaPatio) - parseTimeToMinutes(b.horaSalidaPatio));
     },
     enabled: !!selectedRuta && esAlimentadora,
     staleTime: 0,
@@ -266,13 +266,13 @@ export default function DetalleUnidad() {
       const rutaUnidad = normalizeRutaClave(u.ruta);
       return rutaUnidad && rutaUnidad === rutaSeleccionada;
     });
-    return filtradas.sort((a, b) => parseTimeToMinutes(a.horaProgramada) - parseTimeToMinutes(b.horaProgramada));
+    return filtradas.sort((a, b) => parseTimeToMinutes(a.horaSalidaPatio) - parseTimeToMinutes(b.horaSalidaPatio));
   }, [unidadesList, selectedTroncal]);
 
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);
     if (estado === 'operacion') {
-      filtradas = filtradas.filter((u) => !u.horaSalida);
+      filtradas = filtradas.filter((u) => !u.horaRealSalidaPatio);
     }
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
@@ -286,7 +286,7 @@ export default function DetalleUnidad() {
   };
 
   const unidadesDisponiblesBusqueda = useMemo(
-    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.horaSalida),
+    () => unidadesList.filter((u) => u.estado === 'operacion' && !u.horaRealSalidaPatio),
     [unidadesList]
   );
   const totalProgramadasOperacion = useMemo(
@@ -439,11 +439,11 @@ export default function DetalleUnidad() {
           ruta: resultado.ruta || 'Sin ruta',
           tarjeton: resultado.tarjeton || '',
           corrida: resultado.corridas || '',
-          horaSalida: resultado.hora_salida || '',
+          horaRealSalidaPatio: resultado.hora_real_salida_patio || '',
           estatus: resultado.estatus || unidadSeleccionada.estado || 'operacion',
           ciclo: resultado.ciclo || '',
           motivo: resultado.motivo || '',
-          horaProgramada: resultado.hora_programada || '',
+          horaSalidaPatio: resultado.hora_salida_patio || '',
           acople: resultado.acople || '',
         });
         setFallaTexto(resultado.falla || '');
@@ -454,11 +454,11 @@ export default function DetalleUnidad() {
           ruta: 'Sin ruta',
           tarjeton: '',
           corrida: '',
-          horaSalida: '',
+          horaRealSalidaPatio: '',
           estatus: unidadSeleccionada?.estado || 'operacion',
           ciclo: '',
           motivo: '',
-          horaProgramada: '',
+          horaSalidaPatio: '',
           acople: '',
         });
         setFallaTexto('');
@@ -470,7 +470,7 @@ export default function DetalleUnidad() {
         ruta: 'No se pudo obtener',
         tarjeton: '',
         corrida: '',
-        horaSalida: '',
+        horaRealSalidaPatio: '',
       });
     } finally {
       setCargandoDatos(false);
@@ -489,7 +489,7 @@ export default function DetalleUnidad() {
       (unidad) => String(unidad.tarjeton ?? '').trim() === valor
     );
     if (unidadEncontrada) {
-      if (unidadEncontrada.horaSalida) {
+      if (unidadEncontrada.horaRealSalidaPatio) {
         setMensajeBusqueda('Esta unidad ya fue validada y no está disponible para despacho.');
         return;
       }
@@ -685,7 +685,7 @@ export default function DetalleUnidad() {
     return null;
   };
 
-  const handleSaveHoras = async (horaProgramada, acople, horaSalida = null, observaciones = null) => {
+  const handleSaveHoras = async (horaSalidaPatio, acople, horaRealSalidaPatio = null, observaciones = null) => {
     try {
       const token = getToken();
       if (!token) throw new Error('No token');
@@ -696,12 +696,12 @@ export default function DetalleUnidad() {
       const payload = {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
-        hora_programada: horaProgramada,
+        hora_salida_patio: horaSalidaPatio,
         acople: acople,
       };
       
-      if (horaSalida !== null) {
-          payload.hora_salida = horaSalida;
+      if (horaRealSalidaPatio !== null) {
+          payload.hora_real_salida_patio = horaRealSalidaPatio;
       }
       if (observaciones !== null) {
           payload.observaciones = observaciones;
@@ -717,9 +717,9 @@ export default function DetalleUnidad() {
       if (respuesta.ok && resultado.status === 'success') {
         setDatosOperativos((prev) => ({
           ...prev,
-          horaProgramada: horaProgramada,
+          horaSalidaPatio: horaSalidaPatio,
           acople: acople,
-          ...(horaSalida !== null && { horaSalida: horaSalida })
+          ...(horaRealSalidaPatio !== null && { horaRealSalidaPatio: horaRealSalidaPatio })
         }));
 
         // Invalidar queries para que la unidad desaparezca de la lista al instante
@@ -728,7 +728,7 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
 
         // Auto-avanzar si es una validación de salida (agilidad)
-        if (horaSalida !== null) {
+        if (horaRealSalidaPatio !== null) {
           advanceToNextPendingUnit(numeroLimpio);
         }
         setFallaTexto('');
@@ -767,11 +767,11 @@ export default function DetalleUnidad() {
       if (respuesta.ok && resultado.status === 'success') {
         setDatosOperativos((prev) => ({
           ...prev,
-          horaSalida: resultado.hora_salida,
+          horaRealSalidaPatio: resultado.hora_real_salida_patio,
           ruta: resultado.ruta ?? prev.ruta,
           tarjeton: resultado.tarjeton ?? prev.tarjeton,
           conductor: resultado.conductor ?? prev.conductor,
-          horaProgramada: payload.hora_programada ?? prev.horaProgramada,
+          horaSalidaPatio: payload.hora_salida_patio ?? prev.horaSalidaPatio,
           acople: payload.acople ?? prev.acople,
           ciclo: payload.ciclo ?? prev.ciclo,
           motivo: payload.motivo ?? prev.motivo,
@@ -780,7 +780,7 @@ export default function DetalleUnidad() {
 
         queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) =>
           old.map((u) =>
-            u.eco === numeroLimpio ? { ...u, horaSalida: resultado.hora_salida } : u
+            u.eco === numeroLimpio ? { ...u, horaRealSalidaPatio: resultado.hora_real_salida_patio } : u
           )
         );
 
@@ -808,7 +808,7 @@ export default function DetalleUnidad() {
         setTarjetonBusqueda('');
         setFallaTexto('');
 
-        return { success: true, horaSalida: resultado.hora_salida };
+        return { success: true, horaRealSalidaPatio: resultado.hora_real_salida_patio };
       }
 
       throw new Error(resultado.message || 'Error al validar el despacho.');

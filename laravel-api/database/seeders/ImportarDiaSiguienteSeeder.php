@@ -194,7 +194,7 @@ CSV;
                     'ruta' => trim($data[3] ?? ''),
                     'numero_tarjeton' => trim($data[4] ?? ''),
                     'nombre_conductor' => trim($data[5] ?? ''),
-                    'hora_programada' => trim($data[6] ?? ''),
+                    'hora_salida_patio' => trim($data[6] ?? ''),
                     'acople' => trim($data[7] ?? ''),
                     'hora_salida' => trim($data[8] ?? ''),
                     'corridas' => $corridasStr !== '' ? (int)$corridasStr : null,

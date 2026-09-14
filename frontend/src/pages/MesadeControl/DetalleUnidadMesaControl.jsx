@@ -32,7 +32,7 @@ export default function DetalleUnidadMesaControl() {
     ruta: 'Seleccione una unidad...',
     tarjeton: '',
     corrida: '',
-    horaSalida: '',
+    horaRealSalidaPatio: '',
   });
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [tarjetonBusqueda, setTarjetonBusqueda] = useState('');
@@ -271,11 +271,11 @@ export default function DetalleUnidadMesaControl() {
           ruta: activeUnitData.ruta || 'Sin ruta',
           tarjeton: activeUnitData.tarjeton || '',
           corrida: activeUnitData.corridas || '',
-          horaSalida: activeUnitData.hora_salida || '',
+          horaRealSalidaPatio: activeUnitData.hora_real_salida_patio || '',
           estatus: activeUnitData.estatus || 'operacion',
           ciclo: activeUnitData.ciclo || '',
           motivo: activeUnitData.motivo_estatus || activeUnitData.motivo || '',
-          horaProgramada: activeUnitData.hora_programada || '',
+          horaSalidaPatio: activeUnitData.hora_salida_patio || '',
           acople: activeUnitData.acople || '',
         });
         setFallaTexto(activeUnitData.falla || '');
@@ -286,11 +286,11 @@ export default function DetalleUnidadMesaControl() {
           ruta: 'Sin ruta',
           tarjeton: '',
           corrida: '',
-          horaSalida: '',
+          horaRealSalidaPatio: '',
           estatus: 'operacion',
           ciclo: '',
           motivo: '',
-          horaProgramada: '',
+          horaSalidaPatio: '',
           acople: '',
         });
         setFallaTexto('');
@@ -636,18 +636,18 @@ export default function DetalleUnidadMesaControl() {
     }
   };
 
-  const handleSaveHoras = async (horaProgramada, acople) => {
+  const handleSaveHoras = async (horaSalidaPatio, acople) => {
     try {
-      const token = getToken();
-      if (!token) throw new Error('No token');
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No estás autenticado.');
 
-      const matchNumeros = selectedOption.match(/\d+/);
+      const matchNumeros = activeUnitData.eco?.match(/\d+/);
       const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
       const payload = {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
-        hora_programada: horaProgramada,
+        hora_salida_patio: horaSalidaPatio,
         acople: acople,
       };
 
@@ -661,7 +661,7 @@ export default function DetalleUnidadMesaControl() {
       if (respuesta.ok && resultado.status === 'success') {
         setDatosOperativos((prev) => ({
           ...prev,
-          horaProgramada: horaProgramada,
+          horaSalidaPatio: horaSalidaPatio,
           acople: acople,
         }));
         return { success: true };
