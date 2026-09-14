@@ -149,8 +149,8 @@ export default function DetalleUnidadMantenimiento() {
     tarjeton: '',
     estatus: 'operacion',
     motivo_estatus: null, // <-- NUEVO
-    horaSalida: null,
-    horaProgramada: null,
+    horaRealSalidaPatio: null,
+    horaSalidaPatio: null,
     horaDespacho: null,
   });
 
@@ -544,7 +544,7 @@ export default function DetalleUnidadMantenimiento() {
       });
 
       if (resultado.status === 'success') {
-        const horaDespacho = resultado.hora_salida || resultado.hora_programada || resultado.acople || null;
+        const horaDespacho = resultado.hora_real_salida_patio || resultado.hora_salida_patio || resultado.acople || null;
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
           ruta: resultado.ruta || 'Sin ruta',
@@ -552,8 +552,8 @@ export default function DetalleUnidadMantenimiento() {
           tarjeton: resultado.tarjeton || '',
           estatus: resultado.estatus || unidadSeleccionada?.estado || 'operacion',
           motivo_estatus: resultado.motivo_estatus || null,
-          horaSalida: resultado.hora_salida || null,
-          horaProgramada: resultado.hora_programada || null,
+          horaRealSalidaPatio: resultado.hora_real_salida_patio || null,
+          horaSalidaPatio: resultado.hora_salida_patio || null,
           horaDespacho,
           folio_mantenimiento: resultado.folio_mantenimiento || null,
           numero_incidencia: resultado.numero_incidencia || null,
@@ -572,8 +572,8 @@ export default function DetalleUnidadMantenimiento() {
           tarjeton: '',
           estatus: 'operacion',
           motivo_estatus: null,
-          horaSalida: null,
-          horaProgramada: null,
+          horaRealSalidaPatio: null,
+          horaSalidaPatio: null,
           horaDespacho: null,
         });
       }
@@ -585,7 +585,7 @@ export default function DetalleUnidadMantenimiento() {
         tarjeton: '',
         estatus: 'operacion',
         motivo_estatus: null,
-        horaSalida: null,
+        horaRealSalidaPatio: null,
       });
     } finally {
       setCargandoDatos(false);

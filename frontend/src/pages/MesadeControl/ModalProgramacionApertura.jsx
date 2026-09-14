@@ -125,7 +125,7 @@ export default function ModalProgramacionApertura({
       'TARJETON',
       'CONDUCTOR',
       'MANIOBRISTA',
-      'HORA_PROGRAMADA',
+      'HORA_SALIDA_PATIO',
       'HORA_ACOPLE',
       'MOTIVO_FALLA'
     ];
@@ -139,7 +139,7 @@ export default function ModalProgramacionApertura({
       `"${u.tarjeton || ''}"`,
       `"${u.nombre_conductor || ''}"`,
       `"${u.nombre_maniobrista || ''}"`,
-      `"${u.hora_programada || ''}"`,
+      `"${u.hora_salida_patio || ''}"`,
       `"${u.acople || ''}"`,
       `"${u.motivo_estatus || u.motivo || u.falla || ''}"`
     ]);
@@ -526,13 +526,13 @@ export default function ModalProgramacionApertura({
                         {/* Horarios */}
                         <td>
                           <div className="ap-time-box">
-                            {u.hora_programada && (
-                              <span>Prog: <strong>{u.hora_programada}</strong></span>
+                            {u.hora_salida_patio && (
+                              <span>Prog: <strong>{u.hora_salida_patio}</strong></span>
                             )}
                             {u.acople && (
                               <span style={{ color: '#64748b' }}>Acople: {u.acople}</span>
                             )}
-                            {!u.hora_programada && !u.acople && (
+                            {!u.hora_salida_patio && !u.acople && (
                               <span style={{ color: '#94a3b8' }}>-</span>
                             )}
                           </div>

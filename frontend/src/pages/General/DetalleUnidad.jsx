@@ -55,7 +55,7 @@ export default function DetalleUnidad() {
         estatus: registro.ESTATUS !== null && registro.ESTATUS !== undefined
           ? String(registro.ESTATUS).trim()
           : '',
-        horaSalida: registro.HORA_PROGRAMADA,
+        horaRealSalidaPatio: registro.HORA_SALIDA_PATIO,
         acopleRuta: registro.HORA_DE_ACOPLE,
         corrida: registro.CORRIDAS,
       }))
@@ -140,7 +140,7 @@ export default function DetalleUnidad() {
                         <td className="detalle__eco">{unidad.eco}</td>
                         <td>{unidad.idUnidad || '—'}</td>
                         <td>{unidad.ruta || '—'}</td>
-                        <td>{formatoHora(unidad.horaSalida)}</td>
+                        <td>{formatoHora(unidad.horaRealSalidaPatio)}</td>
                         <td>{formatoHora(unidad.acopleRuta)}</td>
                         <td>{unidad.corrida ?? '—'}</td>
                         <td>

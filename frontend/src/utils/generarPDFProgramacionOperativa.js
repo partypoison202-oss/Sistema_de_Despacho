@@ -143,7 +143,7 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
       fila.RELEVO_CONDUCTOR ?? '',
       fila.RELEVO_HORA ?? '',
       fila.HORA_DE_ACOPLE ?? '',
-      fila.HORA_SALIDA ?? '',
+      fila.HORA_REAL_SALIDA_PATIO ?? '',
       isPatioNorte ? 'SÍ' : '',
       fila.ACOPLE ?? '',
       fila.CORRIDAS ?? '',

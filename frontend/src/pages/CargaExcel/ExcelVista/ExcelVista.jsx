@@ -16,7 +16,7 @@ const HEADER_TRANSLATIONS = {
   TARJETON_MANIOBRISTA: 'Tarjetón Maniobrista',
   NOMBRE_MANIOBRISTA: 'Maniobrista',
   ESTATUS: 'Estatus',
-  HORA_DE_ACOPLE: 'HORA PROGRAMADA',   // mismo nombre que Despacho -> campo hora_programada en BD
+  HORA_DE_ACOPLE: 'HORA DE SALIDA DE PATIO',   // campo hora_salida_patio en BD
   ACOPLE: 'HORA DE ACOPLE',            // campo acople en BD
   CORRIDAS: 'Corrida',
   PATIO_NORTE: 'Patio Norte',
@@ -78,7 +78,13 @@ const SmartTimeInput = ({ value, onChange, disabled }) => {
         e.target.select();
       }}
       onBlur={handleBlur}
-      onChange={(e) => setInternalValue(e.target.value)}
+      onChange={(e) => {
+        // Eliminar cualquier caracter que no sea dígito (incluso los dos puntos) mientras escribe
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 4) val = val.substring(0, 4);
+        e.target.value = val; // Forzar que no se vean letras ni se pasen de 4
+        setInternalValue(val);
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter') e.target.blur();
       }}
@@ -107,7 +113,7 @@ const SmartTimeInput = ({ value, onChange, disabled }) => {
   );
 };
 
-const EXCLUDED_KEYS = ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS', 'HORA_PROGRAMADA'];
+const EXCLUDED_KEYS = ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS', 'HORA_SALIDA_PATIO'];
 
 export default function ExcelPreview({
   data = [],
@@ -144,8 +150,8 @@ export default function ExcelPreview({
 
   // Las cabeceras del editor directo, filtradas por departamento
   const baseHeaders = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS'];
-  // HORA_PROGRAMADA fue eliminada — era duplicado de HORA_DE_ACOPLE (mismo campo en BD: hora_programada)
-  // HORA_SALIDA fue eliminada — la registra Despacho en tiempo real, no se programa aquí
+  // HORA_SALIDA_PATIO fue eliminada — era duplicado de HORA_DE_ACOPLE (mismo campo en BD: hora_salida_patio)
+  // HORA_REAL_SALIDA_PATIO fue eliminada — la registra Despacho en tiempo real, no se programa aquí
   const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE'];
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE'];
@@ -364,7 +370,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_PROGRAMADA' || h === 'ACOPLE' || h === 'HORA_SALIDA') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO') ? 'center' : 'left',
                             }}>
                               {displayValue}
                             </div>
@@ -373,7 +379,7 @@ export default function ExcelPreview({
                       }
 
                       let isFieldReadOnly = h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO' || h === 'NOMBRE_CONDUCTOR' || h === 'RELEVO_CONDUCTOR';
-                      if (isRelevos && (h === 'TARJETON' || h === 'HORA_PROGRAMADA')) isFieldReadOnly = true;
+                      if (isRelevos && (h === 'TARJETON' || h === 'HORA_SALIDA_PATIO')) isFieldReadOnly = true;
                       if (!isRelevos && (h === 'RELEVO_TARJETON' || h === 'RELEVO_HORA')) isFieldReadOnly = true;
 
                       // Si el campo es de solo lectura, mostrar texto plano (o insignias para Estatus)
@@ -383,7 +389,7 @@ export default function ExcelPreview({
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                           const curSt = (rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'no_programada' : rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt] || fila[h];
-                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'HORA_PROGRAMADA' || h === 'RELEVO_HORA') {
+                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA') {
                           displayValue = fila[h] || '00:00';
                         }
 
@@ -394,7 +400,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'HORA_PROGRAMADA' || h === 'RELEVO_HORA') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA') ? 'center' : 'left',
                               display: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'flex' : 'block',
                               alignItems: 'center',
                               justifyContent: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'center' : 'initial',
@@ -445,7 +451,7 @@ export default function ExcelPreview({
                         );
                       }
 
-                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_PROGRAMADA' || h === 'ACOPLE' || h === 'HORA_SALIDA' || h === 'RELEVO_HORA') {
+                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') {
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '0.2rem' }}>
@@ -985,12 +991,21 @@ export default function ExcelPreview({
                                       if (num < 1) val = '1';
                                       else if (num > 20) val = '20';
                                     }
+                                  } else if (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') {
+                                    // Limitar a solo números y formato HH:MM
+                                    let cleaned = val.replace(/\D/g, '').substring(0, 4);
+                                    if (cleaned.length >= 3) {
+                                      val = cleaned.substring(0, 2) + ':' + cleaned.substring(2, 4);
+                                    } else {
+                                      val = cleaned;
+                                    }
                                   }
+                                  e.target.value = val; // Forzar actualización visual inmediata
                                   onUpdate && onUpdate(originalIndex, h, val);
                                 }}
                                 className={`edit-input edit-text-input ${h === 'CORRIDAS' ? 'text-center' : ''}`}
-                                placeholder=""
-                                maxLength={h === 'CORRIDAS' ? 2 : undefined}
+                                placeholder={ (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') ? '--:--' : '' }
+                                maxLength={(h === 'CORRIDAS') ? 2 : (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') ? 5 : undefined}
                                 style={{
                                   paddingRight: h === 'CORRIDAS' ? '0' : '8px',
                                   cursor: isRowDisabled ? 'not-allowed' : 'text',

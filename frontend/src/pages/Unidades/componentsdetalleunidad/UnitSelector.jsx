@@ -11,7 +11,7 @@ export default function UnitSelector({
   estado,
   titulo,
   unidades,
-  totalProgramadas,   // ← NUEVO: total de unidades programadas (sin filtrar por hora_salida)
+  totalProgramadas,   // ← NUEVO: total de unidades programadas (sin filtrar por hora_real_salida_patio)
   cargandoUnidades,
   configActual,
   onSelectUnit,

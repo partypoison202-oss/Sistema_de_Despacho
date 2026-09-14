@@ -44,7 +44,7 @@ class BitacoraHelper
                             'corridas'        => $registro->corridas,
                             'ciclo'           => $registro->ciclo,
                             'motivo'          => $registro->motivo,
-                            'hora_programada' => $registro->hora_programada,
+                            'hora_salida_patio' => $registro->hora_salida_patio,
                             'motivo_estatus'  => $registro->motivo_estatus,
                             'fecha_registro'  => $registro->fecha_registro,
                             'created_at'      => Carbon::now(),

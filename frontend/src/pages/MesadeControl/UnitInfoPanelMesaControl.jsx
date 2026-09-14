@@ -55,7 +55,7 @@ export default function UnitInfoPanel({
   const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
-  const [formHoraProgramada, setFormHoraProgramada] = useState('');
+  const [formHoraSalidaPatio, setFormHoraSalidaPatio] = useState('');
   const [formAcople, setFormAcople] = useState(''); // ⬅️ Se usará para la hora de salida automática
   const [dropdownHoraOpen, setDropdownHoraOpen] = useState(false);
   const [dropdownAcopleOpen, setDropdownAcopleOpen] = useState(false);
@@ -88,9 +88,9 @@ export default function UnitInfoPanel({
     return () => clearInterval(tick);
   }, []);
 
-  // Inicializar hora programada desde datosOperativos
+  // Inicializar hora de salida de patio desde datosOperativos
   useEffect(() => {
-    if (datosOperativos.horaProgramada) setFormHoraProgramada(datosOperativos.horaProgramada);
+    if (datosOperativos.horaSalidaPatio) setFormHoraSalidaPatio(datosOperativos.horaSalidaPatio);
     // ⚠️ Ya NO inicializamos formAcople desde datosOperativos porque será automático
   }, [datosOperativos]);
 
@@ -800,7 +800,7 @@ export default function UnitInfoPanel({
           </div>
           <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {!isReservaOrMantenimiento && (<div className="info-card__item">
-              <span className="info-card__label">Hora de arribo</span>
+              <span className="info-card__label">Hora de salida de patio</span>
               <div className="badge-display badge-display--gold" style={{ padding: 0, overflow: 'visible', position: 'relative', opacity: isReservaOrMantenimiento ? 0.6 : 1 }}>
                 <button
                   type="button"
@@ -823,7 +823,7 @@ export default function UnitInfoPanel({
                   }}
                 >
                   <span style={{ overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                    {formHoraProgramada || '--:--'}
+                    {formHoraSalidaPatio || '--:--'}
                   </span>
                 </button>
                 <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
@@ -845,12 +845,12 @@ export default function UnitInfoPanel({
                       }}
                     />
                     <IOSTimePicker
-                      value={formHoraProgramada}
-                      onChange={setFormHoraProgramada}
+                      value={formHoraSalidaPatio}
+                      onChange={setFormHoraSalidaPatio}
                       onClose={() => setDropdownHoraOpen(false)}
                       onSave={async () => {
                         if (handleSaveHoras) {
-                          await handleSaveHoras(formHoraProgramada, formAcople);
+                          await handleSaveHoras(formHoraSalidaPatio, formAcople);
                         }
                       }}
                     />
@@ -859,7 +859,7 @@ export default function UnitInfoPanel({
               </div>
             </div>)}
 
-            {/* ✅ Hora de salida */}
+            {/* ✅ Hora real de salida de patio (Campo rojo restaurado) */}
             {!isReservaOrMantenimiento && (<div className="info-card__item">
               <span className="info-card__label">Hora de salida</span>
               <div className="badge-display badge-display--maroon" style={{ padding: '0.5rem 1rem', opacity: 1 }}>
@@ -867,10 +867,12 @@ export default function UnitInfoPanel({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '1px' }}>
-                  <span>{datosOperativos.horaSalida || '--:--'}</span>
+                  <span>{datosOperativos.horaRealSalidaPatio || '--:--'}</span>
                 </span>
               </div>
             </div>)}
+
+
 
             {/* Toggle: ¿Hubo ciclos perdidos? */}
             <div className="info-card__item">

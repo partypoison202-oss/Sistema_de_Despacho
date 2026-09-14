@@ -123,9 +123,9 @@ class PlataformaController extends Controller
                 if (strtoupper($estatusNuevo) !== 'MANTENIMIENTO') {
                     $datosUpdate['falla'] = null;
                 }
-                $datosUpdate['hora_programada'] = null;
+                $datosUpdate['hora_salida_patio'] = null;
                 $datosUpdate['acople'] = null;
-                $datosUpdate['hora_salida'] = null;
+                $datosUpdate['hora_real_salida_patio'] = null;
                 $datosUpdate['relevo_tarjeton'] = null;
                 $datosUpdate['relevo_conductor'] = null;
                 $datosUpdate['relevo_hora'] = null;

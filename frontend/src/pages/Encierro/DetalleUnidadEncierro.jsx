@@ -84,7 +84,7 @@ export default function DetalleUnidadEncierro() {
     ruta: 'Seleccione una unidad...',
     tarjeton: '',
     corrida: '',
-    horaProgramada: '',
+    horaSalidaPatio: '',
     estatus: 'operacion'
   });
 
@@ -341,13 +341,13 @@ export default function DetalleUnidadEncierro() {
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
       ruta: u.ruta || null,
       acople: Boolean(u.acople && String(u.acople).trim() !== '' && String(u.acople).trim() !== '0'),
-      horaSalida: String(u.hora_salida ?? '').trim(),
+      horaRealSalidaPatio: String(u.hora_real_salida_patio ?? '').trim(),
       yaEncerrada: u.ya_encerrada || false
     }));
 
     return mapped.filter(u => {
       // Solo unidades que ya fueron despachadas hoy (tienen hora de salida asignada)
-      if (u.horaSalida === '') return false;
+      if (u.horaRealSalidaPatio === '') return false;
 
       // Si ya fue encerrada HOY, la mantenemos (para mostrar en "Unidades Encerradas")
       if (u.yaEncerrada) return true;
@@ -360,7 +360,7 @@ export default function DetalleUnidadEncierro() {
   const { data: unidadesList = [], isLoading: cargandoUnidades, isFetching: refrescandoUnidades } = useQuery({
     queryKey: ['unidades-encierro-detalle', tipoTransporte],  // Key propia, separada del prefetch global
     queryFn: fetchUnidades,
-    staleTime: 0,           // Siempre datos frescos con ya_encerrada y filtro horaSalida
+    staleTime: 0,           // Siempre datos frescos con ya_encerrada y filtro horaRealSalidaPatio
     refetchInterval: 5000,
   });
 
@@ -402,7 +402,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedRuta);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '' && (u.estado === 'operacion' || u.yaEncerrada);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaRealSalidaPatio !== '' && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedRuta]);
   const unidadesPorTroncalList = useMemo(() => {
@@ -410,7 +410,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaSalida !== '' && (u.estado === 'operacion' || u.yaEncerrada);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaRealSalidaPatio !== '' && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedTroncal]);
   const cargandoUnidadesPorRuta = false;
@@ -639,8 +639,8 @@ export default function DetalleUnidadEncierro() {
             motivo: '',
             corrida: '',
             acople: '',
-            hora_programada: '',
-            hora_salida: ''
+            hora_salida_patio: '',
+            hora_real_salida_patio: ''
           });
           setAcopleCongelado(null);
         }
@@ -706,8 +706,8 @@ export default function DetalleUnidadEncierro() {
           motivo: resultado.motivo || '',
           corrida: resultado.corridas || '',
           acople: resultado.acople || '',
-          hora_programada: resultado.hora_programada || '',
-          hora_salida: resultado.hora_salida || '',
+          hora_salida_patio: resultado.hora_salida_patio || '',
+          hora_real_salida_patio: resultado.hora_real_salida_patio || '',
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
         setAcopleCongelado(resultado.hora_encierro || null);
@@ -722,8 +722,8 @@ export default function DetalleUnidadEncierro() {
           motivo: '',
           corrida: '',
           acople: '',
-          hora_programada: '',
-          hora_salida: '',
+          hora_salida_patio: '',
+          hora_real_salida_patio: '',
         });
         setAcopleCongelado(null);
       }
@@ -737,8 +737,8 @@ export default function DetalleUnidadEncierro() {
         estatus: 'operacion',
         corrida: '',
         acople: '',
-        hora_programada: '',
-        hora_salida: '',
+        hora_salida_patio: '',
+        hora_real_salida_patio: '',
       });
     } finally {
       setCargandoDatos(false);
@@ -1941,13 +1941,13 @@ export default function DetalleUnidadEncierro() {
                     </div>
                     <div className="info-card__body spec-badges grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       <div className="info-card__item">
-                        <span className="info-card__label">Hora de salida programada</span>
+                        <span className="info-card__label">Hora real de salida de patio</span>
                         <div className="badge-display badge-display--gold">
                           <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="badge-display__text">
-                            {cargandoDatos ? '...' : (datosOperativos.hora_salida || '--:--')}
+                            {cargandoDatos ? '...' : (datosOperativos.hora_real_salida_patio || '--:--')}
                           </span>
                         </div>
                       </div>
