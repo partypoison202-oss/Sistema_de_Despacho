@@ -1136,7 +1136,7 @@ export default function DetalleUnidadMantenimiento() {
                        )}
                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px' }}>
                            <button
-                             onClick={() => setIsFolioModalOpen(true)}
+                             onClick={handleOpenMaintenanceWizard}
                              disabled={!!datosOperativos.numero_incidencia}
                              className={`flex items-center gap-1.5 transition-all ${!datosOperativos.numero_incidencia ? 'hover:bg-white/10 active:scale-95' : 'opacity-50'}`}
                              style={{
@@ -1157,7 +1157,7 @@ export default function DetalleUnidadMantenimiento() {
                            </button>
                            
                            <button
-                             onClick={handleOpenMaintenanceWizard}
+                             onClick={() => setIsFolioModalOpen(true)}
                              disabled={!!(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-'))}
                              className={`flex items-center gap-1.5 shadow-md transition-all ${!(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) ? 'hover:scale-105 active:scale-95' : 'opacity-50'}`}
                              style={{

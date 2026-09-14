@@ -137,6 +137,10 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 if (!isOpen) return null;
 
 const handleNext = () => {
+  if (!String(incidencia || '').trim()) {
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el número de incidencia.' });
+      return;
+    }
   if (!String(formData.falla_reportada || '').trim()) {
       Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar la falla reportada.' });
       return;
@@ -298,11 +302,11 @@ const handleNext = () => {
 
       <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
         <button 
-          onClick={handleAssignIncidencia}
+          onClick={handleNext}
           disabled={loading}
           className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
         >
-          {loading ? 'Guardando...' : 'Guardar'}
+          {loading ? 'Cargando...' : 'Continuar →'}
         </button>
         <button 
           onClick={onClose}
