@@ -61,7 +61,7 @@ export default function DetalleUnidadMesaControl() {
   const [cambioUnidadActivo, setCambioUnidadActivo] = useState(false);
   const [unidadReemplazoSeleccionada, setUnidadReemplazoSeleccionada] = useState(null);
   const [dropdownReemplazoEcoOpen, setDropdownReemplazoEcoOpen] = useState(false);
-  const [reemplazoForm, setReemplazoForm] = useState({ tarjeton: '', ruta: '', corrida: '' });
+  const [reemplazoForm, setReemplazoForm] = useState({ tarjeton: '', conductor: '', ruta: '', corrida: '' });
   const [dropdownReemplazoTarjetonOpen, setDropdownReemplazoTarjetonOpen] = useState(false);
   const [busquedaReemplazoTarjeton, setBusquedaReemplazoTarjeton] = useState('');
   const [dropdownReemplazoRutaOpen, setDropdownReemplazoRutaOpen] = useState(false);
@@ -373,6 +373,23 @@ export default function DetalleUnidadMesaControl() {
     setCargandoDatos(true);
     setMensajeBusqueda('');
     setOpenDropdown(null);
+  };
+
+  const handleUpdateAfterMovement = async (ecoActualizado, ecoReemplazo) => {
+    queryClient.invalidateQueries(['unidades-list-mesacontrol', tipoTransporte]);
+    queryClient.invalidateQueries(['conductores-list']);
+    queryClient.invalidateQueries(['despacho-hoy']);
+    queryClient.invalidateQueries(['conteo-unidades-global']);
+    fetchConductores();
+    refetchActiveUnit();
+    if (ecoActualizado) {
+      const padEco = String(ecoActualizado).padStart(3, '0');
+      queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, padEco]);
+    }
+    if (ecoReemplazo) {
+      const padReemplazo = String(ecoReemplazo).padStart(3, '0');
+      queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, padReemplazo]);
+    }
   };
 
   const buscarUnidadPorInput = async () => {
@@ -747,7 +764,7 @@ export default function DetalleUnidadMesaControl() {
     setCambioUnidadActivo(false);
     setUnidadReemplazoSeleccionada(null);
     setDropdownReemplazoEcoOpen(false);
-    setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+    setReemplazoForm({ tarjeton: '', conductor: '', ruta: '', corrida: '' });
     setDropdownReemplazoTarjetonOpen(false);
     setDropdownReemplazoRutaOpen(false);
     setModalEstatusOpen(true);
@@ -794,6 +811,7 @@ export default function DetalleUnidadMesaControl() {
       cambio_unidad_activo: cambioUnidadActivo ? 1 : 0,
       eco_reemplazo: cambioUnidadActivo ? unidadReemplazoSeleccionada.eco : null,
       tarjeton_reemplazo: cambioUnidadActivo ? reemplazoForm.tarjeton : null,
+      conductor_reemplazo: cambioUnidadActivo ? (reemplazoForm.conductor || null) : null,
       ruta_reemplazo: cambioUnidadActivo ? reemplazoForm.ruta : null,
       corrida_reemplazo: cambioUnidadActivo ? String(reemplazoForm.corrida || '') : null
     };
@@ -845,11 +863,17 @@ export default function DetalleUnidadMesaControl() {
           };
         });
 
+        if (cambioUnidadActivo && unidadReemplazoSeleccionada?.eco) {
+          const padReemplazo = String(unidadReemplazoSeleccionada.eco).padStart(3, '0');
+          queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, padReemplazo]);
+        }
+
         queryClient.setQueryData(['unidades-list-mesacontrol', tipoTransporte], (old = []) => {
           return old.map(u => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
               return {
                 ...u,
+                estado: modalEstatusNuevo,
                 estatus: modalEstatusNuevo,
                 nombre_conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor)),
                 ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || u.ruta),
@@ -859,6 +883,7 @@ export default function DetalleUnidadMesaControl() {
             if (cambioUnidadActivo && unidadReemplazoSeleccionada && String(u.eco).padStart(3, '0') === String(unidadReemplazoSeleccionada.eco).padStart(3, '0')) {
               return {
                 ...u,
+                estado: 'operacion',
                 estatus: 'operacion',
                 nombre_conductor: data.conductor_asignado || (foundConductor ? foundConductor.nombre : null),
                 ruta: data.ruta_asignada || modalEstatusRuta,
@@ -1213,7 +1238,7 @@ export default function DetalleUnidadMesaControl() {
                   conductoresDisponibles={conductoresDisponibles}
                   maniobristasDisponibles={maniobristasDisponibles}
                   unidadesReserva={unidadesPorEstado('reserva')}
-                  onUpdate={handleSelectUnit}
+                  onUpdate={handleUpdateAfterMovement}
                 />
 
                 {/* NUEVOS APARTADOS: MOVILIDAD Y ESTATUS + CHECKLIST */}
@@ -1621,12 +1646,13 @@ export default function DetalleUnidadMesaControl() {
                     if (e.target.checked) {
                       setReemplazoForm({
                         tarjeton: datosOperativos.tarjeton || '',
+                        conductor: (datosOperativos.conductor && datosOperativos.conductor !== 'No reportado hoy' && datosOperativos.conductor !== 'Sin conductor') ? datosOperativos.conductor : '',
                         ruta: datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' ? datosOperativos.ruta : '',
                         corrida: datosOperativos.corrida || ''
                       });
                     } else {
                       setUnidadReemplazoSeleccionada(null);
-                      setReemplazoForm({ tarjeton: '', ruta: '', corrida: '' });
+                      setReemplazoForm({ tarjeton: '', conductor: '', ruta: '', corrida: '' });
                       setDropdownReemplazoEcoOpen(false);
                       setDropdownReemplazoTarjetonOpen(false);
                       setDropdownReemplazoRutaOpen(false);
@@ -1832,7 +1858,7 @@ export default function DetalleUnidadMesaControl() {
                               className="dropdown-menu__item hover:bg-slate-50 transition-colors"
                               style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: reemplazoForm.tarjeton === c.tarjeton ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                               onClick={() => {
-                                setReemplazoForm((prev) => ({ ...prev, tarjeton: c.tarjeton }));
+                                setReemplazoForm((prev) => ({ ...prev, tarjeton: c.tarjeton, conductor: c.nombre }));
                                 setDropdownReemplazoTarjetonOpen(false);
                               }}
                             >
