@@ -861,116 +861,72 @@ export default function CargaExcel({ isPasteles = false }) {
             </p>
           </div>
 
-          <div className="excel-tabs-container">
-            <button
-              className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
-              onClick={() => {
-                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                setHasChanges(false);
-                setTabActiva('HOY');
-              }}
-            >
-              Día Operativo (Actual)
-            </button>
-            <button
-              className={`excel-tab-btn ${tabActiva === 'MANANA' ? 'active' : ''}`}
-              onClick={() => {
-                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                setHasChanges(false);
-                setTabActiva('MANANA');
-              }}
-            >
-              Día Siguiente
-            </button>
-            <button
-              className={`excel-tab-btn ${tabActiva === 'SABADO' ? 'active' : ''}`}
-              onClick={() => {
-                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                setHasChanges(false);
-                setTabActiva('SABADO');
-              }}
-            >
-              Sábado
-            </button>
-            <button
-              className={`excel-tab-btn ${tabActiva === 'DOMINGO' ? 'active' : ''}`}
-              onClick={() => {
-                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                setHasChanges(false);
-                setTabActiva('DOMINGO');
-              }}
-            >
-              Domingo
-            </button>
-            <button
-              className={`excel-tab-btn ${tabActiva === 'LUNES' ? 'active' : ''}`}
-              onClick={() => {
-                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                setHasChanges(false);
-                setTabActiva('LUNES');
-              }}
-            >
-              Lunes
-            </button>
-            <button
-              className={`excel-tab-btn ${tabActiva === 'FESTIVO' ? 'active' : ''}`}
-              onClick={() => {
-                if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                setHasChanges(false);
-                setTabActiva('FESTIVO');
-              }}
-            >
-              Días Festivos
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {['MANANA', 'SABADO', 'DOMINGO', 'LUNES', 'FESTIVO'].includes(tabActiva) && (
+          {!isPasteles && (
+            <div className="excel-tabs-container">
               <button
-                onClick={async () => {
-                  const label = tabActiva === 'MANANA' ? 'el día siguiente' : tabActiva.toLowerCase();
-                  const endpoint = tabActiva === 'MANANA' 
-                    ? `${API_BASE}/api/despacho/aplicar-cambio-dia`
-                    : `${API_BASE}/api/despacho/aplicar-cambio-especifico/${tabActiva.toLowerCase()}`;
-
-                  const { isConfirmed } = await Swal.fire({
-                    title: '¿Aplicar Cambio de Día?',
-                    text: `Esto volcará todos los registros de ${label} al día operativo actual. ¿Estás seguro?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#6b1d33',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Sí, aplicar',
-                    cancelButtonText: 'Cancelar',
-                  });
-                  if (!isConfirmed) return;
-                  
-                  try {
-                    Swal.fire({ title: 'Aplicando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                    const res = await fetch(endpoint, {
-                      method: 'POST',
-                      headers: getAuthHeaders()
-                    });
-                    if (!res.ok) throw new Error('Error al aplicar el cambio de día');
-                    await res.json();
-                    Swal.fire({ icon: 'success', title: '¡Éxito!', text: 'El cambio de día se aplicó correctamente.', confirmButtonColor: '#c5a059' });
-                    setTabActiva('HOY');
-                    queryClient.invalidateQueries({ queryKey: ['despacho-datos'] });
-                  } catch (e) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: e.message, confirmButtonColor: '#6b1d33' });
-                  }
-                }}
-                className="excel-export-btn"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
-                  background: '#c5a059', color: 'white', fontWeight: 700,
-                  fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s'
+                className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
+                onClick={() => {
+                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                  setHasChanges(false);
+                  setTabActiva('HOY');
                 }}
               >
-                Hacer Cambio de Día
+                Día Operativo (Actual)
               </button>
-            )}
+              <button
+                className={`excel-tab-btn ${tabActiva === 'MANANA' ? 'active' : ''}`}
+                onClick={() => {
+                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                  setHasChanges(false);
+                  setTabActiva('MANANA');
+                }}
+              >
+                Día Siguiente
+              </button>
+              <button
+                className={`excel-tab-btn ${tabActiva === 'SABADO' ? 'active' : ''}`}
+                onClick={() => {
+                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                  setHasChanges(false);
+                  setTabActiva('SABADO');
+                }}
+              >
+                Sábado
+              </button>
+              <button
+                className={`excel-tab-btn ${tabActiva === 'DOMINGO' ? 'active' : ''}`}
+                onClick={() => {
+                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                  setHasChanges(false);
+                  setTabActiva('DOMINGO');
+                }}
+              >
+                Domingo
+              </button>
+              <button
+                className={`excel-tab-btn ${tabActiva === 'LUNES' ? 'active' : ''}`}
+                onClick={() => {
+                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                  setHasChanges(false);
+                  setTabActiva('LUNES');
+                }}
+              >
+                Lunes
+              </button>
+              <button
+                className={`excel-tab-btn ${tabActiva === 'FESTIVO' ? 'active' : ''}`}
+                onClick={() => {
+                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                  setHasChanges(false);
+                  setTabActiva('FESTIVO');
+                }}
+              >
+                Días Festivos
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
 
             <button
               type="button"

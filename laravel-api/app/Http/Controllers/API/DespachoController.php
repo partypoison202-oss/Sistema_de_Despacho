@@ -1028,6 +1028,147 @@ class DespachoController extends Controller
         ], 200);
     }
 
+    public static function ejecutarCambioDiaAutomatico()
+    {
+        $now = Carbon::now('America/Mexico_City');
+        $fechaHoy = $now->toDateString();
+
+        \Log::info("Iniciando ejecución de cambio de día operativo automático para la fecha {$fechaHoy}...");
+
+        try {
+            DB::beginTransaction();
+
+            $sourceTable = null;
+            $deleteSourceAfter = false;
+
+            // 1. Prioridad: informacion_operativa_manana
+            if (DB::table('informacion_operativa_manana')->count() > 0) {
+                $sourceTable = 'informacion_operativa_manana';
+                $deleteSourceAfter = true;
+            } else {
+                // 2. Si es sábado, domingo o lunes, revisar plantillas
+                $diaSemana = $now->dayOfWeekIso; // 1 = Lunes, 6 = Sábado, 7 = Domingo
+                if ($diaSemana == 6 && DB::table('informacion_operativa_sabado')->count() > 0) {
+                    $sourceTable = 'informacion_operativa_sabado';
+                } elseif ($diaSemana == 7 && DB::table('informacion_operativa_domingo')->count() > 0) {
+                    $sourceTable = 'informacion_operativa_domingo';
+                } elseif ($diaSemana == 1 && DB::table('informacion_operativa_lunes')->count() > 0) {
+                    $sourceTable = 'informacion_operativa_lunes';
+                }
+            }
+
+            if ($sourceTable) {
+                $nuevosRegistros = DB::table($sourceTable)->get();
+                DB::table('informacion_operativa')->delete();
+
+                $targetCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('informacion_operativa'));
+                $tarjetones = [];
+                $maniobristas = [];
+
+                foreach ($nuevosRegistros as $row) {
+                    unset($row->id);
+                    $arrayRow = (array)$row;
+                    $insertRow = [];
+                    foreach ($arrayRow as $key => $val) {
+                        if (isset($targetCols[$key])) {
+                            if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
+                                $insertRow[$key] = $val ? 'true' : 'false';
+                            } else {
+                                $insertRow[$key] = $val;
+                            }
+                        }
+                    }
+
+                    // Reiniciar campos de validación para el nuevo día
+                    if (array_key_exists('hora_real_salida_patio', $insertRow)) $insertRow['hora_real_salida_patio'] = null;
+                    if (array_key_exists('hora_salida', $insertRow)) $insertRow['hora_salida'] = null;
+                    if (array_key_exists('firma_base64', $insertRow)) $insertRow['firma_base64'] = null;
+                    $insertRow['fecha_registro'] = $fechaHoy;
+
+                    DB::table('informacion_operativa')->insert($insertRow);
+
+                    if (!empty($row->numero_tarjeton)) $tarjetones[] = $row->numero_tarjeton;
+                    if (!empty($row->tarjeton_maniobrista)) $maniobristas[] = $row->tarjeton_maniobrista;
+                }
+
+                if ($deleteSourceAfter) {
+                    DB::table($sourceTable)->delete();
+                }
+
+                DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+                DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
+
+                if (!empty($tarjetones)) {
+                    DB::table('conductores')->whereIn('tarjeton', array_unique($tarjetones))->update(['estado_servicio' => 'en_servicio']);
+                }
+                if (!empty($maniobristas)) {
+                    DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristas))->update(['estado_servicio' => 'en_servicio']);
+                }
+
+                \App\Helpers\BitacoraHelper::ensureInicioSnapshot();
+
+                DB::commit();
+
+                \Illuminate\Support\Facades\Cache::forever('cambio_dia_operativo_ejecutado_' . $fechaHoy, true);
+
+                \Log::info("Cambio de día operativo automático completado con éxito desde {$sourceTable}.");
+                return [
+                    'status' => 'success',
+                    'message' => "Cambio de día aplicado exitosamente desde tabla {$sourceTable}."
+                ];
+            } else {
+                // Si no hay tabla con programación nueva, reiniciamos las validaciones en informacion_operativa
+                DB::table('informacion_operativa')->update([
+                    'hora_real_salida_patio' => null,
+                    'firma_base64' => null,
+                    'fecha_registro' => $fechaHoy
+                ]);
+
+                DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+                DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
+
+                $conductoresAsignados = DB::table('informacion_operativa')
+                    ->whereNotNull('numero_tarjeton')
+                    ->where('numero_tarjeton', '!=', '')
+                    ->pluck('numero_tarjeton')
+                    ->toArray();
+
+                if (!empty($conductoresAsignados)) {
+                    DB::table('conductores')->whereIn('tarjeton', array_unique($conductoresAsignados))->update(['estado_servicio' => 'en_servicio']);
+                }
+
+                $maniobristasAsignados = DB::table('informacion_operativa')
+                    ->whereNotNull('tarjeton_maniobrista')
+                    ->where('tarjeton_maniobrista', '!=', '')
+                    ->pluck('tarjeton_maniobrista')
+                    ->toArray();
+
+                if (!empty($maniobristasAsignados)) {
+                    DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristasAsignados))->update(['estado_servicio' => 'en_servicio']);
+                }
+
+                \App\Helpers\BitacoraHelper::ensureInicioSnapshot();
+
+                DB::commit();
+
+                \Illuminate\Support\Facades\Cache::forever('cambio_dia_operativo_ejecutado_' . $fechaHoy, true);
+
+                \Log::info("Cambio de día operativo automático: se reiniciaron validaciones para el nuevo día.");
+                return [
+                    'status' => 'success',
+                    'message' => "Cambio de día aplicado reiniciando validaciones operativas de la flota."
+                ];
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Error en cambio de día operativo automático: " . $e->getMessage());
+            return [
+                'status' => 'error',
+                'message' => "Error al ejecutar cambio de día operativo automático: " . $e->getMessage()
+            ];
+        }
+    }
+
     public function aplicarCambioDia()
     {
         try {
@@ -1397,6 +1538,21 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
+        // Auto-ejecución del cambio de día si son las 03:30 AM o más
+        $nowMexico = Carbon::now('America/Mexico_City');
+        $hoy = $nowMexico->toDateString();
+        $horaActual = $nowMexico->format('H:i');
+
+        if ($horaActual >= '03:30') {
+            $tieneManana = DB::table('informacion_operativa_manana')->count() > 0;
+            $primerRegistro = DB::table('informacion_operativa')->first();
+            $esDiaAnterior = $primerRegistro && isset($primerRegistro->fecha_registro) && $primerRegistro->fecha_registro < $hoy;
+
+            if ($tieneManana || ($esDiaAnterior && !\Illuminate\Support\Facades\Cache::has('cambio_dia_operativo_ejecutado_' . $hoy))) {
+                self::ejecutarCambioDiaAutomatico();
+            }
+        }
+
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
 
         $registros = DB::table('informacion_operativa')
