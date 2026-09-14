@@ -2327,7 +2327,6 @@ class DespachoController extends Controller
                     'falla'                 => null,
                     'motivo'                => null,
                     'updated_at'            => now(),
->>>>>>> origin/main
                 ];
 
                 if ($registroReemplazo) {
