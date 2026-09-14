@@ -9,9 +9,7 @@ import API_BASE from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
-import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
-import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
-import { ejecutarDescargaReportesGenerales } from '../../utils/reporteGeneralUtils';
+import { descargarReportesGeneralesConAlerta } from '../../utils/reporteGeneralUtils';
 
 export default function DashboardEncierro() {
   const [busquedaEco, setBusquedaEco] = useState('');
@@ -23,52 +21,8 @@ export default function DashboardEncierro() {
 
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerarReporte = async () => {
-    setIsGenerating(true);
-    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-
-    try {
-      const resp = await fetch(`${API_BASE}/api/despacho/hoy`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!resp.ok) {
-        let errorMsg = 'Error al obtener los datos de la operación';
-        const errData = await resp.json().catch(() => ({}));
-        errorMsg = errData.message || errData.error || errorMsg;
-        throw new Error(errorMsg);
-      }
-
-      const apiData = await resp.json();
-      await ejecutarDescargaReportesGenerales(apiData);
-
-      Swal.fire({
-        icon: 'success',
-        title: '¡Reportes Generados!',
-        text: 'Se han descargado los dos reportes correctamente.',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-      });
-
-    } catch (error) {
-      console.error('Error:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'Ocurrió un error al generar los reportes.',
-        confirmButtonColor: '#601a2a',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleGenerarReporte = () => {
+    descargarReportesGeneralesConAlerta(setIsGenerating);
   };
 
   const fetchConteos = async () => {
