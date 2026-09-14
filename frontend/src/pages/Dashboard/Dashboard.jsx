@@ -5,8 +5,7 @@ import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
 import './Dashboard.css';
-import { generarPDFReporteGeneral } from '../../utils/generarPDFReporteGeneral';
-import { generarPDFReporteUnidades } from '../../utils/generarPDFReporteUnidades';
+import { descargarReportesGeneralesConAlerta } from '../../utils/reporteGeneralUtils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
 import API_BASE from '../../config/api';
@@ -116,72 +115,8 @@ export default function Dashboard() {
     }
   };
 
-  const handleGenerarReporte = async () => {
-    setIsGenerating(true);
-    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-
-    try {
-      // Obtener ambos reportes en paralelo
-      const [respRutas, respUnidades] = await Promise.all([
-        fetch(`${API_BASE}/api/despacho/reporte-general`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`${API_BASE}/api/despacho/reporte-unidades`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        }),
-      ]);
-
-      if (!respRutas.ok || !respUnidades.ok) {
-        let errorMsg = 'Error al obtener los datos';
-        if (!respRutas.ok) {
-          const errData = await respRutas.json().catch(() => ({}));
-          errorMsg = errData.error || errorMsg;
-        } else {
-          const errData = await respUnidades.json().catch(() => ({}));
-          errorMsg = errData.error || errorMsg;
-        }
-        throw new Error(errorMsg);
-      }
-
-      const dataRutas = await respRutas.json();
-      const dataUnidades = await respUnidades.json();
-
-      // Generar PDF nativos
-      await generarPDFReporteGeneral(dataRutas);
-      await generarPDFReporteUnidades(dataUnidades);
-
-      Swal.fire({
-        icon: 'success',
-        title: '¡Reportes Generados!',
-        text: 'Se han descargado los dos reportes correctamente.',
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-      });
-
-    } catch (error) {
-      console.error('Error:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'Ocurrió un error al generar los reportes.',
-        confirmButtonColor: '#601a2a',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+  const handleGenerarReporte = () => {
+    descargarReportesGeneralesConAlerta(setIsGenerating);
   };
 
   const fetchConteos = async () => {
@@ -256,7 +191,7 @@ export default function Dashboard() {
                     <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
                     Generando reportes...
                   </>
-                ) : 'Generar Reportes PDF'}
+                ) : 'Reporte General'}
               </button>
           </div>
         </main>

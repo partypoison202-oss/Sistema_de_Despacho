@@ -10,8 +10,6 @@ class ReporteController extends Controller
 {
     public function generarReporteGeneralData()
     {
-        $fechaHoy = Carbon::today()->toDateString();
-
         $mapeoRutas = [
             'T-01'  => 'T01', 'T-02'  => 'T02', 'T-04'  => 'T04', 'T-05'  => 'T05',
             'RA 2A' => '2A',  'RA 2B' => '2B',  '20B'   => '20B', 'RA 2D' => '2D', 
@@ -23,22 +21,37 @@ class ReporteController extends Controller
         foreach (array_keys($mapeoRutas) as $ruta) {
             $data[$ruta] = ['en_operacion' => 0, 'en_mantenimiento' => 0];
         }
+        $data['T-SIN ASIGNAR'] = ['en_operacion' => 0, 'en_mantenimiento' => 0];
+        $data['RA-SIN ASIGNAR'] = ['en_operacion' => 0, 'en_mantenimiento' => 0];
 
-        $registros = DB::table('informacion_operativa')
-            ->get();
+        $registros = DB::table('informacion_operativa')->get();
 
         foreach ($registros as $reg) {
-            $estatus = trim(strtoupper($reg->estatus));
-            $rutaExcel = trim(strtoupper($reg->ruta)); 
+            $estatus = trim(strtoupper($reg->estatus ?? ''));
+            $tipo = trim(strtoupper($reg->tipo ?? ''));
+            $horaSalida = !empty($reg->hora_real_salida_patio) ? $reg->hora_real_salida_patio : (!empty($reg->hora_salida) ? $reg->hora_salida : '');
+            $isOper = str_contains($estatus, 'OPERACI') && (!empty($horaSalida) || !empty($reg->motivo_estatus) || !empty($reg->cambio_desde));
+            $isManto = str_contains($estatus, 'MANTENIMIENTO');
+
+            $rutaExcel = trim(strtoupper($reg->mantenimiento_ruta ?? $reg->ruta ?? ''));
+            $matched = false;
 
             foreach ($mapeoRutas as $nombreReporte => $prefijoExcel) {
-                if (strpos($rutaExcel, $prefijoExcel) === 0) {
-                    if ($estatus === 'OPERACION') {
-                        $data[$nombreReporte]['en_operacion']++;
-                    } elseif ($estatus === 'MANTENIMIENTO') {
-                        $data[$nombreReporte]['en_mantenimiento']++;
-                    }
-                    break; 
+                if (str_contains($rutaExcel, $prefijoExcel) || str_contains($rutaExcel, $nombreReporte)) {
+                    if ($isOper) $data[$nombreReporte]['en_operacion']++;
+                    elseif ($isManto) $data[$nombreReporte]['en_mantenimiento']++;
+                    $matched = true;
+                    break;
+                }
+            }
+
+            if (!$matched && ($isOper || $isManto)) {
+                if ($tipo === 'URBANUS' || $tipo === 'URBANUSS') {
+                    if ($isOper) $data['T-SIN ASIGNAR']['en_operacion']++;
+                    elseif ($isManto) $data['T-SIN ASIGNAR']['en_mantenimiento']++;
+                } else {
+                    if ($isOper) $data['RA-SIN ASIGNAR']['en_operacion']++;
+                    elseif ($isManto) $data['RA-SIN ASIGNAR']['en_mantenimiento']++;
                 }
             }
         }
@@ -62,39 +75,38 @@ class ReporteController extends Controller
         return response()->json($resultado);
     }
 
-    // Endpoint para reporte de unidades por tipo
-    
-        public function generarReporteUnidades()
+    public function generarReporteUnidades()
     {
         try {
-            $fechaHoy = Carbon::today()->toDateString();
-            // Definimos el mapa de imágenes
-            $mapeoImagenes = [
-                'URBANUSS'   => 'urbanu.png',
-                'ZAFIRO'    => 'zafiro.png',
-                'ORION'     => 'orionlateral.PNG',
-                'VAGONETA'  => 'vagoneta lateral.png'
+            $tiposConfig = [
+                ['id' => 'URBANUS', 'pattern' => 'URBANU'],
+                ['id' => 'ZAFIRO', 'pattern' => 'ZAFIRO'],
+                ['id' => 'VAGONETA', 'pattern' => 'VAGONETA'],
+                ['id' => 'ORION', 'pattern' => 'ORION']
             ];
-            
-            $tipos = ['URBANUSS', 'ZAFIRO', 'ORION', 'VAGONETA'];
+
+            $registros = DB::table('informacion_operativa')->get();
             $resultado = [];
 
-            foreach ($tipos as $tipo) {
-                $programadas = DB::table('informacion_operativa')
-                    ->where('tipo', $tipo)
-                    ->count();
+            foreach ($tiposConfig as $tc) {
+                $units = $registros->filter(function ($d) use ($tc) {
+                    $tipo = strtoupper(trim($d->tipo ?? ''));
+                    $est = strtolower(trim($d->estatus ?? ''));
+                    $isNoProg = $est === 'no_programada' || $est === 'no programada';
+                    return str_contains($tipo, $tc['pattern']) && !$isNoProg;
+                });
 
-                $en_servicio = DB::table('informacion_operativa')
-                    ->where('tipo', $tipo)
-                    ->where('estatus', 'OPERACION')
-                    ->count();
+                $programadas = $units->count();
+                $en_servicio = $units->filter(function ($d) {
+                    $est = strtoupper(trim($d->estatus ?? ''));
+                    return str_contains($est, 'OPERACI') || (!str_contains($est, 'MANTENIMIENTO') && !str_contains($est, 'RESERVA') && !str_contains($est, 'PERCANCE'));
+                })->count();
 
-                // Agregamos la imagen al array de resultado
                 $resultado[] = [
-                    'tipo' => $tipo,
+                    'tipo' => $tc['id'],
                     'programadas' => $programadas,
                     'en_servicio' => $en_servicio,
-                    'imagen' => $mapeoImagenes[$tipo] ?? 'default.png'
+                    'imagen' => 'default.png'
                 ];
             }
 

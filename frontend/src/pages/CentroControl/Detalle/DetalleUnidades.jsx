@@ -41,7 +41,6 @@ const STATUS_TABS = [
   { key: 'unidadesReserva', label: 'Reserva', color: 'reserva' },
   { key: 'unidadesMantenimiento', label: 'Mantenimiento', color: 'mantenimiento' },
   { key: 'unidadesPercance', label: 'Percance', color: 'percance' },
-  { key: 'unidadesOtros', label: 'Otro estatus', color: 'otros' },
 ];
 
 export default function DetalleUnidades() {
@@ -73,16 +72,25 @@ export default function DetalleUnidades() {
   const groups = STATUS_TABS.map((tab) => ({
     ...tab,
     units: model[tab.key] || [],
-  })).filter((g) => g.units.length > 0 || g.key !== 'unidadesOtros');
+  }));
+
+  const getUnitStatusInfo = (u, group) => {
+    const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
+    const label = group?.key === 'unidadesOperacion' && horaSalida ? 'Operación (Circulando)' : (group?.label || 'Operación');
+    return { color: group?.color || 'operacion', label };
+  };
 
   let allUnits =
     activeTab === 'todas'
-      ? groups.flatMap((g) => g.units.map((u) => ({ ...u, __statusColor: g.color, __statusLabel: g.label })))
-      : (groups.find((g) => g.key === activeTab)?.units || []).map((u) => ({
-          ...u,
-          __statusColor: groups.find((g) => g.key === activeTab)?.color,
-          __statusLabel: groups.find((g) => g.key === activeTab)?.label,
-        }));
+      ? groups.flatMap((g) => g.units.map((u) => {
+          const info = getUnitStatusInfo(u, g);
+          return { ...u, __statusColor: info.color, __statusLabel: info.label };
+        }))
+      : (groups.find((g) => g.key === activeTab)?.units || []).map((u) => {
+          const g = groups.find((grp) => grp.key === activeTab);
+          const info = getUnitStatusInfo(u, g);
+          return { ...u, __statusColor: info.color, __statusLabel: info.label };
+        });
 
   // Aplicar filtro de buscador general
   if (searchTerm.trim() !== '') {

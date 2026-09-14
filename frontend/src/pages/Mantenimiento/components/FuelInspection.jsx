@@ -7,11 +7,16 @@ import AppleDatePicker from './AppleDatePicker';
 import API_BASE from '../../../config/api';
 import { AuthContext } from '../../../context/AuthContext';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-const getLocalDateString = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+const getLocalDateString = (daysOffset = 0) => {
+  const d = new Date();
+  if (daysOffset !== 0) {
+    d.setDate(d.getDate() + daysOffset);
+  }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
+
+// La carga de combustible se realiza la noche anterior y se registra al día siguiente: fecha por defecto es un día anterior
+const getFechaUltimaCargaDefault = () => getLocalDateString(-1);
 
 const formatDate = (isoStr) => {
   if (!isoStr) return null;
@@ -227,7 +232,7 @@ function FuelBlock({
               textAlign: 'center',
               fontWeight: '600'
             }}
-            value={fechaValue ? formatDate(fechaValue) : formatDate(getLocalDateString())}
+            value={fechaValue ? formatDate(fechaValue) : formatDate(getFechaUltimaCargaDefault())}
           />
         </div>
         {showDias && dias !== null && (
@@ -263,11 +268,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
   const [form, setForm] = useState({
     nivelGasolina: '',
     kilometrajeGasolina: '',
-    fechaUltimaCargaGasolina: getLocalDateString(),
+    fechaUltimaCargaGasolina: getFechaUltimaCargaDefault(),
     litrosGasolina: '',
     nivelAdblue: '',
     kilometrajeAdblue: '',
-    fechaUltimaCargaAdblue: getLocalDateString(),
+    fechaUltimaCargaAdblue: getFechaUltimaCargaDefault(),
     litrosAdblue: '',
     numeroCincho: '',
     numeroCinchoAdblue: '',
@@ -307,11 +312,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     const baseVacia = {
       nivelGasolina: '',
       kilometrajeGasolina: '',
-      fechaUltimaCargaGasolina: getLocalDateString(),
+      fechaUltimaCargaGasolina: getFechaUltimaCargaDefault(),
       litrosGasolina: '',
       nivelAdblue: '',
       kilometrajeAdblue: '',
-      fechaUltimaCargaAdblue: getLocalDateString(),
+      fechaUltimaCargaAdblue: getFechaUltimaCargaDefault(),
       litrosAdblue: '',
       numeroCincho: '',
       numeroCinchoAdblue: '',
@@ -528,7 +533,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           litros_adblue: null,
           numero_cincho: registroAnterior?.numero_cincho || null,
           numero_cincho_adblue: registroAnterior?.numero_cincho_adblue || null,
-          fecha_ultima_carga: getLocalDateString()
+          fecha_ultima_carga: getFechaUltimaCargaDefault()
         };
 
         const response = await fetch(`${API_BASE}/api/mantenimiento/guardar`, {

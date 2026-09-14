@@ -196,8 +196,10 @@ export const generarPDFReporteUnidades = async (data) => {
 
     // IMÁGENES A PRECARGAR (Perfiles laterales)
     const imgUrls = {
-        'URBANUS': '/images/urbanu-lateral.webp',
-        'ZAFIRO': '/images/zafiro lateral_.webp',
+        'URBANUS': '/images/urbanu.webp',
+        'URBANUSS': '/images/urbanu.webp',
+        'ZAFIRO': '/images/alimentadora.webp',
+        'ALIMENTADORA': '/images/alimentadora.webp',
         'VAGONETA': '/images/vagoneta lateral.webp',
         'ORION': '/images/orionlateral.webp'
     };
