@@ -73,8 +73,8 @@ export default function DetalleUnidadMantenimiento() {
   }, [isIncidenciaModalOpen]);
 
   const handleGuardarIncidencia = async () => {
-    if (!incidenciaFormValue.trim()) {
-      Swal.fire('Atención', 'Debes ingresar un número de incidencia.', 'warning');
+    if (!fallaReportadaFormValue.trim()) {
+      Swal.fire('Atención', 'Debes ingresar la falla reportada.', 'warning');
       return;
     }
     setIsGuardandoIncidencia(true);

@@ -143,8 +143,8 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 if (!isOpen) return null;
 
 const handleNext = () => {
-  if (!String(incidencia || '').trim()) {
-      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el número de incidencia.' });
+  if (!String(formData.falla_reportada || '').trim()) {
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar la falla reportada.' });
       return;
     }
     setStep(2);
@@ -254,8 +254,8 @@ const handleNext = () => {
   };
 
   const handleAssignIncidencia = async () => {
-    if (!incidencia) {
-      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar un número de incidencia.' });
+    if (!formData.falla_reportada.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar la falla reportada.' });
       return;
     }
     setLoading(true);
