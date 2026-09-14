@@ -128,10 +128,6 @@ export default function DetalleUnidadMantenimiento() {
   };
 
   const handleOpenMaintenanceWizard = () => {
-    if (!datosOperativos.numero_incidencia) {
-      Swal.fire('Atención', 'Primero debes registrar la incidencia.', 'warning');
-      return;
-    }
     setIsMaintenanceWizardOpen(true);
   };
 
