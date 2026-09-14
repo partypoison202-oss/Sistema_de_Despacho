@@ -677,11 +677,9 @@
 .plano-map-wrapper:-webkit-full-screen,
 .plano-map-wrapper:-moz-full-screen,
 .plano-map-wrapper.ios-fullscreen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   background: #0b0b0c;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* Pseudo-fullscreen logic for iOS devices (since they don't support true div fullscreen) */
@@ -701,10 +699,10 @@
 .plano-map-wrapper:-moz-full-screen .floorplan-canvas,
 .plano-map-wrapper.ios-fullscreen .floorplan-canvas {
   overflow: visible;
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: 100%;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: auto;
 }
 
 .plano-map-wrapper:fullscreen .legend-box,

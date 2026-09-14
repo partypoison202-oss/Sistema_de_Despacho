@@ -366,43 +366,92 @@
 
 /* ---------- Acciones ---------- */
 .centro-actions {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-  flex-wrap: wrap;
+  margin-top: 40px;
+}
+@media (max-width: 760px) {
+  .centro-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
-.centro-btn {
-  font-family: var(--cc-font);
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 13px 26px;
-  border-radius: 999px;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
+.centro-btn-report {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  transition: filter 0.15s ease, transform 0.15s ease;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: transparent;
+  border: 1.5px solid;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
 }
-.centro-btn:disabled {
-  opacity: 0.7;
+.centro-btn-report svg {
+  width: 20px;
+  height: 20px;
+  transition: color 0.2s ease;
+}
+.centro-btn-report:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
-.centro-btn:not(:disabled):hover {
-  transform: translateY(-2px);
-  filter: brightness(1.05);
+
+.centro-btn-report--gral {
+  border-color: #65002D;
+  color: #65002D;
 }
-.centro-btn--primary {
-  background: var(--cc-maroon);
-  color: var(--tw-color-white);
-  box-shadow: 0 6px 16px rgba(96, 26, 42, 0.25);
+.centro-btn-report--gral:not(:disabled):hover,
+.centro-btn-report--gral:not(:disabled):focus-visible {
+  background: #65002D;
+  color: #ffffff;
 }
-.centro-btn--secondary {
-  background: var(--tw-color-white);
-  color: var(--cc-maroon);
-  border: 1.5px solid var(--cc-maroon);
+
+.centro-btn-report--estadistico {
+  border-color: #2563EB;
+  color: #2563EB;
+}
+.centro-btn-report--estadistico:not(:disabled):hover,
+.centro-btn-report--estadistico:not(:disabled):focus-visible {
+  background: #2563EB;
+  color: #ffffff;
+}
+
+.centro-btn-report--mesa {
+  border-color: #166534;
+  color: #166534;
+}
+.centro-btn-report--mesa:not(:disabled):hover,
+.centro-btn-report--mesa:not(:disabled):focus-visible {
+  background: #166534;
+  color: #ffffff;
+}
+
+.centro-btn-report--hora {
+  border-color: #B7791F;
+  color: #B7791F;
+}
+.centro-btn-report--hora:not(:disabled):hover,
+.centro-btn-report--hora:not(:disabled):focus-visible {
+  background: #B7791F;
+  color: #ffffff;
+}
+
+.centro-btn-report--descargar {
+  border-color: #65002D;
+  color: #65002D;
+  grid-column: 1 / -1;
+}
+.centro-btn-report--descargar:not(:disabled):hover,
+.centro-btn-report--descargar:not(:disabled):focus-visible {
+  background: #65002D;
+  color: #ffffff;
 }
 
 /* Spinner */

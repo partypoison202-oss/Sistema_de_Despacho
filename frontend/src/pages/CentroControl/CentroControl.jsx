@@ -286,8 +286,7 @@ export default function CentroControl() {
             </p>
           </div>
 
-          <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-
+          <div className="centro-kpis-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             {/* Botón Titanes */}
             <button
               type="button"
@@ -370,20 +369,6 @@ export default function CentroControl() {
               Bitácora
             </button>
 
-            {/* ===== BOTÓN DASHBOARD INFRACCIONES ===== */}
-            <button
-              type="button"
-              className="centro-btn-plano"
-              onClick={() => navigate('/centro-control/infracciones')}
-              style={{ backgroundColor: '#6A1B29', color: '#fff' }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3v18h18" />
-                <rect x="7" y="10" width="4" height="8" />
-                <rect x="15" y="4" width="4" height="14" />
-              </svg>
-              DASHBOARD
-            </button>
 
             {/* Botón Plano de Patio */}
             <button
@@ -620,66 +605,101 @@ export default function CentroControl() {
 
           {/* ---------- Acciones ---------- */}
           <section className="centro-actions">
+            {/* 1. Reporte General */}
             <button
-              className="centro-btn centro-btn--primary"
+              className="centro-btn-report centro-btn-report--gral"
               onClick={handleGenerarReporte}
               disabled={isGenerating}
             >
               {isGenerating ? (
-                <>
-                  <span className="centro-spinner"></span> Generando PDFs...
-                </>
+                <><span className="centro-spinner"></span> Generando PDFs...</>
               ) : (
-                'Reporte General'
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M8 18v-2"></path>
+                    <path d="M12 18v-4"></path>
+                    <path d="M16 18v-6"></path>
+                  </svg>
+                  Reporte General
+                </>
               )}
             </button>
 
+            {/* 2. Reporte Estadístico */}
             <button
-              className="centro-btn centro-btn--primary"
+              className="centro-btn-report centro-btn-report--estadistico"
               onClick={handleGenerarReporteEstadisticas}
               disabled={isGeneratingStats || cargando}
             >
               {isGeneratingStats ? (
-                <>
-                  <span className="centro-spinner"></span> Generando...
-                </>
+                <><span className="centro-spinner"></span> Generando...</>
               ) : (
-                'Reporte Estadístico'
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v18h18"></path>
+                    <path d="M18 17V9"></path>
+                    <path d="M13 17V5"></path>
+                    <path d="M8 17v-3"></path>
+                  </svg>
+                  Reporte Estadístico
+                </>
               )}
             </button>
 
+            {/* 3. Ver Resumen de Mesa de Control */}
             <button
-              className="centro-btn centro-btn--secondary"
+              className="centro-btn-report centro-btn-report--mesa"
               onClick={() => navigate('/resumen-despacho')}
             >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                <path d="M12 11h4"></path>
+                <path d="M12 16h4"></path>
+                <path d="M8 11h.01"></path>
+                <path d="M8 16h.01"></path>
+              </svg>
               Ver Resumen de Mesa de Control
             </button>
             
+            {/* 4. Reporte Operativo por Hora */}
             <button
-              className="centro-btn centro-btn--primary"
+              className="centro-btn-report centro-btn-report--hora"
               onClick={handleGenerarReporteOperacionalPorHora}
               disabled={isGeneratingOperacional || cargando}
             >
               {isGeneratingOperacional ? (
-                <>
-                  <span className="centro-spinner"></span> Generando...
-                </>
+                <><span className="centro-spinner"></span> Generando...</>
               ) : (
-                'Reporte Operativo por Hora'
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  Reporte Operativo por Hora
+                </>
               )}
             </button>
 
+            {/* 5. Descargar Programación Operativa */}
             <button
-              className="centro-btn centro-btn--primary"
+              className="centro-btn-report centro-btn-report--descargar"
               onClick={handleGenerarProgramacionOperativa}
               disabled={isGeneratingProgramacion || cargando || !apiData.length}
             >
               {isGeneratingProgramacion ? (
-                <>
-                  <span className="centro-spinner"></span> Generando...
-                </>
+                <><span className="centro-spinner"></span> Generando...</>
               ) : (
-                'Descargar Programación Operativa'
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Descargar Programación Operativa
+                </>
               )}
             </button>
           </section>

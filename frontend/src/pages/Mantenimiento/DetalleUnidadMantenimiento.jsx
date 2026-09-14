@@ -56,13 +56,13 @@ export default function DetalleUnidadMantenimiento() {
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
   const [isGenerandoFolio, setIsGenerandoFolio] = useState(false);
   
-  const [isIncidenciaModalOpen, setIsIncidenciaModalOpen] = useState(false);
-  const [incidenciaFormValue, setIncidenciaFormValue] = useState('');
+  const [isFolioModalOpen, setIsFolioModalOpen] = useState(false);
+  const [folioFormValue, setFolioFormValue] = useState('');
   const [fallaReportadaFormValue, setFallaReportadaFormValue] = useState('');
-  const [isGuardandoIncidencia, setIsGuardandoIncidencia] = useState(false);
+  const [isGuardandoFolio, setIsGuardandoFolio] = useState(false);
 
   useEffect(() => {
-    if (isIncidenciaModalOpen) {
+    if (isFolioModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'visible';
@@ -70,16 +70,17 @@ export default function DetalleUnidadMantenimiento() {
     return () => {
       document.body.style.overflow = 'visible';
     };
-  }, [isIncidenciaModalOpen]);
+  }, [isFolioModalOpen]);
 
-  const handleGuardarIncidencia = async () => {
-    if (!incidenciaFormValue.trim()) {
-      Swal.fire('Atención', 'Debes ingresar un número de incidencia.', 'warning');
+  const handleGuardarFolio = async () => {
+    if (!folioFormValue.trim()) {
+      Swal.fire('Atención', 'Debes ingresar el número de folio.', 'warning');
       return;
     }
-    setIsGuardandoIncidencia(true);
+    setIsGuardandoFolio(true);
     try {
       const token = getToken();
+      const fechaActualIso = new Date().toISOString();
       const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
         headers: { 
@@ -91,10 +92,8 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          numero_incidencia: incidenciaFormValue.trim(),
-          falla_reportada: fallaReportadaFormValue.trim(),
-          folio_mantenimiento: '',
-          fecha_folio_mantenimiento: ''
+          folio_mantenimiento: `MANT-${folioFormValue.trim()}`,
+          fecha_folio_mantenimiento: fechaActualIso
         })
       });
       const data = await response.json();
@@ -103,19 +102,16 @@ export default function DetalleUnidadMantenimiento() {
           ...prev,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          numero_incidencia: incidenciaFormValue.trim(),
-          falla_reportada: fallaReportadaFormValue.trim(),
-          folio_mantenimiento: '',
-          fecha_folio_mantenimiento: ''
+          folio_mantenimiento: `MANT-${folioFormValue.trim()}`,
+          fecha_folio_mantenimiento: fechaActualIso
         }));
         setSelectedEstado('mantenimiento');
-        setIsIncidenciaModalOpen(false);
-        setIncidenciaFormValue('');
-        setFallaReportadaFormValue('');
+        setIsFolioModalOpen(false);
+        setFolioFormValue('');
         Swal.fire({
           icon: 'success',
           title: 'Unidad en Mantenimiento',
-          text: `Número de incidencia: ${incidenciaFormValue.trim()}`,
+          text: `Número de incidencia: ${folioFormValue.trim()}`,
           timer: 1500,
           showConfirmButton: false
         });
@@ -127,15 +123,14 @@ export default function DetalleUnidadMantenimiento() {
     } catch (error) {
       Swal.fire('Error', 'Error de red al asignar la incidencia', 'error');
     } finally {
-      setIsGuardandoIncidencia(false);
+      setIsGuardandoFolio(false);
     }
   };
 
+  const [wizardPrintOnly, setWizardPrintOnly] = useState(false);
+
   const handleOpenMaintenanceWizard = () => {
-    if (!datosOperativos.numero_incidencia) {
-      Swal.fire('Atención', 'Primero debes registrar la incidencia.', 'warning');
-      return;
-    }
+    setWizardPrintOnly(false);
     setIsMaintenanceWizardOpen(true);
   };
 
@@ -660,7 +655,7 @@ export default function DetalleUnidadMantenimiento() {
       // Configurar el Swal para seleccionar motivo (el mismo código existente)
 
       if (nuevoEstatus === 'mantenimiento') {
-        setIsIncidenciaModalOpen(true);
+        setIsFolioModalOpen(true);
         return; // Salimos, el Incidence Modal se encargará de hacer la petición al guardar
       } else {
       const motivosPredefinidos = [
@@ -1139,55 +1134,52 @@ export default function DetalleUnidadMantenimiento() {
                          </div>
                        )}
                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px' }}>
-                           {!datosOperativos.numero_incidencia ? (
-                             <button
-                               onClick={() => setIsIncidenciaModalOpen(true)}
-                               className="flex items-center gap-1.5 hover:bg-white/10 active:scale-95 transition-all"
-                               style={{
-                                 background: 'transparent',
-                                 border: '1px solid rgba(255,255,255,0.3)',
-                                 borderRadius: '6px',
-                                 padding: '5px 12px',
-                                 color: 'rgba(255,255,255,0.9)',
-                                 fontSize: '0.75rem',
-                                 fontWeight: '500',
-                                 cursor: 'pointer',
-                               }}
-                             >
-                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                               </svg>
-                               Registrar incidencia
-                             </button>
-                           ) : (
-                             !(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) && (
-                               <button
-                                 onClick={handleOpenMaintenanceWizard}
-                                 className="flex items-center gap-1.5 hover:scale-105 active:scale-95 shadow-md"
-                                 style={{
-                                   background: 'white',
-                                   border: 'none',
-                                   borderRadius: '6px',
-                                   padding: '6px 14px',
-                                   color: 'var(--brand-maroon, #601a2a)',
-                                   fontSize: '0.75rem',
-                                   fontWeight: '800',
-                                   cursor: 'pointer',
-                                   transition: 'all 0.2s',
-                                 }}
-                               >
-                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                 </svg>
-                                 GENERAR FOLIO
-                               </button>
-                             )
-                           )}
+                           <button
+                             onClick={handleOpenMaintenanceWizard}
+                             disabled={!!datosOperativos.numero_incidencia}
+                             className={`flex items-center gap-1.5 transition-all ${!datosOperativos.numero_incidencia ? 'hover:bg-white/10 active:scale-95' : 'opacity-50'}`}
+                             style={{
+                               background: 'transparent',
+                               border: '1px solid rgba(255,255,255,0.3)',
+                               borderRadius: '6px',
+                               padding: '5px 12px',
+                               color: 'rgba(255,255,255,0.9)',
+                               fontSize: '0.75rem',
+                               fontWeight: '500',
+                               cursor: datosOperativos.numero_incidencia ? 'not-allowed' : 'pointer',
+                             }}
+                           >
+                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                             </svg>
+                             Registrar incidencia
+                           </button>
+                           
+                           <button
+                             onClick={() => setIsFolioModalOpen(true)}
+                             disabled={!!(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-'))}
+                             className={`flex items-center gap-1.5 shadow-md transition-all ${!(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) ? 'hover:scale-105 active:scale-95' : 'opacity-50'}`}
+                             style={{
+                               background: 'white',
+                               border: 'none',
+                               borderRadius: '6px',
+                               padding: '6px 14px',
+                               color: 'var(--brand-maroon, #601a2a)',
+                               fontSize: '0.75rem',
+                               fontWeight: '800',
+                               cursor: (datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) ? 'not-allowed' : 'pointer',
+                             }}
+                           >
+                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                             </svg>
+                             GENERAR FOLIO
+                           </button>
                          </div>
                          
                          {datosOperativos.numero_incidencia && datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-') && (
                            <button
-                             onClick={() => setIsMaintenanceWizardOpen(true)}
+                             onClick={() => { setWizardPrintOnly(true); setIsMaintenanceWizardOpen(true); }}
                              className="flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 shadow-md mt-2"
                              style={{
                                background: 'white',
@@ -2045,8 +2037,8 @@ export default function DetalleUnidadMantenimiento() {
         <MaintenanceReportWizard 
           isOpen={isMaintenanceWizardOpen}
           onClose={() => setIsMaintenanceWizardOpen(false)}
-          initialStep={(datosOperativos.estatus || '').toLowerCase() === 'mantenimiento' ? 2 : 1}
-          printOnly={!!datosOperativos?.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')}
+          initialStep={1}
+          printOnly={wizardPrintOnly}
           conductores={dbConductores}
           initialData={{
             numero_eco: selectedOption ? String(selectedOption.replace(/\D/g, '')).padStart(3, '0') : '',
@@ -2178,62 +2170,55 @@ export default function DetalleUnidadMantenimiento() {
         />
       )}
 
-      {/* MODAL PARA ASIGNAR NÚMERO DE INCIDENCIA */}
-      {isIncidenciaModalOpen && createPortal(
+      {/* MODAL PARA ASIGNAR NÚMERO DE FOLIO */}
+      {isFolioModalOpen && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
           style={{ overscrollBehavior: 'none' }}
-          onClick={() => setIsIncidenciaModalOpen(false)}
+          onClick={() => setIsFolioModalOpen(false)}
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
         >
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">Asignar Número de Incidencia</h2>
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">Asignar Número de Folio</h2>
             
             <div className="flex flex-col gap-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Asignar número de incidencia:
+                  Asignar número de folio:
                 </label>
-                <input
-                  type="text"
-                  placeholder=""
-                  value={incidenciaFormValue}
-                  onChange={(e) => setIncidenciaFormValue(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
-                  autoFocus
-                />
-                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número de la incidencia.</span>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Falla reportada:
-                </label>
-                <textarea
-                  value={fallaReportadaFormValue}
-                  onChange={(e) => setFallaReportadaFormValue(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon resize-none h-24"
-                  placeholder="Describe la falla reportada..."
-                />
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 font-bold">
+                    MANT-
+                  </span>
+                  <input
+                    type="text"
+                    placeholder=""
+                    value={folioFormValue}
+                    onChange={(e) => setFolioFormValue(e.target.value.replace(/\D/g, ''))}
+                    className="w-full pl-16 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
+                    autoFocus
+                  />
+                </div>
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número del folio.</span>
               </div>
 
               <div className="flex gap-2 mt-4">
                 <button
                   type="button"
-                  onClick={() => setIsIncidenciaModalOpen(false)}
+                  onClick={() => setIsFolioModalOpen(false)}
                   className="flex-1 py-2 bg-slate-400 text-white font-bold rounded-lg hover:bg-slate-500 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
-                  onClick={handleGuardarIncidencia}
-                  disabled={isGuardandoIncidencia}
+                  onClick={handleGuardarFolio}
+                  disabled={isGuardandoFolio}
                   className="flex-1 py-2 text-white font-bold rounded-lg transition-colors"
                   style={{ background: 'var(--brand-maroon-text, #601a2a)' }}
                 >
-                  {isGuardandoIncidencia ? 'Guardando...' : 'Guardar'}
+                  {isGuardandoFolio ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>

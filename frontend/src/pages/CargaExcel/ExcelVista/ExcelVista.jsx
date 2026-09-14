@@ -250,7 +250,12 @@ export default function ExcelPreview({
 
   useEffect(() => {
     const handleScroll = (e) => {
-      // Cerramos sin importar dónde ocurra el scroll para evitar el desfase
+      // Si el scroll ocurre DENTRO de un dropdown (ej. en la lista de tarjetones), no cerramos el modal
+      if (e.target instanceof Element && e.target.closest('.dropdown-menu')) {
+        return;
+      }
+
+      // Cerramos si el scroll ocurre en la tabla o en la página principal para evitar el desfase
       setOpenDropdown({ rowIndex: null, field: null });
       setActiveTimePickerRow(null);
       setActiveTimePickerField(null);
