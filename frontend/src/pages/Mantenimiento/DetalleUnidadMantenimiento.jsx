@@ -127,7 +127,10 @@ export default function DetalleUnidadMantenimiento() {
     }
   };
 
+  const [wizardPrintOnly, setWizardPrintOnly] = useState(false);
+
   const handleOpenMaintenanceWizard = () => {
+    setWizardPrintOnly(false);
     setIsMaintenanceWizardOpen(true);
   };
 
@@ -1176,7 +1179,7 @@ export default function DetalleUnidadMantenimiento() {
                          
                          {datosOperativos.numero_incidencia && datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-') && (
                            <button
-                             onClick={() => setIsMaintenanceWizardOpen(true)}
+                             onClick={() => { setWizardPrintOnly(true); setIsMaintenanceWizardOpen(true); }}
                              className="flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 shadow-md mt-2"
                              style={{
                                background: 'white',
@@ -2034,8 +2037,8 @@ export default function DetalleUnidadMantenimiento() {
         <MaintenanceReportWizard 
           isOpen={isMaintenanceWizardOpen}
           onClose={() => setIsMaintenanceWizardOpen(false)}
-          initialStep={(datosOperativos.estatus || '').toLowerCase() === 'mantenimiento' ? 2 : 1}
-          printOnly={!!datosOperativos?.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')}
+          initialStep={1}
+          printOnly={wizardPrintOnly}
           conductores={dbConductores}
           initialData={{
             numero_eco: selectedOption ? String(selectedOption.replace(/\D/g, '')).padStart(3, '0') : '',
