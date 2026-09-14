@@ -2199,7 +2199,7 @@ export default function DetalleUnidadMantenimiento() {
                   type="text"
                   placeholder=""
                   value={incidenciaFormValue}
-                  onChange={(e) => setIncidenciaFormValue(e.target.value)}
+                  onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/\D/g, ''))}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
                   autoFocus
                 />
@@ -2212,7 +2212,7 @@ export default function DetalleUnidadMantenimiento() {
                 </label>
                 <textarea
                   value={fallaReportadaFormValue}
-                  onChange={(e) => setFallaReportadaFormValue(e.target.value)}
+                  onChange={(e) => setFallaReportadaFormValue(e.target.value.replace(/[0-9]/g, '').toUpperCase())}
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon resize-none h-24"
                   placeholder="Describe la falla reportada..."
                 />

@@ -295,7 +295,7 @@ const handleNext = () => {
         <label className="block text-sm font-semibold text-gray-700 mb-2">Falla Reportada:</label>
         <textarea 
           value={formData.falla_reportada}
-          onChange={(e) => setFormData(prev => ({ ...prev, falla_reportada: e.target.value }))}
+          onChange={(e) => setFormData(prev => ({ ...prev, falla_reportada: e.target.value.replace(/[0-9]/g, '').toUpperCase() }))}
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:outline-none transition-colors"
           placeholder="Describa la falla brevemente..."
           rows="3"
