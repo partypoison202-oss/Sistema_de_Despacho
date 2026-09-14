@@ -1139,50 +1139,47 @@ export default function DetalleUnidadMantenimiento() {
                          </div>
                        )}
                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px' }}>
-                           {!datosOperativos.numero_incidencia ? (
-                             <button
-                               onClick={() => setIsIncidenciaModalOpen(true)}
-                               className="flex items-center gap-1.5 hover:bg-white/10 active:scale-95 transition-all"
-                               style={{
-                                 background: 'transparent',
-                                 border: '1px solid rgba(255,255,255,0.3)',
-                                 borderRadius: '6px',
-                                 padding: '5px 12px',
-                                 color: 'rgba(255,255,255,0.9)',
-                                 fontSize: '0.75rem',
-                                 fontWeight: '500',
-                                 cursor: 'pointer',
-                               }}
-                             >
-                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                               </svg>
-                               Registrar incidencia
-                             </button>
-                           ) : (
-                             !(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) && (
-                               <button
-                                 onClick={handleOpenMaintenanceWizard}
-                                 className="flex items-center gap-1.5 hover:scale-105 active:scale-95 shadow-md"
-                                 style={{
-                                   background: 'white',
-                                   border: 'none',
-                                   borderRadius: '6px',
-                                   padding: '6px 14px',
-                                   color: 'var(--brand-maroon, #601a2a)',
-                                   fontSize: '0.75rem',
-                                   fontWeight: '800',
-                                   cursor: 'pointer',
-                                   transition: 'all 0.2s',
-                                 }}
-                               >
-                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                 </svg>
-                                 GENERAR FOLIO
-                               </button>
-                             )
-                           )}
+                           <button
+                             onClick={() => setIsIncidenciaModalOpen(true)}
+                             disabled={!!datosOperativos.numero_incidencia}
+                             className={`flex items-center gap-1.5 transition-all ${!datosOperativos.numero_incidencia ? 'hover:bg-white/10 active:scale-95' : 'opacity-50'}`}
+                             style={{
+                               background: 'transparent',
+                               border: '1px solid rgba(255,255,255,0.3)',
+                               borderRadius: '6px',
+                               padding: '5px 12px',
+                               color: 'rgba(255,255,255,0.9)',
+                               fontSize: '0.75rem',
+                               fontWeight: '500',
+                               cursor: datosOperativos.numero_incidencia ? 'not-allowed' : 'pointer',
+                             }}
+                           >
+                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                             </svg>
+                             Registrar incidencia
+                           </button>
+                           
+                           <button
+                             onClick={handleOpenMaintenanceWizard}
+                             disabled={!!(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-'))}
+                             className={`flex items-center gap-1.5 shadow-md transition-all ${!(datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) ? 'hover:scale-105 active:scale-95' : 'opacity-50'}`}
+                             style={{
+                               background: 'white',
+                               border: 'none',
+                               borderRadius: '6px',
+                               padding: '6px 14px',
+                               color: 'var(--brand-maroon, #601a2a)',
+                               fontSize: '0.75rem',
+                               fontWeight: '800',
+                               cursor: (datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-')) ? 'not-allowed' : 'pointer',
+                             }}
+                           >
+                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                             </svg>
+                             GENERAR FOLIO
+                           </button>
                          </div>
                          
                          {datosOperativos.numero_incidencia && datosOperativos.folio_mantenimiento && datosOperativos.folio_mantenimiento.startsWith('MANT-') && (
