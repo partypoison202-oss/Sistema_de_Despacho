@@ -36,17 +36,11 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   useEffect(() => {
     if (isOpen && !hasInitialized.current) {
       hasInitialized.current = true;
-      // Extraemos el folio de la orden si ya existe
-      const tieneFolio = initialData?.folio_mantenimiento && initialData.folio_mantenimiento.startsWith('MANT-');
-      
-      // Si hay incidencia existente, vamos al paso 2. Si ya tiene folio, vamos directo al paso 3.
+      // Si hay incidencia existente, vamos al paso 2.
       const incidenciaExistente = initialData?.numero_incidencia || '';
       let pasoInicial = 1;
       if (initialStep === 2 || incidenciaExistente) {
         pasoInicial = 2;
-      }
-      if (tieneFolio) {
-        pasoInicial = 3;
       }
       
       setStep(pasoInicial);
@@ -145,6 +139,10 @@ if (!isOpen) return null;
 const handleNext = () => {
   if (!String(incidencia || '').trim()) {
       Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el número de incidencia.' });
+      return;
+    }
+  if (!String(formData.falla_reportada || '').trim()) {
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar la falla reportada.' });
       return;
     }
     setStep(2);
@@ -254,8 +252,8 @@ const handleNext = () => {
   };
 
   const handleAssignIncidencia = async () => {
-    if (!incidencia) {
-      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar un número de incidencia.' });
+    if (!formData.falla_reportada.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar la falla reportada.' });
       return;
     }
     setLoading(true);
@@ -295,7 +293,7 @@ const handleNext = () => {
         <label className="block text-sm font-semibold text-gray-700 mb-2">Falla Reportada:</label>
         <textarea 
           value={formData.falla_reportada}
-          onChange={(e) => setFormData(prev => ({ ...prev, falla_reportada: e.target.value }))}
+          onChange={(e) => setFormData(prev => ({ ...prev, falla_reportada: e.target.value.replace(/[0-9]/g, '').toUpperCase() }))}
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:outline-none transition-colors"
           placeholder="Describa la falla brevemente..."
           rows="3"
@@ -304,11 +302,11 @@ const handleNext = () => {
 
       <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
         <button 
-          onClick={handleAssignIncidencia}
+          onClick={handleNext}
           disabled={loading}
           className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
         >
-          {loading ? 'Guardando...' : 'Guardar'}
+          {loading ? 'Cargando...' : 'Continuar →'}
         </button>
         <button 
           onClick={onClose}
@@ -322,46 +320,6 @@ const handleNext = () => {
   );
 
   const renderStep2 = () => (
-    <div className="flex flex-col items-center p-6 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Asignar Folio de Mantenimiento</h2>
-      
-      <div className="w-full text-left mb-6">
-        <input 
-          type="text" 
-          value={folioOrden}
-          onChange={(e) => setFolioOrden(e.target.value.replace(/\D/g, ''))}
-          className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-2"
-          autoFocus
-        />
-        <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NÚMERO DE FOLIO</p>
-      </div>
-
-      <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
-        <button 
-          onClick={() => {
-            if (!folioOrden) {
-              Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el número de folio.' });
-              return;
-            }
-            setStep(3);
-          }}
-          disabled={loading}
-          className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-        >
-          Continuar
-        </button>
-        <button 
-          onClick={onClose}
-          disabled={loading}
-          className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-        >
-          Cancelar
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderStep3 = () => (
     <div className="flex flex-col h-full max-h-[85vh]">
       <div className="flex justify-between items-center bg-gradient-to-r from-[#6b1d33] to-[#8d2846] text-white p-5 rounded-t-xl shrink-0 shadow-md">
         <h2 className="text-lg font-bold tracking-wide">Reporte de Falla / Orden de Mantenimiento</h2>
@@ -482,10 +440,10 @@ const handleNext = () => {
 
       <div className="p-5 bg-white border-t border-gray-100 rounded-b-xl shrink-0 flex justify-end gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-10">
         <button 
-          onClick={() => { setStep(2); setErrorMsg(''); }}
+          onClick={() => { setStep(1); setErrorMsg(''); }}
           className="px-5 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
         >
-          Atrás (Cambiar Folio)
+          Atrás (Cambiar Incidencia)
         </button>
         <button 
           onClick={handleSave}
@@ -528,9 +486,9 @@ const handleNext = () => {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-none">
       <div 
         className="bg-white rounded-xl shadow-2xl w-full relative overflow-hidden"
-        style={{ maxWidth: (step === 1 || step === 2) ? '500px' : '800px', transition: 'max-width 0.3s ease-in-out' }}
+        style={{ maxWidth: (step === 1) ? '500px' : '800px', transition: 'max-width 0.3s ease-in-out' }}
       >
-        {step === 1 ? renderStep1() : step === 2 ? renderStep2() : renderStep3()}
+        {step === 1 ? renderStep1() : renderStep2()}
       </div>
     </div>,
     document.body

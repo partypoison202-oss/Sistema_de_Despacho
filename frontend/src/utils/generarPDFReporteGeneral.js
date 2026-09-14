@@ -85,8 +85,8 @@ export const generarPDFReporteGeneral = async (data) => {
     pdf.text(fecha, pw - 10, 35, { align: 'right' });
 
     // IMÁGENES A LA IZQUIERDA (Perfiles laterales)
-    const urbanusImg = await loadImage('/images/urbanu-lateral.webp');
-    const zafiroImg = await loadImage('/images/zafiro lateral_.webp');
+    const urbanusImg = await loadImage('/images/urbanu.webp');
+    const zafiroImg = await loadImage('/images/alimentadora.webp');
 
     // Caja 1 (Urbanus)
     pdf.setFillColor(...COLOR_BEIGE);
