@@ -56,13 +56,13 @@ export default function DetalleUnidadMantenimiento() {
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
   const [isGenerandoFolio, setIsGenerandoFolio] = useState(false);
   
-  const [isIncidenciaModalOpen, setIsIncidenciaModalOpen] = useState(false);
-  const [incidenciaFormValue, setIncidenciaFormValue] = useState('');
+  const [isFolioModalOpen, setIsFolioModalOpen] = useState(false);
+  const [folioFormValue, setFolioFormValue] = useState('');
   const [fallaReportadaFormValue, setFallaReportadaFormValue] = useState('');
-  const [isGuardandoIncidencia, setIsGuardandoIncidencia] = useState(false);
+  const [isGuardandoFolio, setIsGuardandoFolio] = useState(false);
 
   useEffect(() => {
-    if (isIncidenciaModalOpen) {
+    if (isFolioModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'visible';
@@ -70,16 +70,17 @@ export default function DetalleUnidadMantenimiento() {
     return () => {
       document.body.style.overflow = 'visible';
     };
-  }, [isIncidenciaModalOpen]);
+  }, [isFolioModalOpen]);
 
-  const handleGuardarIncidencia = async () => {
-    if (!fallaReportadaFormValue.trim()) {
-      Swal.fire('Atención', 'Debes ingresar la falla reportada.', 'warning');
+  const handleGuardarFolio = async () => {
+    if (!folioFormValue.trim()) {
+      Swal.fire('Atención', 'Debes ingresar el número de folio.', 'warning');
       return;
     }
-    setIsGuardandoIncidencia(true);
+    setIsGuardandoFolio(true);
     try {
       const token = getToken();
+      const fechaActualIso = new Date().toISOString();
       const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
         headers: { 
@@ -91,10 +92,8 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          numero_incidencia: incidenciaFormValue.trim(),
-          falla_reportada: fallaReportadaFormValue.trim(),
-          folio_mantenimiento: '',
-          fecha_folio_mantenimiento: ''
+          folio_mantenimiento: `MANT-${folioFormValue.trim()}`,
+          fecha_folio_mantenimiento: fechaActualIso
         })
       });
       const data = await response.json();
@@ -103,19 +102,16 @@ export default function DetalleUnidadMantenimiento() {
           ...prev,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          numero_incidencia: incidenciaFormValue.trim(),
-          falla_reportada: fallaReportadaFormValue.trim(),
-          folio_mantenimiento: '',
-          fecha_folio_mantenimiento: ''
+          folio_mantenimiento: `MANT-${folioFormValue.trim()}`,
+          fecha_folio_mantenimiento: fechaActualIso
         }));
         setSelectedEstado('mantenimiento');
-        setIsIncidenciaModalOpen(false);
-        setIncidenciaFormValue('');
-        setFallaReportadaFormValue('');
+        setIsFolioModalOpen(false);
+        setFolioFormValue('');
         Swal.fire({
           icon: 'success',
           title: 'Unidad en Mantenimiento',
-          text: `Número de incidencia: ${incidenciaFormValue.trim()}`,
+          text: `Número de incidencia: ${folioFormValue.trim()}`,
           timer: 1500,
           showConfirmButton: false
         });
@@ -127,7 +123,7 @@ export default function DetalleUnidadMantenimiento() {
     } catch (error) {
       Swal.fire('Error', 'Error de red al asignar la incidencia', 'error');
     } finally {
-      setIsGuardandoIncidencia(false);
+      setIsGuardandoFolio(false);
     }
   };
 
@@ -660,7 +656,7 @@ export default function DetalleUnidadMantenimiento() {
       // Configurar el Swal para seleccionar motivo (el mismo código existente)
 
       if (nuevoEstatus === 'mantenimiento') {
-        setIsIncidenciaModalOpen(true);
+        setIsFolioModalOpen(true);
         return; // Salimos, el Incidence Modal se encargará de hacer la petición al guardar
       } else {
       const motivosPredefinidos = [
@@ -1140,7 +1136,7 @@ export default function DetalleUnidadMantenimiento() {
                        )}
                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px' }}>
                            <button
-                             onClick={() => setIsIncidenciaModalOpen(true)}
+                             onClick={() => setIsFolioModalOpen(true)}
                              disabled={!!datosOperativos.numero_incidencia}
                              className={`flex items-center gap-1.5 transition-all ${!datosOperativos.numero_incidencia ? 'hover:bg-white/10 active:scale-95' : 'opacity-50'}`}
                              style={{
@@ -2175,62 +2171,55 @@ export default function DetalleUnidadMantenimiento() {
         />
       )}
 
-      {/* MODAL PARA ASIGNAR NÚMERO DE INCIDENCIA */}
-      {isIncidenciaModalOpen && createPortal(
+      {/* MODAL PARA ASIGNAR NÚMERO DE FOLIO */}
+      {isFolioModalOpen && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
           style={{ overscrollBehavior: 'none' }}
-          onClick={() => setIsIncidenciaModalOpen(false)}
+          onClick={() => setIsFolioModalOpen(false)}
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
         >
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">Asignar Número de Incidencia</h2>
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-6">Asignar Número de Folio</h2>
             
             <div className="flex flex-col gap-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Asignar número de incidencia:
+                  Asignar número de folio:
                 </label>
-                <input
-                  type="text"
-                  placeholder=""
-                  value={incidenciaFormValue}
-                  onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
-                  autoFocus
-                />
-                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número de la incidencia.</span>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
-                  Falla reportada:
-                </label>
-                <textarea
-                  value={fallaReportadaFormValue}
-                  onChange={(e) => setFallaReportadaFormValue(e.target.value.replace(/[0-9]/g, '').toUpperCase())}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon resize-none h-24"
-                  placeholder="Describe la falla reportada..."
-                />
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 font-bold">
+                    MANT-
+                  </span>
+                  <input
+                    type="text"
+                    placeholder=""
+                    value={folioFormValue}
+                    onChange={(e) => setFolioFormValue(e.target.value.replace(/\D/g, ''))}
+                    className="w-full pl-16 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
+                    autoFocus
+                  />
+                </div>
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número del folio.</span>
               </div>
 
               <div className="flex gap-2 mt-4">
                 <button
                   type="button"
-                  onClick={() => setIsIncidenciaModalOpen(false)}
+                  onClick={() => setIsFolioModalOpen(false)}
                   className="flex-1 py-2 bg-slate-400 text-white font-bold rounded-lg hover:bg-slate-500 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
-                  onClick={handleGuardarIncidencia}
-                  disabled={isGuardandoIncidencia}
+                  onClick={handleGuardarFolio}
+                  disabled={isGuardandoFolio}
                   className="flex-1 py-2 text-white font-bold rounded-lg transition-colors"
                   style={{ background: 'var(--brand-maroon-text, #601a2a)' }}
                 >
-                  {isGuardandoIncidencia ? 'Guardando...' : 'Guardar'}
+                  {isGuardandoFolio ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>
