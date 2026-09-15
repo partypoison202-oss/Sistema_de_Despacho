@@ -1466,7 +1466,6 @@ export default function DetalleUnidadMantenimiento() {
                       <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                           {[
-                            { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
                             { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
                             { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' },
                           ].map((st) => {
