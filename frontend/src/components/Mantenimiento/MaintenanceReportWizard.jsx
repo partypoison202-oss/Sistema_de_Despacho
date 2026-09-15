@@ -185,6 +185,12 @@ const handleNext = () => {
   const handleGeneratePDF = async () => {
     if (!printableRef.current) return;
     
+    // Pre-abrimos la ventana para evitar el bloqueo de Popups en Safari
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write('<div style="font-family: sans-serif; padding: 20px;">Generando PDF de la orden, por favor espere...</div>');
+    }
+
     try {
       const element = printableRef.current;
       const canvas = await html2canvas(element, { scale: 2, useCORS: true });
@@ -197,16 +203,20 @@ const handleNext = () => {
       
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       
-      // Descargar el PDF directamente (más confiable que window.open en Safari)
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `Orden_Mantenimiento_${formData.eco}_MANT-${folioOrden || 'REIMPRESION'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
+      
+      // Mostrar en la pestaña nueva
+      if (newWindow) {
+        newWindow.location.href = pdfUrl;
+      } else {
+        // Fallback en caso de que el navegador lo haya bloqueado de todos modos
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.target = '_blank';
+        link.download = `Orden_Mantenimiento_${formData.eco}_FOLIO-${folioOrden || 'REIMPRESION'}.pdf`;
+        link.click();
+      }
       
     } catch (error) {
       console.error("Error generando PDF:", error);
@@ -330,19 +340,15 @@ const handleNext = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-            <div className="md:col-span-2">
+            <div className="md:col-span-3">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">N° INCIDENCIA</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{incidencia}</div>
             </div>
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">FOLIO (MANT-)</label>
-              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{folioOrden}</div>
-            </div>
-            <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ECO</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{formData.eco}</div>
             </div>
-            <div className="md:col-span-5">
+            <div className="md:col-span-6">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha / Hora</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1 whitespace-nowrap">
                 {formData.fecha} - <span style={{ fontFamily: 'monospace' }}>{realTimeClock || formData.hora_reporte}</span>
@@ -353,8 +359,8 @@ const handleNext = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Operador <span className="text-red-500">*</span></label>
-              <input type="text" name="operador" value={formData.operador} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm bg-white" />
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NOMBRE DEL OPERADOR</p>
+              <input type="text" name="operador" value={formData.operador} readOnly className="w-full border border-gray-200 rounded-lg p-2.5 text-sm transition-all shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed focus:outline-none" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SE AUTOCOMPLETA CON EL TARJETÓN</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón) <span className="text-red-500">*</span></label>
@@ -368,13 +374,11 @@ const handleNext = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio <span className="text-red-500">*</span></label>
               {(() => {
                 const tipo = String(initialData?.tipoTransporte || initialData?.tipo || '').toLowerCase();
-                const esUrbanuss = ['urbanuss', 'zafiro', 'orion'].includes(tipo);
-                const esAlimentadora = ['vagoneta', 'alimentadora', 'urvan'].includes(tipo);
+                // urbanuss, articulado, padron = troncal
+                const esUrbanuss = ['urbanuss', 'zafiro', 'orion', 'articulado', 'padron', 'troncal'].includes(tipo);
                 const opciones = esUrbanuss
-                  ? ['RA 1','RA 2','RA 3','RA 4','RA 5','RA 6','RA 7','RA 8','RA 9','RA 10','RA 11','RA 12','RA 13','RA 14','RA 15','RA 16','RA 17','RA 18']
-                  : esAlimentadora
-                  ? ['A 1','A 2','A 3','A 4','A 5','A 6','A 7','A 8','A 9','A 10','A 11','A 12','Especial','Sin ruta asignada']
-                  : [];
+                  ? ['T01', 'T02', 'T04', 'T05']
+                  : ['1A', '1B', '2A', '2B', '2D', '2E', '3', '4A', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15A', '15B', '15C', '16', '17', '19', '20B', 'Especial', 'Sin ruta asignada'];
                 return opciones.length > 0 ? (
                   <div className="relative">
                     <select
@@ -396,7 +400,7 @@ const handleNext = () => {
                   <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
                 );
               })()}
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SELECCIONE LA RUTA ASIGNADA (EJ. RA 3)</p>
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SELECCIONE LA RUTA ASIGNADA (EJ. T01)</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida <span className="text-red-500">*</span></label>
