@@ -112,11 +112,6 @@ const DashboardTitan = () => {
       <>
         {!activeUnidad && (
           <>
-            <p className="page-eyebrow">VISIÓN GENERAL DE LA FLOTA</p>
-            <h1 className="page-title">INSPECTORES DE OPERACIÓN</h1>
-            <p className="dashboard__subtitle text-gray-500">
-              Consulta el total de unidades en operación, su estatus operativo y genera reportes de supervisión rápidamente.
-            </p>
 
             <form className="dashboard__search" onSubmit={handleBuscarUnidad}>
               <input
@@ -231,27 +226,49 @@ const DashboardTitan = () => {
       <Header title="TITÁN - Unidades en Operación" />
 
       <main className="dashboard__main" style={{ textAlign: 'center' }}>
-        {/* Toggle para alternar vistas */}
-        <div className="titan-view-toggle">
-          <button 
-            className={`titan-toggle-btn ${currentView === 'registro' ? 'active' : ''}`}
-            onClick={() => setCurrentView('registro')}
-          >
-            Nuevo Registro
-          </button>
-          <button 
-            className={`titan-toggle-btn ${currentView === 'historico' ? 'active' : ''}`}
-            onClick={() => setCurrentView('historico')}
-          >
-            Histórico
-          </button>
-          <button 
-            className={`titan-toggle-btn ${currentView === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setCurrentView('dashboard')}
-          >
-            Dashboard
-          </button>
-        </div>
+        
+        {!activeUnidad && (
+          <>
+            <p className="page-eyebrow">VISIÓN GENERAL DE LA FLOTA</p>
+            <h1 className="page-title">INSPECTORES DE OPERACIÓN</h1>
+            <p className="dashboard__subtitle text-gray-500">
+              Consulta el total de unidades en operación, su estatus operativo y genera reportes de supervisión rápidamente.
+            </p>
+
+            {/* Navegación de vistas */}
+            <div className="titan-nav-capsule-container">
+              <button 
+                className={`titan-nav-capsule titan-nav-capsule--vino ${currentView === 'registro' ? 'active' : ''}`}
+                onClick={() => setCurrentView('registro')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Nuevo Registro
+              </button>
+              
+              <button 
+                className={`titan-nav-capsule titan-nav-capsule--azul ${currentView === 'historico' ? 'active' : ''}`}
+                onClick={() => setCurrentView('historico')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Histórico
+              </button>
+              
+              <button 
+                className={`titan-nav-capsule titan-nav-capsule--teal ${currentView === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setCurrentView('dashboard')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h4l3-9 5 14 3-5 4 4" />
+                </svg>
+                Dashboard
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="titan-view-content">
           {renderContent()}
