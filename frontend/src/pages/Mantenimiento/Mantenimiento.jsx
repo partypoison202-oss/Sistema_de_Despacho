@@ -279,7 +279,7 @@ export default function Mantenimiento() {
               <p className="mantenimiento__actions-label">Reportes del Parque Vehicular</p>
               <div className="mantenimiento__actions-btns">
                 <button
-                  className="mant-btn mant-btn--autobuses"
+                  className="mant-btn mant-btn--primary"
                   onClick={() => handleDescargarPendientes('pendientes')}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -295,7 +295,7 @@ export default function Mantenimiento() {
                 </button>
 
                 <button
-                  className="mant-btn mant-btn--vagonetas"
+                  className="mant-btn mant-btn--secondary"
                   onClick={() => handleDescargarPendientes('en-mantenimiento')}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -317,7 +317,7 @@ export default function Mantenimiento() {
             <div className="mantenimiento__actions">
               <div className="mantenimiento__actions-btns">
                 <button
-                  className="mant-btn mant-btn--autobuses"
+                  className="mant-btn mant-btn--primary"
                   onClick={handleGenerarPDF}
                   disabled={generandoPDF}
                 >
