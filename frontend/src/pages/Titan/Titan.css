@@ -957,3 +957,80 @@
   font-size: 1.4rem;
   margin: 0;
 }
+
+/* Botones de navegacion tipo capsula para Inspectores de Operacion */
+.titan-nav-capsule-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.titan-nav-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  outline: none;
+  white-space: nowrap;
+  background: transparent;
+}
+.titan-nav-capsule:focus-visible {
+  box-shadow: 0 0 0 3px rgba(100, 100, 100, 0.5);
+}
+
+/* Nuevo Registro (Vino #65002D) */
+.titan-nav-capsule--vino {
+  border: 1.5px solid #65002D;
+  color: #65002D;
+}
+.titan-nav-capsule--vino:hover, .titan-nav-capsule--vino.active {
+  background: #65002D;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(101, 0, 45, 0.2), 0 4px 6px -2px rgba(101, 0, 45, 0.1);
+}
+.titan-nav-capsule--vino:active {
+  transform: translateY(0);
+}
+
+/* Historico (Azul #2563EB) */
+.titan-nav-capsule--azul {
+  border: 1.5px solid #2563EB;
+  color: #2563EB;
+}
+.titan-nav-capsule--azul:hover, .titan-nav-capsule--azul.active {
+  background: #2563EB;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2), 0 4px 6px -2px rgba(37, 99, 235, 0.1);
+}
+.titan-nav-capsule--azul:active {
+  transform: translateY(0);
+}
+
+/* Dashboard (Teal institucional #0f766e) */
+.titan-nav-capsule--teal {
+  border: 1.5px solid #0f766e;
+  color: #0f766e;
+}
+.titan-nav-capsule--teal:hover, .titan-nav-capsule--teal.active {
+  background: #0f766e;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.2), 0 4px 6px -2px rgba(15, 118, 110, 0.1);
+}
+.titan-nav-capsule--teal:active {
+  transform: translateY(0);
+}

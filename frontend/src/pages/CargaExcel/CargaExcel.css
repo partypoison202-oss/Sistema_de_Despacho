@@ -497,3 +497,67 @@
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+/* Botones tipo capsula para acciones rapidas en CargaExcel */
+.excel-btn-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  outline: none;
+  white-space: nowrap;
+  background: transparent;
+}
+.excel-btn-capsule:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Gold (Ver Inicio del Dia) */
+.excel-btn-capsule--gold {
+  border: 1.5px solid #c29b53;
+  color: #c29b53;
+}
+.excel-btn-capsule--gold:not(:disabled):hover {
+  background: #c29b53;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(194, 155, 83, 0.2), 0 4px 6px -2px rgba(194, 155, 83, 0.1);
+}
+.excel-btn-capsule--gold.active {
+  background: #c29b53;
+  color: #ffffff;
+}
+
+/* Vino (Traslado Patio Norte) */
+.excel-btn-capsule--vino {
+  border: 1.5px solid #65002D;
+  color: #65002D;
+}
+.excel-btn-capsule--vino:not(:disabled):hover {
+  background: #65002D;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(101, 0, 45, 0.2), 0 4px 6px -2px rgba(101, 0, 45, 0.1);
+}
+
+/* Verde (Descargar Excel) */
+.excel-btn-capsule--verde {
+  border: 1.5px solid #1e7145;
+  color: #1e7145;
+}
+.excel-btn-capsule--verde:not(:disabled):hover {
+  background: #1e7145;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(30, 113, 69, 0.2), 0 4px 6px -2px rgba(30, 113, 69, 0.1);
+}
