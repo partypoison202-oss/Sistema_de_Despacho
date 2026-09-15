@@ -932,16 +932,8 @@ export default function CargaExcel({ isPasteles = false }) {
               type="button"
               onClick={handleVerInicio}
               disabled={cargandoInicio}
-              className="excel-export-btn"
-              style={{
-                display: isRelevos ? 'none' : 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
-                background: verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)',
-                color: 'white', fontWeight: 700, fontSize: '0.9rem',
-                cursor: 'pointer', transition: 'background 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary-hover)' : '#b38f4d'}
-              onMouseOut={(e) => e.currentTarget.style.background = verInicio ? 'var(--color-primary)' : 'var(--brand-gold-bg)'}
+              className={`excel-btn-capsule excel-btn-capsule--gold ${verInicio ? 'active' : ''}`}
+              style={{ display: isRelevos ? 'none' : 'inline-flex' }}
             >
               {cargandoInicio ? (
                 <span className="spinner-mini"></span>
@@ -959,15 +951,7 @@ export default function CargaExcel({ isPasteles = false }) {
             <button
               type="button"
               onClick={() => setShowTrasladoModal(true)}
-              className="excel-export-btn"
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
-                background: '#6b1d33', color: 'white', fontWeight: 700,
-                fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.background = '#4a1020'}
-              onMouseOut={(e) => e.currentTarget.style.background = '#6b1d33'}
+              className="excel-btn-capsule excel-btn-capsule--vino"
             >
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -977,15 +961,7 @@ export default function CargaExcel({ isPasteles = false }) {
             <button
               type="button"
               onClick={handleExportExcel}
-              className="excel-export-btn"
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.65rem 1.25rem', borderRadius: '0.6rem', border: 'none',
-                background: '#1e7145', color: 'white', fontWeight: 700,
-                fontSize: '0.9rem', cursor: 'pointer', transition: 'background 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.background = '#155a35'}
-              onMouseOut={(e) => e.currentTarget.style.background = '#1e7145'}
+              className="excel-btn-capsule excel-btn-capsule--verde"
             >
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

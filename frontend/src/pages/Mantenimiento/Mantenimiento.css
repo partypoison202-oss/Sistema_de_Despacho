@@ -168,7 +168,7 @@ html.dark .mantenimiento__search {
 
 .mantenimiento__actions-btns {
   display: flex;
-  gap: 1rem;
+  gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -176,28 +176,29 @@ html.dark .mantenimiento__search {
 .mant-btn {
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  padding: 0.875rem 1.5rem;
-  border: none;
-  border-radius: 12px;
+  gap: 14px;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  background: transparent;
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease;
+  border: 2px solid;
+  outline: none;
 }
 
 .mant-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
-  opacity: 0.9;
+  transition: color 0.3s ease;
 }
 
 .mant-btn span {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 2px;
 }
 
 .mant-btn strong {
@@ -208,33 +209,87 @@ html.dark .mantenimiento__search {
 
 .mant-btn small {
   font-size: 0.75rem;
-  font-weight: 400;
+  font-weight: 500;
   opacity: 0.8;
 }
 
-.mant-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-}
-
 .mant-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
-/* Variante Autobuses (granate del sistema) */
-.mant-btn--autobuses {
-  background: linear-gradient(135deg, #6b1d33 0%, #8d2846 100%);
-  color: #fff;
+/* Variante Primaria (#65002D) */
+.mant-btn--primary {
+  border-color: #65002D;
+  color: #65002D;
+}
+.mant-btn--primary svg {
+  color: #65002D;
+}
+.mant-btn--primary:hover:not(:disabled),
+.mant-btn--primary:focus-visible:not(:disabled) {
+  background-color: #65002D;
+  color: #ffffff;
+}
+.mant-btn--primary:hover:not(:disabled) svg,
+.mant-btn--primary:focus-visible:not(:disabled) svg {
+  color: #ffffff;
 }
 
-/* Variante Vagonetas (marrón cálido) */
-.mant-btn--vagonetas {
-  background: linear-gradient(135deg, #7a4a1e 0%, #a06025 100%);
-  color: #fff;
+/* Variante Secundaria (#1E3A8A) */
+.mant-btn--secondary {
+  border-color: #1E3A8A;
+  color: #1E3A8A;
+}
+.mant-btn--secondary svg {
+  color: #1E3A8A;
+}
+.mant-btn--secondary:hover:not(:disabled),
+.mant-btn--secondary:focus-visible:not(:disabled) {
+  background-color: #1E3A8A;
+  color: #ffffff;
+}
+.mant-btn--secondary:hover:not(:disabled) svg,
+.mant-btn--secondary:focus-visible:not(:disabled) svg {
+  color: #ffffff;
 }
 
 /* Modo oscuro */
 html.dark .mantenimiento__actions-label {
   color: #b8956a;
+}
+
+html.dark .mant-btn--primary {
+  border-color: #d15c7e;
+  color: #d15c7e;
+}
+html.dark .mant-btn--primary svg {
+  color: #d15c7e;
+}
+html.dark .mant-btn--primary:hover:not(:disabled),
+html.dark .mant-btn--primary:focus-visible:not(:disabled) {
+  background-color: #d15c7e;
+  color: #0b0b0c;
+}
+html.dark .mant-btn--primary:hover:not(:disabled) svg,
+html.dark .mant-btn--primary:focus-visible:not(:disabled) svg {
+  color: #0b0b0c;
+}
+
+html.dark .mant-btn--secondary {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+html.dark .mant-btn--secondary svg {
+  color: #60a5fa;
+}
+html.dark .mant-btn--secondary:hover:not(:disabled),
+html.dark .mant-btn--secondary:focus-visible:not(:disabled) {
+  background-color: #60a5fa;
+  color: #0b0b0c;
+}
+html.dark .mant-btn--secondary:hover:not(:disabled) svg,
+html.dark .mant-btn--secondary:focus-visible:not(:disabled) svg {
+  color: #0b0b0c;
 }

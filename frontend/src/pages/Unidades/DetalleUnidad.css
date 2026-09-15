@@ -818,3 +818,62 @@
 .custom-modal-btn-cancel:hover { opacity: 0.9; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Botones de accion rapida en detalle de unidad */
+.btn-accion-rapida {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  outline: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.btn-accion-rapida:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
+}
+.btn-accion-rapida:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.btn-accion-rapida--outline {
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  color: #ffffff;
+}
+.btn-accion-rapida--outline:not(:disabled):hover {
+  background: #ffffff;
+  color: #65002D;
+  border-color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.btn-accion-rapida--outline:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.btn-accion-rapida--gold {
+  background: transparent;
+  border: 1.5px solid #c29b53;
+  color: #c29b53;
+}
+.btn-accion-rapida--gold:not(:disabled):hover {
+  background: #c29b53;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(194, 155, 83, 0.3), 0 4px 6px -2px rgba(194, 155, 83, 0.15);
+}
+.btn-accion-rapida--gold:not(:disabled):active {
+  transform: translateY(0);
+}
