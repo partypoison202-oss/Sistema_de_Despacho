@@ -75,7 +75,7 @@ class PlataformaController extends Controller
                 }
                 $estatusNuevo = 'OPERACION';
                 $datosUpdate['estatus'] = strtolower($estatusNuevo);
-                $datosUpdate['hora_salida'] = !empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s');
+                $datosUpdate['hora_real_salida_patio'] = !empty($registroOperativo->hora_real_salida_patio) ? $registroOperativo->hora_real_salida_patio : (!empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s'));
                 $datosUpdate['motivo_estatus'] = 'INCORPORACION';
                 $datosUpdate['falla'] = null;
                 $datosUpdate['motivo'] = null;
@@ -216,17 +216,17 @@ class PlataformaController extends Controller
                         : ($registroOperativo->corridas ?? null);
 
                     // 4. Horas y ciclo
-                    $horaProgramadaParaReemplazo = !empty($registroOperativo->hora_programada)
-                        ? $registroOperativo->hora_programada
-                        : null;
+                    $horaSalidaPatioParaReemplazo = !empty($registroOperativo->hora_salida_patio)
+                        ? $registroOperativo->hora_salida_patio
+                        : ($registroOperativo->hora_programada ?? null);
 
                     $acopleParaReemplazo = !empty($registroOperativo->acople)
                         ? $registroOperativo->acople
                         : null;
 
-                    $horaSalidaParaReemplazo = !empty($registroOperativo->hora_salida)
-                        ? $registroOperativo->hora_salida
-                        : date('H:i:s');
+                    $horaRealSalidaParaReemplazo = !empty($registroOperativo->hora_real_salida_patio)
+                        ? $registroOperativo->hora_real_salida_patio
+                        : (!empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s'));
 
                     $cicloParaReemplazo = !empty($registroOperativo->ciclo)
                         ? $registroOperativo->ciclo
@@ -238,8 +238,8 @@ class PlataformaController extends Controller
                     $relevoHora = $registroOperativo->relevo_hora ?? null;
                     $tarjetonManiobrista = $registroOperativo->tarjeton_maniobrista ?? null;
                     $nombreManiobrista = $registroOperativo->nombre_maniobrista ?? null;
-                    $transportePatioNorte = $registroOperativo->transporte_patio_norte ?? 'false';
-                    $patioNorte = $registroOperativo->patio_norte ?? 'false';
+                    $transportePatioNorte = filter_var($registroOperativo->transporte_patio_norte ?? false, FILTER_VALIDATE_BOOLEAN);
+                    $patioNorte = filter_var($registroOperativo->patio_norte ?? false, FILTER_VALIDATE_BOOLEAN);
 
                     $datosReemplazo = [
                         'tipo'                  => $tipoParaReemplazo,
@@ -248,9 +248,9 @@ class PlataformaController extends Controller
                         'nombre_conductor'      => $nombreConductorReemplazo,
                         'ruta'                  => $rutaReemplazo,
                         'corridas'              => ($corridaReemplazo !== null && $corridaReemplazo !== '') ? (int)$corridaReemplazo : null,
-                        'hora_programada'       => $horaProgramadaParaReemplazo,
+                        'hora_salida_patio'     => $horaSalidaPatioParaReemplazo,
                         'acople'                => $acopleParaReemplazo,
-                        'hora_salida'           => $horaSalidaParaReemplazo,
+                        'hora_real_salida_patio'=> $horaRealSalidaParaReemplazo,
                         'ciclo'                 => $cicloParaReemplazo,
                         'relevo_tarjeton'       => $relevoTarjeton,
                         'relevo_conductor'      => $relevoConductor,
@@ -264,12 +264,18 @@ class PlataformaController extends Controller
                         'cambio_motivo'         => $request->motivo ? strtoupper($request->motivo) : 'REEMPLAZO',
                         'falla'                 => null,
                         'motivo'                => null,
-                        'updated_at'            => Carbon::now(),
                     ];
                     
                     // Limpiamos el conductor de la unidad original, ya que se pasó al reemplazo
                     $datosUpdate['numero_tarjeton'] = null;
                     $datosUpdate['nombre_conductor'] = null;
+
+                    foreach (['patio_norte', 'transporte_patio_norte'] as $boolCol) {
+                        if (array_key_exists($boolCol, $datosReemplazo)) {
+                            $val = filter_var($datosReemplazo[$boolCol], FILTER_VALIDATE_BOOLEAN);
+                            $datosReemplazo[$boolCol] = $val ? 'true' : 'false';
+                        }
+                    }
 
                     if ($registroReemplazo) {
                         DB::table('informacion_operativa')
@@ -281,7 +287,6 @@ class PlataformaController extends Controller
                             [
                                 'unidad_id'      => $unidadReemplazo->id,
                                 'fecha_registro' => Carbon::now(),
-                                'created_at'     => Carbon::now(),
                             ]
                         ));
                     }
@@ -384,6 +389,12 @@ class PlataformaController extends Controller
 
             // Sincronizar el cambio con informacion_operativa
             if ($registroOperativo && !empty($datosUpdate)) {
+                foreach (['patio_norte', 'transporte_patio_norte'] as $boolCol) {
+                    if (array_key_exists($boolCol, $datosUpdate)) {
+                        $val = filter_var($datosUpdate[$boolCol], FILTER_VALIDATE_BOOLEAN);
+                        $datosUpdate[$boolCol] = $val ? 'true' : 'false';
+                    }
+                }
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
                     ->update($datosUpdate);

@@ -28,8 +28,10 @@ export const procesarDatosReportesGenerales = (apiData) => {
     });
 
     const enServicio = unidades.filter((u) => {
-      const est = (u.ESTATUS || '').toUpperCase().trim();
-      return est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
+      const est = (u.ESTATUS || u.estatus || '').toUpperCase().trim();
+      const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada || u.yaEncerrada);
+      const isOperacion = est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
+      return isOperacion && !isEncerrada;
     }).length;
 
     return { tipo: id, programadas: unidades.length, en_servicio: enServicio, imagen: 'default.png' };

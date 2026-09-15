@@ -620,6 +620,8 @@ export default function DetalleUnidadEncierro() {
             );
           });
           queryClient.invalidateQueries(['conteo-unidades-encierro-global']);
+          queryClient.invalidateQueries(['despacho-hoy']);
+          queryClient.invalidateQueries(['conteo-unidades-global']);
 
           const Swal = (await import('sweetalert2')).default;
           Swal.fire({

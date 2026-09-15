@@ -1555,9 +1555,16 @@ class DespachoController extends Controller
 
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
 
+        $idsEncerradasHoy = DB::table('historial_operativo')
+            ->where('momento', 'ENCIERRO')
+            ->where('fecha_historial', $hoy)
+            ->pluck('unidad_id')
+            ->toArray();
+
         $registros = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->select(
+                'unidades.id as unidad_id',
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.ruta',
@@ -1593,8 +1600,11 @@ class DespachoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        $formateados = $registros->map(function ($reg) {
+        $formateados = $registros->map(function ($reg) use ($idsEncerradasHoy) {
+            $isEncerrada = in_array($reg->unidad_id, $idsEncerradasHoy, true);
             return [
+                'UNIDAD_ID' => $reg->unidad_id,
+                'unidad_id' => $reg->unidad_id,
                 'TIPO_DE_UNIDAD' => $reg->tipo,
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
@@ -1626,7 +1636,9 @@ class DespachoController extends Controller
                 'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
                 'MANTENIMIENTO_RUTA' => $reg->mantenimiento_ruta,
                 'MANTENIMIENTO_CORRIDA' => $reg->mantenimiento_corrida,
-                'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje
+                'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje,
+                'YA_ENCERRADA' => $isEncerrada,
+                'ya_encerrada' => $isEncerrada,
             ];
         });
 
@@ -2152,6 +2164,23 @@ class DespachoController extends Controller
         }
 
         $horaEncierro = date('H:i:s');
+        $motivoFinal = $request->motivo_estatus ?? 'Fin de turno (Encierro regular)';
+
+        // Liberar conductor si tenía uno asignado
+        if (!empty($registroOperativo->numero_tarjeton)) {
+            DB::table('conductores')
+                ->where('tarjeton', $registroOperativo->numero_tarjeton)
+                ->update(['estado_servicio' => 'disponible']);
+        }
+
+        // Actualizar estatus en informacion_operativa a reserva
+        DB::table('informacion_operativa')
+            ->where('id', $registroOperativo->id)
+            ->update([
+                'estatus' => 'reserva',
+                'motivo_estatus' => $motivoFinal,
+            ]);
+
         DB::table('historial_operativo')->insert([
             'unidad_id' => $unidad->id,
             'ruta' => $registroOperativo->ruta,
@@ -2159,8 +2188,8 @@ class DespachoController extends Controller
             'nombre_conductor' => $registroOperativo->nombre_conductor,
             'corridas' => $registroOperativo->corridas,
             'tipo' => $registroOperativo->tipo,
-            'estatus' => $registroOperativo->estatus,
-            'motivo_estatus' => $request->motivo_estatus ?? 'Fin de turno (Encierro regular)',
+            'estatus' => 'reserva',
+            'motivo_estatus' => $motivoFinal,
             'momento' => 'ENCIERRO',
             'hora_encierro' => $horaEncierro,
             'fecha_historial' => date('Y-m-d'),
