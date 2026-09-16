@@ -217,22 +217,11 @@ function FuelBlock({
       <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
         <span className="info-card__label">Última Carga</span>
         <div className="mt-1 relative z-50">
-          <input
-            type="text"
-            className="interactive-input"
-            disabled
-            style={{
-              padding: '0 0.85rem',
-              height: '2.3rem',
-              fontSize: '0.9rem',
-              width: '100%',
-              backgroundColor: '#f3f4f6',
-              color: '#6b7280',
-              cursor: 'not-allowed',
-              textAlign: 'center',
-              fontWeight: '600'
-            }}
-            value={fechaValue ? formatDate(fechaValue) : formatDate(getFechaUltimaCargaDefault())}
+          <AppleDatePicker
+            value={fechaValue || getFechaUltimaCargaDefault()}
+            onChange={onFechaChange}
+            disableFuture={false}
+            disablePast={false}
           />
         </div>
         {showDias && dias !== null && (
@@ -276,7 +265,6 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     litrosAdblue: '',
     numeroCincho: '',
     numeroCinchoAdblue: '',
-    odometro: '',
   });
   const [guardando, setGuardando] = useState(false);
   const [comparativaGuardada, setComparativaGuardada] = useState(null);
@@ -320,7 +308,6 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       litrosAdblue: '',
       numeroCincho: '',
       numeroCinchoAdblue: '',
-      odometro: '',
     };
 
     if (!registroAnterior || registroAnterior.status === 'error') {
@@ -356,14 +343,6 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     if (form.litrosGasolina === '') faltantes.push(`Litros Cargados (${combustibleLabel})`);
     if (form.nivelGasolina === '') faltantes.push(`Nivel de ${combustibleLabel}`);
 
-    if (!isVagoneta) {
-      if (form.odometro === '') faltantes.push('Odómetro');
-      if (form.litrosAdblue === '') faltantes.push('Litros Cargados (AdBlue)');
-      if (form.nivelAdblue === '') faltantes.push('Nivel de AdBlue');
-      if (form.numeroCincho === '') faltantes.push(`Número de Cincho (${combustibleLabel})`);
-      if (form.numeroCinchoAdblue === '') faltantes.push('Número de Cincho (AdBlue)');
-    }
-
     if (faltantes.length > 0) {
       Swal.fire({
         icon: 'warning',
@@ -385,7 +364,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       Swal.fire({
         icon: 'error',
         title: '⚠️ Anomalía en Kilometraje',
-        html: `El kilometraje de ${combustibleLabel} ingresado (<b>${kmGasolinaNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el odómetro y vuelve a intentarlo.`,
+        html: `El kilometraje de ${combustibleLabel} ingresado (<b>${kmGasolinaNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el kilometraje y vuelve a intentarlo.`,
         confirmButtonColor: '#6b1d33',
       });
       return;
@@ -394,17 +373,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       Swal.fire({
         icon: 'error',
         title: '⚠️ Anomalía en Kilometraje',
-        html: `El kilometraje de AdBlue ingresado (<b>${kmAdblueNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el odómetro y vuelve a intentarlo.`,
-        confirmButtonColor: '#6b1d33',
-      });
-      return;
-    }
-
-    if (!isVagoneta && kmAnterior !== null && kmAdblueNum !== null && kmAdblueNum < kmAnterior) {
-      Swal.fire({
-        icon: 'error',
-        title: '⚠️ Anomalía en Kilometraje',
-        html: `El kilometraje de AdBlue ingresado (<b>${kmAdblueNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el odómetro y vuelve a intentarlo.`,
+        html: `El kilometraje de AdBlue ingresado (<b>${kmAdblueNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el kilometraje y vuelve a intentarlo.`,
         confirmButtonColor: '#6b1d33',
       });
       return;
@@ -423,12 +392,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         litros_combustible: form.litrosGasolina !== '' ? form.litrosGasolina : null,
         nivel_adblue: form.nivelAdblue !== '' ? form.nivelAdblue : null,
         litros_adblue: form.litrosAdblue !== '' ? form.litrosAdblue : null,
-        numero_cincho: form.numeroCincho !== '' ? form.numeroCincho : (registroAnterior?.numero_cincho || null),
-        numero_cincho_adblue: form.numeroCinchoAdblue !== '' ? form.numeroCinchoAdblue : (registroAnterior?.numero_cincho_adblue || null),
+        numero_cincho: form.numeroCincho !== '' ? form.numeroCincho : null,
+        numero_cincho_adblue: form.numeroCinchoAdblue !== '' ? form.numeroCinchoAdblue : null,
         kilometraje: kmActual !== null ? String(kmActual) : (registroAnterior?.kilometraje ?? null),
-        odometro: form.odometro !== '' ? form.odometro : (registroAnterior?.odometro ?? null),
-        fecha_ultima_carga: form.fechaUltimaCargaGasolina !== '' ? form.fechaUltimaCargaGasolina 
-                          : (form.fechaUltimaCargaAdblue !== '' ? form.fechaUltimaCargaAdblue : (registroAnterior?.fecha_ultima_carga ?? null)),
+        odometro: kmActual !== null ? String(kmActual) : (registroAnterior?.kilometraje ?? null),
+        fecha_ultima_carga: form.fechaUltimaCargaGasolina || form.fechaUltimaCargaAdblue || getFechaUltimaCargaDefault(),
       };
 
       const response = await fetch(`${API_BASE}/api/mantenimiento/guardar`, {
@@ -444,22 +412,16 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
 
       if (response.ok && data.status === 'success') {
         // ── Calcular la comparativa antes de invalidar el caché ──
-        if (registroAnterior && (registroAnterior.kilometraje || registroAnterior.odometro || registroAnterior.nivel_combustible)) {
+        if (registroAnterior && (registroAnterior.kilometraje || registroAnterior.nivel_combustible)) {
           const getDiff = (current, previous) => (Number(current) || 0) - (Number(previous) || 0);
           const kmDiff = getDiff(form.kilometrajeGasolina, registroAnterior.kilometraje);
-          const odoDiff = getDiff(form.odometro, registroAnterior.odometro);
           const prevKm = Number(registroAnterior.kilometraje) || 0;
-          const prevOdo = Number(registroAnterior.odometro) || 0;
 
           setComparativaGuardada({
             kmActual: form.kilometrajeGasolina,
             kmDiff: kmDiff,
             kmPct: prevKm > 0 ? (kmDiff / prevKm) * 100 : 0,
             prevKm: prevKm,
-            odoActual: form.odometro,
-            odoDiff: odoDiff,
-            odoPct: prevOdo > 0 ? (odoDiff / prevOdo) * 100 : 0,
-            prevOdo: prevOdo,
             fuelActual: form.nivelGasolina,
             fuelCurrPct: fuelToPercentage(form.nivelGasolina),
             fuelDiff: fuelToPercentage(form.nivelGasolina) - fuelToPercentage(registroAnterior.nivel_combustible),
@@ -511,7 +473,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
   const handleResetKmOdometro = async () => {
     const { isConfirmed } = await Swal.fire({
       title: '¿Reiniciar a 0?',
-      text: 'Esta acción dejará el kilometraje y odómetro de la unidad en 0. Solo para pruebas y configuración inicial.',
+      text: 'Esta acción dejará el kilometraje de la unidad en 0. Solo para pruebas y configuración inicial.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Sí, reiniciar a 0',
@@ -551,15 +513,14 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           Swal.fire({
             icon: 'success',
             title: 'Unidad Reiniciada',
-            text: 'El kilometraje y odómetro se han puesto en 0.',
+            text: 'El kilometraje se ha puesto en 0.',
             timer: 2500,
             showConfirmButton: false,
           });
           setComparativaGuardada(null);
           setForm(prev => ({
             ...prev,
-            kilometrajeGasolina: '',
-            odometro: ''
+            kilometrajeGasolina: ''
           }));
         } else {
           throw new Error(data.message || 'Error al reiniciar la unidad');
@@ -622,40 +583,6 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         />
       </div>
 
-      {/* ── Odómetro (Oculto para vagonetas) ── */}
-      {tipoTransporte?.toLowerCase() !== 'vagoneta' && (
-        <div className="info-card__item" style={{ marginBottom: '1.25rem', background: '#fafafa', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #f0f0f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span className="info-card__label" style={{ margin: 0, fontSize: '0.9rem' }}>Odómetro</span>
-            {registroAnterior?.odometro && (
-              <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
-                Anterior: <span style={{ color: '#6b1d33', fontWeight: 700 }}>{Number(registroAnterior.odometro).toLocaleString('es-MX')}</span>
-              </span>
-            )}
-          </div>
-          <input
-            type="text"
-            inputMode="numeric"
-            className="interactive-input"
-            style={{
-              padding: '0 0.85rem',
-              height: '2.3rem',
-              fontSize: '0.9rem',
-              width: '100%',
-              textAlign: 'center',
-              letterSpacing: '0.05em',
-              fontWeight: '600'
-            }}
-            placeholder={registroAnterior?.odometro ? Number(registroAnterior.odometro).toLocaleString('es-MX') : "Ej: 125000"}
-            value={form.odometro || ''}
-            onChange={(e) => {
-              const v = e.target.value.replace(/\D/g, '').substring(0, 7);
-              set('odometro', v);
-            }}
-          />
-        </div>
-      )}
-
       {/* ── Dos medidores ── */}
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
         {/* Gasolina / Diésel */}
@@ -667,7 +594,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           litrosValue={form.litrosGasolina}
           onLitrosChange={(v) => set('litrosGasolina', v)}
           fechaValue={form.fechaUltimaCargaGasolina}
-          onFechaChange={(v) => set('fechaUltimaCargaGasolina', v)}
+          onFechaChange={(v) => {
+            const val = v || getFechaUltimaCargaDefault();
+            set('fechaUltimaCargaGasolina', val);
+            set('fechaUltimaCargaAdblue', val);
+          }}
           registroAnterior={{
             fecha_ultima_carga: registroAnterior?.fecha_ultima_carga,
           }}
@@ -687,7 +618,11 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
             litrosValue={form.litrosAdblue}
             onLitrosChange={(v) => set('litrosAdblue', v)}
             fechaValue={form.fechaUltimaCargaAdblue}
-            onFechaChange={(v) => set('fechaUltimaCargaAdblue', v)}
+            onFechaChange={(v) => {
+              const val = v || getFechaUltimaCargaDefault();
+              set('fechaUltimaCargaGasolina', val);
+              set('fechaUltimaCargaAdblue', val);
+            }}
             registroAnterior={{
               fecha_ultima_carga: registroAnterior?.fecha_ultima_carga,
             }}
@@ -820,40 +755,21 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           </h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
             
-            {comparativaGuardada.kmActual !== '' && (
+            {comparativaGuardada.kmActual && (
               <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
                 <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Kilometraje</span>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
                   <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
-                    {Number(comparativaGuardada.kmActual).toLocaleString('es-MX')} km
+                    {Number(comparativaGuardada.kmActual || 0).toLocaleString('es-MX')} km
                   </span>
-                  {comparativaGuardada.kmDiff !== 0 && (
+                  {comparativaGuardada.kmDiff !== undefined && comparativaGuardada.kmDiff !== 0 && (
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.kmDiff >= 0 ? '#c5a059' : '#ef4444' }}>
-                      {comparativaGuardada.kmDiff > 0 ? '+' : ''}{comparativaGuardada.kmDiff.toLocaleString('es-MX')} km
+                      {comparativaGuardada.kmDiff > 0 ? '+' : ''}{(comparativaGuardada.kmDiff || 0).toLocaleString('es-MX')} km
                     </span>
                   )}
                 </div>
                 <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Antes: {comparativaGuardada.prevKm.toLocaleString('es-MX')} km
-                </span>
-              </div>
-            )}
-
-            {!comparativaGuardada.isVagoneta && comparativaGuardada.odoActual !== '' && (
-              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Odómetro</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
-                    {Number(comparativaGuardada.odoActual).toLocaleString('es-MX')}
-                  </span>
-                  {comparativaGuardada.odoDiff !== 0 && (
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.odoDiff >= 0 ? '#c5a059' : '#ef4444' }}>
-                      {comparativaGuardada.odoDiff > 0 ? '+' : ''}{comparativaGuardada.odoDiff.toLocaleString('es-MX')}
-                    </span>
-                  )}
-                </div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Antes: {comparativaGuardada.prevOdo.toLocaleString('es-MX')}
+                  Antes: {(comparativaGuardada.prevKm || 0).toLocaleString('es-MX')} km
                 </span>
               </div>
             )}
