@@ -22,19 +22,31 @@ const getRuta = (d) =>
   d.RUTA_ASIGNADA ??
   'Sin ruta asignada';
 
-const getConductor = (d) =>
-  d.CONDUCTOR ??
-  d.NOMBRE_CONDUCTOR ??
-  d.CHOFER ??
-  d.NOMBRE_CHOFER ??
-  d.OPERADOR ??
-  'Sin persona conductora asignada';
+const getConductor = (d) => {
+  const rel = d.RELEVO_CONDUCTOR || d.relevo_conductor;
+  if (rel && String(rel).trim() !== '') {
+    const cleanRel = String(rel).replace(/\s*\(\d+\)$/, '').trim();
+    return `${cleanRel} (Relevo)`;
+  }
+  return d.CONDUCTOR ??
+    d.NOMBRE_CONDUCTOR ??
+    d.CHOFER ??
+    d.NOMBRE_CHOFER ??
+    d.OPERADOR ??
+    'Sin persona conductora asignada';
+};
 
-const getTarjeton = (d) =>
-  d.TARJETON ??
-  d.TARJETON_CONDUCTOR ??
-  d.NO_TARJETON ??
-  '—';
+const getTarjeton = (d) => {
+  const relCond = d.RELEVO_CONDUCTOR || d.relevo_conductor;
+  const relTarj = d.RELEVO_TARJETON || d.relevo_tarjeton;
+  if (relCond && String(relCond).trim() !== '') {
+    return relTarj || '—';
+  }
+  return d.TARJETON ??
+    d.TARJETON_CONDUCTOR ??
+    d.NO_TARJETON ??
+    '—';
+};
 
 const STATUS_TABS = [
   { key: 'unidadesOperacion', label: 'Operación', color: 'operacion' },

@@ -528,7 +528,32 @@ export default function DetalleUnidadEncierro() {
 
   const getConductorDisplay = () => {
     const val = datosOperativos.conductor;
-    if (!val || val === 'Sin conductor') return 'No asignado';
+    const relevoName = datosOperativos.relevo_conductor;
+    const titularName = datosOperativos.titular_conductor;
+    const titularTarj = datosOperativos.titular_tarjeton;
+
+    if (relevoName && String(relevoName).trim() !== '') {
+      const cleanRelevoName = String(relevoName).replace(/\s*\(\d+\)$/, '').trim();
+      const cleanTitularName = titularName ? String(titularName).replace(/\s*\(\d+\)$/, '').trim() : '';
+      const titularStr = (cleanTitularName && cleanTitularName !== cleanRelevoName && cleanTitularName !== 'Sin conductor' && cleanTitularName !== 'No reportado hoy') ? cleanTitularName : (val && val !== cleanRelevoName ? val : '');
+      return (
+        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontWeight: 800, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
+              RELEVO
+            </span>
+            <strong>{cleanRelevoName}</strong>
+          </span>
+          {titularStr && (
+            <span style={{ fontSize: '11px', color: '#6b7280' }}>
+              Titular: {titularStr} {titularTarj ? `(${titularTarj})` : ''}
+            </span>
+          )}
+        </span>
+      );
+    }
+
+    if (!val || val === 'Sin conductor' || val === 'No reportado hoy') return 'No asignado';
 
     const isNum = !isNaN(val) && String(val).trim() !== '';
     if (isNum) {
@@ -710,6 +735,9 @@ export default function DetalleUnidadEncierro() {
           acople: resultado.acople || '',
           hora_salida_patio: resultado.hora_salida_patio || '',
           hora_real_salida_patio: resultado.hora_real_salida_patio || '',
+          relevo_conductor: resultado.relevo_conductor || '',
+          relevo_tarjeton: resultado.relevo_tarjeton || '',
+          relevo_hora: resultado.relevo_hora || '',
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
         setAcopleCongelado(resultado.hora_encierro || null);
@@ -726,6 +754,9 @@ export default function DetalleUnidadEncierro() {
           acople: '',
           hora_salida_patio: '',
           hora_real_salida_patio: '',
+          relevo_conductor: '',
+          relevo_tarjeton: '',
+          relevo_hora: '',
         });
         setAcopleCongelado(null);
       }

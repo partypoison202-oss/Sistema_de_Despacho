@@ -111,8 +111,14 @@ class PlataformaController extends Controller
                 
                 // Limpiar conductor y ruta al desincorporar
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
+                    $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
+                    $tarjetonClean = ltrim($tarjetonAnterior, '0');
+                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
+
                     DB::table('conductores')
-                        ->where('tarjeton', $registroOperativo->numero_tarjeton)
+                        ->whereIn('tarjeton', $tarjetonCandidates)
+                        ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
                         ->update(['estado_servicio' => 'disponible']);
                 }
                 $datosUpdate['nombre_conductor'] = null;
@@ -131,6 +137,10 @@ class PlataformaController extends Controller
                 $datosUpdate['relevo_hora'] = null;
                 $datosUpdate['tarjeton_maniobrista'] = null;
                 $datosUpdate['nombre_maniobrista'] = null;
+                $datosUpdate['mantenimiento_conductor'] = null;
+                $datosUpdate['mantenimiento_tarjeton'] = null;
+                $datosUpdate['mantenimiento_ruta'] = null;
+                $datosUpdate['mantenimiento_corrida'] = null;
                 $datosUpdate['patio_norte'] = 'false';
                 $datosUpdate['transporte_patio_norte'] = 'false';
 
@@ -355,27 +365,50 @@ class PlataformaController extends Controller
                 $mensajeBitacora = "ASIGNACIÓN DE CONDUCTOR: " . $conductorNuevo->tarjeton . " - " . $nombreCompletoAsig . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
 
             } else if ($tipoMovimiento === 'RETIRO_CONDUCTOR') {
-                if (!$registroOperativo && !$request->cambio_operador_activo) {
-                    return response()->json(['error' => 'No hay conductor asignado actualmente a esta unidad en Plataforma.'], 400);
+                if (!$registroOperativo) {
+                    return response()->json(['error' => 'No hay registro operativo para esta unidad.'], 404);
                 }
 
                 // 1) Liberar conductor anterior
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
-                    DB::table('conductores')->where('tarjeton', $registroOperativo->numero_tarjeton)->update(['estado_servicio' => 'disponible']);
+                    $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
+                    $tarjetonClean = ltrim($tarjetonAnterior, '0');
+                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
+
+                    DB::table('conductores')
+                        ->whereIn('tarjeton', $tarjetonCandidates)
+                        ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
+                        ->update(['estado_servicio' => 'disponible']);
+                }
+                if ($registroOperativo && !empty($registroOperativo->relevo_tarjeton)) {
+                    $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
+                    $tarjetonRelClean = ltrim($tarjetonRel, '0');
+                    $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
+
+                    DB::table('conductores')
+                        ->whereIn('tarjeton', $tarjetonRelCandidates)
+                        ->orWhere('id', is_numeric($tarjetonRel) ? (int)$tarjetonRel : 0)
+                        ->update(['estado_servicio' => 'disponible']);
                 }
 
                 // 2) Actualizar registro con nuevo conductor (si hay reemplazo)
                 if ($request->has('numero_tarjeton_nuevo') && $request->numero_tarjeton_nuevo) {
-                    $tarjetonNuevo = $request->numero_tarjeton_nuevo;
+                    $tarjetonNuevo = trim($request->numero_tarjeton_nuevo);
+                    $tarjetonNuevoClean = ltrim($tarjetonNuevo, '0');
+                    $tarjetonNuevoPad = str_pad($tarjetonNuevoClean === '' ? '0' : $tarjetonNuevoClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonNuevoCandidates = array_values(array_unique([$tarjetonNuevo, $tarjetonNuevoClean, $tarjetonNuevoPad]));
+
                     $conductorNuevo = DB::table('conductores')
-                        ->where('tarjeton', $tarjetonNuevo)
+                        ->whereIn('tarjeton', $tarjetonNuevoCandidates)
                         ->orWhere('id', is_numeric($tarjetonNuevo) ? (int)$tarjetonNuevo : 0)
                         ->first();
                     if (!$conductorNuevo) {
                         return response()->json(['error' => 'Conductor de reemplazo no encontrado.'], 404);
                     }
                     $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
-                    $nombreCompleto = trim($conductorNuevo->nombres . ' ' . $conductorNuevo->apellidos);
+                    $nombreCompleto = trim(($conductorNuevo->nombres ?? '') . ' ' . ($conductorNuevo->apellidos ?? ''));
                     $datosUpdate['nombre_conductor'] = $nombreCompleto;
                     DB::table('conductores')->where('id', $conductorNuevo->id)->update(['estado_servicio' => 'en_servicio']);
 
@@ -383,7 +416,12 @@ class PlataformaController extends Controller
                 } else {
                     $datosUpdate['numero_tarjeton'] = null;
                     $datosUpdate['nombre_conductor'] = null;
-                    $mensajeBitacora = "RETIRO DE CONDUCTOR: " . ($registroOperativo->numero_tarjeton ?? 'SIN TARJETÓN') . " - MOTIVO: " . strtoupper($request->motivo ?? '');
+                    $datosUpdate['relevo_tarjeton'] = null;
+                    $datosUpdate['relevo_conductor'] = null;
+                    $datosUpdate['relevo_hora'] = null;
+                    $datosUpdate['mantenimiento_conductor'] = null;
+                    $datosUpdate['mantenimiento_tarjeton'] = null;
+                    $mensajeBitacora = "RETIRO DE CONDUCTOR: " . ($registroOperativo->numero_tarjeton ?? $registroOperativo->nombre_conductor ?? 'SIN TARJETÓN') . " - MOTIVO: " . strtoupper($request->motivo ?? '');
                 }
             }
 
