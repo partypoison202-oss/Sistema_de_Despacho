@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Swal from 'sweetalert2';
 import IOSTimePicker from '../../Unidades/componentsdetalleunidad/IOSTimePicker';
 import { AuthContext } from '../../../context/AuthContext';
 import './ExcelVIsta.css';
@@ -680,6 +681,38 @@ export default function ExcelPreview({
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
                                             onClick={() => {
                                               if (c.estado_servicio === 'falta') return;
+                                              
+                                              if (c.estado_servicio === 'en_servicio') {
+                                                const prevAssignment = datosExcel.find(f => 
+                                                  String(f['TARJETÓN'] || '').trim() === String(c.tarjeton).trim() || 
+                                                  String(f['TARJETÓN RELEVO'] || '').trim() === String(c.tarjeton).trim()
+                                                );
+                                                
+                                                let asigText = '';
+                                                if (prevAssignment) {
+                                                  const eco = prevAssignment['ECONÓMICO'] || 'N/A';
+                                                  const ruta = prevAssignment['RUTA'] || 'N/A';
+                                                  asigText = `\n\nActualmente está asignado a la unidad ECO: ${eco} (Ruta: ${ruta}).`;
+                                                }
+
+                                                Swal.fire({
+                                                  title: 'Conductor en Servicio',
+                                                  text: `El conductor ${c.nombre} (Tarjetón: ${c.tarjeton}) ya se encuentra en servicio.${asigText}\n\n¿Estás seguro de que deseas reasignarlo a esta unidad?`,
+                                                  icon: 'warning',
+                                                  showCancelButton: true,
+                                                  confirmButtonColor: '#c29b53',
+                                                  cancelButtonColor: '#6b1d33',
+                                                  confirmButtonText: 'Sí, reasignar',
+                                                  cancelButtonText: 'Cancelar'
+                                                }).then((result) => {
+                                                  if (result.isConfirmed) {
+                                                    onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
+                                                    setOpenDropdown({ rowIndex: null, field: null });
+                                                  }
+                                                });
+                                                return;
+                                              }
+                                              
                                               onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
@@ -816,6 +849,38 @@ export default function ExcelPreview({
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
                                             onClick={() => {
+                                              if (c.estado_servicio === 'falta') return;
+                                              
+                                              if (c.estado_servicio === 'en_servicio') {
+                                                const prevAssignment = datosExcel.find(f => 
+                                                  String(f['TARJETÓN MANIOBRISTA'] || '').trim() === String(c.tarjeton).trim()
+                                                );
+                                                
+                                                let asigText = '';
+                                                if (prevAssignment) {
+                                                  const eco = prevAssignment['ECONÓMICO'] || 'N/A';
+                                                  const ruta = prevAssignment['RUTA'] || 'N/A';
+                                                  asigText = `\n\nActualmente está asignado a la unidad ECO: ${eco} (Ruta: ${ruta}).`;
+                                                }
+
+                                                Swal.fire({
+                                                  title: 'Maniobrista en Servicio',
+                                                  text: `El maniobrista ${c.nombre} (Tarjetón: ${c.tarjeton}) ya se encuentra en servicio.${asigText}\n\n¿Estás seguro de que deseas reasignarlo a esta unidad?`,
+                                                  icon: 'warning',
+                                                  showCancelButton: true,
+                                                  confirmButtonColor: '#c29b53',
+                                                  cancelButtonColor: '#6b1d33',
+                                                  confirmButtonText: 'Sí, reasignar',
+                                                  cancelButtonText: 'Cancelar'
+                                                }).then((result) => {
+                                                  if (result.isConfirmed) {
+                                                    onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
+                                                    setOpenDropdown({ rowIndex: null, field: null });
+                                                  }
+                                                });
+                                                return;
+                                              }
+
                                               onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
