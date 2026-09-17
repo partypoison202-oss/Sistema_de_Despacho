@@ -18,20 +18,23 @@ const PrintableMaintenanceOrder = React.forwardRef(({ data }, ref) => {
         margin: '0 auto',
       }}
     >
-      {/* === HEADER (ESTILO INICIO DE OPERACIÓN) === */}
-      <div className="flex justify-between items-center px-8 py-4" style={{ backgroundColor: '#6b1d33' }}>
-        <div className="flex items-center w-1/3">
+      {/* === HEADER (ESTILO CHECK LIST) === */}
+      <div className="flex items-center px-8 py-5 relative" style={{ backgroundColor: '#6b1d33', minHeight: '160px' }}>
+        <div className="absolute left-10 flex items-center h-full top-0">
           <img 
             src={stmLogo} 
             alt="STM" 
-            className="h-12" 
-            style={{ filter: 'brightness(0) invert(1)' }}
+            className="h-[140px] w-auto drop-shadow-md" 
+            style={{ objectFit: 'contain' }}
           />
         </div>
-        <div className="text-right w-2/3 text-white">
-          <h1 className="text-2xl font-black tracking-widest uppercase">Reporte de Falla</h1>
-          <h2 className="text-lg font-bold uppercase mt-0.5">
-            Orden de Mantenimiento ECO: <span className="font-black text-white">{data.eco}</span>
+        <div className="w-full flex flex-col items-center justify-center text-center pl-24">
+          <h3 className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: '#b8924b' }}>
+            Sistema de Transporte Metropolitano de Hidalgo
+          </h3>
+          <h1 className="text-3xl font-black uppercase text-white tracking-widest leading-none">Reporte de Falla</h1>
+          <h2 className="text-lg font-bold uppercase text-white opacity-95 mt-2 tracking-wider">
+            Orden de Mantenimiento ECO: <span className="font-black" style={{ color: '#b8924b' }}>{data.eco}</span>
           </h2>
         </div>
       </div>
