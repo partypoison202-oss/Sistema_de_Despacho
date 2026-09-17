@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Swal from 'sweetalert2';
 import IOSTimePicker from '../../Unidades/componentsdetalleunidad/IOSTimePicker';
 import { AuthContext } from '../../../context/AuthContext';
 import './ExcelVIsta.css';
@@ -198,6 +199,39 @@ export default function ExcelPreview({
     return ecoA - ecoB;
   });
 
+  // Normaliza tarjetón quitando ceros a la izquierda — solo para COMPARAR (ej. "0151" === "151" === "1051" si mismo número)
+  const normalizeTarjeton = (t) => {
+    const n = parseInt(String(t || '').trim(), 10);
+    return isNaN(n) ? String(t || '').trim() : String(n);
+  };
+
+  // Formatea tarjetón para MOSTRAR: siempre 4 dígitos con cero a la izquierda si es numérico
+  // Future-proof: padStart(4) nunca trunca — un tarjetón de 5 dígitos se muestra completo
+  // Ej: "151" → "0151", "930" → "0930", "1051" → "1051", "10001" → "10001"
+  const displayTarjeton = (t) => {
+    const raw = String(t || '').trim();
+    const n = parseInt(raw, 10);
+    if (isNaN(n)) return raw; // no numérico, dejar igual
+    return String(n).padStart(4, '0');
+  };
+
+  // Tarjetones que ya están asignados en la tabla actual (para corregir estado_servicio desactualizado del catálogo)
+  // IMPORTANTE: usar las claves SIN tilde tal como están en el objeto de datos (TARJETON, no TARJETÓN)
+  const tarjetonesEnUso = new Set(
+    (data || []).flatMap(f => [
+      f['TARJETON'],
+      f['RELEVO_TARJETON'],
+      f['TARJETON_MANIOBRISTA'],
+    ]).filter(t => t != null && String(t).trim() !== '').map(normalizeTarjeton)
+  );
+
+  // Devuelve el estado_servicio real: si ya está en la tabla lo fuerza a 'en_servicio'
+  const getEstadoEfectivo = (conductor) => {
+    const tarjNorm = normalizeTarjeton(conductor.tarjeton);
+    if (tarjetonesEnUso.has(tarjNorm)) return 'en_servicio';
+    return conductor.estado_servicio || 'disponible';
+  };
+
   // 2. Filtrar los datos en base al término de búsqueda y tecnología seleccionada
   const filteredData = sortedData.filter(fila => {
     if (!fila) return false;
@@ -212,9 +246,27 @@ export default function ExcelPreview({
       if (normalizedType !== selectedTech) return false;
     }
 
-    return Object.entries(fila).some(([key, val]) => {
-      if (EXCLUDED_KEYS.includes(key)) return false;
-      return String(val ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+    // Solo buscar en los campos visibles del modo actual + identificadores clave
+    // (evita matches falsos en campos ocultos como RELEVO_TARJETON cuando no estamos en modo relevos)
+    const searchableKeys = new Set([
+      'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE',
+      ...headers, // headers activos según el modo (titular, relevos, etc.)
+    ]);
+
+    return Array.from(searchableKeys).some(key => {
+      const val = fila[key];
+      if (val == null) return false;
+      // Para tarjetones, también comparar sin ceros a la izquierda
+      const valStr = String(val).toLowerCase();
+      const termLower = searchTerm.toLowerCase();
+      if (valStr.includes(termLower)) return true;
+      // Coincidencia normalizada para tarjetones (ej. buscar "1051" encuentra "0151")
+      if (['TARJETON', 'RELEVO_TARJETON', 'TARJETON_MANIOBRISTA'].includes(key)) {
+        const valNorm = normalizeTarjeton(val);
+        const termNorm = normalizeTarjeton(searchTerm);
+        if (termNorm && valNorm.includes(termNorm)) return true;
+      }
+      return false;
     });
   });
 
@@ -599,10 +651,16 @@ export default function ExcelPreview({
                         const isTroncal = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
 
                         const filteredDrivers = (catalogConductores || []).filter(c => {
-                          // if (isTroncal && String(c.tipo_tarjeton).toUpperCase() !== 'C') return false;
-
-                          return String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
-                            String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
+                          const searchLower = dropdownSearch.toLowerCase();
+                          const tarjetonStr = String(c.tarjeton || '').toLowerCase();
+                          const nombreStr = String(c.nombre || '').toLowerCase();
+                          // Coincidencia directa por texto
+                          if (tarjetonStr.includes(searchLower) || nombreStr.includes(searchLower)) return true;
+                          // Coincidencia normalizada (sin ceros a la izquierda) ej: "0151" == "1051"
+                          const searchNorm = normalizeTarjeton(dropdownSearch);
+                          const tarjetonNorm = normalizeTarjeton(c.tarjeton);
+                          if (searchNorm && (tarjetonNorm.includes(searchNorm) || searchNorm.includes(tarjetonNorm))) return true;
+                          return false;
                         });
 
                         return (
@@ -672,37 +730,73 @@ export default function ExcelPreview({
                                       <div className="dropdown-menu-no-results">Sin coincidencias</div>
                                     ) : (
                                       filteredDrivers.map((c, idx) => {
-                                        const isSelected = String(fila[h]).trim() === String(c.tarjeton).trim();
+                                        const isSelected = normalizeTarjeton(fila[h]) === normalizeTarjeton(c.tarjeton);
                                         return (
                                           <button
                                             key={idx}
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
-                                            onClick={() => {
-                                              if (c.estado_servicio === 'falta') return;
-                                              onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
+                                             onClick={(e) => {
+                                              e.stopPropagation();
+                                              const estadoEfectivo = getEstadoEfectivo(c);
+                                              if (estadoEfectivo === 'falta') return;
+                                              
+                                              if (estadoEfectivo === 'en_servicio') {
+                                                // Cerrar el dropdown ANTES de abrir el Swal
+                                                setOpenDropdown({ rowIndex: null, field: null });
+                                                
+                                                const prevAssignment = data.find(f => 
+                                                  normalizeTarjeton(f['TARJETON']) === normalizeTarjeton(c.tarjeton) || 
+                                                  normalizeTarjeton(f['RELEVO_TARJETON']) === normalizeTarjeton(c.tarjeton)
+                                                );
+                                                
+                                                let asigText = '';
+                                                if (prevAssignment) {
+                                                  const eco = prevAssignment['ECONÓMICO'] || 'N/A';
+                                                  const ruta = prevAssignment['RUTA'] || 'N/A';
+                                                  asigText = `\n\nActualmente está asignado a la unidad ECO: ${eco} (Ruta: ${ruta}).`;
+                                                }
+
+                                                Swal.fire({
+                                                  title: 'Conductor en Servicio',
+                                                  text: `El conductor ${c.nombre} (Tarjetón: ${c.tarjeton}) ya se encuentra en servicio.${asigText}\n\n¿Estás seguro de que deseas reasignarlo a esta unidad?`,
+                                                  icon: 'warning',
+                                                  showCancelButton: true,
+                                                  confirmButtonColor: '#c29b53',
+                                                  cancelButtonColor: '#6b1d33',
+                                                  confirmButtonText: 'Sí, reasignar',
+                                                  cancelButtonText: 'Cancelar'
+                                                }).then((result) => {
+                                                  if (result.isConfirmed) {
+                                                    onUpdate && onUpdate(originalIndex, h, displayTarjeton(c.tarjeton));
+                                                  }
+                                                });
+                                                return;
+                                              }
+                                              
+                                              onUpdate && onUpdate(originalIndex, h, displayTarjeton(c.tarjeton));
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
-                                            disabled={c.estado_servicio === 'falta'}
+                                            disabled={getEstadoEfectivo(c) === 'falta'}
                                             style={{
-                                              opacity: c.estado_servicio === 'falta' ? 0.6 : 1,
-                                              cursor: c.estado_servicio === 'falta' ? 'not-allowed' : 'pointer'
+                                              opacity: getEstadoEfectivo(c) === 'falta' ? 0.6 : 1,
+                                              cursor: getEstadoEfectivo(c) === 'falta' ? 'not-allowed' : 'pointer'
                                             }}
                                           >
                                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
-                                              <span>{c.tarjeton}</span>
+                                              <span>{displayTarjeton(c.tarjeton)}</span>
                                               <span style={{
                                                 fontSize: '0.65rem',
                                                 padding: '0.2rem 0.5rem',
                                                 borderRadius: '1rem',
-                                                backgroundColor: c.estado_servicio === 'en_servicio'
+                                                backgroundColor: getEstadoEfectivo(c) === 'en_servicio'
                                                   ? 'rgba(239, 68, 68, 0.1)'
-                                                  : c.estado_servicio === 'falta'
+                                                  : getEstadoEfectivo(c) === 'falta'
                                                     ? 'rgba(220, 38, 38, 0.15)'
                                                     : 'rgba(34, 197, 94, 0.1)',
-                                                color: c.estado_servicio === 'en_servicio'
+                                                color: getEstadoEfectivo(c) === 'en_servicio'
                                                   ? '#ef4444'
-                                                  : c.estado_servicio === 'falta'
+                                                  : getEstadoEfectivo(c) === 'falta'
                                                     ? '#dc2626'
                                                     : '#22c55e',
                                                 fontWeight: '700',
@@ -710,9 +804,9 @@ export default function ExcelPreview({
                                                 letterSpacing: '0.02em',
                                                 lineHeight: '1'
                                               }}>
-                                                {c.estado_servicio === 'en_servicio'
+                                                {getEstadoEfectivo(c) === 'en_servicio'
                                                   ? 'Servicio'
-                                                  : c.estado_servicio === 'falta'
+                                                  : getEstadoEfectivo(c) === 'falta'
                                                     ? 'Falta'
                                                     : 'Disponible'}
                                               </span>
@@ -738,8 +832,16 @@ export default function ExcelPreview({
                         const isTarjetonManiobristaOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'TARJETON_MANIOBRISTA';
 
                         const filteredManiobristas = (catalogManiobristas || []).filter(c => {
-                          return String(c.tarjeton).toLowerCase().includes(dropdownSearch.toLowerCase()) ||
-                            String(c.nombre).toLowerCase().includes(dropdownSearch.toLowerCase());
+                          const searchLower = dropdownSearch.toLowerCase();
+                          const tarjetonStr = String(c.tarjeton || '').toLowerCase();
+                          const nombreStr = String(c.nombre || '').toLowerCase();
+                          // Coincidencia directa por texto
+                          if (tarjetonStr.includes(searchLower) || nombreStr.includes(searchLower)) return true;
+                          // Coincidencia normalizada (sin ceros a la izquierda)
+                          const searchNorm = normalizeTarjeton(dropdownSearch);
+                          const tarjetonNorm = normalizeTarjeton(c.tarjeton);
+                          if (searchNorm && (tarjetonNorm.includes(searchNorm) || searchNorm.includes(tarjetonNorm))) return true;
+                          return false;
                         });
 
                         return (
@@ -809,31 +911,67 @@ export default function ExcelPreview({
                                       <div className="dropdown-menu-no-results">Sin coincidencias</div>
                                     ) : (
                                       filteredManiobristas.map((c, idx) => {
-                                        const isSelected = String(fila[h]).trim() === String(c.tarjeton).trim();
+                                        const isSelected = normalizeTarjeton(fila[h]) === normalizeTarjeton(c.tarjeton);
                                         return (
                                           <button
                                             key={idx}
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
-                                            onClick={() => {
-                                              onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
+                                             onClick={(e) => {
+                                              e.stopPropagation();
+                                              const estadoEfectivo = getEstadoEfectivo(c);
+                                              if (estadoEfectivo === 'falta') return;
+                                              
+                                              if (estadoEfectivo === 'en_servicio') {
+                                                // Cerrar el dropdown ANTES de abrir el Swal
+                                                setOpenDropdown({ rowIndex: null, field: null });
+                                                
+                                                const prevAssignment = data.find(f => 
+                                                  normalizeTarjeton(f['TARJETON_MANIOBRISTA']) === normalizeTarjeton(c.tarjeton)
+                                                );
+                                                
+                                                let asigText = '';
+                                                if (prevAssignment) {
+                                                  const eco = prevAssignment['ECONÓMICO'] || 'N/A';
+                                                  const ruta = prevAssignment['RUTA'] || 'N/A';
+                                                  asigText = `\n\nActualmente está asignado a la unidad ECO: ${eco} (Ruta: ${ruta}).`;
+                                                }
+
+                                                Swal.fire({
+                                                  title: 'Maniobrista en Servicio',
+                                                  text: `El maniobrista ${c.nombre} (Tarjetón: ${c.tarjeton}) ya se encuentra en servicio.${asigText}\n\n¿Estás seguro de que deseas reasignarlo a esta unidad?`,
+                                                  icon: 'warning',
+                                                  showCancelButton: true,
+                                                  confirmButtonColor: '#c29b53',
+                                                  cancelButtonColor: '#6b1d33',
+                                                  confirmButtonText: 'Sí, reasignar',
+                                                  cancelButtonText: 'Cancelar'
+                                                }).then((result) => {
+                                                  if (result.isConfirmed) {
+                                                    onUpdate && onUpdate(originalIndex, h, displayTarjeton(c.tarjeton));
+                                                  }
+                                                });
+                                                return;
+                                              }
+
+                                              onUpdate && onUpdate(originalIndex, h, displayTarjeton(c.tarjeton));
                                               setOpenDropdown({ rowIndex: null, field: null });
                                             }}
                                           >
                                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}>
-                                              <span>{c.tarjeton}</span>
+                                              <span>{displayTarjeton(c.tarjeton)}</span>
                                               <span style={{
                                                 fontSize: '0.65rem',
                                                 padding: '0.2rem 0.5rem',
                                                 borderRadius: '1rem',
-                                                backgroundColor: c.estado_servicio === 'en_servicio'
+                                                backgroundColor: getEstadoEfectivo(c) === 'en_servicio'
                                                   ? 'rgba(239, 68, 68, 0.1)'
-                                                  : c.estado_servicio === 'falta'
+                                                  : getEstadoEfectivo(c) === 'falta'
                                                     ? 'rgba(220, 38, 38, 0.15)'
                                                     : 'rgba(34, 197, 94, 0.1)',
-                                                color: c.estado_servicio === 'en_servicio'
+                                                color: getEstadoEfectivo(c) === 'en_servicio'
                                                   ? '#ef4444'
-                                                  : c.estado_servicio === 'falta'
+                                                  : getEstadoEfectivo(c) === 'falta'
                                                     ? '#dc2626'
                                                     : '#22c55e',
                                                 fontWeight: '700',
@@ -841,9 +979,9 @@ export default function ExcelPreview({
                                                 letterSpacing: '0.02em',
                                                 lineHeight: '1'
                                               }}>
-                                                {c.estado_servicio === 'en_servicio'
+                                                {getEstadoEfectivo(c) === 'en_servicio'
                                                   ? 'Servicio'
-                                                  : c.estado_servicio === 'falta'
+                                                  : getEstadoEfectivo(c) === 'falta'
                                                     ? 'Falta'
                                                     : 'Disponible'}
                                               </span>

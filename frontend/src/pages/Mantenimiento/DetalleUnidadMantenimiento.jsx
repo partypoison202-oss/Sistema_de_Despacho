@@ -132,14 +132,6 @@ export default function DetalleUnidadMantenimiento() {
   };
 
   const handleGuardarIncidencia = async () => {
-    if (!incidenciaFormValue.trim()) {
-      Swal.fire('Atención', 'Debes asignar un número de incidencia.', 'warning');
-      return;
-    }
-    if (!fallaFormValue.trim()) {
-      Swal.fire('Atención', 'Debes describir la falla brevemente.', 'warning');
-      return;
-    }
     setIsGuardandoIncidencia(true);
     try {
       const token = getToken();
@@ -154,12 +146,14 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          numero_incidencia: incidenciaFormValue.trim(),
-          falla_reportada: fallaFormValue.trim()
+          numero_incidencia: incidenciaFormValue.trim() || null,
+          falla_reportada: fallaFormValue.trim() || null
         })
       });
       const data = await response.json();
       if (response.ok && (data.status === 'success' || data.success)) {
+        const hasIncidencia = incidenciaFormValue.trim().length > 0;
+        
         setDatosOperativos(prev => ({
           ...prev,
           estatus: 'mantenimiento',
@@ -171,23 +165,28 @@ export default function DetalleUnidadMantenimiento() {
         setIsIncidenceModalOpen(false);
         setIncidenciaFormValue('');
         setFallaFormValue('');
+        
         await Swal.fire({
           icon: 'success',
           title: 'Unidad en Mantenimiento',
-          text: `Número de incidencia: ${incidenciaFormValue.trim()} asignado con éxito.`,
+          text: hasIncidencia 
+            ? `Número de incidencia asignado con éxito.`
+            : 'La unidad se ha enviado a mantenimiento.',
           timer: 1500,
           showConfirmButton: false
         });
         queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, selectedOption.replace(/\D/g, '').padStart(3, '0')] });
 
-        // Abre el wizard de creación del PDF Automáticamente
-        handleOpenMaintenanceWizard();
+        // Abre el wizard de creación del PDF Automáticamente solo si hay incidencia
+        if (hasIncidencia) {
+          handleOpenMaintenanceWizard();
+        }
       } else {
-        Swal.fire('Error', data.message || 'Error al asignar la incidencia', 'error');
+        Swal.fire('Error', data.message || 'Error al enviar a mantenimiento', 'error');
       }
     } catch (error) {
-      Swal.fire('Error', 'Error de red al asignar la incidencia', 'error');
+      Swal.fire('Error', 'Error de red al procesar la solicitud', 'error');
     } finally {
       setIsGuardandoIncidencia(false);
     }
@@ -555,7 +554,7 @@ export default function DetalleUnidadMantenimiento() {
 
   const handleHacerCheckList = () => setShowChecklist(true);
   const handleRevisarCheckList = () => {
-    if (recentChecklist) setViewingChecklist(true);
+    if (recentChecklist) setViewingChecklist(prev => !prev);
   };
 
   // ── Seleccionar unidad ──
@@ -1222,14 +1221,27 @@ export default function DetalleUnidadMantenimiento() {
                        </div>
                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', marginBottom: '4px' }}>
                            <button
-                             onClick={handleOpenMaintenanceWizard}
-                             disabled={!!datosOperativos.numero_incidencia}
-                             className={`btn-accion-rapida btn-accion-rapida--outline ${!datosOperativos.numero_incidencia ? '' : 'opacity-50'}`}
+                             onClick={
+                               datosOperativos.numero_incidencia
+                                 ? () => { 
+                                     const hasSignature = !!datosOperativos.firma_base64;
+                                     setWizardPrintOnly(hasSignature); 
+                                     setIsMaintenanceWizardOpen(true); 
+                                   }
+                                 : handleOpenMaintenanceWizard
+                             }
+                             className={`btn-accion-rapida ${datosOperativos.numero_incidencia && !datosOperativos.firma_base64 ? 'btn-accion-rapida--outline-blue' : 'btn-accion-rapida--outline'}`}
                            >
                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                               {datosOperativos.numero_incidencia ? (
+                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                               ) : (
+                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                               )}
                              </svg>
-                             Registrar incidencia
+                             {datosOperativos.numero_incidencia 
+                               ? (datosOperativos.firma_base64 ? 'VER REPORTE' : 'COMPLETAR REPORTE') 
+                               : 'REGISTRAR INCIDENCIA'}
                            </button>
                            
                            <button
@@ -1244,18 +1256,7 @@ export default function DetalleUnidadMantenimiento() {
                            </button>
                          </div>
                          
-                         {datosOperativos.numero_incidencia && datosOperativos.folio_mantenimiento && (
-                           <button
-                             onClick={() => { setWizardPrintOnly(true); setIsMaintenanceWizardOpen(true); }}
-                             className="btn-accion-rapida btn-accion-rapida--outline mt-2"
-                           >
-                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                             </svg>
-                             DESCARGAR ORDEN PDF
-                           </button>
-                         )}
-                     </div>
+                      </div>
                    )}
                 </div>
 
@@ -1661,7 +1662,7 @@ export default function DetalleUnidadMantenimiento() {
                               onMouseDown={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(0.98)')}
                               onMouseUp={(e) => !(!recentChecklist) && (e.currentTarget.style.transform = 'scale(1)')}
                             >
-                              Revisar check list
+                              {viewingChecklist ? 'Ocultar detalles' : 'Revisar check list'}
                             </button>
                             
                             {recentChecklist && (
@@ -1938,13 +1939,6 @@ export default function DetalleUnidadMantenimiento() {
                           </div>,
                           document.body
                         )}
-
-                        <button
-                          onClick={() => setViewingChecklist(false)}
-                          className="w-full py-2.5 rounded-xl font-bold text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                        >
-                          Cerrar Detalles
-                        </button>
                       </div>
                     );
                   })()}
@@ -2352,7 +2346,7 @@ export default function DetalleUnidadMantenimiento() {
             <div className="flex flex-col gap-5">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Asignar número de Incidencia:
+                  Asignar número de Incidencia (Opcional):
                 </label>
                 <input
                   type="text"
@@ -2366,7 +2360,7 @@ export default function DetalleUnidadMantenimiento() {
 
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Falla Reportada:
+                  Falla Reportada (Opcional):
                 </label>
                 <textarea
                   placeholder="Describa la falla brevemente..."
