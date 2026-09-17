@@ -679,10 +679,14 @@ export default function ExcelPreview({
                                             key={idx}
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                              e.stopPropagation();
                                               if (c.estado_servicio === 'falta') return;
                                               
                                               if (c.estado_servicio === 'en_servicio') {
+                                                // Cerrar el dropdown ANTES de abrir el Swal
+                                                setOpenDropdown({ rowIndex: null, field: null });
+                                                
                                                 const prevAssignment = data.find(f => 
                                                   String(f['TARJETÓN'] || '').trim() === String(c.tarjeton).trim() || 
                                                   String(f['TARJETÓN RELEVO'] || '').trim() === String(c.tarjeton).trim()
@@ -707,7 +711,6 @@ export default function ExcelPreview({
                                                 }).then((result) => {
                                                   if (result.isConfirmed) {
                                                     onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
-                                                    setOpenDropdown({ rowIndex: null, field: null });
                                                   }
                                                 });
                                                 return;
@@ -848,10 +851,14 @@ export default function ExcelPreview({
                                             key={idx}
                                             type="button"
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                              e.stopPropagation();
                                               if (c.estado_servicio === 'falta') return;
                                               
                                               if (c.estado_servicio === 'en_servicio') {
+                                                // Cerrar el dropdown ANTES de abrir el Swal
+                                                setOpenDropdown({ rowIndex: null, field: null });
+                                                
                                                 const prevAssignment = data.find(f => 
                                                   String(f['TARJETÓN MANIOBRISTA'] || '').trim() === String(c.tarjeton).trim()
                                                 );
@@ -875,7 +882,6 @@ export default function ExcelPreview({
                                                 }).then((result) => {
                                                   if (result.isConfirmed) {
                                                     onUpdate && onUpdate(originalIndex, h, String(c.tarjeton).trim());
-                                                    setOpenDropdown({ rowIndex: null, field: null });
                                                   }
                                                 });
                                                 return;
