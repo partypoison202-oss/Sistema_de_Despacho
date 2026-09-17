@@ -132,14 +132,6 @@ export default function DetalleUnidadMantenimiento() {
   };
 
   const handleGuardarIncidencia = async () => {
-    if (!incidenciaFormValue.trim()) {
-      Swal.fire('Atención', 'Debes asignar un número de incidencia.', 'warning');
-      return;
-    }
-    if (!fallaFormValue.trim()) {
-      Swal.fire('Atención', 'Debes describir la falla brevemente.', 'warning');
-      return;
-    }
     setIsGuardandoIncidencia(true);
     try {
       const token = getToken();
@@ -154,12 +146,14 @@ export default function DetalleUnidadMantenimiento() {
           tipo: tipoTransporte,
           estatus: 'mantenimiento',
           motivo_estatus: 'MANTENIMIENTO',
-          numero_incidencia: incidenciaFormValue.trim(),
-          falla_reportada: fallaFormValue.trim()
+          numero_incidencia: incidenciaFormValue.trim() || null,
+          falla_reportada: fallaFormValue.trim() || null
         })
       });
       const data = await response.json();
       if (response.ok && (data.status === 'success' || data.success)) {
+        const hasIncidencia = incidenciaFormValue.trim().length > 0;
+        
         setDatosOperativos(prev => ({
           ...prev,
           estatus: 'mantenimiento',
@@ -171,23 +165,28 @@ export default function DetalleUnidadMantenimiento() {
         setIsIncidenceModalOpen(false);
         setIncidenciaFormValue('');
         setFallaFormValue('');
+        
         await Swal.fire({
           icon: 'success',
           title: 'Unidad en Mantenimiento',
-          text: `Número de incidencia: ${incidenciaFormValue.trim()} asignado con éxito.`,
+          text: hasIncidencia 
+            ? `Número de incidencia asignado con éxito.`
+            : 'La unidad se ha enviado a mantenimiento.',
           timer: 1500,
           showConfirmButton: false
         });
         queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, selectedOption.replace(/\D/g, '').padStart(3, '0')] });
 
-        // Abre el wizard de creación del PDF Automáticamente
-        handleOpenMaintenanceWizard();
+        // Abre el wizard de creación del PDF Automáticamente solo si hay incidencia
+        if (hasIncidencia) {
+          handleOpenMaintenanceWizard();
+        }
       } else {
-        Swal.fire('Error', data.message || 'Error al asignar la incidencia', 'error');
+        Swal.fire('Error', data.message || 'Error al enviar a mantenimiento', 'error');
       }
     } catch (error) {
-      Swal.fire('Error', 'Error de red al asignar la incidencia', 'error');
+      Swal.fire('Error', 'Error de red al procesar la solicitud', 'error');
     } finally {
       setIsGuardandoIncidencia(false);
     }
@@ -2352,7 +2351,7 @@ export default function DetalleUnidadMantenimiento() {
             <div className="flex flex-col gap-5">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Asignar número de Incidencia:
+                  Asignar número de Incidencia (Opcional):
                 </label>
                 <input
                   type="text"
@@ -2366,7 +2365,7 @@ export default function DetalleUnidadMantenimiento() {
 
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Falla Reportada:
+                  Falla Reportada (Opcional):
                 </label>
                 <textarea
                   placeholder="Describa la falla brevemente..."
