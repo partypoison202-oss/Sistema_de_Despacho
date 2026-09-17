@@ -683,7 +683,7 @@ export default function ExcelPreview({
                                               if (c.estado_servicio === 'falta') return;
                                               
                                               if (c.estado_servicio === 'en_servicio') {
-                                                const prevAssignment = datosExcel.find(f => 
+                                                const prevAssignment = data.find(f => 
                                                   String(f['TARJETÓN'] || '').trim() === String(c.tarjeton).trim() || 
                                                   String(f['TARJETÓN RELEVO'] || '').trim() === String(c.tarjeton).trim()
                                                 );
@@ -852,7 +852,7 @@ export default function ExcelPreview({
                                               if (c.estado_servicio === 'falta') return;
                                               
                                               if (c.estado_servicio === 'en_servicio') {
-                                                const prevAssignment = datosExcel.find(f => 
+                                                const prevAssignment = data.find(f => 
                                                   String(f['TARJETÓN MANIOBRISTA'] || '').trim() === String(c.tarjeton).trim()
                                                 );
                                                 
