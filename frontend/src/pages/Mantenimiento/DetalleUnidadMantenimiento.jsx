@@ -132,6 +132,16 @@ export default function DetalleUnidadMantenimiento() {
   };
 
   const handleGuardarIncidencia = async () => {
+    if (!fallaFormValue.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'La falla reportada es obligatoria.',
+        customClass: { container: '!z-[100000]' }
+      });
+      return;
+    }
+    
     setIsGuardandoIncidencia(true);
     try {
       const token = getToken();
@@ -1246,8 +1256,9 @@ export default function DetalleUnidadMantenimiento() {
                            
                            <button
                              onClick={() => setIsFolioModalOpen(true)}
-                             disabled={!!datosOperativos.folio_mantenimiento}
-                             className={`btn-accion-rapida btn-accion-rapida--gold ${!datosOperativos.folio_mantenimiento ? '' : 'opacity-50'}`}
+                             disabled={!!datosOperativos.folio_mantenimiento || !datosOperativos.numero_incidencia}
+                             title={!datosOperativos.numero_incidencia ? 'Debes registrar una incidencia antes de generar el folio' : ''}
+                             className={`btn-accion-rapida btn-accion-rapida--gold ${(datosOperativos.folio_mantenimiento || !datosOperativos.numero_incidencia) ? 'opacity-50 cursor-not-allowed' : ''}`}
                            >
                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -2192,6 +2203,7 @@ export default function DetalleUnidadMantenimiento() {
                 tipo: tipoTransporte,
                 estatus: 'mantenimiento',
                 motivo_estatus: data.motivo,
+                numero_incidencia: data.numero_incidencia || null,
                 folio_mantenimiento: data.folio_mantenimiento,
                 fecha_folio_mantenimiento: data.fecha_folio_mantenimiento,
                 falla_reportada: data.falla_reportada,
@@ -2219,30 +2231,17 @@ export default function DetalleUnidadMantenimiento() {
                 throw new Error(resData.message || 'Error al cambiar estatus');
               }
 
-              // Generar Folio Oficial si no hay uno
+              // Ya no se genera el folio automáticamente en ningún caso.
+              // El usuario debe hacerlo manualmente con el botón "GENERAR FOLIO"
               let folioFinal = data.folio_mantenimiento;
               let fechaFolioFinal = data.fecha_folio_mantenimiento;
-              if (!folioFinal) {
-                const resFolio = await fetch(`${API_BASE}/api/mantenimiento/generar-folio`, {
-                  method: 'POST',
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                  },
-                  body: JSON.stringify({ numero_eco: ecoLimpio })
-                });
-                const dataFolio = await resFolio.json();
-                if (dataFolio.status === 'success') {
-                  folioFinal = dataFolio.folio;
-                  fechaFolioFinal = dataFolio.fecha_folio;
-                }
-              }
 
-              // Refrescar estado local
+              // Refrescar estado local (incluyendo numero_incidencia para que se muestre en el panel)
               setDatosOperativos(prev => ({
                 ...prev,
                 estatus: 'mantenimiento',
                 motivo_estatus: data.motivo,
+                numero_incidencia: data.numero_incidencia || prev.numero_incidencia || null,
                 folio_mantenimiento: folioFinal,
                 fecha_folio_mantenimiento: fechaFolioFinal,
                 falla_reportada: data.falla_reportada,
@@ -2360,7 +2359,7 @@ export default function DetalleUnidadMantenimiento() {
 
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
-                  Falla Reportada (Opcional):
+                  Falla Reportada:
                 </label>
                 <textarea
                   placeholder="Describa la falla brevemente..."
