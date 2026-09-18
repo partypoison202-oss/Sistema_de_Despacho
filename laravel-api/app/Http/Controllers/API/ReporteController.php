@@ -24,13 +24,31 @@ class ReporteController extends Controller
         $data['T-SIN ASIGNAR'] = ['en_operacion' => 0, 'en_mantenimiento' => 0];
         $data['RA-SIN ASIGNAR'] = ['en_operacion' => 0, 'en_mantenimiento' => 0];
 
+        $hoyMexico = Carbon::now('America/Mexico_City')->toDateString();
+        $hoyUtc = Carbon::now('UTC')->toDateString();
+
+        $idsEncerradasHoy = DB::table('historial_operativo')
+            ->where('momento', 'ENCIERRO')
+            ->where(function($q) use ($hoyMexico, $hoyUtc) {
+                $q->whereIn('fecha_historial', [$hoyMexico, $hoyUtc])
+                  ->orWhereDate('created_at', $hoyMexico)
+                  ->orWhereDate('created_at', $hoyUtc);
+            })
+            ->pluck('unidad_id')
+            ->map(fn($id) => (int)$id)
+            ->toArray();
+
         $registros = DB::table('informacion_operativa')->get();
 
         foreach ($registros as $reg) {
             $estatus = trim(strtoupper($reg->estatus ?? ''));
             $tipo = trim(strtoupper($reg->tipo ?? ''));
-            $horaSalida = !empty($reg->hora_real_salida_patio) ? $reg->hora_real_salida_patio : (!empty($reg->hora_salida) ? $reg->hora_salida : '');
-            $isOper = str_contains($estatus, 'OPERACI') && (!empty($horaSalida) || !empty($reg->motivo_estatus) || !empty($reg->cambio_desde));
+            $unidadIdInt = isset($reg->unidad_id) ? (int)$reg->unidad_id : 0;
+            $isEncerrada = in_array($unidadIdInt, $idsEncerradasHoy, true);
+            $isDesincorporada = $isEncerrada || str_contains($estatus, 'RESERVA') || str_contains($estatus, 'MANTENIMIENTO') || str_contains($estatus, 'PERCANCE');
+
+            $horaSalida = $isDesincorporada ? '' : (!empty($reg->hora_real_salida_patio) ? trim($reg->hora_real_salida_patio) : (!empty($reg->hora_salida) ? trim($reg->hora_salida) : ''));
+            $isOper = str_contains($estatus, 'OPERACI') && !$isDesincorporada && !empty($horaSalida);
             $isManto = str_contains($estatus, 'MANTENIMIENTO');
 
             $rutaExcel = trim(strtoupper($reg->mantenimiento_ruta ?? $reg->ruta ?? ''));
@@ -85,6 +103,20 @@ class ReporteController extends Controller
                 ['id' => 'ORION', 'pattern' => 'ORION']
             ];
 
+            $hoyMexico = Carbon::now('America/Mexico_City')->toDateString();
+            $hoyUtc = Carbon::now('UTC')->toDateString();
+
+            $idsEncerradasHoy = DB::table('historial_operativo')
+                ->where('momento', 'ENCIERRO')
+                ->where(function($q) use ($hoyMexico, $hoyUtc) {
+                    $q->whereIn('fecha_historial', [$hoyMexico, $hoyUtc])
+                      ->orWhereDate('created_at', $hoyMexico)
+                      ->orWhereDate('created_at', $hoyUtc);
+                })
+                ->pluck('unidad_id')
+                ->map(fn($id) => (int)$id)
+                ->toArray();
+
             $registros = DB::table('informacion_operativa')->get();
             $resultado = [];
 
@@ -97,9 +129,15 @@ class ReporteController extends Controller
                 });
 
                 $programadas = $units->count();
-                $en_servicio = $units->filter(function ($d) {
+                $en_servicio = $units->filter(function ($d) use ($idsEncerradasHoy) {
                     $est = strtoupper(trim($d->estatus ?? ''));
-                    return str_contains($est, 'OPERACI') || (!str_contains($est, 'MANTENIMIENTO') && !str_contains($est, 'RESERVA') && !str_contains($est, 'PERCANCE'));
+                    $unidadIdInt = isset($d->unidad_id) ? (int)$d->unidad_id : 0;
+                    $isEncerrada = in_array($unidadIdInt, $idsEncerradasHoy, true);
+                    $isDesincorporada = $isEncerrada || str_contains($est, 'RESERVA') || str_contains($est, 'MANTENIMIENTO') || str_contains($est, 'PERCANCE');
+
+                    $horaSalida = $isDesincorporada ? '' : (!empty($d->hora_real_salida_patio) ? trim($d->hora_real_salida_patio) : (!empty($d->hora_salida) ? trim($d->hora_salida) : ''));
+                    $isOper = str_contains($est, 'OPERACI') && !$isDesincorporada && !empty($horaSalida);
+                    return $isOper;
                 })->count();
 
                 $resultado[] = [
