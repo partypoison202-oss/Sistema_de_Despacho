@@ -214,8 +214,8 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
                     <div style={{ flex: 3, fontWeight: isSelected ? 'bold' : '500', color: isSelected ? '#2b6cb0' : 'inherit' }}>
                       {c.nombre}
                     </div>
-                    <div style={{ flex: 1, color: '#718096', textAlign: 'right', fontWeight: '500' }}>
-                      {c.tarjeton || '--'}
+                    <div style={{ flex: 1, textAlign: 'right', fontWeight: 'bold', color: '#4a5568' }}>
+                      {String(c.tarjeton).padStart(4, '0')}
                     </div>
                   </li>
                 );
