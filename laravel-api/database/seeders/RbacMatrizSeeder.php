@@ -116,7 +116,7 @@ class RbacMatrizSeeder extends Seeder
                 'usuario'         => 'Miguel_Odon',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['operadores', 'despacho'],
-                'contrasena'      => 'OM_PM26',
+                'contrasena'      => 'OM_DD26',
             ],
 
             // ── Despacho de unidades ──
@@ -150,7 +150,7 @@ class RbacMatrizSeeder extends Seeder
             ],
             [
                 'nombre_completo' => 'Guadalupe Santos Callejas',
-                'usuario'         => 'Maria_Guadalupe',
+                'usuario'         => 'Guadalupe_Santos',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'SCG_DD26',
@@ -158,8 +158,8 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Iván Martínez Acosta',
                 'usuario'         => 'Ivan_Martinez',
-                'rol_codigo'      => 'DESPACHO',
-                'modulos'         => ['despacho'],
+                'rol_codigo'      => 'GESTOR_OPERADORES',
+                'modulos'         => ['maniobristas', 'operadores'],
                 'contrasena'      => 'MAI_DD26',
             ],
             [
@@ -171,7 +171,7 @@ class RbacMatrizSeeder extends Seeder
             ],
             [
                 'nombre_completo' => 'Bacilio Tapia Padilla',
-                'usuario'         => 'Martin_Bacilio',
+                'usuario'         => 'Bacilio_Tapia',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'TPB_DD26',
