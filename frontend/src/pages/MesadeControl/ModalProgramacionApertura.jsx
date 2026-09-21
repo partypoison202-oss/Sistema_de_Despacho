@@ -428,8 +428,7 @@ export default function ModalProgramacionApertura({
                     <th style={{ width: '100px' }}>ECO</th>
                     <th style={{ width: '110px' }}>Estatus</th>
                     <th style={{ width: '120px' }}>Ruta / Corrida</th>
-                    <th>Conductor de Apertura</th>
-                    <th>Conductor de Relevo</th>
+                    <th>Persona Conductora</th>
                     <th style={{ width: '140px' }}>Horario Programado</th>
                     <th>Motivo / Falla Apertura</th>
                     <th style={{ width: '110px', textAlign: 'center' }}>Acción</th>
@@ -496,37 +495,44 @@ export default function ModalProgramacionApertura({
                           )}
                         </td>
 
-                        {/* Conductor */}
+                        {/* Persona Conductora (Titular y Relevo) */}
                         <td>
-                          <div className="ap-driver-box">
-                            {u.tarjeton ? (
-                              <span className="ap-driver-tarjeton">TARJETÓN: {u.tarjeton}</span>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>SIN TARJETÓN</span>
-                            )}
-                            <span
-                              className="ap-driver-name"
-                              style={{ color: u.nombre_conductor ? '#0f172a' : '#94a3b8' }}
-                            >
-                              {u.nombre_conductor || 'Sin conductor asignado'}
-                            </span>
-                          </div>
-                        </td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', minWidth: '220px' }}>
+                            {/* Titular */}
+                            <div className="ap-driver-box" style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                                <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>TITULAR</span>
+                                {u.tarjeton ? (
+                                  <span className="ap-driver-tarjeton" style={{ margin: 0 }}>TARJETÓN: {u.tarjeton}</span>
+                                ) : (
+                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>SIN TARJETÓN</span>
+                                )}
+                              </div>
+                              <span
+                                className="ap-driver-name"
+                                style={{ color: u.nombre_conductor ? '#0f172a' : '#94a3b8', fontSize: '0.8rem', display: 'block' }}
+                              >
+                                {u.nombre_conductor || 'Sin conductor asignado'}
+                              </span>
+                            </div>
 
-                        {/* Conductor Relevo */}
-                        <td>
-                          <div className="ap-driver-box">
-                            {u.relevo_tarjeton ? (
-                              <span className="ap-driver-tarjeton" style={{ color: '#0f766e' }}>TARJETÓN: {u.relevo_tarjeton}</span>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>SIN RELEVO</span>
-                            )}
-                            <span
-                              className="ap-driver-name"
-                              style={{ color: u.relevo_conductor ? '#0f172a' : '#94a3b8' }}
-                            >
-                              {u.relevo_conductor || '-'}
-                            </span>
+                            {/* Relevo */}
+                            <div className="ap-driver-box" style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                                <span style={{ background: '#ffedd5', color: '#c2410c', fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>RELEVO</span>
+                                {u.relevo_tarjeton ? (
+                                  <span className="ap-driver-tarjeton" style={{ margin: 0, color: '#0f766e' }}>TARJETÓN: {u.relevo_tarjeton}</span>
+                                ) : (
+                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>SIN TARJETÓN</span>
+                                )}
+                              </div>
+                              <span
+                                className="ap-driver-name"
+                                style={{ color: u.relevo_conductor ? '#0f172a' : '#94a3b8', fontSize: '0.8rem', display: 'block' }}
+                              >
+                                {u.relevo_conductor || 'Sin relevo asignado'}
+                              </span>
+                            </div>
                           </div>
                         </td>
 
