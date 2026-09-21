@@ -56,6 +56,10 @@ const PatioDashboard         = lazy(() => lazyRetry(() => import('./pages/Patio/
 const DashboardTitan         = lazy(() => lazyRetry(() => import('./pages/Titan/DashboardTitan')));
 const DetalleUnidadTitan     = lazy(() => lazyRetry(() => import('./pages/Titan/DetalleUnidadTitan')));
 const Mantenimiento          = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/Mantenimiento')));
+const TitanDashboardStats      = lazy(() => lazyRetry(() => import('./pages/Titan/TitanDashboardStats')));
+const CargaCombustible       = lazy(() => lazyRetry(() => import('./pages/CargaCombustible/CargaCombustible')));
+const ReporteCombustible     = lazy(() => lazyRetry(() => import('./pages/ReporteCombustible/ReporteCombustible')));
+const Rh                     = lazy(() => lazyRetry(() => import('./pages/Rh/Rh')));
 const DetalleUnidadMantenimiento = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/DetalleUnidadMantenimiento')));
 const ReportesTitanes        = lazy(() => lazyRetry(() => import('./pages/CentroControl/ReporteTitanes/ReporteTitanes')));
 const HistorialReportesTitanes = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialReportesTitanes')));
