@@ -268,6 +268,8 @@ export default function DetalleUnidadMesaControl() {
       if (activeUnitData.status === 'success') {
         setDatosOperativos({
           conductor: activeUnitData.conductor || 'No reportado hoy',
+          relevo_conductor: activeUnitData.relevo_conductor || null,
+          relevo_tarjeton: activeUnitData.relevo_tarjeton || null,
           ruta: activeUnitData.ruta || 'Sin ruta',
           tarjeton: activeUnitData.tarjeton || '',
           titular_conductor: activeUnitData.titular_conductor || '',
@@ -279,8 +281,6 @@ export default function DetalleUnidadMesaControl() {
           motivo: activeUnitData.motivo_estatus || activeUnitData.motivo || '',
           horaSalidaPatio: activeUnitData.hora_salida_patio || '',
           acople: activeUnitData.acople || '',
-          relevo_conductor: activeUnitData.relevo_conductor || '',
-          relevo_tarjeton: activeUnitData.relevo_tarjeton || '',
           relevo_hora: activeUnitData.relevo_hora || '',
         });
         setFallaTexto(activeUnitData.falla || '');
