@@ -39,7 +39,7 @@ export default function GeneracionGafete({ conductores }) {
   };
 
   const nameParts = formatName(selectedConductor?.nombre);
-  const qrValue = selectedConductor ? `ID:${selectedConductor.id}|TARJETON:${selectedConductor.tarjeton}` : 'SITMAH';
+  const qrValue = selectedConductor ? `ID:${selectedConductor.id}|TARJETON:${selectedConductor.tarjeton ? selectedConductor.tarjeton.split('_BAJA_')[0] : ''}` : 'SITMAH';
   const fotoUrl = selectedConductor?.foto ? `${API_BASE}/storage/${selectedConductor.foto}` : null;
 
   const handlePrint = () => {
@@ -85,7 +85,7 @@ export default function GeneracionGafete({ conductores }) {
                       }}
                     >
                       <div className="font-bold text-slate-800">{c.nombre}</div>
-                      <div className="text-xs text-slate-500 mt-1">Tarjetón: <span className="font-semibold text-slate-700">{c.tarjeton}</span></div>
+                      <div className="text-xs text-slate-500 mt-1">Tarjetón: <span className="font-semibold text-slate-700">{c.tarjeton ? c.tarjeton.split('_BAJA_')[0] : ''}</span></div>
                     </div>
                   ))
                 ) : (
