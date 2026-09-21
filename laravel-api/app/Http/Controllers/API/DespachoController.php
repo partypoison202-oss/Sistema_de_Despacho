@@ -419,7 +419,10 @@ class DespachoController extends Controller
                 'informacion_operativa.mantenimiento_tarjeton',
                 'informacion_operativa.mantenimiento_ruta',
                 'informacion_operativa.mantenimiento_corrida',
-                'informacion_operativa.mantenimiento_kilometraje'
+                'informacion_operativa.mantenimiento_kilometraje',
+                'informacion_operativa.relevo_conductor',
+                'informacion_operativa.relevo_tarjeton',
+                'informacion_operativa.relevo_hora'
             )
             ->first();
 
@@ -483,6 +486,9 @@ class DespachoController extends Controller
                 'asignado'  => true,
                 'ruta'      => $info->ruta,
                 'conductor' => $info->nombre_conductor,
+                'relevo_conductor' => $info->relevo_conductor ?? null,
+                'relevo_tarjeton' => $info->relevo_tarjeton ?? null,
+                'relevo_hora' => $info->relevo_hora ?? null,
                 'tarjeton'  => $info->numero_tarjeton ?? '',
                 'estatus'   => $estatus,
                 'falla'     => $info->falla,

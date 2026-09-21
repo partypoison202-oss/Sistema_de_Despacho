@@ -268,6 +268,8 @@ export default function DetalleUnidadMesaControl() {
       if (activeUnitData.status === 'success') {
         setDatosOperativos({
           conductor: activeUnitData.conductor || 'No reportado hoy',
+          relevo_conductor: activeUnitData.relevo_conductor || null,
+          relevo_tarjeton: activeUnitData.relevo_tarjeton || null,
           ruta: activeUnitData.ruta || 'Sin ruta',
           tarjeton: activeUnitData.tarjeton || '',
           corrida: activeUnitData.corridas || '',
