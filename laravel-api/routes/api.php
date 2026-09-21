@@ -172,6 +172,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/foto', [ConductorController::class, 'uploadFoto']);
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
+    Route::post('/conductores/{id}/justificar-falta', [ConductorController::class, 'justificarFalta']);
+    Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
 
     // Gestión de Maniobristas
     Route::get('/maniobristas', [ManiobristaController::class, 'index']);

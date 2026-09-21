@@ -29,6 +29,11 @@ class ConductorController extends Controller
                     $table->string('foto', 255)->nullable();
                 });
             }
+            if (!Schema::hasColumn('conductores', 'faltas_detalle')) {
+                Schema::table('conductores', function (Blueprint $table) {
+                    $table->text('faltas_detalle')->nullable();
+                });
+            }
         } catch (\Exception $e) {
             // Manejo silencioso si las columnas ya existen
         }
@@ -295,5 +300,130 @@ class ConductorController extends Controller
             'message' => 'Operador dado de baja correctamente',
             'conductor' => $conductor
         ]);
+    }
+
+    /**
+     * Sube un documento justificante para una falta y la descuenta de las faltas activas.
+     */
+    public function justificarFalta(Request $request, $id)
+    {
+        $this->ensureColumnsExist();
+
+        $request->validate([
+            'justificante' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240', // Max 10MB
+            'falta_id' => 'nullable|string',
+            'falta_index' => 'nullable|integer',
+            'observaciones' => 'nullable|string|max:1000',
+            'fecha_falta' => 'nullable|string',
+            'motivo_falta' => 'nullable|string',
+        ]);
+
+        $conductor = Conductor::findOrFail($id);
+
+        if ($request->hasFile('justificante')) {
+            $file = $request->file('justificante');
+            $filename = 'justificante_' . $id . '_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $path = $file->storeAs('justificantes', $filename, 'public');
+
+            $rawDetalle = $conductor->faltas_detalle;
+            $detalle = [];
+            if (is_array($rawDetalle)) {
+                $detalle = $rawDetalle;
+            } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+                $parsed = json_decode($rawDetalle, true);
+                if (is_array($parsed)) $detalle = $parsed;
+            }
+
+            $faltaIndex = $request->input('falta_index');
+            $faltaId = $request->input('falta_id');
+            $updated = false;
+
+            foreach ($detalle as $idx => &$item) {
+                if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
+                    $item['estado'] = 'justificada';
+                    $item['justificada'] = true;
+                    $item['justificante_url'] = '/storage/' . $path;
+                    $item['justificante_nombre'] = $file->getClientOriginalName();
+                    $item['justificante_fecha'] = date('Y-m-d H:i');
+                    $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
+                    $updated = true;
+                    break;
+                }
+            }
+
+            if (!$updated) {
+                $detalle[] = [
+                    'id' => 'falta_' . time() . '_' . rand(100, 999),
+                    'fecha' => $request->input('fecha_falta') ?: date('Y-m-d'),
+                    'motivo' => $request->input('motivo_falta') ?: 'Falta registrada',
+                    'estado' => 'justificada',
+                    'justificada' => true,
+                    'justificante_url' => '/storage/' . $path,
+                    'justificante_nombre' => $file->getClientOriginalName(),
+                    'justificante_fecha' => date('Y-m-d H:i'),
+                    'observaciones_justificacion' => $request->input('observaciones') ?: 'Justificante adjuntado correctamente',
+                ];
+            }
+
+            $conductor->faltas_detalle = $detalle;
+
+            if ($conductor->faltas > 0) {
+                $conductor->faltas = max(0, (int)$conductor->faltas - 1);
+            }
+
+            $conductor->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Falta justificada correctamente. El comprobante fue almacenado y la falta fue descontada del historial activo.',
+                'justificante_url' => '/storage/' . $path,
+                'conductor' => $conductor
+            ], 200);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'No se proporcionó ningún archivo justificante.'], 400);
+    }
+
+    /**
+     * Registra una falta con fecha y motivo detallado para un conductor.
+     */
+    public function agregarFalta(Request $request, $id)
+    {
+        $this->ensureColumnsExist();
+
+        $request->validate([
+            'fecha' => 'required|date',
+            'motivo' => 'nullable|string|max:255',
+        ]);
+
+        $conductor = Conductor::findOrFail($id);
+
+        $rawDetalle = $conductor->faltas_detalle;
+        $detalle = [];
+        if (is_array($rawDetalle)) {
+            $detalle = $rawDetalle;
+        } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+            $parsed = json_decode($rawDetalle, true);
+            if (is_array($parsed)) $detalle = $parsed;
+        }
+
+        $nuevaFalta = [
+            'id' => 'falta_' . time() . '_' . rand(100, 999),
+            'fecha' => $request->input('fecha'),
+            'motivo' => $request->input('motivo') ?: 'Inasistencia no justificada',
+            'estado' => 'pendiente',
+            'justificada' => false,
+        ];
+
+        $detalle[] = $nuevaFalta;
+        $conductor->faltas_detalle = $detalle;
+        $conductor->faltas = ((int)($conductor->faltas ?? 0)) + 1;
+        $conductor->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Falta registrada correctamente.',
+            'conductor' => $conductor
+        ], 200);
     }
 }
