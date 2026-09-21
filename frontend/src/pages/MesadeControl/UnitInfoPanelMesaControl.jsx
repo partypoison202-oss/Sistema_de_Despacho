@@ -16,12 +16,20 @@ const renderConductorInfo = (cargandoDatos, getConductorDisplay, datosOperativos
   }
 
   // Extraer valores de forma segura sin asumir un string de getConductorDisplay
-  const titularStr = (datosOperativos.titular_conductor && datosOperativos.titular_conductor !== 'Sin conductor' && datosOperativos.titular_conductor !== 'No reportado hoy') 
-    ? String(datosOperativos.titular_conductor).replace(/\s*\(\d+\)$/, '').trim() 
-    : '';
+  let titularStr = '';
+  if (
+    datosOperativos.titular_conductor && 
+    datosOperativos.titular_conductor !== 'Sin conductor' && 
+    datosOperativos.titular_conductor !== 'No reportado hoy'
+  ) {
+    titularStr = String(datosOperativos.titular_conductor).replace(/\s*\(\d+\)$/, '').trim();
+  }
+
   const relevoStr = datosOperativos.relevo_conductor 
     ? String(datosOperativos.relevo_conductor).replace(/\s*\(\d+\)$/, '').trim() 
     : null;
+
+  const tarjetonTitular = datosOperativos.tarjeton || datosOperativos.titular_tarjeton;
 
   return (
     <>
@@ -29,10 +37,8 @@ const renderConductorInfo = (cargandoDatos, getConductorDisplay, datosOperativos
       <div className="ap-driver-box" style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
           <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>TITULAR</span>
-          {datosOperativos.tarjeton ? (
-            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, margin: 0 }}>TARJETÓN: {String(datosOperativos.tarjeton).split('_BAJA_')[0]}</span>
-          ) : datosOperativos.titular_tarjeton ? (
-             <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, margin: 0 }}>TARJETÓN: {String(datosOperativos.titular_tarjeton).split('_BAJA_')[0]}</span>
+          {tarjetonTitular ? (
+            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, margin: 0 }}>TARJETÓN: {String(tarjetonTitular).split('_BAJA_')[0]}</span>
           ) : (
             <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>SIN TARJETÓN</span>
           )}
@@ -700,7 +706,7 @@ export default function UnitInfoPanel({
   const handleConfirmRuta = async (nuevaRutaStr = null) => {
     const rutaAUsar = typeof nuevaRutaStr === 'string' ? nuevaRutaStr.trim() : formRuta.trim();
     if (!rutaAUsar || rutaAUsar === datosOperativos.ruta) {
-      setEditandoRuta(false);
+      setDropdownRutaOpen(false);
       return;
     }
     setGuardandoRuta(true);
@@ -716,7 +722,7 @@ export default function UnitInfoPanel({
           timer: 2000
         });
       }
-      setEditandoRuta(false);
+      setDropdownRutaOpen(false);
     } catch (err) {
       console.error(err);
     } finally {
