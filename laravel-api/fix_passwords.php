@@ -1,8 +1,8 @@
 <?php
 /**
- * Script temporal para actualizar contraseñas en producción.
+ * Script temporal para actualizar contraseñas Y módulos en producción.
  * Ejecutar con: php fix_passwords.php
- * BORRAR ESTE ARCHIVO después de ejecutarlo.
+ * BORRAR ESTE ARCHIVO después de ejecutarlo: rm fix_passwords.php
  */
 
 // Cargar variables de entorno del .env de Laravel
@@ -39,71 +39,89 @@ try {
 
 echo "✅ Conexión exitosa a: " . ($env['DB_DATABASE'] ?? '?') . "\n\n";
 
-// Lista de usuarios y sus contraseñas
+// Lista completa: usuario => [contraseña, [módulos]]
 $usuarios = [
-    'Omar_Aviles'       => 'LAO_DD26',
-    'Guadalupe_Santos'  => 'SCG_DD26',
-    'Marino_Roman'      => 'VRM_DD26',
-    'Cesar_Jimenez'     => 'JC_DD26',
-    'Bacilio_Tapia'     => 'TPB_DD26',
-    'Fausto_Valdez'     => 'VTF_DD26',
-    'Fernando_Ramos'    => 'LRF_DD26',
-    'Humberto_Cabrera'  => 'CRH_CC26',
-    'Miguel_Monzalvo'   => 'MMA_CC26',
-    'Jose_Montiel'      => 'MBJ_CC26',
-    'Jeanet_Garcia'     => 'GCJ_CC26',
-    'Israel_Moreno'     => 'MGI_CC26',
-    'Luis_Vargas'       => 'VGL_CC26',
-    'Daniel_Luna'       => 'LCD_CC26',
-    'Mario_Lazcano'     => 'LAM_CC26',
-    'Jorge_Leal'        => 'LRJ_CC26',
-    'Ivan_Martinez'     => 'MAI_CC26',
-    'Jairo_Jimenez'     => 'JRJ_CC26',
-    'Miguel_Odon'       => 'OM_CC26',
-    'Bonifacio_Alpizar' => 'ALB_ME26',
-    'Diana_Vazquez'     => 'VGD_ME26',
-    'Emilio_Corona'     => 'CME_ME26',
-    'Gabriel_Garcia'    => 'GGV_ME26',
-    'Jorge_Nava'        => 'NVJ_ME26',
-    'Cesar_Badillo'     => 'BMC_ME26',
-    'Ramon_Bautista'    => 'BRR_ME26',
-    'Edgar_Gomez'       => 'GGE_ME26',
-    'Adrian_Isidro'     => 'ILA_ME26',
-    'Raquel_Aguilar'    => 'ARR_ME26',
-    'Karen_Rodriguez'   => 'RBK_ME26',
-    'Angelica_Gonzalez' => 'GSA_MC26',
-    'Jose_Angeles'      => 'AMJ_EN26',
-    'Ricardo_Macias'    => 'MVR_PL26',
-    'Victor_Alonso'     => 'AGV_PL26',
-    'Enrique_Hernandez' => 'HHE_AD26',
-    'Erick_Herrera'     => 'HCE_AD26',
-    'Otoniel_Perez'     => 'PMO_AD26',
+    // ADMINISTRADORES
+    'Enrique_Hernandez' => ['HHE_AD26', ['despacho','centro_control','mesa_control','maniobristas','relevos','encierro','capturista','operadores','mantenimiento','carga_combustible','programacion_pasteles','reportes','usuarios']],
+    'Erick_Herrera'     => ['HCE_AD26', ['despacho','centro_control','mesa_control','maniobristas','relevos','encierro','capturista','operadores','mantenimiento','carga_combustible','programacion_pasteles','reportes','usuarios']],
+    'Otoniel_Perez'     => ['PMO_AD26', ['despacho','centro_control','mesa_control','maniobristas','relevos','encierro','capturista','operadores','mantenimiento','carga_combustible','programacion_pasteles','reportes','usuarios']],
+    // DESPACHO
+    'Omar_Aviles'       => ['LAO_DD26', ['despacho']],
+    'Guadalupe_Santos'  => ['SCG_DD26', ['despacho']],
+    'Marino_Roman'      => ['VRM_DD26', ['despacho']],
+    'Cesar_Jimenez'     => ['JC_DD26',  ['despacho']],
+    'Bacilio_Tapia'     => ['TPB_DD26', ['despacho']],
+    'Fausto_Valdez'     => ['VTF_DD26', ['despacho']],
+    'Fernando_Ramos'    => ['LRF_DD26', ['despacho']],
+    // CENTRO CONTROL
+    'Humberto_Cabrera'  => ['CRH_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Miguel_Monzalvo'   => ['MMA_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Jose_Montiel'      => ['MBJ_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Jeanet_Garcia'     => ['GCJ_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Israel_Moreno'     => ['MGI_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Luis_Vargas'       => ['VGL_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Daniel_Luna'       => ['LCD_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Mario_Lazcano'     => ['LAM_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Jorge_Leal'        => ['LRJ_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Ivan_Martinez'     => ['MAI_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Jairo_Jimenez'     => ['JRJ_CC26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Miguel_Odon'       => ['OM_CC26',  ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    // MANTENIMIENTO
+    'Bonifacio_Alpizar' => ['ALB_ME26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Diana_Vazquez'     => ['VGD_ME26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Emilio_Corona'     => ['CME_ME26', ['centro_control','mesa_control','maniobristas','relevos','encierro','capturista']],
+    'Gabriel_Garcia'    => ['GGV_ME26', ['mantenimiento','encierro','carga_combustible']],
+    'Jorge_Nava'        => ['NVJ_ME26', ['mantenimiento','encierro','carga_combustible']],
+    'Cesar_Badillo'     => ['BMC_ME26', ['mantenimiento','encierro','carga_combustible']],
+    'Ramon_Bautista'    => ['BRR_ME26', ['mantenimiento','encierro','carga_combustible']],
+    'Edgar_Gomez'       => ['GGE_ME26', ['mantenimiento','encierro','carga_combustible']],
+    'Adrian_Isidro'     => ['ILA_ME26', ['mantenimiento','encierro','carga_combustible']],
+    'Raquel_Aguilar'    => ['ARR_ME26', ['mantenimiento','encierro','carga_combustible']],
+    'Karen_Rodriguez'   => ['RBK_ME26', ['mantenimiento','encierro','carga_combustible']],
+    // MESA DE CONTROL
+    'Angelica_Gonzalez' => ['GSA_MC26', ['centro_control','mesa_control','relevos']],
+    // ENCIERRO
+    'Jose_Angeles'      => ['AMJ_EN26', ['encierro']],
+    // PASTELES
+    'Ricardo_Macias'    => ['MVR_PL26', ['centro_control','mesa_control','programacion_pasteles']],
+    'Victor_Alonso'     => ['AGV_PL26', ['centro_control','mesa_control','programacion_pasteles']],
 ];
 
 $ok = 0;
 $noEncontrado = 0;
 
-foreach ($usuarios as $usuario => $contrasena) {
-    // Generar hash compatible con Laravel ($2y$)
-    $hash = password_hash($contrasena, PASSWORD_BCRYPT, ['cost' => 12]);
+foreach ($usuarios as $usuario => [$contrasena, $modulos]) {
+    // Buscar el usuario en la BD
+    $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE usuario = :usuario");
+    $stmt->execute([':usuario' => $usuario]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $stmt = $pdo->prepare(
-        "UPDATE usuarios SET contrasena = :hash, activo = true WHERE usuario = :usuario"
-    );
-    $stmt->execute([':hash' => $hash, ':usuario' => $usuario]);
-    $affected = $stmt->rowCount();
-
-    if ($affected > 0) {
-        echo "✅ $usuario => OK\n";
-        $ok++;
-    } else {
+    if (!$user) {
         echo "❌ $usuario => NO ENCONTRADO en la base de datos\n";
         $noEncontrado++;
+        continue;
     }
+
+    $userId = $user['id'];
+
+    // Actualizar contraseña y activar usuario
+    $hash = password_hash($contrasena, PASSWORD_BCRYPT, ['cost' => 12]);
+    $upd = $pdo->prepare("UPDATE usuarios SET contrasena = :hash, activo = true WHERE id = :id");
+    $upd->execute([':hash' => $hash, ':id' => $userId]);
+
+    // Borrar módulos actuales y reinsertar los correctos
+    $pdo->prepare("DELETE FROM usuario_modulos WHERE usuario_id = :uid")->execute([':uid' => $userId]);
+    foreach ($modulos as $modulo) {
+        $ins = $pdo->prepare("INSERT INTO usuario_modulos (usuario_id, modulo_codigo) VALUES (:uid, :mod)");
+        $ins->execute([':uid' => $userId, ':mod' => $modulo]);
+    }
+
+    echo "✅ $usuario => contraseña OK | módulos: " . implode(', ', $modulos) . "\n";
+    $ok++;
 }
 
-echo "\n";
-echo "========================================\n";
+echo "\n========================================\n";
 echo "Actualizados: $ok | No encontrados: $noEncontrado\n";
 echo "========================================\n";
-echo "\n⚠️  IMPORTANTE: Borra este archivo del servidor: rm fix_passwords.php\n";
+echo "\n⚠️  IMPORTANTE: Borra este archivo ahora: rm fix_passwords.php\n";
+echo "⚠️  IMPORTANTE: Reconstruye el frontend:  cd ../frontend && npm run build\n";
