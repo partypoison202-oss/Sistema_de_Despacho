@@ -14,22 +14,14 @@ const renderConductorInfo = (cargandoDatos, getConductorDisplay, datosOperativos
   if (cargandoDatos) {
     return <p className="info-card__value" style={{ fontSize: '0.9rem', margin: 0 }}>Buscando...</p>;
   }
-  
-  const conductorStr = getConductorDisplay() || '';
-  let titularStr = conductorStr;
-  let relevoStr = null;
 
-  if (conductorStr.includes('TITULAR:')) {
-    const parts = conductorStr.split('TITULAR:');
-    if (parts[0].includes('RELEVO')) {
-      relevoStr = parts[0].replace('RELEVO', '').trim();
-      titularStr = parts[1] ? parts[1].trim() : '';
-    } else {
-      titularStr = parts[1] ? parts[1].trim() : parts[0].trim();
-    }
-  } else if (datosOperativos.relevo_conductor) {
-    relevoStr = datosOperativos.relevo_conductor;
-  }
+  // Extraer valores de forma segura sin asumir un string de getConductorDisplay
+  const titularStr = (datosOperativos.titular_conductor && datosOperativos.titular_conductor !== 'Sin conductor' && datosOperativos.titular_conductor !== 'No reportado hoy') 
+    ? String(datosOperativos.titular_conductor).replace(/\s*\(\d+\)$/, '').trim() 
+    : '';
+  const relevoStr = datosOperativos.relevo_conductor 
+    ? String(datosOperativos.relevo_conductor).replace(/\s*\(\d+\)$/, '').trim() 
+    : null;
 
   return (
     <>
@@ -38,14 +30,16 @@ const renderConductorInfo = (cargandoDatos, getConductorDisplay, datosOperativos
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
           <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>TITULAR</span>
           {datosOperativos.tarjeton ? (
-            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, margin: 0 }}>TARJETÓN: {datosOperativos.tarjeton}</span>
+            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, margin: 0 }}>TARJETÓN: {String(datosOperativos.tarjeton).split('_BAJA_')[0]}</span>
+          ) : datosOperativos.titular_tarjeton ? (
+             <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, margin: 0 }}>TARJETÓN: {String(datosOperativos.titular_tarjeton).split('_BAJA_')[0]}</span>
           ) : (
             <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>SIN TARJETÓN</span>
           )}
         </div>
         <span
           className="ap-driver-name"
-          style={{ color: titularStr && titularStr !== 'No reportado hoy' ? '#0f172a' : '#94a3b8', fontSize: '0.8rem', display: 'block', fontWeight: 600 }}
+          style={{ color: titularStr ? '#0f172a' : '#94a3b8', fontSize: '0.8rem', display: 'block', fontWeight: 600 }}
         >
           {titularStr || 'Sin conductor asignado'}
         </span>
@@ -53,11 +47,11 @@ const renderConductorInfo = (cargandoDatos, getConductorDisplay, datosOperativos
 
       {/* Relevo (solo si existe) */}
       {(relevoStr || datosOperativos.relevo_tarjeton) && (
-        <div className="ap-driver-box" style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
+        <div className="ap-driver-box" style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
             <span style={{ background: '#ffedd5', color: '#c2410c', fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>RELEVO</span>
             {datosOperativos.relevo_tarjeton ? (
-              <span style={{ fontSize: '0.7rem', color: '#0f766e', fontWeight: 600, margin: 0 }}>TARJETÓN: {datosOperativos.relevo_tarjeton}</span>
+              <span style={{ fontSize: '0.7rem', color: '#0f766e', fontWeight: 600, margin: 0 }}>TARJETÓN: {String(datosOperativos.relevo_tarjeton).split('_BAJA_')[0]}</span>
             ) : (
               <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>SIN TARJETÓN</span>
             )}
