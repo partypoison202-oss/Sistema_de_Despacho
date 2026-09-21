@@ -91,7 +91,8 @@ export default function ModalProgramacionApertura({
         const ruta = String(u.ruta || '').toLowerCase();
         const tarjeton = String(u.tarjeton || '').toLowerCase();
         const conductor = String(u.nombre_conductor || '').toLowerCase();
-        const maniobrista = String(u.nombre_maniobrista || '').toLowerCase();
+        const relevoConductor = String(u.relevo_conductor || '').toLowerCase();
+        const relevoTarjeton = String(u.relevo_tarjeton || '').toLowerCase();
         const motivo = String(u.motivo || '').toLowerCase();
         const motivoEst = String(u.motivo_estatus || '').toLowerCase();
         const falla = String(u.falla || '').toLowerCase();
@@ -101,7 +102,8 @@ export default function ModalProgramacionApertura({
           ruta.includes(q) ||
           tarjeton.includes(q) ||
           conductor.includes(q) ||
-          maniobrista.includes(q) ||
+          relevoConductor.includes(q) ||
+          relevoTarjeton.includes(q) ||
           motivo.includes(q) ||
           motivoEst.includes(q) ||
           falla.includes(q);
@@ -124,7 +126,9 @@ export default function ModalProgramacionApertura({
       'CORRIDA',
       'TARJETON',
       'CONDUCTOR',
-      'MANIOBRISTA',
+      'RELEVO_TARJETON',
+      'RELEVO_CONDUCTOR',
+      'RELEVO_HORA',
       'HORA_SALIDA_PATIO',
       'HORA_ACOPLE',
       'MOTIVO_FALLA'
@@ -138,7 +142,9 @@ export default function ModalProgramacionApertura({
       `"${u.corridas || ''}"`,
       `"${u.tarjeton || ''}"`,
       `"${u.nombre_conductor || ''}"`,
-      `"${u.nombre_maniobrista || ''}"`,
+      `"${u.relevo_tarjeton || ''}"`,
+      `"${u.relevo_conductor || ''}"`,
+      `"${u.relevo_hora || ''}"`,
       `"${u.hora_salida_patio || ''}"`,
       `"${u.acople || ''}"`,
       `"${u.motivo_estatus || u.motivo || u.falla || ''}"`
@@ -423,7 +429,7 @@ export default function ModalProgramacionApertura({
                     <th style={{ width: '110px' }}>Estatus</th>
                     <th style={{ width: '120px' }}>Ruta / Corrida</th>
                     <th>Conductor de Apertura</th>
-                    <th>Maniobrista</th>
+                    <th>Conductor de Relevo</th>
                     <th style={{ width: '140px' }}>Horario Programado</th>
                     <th>Motivo / Falla Apertura</th>
                     <th style={{ width: '110px', textAlign: 'center' }}>Acción</th>
@@ -507,20 +513,21 @@ export default function ModalProgramacionApertura({
                           </div>
                         </td>
 
-                        {/* Maniobrista */}
+                        {/* Conductor Relevo */}
                         <td>
-                          {u.nombre_maniobrista ? (
-                            <div className="ap-driver-box">
-                              {u.tarjeton_maniobrista && (
-                                <span className="ap-driver-tarjeton" style={{ color: '#0369a1' }}>
-                                  TARJ: {u.tarjeton_maniobrista}
-                                </span>
-                              )}
-                              <span className="ap-driver-name">{u.nombre_maniobrista}</span>
-                            </div>
-                          ) : (
-                            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>-</span>
-                          )}
+                          <div className="ap-driver-box">
+                            {u.relevo_tarjeton ? (
+                              <span className="ap-driver-tarjeton" style={{ color: '#0f766e' }}>TARJETÓN: {u.relevo_tarjeton}</span>
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>SIN RELEVO</span>
+                            )}
+                            <span
+                              className="ap-driver-name"
+                              style={{ color: u.relevo_conductor ? '#0f172a' : '#94a3b8' }}
+                            >
+                              {u.relevo_conductor || '-'}
+                            </span>
+                          </div>
                         </td>
 
                         {/* Horarios */}

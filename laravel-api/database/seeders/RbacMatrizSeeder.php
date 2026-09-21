@@ -136,7 +136,7 @@ class RbacMatrizSeeder extends Seeder
             ],
             [
                 'nombre_completo' => 'Marino Román Velázquez',
-                'usuario'         => 'Roman_Marino',
+                'usuario'         => 'Marino_Roman',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'RVM_DD26',
