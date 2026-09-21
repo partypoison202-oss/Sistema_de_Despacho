@@ -17,8 +17,6 @@ return new class extends Migration
                 'codigo' => 'PASTELES',
                 'nombre' => 'Pasteles',
                 'descripcion' => 'Acceso a Monitoreo de la Operación, Mesa de Control y Programación (Pasteles).',
-                'created_at' => now(),
-                'updated_at' => now(),
             ]);
         }
     }
