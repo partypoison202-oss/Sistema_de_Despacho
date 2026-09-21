@@ -240,6 +240,108 @@ class RbacMatrizSeeder extends Seeder
                 'modulos'         => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'],
                 'contrasena'      => 'CME_ME26',
             ],
+            [
+                'nombre_completo' => 'Gabriel García Vázquez',
+                'usuario'         => 'Gabriel_Garcia',
+                'correo'          => 'ggarcia@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'GGV_ME26',
+            ],
+            [
+                'nombre_completo' => 'Jorge Nava Vinte',
+                'usuario'         => 'Jorge_Nava',
+                'correo'          => 'jnava@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'NVJ_ME26',
+            ],
+            [
+                'nombre_completo' => 'César Arturo Badillo Martinez',
+                'usuario'         => 'Cesar_Badillo',
+                'correo'          => 'cbadillo@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'BMC_ME26',
+            ],
+            [
+                'nombre_completo' => 'Ramón Bautista Rodríguez',
+                'usuario'         => 'Ramon_Bautista',
+                'correo'          => 'rbautista@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'BRR_ME26',
+            ],
+            [
+                'nombre_completo' => 'Edgar Gomez García',
+                'usuario'         => 'Edgar_Gomez',
+                'correo'          => 'egomez@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'GGE_ME26',
+            ],
+            [
+                'nombre_completo' => 'Adrián Isidro Lopéz',
+                'usuario'         => 'Adrian_Isidro',
+                'correo'          => 'aisidro@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'ILA_ME26',
+            ],
+            [
+                'nombre_completo' => 'Raquel Aguilar Rodríguez',
+                'usuario'         => 'Raquel_Aguilar',
+                'correo'          => 'raguilar@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'ARR_ME26',
+            ],
+            [
+                'nombre_completo' => 'Karen Guadalupe Rodríguez Blanco',
+                'usuario'         => 'Karen_Rodriguez',
+                'correo'          => 'krodriguez@sitmah.gob.mx',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'RBK_ME26',
+            ],
+
+            // ── Mesa de Control ──
+            [
+                'nombre_completo' => 'Angélica Gonzalez Santos',
+                'usuario'         => 'Angelica_Gonzalez',
+                'correo'          => 'agonzalez@sitmah.gob.mx',
+                'rol_codigo'      => 'MESA_CONTROL',
+                'modulos'         => ['centro_control', 'mesa_control', 'relevos'],
+                'contrasena'      => 'GSA_MC26',
+            ],
+
+            // ── Encierro ──
+            [
+                'nombre_completo' => 'Jose Gabriel Angeles Martinez',
+                'usuario'         => 'Jose_Angeles',
+                'correo'          => 'jangeles@sitmah.gob.mx',
+                'rol_codigo'      => 'ENCIERRO',
+                'modulos'         => ['encierro'],
+                'contrasena'      => 'AMJ_EN26',
+            ],
+
+            // ── Pasteles ──
+            [
+                'nombre_completo' => 'Ricardo Macías Vargas',
+                'usuario'         => 'Ricardo_Macias',
+                'correo'          => 'rmacias@sitmah.gob.mx',
+                'rol_codigo'      => 'PASTELES',
+                'modulos'         => ['centro_control', 'mesa_control', 'programacion_pasteles'],
+                'contrasena'      => 'MVR_PL26',
+            ],
+            [
+                'nombre_completo' => 'Victor Esteban Alonso Garcia',
+                'usuario'         => 'Victor_Alonso',
+                'correo'          => 'valonso@sitmah.gob.mx',
+                'rol_codigo'      => 'PASTELES',
+                'modulos'         => ['centro_control', 'mesa_control', 'programacion_pasteles'],
+                'contrasena'      => 'AGV_PL26',
+            ],
         ];
 
         foreach ($matriz as $entry) {
