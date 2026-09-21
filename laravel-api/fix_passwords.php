@@ -62,17 +62,17 @@ $usuarios = [
     'Omar_Aviles'       => ['ALO_CD26',  ['operadores']],
 
     // ── Despacho Perfil Mixto ──
-    'Miguel_Odon'       => ['OM_PM26',   ['operadores', 'despacho']],
+    'Miguel_Odon'       => ['OM_DD26',   ['operadores', 'despacho']],
 
     // ── Despacho de unidades ──
     'Fausto_Valdez'     => ['VTF_DD26',  ['despacho']],
     'Fernando_Ramos'    => ['RLF_DD26',  ['despacho']],
     'Marino_Roman'      => ['RVM_DD26',  ['despacho']],
     'Cesar_Jimenez'     => ['JC_DD26',   ['despacho']],
-    'Maria_Guadalupe'   => ['SCG_DD26',  ['despacho']],
-    'Ivan_Martinez'     => ['MAI_DD26',  ['despacho']],
+    'Guadalupe_Santos'  => ['SCG_DD26',  ['despacho']],
+    'Ivan_Martinez'     => ['MAI_DD26',  ['maniobristas', 'operadores']],
     'Jairo_Jimenez'     => ['JRJ_DD26',  ['despacho']],
-    'Martin_Bacilio'    => ['TPB_DD26',  ['despacho']],
+    'Bacilio_Tapia'     => ['TPB_DD26',  ['despacho']],
 
     // ── Mantenimiento Expandido ──
     'Erick_Herrera'     => ['HCE_ME26',  ['mantenimiento', 'encierro', 'carga_combustible']],
