@@ -42,15 +42,15 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       if (initialStep === 2 || incidenciaExistente) {
         pasoInicial = 2;
       }
-      
+
       setStep(pasoInicial);
       setIncidencia(incidenciaExistente);
-      
+
       // Extraemos el folio de la orden si ya existe
       if (initialData?.folio_mantenimiento && initialData.folio_mantenimiento.startsWith('MANT-')) {
         setFolioOrden(initialData.folio_mantenimiento.replace('MANT-', ''));
       }
-      
+
       const now = new Date();
       const fechaActual = now.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
       const horaActual = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -73,7 +73,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         firma_base64: initialData?.firma_base64 || ''
       });
     }
-    
+
     // Reset hasInitialized when closed so it can re-init next time
     if (!isOpen) {
       hasInitialized.current = false;
@@ -105,18 +105,18 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
-        
+
         const sep = isEven ? ':' : ' ';
         setRealTimeClock(`${hours}${sep}${minutes}${sep}${seconds}`);
-        
+
         // Actualizamos formData silenciosamente para el PDF
         setFormData(prev => ({
           ...prev,
           hora_reporte: `${hours}:${minutes}:${seconds}`
         }));
       };
-      
-      updateClock(); // llamada inicial
+
+      updateClock(); // llamada inicial 
       const intervalId = setInterval(updateClock, 500);
       return () => clearInterval(intervalId);
     }
@@ -134,15 +134,25 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     };
   }, [isOpen]);
 
-if (!isOpen) return null;
+  if (!isOpen) return null;
 
-const handleNext = () => {
-  if (!String(incidencia || '').trim()) {
-      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar el número de incidencia.' });
+  const handleNext = () => {
+    if (!String(incidencia || '').trim()) {
+      Swal.fire({ 
+        icon: 'warning', 
+        title: 'Atención', 
+        text: 'Debes ingresar el número de incidencia.',
+        customClass: { container: '!z-[100000]' }
+      });
       return;
     }
-  if (!String(formData.falla_reportada || '').trim()) {
-      Swal.fire({ icon: 'warning', title: 'Atención', text: 'Debes ingresar la falla reportada.' });
+    if (!String(formData.falla_reportada || '').trim()) {
+      Swal.fire({ 
+        icon: 'warning', 
+        title: 'Atención', 
+        text: 'Debes ingresar la falla reportada.',
+        customClass: { container: '!z-[100000]' }
+      });
       return;
     }
     setStep(2);
@@ -150,10 +160,10 @@ const handleNext = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
-      
+
       // Auto-completar operador si el tarjetón coincide
       if (name === 'tarjeton') {
         const valStr = String(value).trim();
@@ -165,7 +175,7 @@ const handleNext = () => {
           newData.operador = '';
         }
       }
-      
+
       return newData;
     });
   };
@@ -184,30 +194,40 @@ const handleNext = () => {
 
   const handleGeneratePDF = async () => {
     if (!printableRef.current) return;
-    
+
+    // Pre-abrimos la ventana para evitar el bloqueo de Popups en Safari
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write('<div style="font-family: sans-serif; padding: 20px;">Generando PDF de la orden, por favor espere...</div>');
+    }
+
     try {
       const element = printableRef.current;
       const canvas = await html2canvas(element, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
+
       // Tamaño Carta Horizontal (Landscape)
       const pdf = new jsPDF('l', 'mm', 'letter');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
+
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      
-      // Descargar el PDF directamente (más confiable que window.open en Safari)
+
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `Orden_Mantenimiento_${formData.eco}_MANT-${folioOrden || 'REIMPRESION'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(pdfUrl), 100);
-      
+
+      // Mostrar en la pestaña nueva
+      if (newWindow) {
+        newWindow.location.href = pdfUrl;
+      } else {
+        // Fallback en caso de que el navegador lo haya bloqueado de todos modos
+        const link = document.createElement('a');
+        link.href = pdfUrl;
+        link.target = '_blank';
+        link.download = `Orden_Mantenimiento_${formData.eco}_FOLIO-${folioOrden || 'REIMPRESION'}.pdf`;
+        link.click();
+      }
+
     } catch (error) {
       console.error("Error generando PDF:", error);
       Swal.fire({ icon: 'error', title: 'Error', text: 'Hubo un problema generando el PDF.' });
@@ -216,15 +236,15 @@ const handleNext = () => {
 
   const handleSave = async () => {
     if (!isFormValid()) return;
-    
+
     setLoading(true);
     setErrorMsg('');
     hasPrinted.current = true; // Prevent double printing if printOnly triggers
-    
+
     try {
       // Generamos y descargamos el PDF inmediatamente para mejor experiencia de usuario
       await handleGeneratePDF();
-      
+
       // Luego guardamos en backend
       await onSuccess({
         numero_incidencia: incidencia,
@@ -241,7 +261,7 @@ const handleNext = () => {
         mantenimiento_corrida: formData.corrida,
         mantenimiento_kilometraje: formData.km
       });
-      
+
       onClose();
     } catch (error) {
       console.error(error);
@@ -264,7 +284,8 @@ const handleNext = () => {
         motivo: 'MANTENIMIENTO',
         falla_reportada: formData.falla_reportada, // Se guarda desde el paso 1
         folio_mantenimiento: '',
-        fecha_folio_mantenimiento: ''
+        fecha_folio_mantenimiento: '',
+        generarFolioAutomatico: false  // NO generar folio al solo registrar incidencia
       });
       onClose();
     } catch (error) {
@@ -279,11 +300,11 @@ const handleNext = () => {
     <div className="flex flex-col items-center p-6 max-w-md mx-auto">
 
       <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">Asignar Número de Incidencia</h2>
-      
+
       <div className="w-full text-left mb-6">
         <label className="block text-sm font-semibold text-gray-700 mb-2">Asignar número de incidencia:</label>
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={incidencia}
           onChange={(e) => setIncidencia(e.target.value.replace(/\D/g, ''))}
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-4"
@@ -291,7 +312,7 @@ const handleNext = () => {
           autoFocus
         />
         <label className="block text-sm font-semibold text-gray-700 mb-2">Falla Reportada:</label>
-        <textarea 
+        <textarea
           value={formData.falla_reportada}
           onChange={(e) => setFormData(prev => ({ ...prev, falla_reportada: e.target.value.replace(/[0-9]/g, '').toUpperCase() }))}
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:outline-none transition-colors"
@@ -301,14 +322,14 @@ const handleNext = () => {
       </div>
 
       <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
-        <button 
+        <button
           onClick={handleNext}
           disabled={loading}
           className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
         >
           {loading ? 'Cargando...' : 'Continuar →'}
         </button>
-        <button 
+        <button
           onClick={onClose}
           disabled={loading}
           className="bg-gray-400 hover:bg-gray-500 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
@@ -325,24 +346,20 @@ const handleNext = () => {
         <h2 className="text-lg font-bold tracking-wide">Reporte de Falla / Orden de Mantenimiento</h2>
         <button onClick={onClose} className="text-white/80 hover:text-white transition-colors text-2xl font-bold leading-none focus:outline-none">&times;</button>
       </div>
-      
+
       <div className="p-6 overflow-y-auto overscroll-contain flex-1 bg-gray-50/50">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          
+
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-            <div className="md:col-span-2">
+            <div className="md:col-span-3">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">N° INCIDENCIA</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{incidencia}</div>
             </div>
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">FOLIO (MANT-)</label>
-              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{folioOrden}</div>
-            </div>
-            <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ECO</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{formData.eco}</div>
             </div>
-            <div className="md:col-span-5">
+            <div className="md:col-span-6">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha / Hora</label>
               <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1 whitespace-nowrap">
                 {formData.fecha} - <span style={{ fontFamily: 'monospace' }}>{realTimeClock || formData.hora_reporte}</span>
@@ -353,8 +370,8 @@ const handleNext = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Operador <span className="text-red-500">*</span></label>
-              <input type="text" name="operador" value={formData.operador} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm bg-white" />
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NOMBRE DEL OPERADOR</p>
+              <input type="text" name="operador" value={formData.operador} readOnly className="w-full border border-gray-200 rounded-lg p-2.5 text-sm transition-all shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed focus:outline-none" />
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SE AUTOCOMPLETA CON EL TARJETÓN</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón) <span className="text-red-500">*</span></label>
@@ -368,13 +385,11 @@ const handleNext = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio <span className="text-red-500">*</span></label>
               {(() => {
                 const tipo = String(initialData?.tipoTransporte || initialData?.tipo || '').toLowerCase();
-                const esUrbanuss = ['urbanuss', 'zafiro', 'orion'].includes(tipo);
-                const esAlimentadora = ['vagoneta', 'alimentadora', 'urvan'].includes(tipo);
+                // urbanuss, articulado, padron = troncal
+                const esUrbanuss = ['urbanuss', 'zafiro', 'orion', 'articulado', 'padron', 'troncal'].includes(tipo);
                 const opciones = esUrbanuss
-                  ? ['RA 1','RA 2','RA 3','RA 4','RA 5','RA 6','RA 7','RA 8','RA 9','RA 10','RA 11','RA 12','RA 13','RA 14','RA 15','RA 16','RA 17','RA 18']
-                  : esAlimentadora
-                  ? ['A 1','A 2','A 3','A 4','A 5','A 6','A 7','A 8','A 9','A 10','A 11','A 12','Especial','Sin ruta asignada']
-                  : [];
+                  ? ['T01', 'T02', 'T04', 'T05']
+                  : ['1A', '1B', '2A', '2B', '2D', '2E', '3', '4A', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15A', '15B', '15C', '16', '17', '19', '20B', 'Especial', 'Sin ruta asignada'];
                 return opciones.length > 0 ? (
                   <div className="relative">
                     <select
@@ -396,7 +411,7 @@ const handleNext = () => {
                   <input type="text" name="servicio" value={formData.servicio} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
                 );
               })()}
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SELECCIONE LA RUTA ASIGNADA (EJ. RA 3)</p>
+              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">SELECCIONE LA RUTA ASIGNADA (EJ. T01)</p>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida <span className="text-red-500">*</span></label>
@@ -419,33 +434,33 @@ const handleNext = () => {
           </div>
 
           <div className="mb-4">
-            <SignaturePad 
-              label="REPORTÓ (FIRMA)" 
+            <SignaturePad
+              label="REPORTÓ (FIRMA)"
               height={140}
               onSave={(base64) => setFormData(prev => ({ ...prev, firma_base64: base64 }))}
               onClear={() => setFormData(prev => ({ ...prev, firma_base64: '' }))}
             />
           </div>
-          
+
         </div>
       </div>
 
       {/* Banner de error inline */}
       {errorMsg && (
         <div className="mx-4 mb-2 p-3 bg-red-50 border border-red-300 rounded-lg flex items-start gap-2 text-red-700 text-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" className="shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
           <span>{errorMsg}</span>
         </div>
       )}
 
       <div className="p-5 bg-white border-t border-gray-100 rounded-b-xl shrink-0 flex justify-end gap-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-10">
-        <button 
+        <button
           onClick={() => { setStep(1); setErrorMsg(''); }}
           className="px-5 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
         >
           Atrás (Cambiar Incidencia)
         </button>
-        <button 
+        <button
           onClick={handleSave}
           disabled={!isFormValid() || loading}
           className={`px-6 py-2.5 rounded-lg font-medium text-white shadow-md flex items-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-[#6b1d33]/50 focus:ring-offset-1
@@ -463,7 +478,7 @@ const handleNext = () => {
 
       {/* Contenedor Oculto para la plantilla PDF */}
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-        <PrintableMaintenanceOrder ref={printableRef} data={{...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : ''}} />
+        <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : '' }} />
       </div>
     </div>
   );
@@ -475,7 +490,7 @@ const handleNext = () => {
         <p className="text-white text-lg font-semibold animate-pulse">Generando e imprimiendo Orden de Mantenimiento...</p>
         {/* Contenedor Oculto para la plantilla PDF */}
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-          <PrintableMaintenanceOrder ref={printableRef} data={{...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : ''}} />
+          <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : '' }} />
         </div>
       </div>,
       document.body
@@ -484,7 +499,7 @@ const handleNext = () => {
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-none">
-      <div 
+      <div
         className="bg-white rounded-xl shadow-2xl w-full relative overflow-hidden"
         style={{ maxWidth: (step === 1) ? '500px' : '800px', transition: 'max-width 0.3s ease-in-out' }}
       >

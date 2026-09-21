@@ -265,7 +265,10 @@ class DespachoController extends Controller
                 'informacion_operativa.mantenimiento_tarjeton',
                 'informacion_operativa.mantenimiento_ruta',
                 'informacion_operativa.mantenimiento_corrida',
-                'informacion_operativa.mantenimiento_kilometraje'
+                'informacion_operativa.mantenimiento_kilometraje',
+                'informacion_operativa.relevo_conductor',
+                'informacion_operativa.relevo_tarjeton',
+                'informacion_operativa.relevo_hora'
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
@@ -285,13 +288,18 @@ class DespachoController extends Controller
                         ->exists();
                 }
 
+                $conductorEfectivo = !empty($unidad->relevo_conductor) ? $unidad->relevo_conductor : $unidad->nombre_conductor;
+                $tarjetonEfectivo  = !empty($unidad->relevo_tarjeton) ? $unidad->relevo_tarjeton : $unidad->tarjeton;
+
                 return [
                     'unidad_id' => $unidad->unidad_id,
                     'numero_eco' => $unidad->numero_eco,
-                    'tarjeton' => $unidad->tarjeton,
+                    'tarjeton' => $tarjetonEfectivo,
                     'estatus' => $estatus,
                     'ruta' => $unidad->ruta,
-                    'nombre_conductor' => $unidad->nombre_conductor,
+                    'nombre_conductor' => $conductorEfectivo,
+                    'titular_conductor' => $unidad->nombre_conductor,
+                    'titular_tarjeton'  => $unidad->tarjeton,
                     'tarjeton_maniobrista' => $unidad->tarjeton_maniobrista,
                     'nombre_maniobrista' => $unidad->nombre_maniobrista,
                     'falla' => $unidad->falla,
@@ -310,6 +318,9 @@ class DespachoController extends Controller
                     'mantenimiento_ruta' => $unidad->mantenimiento_ruta,
                     'mantenimiento_corrida' => $unidad->mantenimiento_corrida,
                     'mantenimiento_kilometraje' => $unidad->mantenimiento_kilometraje,
+                    'relevo_conductor' => $unidad->relevo_conductor ?? null,
+                    'relevo_tarjeton' => $unidad->relevo_tarjeton ?? null,
+                    'relevo_hora' => $unidad->relevo_hora ?? null,
                     'ya_encerrada' => $yaEncerrada
                 ];
             });
@@ -366,8 +377,13 @@ class DespachoController extends Controller
             ->select(
                 'unidades.numero_eco as economico',
                 'informacion_operativa.ruta',
-                'informacion_operativa.numero_tarjeton as tarjeton',
-                'informacion_operativa.nombre_conductor as conductor_nombre'
+                DB::raw("COALESCE(NULLIF(informacion_operativa.relevo_tarjeton, ''), informacion_operativa.numero_tarjeton) as tarjeton"),
+                DB::raw("COALESCE(NULLIF(informacion_operativa.relevo_conductor, ''), informacion_operativa.nombre_conductor) as conductor_nombre"),
+                'informacion_operativa.nombre_conductor as titular_conductor',
+                'informacion_operativa.numero_tarjeton as titular_tarjeton',
+                'informacion_operativa.relevo_tarjeton',
+                'informacion_operativa.relevo_conductor',
+                'informacion_operativa.relevo_hora'
             )
             ->get();
 
@@ -447,7 +463,26 @@ class DespachoController extends Controller
                 $estatus = 'operacion';
             }
 
-            // Siempre buscamos si hay un encierro hoy, porque las unidades encerradas ahora se mantienen en 'operacion'
+            // Si la unidad está desincorporada (reserva, mantenimiento, percance), NO debe tener conductor ni ruta asignados
+            if (in_array($estatus, ['mantenimiento', 'reserva', 'percance'], true)) {
+                $info->ruta = null;
+                $info->nombre_conductor = null;
+                $info->numero_tarjeton = null;
+                $info->corridas = null;
+                $info->ciclo = null;
+                $info->hora_salida_patio = null;
+                $info->acople = null;
+                $info->hora_real_salida_patio = null;
+                $info->mantenimiento_conductor = null;
+                $info->mantenimiento_tarjeton = null;
+                $info->mantenimiento_ruta = null;
+                $info->mantenimiento_corrida = null;
+                $info->relevo_conductor = null;
+                $info->relevo_tarjeton = null;
+                $info->relevo_hora = null;
+            }
+
+            // Verificar si hubo un encierro hoy
             $encierroHoy = DB::table('historial_operativo')
                 ->where('unidad_id', $unidadBase->id)
                 ->where('momento', 'ENCIERRO')
@@ -455,41 +490,25 @@ class DespachoController extends Controller
                 ->orderByDesc('id')
                 ->first();
             if ($encierroHoy) {
-                $info->ruta = $encierroHoy->ruta;
-                $info->nombre_conductor = $encierroHoy->nombre_conductor;
-                $info->numero_tarjeton = $encierroHoy->numero_tarjeton;
-                $info->corridas = $encierroHoy->corridas;
                 $info->hora_encierro = $encierroHoy->hora_encierro;
             }
-
-            // Recuperar último conductor/ruta si están vacíos (p. ej. por cambio a mantenimiento/reserva antes del encierro)
-            if (empty($info->nombre_conductor) || empty($info->ruta)) {
-                $lastRecord = DB::table('historial_operativo')
-                    ->where('unidad_id', $unidadBase->id)
-                    ->whereNotNull('nombre_conductor')
-                    ->where('nombre_conductor', '!=', '')
-                    ->orderBy('id', 'desc')
-                    ->first();
-                    
-                if ($lastRecord) {
-                    $info->nombre_conductor = empty($info->nombre_conductor) ? $lastRecord->nombre_conductor : $info->nombre_conductor;
-                    $info->numero_tarjeton = empty($info->numero_tarjeton) ? $lastRecord->numero_tarjeton : $info->numero_tarjeton;
-                    $info->ruta = empty($info->ruta) ? $lastRecord->ruta : $info->ruta;
-                    $info->corridas = empty($info->corridas) ? $lastRecord->corridas : $info->corridas;
-                }
-            }
         }
+
+        $conductorEfectivo = !empty($info->relevo_conductor) ? $info->relevo_conductor : $info->nombre_conductor;
+        $tarjetonEfectivo  = !empty($info->relevo_tarjeton) ? $info->relevo_tarjeton : ($info->numero_tarjeton ?? '');
 
         return response()->json(
             $info ? [
                 'status'    => 'success',
                 'asignado'  => true,
                 'ruta'      => $info->ruta,
-                'conductor' => $info->nombre_conductor,
+                'conductor' => $conductorEfectivo,
+                'tarjeton'  => $tarjetonEfectivo,
+                'titular_conductor' => $info->nombre_conductor,
+                'titular_tarjeton'  => $info->numero_tarjeton ?? '',
                 'relevo_conductor' => $info->relevo_conductor ?? null,
                 'relevo_tarjeton' => $info->relevo_tarjeton ?? null,
                 'relevo_hora' => $info->relevo_hora ?? null,
-                'tarjeton'  => $info->numero_tarjeton ?? '',
                 'estatus'   => $estatus,
                 'falla'     => $info->falla,
                 'corridas'  => $info->corridas,
@@ -515,6 +534,9 @@ class DespachoController extends Controller
                 'mantenimiento_ruta' => $info->mantenimiento_ruta,
                 'mantenimiento_corrida' => $info->mantenimiento_corrida,
                 'mantenimiento_kilometraje' => $info->mantenimiento_kilometraje,
+                'relevo_conductor' => $info->relevo_conductor ?? null,
+                'relevo_tarjeton'  => $info->relevo_tarjeton ?? null,
+                'relevo_hora'       => $info->relevo_hora ?? null,
                 // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
@@ -526,6 +548,8 @@ class DespachoController extends Controller
                 'ruta'      => 'Sin ruta asignada',
                 'conductor' => 'Sin conductor',
                 'tarjeton'  => '',
+                'titular_conductor' => null,
+                'titular_tarjeton'  => null,
                 'estatus'   => 'operacion',
                 'falla'     => null,
                 'corridas'  => null,
@@ -536,6 +560,9 @@ class DespachoController extends Controller
                 'acople'    => null,
                 'hora_real_salida_patio' => null,
                 'transporte_patio_norte' => null,
+                'relevo_conductor' => null,
+                'relevo_tarjeton' => null,
+                'relevo_hora' => null,
                 // Nuevos campos de mantenimiento aunque no esté asignado operativamente
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
@@ -631,6 +658,21 @@ class DespachoController extends Controller
                 }
             }
 
+            // Procesar Relevo
+            $relevoTarjetonVal = trim((string) ($fila['RELEVO_TARJETON'] ?? ''));
+            $relevoConductorNombre = '';
+            if ($relevoTarjetonVal !== '') {
+                $relevoCatalog = $conductoresMap->get($relevoTarjetonVal);
+                if ($relevoCatalog) {
+                    $relevoConductorNombre = $relevoCatalog->nombre;
+                    $tarjetonesEnServicio[] = $relevoTarjetonVal;
+                } else {
+                    $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                }
+            } else {
+                $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+            }
+
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
@@ -648,7 +690,7 @@ class DespachoController extends Controller
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista'   => $maniobristaNombre,
                 'relevo_tarjeton'      => trim((string) ($fila['RELEVO_TARJETON'] ?? '')),
-                'relevo_conductor'     => trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')),
+                'relevo_conductor'     => preg_replace('/\s*\(\d+\)$/', '', $relevoConductorNombre !== '' ? $relevoConductorNombre : trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''))),
                 'relevo_hora'          => trim((string) ($fila['RELEVO_HORA'] ?? '')),
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
                 'hora_salida_patio'      => $horaProgVal === '' ? null : $horaProgVal,
@@ -1034,6 +1076,147 @@ class DespachoController extends Controller
         ], 200);
     }
 
+    public static function ejecutarCambioDiaAutomatico()
+    {
+        $now = Carbon::now('America/Mexico_City');
+        $fechaHoy = $now->toDateString();
+
+        \Log::info("Iniciando ejecución de cambio de día operativo automático para la fecha {$fechaHoy}...");
+
+        try {
+            DB::beginTransaction();
+
+            $sourceTable = null;
+            $deleteSourceAfter = false;
+
+            // 1. Prioridad: informacion_operativa_manana
+            if (DB::table('informacion_operativa_manana')->count() > 0) {
+                $sourceTable = 'informacion_operativa_manana';
+                $deleteSourceAfter = true;
+            } else {
+                // 2. Si es sábado, domingo o lunes, revisar plantillas
+                $diaSemana = $now->dayOfWeekIso; // 1 = Lunes, 6 = Sábado, 7 = Domingo
+                if ($diaSemana == 6 && DB::table('informacion_operativa_sabado')->count() > 0) {
+                    $sourceTable = 'informacion_operativa_sabado';
+                } elseif ($diaSemana == 7 && DB::table('informacion_operativa_domingo')->count() > 0) {
+                    $sourceTable = 'informacion_operativa_domingo';
+                } elseif ($diaSemana == 1 && DB::table('informacion_operativa_lunes')->count() > 0) {
+                    $sourceTable = 'informacion_operativa_lunes';
+                }
+            }
+
+            if ($sourceTable) {
+                $nuevosRegistros = DB::table($sourceTable)->get();
+                DB::table('informacion_operativa')->delete();
+
+                $targetCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('informacion_operativa'));
+                $tarjetones = [];
+                $maniobristas = [];
+
+                foreach ($nuevosRegistros as $row) {
+                    unset($row->id);
+                    $arrayRow = (array)$row;
+                    $insertRow = [];
+                    foreach ($arrayRow as $key => $val) {
+                        if (isset($targetCols[$key])) {
+                            if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
+                                $insertRow[$key] = $val ? 'true' : 'false';
+                            } else {
+                                $insertRow[$key] = $val;
+                            }
+                        }
+                    }
+
+                    // Reiniciar campos de validación para el nuevo día
+                    if (array_key_exists('hora_real_salida_patio', $insertRow)) $insertRow['hora_real_salida_patio'] = null;
+                    if (array_key_exists('hora_salida', $insertRow)) $insertRow['hora_salida'] = null;
+                    if (array_key_exists('firma_base64', $insertRow)) $insertRow['firma_base64'] = null;
+                    $insertRow['fecha_registro'] = $fechaHoy;
+
+                    DB::table('informacion_operativa')->insert($insertRow);
+
+                    if (!empty($row->numero_tarjeton)) $tarjetones[] = $row->numero_tarjeton;
+                    if (!empty($row->tarjeton_maniobrista)) $maniobristas[] = $row->tarjeton_maniobrista;
+                }
+
+                if ($deleteSourceAfter) {
+                    DB::table($sourceTable)->delete();
+                }
+
+                DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+                DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
+
+                if (!empty($tarjetones)) {
+                    DB::table('conductores')->whereIn('tarjeton', array_unique($tarjetones))->update(['estado_servicio' => 'en_servicio']);
+                }
+                if (!empty($maniobristas)) {
+                    DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristas))->update(['estado_servicio' => 'en_servicio']);
+                }
+
+                \App\Helpers\BitacoraHelper::ensureInicioSnapshot();
+
+                DB::commit();
+
+                \Illuminate\Support\Facades\Cache::forever('cambio_dia_operativo_ejecutado_' . $fechaHoy, true);
+
+                \Log::info("Cambio de día operativo automático completado con éxito desde {$sourceTable}.");
+                return [
+                    'status' => 'success',
+                    'message' => "Cambio de día aplicado exitosamente desde tabla {$sourceTable}."
+                ];
+            } else {
+                // Si no hay tabla con programación nueva, reiniciamos las validaciones en informacion_operativa
+                DB::table('informacion_operativa')->update([
+                    'hora_real_salida_patio' => null,
+                    'firma_base64' => null,
+                    'fecha_registro' => $fechaHoy
+                ]);
+
+                DB::table('conductores')->update(['estado_servicio' => 'disponible']);
+                DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
+
+                $conductoresAsignados = DB::table('informacion_operativa')
+                    ->whereNotNull('numero_tarjeton')
+                    ->where('numero_tarjeton', '!=', '')
+                    ->pluck('numero_tarjeton')
+                    ->toArray();
+
+                if (!empty($conductoresAsignados)) {
+                    DB::table('conductores')->whereIn('tarjeton', array_unique($conductoresAsignados))->update(['estado_servicio' => 'en_servicio']);
+                }
+
+                $maniobristasAsignados = DB::table('informacion_operativa')
+                    ->whereNotNull('tarjeton_maniobrista')
+                    ->where('tarjeton_maniobrista', '!=', '')
+                    ->pluck('tarjeton_maniobrista')
+                    ->toArray();
+
+                if (!empty($maniobristasAsignados)) {
+                    DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristasAsignados))->update(['estado_servicio' => 'en_servicio']);
+                }
+
+                \App\Helpers\BitacoraHelper::ensureInicioSnapshot();
+
+                DB::commit();
+
+                \Illuminate\Support\Facades\Cache::forever('cambio_dia_operativo_ejecutado_' . $fechaHoy, true);
+
+                \Log::info("Cambio de día operativo automático: se reiniciaron validaciones para el nuevo día.");
+                return [
+                    'status' => 'success',
+                    'message' => "Cambio de día aplicado reiniciando validaciones operativas de la flota."
+                ];
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Error en cambio de día operativo automático: " . $e->getMessage());
+            return [
+                'status' => 'error',
+                'message' => "Error al ejecutar cambio de día operativo automático: " . $e->getMessage()
+            ];
+        }
+    }
+
     public function aplicarCambioDia()
     {
         try {
@@ -1403,11 +1586,41 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
+        // Auto-ejecución del cambio de día si son las 03:30 AM o más
+        $nowMexico = Carbon::now('America/Mexico_City');
+        $hoy = $nowMexico->toDateString();
+        $horaActual = $nowMexico->format('H:i');
+
+        if ($horaActual >= '03:30') {
+            $tieneManana = DB::table('informacion_operativa_manana')->count() > 0;
+            $primerRegistro = DB::table('informacion_operativa')->first();
+            $esDiaAnterior = $primerRegistro && isset($primerRegistro->fecha_registro) && $primerRegistro->fecha_registro < $hoy;
+
+            if ($tieneManana || ($esDiaAnterior && !\Illuminate\Support\Facades\Cache::has('cambio_dia_operativo_ejecutado_' . $hoy))) {
+                self::ejecutarCambioDiaAutomatico();
+            }
+        }
+
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
+
+        $hoyMexico = \Carbon\Carbon::now('America/Mexico_City')->toDateString();
+        $hoyUtc = \Carbon\Carbon::now('UTC')->toDateString();
+
+        $idsEncerradasHoy = DB::table('historial_operativo')
+            ->where('momento', 'ENCIERRO')
+            ->where(function($q) use ($hoyMexico, $hoyUtc) {
+                $q->whereIn('fecha_historial', [$hoyMexico, $hoyUtc])
+                  ->orWhereDate('created_at', $hoyMexico)
+                  ->orWhereDate('created_at', $hoyUtc);
+            })
+            ->pluck('unidad_id')
+            ->map(fn($id) => (int)$id)
+            ->toArray();
 
         $registros = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->select(
+                'unidades.id as unidad_id',
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.ruta',
@@ -1443,22 +1656,29 @@ class DespachoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        $formateados = $registros->map(function ($reg) {
+        $formateados = $registros->map(function ($reg) use ($idsEncerradasHoy) {
+            $isEncerrada = in_array((int)$reg->unidad_id, $idsEncerradasHoy, true);
+            $estatusNorm = strtolower(trim($reg->estatus ?? ''));
+            $isDesincorporada = $isEncerrada || in_array($estatusNorm, ['reserva', 'mantenimiento', 'percance'], true);
+            $horaSalidaEfectiva = $isDesincorporada ? null : $reg->hora_real_salida_patio;
+
             return [
+                'UNIDAD_ID' => $reg->unidad_id,
+                'unidad_id' => $reg->unidad_id,
                 'TIPO_DE_UNIDAD' => $reg->tipo,
-                'RUTA' => $reg->ruta,
+                'RUTA' => $isDesincorporada ? null : $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
-                'TARJETON' => $reg->tarjeton,
-                'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
-                'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
-                'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
-                'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
-                'RELEVO_CONDUCTOR' => $reg->relevo_conductor ?? '',
-                'RELEVO_HORA' => $reg->relevo_hora ?? '',
+                'TARJETON' => $isDesincorporada ? null : $reg->tarjeton,
+                'NOMBRE_CONDUCTOR' => $isDesincorporada ? null : $reg->nombre_conductor,
+                'TARJETON_MANIOBRISTA' => $isDesincorporada ? null : $reg->tarjeton_maniobrista,
+                'NOMBRE_MANIOBRISTA' => $isDesincorporada ? null : $reg->nombre_maniobrista,
+                'RELEVO_TARJETON' => $isDesincorporada ? null : ($reg->relevo_tarjeton ?? ''),
+                'RELEVO_CONDUCTOR' => $isDesincorporada ? null : ($reg->relevo_conductor ?? ''),
+                'RELEVO_HORA' => $isDesincorporada ? null : ($reg->relevo_hora ?? ''),
                 'ESTATUS' => $reg->estatus,
                 'FALLA' => $reg->falla,
-                'CORRIDAS' => $reg->corridas,
-                'CICLO' => $reg->ciclo,
+                'CORRIDAS' => $isDesincorporada ? null : $reg->corridas,
+                'CICLO' => $isDesincorporada ? null : $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
                 'FOLIO_MANTENIMIENTO' => $reg->folio_mantenimiento,
@@ -1466,17 +1686,19 @@ class DespachoController extends Controller
                 'FALLA_REPORTADA' => $reg->falla_reportada,
                 'DIAGNOSTICO' => $reg->diagnostico,
                 'FIRMA_BASE64' => $reg->firma_base64,
-                'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
-                'HORA_PROGRAMADA' => $reg->hora_salida_patio,
-                'ACOPLE' => $reg->acople,
-                'HORA_SALIDA' => $reg->hora_real_salida_patio,
-                'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
+                'HORA_DE_ACOPLE' => $isDesincorporada ? null : $reg->hora_salida_patio,
+                'HORA_PROGRAMADA' => $isDesincorporada ? null : $reg->hora_salida_patio,
+                'ACOPLE' => $isDesincorporada ? null : $reg->acople,
+                'HORA_SALIDA' => $horaSalidaEfectiva,
+                'HORA_REAL_SALIDA_PATIO' => $horaSalidaEfectiva,
                 'PATIO_NORTE' => (bool)$reg->patio_norte,
                 'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
                 'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
                 'MANTENIMIENTO_RUTA' => $reg->mantenimiento_ruta,
                 'MANTENIMIENTO_CORRIDA' => $reg->mantenimiento_corrida,
-                'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje
+                'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje,
+                'YA_ENCERRADA' => $isEncerrada,
+                'ya_encerrada' => $isEncerrada,
             ];
         });
 
@@ -2002,6 +2224,34 @@ class DespachoController extends Controller
         }
 
         $horaEncierro = date('H:i:s');
+        $motivoFinal = $request->motivo_estatus ?? 'Fin de turno (Encierro regular)';
+
+        // Liberar conductor si tenía uno asignado (titular y/o relevo)
+        if (!empty($registroOperativo->numero_tarjeton)) {
+            $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
+            $tarjetonClean = ltrim($tarjetonAnterior, '0');
+            $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+            $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
+
+            DB::table('conductores')
+                ->whereIn('tarjeton', $tarjetonCandidates)
+                ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
+                ->update(['estado_servicio' => 'disponible']);
+        }
+
+        if (!empty($registroOperativo->relevo_tarjeton)) {
+            $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
+            $tarjetonRelClean = ltrim($tarjetonRel, '0');
+            $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
+            $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
+
+            DB::table('conductores')
+                ->whereIn('tarjeton', $tarjetonRelCandidates)
+                ->orWhere('id', is_numeric($tarjetonRel) ? (int)$tarjetonRel : 0)
+                ->update(['estado_servicio' => 'disponible']);
+        }
+
+        // Registrar snapshot en historial_operativo ANTES de limpiar la informacion_operativa
         DB::table('historial_operativo')->insert([
             'unidad_id' => $unidad->id,
             'ruta' => $registroOperativo->ruta,
@@ -2009,8 +2259,8 @@ class DespachoController extends Controller
             'nombre_conductor' => $registroOperativo->nombre_conductor,
             'corridas' => $registroOperativo->corridas,
             'tipo' => $registroOperativo->tipo,
-            'estatus' => $registroOperativo->estatus,
-            'motivo_estatus' => $request->motivo_estatus ?? 'Fin de turno (Encierro regular)',
+            'estatus' => 'reserva',
+            'motivo_estatus' => $motivoFinal,
             'momento' => 'ENCIERRO',
             'hora_encierro' => $horaEncierro,
             'fecha_historial' => date('Y-m-d'),
@@ -2018,6 +2268,35 @@ class DespachoController extends Controller
             'created_at' => now(),
             'updated_at' => now()
         ]);
+
+        // Actualizar estatus en informacion_operativa a reserva y limpiar datos del registro operativo
+        DB::table('informacion_operativa')
+            ->where('id', $registroOperativo->id)
+            ->update([
+                'estatus' => 'reserva',
+                'motivo_estatus' => $motivoFinal,
+                'motivo' => $motivoFinal,
+                'nombre_conductor' => null,
+                'numero_tarjeton' => null,
+                'ruta' => null,
+                'corridas' => null,
+                'ciclo' => null,
+                'falla' => null,
+                'hora_salida_patio' => null,
+                'acople' => null,
+                'hora_real_salida_patio' => null,
+                'relevo_tarjeton' => null,
+                'relevo_conductor' => null,
+                'relevo_hora' => null,
+                'tarjeton_maniobrista' => null,
+                'nombre_maniobrista' => null,
+                'mantenimiento_conductor' => null,
+                'mantenimiento_tarjeton' => null,
+                'mantenimiento_ruta' => null,
+                'mantenimiento_corrida' => null,
+                'patio_norte' => 'false',
+                'transporte_patio_norte' => 'false',
+            ]);
 
         return response()->json([
             'status' => 'success',
@@ -2169,12 +2448,33 @@ class DespachoController extends Controller
             $updateData['relevo_hora'] = null;
             $updateData['tarjeton_maniobrista'] = null;
             $updateData['nombre_maniobrista'] = null;
+            $updateData['mantenimiento_conductor'] = null;
+            $updateData['mantenimiento_tarjeton'] = null;
+            $updateData['mantenimiento_ruta'] = null;
+            $updateData['mantenimiento_corrida'] = null;
             $updateData['patio_norte'] = 'false';
             $updateData['transporte_patio_norte'] = 'false';
 
-            if ($registroOperativo->numero_tarjeton) {
+            if ($registroOperativo && $registroOperativo->numero_tarjeton) {
+                $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
+                $tarjetonClean = ltrim($tarjetonAnterior, '0');
+                $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+                $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
+
                 DB::table('conductores')
-                    ->where('tarjeton', $registroOperativo->numero_tarjeton)
+                    ->whereIn('tarjeton', $tarjetonCandidates)
+                    ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
+                    ->update(['estado_servicio' => 'disponible']);
+            }
+            if ($registroOperativo && !empty($registroOperativo->relevo_tarjeton)) {
+                $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
+                $tarjetonRelClean = ltrim($tarjetonRel, '0');
+                $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
+                $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
+
+                DB::table('conductores')
+                    ->whereIn('tarjeton', $tarjetonRelCandidates)
+                    ->orWhere('id', is_numeric($tarjetonRel) ? (int)$tarjetonRel : 0)
                     ->update(['estado_servicio' => 'disponible']);
             }
         } else {
@@ -2641,6 +2941,9 @@ class DespachoController extends Controller
                 ], 404);
             }
 
+            $kmValue = $request->kilometraje === '' ? null : $request->kilometraje;
+            $odoValue = ($request->odometro === '' || $request->odometro === null) ? $kmValue : $request->odometro;
+
             DB::table('unidades')
                 ->where('id', $unidad->id)
                 ->update([
@@ -2651,8 +2954,8 @@ class DespachoController extends Controller
                     'numero_cincho'      => $request->numero_cincho === '' ? null : $request->numero_cincho,
                     'numero_cincho_adblue' => $request->numero_cincho_adblue === '' ? null : $request->numero_cincho_adblue,
                     'fecha_ultima_carga' => $request->fecha_ultima_carga === '' ? null : $request->fecha_ultima_carga,
-                    'kilometraje'        => $request->kilometraje === '' ? null : $request->kilometraje,
-                    'odometro'           => $request->odometro === '' ? null : $request->odometro,
+                    'kilometraje'        => $kmValue,
+                    'odometro'           => $odoValue,
                 ]);
 
             DB::table('historial_mantenimiento')->insert([
@@ -2665,8 +2968,8 @@ class DespachoController extends Controller
                 'numero_cincho'      => $request->numero_cincho === '' ? null : $request->numero_cincho,
                 'numero_cincho_adblue' => $request->numero_cincho_adblue === '' ? null : $request->numero_cincho_adblue,
                 'fecha_ultima_carga' => $request->fecha_ultima_carga === '' ? null : $request->fecha_ultima_carga,
-                'kilometraje'        => $request->kilometraje === '' ? null : $request->kilometraje,
-                'odometro'           => $request->odometro === '' ? null : $request->odometro,
+                'kilometraje'        => $kmValue,
+                'odometro'           => $odoValue,
                 'fecha_registro'     => now(),
                 'created_at'         => now(),
                 'updated_at'         => now(),

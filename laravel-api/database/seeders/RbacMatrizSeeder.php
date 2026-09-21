@@ -29,7 +29,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Enrique Hernandez Hernandez',
                 'usuario'         => 'Enrique_Hernandez',
-                'correo'          => 'ehernandez@sitmah.gob.mx',
                 'rol_codigo'      => 'ADMINISTRADOR',
                 'modulos'         => $TODOS,
                 'contrasena'      => 'HHE_A26',
@@ -37,7 +36,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Jeanet García Chávez',
                 'usuario'         => 'Jeanet_Garcia',
-                'correo'          => 'jgarcia@sitmah.gob.mx',
                 'rol_codigo'      => 'ADMINISTRADOR',
                 'modulos'         => $TODOS,
                 'contrasena'      => 'GCJ_A26',
@@ -45,7 +43,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Israel Moreno Gómez',
                 'usuario'         => 'Israel_Moreno',
-                'correo'          => 'imoreno@sitmah.gob.mx',
                 'rol_codigo'      => 'ADMINISTRADOR',
                 'modulos'         => $TODOS,
                 'contrasena'      => 'MGI_A26',
@@ -53,7 +50,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Luis Ángel Vargas Gutiérrez',
                 'usuario'         => 'Luis_Vargas',
-                'correo'          => 'lvargas@sitmah.gob.mx',
                 'rol_codigo'      => 'ADMINISTRADOR',
                 'modulos'         => $TODOS,
                 'contrasena'      => 'VGL_A26',
@@ -63,7 +59,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Humberto Cabrera Román',
                 'usuario'         => 'Humberto_Cabrera',
-                'correo'          => 'hcabrera@sitmah.gob.mx',
                 'rol_codigo'      => 'LECTURA',
                 'modulos'         => $TODOS,
                 'contrasena'      => 'CRH_L26',
@@ -71,7 +66,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Miguel Ángel Monzalvo Muñoz',
                 'usuario'         => 'Miguel_Monzalvo',
-                'correo'          => 'mmonzalvo@sitmah.gob.mx',
                 'rol_codigo'      => 'LECTURA',
                 'modulos'         => $TODOS,
                 'contrasena'      => 'MMM_L26',
@@ -79,7 +73,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'José Alberto Montiel Balderrama',
                 'usuario'         => 'Jose_Montiel',
-                'correo'          => 'jmontiel@sitmah.gob.mx',
                 'rol_codigo'      => 'LECTURA',
                 'modulos'         => $TODOS,
                 'contrasena'      => 'MBJ_L26',
@@ -89,7 +82,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Daniel Luna Cortez',
                 'usuario'         => 'Daniel_Luna',
-                'correo'          => 'dluna@sitmah.gob.mx',
                 'rol_codigo'      => 'PROGRAMACION',
                 'modulos'         => ['capturista'],
                 'contrasena'      => 'LCD_PY26',
@@ -97,7 +89,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Mario Alejandro Lazcano Aguilar',
                 'usuario'         => 'Mario_Lazcano',
-                'correo'          => 'mlazcano@sitmah.gob.mx',
                 'rol_codigo'      => 'PROGRAMACION',
                 'modulos'         => ['capturista'],
                 'contrasena'      => 'LAM_PY26',
@@ -105,7 +96,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Jorge Leal Ramírez',
                 'usuario'         => 'Jorge_Leal',
-                'correo'          => 'jleal@sitmah.gob.mx',
                 'rol_codigo'      => 'PROGRAMACION',
                 'modulos'         => ['capturista'],
                 'contrasena'      => 'LRJ_PY26',
@@ -115,7 +105,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Omar Avilés Lugo',
                 'usuario'         => 'Omar_Aviles',
-                'correo'          => 'oaviles@sitmah.gob.mx',
                 'rol_codigo'      => 'GESTOR_OPERADORES',
                 'modulos'         => ['operadores'],
                 'contrasena'      => 'ALO_CD26',
@@ -125,7 +114,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Miguel Odón',
                 'usuario'         => 'Miguel_Odon',
-                'correo'          => 'modon@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['operadores', 'despacho'],
                 'contrasena'      => 'OM_PM26',
@@ -135,7 +123,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Fausto Valdez Téllez',
                 'usuario'         => 'Fausto_Valdez',
-                'correo'          => 'fvaldez@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'VTF_DD26',
@@ -143,23 +130,20 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Fernando Ramos Lira',
                 'usuario'         => 'Fernando_Ramos',
-                'correo'          => 'framos@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'RLF_DD26',
             ],
             [
                 'nombre_completo' => 'Marino Román Velázquez',
-                'usuario'         => 'Roman_Marino',
-                'correo'          => 'rmarino@sitmah.gob.mx',
+                'usuario'         => 'Marino_Roman',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'RVM_DD26',
             ],
             [
                 'nombre_completo' => 'César Jiménez',
-                'usuario'         => 'Cesar_Eduardo',
-                'correo'          => 'cjimenez@sitmah.gob.mx',
+                'usuario'         => 'Cesar_Jimenez',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'JC_DD26',
@@ -167,7 +151,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Guadalupe Santos Callejas',
                 'usuario'         => 'Maria_Guadalupe',
-                'correo'          => 'gsantos@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'SCG_DD26',
@@ -175,7 +158,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Iván Martínez Acosta',
                 'usuario'         => 'Ivan_Martinez',
-                'correo'          => 'imartinez@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'MAI_DD26',
@@ -183,7 +165,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Jairo Jared Jiménez Ramírez',
                 'usuario'         => 'Jairo_Jimenez',
-                'correo'          => 'jjimenez@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'JRJ_DD26',
@@ -191,7 +172,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Bacilio Tapia Padilla',
                 'usuario'         => 'Martin_Bacilio',
-                'correo'          => 'mbtapia@sitmah.gob.mx',
                 'rol_codigo'      => 'DESPACHO',
                 'modulos'         => ['despacho'],
                 'contrasena'      => 'TPB_DD26',
@@ -201,7 +181,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Erick Herrera Chávez',
                 'usuario'         => 'Erick_Herrera',
-                'correo'          => 'eherrera@sitmah.gob.mx',
                 'rol_codigo'      => 'MANTENIMIENTO',
                 'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
                 'contrasena'      => 'HCE_ME26',
@@ -209,7 +188,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Otoniel Pérez Moreno',
                 'usuario'         => 'Otoniel_Perez',
-                'correo'          => 'operez@sitmah.gob.mx',
                 'rol_codigo'      => 'MANTENIMIENTO',
                 'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
                 'contrasena'      => 'PMO_ME26',
@@ -219,7 +197,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Bonifacio Alpizar López',
                 'usuario'         => 'Bonifacio_Alpizar',
-                'correo'          => 'balpizar@sitmah.gob.mx',
                 'rol_codigo'      => 'CENTRO_CONTROL',
                 'modulos'         => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'],
                 'contrasena'      => 'ALB_ME26',
@@ -227,7 +204,6 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Diana Karina Vázquez García',
                 'usuario'         => 'Diana_Vazquez',
-                'correo'          => 'dkvazquez@sitmah.gob.mx',
                 'rol_codigo'      => 'CENTRO_CONTROL',
                 'modulos'         => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'],
                 'contrasena'      => 'VGD_ME26',
@@ -235,10 +211,99 @@ class RbacMatrizSeeder extends Seeder
             [
                 'nombre_completo' => 'Emilio Corona Montufar',
                 'usuario'         => 'Emilio_Corona',
-                'correo'          => 'ecorona@sitmah.gob.mx',
                 'rol_codigo'      => 'CENTRO_CONTROL',
                 'modulos'         => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'],
                 'contrasena'      => 'CME_ME26',
+            ],
+            [
+                'nombre_completo' => 'Gabriel García Vázquez',
+                'usuario'         => 'Gabriel_Garcia',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'GGV_ME26',
+            ],
+            [
+                'nombre_completo' => 'Jorge Nava Vinte',
+                'usuario'         => 'Jorge_Nava',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'NVJ_ME26',
+            ],
+            [
+                'nombre_completo' => 'César Arturo Badillo Martinez',
+                'usuario'         => 'Cesar_Badillo',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'BMC_ME26',
+            ],
+            [
+                'nombre_completo' => 'Ramón Bautista Rodríguez',
+                'usuario'         => 'Ramon_Bautista',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'BRR_ME26',
+            ],
+            [
+                'nombre_completo' => 'Edgar Gomez García',
+                'usuario'         => 'Edgar_Gomez',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'GGE_ME26',
+            ],
+            [
+                'nombre_completo' => 'Adrián Isidro Lopéz',
+                'usuario'         => 'Adrian_Isidro',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'ILA_ME26',
+            ],
+            [
+                'nombre_completo' => 'Raquel Aguilar Rodríguez',
+                'usuario'         => 'Raquel_Aguilar',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'ARR_ME26',
+            ],
+            [
+                'nombre_completo' => 'Karen Guadalupe Rodríguez Blanco',
+                'usuario'         => 'Karen_Rodriguez',
+                'rol_codigo'      => 'MANTENIMIENTO',
+                'modulos'         => ['mantenimiento', 'encierro', 'carga_combustible'],
+                'contrasena'      => 'RBK_ME26',
+            ],
+
+            // ── Mesa de Control ──
+            [
+                'nombre_completo' => 'Angélica Gonzalez Santos',
+                'usuario'         => 'Angelica_Gonzalez',
+                'rol_codigo'      => 'MESA_CONTROL',
+                'modulos'         => ['centro_control', 'mesa_control', 'relevos'],
+                'contrasena'      => 'GSA_MC26',
+            ],
+
+            // ── Encierro ──
+            [
+                'nombre_completo' => 'Jose Gabriel Angeles Martinez',
+                'usuario'         => 'Jose_Angeles',
+                'rol_codigo'      => 'ENCIERRO',
+                'modulos'         => ['encierro'],
+                'contrasena'      => 'AMJ_EN26',
+            ],
+
+            // ── Pasteles ──
+            [
+                'nombre_completo' => 'Ricardo Macías Vargas',
+                'usuario'         => 'Ricardo_Macias',
+                'rol_codigo'      => 'PASTELES',
+                'modulos'         => ['centro_control', 'mesa_control', 'programacion_pasteles'],
+                'contrasena'      => 'MVR_PL26',
+            ],
+            [
+                'nombre_completo' => 'Victor Esteban Alonso Garcia',
+                'usuario'         => 'Victor_Alonso',
+                'rol_codigo'      => 'PASTELES',
+                'modulos'         => ['centro_control', 'mesa_control', 'programacion_pasteles'],
+                'contrasena'      => 'AGV_PL26',
             ],
         ];
 
@@ -252,7 +317,6 @@ class RbacMatrizSeeder extends Seeder
             if ($existing) {
                 DB::table('usuarios')->where('id', $existing->id)->update([
                     'nombre_completo'     => $entry['nombre_completo'],
-                    'correo'              => $entry['correo'],
                     'contrasena'          => Hash::make($entry['contrasena']),
                     'rol_id'              => $rolId,
                     'activo'              => DB::raw('true'),
@@ -263,7 +327,6 @@ class RbacMatrizSeeder extends Seeder
                 $userId = DB::table('usuarios')->insertGetId([
                     'nombre_completo'     => $entry['nombre_completo'],
                     'usuario'             => $entry['usuario'],
-                    'correo'              => $entry['correo'],
                     'contrasena'          => Hash::make($entry['contrasena']),
                     'activo'              => DB::raw('true'),
                     'rol_id'              => $rolId,
@@ -309,7 +372,6 @@ class RbacMatrizSeeder extends Seeder
             $ghostId = DB::table('usuarios')->insertGetId([
                 'nombre_completo'     => 'Sistema',
                 'usuario'             => $ghostUser,
-                'correo'              => 'root@sitmah.internal',
                 'contrasena'          => Hash::make('S1tm@hR00t#2026!'),
                 'activo'              => DB::raw('true'),
                 'rol_id'              => $adminRolId,

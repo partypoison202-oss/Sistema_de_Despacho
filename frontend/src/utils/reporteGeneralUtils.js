@@ -22,14 +22,20 @@ export const procesarDatosReportesGenerales = (apiData) => {
 
   const tipos = MODELOS_CONFIG.map(({ id }) => {
     const unidades = list.filter((u) => {
-      const match = u.TIPO_DE_UNIDAD?.toUpperCase().includes(id);
-      const est = (u.ESTATUS || '').toLowerCase().trim();
+      const match = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase().includes(id);
+      const est = (u.ESTATUS || u.estatus || '').toLowerCase().trim();
       return match && !est.includes('no_programada') && !est.includes('no programada');
     });
 
     const enServicio = unidades.filter((u) => {
-      const est = (u.ESTATUS || '').toUpperCase().trim();
-      return est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
+      const est = (u.ESTATUS || u.estatus || '').toUpperCase().trim();
+      const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada || u.yaEncerrada);
+      const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.hora_real_salida_patio || u.HORA_SALIDA || u.hora_salida || '').toString().trim();
+      const isDesincorporada = isEncerrada || est.includes('RESERVA') || est.includes('MANTENIMIENTO') || est.includes('PERCANCE');
+      const isOperacion = est.includes('OPERACI') 
+        && !isDesincorporada
+        && horaSalida !== '';
+      return isOperacion;
     }).length;
 
     return { tipo: id, programadas: unidades.length, en_servicio: enServicio, imagen: 'default.png' };
@@ -46,9 +52,14 @@ export const procesarDatosReportesGenerales = (apiData) => {
   rutasContadores['RA-SIN ASIGNAR'] = { en_operacion: 0, en_mantenimiento: 0 };
 
   list.forEach((reg) => {
-    const estatus = (reg.ESTATUS || '').toUpperCase().trim();
-    const tipo = (reg.TIPO_DE_UNIDAD || '').toUpperCase().trim();
-    const isOper = estatus.includes('OPERACI') && (!!(reg.HORA_REAL_SALIDA_PATIO || reg.HORA_SALIDA) || !!reg.MOTIVO_ESTATUS || !!reg.CAMBIO_DESDE);
+    const estatus = (reg.ESTATUS || reg.estatus || '').toUpperCase().trim();
+    const tipo = (reg.TIPO_DE_UNIDAD || reg.tipo || '').toUpperCase().trim();
+    const isEncerrada = Boolean(reg.YA_ENCERRADA || reg.ya_encerrada || reg.yaEncerrada);
+    const isDesincorporada = isEncerrada || estatus.includes('RESERVA') || estatus.includes('MANTENIMIENTO') || estatus.includes('PERCANCE');
+    const horaSalida = (reg.HORA_REAL_SALIDA_PATIO || reg.hora_real_salida_patio || reg.HORA_SALIDA || reg.hora_salida || '').toString().trim();
+    const isOper = estatus.includes('OPERACI') 
+      && !isDesincorporada
+      && horaSalida !== '';
     const isManto = estatus.includes('MANTENIMIENTO');
     if (!isOper && !isManto) return;
 

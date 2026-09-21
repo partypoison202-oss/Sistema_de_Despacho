@@ -75,7 +75,7 @@ class PlataformaController extends Controller
                 }
                 $estatusNuevo = 'OPERACION';
                 $datosUpdate['estatus'] = strtolower($estatusNuevo);
-                $datosUpdate['hora_salida'] = !empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s');
+                $datosUpdate['hora_real_salida_patio'] = !empty($registroOperativo->hora_real_salida_patio) ? $registroOperativo->hora_real_salida_patio : (!empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s'));
                 $datosUpdate['motivo_estatus'] = 'INCORPORACION';
                 $datosUpdate['falla'] = null;
                 $datosUpdate['motivo'] = null;
@@ -111,8 +111,14 @@ class PlataformaController extends Controller
                 
                 // Limpiar conductor y ruta al desincorporar
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
+                    $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
+                    $tarjetonClean = ltrim($tarjetonAnterior, '0');
+                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
+
                     DB::table('conductores')
-                        ->where('tarjeton', $registroOperativo->numero_tarjeton)
+                        ->whereIn('tarjeton', $tarjetonCandidates)
+                        ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
                         ->update(['estado_servicio' => 'disponible']);
                 }
                 $datosUpdate['nombre_conductor'] = null;
@@ -131,6 +137,10 @@ class PlataformaController extends Controller
                 $datosUpdate['relevo_hora'] = null;
                 $datosUpdate['tarjeton_maniobrista'] = null;
                 $datosUpdate['nombre_maniobrista'] = null;
+                $datosUpdate['mantenimiento_conductor'] = null;
+                $datosUpdate['mantenimiento_tarjeton'] = null;
+                $datosUpdate['mantenimiento_ruta'] = null;
+                $datosUpdate['mantenimiento_corrida'] = null;
                 $datosUpdate['patio_norte'] = 'false';
                 $datosUpdate['transporte_patio_norte'] = 'false';
 
@@ -216,17 +226,17 @@ class PlataformaController extends Controller
                         : ($registroOperativo->corridas ?? null);
 
                     // 4. Horas y ciclo
-                    $horaProgramadaParaReemplazo = !empty($registroOperativo->hora_programada)
-                        ? $registroOperativo->hora_programada
-                        : null;
+                    $horaSalidaPatioParaReemplazo = !empty($registroOperativo->hora_salida_patio)
+                        ? $registroOperativo->hora_salida_patio
+                        : ($registroOperativo->hora_programada ?? null);
 
                     $acopleParaReemplazo = !empty($registroOperativo->acople)
                         ? $registroOperativo->acople
                         : null;
 
-                    $horaSalidaParaReemplazo = !empty($registroOperativo->hora_salida)
-                        ? $registroOperativo->hora_salida
-                        : date('H:i:s');
+                    $horaRealSalidaParaReemplazo = !empty($registroOperativo->hora_real_salida_patio)
+                        ? $registroOperativo->hora_real_salida_patio
+                        : (!empty($registroOperativo->hora_salida) ? $registroOperativo->hora_salida : date('H:i:s'));
 
                     $cicloParaReemplazo = !empty($registroOperativo->ciclo)
                         ? $registroOperativo->ciclo
@@ -238,8 +248,8 @@ class PlataformaController extends Controller
                     $relevoHora = $registroOperativo->relevo_hora ?? null;
                     $tarjetonManiobrista = $registroOperativo->tarjeton_maniobrista ?? null;
                     $nombreManiobrista = $registroOperativo->nombre_maniobrista ?? null;
-                    $transportePatioNorte = $registroOperativo->transporte_patio_norte ?? 'false';
-                    $patioNorte = $registroOperativo->patio_norte ?? 'false';
+                    $transportePatioNorte = filter_var($registroOperativo->transporte_patio_norte ?? false, FILTER_VALIDATE_BOOLEAN);
+                    $patioNorte = filter_var($registroOperativo->patio_norte ?? false, FILTER_VALIDATE_BOOLEAN);
 
                     $datosReemplazo = [
                         'tipo'                  => $tipoParaReemplazo,
@@ -248,9 +258,9 @@ class PlataformaController extends Controller
                         'nombre_conductor'      => $nombreConductorReemplazo,
                         'ruta'                  => $rutaReemplazo,
                         'corridas'              => ($corridaReemplazo !== null && $corridaReemplazo !== '') ? (int)$corridaReemplazo : null,
-                        'hora_programada'       => $horaProgramadaParaReemplazo,
+                        'hora_salida_patio'     => $horaSalidaPatioParaReemplazo,
                         'acople'                => $acopleParaReemplazo,
-                        'hora_salida'           => $horaSalidaParaReemplazo,
+                        'hora_real_salida_patio'=> $horaRealSalidaParaReemplazo,
                         'ciclo'                 => $cicloParaReemplazo,
                         'relevo_tarjeton'       => $relevoTarjeton,
                         'relevo_conductor'      => $relevoConductor,
@@ -264,12 +274,18 @@ class PlataformaController extends Controller
                         'cambio_motivo'         => $request->motivo ? strtoupper($request->motivo) : 'REEMPLAZO',
                         'falla'                 => null,
                         'motivo'                => null,
-                        'updated_at'            => Carbon::now(),
                     ];
                     
                     // Limpiamos el conductor de la unidad original, ya que se pasó al reemplazo
                     $datosUpdate['numero_tarjeton'] = null;
                     $datosUpdate['nombre_conductor'] = null;
+
+                    foreach (['patio_norte', 'transporte_patio_norte'] as $boolCol) {
+                        if (array_key_exists($boolCol, $datosReemplazo)) {
+                            $val = filter_var($datosReemplazo[$boolCol], FILTER_VALIDATE_BOOLEAN);
+                            $datosReemplazo[$boolCol] = $val ? 'true' : 'false';
+                        }
+                    }
 
                     if ($registroReemplazo) {
                         DB::table('informacion_operativa')
@@ -281,7 +297,6 @@ class PlataformaController extends Controller
                             [
                                 'unidad_id'      => $unidadReemplazo->id,
                                 'fecha_registro' => Carbon::now(),
-                                'created_at'     => Carbon::now(),
                             ]
                         ));
                     }
@@ -350,27 +365,50 @@ class PlataformaController extends Controller
                 $mensajeBitacora = "ASIGNACIÓN DE CONDUCTOR: " . $conductorNuevo->tarjeton . " - " . $nombreCompletoAsig . ($request->motivo ? " - MOTIVO: " . strtoupper($request->motivo) : "");
 
             } else if ($tipoMovimiento === 'RETIRO_CONDUCTOR') {
-                if (!$registroOperativo && !$request->cambio_operador_activo) {
-                    return response()->json(['error' => 'No hay conductor asignado actualmente a esta unidad en Plataforma.'], 400);
+                if (!$registroOperativo) {
+                    return response()->json(['error' => 'No hay registro operativo para esta unidad.'], 404);
                 }
 
                 // 1) Liberar conductor anterior
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
-                    DB::table('conductores')->where('tarjeton', $registroOperativo->numero_tarjeton)->update(['estado_servicio' => 'disponible']);
+                    $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
+                    $tarjetonClean = ltrim($tarjetonAnterior, '0');
+                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
+
+                    DB::table('conductores')
+                        ->whereIn('tarjeton', $tarjetonCandidates)
+                        ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
+                        ->update(['estado_servicio' => 'disponible']);
+                }
+                if ($registroOperativo && !empty($registroOperativo->relevo_tarjeton)) {
+                    $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
+                    $tarjetonRelClean = ltrim($tarjetonRel, '0');
+                    $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
+
+                    DB::table('conductores')
+                        ->whereIn('tarjeton', $tarjetonRelCandidates)
+                        ->orWhere('id', is_numeric($tarjetonRel) ? (int)$tarjetonRel : 0)
+                        ->update(['estado_servicio' => 'disponible']);
                 }
 
                 // 2) Actualizar registro con nuevo conductor (si hay reemplazo)
                 if ($request->has('numero_tarjeton_nuevo') && $request->numero_tarjeton_nuevo) {
-                    $tarjetonNuevo = $request->numero_tarjeton_nuevo;
+                    $tarjetonNuevo = trim($request->numero_tarjeton_nuevo);
+                    $tarjetonNuevoClean = ltrim($tarjetonNuevo, '0');
+                    $tarjetonNuevoPad = str_pad($tarjetonNuevoClean === '' ? '0' : $tarjetonNuevoClean, 4, '0', STR_PAD_LEFT);
+                    $tarjetonNuevoCandidates = array_values(array_unique([$tarjetonNuevo, $tarjetonNuevoClean, $tarjetonNuevoPad]));
+
                     $conductorNuevo = DB::table('conductores')
-                        ->where('tarjeton', $tarjetonNuevo)
+                        ->whereIn('tarjeton', $tarjetonNuevoCandidates)
                         ->orWhere('id', is_numeric($tarjetonNuevo) ? (int)$tarjetonNuevo : 0)
                         ->first();
                     if (!$conductorNuevo) {
                         return response()->json(['error' => 'Conductor de reemplazo no encontrado.'], 404);
                     }
                     $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
-                    $nombreCompleto = trim($conductorNuevo->nombres . ' ' . $conductorNuevo->apellidos);
+                    $nombreCompleto = trim(($conductorNuevo->nombres ?? '') . ' ' . ($conductorNuevo->apellidos ?? ''));
                     $datosUpdate['nombre_conductor'] = $nombreCompleto;
                     DB::table('conductores')->where('id', $conductorNuevo->id)->update(['estado_servicio' => 'en_servicio']);
 
@@ -378,12 +416,23 @@ class PlataformaController extends Controller
                 } else {
                     $datosUpdate['numero_tarjeton'] = null;
                     $datosUpdate['nombre_conductor'] = null;
-                    $mensajeBitacora = "RETIRO DE CONDUCTOR: " . ($registroOperativo->numero_tarjeton ?? 'SIN TARJETÓN') . " - MOTIVO: " . strtoupper($request->motivo ?? '');
+                    $datosUpdate['relevo_tarjeton'] = null;
+                    $datosUpdate['relevo_conductor'] = null;
+                    $datosUpdate['relevo_hora'] = null;
+                    $datosUpdate['mantenimiento_conductor'] = null;
+                    $datosUpdate['mantenimiento_tarjeton'] = null;
+                    $mensajeBitacora = "RETIRO DE CONDUCTOR: " . ($registroOperativo->numero_tarjeton ?? $registroOperativo->nombre_conductor ?? 'SIN TARJETÓN') . " - MOTIVO: " . strtoupper($request->motivo ?? '');
                 }
             }
 
             // Sincronizar el cambio con informacion_operativa
             if ($registroOperativo && !empty($datosUpdate)) {
+                foreach (['patio_norte', 'transporte_patio_norte'] as $boolCol) {
+                    if (array_key_exists($boolCol, $datosUpdate)) {
+                        $val = filter_var($datosUpdate[$boolCol], FILTER_VALIDATE_BOOLEAN);
+                        $datosUpdate[$boolCol] = $val ? 'true' : 'false';
+                    }
+                }
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
                     ->update($datosUpdate);

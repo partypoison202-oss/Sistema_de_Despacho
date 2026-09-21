@@ -69,7 +69,10 @@ export default function CentroControl() {
 
       const unidadesOperacion = units.filter((d) => {
         const est = getEstatus(d);
-        return est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
+        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
+        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada || d.yaEncerrada);
+        const isOperacion = est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
+        return isOperacion && horaSalida !== '' && !isEncerrada;
       });
       const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
       const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
@@ -409,7 +412,7 @@ export default function CentroControl() {
                 </svg>
               </div>
               <span className="centro-kpi__value">{cargando ? '—' : totales.operacion}</span>
-              <span className="centro-kpi__label">Total Unidades Programadas</span>
+              <span className="centro-kpi__label">En operación</span>
             </div>
 
             <div className="centro-kpi centro-kpi--reserva">

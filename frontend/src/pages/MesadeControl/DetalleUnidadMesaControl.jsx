@@ -272,6 +272,8 @@ export default function DetalleUnidadMesaControl() {
           relevo_tarjeton: activeUnitData.relevo_tarjeton || null,
           ruta: activeUnitData.ruta || 'Sin ruta',
           tarjeton: activeUnitData.tarjeton || '',
+          titular_conductor: activeUnitData.titular_conductor || '',
+          titular_tarjeton: activeUnitData.titular_tarjeton || '',
           corrida: activeUnitData.corridas || '',
           horaRealSalidaPatio: activeUnitData.hora_real_salida_patio || '',
           estatus: activeUnitData.estatus || 'operacion',
@@ -279,6 +281,9 @@ export default function DetalleUnidadMesaControl() {
           motivo: activeUnitData.motivo_estatus || activeUnitData.motivo || '',
           horaSalidaPatio: activeUnitData.hora_salida_patio || '',
           acople: activeUnitData.acople || '',
+          relevo_conductor: activeUnitData.relevo_conductor || '',
+          relevo_tarjeton: activeUnitData.relevo_tarjeton || '',
+          relevo_hora: activeUnitData.relevo_hora || '',
         });
         setFallaTexto(activeUnitData.falla || '');
         setSelectedEstado(activeUnitData.estatus || 'operacion');
@@ -287,6 +292,8 @@ export default function DetalleUnidadMesaControl() {
           conductor: 'No reportado hoy',
           ruta: 'Sin ruta',
           tarjeton: '',
+          titular_conductor: '',
+          titular_tarjeton: '',
           corrida: '',
           horaRealSalidaPatio: '',
           estatus: 'operacion',
@@ -294,6 +301,9 @@ export default function DetalleUnidadMesaControl() {
           motivo: '',
           horaSalidaPatio: '',
           acople: '',
+          relevo_conductor: '',
+          relevo_tarjeton: '',
+          relevo_hora: '',
         });
         setFallaTexto('');
       }
@@ -848,6 +858,25 @@ export default function DetalleUnidadMesaControl() {
           ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || prev.ruta),
           tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || prev.tarjeton),
           corrida: shouldClearConductor ? null : (modalEstatusCorrida || data.corridas || prev.corrida),
+          ...(shouldClearConductor ? {
+            mantenimiento_conductor: null,
+            mantenimiento_tarjeton: null,
+            mantenimiento_ruta: null,
+            mantenimiento_corrida: null,
+            horaSalidaPatio: null,
+            hora_salida_patio: null,
+            acople: null,
+            horaRealSalidaPatio: null,
+            hora_real_salida_patio: null,
+            relevo_conductor: null,
+            relevo_tarjeton: null,
+            relevo_hora: null,
+            nombre_maniobrista: null,
+            tarjeton_maniobrista: null,
+            transporte_patio_norte: false,
+            patio_norte: false,
+            ciclo: null,
+          } : {})
         }));
         setSelectedEstado(modalEstatusNuevo);
         queryClient.invalidateQueries(['conductores-list']);
@@ -861,6 +890,14 @@ export default function DetalleUnidadMesaControl() {
             conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || old.conductor)),
             ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || old.ruta),
             tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || old.tarjeton),
+            corridas: shouldClearConductor ? null : (modalEstatusCorrida || data.corridas || old.corridas),
+            mantenimiento_conductor: shouldClearConductor ? null : old.mantenimiento_conductor,
+            mantenimiento_tarjeton: shouldClearConductor ? null : old.mantenimiento_tarjeton,
+            mantenimiento_ruta: shouldClearConductor ? null : old.mantenimiento_ruta,
+            mantenimiento_corrida: shouldClearConductor ? null : old.mantenimiento_corrida,
+            hora_salida_patio: shouldClearConductor ? null : old.hora_salida_patio,
+            acople: shouldClearConductor ? null : old.acople,
+            hora_real_salida_patio: shouldClearConductor ? null : old.hora_real_salida_patio,
             asignado: !shouldClearConductor
           };
         });
@@ -880,6 +917,7 @@ export default function DetalleUnidadMesaControl() {
                 nombre_conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor)),
                 ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || u.ruta),
                 tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || u.tarjeton),
+                corridas: shouldClearConductor ? null : u.corridas,
               };
             }
             if (cambioUnidadActivo && unidadReemplazoSeleccionada && String(u.eco).padStart(3, '0') === String(unidadReemplazoSeleccionada.eco).padStart(3, '0')) {
