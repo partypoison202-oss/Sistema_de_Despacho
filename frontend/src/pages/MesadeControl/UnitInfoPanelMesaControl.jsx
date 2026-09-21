@@ -10,6 +10,70 @@ import IOSTimePicker from '../Unidades/componentsdetalleunidad/IOSTimePicker';
 import { AuthContext } from '../../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 
+const renderConductorInfo = (cargandoDatos, getConductorDisplay, datosOperativos) => {
+  if (cargandoDatos) {
+    return <p className="info-card__value" style={{ fontSize: '0.9rem', margin: 0 }}>Buscando...</p>;
+  }
+  
+  const conductorStr = getConductorDisplay() || '';
+  let titularStr = conductorStr;
+  let relevoStr = null;
+
+  if (conductorStr.includes('TITULAR:')) {
+    const parts = conductorStr.split('TITULAR:');
+    if (parts[0].includes('RELEVO')) {
+      relevoStr = parts[0].replace('RELEVO', '').trim();
+      titularStr = parts[1] ? parts[1].trim() : '';
+    } else {
+      titularStr = parts[1] ? parts[1].trim() : parts[0].trim();
+    }
+  } else if (datosOperativos.relevo_conductor) {
+    relevoStr = datosOperativos.relevo_conductor;
+  }
+
+  return (
+    <>
+      {/* Titular */}
+      <div className="ap-driver-box" style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+          <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>TITULAR</span>
+          {datosOperativos.tarjeton ? (
+            <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, margin: 0 }}>TARJETÓN: {datosOperativos.tarjeton}</span>
+          ) : (
+            <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>SIN TARJETÓN</span>
+          )}
+        </div>
+        <span
+          className="ap-driver-name"
+          style={{ color: titularStr && titularStr !== 'No reportado hoy' ? '#0f172a' : '#94a3b8', fontSize: '0.8rem', display: 'block', fontWeight: 600 }}
+        >
+          {titularStr || 'Sin conductor asignado'}
+        </span>
+      </div>
+
+      {/* Relevo (solo si existe) */}
+      {(relevoStr || datosOperativos.relevo_tarjeton) && (
+        <div className="ap-driver-box" style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+            <span style={{ background: '#ffedd5', color: '#c2410c', fontSize: '0.65rem', fontWeight: 'bold', padding: '0.1rem 0.4rem', borderRadius: '0.25rem' }}>RELEVO</span>
+            {datosOperativos.relevo_tarjeton ? (
+              <span style={{ fontSize: '0.7rem', color: '#0f766e', fontWeight: 600, margin: 0 }}>TARJETÓN: {datosOperativos.relevo_tarjeton}</span>
+            ) : (
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600 }}>SIN TARJETÓN</span>
+            )}
+          </div>
+          <span
+            className="ap-driver-name"
+            style={{ color: relevoStr ? '#0f172a' : '#94a3b8', fontSize: '0.8rem', display: 'block', fontWeight: 600 }}
+          >
+            {relevoStr || 'Sin relevo asignado'}
+          </span>
+        </div>
+      )}
+    </>
+  );
+};
+
 export default function UnitInfoPanel({
   selectedOption,
   configActual,
@@ -559,7 +623,7 @@ export default function UnitInfoPanel({
       const cleanTitularName = titularName ? String(titularName).replace(/\s*\(\d+\)$/, '').trim() : '';
       const titularStr = (cleanTitularName && cleanTitularName !== cleanRelevoName && cleanTitularName !== 'Sin conductor' && cleanTitularName !== 'No reportado hoy') ? cleanTitularName : '';
       return (
-        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: '2px' }}>
+        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: '8px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontWeight: 800, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
               RELEVO
@@ -567,8 +631,11 @@ export default function UnitInfoPanel({
             <strong>{cleanRelevoName}</strong>
           </span>
           {titularStr && (
-            <span style={{ fontSize: '11px', color: '#6b7280' }}>
-              Titular: {titularStr} {titularTarj ? `(${titularTarj})` : ''}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 800, color: '#374151', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
+                TITULAR
+              </span>
+              <strong>{titularStr} {titularTarj ? `(${titularTarj})` : ''}</strong>
             </span>
           )}
         </span>
@@ -691,13 +758,8 @@ export default function UnitInfoPanel({
           <div className="info-card__body">
             <div className="info-card__item">
               <span className="info-card__label">Persona Conductora</span>
-              <div className="info-card__value-wrapper">
-                <svg className="info-card__item-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                  {cargandoDatos ? 'Buscando...' : getConductorDisplay()}
-                </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.4rem' }}>
+                {renderConductorInfo(cargandoDatos, getConductorDisplay, datosOperativos)}
               </div>
             </div>
 
