@@ -55,8 +55,8 @@ $usuarios = [
 
     // ── Programación y Logística ──
     'Daniel_Luna'       => ['LCD_PY26',  ['capturista']],
-    'Mario_Lazcano'     => ['LAM_PY26',  ['capturista']],
-    'Jorge_Leal'        => ['LRJ_PY26',  ['capturista']],
+    'Mario_Lazcano'     => ['LAM_PY26',  ['capturista', 'relevos']],
+    'Jorge_Leal'        => ['LRJ_PY26',  ['capturista', 'relevos']],
 
     // ── Control de personas conductoras ──
     'Omar_Aviles'       => ['ALO_CD26',  ['operadores']],

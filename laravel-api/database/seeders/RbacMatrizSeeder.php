@@ -90,14 +90,14 @@ class RbacMatrizSeeder extends Seeder
                 'nombre_completo' => 'Mario Alejandro Lazcano Aguilar',
                 'usuario'         => 'Mario_Lazcano',
                 'rol_codigo'      => 'PROGRAMACION',
-                'modulos'         => ['capturista'],
+                'modulos'         => ['capturista', 'relevos'],
                 'contrasena'      => 'LAM_PY26',
             ],
             [
                 'nombre_completo' => 'Jorge Leal Ramírez',
                 'usuario'         => 'Jorge_Leal',
                 'rol_codigo'      => 'PROGRAMACION',
-                'modulos'         => ['capturista'],
+                'modulos'         => ['capturista', 'relevos'],
                 'contrasena'      => 'LRJ_PY26',
             ],
 
