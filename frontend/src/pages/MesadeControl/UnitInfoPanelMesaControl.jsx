@@ -623,7 +623,7 @@ export default function UnitInfoPanel({
       const cleanTitularName = titularName ? String(titularName).replace(/\s*\(\d+\)$/, '').trim() : '';
       const titularStr = (cleanTitularName && cleanTitularName !== cleanRelevoName && cleanTitularName !== 'Sin conductor' && cleanTitularName !== 'No reportado hoy') ? cleanTitularName : '';
       return (
-        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: '2px' }}>
+        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: '8px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontWeight: 800, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
               RELEVO
@@ -631,8 +631,11 @@ export default function UnitInfoPanel({
             <strong>{cleanRelevoName}</strong>
           </span>
           {titularStr && (
-            <span style={{ fontSize: '11px', color: '#6b7280' }}>
-              Titular: {titularStr} {titularTarj ? `(${titularTarj})` : ''}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 800, color: '#374151', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
+                TITULAR
+              </span>
+              <strong>{titularStr} {titularTarj ? `(${titularTarj})` : ''}</strong>
             </span>
           )}
         </span>
