@@ -264,7 +264,8 @@ class ConductorController extends Controller
 
         if ($request->hasFile('foto')) {
             $file = $request->file('foto');
-            $filename = 'conductor_' . $id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $extension = strtolower($file->extension() ?: $file->guessExtension() ?: 'jpg');
+            $filename = 'conductor_' . (int)$id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
             // Guardar en public/storage/conductores
             $path = $file->storeAs('conductores', $filename, 'public');
             
@@ -322,7 +323,13 @@ class ConductorController extends Controller
 
         if ($request->hasFile('justificante')) {
             $file = $request->file('justificante');
-            $filename = 'justificante_' . $id . '_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $extension = strtolower($file->extension() ?: $file->guessExtension() ?: 'pdf');
+            $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+            if (!in_array($extension, $allowedExtensions, true)) {
+                $extension = 'pdf';
+            }
+            $safeOriginalName = htmlspecialchars(basename($file->getClientOriginalName()), ENT_QUOTES, 'UTF-8');
+            $filename = 'justificante_' . (int)$id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
             $path = $file->storeAs('justificantes', $filename, 'public');
 
             $rawDetalle = $conductor->faltas_detalle;
@@ -343,7 +350,7 @@ class ConductorController extends Controller
                     $item['estado'] = 'justificada';
                     $item['justificada'] = true;
                     $item['justificante_url'] = '/storage/' . $path;
-                    $item['justificante_nombre'] = $file->getClientOriginalName();
+                    $item['justificante_nombre'] = $safeOriginalName;
                     $item['justificante_fecha'] = date('Y-m-d H:i');
                     $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
                     $updated = true;
@@ -353,13 +360,13 @@ class ConductorController extends Controller
 
             if (!$updated) {
                 $detalle[] = [
-                    'id' => 'falta_' . time() . '_' . rand(100, 999),
+                    'id' => 'falta_' . time() . '_' . random_int(1000, 9999),
                     'fecha' => $request->input('fecha_falta') ?: date('Y-m-d'),
                     'motivo' => $request->input('motivo_falta') ?: 'Falta registrada',
                     'estado' => 'justificada',
                     'justificada' => true,
                     'justificante_url' => '/storage/' . $path,
-                    'justificante_nombre' => $file->getClientOriginalName(),
+                    'justificante_nombre' => $safeOriginalName,
                     'justificante_fecha' => date('Y-m-d H:i'),
                     'observaciones_justificacion' => $request->input('observaciones') ?: 'Justificante adjuntado correctamente',
                 ];
@@ -408,7 +415,7 @@ class ConductorController extends Controller
         }
 
         $nuevaFalta = [
-            'id' => 'falta_' . time() . '_' . rand(100, 999),
+            'id' => 'falta_' . time() . '_' . random_int(1000, 9999),
             'fecha' => $request->input('fecha'),
             'motivo' => $request->input('motivo') ?: 'Inasistencia no justificada',
             'estado' => 'pendiente',
