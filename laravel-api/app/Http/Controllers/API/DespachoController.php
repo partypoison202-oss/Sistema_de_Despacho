@@ -3271,7 +3271,10 @@ class DespachoController extends Controller
                 'historial_operativo.estatus',
                 'historial_operativo.falla',
                 'historial_operativo.motivo',
-                'historial_operativo.motivo_estatus'
+                'historial_operativo.motivo_estatus',
+                'informacion_operativa.relevo_tarjeton',
+                'informacion_operativa.relevo_conductor',
+                'informacion_operativa.relevo_hora'
             ];
 
             $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
@@ -3298,6 +3301,7 @@ class DespachoController extends Controller
             // 3. Consultar snapshot INICIO de hoy
             $query = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
                 ->where('historial_operativo.fecha_historial', $hoy)
                 ->where('historial_operativo.momento', 'INICIO')
                 ->select($columns);
@@ -3337,7 +3341,10 @@ class DespachoController extends Controller
                         'informacion_operativa.nombre_maniobrista',
                         'informacion_operativa.hora_salida_patio',
                         'informacion_operativa.acople',
-                        'informacion_operativa.hora_real_salida_patio'
+                        'informacion_operativa.hora_real_salida_patio',
+                        'informacion_operativa.relevo_tarjeton',
+                        'informacion_operativa.relevo_conductor',
+                        'informacion_operativa.relevo_hora'
                     );
 
                 if ($tipoNormalizado !== 'todos') {
@@ -3394,7 +3401,10 @@ class DespachoController extends Controller
                     'motivo_estatus'       => $r->motivo_estatus ?? '',
                     'hora_salida_patio'      => $hasHoraProg ? ($r->hora_salida_patio ?? '') : '',
                     'acople'               => $hasAcople ? ($r->acople ?? '') : '',
-                    'hora_real_salida_patio'          => $hasHoraSalida ? ($r->hora_real_salida_patio ?? '') : ''
+                    'hora_real_salida_patio'          => $hasHoraSalida ? ($r->hora_real_salida_patio ?? '') : '',
+                    'relevo_tarjeton'      => $r->relevo_tarjeton ?? '',
+                    'relevo_conductor'     => $r->relevo_conductor ?? '',
+                    'relevo_hora'          => $r->relevo_hora ?? ''
                 ];
             });
 
