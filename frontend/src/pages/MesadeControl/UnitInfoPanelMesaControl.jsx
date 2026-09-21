@@ -623,34 +623,19 @@ export default function UnitInfoPanel({
       const cleanTitularName = titularName ? String(titularName).replace(/\s*\(\d+\)$/, '').trim() : '';
       const titularStr = (cleanTitularName && cleanTitularName !== cleanRelevoName && cleanTitularName !== 'Sin conductor' && cleanTitularName !== 'No reportado hoy') ? cleanTitularName : '';
       return (
-        <div style={{ display: 'flex', gap: '1rem', width: '100%', alignItems: 'stretch' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '4px' }}>
-              <span style={{ fontWeight: 800, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
-                RELEVO
-              </span>
-            </div>
-            <div style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', height: '100%' }}>
-              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{cleanRelevoName}</strong>
-            </div>
-          </div>
-
+        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontWeight: 800, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
+              RELEVO
+            </span>
+            <strong>{cleanRelevoName}</strong>
+          </span>
           {titularStr && (
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 800, color: '#1e40af', background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '0 5px', fontSize: '11px' }}>
-                  TITULAR
-                </span>
-                {titularTarj && (
-                  <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>({titularTarj})</span>
-                )}
-              </div>
-              <div style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', height: '100%' }}>
-                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{titularStr}</strong>
-              </div>
-            </div>
+            <span style={{ fontSize: '11px', color: '#6b7280' }}>
+              Titular: {titularStr} {titularTarj ? `(${titularTarj})` : ''}
+            </span>
           )}
-        </div>
+        </span>
       );
     }
 
