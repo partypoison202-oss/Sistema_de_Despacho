@@ -281,8 +281,6 @@ export default function DetalleUnidadMesaControl() {
           motivo: activeUnitData.motivo_estatus || activeUnitData.motivo || '',
           horaSalidaPatio: activeUnitData.hora_salida_patio || '',
           acople: activeUnitData.acople || '',
-          relevo_conductor: activeUnitData.relevo_conductor || '',
-          relevo_tarjeton: activeUnitData.relevo_tarjeton || '',
           relevo_hora: activeUnitData.relevo_hora || '',
         });
         setFallaTexto(activeUnitData.falla || '');
