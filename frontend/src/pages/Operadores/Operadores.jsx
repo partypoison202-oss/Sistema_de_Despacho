@@ -1128,7 +1128,7 @@ export default function Operadores() {
                     filteredConductores.map((c) => (
                       <tr key={c.id}>
                         <td>
-                          <span className="tarjeton-badge">{c.tarjeton}</span>
+                          <span className="tarjeton-badge">{c.tarjeton ? c.tarjeton.split('_BAJA_')[0] : ''}</span>
                         </td>
                         <td className="conductor-nombre">{c.nombre}</td>
                         <td>
@@ -1217,7 +1217,7 @@ export default function Operadores() {
                     filteredConductores.map((c) => (
                       <tr key={c.id}>
                         <td>
-                          <span className="tarjeton-badge">{c.tarjeton}</span>
+                          <span className="tarjeton-badge">{c.tarjeton ? c.tarjeton.split('_BAJA_')[0] : ''}</span>
                         </td>
                         <td className="text-center">
                           <span className="tipo-badge">TIPO {c.tipo_tarjeton || 'B'}</span>

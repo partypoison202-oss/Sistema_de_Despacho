@@ -11,6 +11,8 @@ use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\API\PlataformaController;
 use App\Http\Controllers\API\TitanController;
 use App\Http\Controllers\API\TitanReporteController;
+use App\Http\Controllers\API\MantenimientoReporteController;
+use App\Http\Controllers\API\ReservaController;
 use App\Http\Controllers\API\HistorialOperativoController;
 use App\Http\Controllers\API\BitacoraController;
 use App\Http\Controllers\API\InfraccionController;
@@ -137,6 +139,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     // Gestión de Despacho
+    Route::get('/reservas/autorizadas', [ReservaController::class, 'getReservasPorFecha']);
+    Route::post('/reservas/autorizadas', [ReservaController::class, 'syncReservas']);
+    
     Route::get('/despacho/rutas', [DespachoController::class, 'obtenerRutas']);
     Route::post('/despacho/actualizar-ruta', [DespachoController::class, 'actualizarRuta']);
     Route::get('/despacho/hoy', [DespachoController::class, 'obtenerDatosHoy']);
