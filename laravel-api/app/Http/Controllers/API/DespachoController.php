@@ -3530,18 +3530,61 @@ class DespachoController extends Controller
                 return (int)$a['numero_eco'] - (int)$b['numero_eco'];
             });
 
+            // 7. Obtener lista de conductores con estatus de inasistencia (falta, permuta, incapacidad, enfermedad, etc.)
+            $estadosFalta = ['falta', 'permuta', 'incapacidad', 'enfermedad', 'permiso', 'descanso', 'FALTA', 'PERMUTA', 'INCAPACIDAD', 'ENFERMEDAD', 'PERMISO', 'DESCANSO'];
+            $estadosExcluidos = ['disponible', 'en_servicio', 'maniobrista', 'DISPONIBLE', 'EN_SERVICIO', 'MANIOBRISTA'];
+
+            $conductoresFaltaRaw = DB::table('conductores')
+                ->whereNotNull('estado_servicio')
+                ->where(function ($q) use ($estadosFalta, $estadosExcluidos) {
+                    $q->whereIn('estado_servicio', $estadosFalta)
+                      ->orWhereNotIn('estado_servicio', $estadosExcluidos);
+                })
+                ->select(
+                    'id',
+                    'tarjeton',
+                    'nombres',
+                    'apellidos',
+                    'tipo_tarjeton',
+                    'estado_servicio',
+                    'telefono',
+                    'observaciones',
+                    'faltas',
+                    'permutas',
+                    'updated_at'
+                )
+                ->get();
+
+            $conductoresFalta = $conductoresFaltaRaw->map(function ($c) {
+                $nombreCompleto = trim(($c->apellidos ?? '') . ' ' . ($c->nombres ?? ''));
+                return [
+                    'id'              => $c->id,
+                    'tarjeton'        => $c->tarjeton ?: 'SIN TARJETÓN',
+                    'nombre_completo' => $nombreCompleto !== '' ? $nombreCompleto : 'Sin nombre registrado',
+                    'tipo_tarjeton'   => $c->tipo_tarjeton ?: 'N/A',
+                    'estado_servicio' => strtolower(trim((string)$c->estado_servicio)),
+                    'telefono'        => $c->telefono ?: 'Sin registro',
+                    'observaciones'   => $c->observaciones ?: null,
+                    'faltas'          => (int)($c->faltas ?? 0),
+                    'permutas'        => (int)($c->permutas ?? 0),
+                    'fecha_actualizacion' => $c->updated_at ? Carbon::parse($c->updated_at)->format('d/m/Y H:i') : null,
+                ];
+            })->values()->all();
+
             return response()->json([
                 'status' => 'success',
                 'fecha'  => $hoy,
                 'tipo'   => $tipo,
                 'kpis'   => [
-                    'total_flota'         => count($lista),
-                    'total_operacion'     => $totalOperacion,
-                    'total_titulares'     => $totalTitulares,
-                    'total_relevos'       => $totalRelevos,
-                    'total_sin_conductor' => $totalSinConductor,
+                    'total_flota'             => count($lista),
+                    'total_operacion'         => $totalOperacion,
+                    'total_titulares'         => $totalTitulares,
+                    'total_relevos'           => $totalRelevos,
+                    'total_sin_conductor'     => $totalSinConductor,
+                    'total_conductores_falta' => count($conductoresFalta),
                 ],
                 'unidades' => $lista,
+                'conductores_falta' => $conductoresFalta,
             ], 200);
 
         } catch (\Exception $e) {

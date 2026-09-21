@@ -152,6 +152,46 @@
   background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
 }
 
+.mc-kpi-card--falta {
+  border-color: #fecdd3;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
+}
+
+.mc-kpi-card--selected {
+  outline: 2px solid #be123c;
+  box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.15);
+}
+
+.mc-status-badge--falta {
+  background: #ffe4e6;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
+}
+
+.mc-status-badge--permuta {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.mc-status-badge--incapacidad {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+}
+
+.mc-status-badge--enfermedad {
+  background: #fce7f3;
+  color: #9d174d;
+  border: 1px solid #fbcfe8;
+}
+
+.mc-status-badge--permiso {
+  background: #e0f2fe;
+  color: #075985;
+  border: 1px solid #bae6fd;
+}
+
 .mc-kpi-info {
   display: flex;
   flex-direction: column;
