@@ -47,9 +47,11 @@ export default function ModalMonitoreoConductores({
     total_titulares: 0,
     total_relevos: 0,
     total_sin_conductor: 0,
+    total_conductores_falta: 0,
   };
 
   const unidades = respuesta?.unidades || [];
+  const conductoresFaltaList = respuesta?.conductores_falta || [];
 
   // Obtener rutas únicas para el filtro
   const rutasDisponibles = useMemo(() => {
@@ -60,6 +62,23 @@ export default function ModalMonitoreoConductores({
     });
     return Array.from(setRutas).sort();
   }, [unidades]);
+
+  // Filtrado reactivo de conductores con falta
+  const conductoresFaltaFiltrados = useMemo(() => {
+    return conductoresFaltaList.filter((c) => {
+      if (busqueda.trim() !== '') {
+        const q = busqueda.toLowerCase().trim();
+        const tarj = String(c.tarjeton || '').toLowerCase();
+        const nom = String(c.nombre_completo || '').toLowerCase();
+        const est = String(c.estado_servicio || '').toLowerCase();
+        const tel = String(c.telefono || '').toLowerCase();
+        const obs = String(c.observaciones || '').toLowerCase();
+
+        return tarj.includes(q) || nom.includes(q) || est.includes(q) || tel.includes(q) || obs.includes(q);
+      }
+      return true;
+    });
+  }, [conductoresFaltaList, busqueda]);
 
   // Filtrado reactivo de unidades
   const unidadesFiltradas = useMemo(() => {
@@ -236,6 +255,28 @@ export default function ModalMonitoreoConductores({
                 </svg>
               </div>
             </div>
+
+            <div
+              className={`mc-kpi-card mc-kpi-card--falta ${filtroTipo === 'FALTAS' ? 'mc-kpi-card--selected' : ''}`}
+              onClick={() => setFiltroTipo('FALTAS')}
+              style={{ cursor: 'pointer' }}
+              title="Ver conductores con falta, permuta, incapacidad o enfermedad"
+            >
+              <div className="mc-kpi-info">
+                <span className="mc-kpi-label">Conductores con Falta</span>
+                <span className="mc-kpi-value" style={{ color: '#be123c' }}>
+                  {kpis.total_conductores_falta || conductoresFaltaList.length}
+                </span>
+              </div>
+              <div className="mc-kpi-icon" style={{ background: '#ffe4e6', color: '#e11d48' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <line x1="17" y1="8" x2="22" y2="13" />
+                  <line x1="22" y1="8" x2="17" y2="13" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Barra de Filtros y Búsqueda */}
@@ -269,21 +310,30 @@ export default function ModalMonitoreoConductores({
               >
                 Sin Conductor <span className="mc-chip-count">{kpis.total_sin_conductor}</span>
               </button>
+              <button
+                type="button"
+                className={`mc-chip ${filtroTipo === 'FALTAS' ? 'mc-chip--active' : ''}`}
+                onClick={() => setFiltroTipo('FALTAS')}
+              >
+                Conductores con Falta <span className="mc-chip-count">{kpis.total_conductores_falta || conductoresFaltaList.length}</span>
+              </button>
             </div>
 
             <div className="mc-filter-search">
-              <select
-                className="mc-route-select"
-                value={filtroRuta}
-                onChange={(e) => setFiltroRuta(e.target.value)}
-              >
-                <option value="TODAS">Todas las rutas</option>
-                {rutasDisponibles.map((r) => (
-                  <option key={r} value={r}>
-                    Ruta {r}
-                  </option>
-                ))}
-              </select>
+              {filtroTipo !== 'FALTAS' && (
+                <select
+                  className="mc-route-select"
+                  value={filtroRuta}
+                  onChange={(e) => setFiltroRuta(e.target.value)}
+                >
+                  <option value="TODAS">Todas las rutas</option>
+                  {rutasDisponibles.map((r) => (
+                    <option key={r} value={r}>
+                      Ruta {r}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               <div className="mc-search-input-box">
                 <svg className="mc-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -292,7 +342,7 @@ export default function ModalMonitoreoConductores({
                 </svg>
                 <input
                   type="text"
-                  placeholder="Buscar por ECO, tarjetón, conductor..."
+                  placeholder={filtroTipo === 'FALTAS' ? 'Buscar por tarjetón, nombre, estatus...' : 'Buscar por ECO, tarjetón, conductor...'}
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   className="mc-search-input"
@@ -301,13 +351,125 @@ export default function ModalMonitoreoConductores({
             </div>
           </div>
 
-          {/* Tabla Comparativa */}
+          {/* Tabla Comparativa / Conductores con Falta */}
           <div className="monitoreo-conductores-table-wrap">
             {isLoading ? (
               <div className="mc-empty-state">
                 <div style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#6b1d33', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                 <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>Cargando información de conductores...</p>
               </div>
+            ) : filtroTipo === 'FALTAS' ? (
+              conductoresFaltaFiltrados.length === 0 ? (
+                <div className="mc-empty-state">
+                  <svg className="mc-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                  <p style={{ fontWeight: 700, fontSize: '0.95rem', color: '#334155' }}>No se encontraron conductores con falta</p>
+                  <p style={{ fontSize: '0.85rem' }}>No hay registradas faltas, permutas, incapacidades o enfermedades activas.</p>
+                </div>
+              ) : (
+                <table className="mc-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '110px' }}>Tarjetón</th>
+                      <th>Nombre del Conductor</th>
+                      <th style={{ width: '110px' }}>Tipo</th>
+                      <th style={{ width: '160px' }}>Estatus / Condición</th>
+                      <th style={{ width: '140px' }}>Teléfono</th>
+                      <th>Observaciones / Detalle</th>
+                      <th style={{ width: '130px', textAlign: 'center' }}>Acumulado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {conductoresFaltaFiltrados.map((c) => {
+                      const est = (c.estado_servicio || '').toLowerCase();
+                      let badgeClass = 'mc-status-badge--permiso';
+                      let labelEstado = (c.estado_servicio || 'FALTA').toUpperCase();
+
+                      if (est === 'falta') {
+                        badgeClass = 'mc-status-badge--falta';
+                        labelEstado = 'FALTA';
+                      } else if (est === 'permuta') {
+                        badgeClass = 'mc-status-badge--permuta';
+                        labelEstado = 'PERMUTA';
+                      } else if (est === 'incapacidad') {
+                        badgeClass = 'mc-status-badge--incapacidad';
+                        labelEstado = 'INCAPACIDAD';
+                      } else if (est === 'enfermedad') {
+                        badgeClass = 'mc-status-badge--enfermedad';
+                        labelEstado = 'ENFERMEDAD';
+                      }
+
+                      return (
+                        <tr key={c.id}>
+                          {/* Tarjetón */}
+                          <td>
+                            <span className="mc-eco-badge" style={{ color: '#be123c', background: '#ffe4e6', border: '1px solid #fecdd3' }}>
+                              {c.tarjeton}
+                            </span>
+                          </td>
+
+                          {/* Conductor */}
+                          <td>
+                            <div className="mc-driver-box">
+                              <span className="mc-driver-name" style={{ fontWeight: 700, color: '#0f172a' }}>
+                                {c.nombre_completo}
+                              </span>
+                              {c.fecha_actualizacion && (
+                                <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                                  Actualizado: {c.fecha_actualizacion}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Tipo */}
+                          <td>
+                            <span className="mc-route-badge">
+                              {c.tipo_tarjeton ? `Tipo ${c.tipo_tarjeton}` : 'General'}
+                            </span>
+                          </td>
+
+                          {/* Estatus */}
+                          <td>
+                            <span className={`mc-status-badge ${badgeClass}`}>
+                              {labelEstado}
+                            </span>
+                          </td>
+
+                          {/* Teléfono */}
+                          <td>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>
+                              {c.telefono}
+                            </span>
+                          </td>
+
+                          {/* Observaciones */}
+                          <td>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                              {c.observaciones || 'Sin detalles'}
+                            </span>
+                          </td>
+
+                          {/* Acumulado */}
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 700 }}>
+                              <span title="Total acumulado de faltas" style={{ background: '#fee2e2', color: '#991b1b', padding: '0.15rem 0.45rem', borderRadius: '0.3rem' }}>
+                                F: {c.faltas}
+                              </span>
+                              <span title="Total acumulado de permutas" style={{ background: '#fef3c7', color: '#92400e', padding: '0.15rem 0.45rem', borderRadius: '0.3rem' }}>
+                                P: {c.permutas}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )
             ) : unidadesFiltradas.length === 0 ? (
               <div className="mc-empty-state">
                 <svg className="mc-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

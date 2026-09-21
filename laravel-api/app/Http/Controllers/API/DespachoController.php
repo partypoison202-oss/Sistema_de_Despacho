@@ -3527,18 +3527,58 @@ class DespachoController extends Controller
                 return (int)$a['numero_eco'] - (int)$b['numero_eco'];
             });
 
+            // 7. Obtener lista de conductores con estatus de inasistencia (falta, permuta, incapacidad, enfermedad, etc.)
+            $conductoresFaltaRaw = DB::table('conductores')
+                ->whereIn(DB::raw('LOWER(estado_servicio)'), ['falta', 'permuta', 'incapacidad', 'enfermedad', 'permiso', 'descanso'])
+                ->orWhere(function ($q) {
+                    $q->whereNotIn(DB::raw('LOWER(COALESCE(estado_servicio, \'\'))'), ['disponible', 'en_servicio', 'maniobrista', ''])
+                      ->whereNotNull('estado_servicio');
+                })
+                ->select(
+                    'id',
+                    'tarjeton',
+                    'nombres',
+                    'apellidos',
+                    DB::raw("TRIM(CONCAT(COALESCE(apellidos, ''), ' ', COALESCE(nombres, ''))) as nombre_completo"),
+                    'tipo_tarjeton',
+                    'estado_servicio',
+                    'telefono',
+                    'observaciones',
+                    'faltas',
+                    'permutas',
+                    'updated_at'
+                )
+                ->get();
+
+            $conductoresFalta = $conductoresFaltaRaw->map(function ($c) {
+                return [
+                    'id'              => $c->id,
+                    'tarjeton'        => $c->tarjeton ?: 'SIN TARJETÓN',
+                    'nombre_completo' => $c->nombre_completo ?: 'Sin nombre registrado',
+                    'tipo_tarjeton'   => $c->tipo_tarjeton ?: 'N/A',
+                    'estado_servicio' => strtolower(trim((string)$c->estado_servicio)),
+                    'telefono'        => $c->telefono ?: 'Sin registro',
+                    'observaciones'   => $c->observaciones ?: null,
+                    'faltas'          => (int)($c->faltas ?? 0),
+                    'permutas'        => (int)($c->permutas ?? 0),
+                    'fecha_actualizacion' => $c->updated_at ? Carbon::parse($c->updated_at)->format('d/m/Y H:i') : null,
+                ];
+            })->values()->all();
+
             return response()->json([
                 'status' => 'success',
                 'fecha'  => $hoy,
                 'tipo'   => $tipo,
                 'kpis'   => [
-                    'total_flota'         => count($lista),
-                    'total_operacion'     => $totalOperacion,
-                    'total_titulares'     => $totalTitulares,
-                    'total_relevos'       => $totalRelevos,
-                    'total_sin_conductor' => $totalSinConductor,
+                    'total_flota'             => count($lista),
+                    'total_operacion'         => $totalOperacion,
+                    'total_titulares'         => $totalTitulares,
+                    'total_relevos'           => $totalRelevos,
+                    'total_sin_conductor'     => $totalSinConductor,
+                    'total_conductores_falta' => count($conductoresFalta),
                 ],
                 'unidades' => $lista,
+                'conductores_falta' => $conductoresFalta,
             ], 200);
 
         } catch (\Exception $e) {
