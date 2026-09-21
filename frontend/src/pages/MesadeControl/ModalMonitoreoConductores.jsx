@@ -256,10 +256,11 @@ export default function ModalMonitoreoConductores({
               </div>
             </div>
 
-            <div
+            <button
+              type="button"
               className={`mc-kpi-card mc-kpi-card--falta ${filtroTipo === 'FALTAS' ? 'mc-kpi-card--selected' : ''}`}
               onClick={() => setFiltroTipo('FALTAS')}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', textAlign: 'left', width: '100%' }}
               title="Ver conductores con falta, permuta, incapacidad o enfermedad"
             >
               <div className="mc-kpi-info">
@@ -273,10 +274,10 @@ export default function ModalMonitoreoConductores({
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <line x1="17" y1="8" x2="22" y2="13" />
-                  <line x1="22" y1="8" x2="17" y2="13" />
+                  <line x1="22" y1="8" x2="17" y2="17" />
                 </svg>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Barra de Filtros y Búsqueda */}
@@ -383,7 +384,7 @@ export default function ModalMonitoreoConductores({
                     </tr>
                   </thead>
                   <tbody>
-                    {conductoresFaltaFiltrados.map((c) => {
+                    {conductoresFaltaFiltrados.map((c, index) => {
                       const est = (c.estado_servicio || '').toLowerCase();
                       let badgeClass = 'mc-status-badge--permiso';
                       let labelEstado = (c.estado_servicio || 'FALTA').toUpperCase();
@@ -403,7 +404,7 @@ export default function ModalMonitoreoConductores({
                       }
 
                       return (
-                        <tr key={c.id}>
+                        <tr key={c.id ? `c-${c.id}` : `falta-${c.tarjeton}-${index}`}>
                           {/* Tarjetón */}
                           <td>
                             <span className="mc-eco-badge" style={{ color: '#be123c', background: '#ffe4e6', border: '1px solid #fecdd3' }}>

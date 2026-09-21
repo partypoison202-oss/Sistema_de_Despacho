@@ -3528,18 +3528,20 @@ class DespachoController extends Controller
             });
 
             // 7. Obtener lista de conductores con estatus de inasistencia (falta, permuta, incapacidad, enfermedad, etc.)
+            $estadosFalta = ['falta', 'permuta', 'incapacidad', 'enfermedad', 'permiso', 'descanso', 'FALTA', 'PERMUTA', 'INCAPACIDAD', 'ENFERMEDAD', 'PERMISO', 'DESCANSO'];
+            $estadosExcluidos = ['disponible', 'en_servicio', 'maniobrista', 'DISPONIBLE', 'EN_SERVICIO', 'MANIOBRISTA'];
+
             $conductoresFaltaRaw = DB::table('conductores')
-                ->whereIn(DB::raw('LOWER(estado_servicio)'), ['falta', 'permuta', 'incapacidad', 'enfermedad', 'permiso', 'descanso'])
-                ->orWhere(function ($q) {
-                    $q->whereNotIn(DB::raw('LOWER(COALESCE(estado_servicio, \'\'))'), ['disponible', 'en_servicio', 'maniobrista', ''])
-                      ->whereNotNull('estado_servicio');
+                ->whereNotNull('estado_servicio')
+                ->where(function ($q) use ($estadosFalta, $estadosExcluidos) {
+                    $q->whereIn('estado_servicio', $estadosFalta)
+                      ->orWhereNotIn('estado_servicio', $estadosExcluidos);
                 })
                 ->select(
                     'id',
                     'tarjeton',
                     'nombres',
                     'apellidos',
-                    DB::raw("TRIM(CONCAT(COALESCE(apellidos, ''), ' ', COALESCE(nombres, ''))) as nombre_completo"),
                     'tipo_tarjeton',
                     'estado_servicio',
                     'telefono',
@@ -3551,10 +3553,11 @@ class DespachoController extends Controller
                 ->get();
 
             $conductoresFalta = $conductoresFaltaRaw->map(function ($c) {
+                $nombreCompleto = trim(($c->apellidos ?? '') . ' ' . ($c->nombres ?? ''));
                 return [
                     'id'              => $c->id,
                     'tarjeton'        => $c->tarjeton ?: 'SIN TARJETÓN',
-                    'nombre_completo' => $c->nombre_completo ?: 'Sin nombre registrado',
+                    'nombre_completo' => $nombreCompleto !== '' ? $nombreCompleto : 'Sin nombre registrado',
                     'tipo_tarjeton'   => $c->tipo_tarjeton ?: 'N/A',
                     'estado_servicio' => strtolower(trim((string)$c->estado_servicio)),
                     'telefono'        => $c->telefono ?: 'Sin registro',
