@@ -192,9 +192,42 @@ export default function DetalleUnidadMesaControl() {
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
+  const { data: reservasAutorizadas } = useQuery({
+    queryKey: ['reservas-autorizadas', 'HOY'],
+    queryFn: async () => {
+      try {
+        const token = getToken();
+        if (!token) return [];
+        const res = await fetch(`${API_BASE}/api/reservas/autorizadas?fecha=HOY`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        console.error("Error fetching reservas autorizadas", e);
+        return [];
+      }
+    },
+    refetchInterval: 12000,
+  });
+
   const isTroncal = configActual?.id === 'urbanuss';
   const conductoresDisponibles = dbConductores.filter(c => {
     if (c.estado_servicio !== 'disponible') return false;
+    
+    // Validar autorización de reserva, manejando types mismatch y loading state
+    const authArray = Array.isArray(reservasAutorizadas) ? reservasAutorizadas : [];
+    const isAuthorized = authArray.some(t => String(t) === String(c.tarjeton));
+    
+    // Si la API aún no carga (undefined), o si no está autorizado, filtramos.
+    if (!isAuthorized && reservasAutorizadas !== undefined) {
+       return false;
+    } else if (reservasAutorizadas === undefined) {
+       // Mientras carga, no mostramos ninguno para no mandar "todos"
+       return false; 
+    }
+    
     if (isTroncal) {
       return c.tipo_tarjeton === 'C';
     } else {
