@@ -282,6 +282,34 @@ class ConductorController extends Controller
         return response()->json(['message' => 'No se proporcionó ninguna imagen'], 400);
     }
 
+    public function uploadQr(Request $request, $id)
+    {
+        $request->validate([
+            'qr' => 'required|image|max:5120' // Max 5MB
+        ]);
+
+        $conductor = Conductor::findOrFail($id);
+
+        if ($request->hasFile('qr')) {
+            $file = $request->file('qr');
+            $extension = strtolower($file->extension() ?: $file->guessExtension() ?: 'jpg');
+            $filename = 'conductor_qr_' . (int)$id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
+            // Guardar en public/storage/conductores
+            $path = $file->storeAs('conductores', $filename, 'public');
+            
+            $conductor->qr_documento = $path;
+            $conductor->save();
+
+            return response()->json([
+                'message' => 'Código QR subido exitosamente',
+                'qr_url' => '/storage/' . $path,
+                'conductor' => $conductor
+            ]);
+        }
+
+        return response()->json(['message' => 'No se proporcionó ninguna imagen'], 400);
+    }
+
     public function darDeBaja(Request $request, $id)
     {
         $this->ensureColumnsExist();

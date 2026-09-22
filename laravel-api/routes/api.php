@@ -176,6 +176,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores', [ConductorController::class, 'store']);
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/foto', [ConductorController::class, 'uploadFoto']);
+    Route::post('/conductores/{id}/qr', [ConductorController::class, 'uploadQr']);
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
     Route::post('/conductores/{id}/justificar-falta', [ConductorController::class, 'justificarFalta']);
     Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
