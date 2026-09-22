@@ -1240,7 +1240,6 @@ export default function Operadores() {
                     <th style={{ width: '210px' }}>Próxima capacitación</th>
                     <th style={{ width: '220px', textAlign: 'center' }}>Accidentes y Siniestros</th>
                     <th style={{ width: '120px', textAlign: 'center' }}>Faltas</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Retardos</th>
                     <th style={{ width: '180px', textAlign: 'center' }}>Amonestaciones</th>
                     <th style={{ width: '180px', textAlign: 'center' }}>Reconocimientos</th>
                     <th style={{ width: '280px' }}>Condicionamientos médicos</th>
@@ -1322,13 +1321,6 @@ export default function Operadores() {
                             type="number"
                             value={c.faltas}
                             onChange={(val) => autoSaveField(c.id, 'faltas', val)}
-                          />
-                        </td>
-                        <td>
-                          <EditableCell
-                            type="number"
-                            value={c.retardos}
-                            onChange={(val) => autoSaveField(c.id, 'retardos', val)}
                           />
                         </td>
                         <td className="text-center">
