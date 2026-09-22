@@ -30,20 +30,36 @@ const calculateFaltasParaTop = (c, rangoFaltas, fechaSeleccionada, faltasGlobale
   
   const faltasDetalle = getDetailArray(c, 'faltas');
   return faltasDetalle.filter(f => {
-    if (!f.fecha) return false;
+    if (!f.fecha) {
+      return false;
+    }
     const d = f.fecha.split('T')[0];
-    if (rangoFaltas === 'FECHA_DIA') return d === fechaSeleccionada;
-    if (rangoFaltas === 'FECHA_MES') return d.startsWith(fechaSeleccionada);
-    if (rangoFaltas === 'FECHA_AÑO') return d.startsWith(fechaSeleccionada);
+    if (rangoFaltas === 'FECHA_DIA') {
+      return d === fechaSeleccionada;
+    }
+    if (rangoFaltas === 'FECHA_MES') {
+      return d.startsWith(fechaSeleccionada);
+    }
+    if (rangoFaltas === 'FECHA_AÑO') {
+      return d.startsWith(fechaSeleccionada);
+    }
     return false;
   }).length;
 };
 
 const filterTopFaltistas = (topFaltistas, rangoFaltas, minFaltasCustom, maxFaltasCustom) => {
-  if (rangoFaltas === '1-2') return topFaltistas.filter(f => f.faltas >= 1 && f.faltas <= 2);
-  if (rangoFaltas === '3-5') return topFaltistas.filter(f => f.faltas >= 3 && f.faltas <= 5);
-  if (rangoFaltas === '6-10') return topFaltistas.filter(f => f.faltas >= 6 && f.faltas <= 10);
-  if (rangoFaltas === '10+') return topFaltistas.filter(f => f.faltas >= 10);
+  if (rangoFaltas === '1-2') {
+    return topFaltistas.filter(f => f.faltas >= 1 && f.faltas <= 2);
+  }
+  if (rangoFaltas === '3-5') {
+    return topFaltistas.filter(f => f.faltas >= 3 && f.faltas <= 5);
+  }
+  if (rangoFaltas === '6-10') {
+    return topFaltistas.filter(f => f.faltas >= 6 && f.faltas <= 10);
+  }
+  if (rangoFaltas === '10+') {
+    return topFaltistas.filter(f => f.faltas >= 10);
+  }
   if (rangoFaltas === 'CUSTOM') {
     const min = Math.max(0, Number(minFaltasCustom) || 0);
     const max = Math.max(min, Number(maxFaltasCustom) || 999);
