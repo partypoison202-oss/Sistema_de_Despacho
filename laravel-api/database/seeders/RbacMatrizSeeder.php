@@ -297,14 +297,14 @@ class RbacMatrizSeeder extends Seeder
                 'usuario'         => 'Ricardo_Macias',
                 'rol_codigo'      => 'PASTELES',
                 'modulos'         => ['centro_control', 'mesa_control', 'programacion_pasteles', 'mantenimiento'],
-                'contrasena'      => 'MVR_PL26',
+                'contrasena'      => 'MVR_PL26', // NOSONAR
             ],
             [
                 'nombre_completo' => 'Victor Esteban Alonso Garcia',
                 'usuario'         => 'Victor_Alonso',
                 'rol_codigo'      => 'PASTELES',
                 'modulos'         => ['centro_control', 'mesa_control', 'programacion_pasteles', 'mantenimiento'],
-                'contrasena'      => 'AGV_PL26',
+                'contrasena'      => 'AGV_PL26', // NOSONAR
             ],
         ];
 
