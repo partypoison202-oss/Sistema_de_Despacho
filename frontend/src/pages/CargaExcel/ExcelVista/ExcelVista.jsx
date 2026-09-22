@@ -142,6 +142,7 @@ export default function ExcelPreview({
     || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTech, setSelectedTech] = useState('');
+  const [filterSinConductor, setFilterSinConductor] = useState(false);
   const [activeTimePickerRow, setActiveTimePickerRow] = useState(null);
   const [activeTimePickerField, setActiveTimePickerField] = useState(null);
   const [tempTime, setTempTime] = useState('00:00');
@@ -247,6 +248,15 @@ export default function ExcelPreview({
       if (normalizedType !== selectedTech) return false;
     }
 
+    if (filterSinConductor) {
+      const titular = String(fila.TARJETON || '').trim();
+      const relevo = String(fila.RELEVO_TARJETON || '').trim();
+      const maniobrista = String(fila.TARJETON_MANIOBRISTA || '').trim();
+      if (titular !== '' || relevo !== '' || maniobrista !== '') {
+        return false;
+      }
+    }
+
     // Solo buscar en los campos visibles del modo actual + identificadores clave
     // (evita matches falsos en campos ocultos como RELEVO_TARJETON cuando no estamos en modo relevos)
     const searchableKeys = new Set([
@@ -346,6 +356,14 @@ export default function ExcelPreview({
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => setFilterSinConductor(!filterSinConductor)}
+              className={`tech-filter-btn ${filterSinConductor ? 'active' : ''}`}
+              style={{ marginLeft: '10px' }}
+            >
+              SIN T6
+            </button>
           </div>
           <div className="search-container">
             <svg className="search-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

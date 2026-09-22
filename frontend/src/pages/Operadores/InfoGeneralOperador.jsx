@@ -110,10 +110,9 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
     {/* Kardex Métricas */}
     <div className="border border-gray-200 rounded-lg p-4 mb-6">
       <h3 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-3 text-xs">MÉTRICAS OPERATIVAS (KARDEX)</h3>
-      <div className="grid grid-cols-4 gap-4 text-center">
+      <div className="grid grid-cols-3 gap-4 text-center">
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.accidentes_siniestros ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Accidentes y Siniestros</p></div>
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.faltas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Faltas</p></div>
-        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.retardos ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Retardos</p></div>
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.cambios ?? conductor.permutas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Permutas</p></div>
       </div>
     </div>
@@ -451,7 +450,7 @@ export default function InfoGeneralOperador({ conductores }) {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 Historial y Métricas Operativas (Kardex)
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                 <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-gray-800">{displayConductor.accidentes_siniestros ?? 0}</div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Accidentes y Siniestros</div>
@@ -459,10 +458,6 @@ export default function InfoGeneralOperador({ conductores }) {
                 <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-gray-800">{displayConductor.faltas ?? 0}</div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Faltas</div>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-gray-800">{displayConductor.retardos ?? 0}</div>
-                  <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Retardos</div>
                 </div>
                 <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-gray-800">{displayConductor.cambios ?? displayConductor.permutas ?? 0}</div>

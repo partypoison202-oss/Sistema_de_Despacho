@@ -11,6 +11,7 @@ import ExcelPreview from './ExcelVista/ExcelVista';
 import ModalTrasladoPatioNorte from './ModalTrasladoPatioNorte';
 import ModalReservaT6 from './ModalReservaT6';
 import ModalCambioUnidad from './ModalCambioUnidad';
+import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 
@@ -27,6 +28,7 @@ export default function CargaExcel({ isPasteles = false }) {
   const [tabActiva, setTabActiva] = useState('HOY');
   const [showTrasladoModal, setShowTrasladoModal] = useState(false);
   const [showReservaModal, setShowReservaModal] = useState(false);
+  const [showComparativaModal, setShowComparativaModal] = useState(false);
   const [modalCambioData, setModalCambioData] = useState({
     isOpen: false,
     unidadSaliente: null,
@@ -1079,6 +1081,16 @@ export default function CargaExcel({ isPasteles = false }) {
             </button>
             <button
               type="button"
+              onClick={() => setShowComparativaModal(true)}
+              className="excel-btn-capsule excel-btn-capsule--vino"
+            >
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Historial Alimentadoras
+            </button>
+            <button
+              type="button"
               onClick={handleExportExcel}
               className="excel-btn-capsule excel-btn-capsule--verde"
             >
@@ -1137,6 +1149,11 @@ export default function CargaExcel({ isPasteles = false }) {
         onClose={() => setShowReservaModal(false)}
         catalogConductores={catalogConductores}
         tabActiva={tabActiva}
+      />
+
+      <ModalComparativaAlimentadoras
+        isOpen={showComparativaModal}
+        onClose={() => setShowComparativaModal(false)}
       />
 
       {/* Modal para sustitución de unidad en modo Pasteles */}

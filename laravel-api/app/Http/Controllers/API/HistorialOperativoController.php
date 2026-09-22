@@ -43,7 +43,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.estatus',
                 'historial_operativo.corridas',
                 'historial_operativo.ciclo',
-                'historial_operativo.motivo'
+                'historial_operativo.motivo',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -64,7 +67,10 @@ class HistorialOperativoController extends Controller
                     'historial_operativo.estatus',
                     'historial_operativo.corridas',
                     'historial_operativo.ciclo',
-                    'historial_operativo.motivo'
+                    'historial_operativo.motivo',
+                    'historial_operativo.relevo_tarjeton',
+                    'historial_operativo.relevo_conductor',
+                    'historial_operativo.relevo_hora'
                 )
                 ->orderBy('historial_operativo.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -106,7 +112,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.estatus',
                 'historial_operativo.corridas',
                 'historial_operativo.ciclo',
-                'historial_operativo.motivo'
+                'historial_operativo.motivo',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -124,7 +133,10 @@ class HistorialOperativoController extends Controller
                     'informacion_operativa.estatus',
                     'informacion_operativa.corridas',
                     'informacion_operativa.ciclo',
-                    'informacion_operativa.motivo'
+                    'informacion_operativa.motivo',
+                    'informacion_operativa.relevo_tarjeton',
+                    'informacion_operativa.relevo_conductor',
+                    'informacion_operativa.relevo_hora'
                 )
                 ->orderBy('informacion_operativa.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -246,7 +258,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.nombre_conductor',
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
-                'historial_operativo.hora_encierro'
+                'historial_operativo.hora_encierro',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.hora_encierro')
             ->get();
@@ -281,7 +296,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.ciclo',
                 'historial_operativo.motivo',
                 'historial_operativo.falla',
-                'historial_operativo.motivo_estatus'
+                'historial_operativo.motivo_estatus',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -305,7 +323,10 @@ class HistorialOperativoController extends Controller
                     'historial_operativo.ciclo',
                     'historial_operativo.motivo',
                     'historial_operativo.falla',
-                    'historial_operativo.motivo_estatus'
+                    'historial_operativo.motivo_estatus',
+                    'historial_operativo.relevo_tarjeton',
+                    'historial_operativo.relevo_conductor',
+                    'historial_operativo.relevo_hora'
                 )
                 ->orderBy('historial_operativo.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -348,7 +369,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.ciclo',
                 'historial_operativo.motivo',
                 'historial_operativo.falla',
-                'historial_operativo.motivo_estatus'
+                'historial_operativo.motivo_estatus',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -369,7 +393,10 @@ class HistorialOperativoController extends Controller
                     'informacion_operativa.ciclo',
                     'informacion_operativa.motivo',
                     'informacion_operativa.falla',
-                    'informacion_operativa.motivo_estatus'
+                    'informacion_operativa.motivo_estatus',
+                    'informacion_operativa.relevo_tarjeton',
+                    'informacion_operativa.relevo_conductor',
+                    'informacion_operativa.relevo_hora'
                 )
                 ->orderBy('informacion_operativa.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -541,5 +568,57 @@ class HistorialOperativoController extends Controller
             ->get();
 
         return response()->json($registros);
+    }
+
+    /**
+     * Obtiene las rutas alimentadoras del día anterior para el módulo de PASTELES
+     */
+    public function getHistorialAlimentadorasAyer()
+    {
+        $fechaAyer = \Carbon\Carbon::yesterday()->toDateString();
+        
+        $queryBase = DB::table('historial_operativo')
+            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->where('fecha_historial', $fechaAyer)
+            ->whereRaw('LOWER(historial_operativo.tipo) != ?', ['urbanuss']) // Solo alimentadoras
+            ->whereNotNull('historial_operativo.ruta')
+            ->whereRaw("TRIM(historial_operativo.ruta) != ''")
+            ->select(
+                'unidades.numero_eco as economico',
+                'historial_operativo.ruta',
+                'historial_operativo.numero_tarjeton',
+                'historial_operativo.nombre_conductor'
+            )
+            ->orderBy('historial_operativo.ruta')
+            ->orderBy('unidades.numero_eco');
+
+        // Intentar primero con INICIO
+        $registros = (clone $queryBase)->where('momento', 'INICIO')->get();
+
+        // Fallback a FIN si INICIO está vacío (por si no hubo cierre manual pero sí cierre final)
+        if ($registros->isEmpty()) {
+            $registros = (clone $queryBase)->where('momento', 'FIN')->get();
+        }
+
+        $rutas = [];
+        foreach ($registros as $row) {
+            $ruta = trim($row->ruta);
+            if ($ruta === '') {
+                continue; // No incluir rutas vacías o de puros espacios
+            }
+            if (!isset($rutas[$ruta])) {
+                $rutas[$ruta] = [];
+            }
+            $rutas[$ruta][] = [
+                'economico' => $row->economico,
+                'tarjeton' => $row->numero_tarjeton,
+                'conductor' => $row->nombre_conductor
+            ];
+        }
+
+        return response()->json([
+            'fecha' => $fechaAyer,
+            'rutas' => $rutas
+        ]);
     }
 }

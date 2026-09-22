@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 
 // URL de la API
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import API_BASE from '../../config/api';
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return {

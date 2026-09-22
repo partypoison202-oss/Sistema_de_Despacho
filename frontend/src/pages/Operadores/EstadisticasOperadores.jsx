@@ -26,6 +26,9 @@ export default function EstadisticasOperadores({ conductores = [] }) {
   const [rangoFaltas, setRangoFaltas] = React.useState('TODOS');
   const [minFaltasCustom, setMinFaltasCustom] = React.useState(1);
   const [maxFaltasCustom, setMaxFaltasCustom] = React.useState(10);
+  
+  const [tipoFiltroFaltas, setTipoFiltroFaltas] = React.useState('RANGO'); // RANGO, FECHA
+  const [fechaSeleccionada, setFechaSeleccionada] = React.useState('');
 
   const stats = useMemo(() => {
     let activos = 0;
@@ -48,20 +51,33 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         activos++;
         
         // Sumar faltas y retardos (solo de activos para no sesgar con gente que ya no está)
-        const faltas = Number(c.faltas) || 0;
+        const faltasGlobales = Number(c.faltas) || 0;
         const retardos = Number(c.retardos) || 0;
         const accidentes = getDetailArray(c, 'accidentes_siniestros').length;
 
-        totalFaltas += faltas;
+        totalFaltas += faltasGlobales;
         totalRetardos += retardos;
         
+        let faltasParaTop = faltasGlobales;
+        if (['FECHA_DIA', 'FECHA_MES', 'FECHA_AÑO'].includes(rangoFaltas) && fechaSeleccionada) {
+           const faltasDetalle = getDetailArray(c, 'faltas');
+           faltasParaTop = faltasDetalle.filter(f => {
+             if (!f.fecha) return false;
+             const d = f.fecha.split('T')[0]; // Extraer 'YYYY-MM-DD'
+             if (rangoFaltas === 'FECHA_DIA') return d === fechaSeleccionada;
+             if (rangoFaltas === 'FECHA_MES') return d.startsWith(fechaSeleccionada);
+             if (rangoFaltas === 'FECHA_AÑO') return d.startsWith(fechaSeleccionada);
+             return false;
+           }).length;
+        }
+
         if (c.evaluacion) {
           sumaEvaluacion += Number(c.evaluacion);
           evaluadosCount++;
         }
 
         // Top listas
-        if (faltas > 0) topFaltistas.push({ nombre: c.nombre, tarjeton: c.tarjeton, faltas });
+        if (faltasParaTop > 0) topFaltistas.push({ nombre: c.nombre, tarjeton: c.tarjeton, faltas: faltasParaTop });
         if (retardos > 0) topRetardos.push({ nombre: c.nombre, retardos });
         if (accidentes > 0) topAccidentes.push({ nombre: c.nombre, accidentes });
 
@@ -111,7 +127,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
       top5Accidentes,
       tarjetonesData
     };
-  }, [conductores, rangoFaltas, minFaltasCustom, maxFaltasCustom]);
+  }, [conductores, rangoFaltas, minFaltasCustom, maxFaltasCustom, fechaSeleccionada]);
 
   // Renderizador personalizado para leyenda del PieChart
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
@@ -131,7 +147,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     <div className="estadisticas-operadores" style={{ animation: 'fadeIn 0.5s ease' }}>
       
       {/* Top Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 border-l-4 border-l-[#10b981]">
           <p className="text-slate-500 text-sm font-medium mb-1">Operadores Activos</p>
           <div className="flex items-end justify-between">
@@ -145,14 +161,6 @@ export default function EstadisticasOperadores({ conductores = [] }) {
           <div className="flex items-end justify-between">
             <h3 className="text-3xl font-bold text-slate-800">{stats.totalFaltas}</h3>
             <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded-full text-center">Crítico para bonos</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 border-l-4 border-l-[#f59e0b]">
-          <p className="text-slate-500 text-sm font-medium mb-1">Total Retardos (Activos)</p>
-          <div className="flex items-end justify-between">
-            <h3 className="text-3xl font-bold text-slate-800">{stats.totalRetardos}</h3>
-            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-center">Afecta puntualidad</span>
           </div>
         </div>
 
@@ -178,25 +186,45 @@ export default function EstadisticasOperadores({ conductores = [] }) {
                 Top 5 T6 con Faltas
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                {rangoFaltas === 'TODOS' ? 'Vista General' : `Filtrado por rango de faltas`}
+                {['TODOS', '1-2', '3-5', '6-10', '10+', 'CUSTOM'].includes(rangoFaltas) 
+                  ? (rangoFaltas === 'TODOS' ? 'Vista General' : `Filtrado por rango de faltas`) 
+                  : 'Filtrado por fecha específica'}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1.5">
-                <label htmlFor="select-rango-faltas" className="text-xs font-bold text-slate-500">Rango:</label>
+                <label htmlFor="select-rango-faltas" className="text-xs font-bold text-slate-500">Filtrar por:</label>
                 <select
                   id="select-rango-faltas"
                   value={rangoFaltas}
-                  onChange={(e) => setRangoFaltas(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setRangoFaltas(val);
+                    if (['FECHA_DIA', 'FECHA_MES', 'FECHA_AÑO'].includes(val)) {
+                      const d = new Date();
+                      if (val === 'FECHA_DIA') setFechaSeleccionada(d.toISOString().split('T')[0]);
+                      if (val === 'FECHA_MES') setFechaSeleccionada(d.toISOString().slice(0, 7));
+                      if (val === 'FECHA_AÑO') setFechaSeleccionada(d.getFullYear().toString());
+                    } else {
+                      setFechaSeleccionada('');
+                    }
+                  }}
                   className="text-xs font-bold bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all cursor-pointer"
                 >
-                  <option value="TODOS">General (Todas)</option>
-                  <option value="1-2">1 a 2 Faltas</option>
-                  <option value="3-5">3 a 5 Faltas</option>
-                  <option value="6-10">6 a 10 Faltas</option>
-                  <option value="10+">10+ Faltas</option>
-                  <option value="CUSTOM">Personalizado...</option>
+                  <optgroup label="Cantidad Total">
+                    <option value="TODOS">General (Todas)</option>
+                    <option value="1-2">1 a 2 Faltas</option>
+                    <option value="3-5">3 a 5 Faltas</option>
+                    <option value="6-10">6 a 10 Faltas</option>
+                    <option value="10+">10+ Faltas</option>
+                    <option value="CUSTOM">Rango Personalizado...</option>
+                  </optgroup>
+                  <optgroup label="Fecha Específica">
+                    <option value="FECHA_DIA">Por Día Específico</option>
+                    <option value="FECHA_MES">Por Mes Específico</option>
+                    <option value="FECHA_AÑO">Por Año Específico</option>
+                  </optgroup>
                 </select>
               </div>
 
@@ -223,6 +251,37 @@ export default function EstadisticasOperadores({ conductores = [] }) {
                   />
                 </div>
               )}
+
+              {['FECHA_DIA', 'FECHA_MES', 'FECHA_AÑO'].includes(rangoFaltas) && (
+                <div className="flex items-center">
+                  {rangoFaltas === 'FECHA_DIA' && (
+                    <input 
+                      type="date" 
+                      value={fechaSeleccionada} 
+                      onChange={e => setFechaSeleccionada(e.target.value)} 
+                      className="text-xs font-bold border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-red-500 text-slate-700" 
+                    />
+                  )}
+                  {rangoFaltas === 'FECHA_MES' && (
+                    <input 
+                      type="month" 
+                      value={fechaSeleccionada} 
+                      onChange={e => setFechaSeleccionada(e.target.value)} 
+                      className="text-xs font-bold border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-red-500 text-slate-700" 
+                    />
+                  )}
+                  {rangoFaltas === 'FECHA_AÑO' && (
+                    <input 
+                      type="number" 
+                      min="2020" max="2100" 
+                      placeholder="YYYY" 
+                      value={fechaSeleccionada} 
+                      onChange={e => setFechaSeleccionada(e.target.value)} 
+                      className="text-xs font-bold border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none focus:border-red-500 text-slate-700 w-20 text-center" 
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -239,13 +298,13 @@ export default function EstadisticasOperadores({ conductores = [] }) {
               </ResponsiveContainer>
             </div>
           ) : (
-             <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 italic gap-2">
-               <span>No hay operadores registradas en el rango de faltas seleccionado.</span>
+             <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 italic gap-2 text-sm text-center px-4">
+               <span>No hay operadores registradas con faltas bajo los filtros seleccionados.</span>
                {rangoFaltas !== 'TODOS' && (
                  <button
                    type="button"
                    onClick={() => setRangoFaltas('TODOS')}
-                   className="text-xs text-red-600 font-bold underline not-italic hover:text-red-700"
+                   className="text-xs text-red-600 font-bold underline not-italic hover:text-red-700 mt-2"
                  >
                    Restablecer a vista General
                  </button>
@@ -286,7 +345,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Top Accidentes */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -307,30 +366,6 @@ export default function EstadisticasOperadores({ conductores = [] }) {
           ) : (
             <div className="p-4 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-slate-100">
               Excelente, no hay accidentes registrados en operadores activos.
-            </div>
-          )}
-        </div>
-
-        {/* Top Retardos */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <svg width="24" height="24" fill="none" stroke="#3b82f6" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Top 5 T6 con Retardos
-          </h3>
-          {stats.top5Retardos.length > 0 ? (
-            <div className="space-y-3">
-              {stats.top5Retardos.map((op, i) => (
-                <div key={i} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-                  <span className="font-medium text-slate-700">{op.nombre}</span>
-                  <span className="bg-white text-blue-600 font-bold px-3 py-1 rounded-md shadow-sm">{op.retardos} retardos</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-4 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-slate-100">
-              No hay retardos registrados en operadores activos.
             </div>
           )}
         </div>

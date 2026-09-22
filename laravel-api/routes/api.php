@@ -217,6 +217,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/mantenimiento/{fecha}', [HistorialOperativoController::class, 'getHistorialMantenimiento']);
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
+    Route::get('/historial-operativo/alimentadoras-ayer', [HistorialOperativoController::class, 'getHistorialAlimentadorasAyer']);
     Route::get('/bitacoras-diarias', [\App\Http\Controllers\API\BitacorasCentroController::class, 'getBitacoras']);
 
     // Rutas para TITAN
