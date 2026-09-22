@@ -188,12 +188,20 @@ export default function GeneracionGafete({ conductores }) {
                 {/* 3. CÓDIGO QR - Lado Izquierdo */}
                 <div className="absolute bg-white p-1 z-10"
                      style={{ left: '19%', top: '13.5%', width: '16%', aspectRatio: '1/1' }}>
-                  <QRCode
-                    value={qrValue}
-                    size={256}
-                    style={{ height: "100%", width: "100%" }}
-                    viewBox={`0 0 256 256`}
-                  />
+                  {selectedConductor?.qr_documento ? (
+                    <img 
+                      src={`${API_BASE}/storage/${selectedConductor.qr_documento}`} 
+                      alt="Código QR del T6" 
+                      style={{ height: "100%", width: "100%", objectFit: "contain" }} 
+                    />
+                  ) : (
+                    <QRCode
+                      value={qrValue}
+                      size={256}
+                      style={{ height: "100%", width: "100%" }}
+                      viewBox={`0 0 256 256`}
+                    />
+                  )}
                 </div>
 
                 {/* 4. FECHA DE EXPEDICIÓN - Franja Guinda Izquierda */}

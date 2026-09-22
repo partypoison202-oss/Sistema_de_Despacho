@@ -57,8 +57,6 @@ const DashboardTitan         = lazy(() => lazyRetry(() => import('./pages/Titan/
 const DetalleUnidadTitan     = lazy(() => lazyRetry(() => import('./pages/Titan/DetalleUnidadTitan')));
 const Mantenimiento          = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/Mantenimiento')));
 const TitanDashboardStats      = lazy(() => lazyRetry(() => import('./pages/Titan/TitanDashboardStats')));
-const CargaCombustible       = lazy(() => lazyRetry(() => import('./pages/CargaCombustible/CargaCombustible')));
-const ReporteCombustible     = lazy(() => lazyRetry(() => import('./pages/ReporteCombustible/ReporteCombustible')));
 const Rh                     = lazy(() => lazyRetry(() => import('./pages/Rh/Rh')));
 const DetalleUnidadMantenimiento = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/DetalleUnidadMantenimiento')));
 const ReportesTitanes        = lazy(() => lazyRetry(() => import('./pages/CentroControl/ReporteTitanes/ReporteTitanes')));
@@ -321,6 +319,13 @@ function App() {
             <Route path="/carga-combustible/:tipoTransporte" element={
               <ProtectedRoute allowedModules={['carga_combustible']}>
                 <DetalleUnidadMantenimiento />
+              </ProtectedRoute>
+            } />
+
+            {/* Recursos Humanos */}
+            <Route path="/rh" element={
+              <ProtectedRoute allowedModules={['rh']}>
+                <Rh />
               </ProtectedRoute>
             } />
 

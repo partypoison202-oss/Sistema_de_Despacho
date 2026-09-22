@@ -114,6 +114,11 @@ export default function CargaExcel({ isPasteles = false }) {
 
   const trimString = (str) => String(str ?? '').trim();
 
+  const normalizeTarjeton = (t) => {
+    const n = parseInt(String(t || '').trim(), 10);
+    return isNaN(n) ? String(t || '').trim() : String(n);
+  };
+
   const normalizarTipoUnidad = (tipo) => {
     if (!tipo) return 'URBANUSS';
     let t = tipo.toString().trim().toUpperCase();
@@ -185,8 +190,8 @@ export default function CargaExcel({ isPasteles = false }) {
         return;
       }
 
-      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.RELEVO_TARJETON) === valStr);
-      const newDriverConductor = catalogConductores.find(c => trimString(c.tarjeton) === valStr);
+      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.RELEVO_TARJETON) === normalizeTarjeton(valStr));
+      const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
       const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
 
       if (newDriverConductor && newDriverConductor.estado_servicio === 'falta') {
@@ -244,8 +249,8 @@ export default function CargaExcel({ isPasteles = false }) {
         return;
       }
 
-      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.TARJETON) === valStr);
-      const newDriverConductor = catalogConductores.find(c => trimString(c.tarjeton) === valStr);
+      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.TARJETON) === normalizeTarjeton(valStr));
+      const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
       const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
 
       if (newDriverConductor && newDriverConductor.estado_servicio === 'falta') {
@@ -301,8 +306,8 @@ export default function CargaExcel({ isPasteles = false }) {
         return;
       }
 
-      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && trimString(row.TARJETON_MANIOBRISTA) === valStr);
-      const newManiobristaCatalog = catalogManiobristas.find(m => trimString(m.tarjeton) === valStr);
+      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.TARJETON_MANIOBRISTA) === normalizeTarjeton(valStr));
+      const newManiobristaCatalog = catalogManiobristas.find(m => normalizeTarjeton(m.tarjeton) === normalizeTarjeton(valStr));
       const newManiobristaName = newManiobristaCatalog ? newManiobristaCatalog.nombre : '';
 
       if (newManiobristaCatalog && newManiobristaCatalog.estado_servicio === 'falta') {
