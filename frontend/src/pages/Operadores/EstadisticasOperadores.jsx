@@ -22,6 +22,37 @@ const getDetailArray = (conductor, type) => {
   return [];
 };
 
+// Funciones auxiliares para reducir la complejidad cognitiva de useMemo
+const calculateFaltasParaTop = (c, rangoFaltas, fechaSeleccionada, faltasGlobales) => {
+  if (!['FECHA_DIA', 'FECHA_MES', 'FECHA_AÑO'].includes(rangoFaltas) || !fechaSeleccionada) {
+    return faltasGlobales;
+  }
+  
+  const faltasDetalle = getDetailArray(c, 'faltas');
+  return faltasDetalle.filter(f => {
+    if (!f.fecha) return false;
+    const d = f.fecha.split('T')[0];
+    if (rangoFaltas === 'FECHA_DIA') return d === fechaSeleccionada;
+    if (rangoFaltas === 'FECHA_MES') return d.startsWith(fechaSeleccionada);
+    if (rangoFaltas === 'FECHA_AÑO') return d.startsWith(fechaSeleccionada);
+    return false;
+  }).length;
+};
+
+const filterTopFaltistas = (topFaltistas, rangoFaltas, minFaltasCustom, maxFaltasCustom) => {
+  if (rangoFaltas === '1-2') return topFaltistas.filter(f => f.faltas >= 1 && f.faltas <= 2);
+  if (rangoFaltas === '3-5') return topFaltistas.filter(f => f.faltas >= 3 && f.faltas <= 5);
+  if (rangoFaltas === '6-10') return topFaltistas.filter(f => f.faltas >= 6 && f.faltas <= 10);
+  if (rangoFaltas === '10+') return topFaltistas.filter(f => f.faltas >= 10);
+  if (rangoFaltas === 'CUSTOM') {
+    const min = Math.max(0, Number(minFaltasCustom) || 0);
+    const max = Math.max(min, Number(maxFaltasCustom) || 999);
+    return topFaltistas.filter(f => f.faltas >= min && f.faltas <= max);
+  }
+  return topFaltistas;
+};
+
+
 export default function EstadisticasOperadores({ conductores = [] }) {
   const [rangoFaltas, setRangoFaltas] = React.useState('TODOS');
   const [minFaltasCustom, setMinFaltasCustom] = React.useState(1);
@@ -63,18 +94,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         totalFaltas += faltasGlobales;
         totalRetardos += retardos;
         
-        let faltasParaTop = faltasGlobales;
-        if (['FECHA_DIA', 'FECHA_MES', 'FECHA_AÑO'].includes(rangoFaltas) && fechaSeleccionada) {
-           const faltasDetalle = getDetailArray(c, 'faltas');
-           faltasParaTop = faltasDetalle.filter(f => {
-             if (!f.fecha) return false;
-             const d = f.fecha.split('T')[0]; // Extraer 'YYYY-MM-DD'
-             if (rangoFaltas === 'FECHA_DIA') return d === fechaSeleccionada;
-             if (rangoFaltas === 'FECHA_MES') return d.startsWith(fechaSeleccionada);
-             if (rangoFaltas === 'FECHA_AÑO') return d.startsWith(fechaSeleccionada);
-             return false;
-           }).length;
-        }
+        let faltasParaTop = calculateFaltasParaTop(c, rangoFaltas, fechaSeleccionada, faltasGlobales);
 
         if (c.evaluacion) {
           sumaEvaluacion += Number(c.evaluacion);
@@ -105,20 +125,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     });
 
     // Filtrar Top 5 Faltas según el rango seleccionado
-    let topFaltistasFiltrados = topFaltistas;
-    if (rangoFaltas === '1-2') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 1 && f.faltas <= 2);
-    } else if (rangoFaltas === '3-5') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 3 && f.faltas <= 5);
-    } else if (rangoFaltas === '6-10') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 6 && f.faltas <= 10);
-    } else if (rangoFaltas === '10+') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 10);
-    } else if (rangoFaltas === 'CUSTOM') {
-      const min = Math.max(0, Number(minFaltasCustom) || 0);
-      const max = Math.max(min, Number(maxFaltasCustom) || 999);
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= min && f.faltas <= max);
-    }
+    let topFaltistasFiltrados = filterTopFaltistas(topFaltistas, rangoFaltas, minFaltasCustom, maxFaltasCustom);
 
     // Ordenar y limitar tops
     const top5Faltas = topFaltistasFiltrados.sort((a, b) => b.faltas - a.faltas).slice(0, 5);
