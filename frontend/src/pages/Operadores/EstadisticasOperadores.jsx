@@ -113,6 +113,108 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     };
   }, [conductores, rangoFaltas, minFaltasCustom, maxFaltasCustom]);
 
+  const fechaActualFormateada = useMemo(() => {
+    const d = new Date();
+    const opciones = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    return d.toLocaleDateString('es-MX', opciones);
+  }, []);
+
+  const resumenStats = useMemo(() => {
+    let operacion = 0;
+    let descansos = 0;
+    let incapacidades = 0;
+    let maniobristas = 0;
+    let encierroOperativo = 0;
+    let permisos = 0;
+    let reservasIntermedias = 0;
+    let yaNoSePresentan = 0;
+    let reservasRealesMatutino = 0;
+    let reservasRealesVespertino = 0;
+
+    conductores.forEach(c => {
+      const estServ = String(c.estado_servicio || '').toLowerCase().trim();
+      const estatus = String(c.estatus || '').toLowerCase().trim();
+      const tipoTarj = String(c.tipo_tarjeton || '').toLowerCase().trim();
+      const turno = String(c.turno || '').toLowerCase().trim();
+
+      // 1. Ya no se presentan (baja, no_se_presenta, inactivo, inhabilitado)
+      if (estatus === 'baja' || estServ === 'baja' || estServ === 'ya_no_se_presenta' || estServ === 'inactivo' || estServ === 'inhabilitado') {
+        yaNoSePresentan++;
+        return;
+      }
+
+      // 2. Descansos
+      if (estServ.includes('descanso')) {
+        descansos++;
+        return;
+      }
+
+      // 3. Incapacidades
+      if (estServ.includes('incapacidad') || estServ.includes('enfermedad') || estServ.includes('salud')) {
+        incapacidades++;
+        return;
+      }
+
+      // 4. Maniobristas
+      if (estServ.includes('maniobrista') || tipoTarj.includes('maniobrista')) {
+        maniobristas++;
+        return;
+      }
+
+      // 5. Encierro Operativo
+      if (estServ.includes('encierro') || estServ.includes('patio')) {
+        encierroOperativo++;
+        return;
+      }
+
+      // 6. Permisos
+      if (estServ.includes('permiso') || (Array.isArray(c.permisos_detalle) && c.permisos_detalle.length > 0 && estServ !== 'en_servicio')) {
+        permisos++;
+        return;
+      }
+
+      // 7. Reservas Intermedias
+      if (estServ.includes('intermedia') || tipoTarj.includes('intermedia')) {
+        reservasIntermedias++;
+        return;
+      }
+
+      // 8 & 9. Reservas Reales Matutino / Vespertino
+      if (estServ === 'reserva' || estServ === 'disponible' || estServ.includes('reserva')) {
+        if (turno.includes('vespertino') || turno === 'v' || estServ.includes('vespertino')) {
+          reservasRealesVespertino++;
+        } else {
+          reservasRealesMatutino++;
+        }
+        return;
+      }
+
+      // 10. Operación (en_servicio) o fallback
+      if (estServ === 'en_servicio' || estServ === 'operacion' || estatus === 'activo') {
+        operacion++;
+      } else {
+        operacion++;
+      }
+    });
+
+    const rows = [
+      { concepto: 'OPERACIÓN', cantidad: operacion },
+      { concepto: 'DESCANSOS', cantidad: descansos },
+      { concepto: 'INCAPACIDADES', cantidad: incapacidades },
+      { concepto: 'MANIOBRISTAS', cantidad: maniobristas },
+      { concepto: 'ENCIERRO OPERATIVO', cantidad: encierroOperativo },
+      { concepto: 'PERMISOS', cantidad: permisos },
+      { concepto: 'RESERVAS INTERMEDIAS', cantidad: reservasIntermedias },
+      { concepto: 'YA NO SE PRESENTAN', cantidad: yaNoSePresentan },
+      { concepto: 'RESERVAS REALES MATUTINO', cantidad: reservasRealesMatutino },
+      { concepto: 'RESERVAS REALES VESPERTINO', cantidad: reservasRealesVespertino },
+    ];
+
+    const total = rows.reduce((sum, r) => sum + r.cantidad, 0);
+
+    return { rows, total };
+  }, [conductores]);
+
   // Renderizador personalizado para leyenda del PieChart
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
     const RADIAN = Math.PI / 180;
@@ -161,6 +263,47 @@ export default function EstadisticasOperadores({ conductores = [] }) {
           <div className="flex items-end justify-between">
             <h3 className="text-3xl font-bold text-slate-800">{stats.promEvaluacion} / 10</h3>
             <span className="text-xs text-blue-500 bg-blue-50 px-2 py-1 rounded-full text-center">Calidad de servicio</span>
+          </div>
+        </div>
+      </div>
+
+      {/* CUADRO RESÚMEN DE CONDUCTORES (TABLA OFICIAL) */}
+      <div className="mb-8 flex justify-center">
+        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-[#5c1325] text-white py-3.5 px-6 text-center">
+            <h2 className="text-2xl md:text-3xl font-normal tracking-wide text-white mb-1 font-serif">
+              Resúmen de conductores
+            </h2>
+            <p className="text-sm md:text-base font-medium text-white/90 capitalize font-sans">
+              {fechaActualFormateada}
+            </p>
+          </div>
+
+          <div className="p-0 overflow-x-auto">
+            <table className="w-full border-collapse font-sans">
+              <tbody>
+                {resumenStats.rows.map((row, index) => (
+                  <tr key={index} className="border-b border-black">
+                    <td className="w-2/3 py-2 px-4 text-center font-bold text-sm md:text-base tracking-wider uppercase border-r border-black text-black">
+                      {row.concepto}
+                    </td>
+                    <td className="w-1/3 py-2 px-4 text-center font-bold text-xl md:text-2xl text-black">
+                      {row.cantidad}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-[#5c1325] text-white border-t-2 border-black">
+                  <td className="py-3 px-4 text-center font-black text-sm md:text-base uppercase tracking-wider border-r border-black">
+                    TOTAL OPERADORES
+                  </td>
+                  <td className="py-3 px-4 text-center font-black text-2xl md:text-3xl">
+                    {resumenStats.total}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
       </div>
