@@ -430,31 +430,31 @@ export default function EstadisticasOperadores({ conductores = [] }) {
             <table className="w-full text-left border-collapse min-w-[500px]">
               <tbody className="divide-y divide-slate-200 text-slate-800">
                 <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3 px-6 font-semibold uppercase">OPERACIÓN</td>
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">OPERACIÓN</th>
                   <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.operacion}</td>
                 </tr>
                 <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3 px-6 font-semibold uppercase">DESCANSOS</td>
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">DESCANSOS</th>
                   <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.descansos}</td>
                 </tr>
                 <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3 px-6 font-semibold uppercase">INCAPACIDADES</td>
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">INCAPACIDADES</th>
                   <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.incapacidades}</td>
                 </tr>
                 <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3 px-6 font-semibold uppercase">MANIOBRISTAS</td>
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">MANIOBRISTAS</th>
                   <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.maniobristas}</td>
                 </tr>
                 <tr className="bg-slate-50/50">
-                  <td className="p-3 px-6 font-semibold text-slate-400 uppercase">PERMISOS</td>
+                  <th scope="row" className="p-3 px-6 font-semibold text-slate-400 uppercase text-left">PERMISOS</th>
                   <td className="p-3 px-6 text-right font-bold text-xl text-slate-400">-</td>
                 </tr>
                 <tr className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3 px-6 font-semibold uppercase">YA NO SE PRESENTAN <span className="text-xs text-slate-400 normal-case ml-2">(Bajas)</span></td>
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">YA NO SE PRESENTAN <span className="text-xs text-slate-400 normal-case ml-2">(Bajas)</span></th>
                   <td className="p-3 px-6 text-right font-bold text-xl">{stats.bajas}</td>
                 </tr>
                 <tr className="bg-[#591024] text-white">
-                  <td className="p-4 px-6 font-bold text-xl uppercase tracking-wider">TOTAL OPERADORES</td>
+                  <th scope="row" className="p-4 px-6 font-bold text-xl uppercase tracking-wider text-left">TOTAL OPERADORES</th>
                   <td className="p-4 px-6 text-right font-bold text-3xl">{stats.activos}</td>
                 </tr>
               </tbody>
