@@ -45,7 +45,7 @@ class ConductorController extends Controller
 
         $query = Conductor::query();
 
-        // Filtrar sólo operadores activos (no dados de baja) por defecto
+        // Filtrar sólo operadores activos (no dados de baja ni inhabilitados) por defecto
         if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
             $query->where(function ($q) {
                 $q->where('estatus', 'activo')
@@ -61,6 +61,23 @@ class ConductorController extends Controller
             ->toArray();
 
         $conductores = $query->get()->map(function ($c) use ($asignaciones) {
+            // Evaluar regla de 4 faltas en 30 días
+            $eval = $c->evaluarInhabilitacionFaltas();
+            if ($eval['inhabilitado'] && $c->estatus !== 'inhabilitado') {
+                $c->estatus = 'inhabilitado';
+                $c->estado_servicio = null;
+                DB::table('conductores')->where('id', $c->id)->update([
+                    'estatus' => 'inhabilitado',
+                    'estado_servicio' => null
+                ]);
+                DB::table('informacion_operativa')
+                    ->where('numero_tarjeton', $c->tarjeton)
+                    ->update([
+                        'numero_tarjeton' => null,
+                        'nombre_conductor' => null
+                    ]);
+            }
+
             $tarjetonClean = trim($c->tarjeton ?? '');
             $estaAsignado = false;
             foreach ($asignaciones as $t) {
@@ -69,7 +86,7 @@ class ConductorController extends Controller
                     break;
                 }
             }
-            if ($c->estatus === 'baja') {
+            if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                 $c->estado_servicio = null;
             } elseif ($c->estado_servicio === 'maniobrista') {
                 // Respetar siempre el estado maniobrista, aunque esté asignado
@@ -79,6 +96,13 @@ class ConductorController extends Controller
             }
             return $c;
         });
+
+        // Si no se incluyeron bajas/inhabilitados explícitamente, filtrar aquellos que hayan resultado inhabilitados al evaluar
+        if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
+            $conductores = $conductores->filter(function ($c) {
+                return $c->estatus === 'activo' || is_null($c->estatus);
+            })->values();
+        }
 
         return response()->json($conductores);
     }
@@ -406,6 +430,13 @@ class ConductorController extends Controller
                 $conductor->faltas = max(0, (int)$conductor->faltas - 1);
             }
 
+            // Reevaluar regla de 4 faltas en 30 días tras justificar
+            $eval = $conductor->evaluarInhabilitacionFaltas();
+            if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
+                $conductor->estatus = 'activo';
+                $conductor->estado_servicio = 'disponible';
+            }
+
             $conductor->save();
 
             return response()->json([
@@ -453,12 +484,35 @@ class ConductorController extends Controller
         $detalle[] = $nuevaFalta;
         $conductor->faltas_detalle = $detalle;
         $conductor->faltas = ((int)($conductor->faltas ?? 0)) + 1;
+
+        // Evaluar regla de 4 faltas en 30 días
+        $eval = $conductor->evaluarInhabilitacionFaltas();
+        $fueInhabilitado = false;
+        if ($eval['inhabilitado']) {
+            $conductor->estatus = 'inhabilitado';
+            $conductor->estado_servicio = null;
+            $fueInhabilitado = true;
+
+            // Desvincular automáticamente de cualquier unidad asignada
+            DB::table('informacion_operativa')
+                ->where('numero_tarjeton', $conductor->tarjeton)
+                ->update([
+                    'numero_tarjeton' => null,
+                    'nombre_conductor' => null
+                ]);
+        }
+
         $conductor->save();
+
+        $mensaje = $fueInhabilitado
+            ? 'Falta registrada correctamente. ATENCIÓN: El operador ha sido INHABILITADO al acumular 4 faltas en un lapso de 30 días.'
+            : 'Falta registrada correctamente.';
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Falta registrada correctamente.',
-            'conductor' => $conductor
+            'message' => $mensaje,
+            'conductor' => $conductor,
+            'inhabilitado' => $fueInhabilitado
         ], 200);
     }
 }

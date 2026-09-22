@@ -88,6 +88,9 @@ class PlataformaController extends Controller
                         ->orWhere('id', is_numeric($request->conductor) ? (int)$request->conductor : 0)
                         ->first();
                     if ($cond) {
+                        if ($cond->estatus === 'inhabilitado') {
+                            return response()->json(['error' => 'El conductor seleccionado está INHABILITADO por acumulación de faltas.'], 422);
+                        }
                         $datosUpdate['numero_tarjeton'] = $cond->tarjeton;
                         $datosUpdate['nombre_conductor'] = trim($cond->nombres . ' ' . $cond->apellidos);
                         DB::table('conductores')->where('id', $cond->id)->update(['estado_servicio' => 'en_servicio']);
@@ -357,6 +360,9 @@ class PlataformaController extends Controller
                 if (!$conductorNuevo) {
                     return response()->json(['error' => 'Conductor no encontrado en el sistema.'], 404);
                 }
+                if ($conductorNuevo->estatus === 'inhabilitado') {
+                    return response()->json(['error' => 'El conductor seleccionado está INHABILITADO por acumulación de faltas.'], 422);
+                }
                 $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
                 $nombreCompletoAsig = trim($conductorNuevo->nombres . ' ' . $conductorNuevo->apellidos);
                 $datosUpdate['nombre_conductor'] = $nombreCompletoAsig;
@@ -406,6 +412,9 @@ class PlataformaController extends Controller
                         ->first();
                     if (!$conductorNuevo) {
                         return response()->json(['error' => 'Conductor de reemplazo no encontrado.'], 404);
+                    }
+                    if ($conductorNuevo->estatus === 'inhabilitado') {
+                        return response()->json(['error' => 'El conductor de reemplazo está INHABILITADO por acumulación de faltas.'], 422);
                     }
                     $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
                     $nombreCompleto = trim(($conductorNuevo->nombres ?? '') . ' ' . ($conductorNuevo->apellidos ?? ''));

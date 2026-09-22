@@ -63,21 +63,24 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       const pendientesCount = (Number(c.faltas) || 0);
       const justificadasCount = listaFaltas.filter(f => f.estado === 'justificada' || f.justificada).length;
       const totalHistorico = pendientesCount + justificadasCount;
+      const esInhabilitado = c.estatus === 'inhabilitado' || c.info_ventana_faltas?.inhabilitado;
 
       return {
         ...c,
         listaFaltas,
         pendientesCount,
         justificadasCount,
-        totalHistorico
+        totalHistorico,
+        esInhabilitado
       };
     }).filter(c => {
-      // Filtrar sólo quienes tienen al menos 1 falta (activa o justificada)
-      if (c.pendientesCount === 0 && c.justificadasCount === 0) return false;
+      // Filtrar sólo quienes tienen al menos 1 falta (activa o justificada) o están inhabilitados
+      if (c.pendientesCount === 0 && c.justificadasCount === 0 && !c.esInhabilitado) return false;
 
       // Filtro por estatus de falta
       if (filtroEstatus === 'PENDIENTES' && c.pendientesCount === 0) return false;
       if (filtroEstatus === 'JUSTIFICADAS' && c.justificadasCount === 0) return false;
+      if (filtroEstatus === 'INHABILITADOS' && !c.esInhabilitado) return false;
 
       // Filtro por texto de búsqueda
       if (busqueda.trim() !== '') {
@@ -98,18 +101,21 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
     let totalConductoresConFaltas = 0;
     let totalFaltasPendientes = 0;
     let totalFaltasJustificadas = 0;
+    let totalInhabilitados = 0;
 
     conductores.forEach(c => {
       const lista = getFaltasArray(c);
       const pend = Number(c.faltas) || 0;
       const just = lista.filter(f => f.estado === 'justificada' || f.justificada).length;
+      const esInhabilitado = c.estatus === 'inhabilitado' || c.info_ventana_faltas?.inhabilitado;
 
-      if (pend > 0 || just > 0) totalConductoresConFaltas++;
+      if (pend > 0 || just > 0 || esInhabilitado) totalConductoresConFaltas++;
       totalFaltasPendientes += pend;
       totalFaltasJustificadas += just;
+      if (esInhabilitado) totalInhabilitados++;
     });
 
-    return { totalConductoresConFaltas, totalFaltasPendientes, totalFaltasJustificadas };
+    return { totalConductoresConFaltas, totalFaltasPendientes, totalFaltasJustificadas, totalInhabilitados };
   }, [conductores]);
 
   // Actualizar conductor seleccionado si la lista cambia
@@ -316,6 +322,18 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
           >
             Justificadas ({kpis.totalFaltasJustificadas})
           </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroEstatus('INHABILITADOS')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              filtroEstatus === 'INHABILITADOS'
+                ? 'bg-[#dc2626] text-white shadow-sm ring-2 ring-red-400'
+                : 'bg-red-100 text-red-800 hover:bg-red-200'
+            }`}
+          >
+            Inhabilitados ({kpis.totalInhabilitados})
+          </button>
         </div>
 
         {/* BUSCADOR */}
@@ -404,13 +422,23 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                       )}
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                        c.estado_servicio === 'falta' ? 'bg-red-100 text-red-800' :
-                        c.estado_servicio === 'en_servicio' ? 'bg-emerald-100 text-emerald-800' :
-                        'bg-slate-100 text-slate-700'
-                      }`}>
-                        {(c.estado_servicio || 'disponible').toUpperCase().replace('_', ' ')}
-                      </span>
+                      {c.esInhabilitado ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-red-600 text-white shadow-sm border border-red-700">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                          </svg>
+                          INHABILITADO
+                        </span>
+                      ) : (
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                          c.estado_servicio === 'falta' ? 'bg-red-100 text-red-800' :
+                          c.estado_servicio === 'en_servicio' ? 'bg-emerald-100 text-emerald-800' :
+                          'bg-slate-100 text-slate-700'
+                        }`}>
+                          {(c.estado_servicio || 'disponible').toUpperCase().replace('_', ' ')}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button
@@ -445,7 +473,14 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                   {conductorActualData.tarjeton || 'T6'}
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-lg">{conductorActualData.nombre}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-slate-900 text-lg">{conductorActualData.nombre}</h3>
+                    {(conductorActualData.estatus === 'inhabilitado' || conductorActualData.info_ventana_faltas?.inhabilitado) && (
+                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black bg-red-600 text-white uppercase tracking-wider">
+                        INHABILITADO
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500 font-medium">
                     Tarjetón: <strong className="text-[#6b1d33]">{conductorActualData.tarjeton}</strong> &bull; {conductorActualData.tipo_tarjeton ? `Tipo ${conductorActualData.tipo_tarjeton}` : 'General'}
                   </p>
@@ -488,6 +523,62 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
             {/* Contenido principal del Modal: Lista de Faltas */}
             <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              
+              {/* Tarjeta Informativa de la Ventana de 30 Días */}
+              {(() => {
+                const infoV = conductorActualData.info_ventana_faltas || {};
+                const esInhab = conductorActualData.estatus === 'inhabilitado' || infoV.inhabilitado;
+                const faltasV = infoV.faltas_ventana_activa ?? conductorActualData.pendientesCount;
+
+                return (
+                  <div className={`p-4 rounded-xl border ${
+                    esInhab ? 'bg-red-50 border-red-300 ring-2 ring-red-400' :
+                    faltasV >= 3 ? 'bg-amber-50 border-amber-300' :
+                    'bg-slate-50 border-slate-200'
+                  }`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-xs uppercase tracking-wider text-slate-700">
+                            Ventana de Control (30 días naturales)
+                          </span>
+                          {esInhab ? (
+                            <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded">
+                              INHABILITADO (4/4 FALTAS)
+                            </span>
+                          ) : faltasV === 3 ? (
+                            <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                              RIESGO ALTO (3/4 FALTAS)
+                            </span>
+                          ) : (
+                            <span className="bg-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded">
+                              EN SEGUIMIENTO
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-slate-600 mt-1 font-medium">
+                          Faltas en ventana activa: <strong className="text-slate-900">{faltasV} de 4 permisibles</strong>
+                          {infoV.ventana_inicio && (
+                            <span className="text-slate-500"> &bull; Del {infoV.ventana_inicio} al {infoV.ventana_fin} ({infoV.dias_restantes_ventana} días restantes)</span>
+                          )}
+                        </p>
+
+                        {esInhab && (
+                          <div className="mt-2 text-xs font-bold text-red-700 bg-red-100/90 p-2.5 rounded-lg border border-red-200">
+                            ⚠️ ATENCIÓN: Este operador acumula 4 faltas no justificadas dentro del periodo de 30 días y ha sido inhabilitado automáticamente. No se puede utilizar en ninguna asignación del sistema hasta justificar las faltas requeridas.
+                          </div>
+                        )}
+                        {!esInhab && faltasV === 3 && (
+                          <div className="mt-2 text-xs font-bold text-amber-800 bg-amber-100/90 p-2 rounded-lg border border-amber-200">
+                            ⚡ ALERTA: Con 1 falta no justificada más en esta ventana, el operador quedará inhabilitado automáticamente.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               {conductorActualData.listaFaltas.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 italic">
                   Este conductor no tiene faltas registradas en su historial.
