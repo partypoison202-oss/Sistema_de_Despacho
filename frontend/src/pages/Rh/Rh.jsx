@@ -95,6 +95,7 @@ export default function Rh() {
               conductores={conductores} 
               onRefresh={fetchConductores} 
               getAuthHeaders={getAuthHeaders} 
+              readOnly={true}
             />
           </div>
         )}
