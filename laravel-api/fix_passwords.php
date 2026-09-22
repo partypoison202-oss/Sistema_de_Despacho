@@ -101,8 +101,8 @@ $usuarios = [
     'Jose_Angeles'      => ['AMJ_EN26',  ['encierro'], 'ENCIERRO'],
 
     // ── Pasteles ──
-    'Ricardo_Macias'    => ['MVR_PL26',  ['centro_control','mesa_control','programacion_pasteles'], 'PASTELES'],
-    'Victor_Alonso'     => ['AGV_PL26',  ['centro_control','mesa_control','programacion_pasteles'], 'PASTELES'],
+    'Ricardo_Macias'    => ['MVR_PL26',  ['centro_control','mesa_control','programacion_pasteles','mantenimiento'], 'PASTELES'],
+    'Victor_Alonso'     => ['AGV_PL26',  ['centro_control','mesa_control','programacion_pasteles','mantenimiento'], 'PASTELES'],
 ];
 
 // Mapear códigos de rol a sus IDs en la base de datos
