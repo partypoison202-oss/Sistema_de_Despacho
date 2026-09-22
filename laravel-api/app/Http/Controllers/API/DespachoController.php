@@ -2815,7 +2815,8 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('informacion_operativa.estatus', 'mantenimiento')
             ->select(
-                'informacion_operativa.id as numero_incidencia',
+                'informacion_operativa.id as id_incidencia',
+                'informacion_operativa.numero_incidencia',
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.folio_mantenimiento',
@@ -3669,7 +3670,9 @@ class DespachoController extends Controller
             $registros = $query
                 ->orderBy('historial_operativo.tipo')
                 ->orderBy('unidades.numero_eco')
-                ->get();
+                ->get()
+                ->unique('numero_eco')
+                ->values();
 
             // Si por alguna razón histórica no hubiera registros en historial_operativo para hoy,
             // usamos la tabla informacion_operativa como fallback para que nunca quede vacío.
@@ -3710,7 +3713,9 @@ class DespachoController extends Controller
                 $registros = $queryFallback
                     ->orderBy('informacion_operativa.tipo')
                     ->orderBy('unidades.numero_eco')
-                    ->get();
+                    ->get()
+                    ->unique('numero_eco')
+                    ->values();
             }
 
             $kpis = [

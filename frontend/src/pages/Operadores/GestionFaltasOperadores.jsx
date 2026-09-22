@@ -38,7 +38,7 @@ const getFaltasArray = (conductor) => {
   return items;
 };
 
-export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders }) {
+export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders, readOnly = false }) {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstatus, setFiltroEstatus] = useState('TODOS'); // TODOS, PENDIENTES, JUSTIFICADAS
   const [conductorSeleccionado, setConductorSeleccionado] = useState(null);
@@ -509,16 +509,19 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setModalNuevaFaltaOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                Registrar Falta
-              </button>
+              {/* Botón Registrar Falta */}
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => setModalNuevaFaltaOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  Registrar Falta
+                </button>
+              )}
             </div>
 
             {/* Contenido principal del Modal: Lista de Faltas */}
@@ -664,19 +667,21 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                               Ver Comprobante
                             </a>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFaltaAJustificar({ ...falta, index: idx });
-                                setModalSubidaOpen(true);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                              </svg>
-                              Subir Justificante
-                            </button>
+                            !readOnly && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFaltaAJustificar({ ...falta, index: idx });
+                                  setModalSubidaOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                </svg>
+                                Subir Justificante
+                              </button>
+                            )
                           )}
                         </div>
                       </div>

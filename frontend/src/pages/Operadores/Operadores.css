@@ -121,14 +121,14 @@
 }
 
 .operadores-table th {
-  background-color: #f8fafc;
-  color: #475569;
+  background-color: var(--color-maroon, #701c33);
+  color: #ffffff;
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.9rem 1rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 2px solid #521526;
   position: sticky;
   top: 0;
   z-index: 10;
