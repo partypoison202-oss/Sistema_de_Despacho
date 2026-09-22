@@ -661,6 +661,27 @@ export default function ExcelPreview({
                           const tarjetonNorm = normalizeTarjeton(c.tarjeton);
                           if (searchNorm && (tarjetonNorm.includes(searchNorm) || searchNorm.includes(tarjetonNorm))) return true;
                           return false;
+                        }).sort((a, b) => {
+                          const s = dropdownSearch.toLowerCase().trim();
+                          if (!s) return 0;
+                          
+                          const tA = String(a.tarjeton || '').toLowerCase();
+                          const tB = String(b.tarjeton || '').toLowerCase();
+                          const paddedS = s.padStart(4, '0');
+                          const padA = tA.padStart(4, '0');
+                          const padB = tB.padStart(4, '0');
+                          
+                          // 1. Coincidencia exacta (incluso con ceros pad)
+                          if (padA === paddedS && padB !== paddedS) return -1;
+                          if (padB === paddedS && padA !== paddedS) return 1;
+                          if (tA === s && tB !== s) return -1;
+                          if (tB === s && tA !== s) return 1;
+                          
+                          // 2. Empieza con
+                          if (tA.startsWith(s) && !tB.startsWith(s)) return -1;
+                          if (tB.startsWith(s) && !tA.startsWith(s)) return 1;
+                          
+                          return 0;
                         });
 
                         return (
