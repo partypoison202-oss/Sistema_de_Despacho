@@ -254,14 +254,7 @@ export default function CargaExcel({ isPasteles = false }) {
     }
 
     if (field === 'RELEVO_TARJETON') {
-      const currentRelevoTarjeton = updatedData[index]['RELEVO_TARJETON'];
-      const currentRelevoName = updatedData[index]['RELEVO_CONDUCTOR'];
-      const currentEco = updatedData[index]['ECONOMICO'];
-
       if (valStr === '') {
-        if (currentRelevoTarjeton) {
-          await solicitarFaltaSiAplica(currentRelevoTarjeton, currentRelevoName, currentEco, 'relevo');
-        }
         updatedData[index]['RELEVO_TARJETON'] = '';
         updatedData[index]['RELEVO_CONDUCTOR'] = '';
         setPreviewData(updatedData);
@@ -324,9 +317,6 @@ export default function CargaExcel({ isPasteles = false }) {
         }
         return;
       } else {
-        if (currentRelevoTarjeton && normalizeTarjeton(currentRelevoTarjeton) !== normalizeTarjeton(valStr)) {
-          await solicitarFaltaSiAplica(currentRelevoTarjeton, currentRelevoName, currentEco, 'relevo');
-        }
         updatedData[index]['RELEVO_TARJETON'] = valStr;
         updatedData[index]['RELEVO_CONDUCTOR'] = newDriverName;
       }
@@ -338,7 +328,7 @@ export default function CargaExcel({ isPasteles = false }) {
       const currentEco = updatedData[index]['ECONOMICO'];
 
       if (valStr === '') {
-        if (currentTarjeton) {
+        if (isPasteles && currentTarjeton) {
           await solicitarFaltaSiAplica(currentTarjeton, currentDriverName, currentEco, 'conductor');
         }
         updatedData[index]['TARJETON'] = '';
@@ -403,7 +393,7 @@ export default function CargaExcel({ isPasteles = false }) {
         }
         return;
       } else {
-        if (currentTarjeton && normalizeTarjeton(currentTarjeton) !== normalizeTarjeton(valStr)) {
+        if (isPasteles && currentTarjeton && normalizeTarjeton(currentTarjeton) !== normalizeTarjeton(valStr)) {
           await solicitarFaltaSiAplica(currentTarjeton, currentDriverName, currentEco, 'conductor');
         }
         updatedData[index]['TARJETON'] = valStr;
