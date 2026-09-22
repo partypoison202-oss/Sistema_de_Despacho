@@ -267,165 +267,104 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         </div>
       </div>
 
-      {/* CUADRO RESÚMEN DE CONDUCTORES (TABLA OFICIAL) */}
-      <div className="mb-8 flex justify-center">
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-[#5c1325] text-white py-3.5 px-6 text-center">
-            <h2 className="text-2xl md:text-3xl font-normal tracking-wide text-white mb-1 font-serif">
-              Resúmen de conductores
-            </h2>
-            <p className="text-sm md:text-base font-medium text-white/90 capitalize font-sans">
-              {fechaActualFormateada}
-            </p>
-          </div>
-
-          <div className="p-0 overflow-x-auto">
-            <table className="w-full border-collapse font-sans">
-              <tbody>
-                {resumenStats.rows.map((row, index) => (
-                  <tr key={index} className="border-b border-black">
-                    <td className="w-2/3 py-2 px-4 text-center font-bold text-sm md:text-base tracking-wider uppercase border-r border-black text-black">
-                      {row.concepto}
-                    </td>
-                    <td className="w-1/3 py-2 px-4 text-center font-bold text-xl md:text-2xl text-black">
-                      {row.cantidad}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-[#5c1325] text-white border-t-2 border-black">
-                  <td className="py-3 px-4 text-center font-black text-sm md:text-base uppercase tracking-wider border-r border-black">
-                    TOTAL OPERADORES
-                  </td>
-                  <td className="py-3 px-4 text-center font-black text-2xl md:text-3xl">
-                    {resumenStats.total}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-      </div>
-
+      {/* Grid 1: Resumen General de Conductores + Distribución por Tarjetón */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         
-        {/* Gráfica Top Faltas con Filtro por Rango */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <svg width="22" height="22" fill="none" stroke="#ef4444" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Top 5 T6 con Faltas
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {rangoFaltas === 'TODOS' ? 'Vista General' : `Filtrado por rango de faltas`}
-              </p>
+        {/* Card 1: Resumen General de Conductores */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                  </svg>
+                  Resumen General de Conductores
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium capitalize">
+                  {fechaActualFormateada}
+                </p>
+              </div>
+              <span className="text-xs font-bold text-[#6b1d33] bg-[#6b1d33]/10 px-3 py-1.5 rounded-xl border border-[#6b1d33]/20 self-start sm:self-auto">
+                Conteo en Tiempo Real
+              </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <label htmlFor="select-rango-faltas" className="text-xs font-bold text-slate-500">Rango:</label>
-                <select
-                  id="select-rango-faltas"
-                  value={rangoFaltas}
-                  onChange={(e) => setRangoFaltas(e.target.value)}
-                  className="text-xs font-bold bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all cursor-pointer"
-                >
-                  <option value="TODOS">General (Todas)</option>
-                  <option value="1-2">1 a 2 Faltas</option>
-                  <option value="3-5">3 a 5 Faltas</option>
-                  <option value="6-10">6 a 10 Faltas</option>
-                  <option value="10+">10+ Faltas</option>
-                  <option value="CUSTOM">Personalizado...</option>
-                </select>
-              </div>
+            <div className="space-y-2 max-h-[310px] overflow-y-auto pr-1">
+              {resumenStats.rows.map((row, index) => {
+                const colorsMap = {
+                  'OPERACIÓN': { bg: 'bg-emerald-50/60', text: 'text-emerald-800', badge: 'bg-emerald-100 text-emerald-900 border border-emerald-200' },
+                  'DESCANSOS': { bg: 'bg-slate-50', text: 'text-slate-700', badge: 'bg-slate-200 text-slate-800 border border-slate-300' },
+                  'INCAPACIDADES': { bg: 'bg-amber-50/60', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-900 border border-amber-200' },
+                  'MANIOBRISTAS': { bg: 'bg-purple-50/60', text: 'text-purple-800', badge: 'bg-purple-100 text-purple-900 border border-purple-200' },
+                  'ENCIERRO OPERATIVO': { bg: 'bg-blue-50/60', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-900 border border-blue-200' },
+                  'PERMISOS': { bg: 'bg-indigo-50/60', text: 'text-indigo-800', badge: 'bg-indigo-100 text-indigo-900 border border-indigo-200' },
+                  'RESERVAS INTERMEDIAS': { bg: 'bg-sky-50/60', text: 'text-sky-800', badge: 'bg-sky-100 text-sky-900 border border-sky-200' },
+                  'YA NO SE PRESENTAN': { bg: 'bg-red-50/60', text: 'text-red-800', badge: 'bg-red-100 text-red-900 border border-red-200' },
+                  'RESERVAS REALES MATUTINO': { bg: 'bg-amber-50/40', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-900 border border-amber-200' },
+                  'RESERVAS REALES VESPERTINO': { bg: 'bg-indigo-50/40', text: 'text-indigo-800', badge: 'bg-indigo-100 text-indigo-900 border border-indigo-200' },
+                };
 
-              {rangoFaltas === 'CUSTOM' && (
-                <div className="flex items-center gap-1 bg-red-50/50 p-1 rounded-lg border border-red-100">
-                  <input
-                    type="number"
-                    min="0"
-                    value={minFaltasCustom}
-                    onChange={(e) => setMinFaltasCustom(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="w-12 text-center text-xs font-bold bg-white border border-red-200 rounded py-1 text-slate-800 outline-none"
-                    placeholder="Mín"
-                    title="Faltas Mínimas"
-                  />
-                  <span className="text-xs text-slate-400 font-bold">-</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={maxFaltasCustom}
-                    onChange={(e) => setMaxFaltasCustom(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="w-12 text-center text-xs font-bold bg-white border border-red-200 rounded py-1 text-slate-800 outline-none"
-                    placeholder="Máx"
-                    title="Faltas Máximas"
-                  />
-                </div>
-              )}
+                const theme = colorsMap[row.concepto] || { bg: 'bg-slate-50', text: 'text-slate-700', badge: 'bg-slate-200 text-slate-800 border border-slate-300' };
+
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border border-slate-100 ${theme.bg} transition-all hover:border-slate-200`}
+                  >
+                    <span className={`text-xs font-extrabold ${theme.text} uppercase tracking-wider`}>
+                      {row.concepto}
+                    </span>
+                    <span className={`text-xs font-black px-3 py-1 rounded-lg ${theme.badge}`}>
+                      {row.cantidad}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {stats.top5Faltas.length > 0 ? (
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer>
-                <BarChart data={stats.top5Faltas} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="nombre" type="category" width={120} tick={{fontSize: 12}} />
-                  <RechartsTooltip cursor={{fill: '#f1f5f9'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                  <Bar dataKey="faltas" fill="#ef4444" radius={[0, 4, 4, 0]} name="Faltas" barSize={30} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-             <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 italic gap-2">
-               <span>No hay operadores registradas en el rango de faltas seleccionado.</span>
-               {rangoFaltas !== 'TODOS' && (
-                 <button
-                   type="button"
-                   onClick={() => setRangoFaltas('TODOS')}
-                   className="text-xs text-red-600 font-bold underline not-italic hover:text-red-700"
-                 >
-                   Restablecer a vista General
-                 </button>
-               )}
-             </div>
-          )}
+          <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between bg-slate-900 text-white p-3 rounded-xl shadow-sm">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-slate-200">
+              TOTAL OPERADORES
+            </span>
+            <span className="text-base font-black text-amber-400 bg-slate-800 px-3.5 py-1 rounded-lg border border-slate-700">
+              {resumenStats.total}
+            </span>
+          </div>
         </div>
 
-        {/* Gráfica Distribución de Tarjetones */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-4">Distribución por Tipo de Tarjetón</h3>
-          {stats.tarjetonesData.length > 0 ? (
-            <div style={{ width: '100%', height: 300 }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={stats.tarjetonesData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={renderCustomizedLabel}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {stats.tarjetonesData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                  <Legend iconType="circle" />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-slate-400 italic">Sin información de tarjetones.</div>
-          )}
+        {/* Card 2: Gráfica Distribución de Tarjetones */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">Distribución por Tipo de Tarjetón</h3>
+            {stats.tarjetonesData.length > 0 ? (
+              <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={stats.tarjetonesData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {stats.tarjetonesData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                    <Legend iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-slate-400 italic">Sin información de tarjetones.</div>
+            )}
+          </div>
         </div>
       </div>
 
