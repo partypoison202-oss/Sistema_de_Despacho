@@ -43,6 +43,11 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     const topAccidentes = [];
     const tarjetonesCount = {};
 
+    let resumenOperacion = 0;
+    let resumenDescansos = 0;
+    let resumenIncapacidades = 0;
+    let resumenManiobristas = 0;
+
     conductores.forEach(c => {
       // Bajas vs Activos
       if (c.estatus === 'baja') {
@@ -84,6 +89,13 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         // Tipos de tarjetón
         const tipo = c.tipo_tarjeton || 'No definido';
         tarjetonesCount[tipo] = (tarjetonesCount[tipo] || 0) + 1;
+
+        // Resumen de conductores
+        const estado = String(c.estado_servicio || 'disponible').toLowerCase();
+        if (estado === 'disponible' || estado === 'en_servicio') resumenOperacion++;
+        else if (estado === 'descanso') resumenDescansos++;
+        else if (estado === 'incapacidad') resumenIncapacidades++;
+        else if (estado === 'maniobrista' || c.estatus === 'maniobrista') resumenManiobristas++;
       }
     });
 
@@ -125,7 +137,13 @@ export default function EstadisticasOperadores({ conductores = [] }) {
       top5Faltas,
       top5Retardos,
       top5Accidentes,
-      tarjetonesData
+      tarjetonesData,
+      resumen: {
+        operacion: resumenOperacion,
+        descansos: resumenDescansos,
+        incapacidades: resumenIncapacidades,
+        maniobristas: resumenManiobristas,
+      }
     };
   }, [conductores, rangoFaltas, minFaltasCustom, maxFaltasCustom, fechaSeleccionada]);
 
@@ -368,6 +386,52 @@ export default function EstadisticasOperadores({ conductores = [] }) {
               Excelente, no hay accidentes registrados en operadores activos.
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-8">
+        {/* Resúmen de Conductores */}
+        <div className="bg-white rounded-2xl p-0 shadow-sm border border-slate-200 overflow-hidden lg:col-span-1">
+          <div className="bg-[#591024] text-white p-3 text-center">
+            <h3 className="text-xl font-bold uppercase tracking-wide">Resumen de conductores</h3>
+            <p className="text-sm font-light opacity-90 capitalize">
+              {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[500px]">
+              <tbody className="divide-y divide-slate-200 text-slate-800">
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-3 px-6 font-semibold uppercase">OPERACIÓN</td>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.operacion}</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-3 px-6 font-semibold uppercase">DESCANSOS</td>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.descansos}</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-3 px-6 font-semibold uppercase">INCAPACIDADES</td>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.incapacidades}</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-3 px-6 font-semibold uppercase">MANIOBRISTAS</td>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.maniobristas}</td>
+                </tr>
+                <tr className="bg-slate-50/50">
+                  <td className="p-3 px-6 font-semibold text-slate-400 uppercase">PERMISOS</td>
+                  <td className="p-3 px-6 text-right font-bold text-xl text-slate-400">-</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <td className="p-3 px-6 font-semibold uppercase">YA NO SE PRESENTAN <span className="text-xs text-slate-400 normal-case ml-2">(Bajas)</span></td>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.bajas}</td>
+                </tr>
+                <tr className="bg-[#591024] text-white">
+                  <td className="p-4 px-6 font-bold text-xl uppercase tracking-wider">TOTAL OPERADORES</td>
+                  <td className="p-4 px-6 text-right font-bold text-3xl">{stats.activos}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
