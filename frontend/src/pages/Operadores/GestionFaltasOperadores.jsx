@@ -654,19 +654,33 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
                         {/* Botones de acción por falta */}
                         <div className="flex items-center gap-2">
-                          {esJustificada ? (
-                            <a
-                              href={falta.justificante_url ? `${API_BASE}${falta.justificante_url}` : '#'}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                              </svg>
-                              Ver Comprobante
-                            </a>
-                          ) : (
+                          {esJustificada ? (() => {
+                            const rawUrl = falta.justificante_url || '';
+                            let finalUrl = '#';
+                            if (rawUrl) {
+                              if (rawUrl.includes('/justificantes/')) {
+                                const filename = rawUrl.split('/justificantes/').pop();
+                                finalUrl = `${API_BASE}/api/justificantes/${filename}`;
+                              } else if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+                                finalUrl = rawUrl;
+                              } else {
+                                finalUrl = `${API_BASE}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+                              }
+                            }
+                            return (
+                              <a
+                                href={finalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                </svg>
+                                Ver Comprobante
+                              </a>
+                            );
+                          })() : (
                             !readOnly && (
                               <button
                                 type="button"
