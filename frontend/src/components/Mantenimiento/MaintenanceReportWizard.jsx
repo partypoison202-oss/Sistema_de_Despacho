@@ -47,8 +47,8 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       setIncidencia(incidenciaExistente);
 
       // Extraemos el folio de la orden si ya existe
-      if (initialData?.folio_mantenimiento && initialData.folio_mantenimiento.startsWith('MANT-')) {
-        setFolioOrden(initialData.folio_mantenimiento.replace('MANT-', ''));
+      if (initialData?.folio_mantenimiento) {
+        setFolioOrden(initialData.folio_mantenimiento);
       }
 
       const now = new Date();
@@ -248,7 +248,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       // Luego guardamos en backend
       await onSuccess({
         numero_incidencia: incidencia,
-        folio_mantenimiento: folioOrden ? `MANT-${folioOrden}` : '',
+        folio_mantenimiento: folioOrden || '',
         motivo: 'MANTENIMIENTO',
         fecha_folio_mantenimiento: new Date().toISOString(),
         falla_reportada: formData.falla_reportada,
@@ -478,7 +478,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
       {/* Contenedor Oculto para la plantilla PDF */}
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-        <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : '' }} />
+        <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden || '' }} />
       </div>
     </div>
   );
@@ -490,7 +490,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         <p className="text-white text-lg font-semibold animate-pulse">Generando e imprimiendo Orden de Mantenimiento...</p>
         {/* Contenedor Oculto para la plantilla PDF */}
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-          <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden ? `MANT-${folioOrden}` : '' }} />
+          <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden || '' }} />
         </div>
       </div>,
       document.body

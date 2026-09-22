@@ -37,27 +37,44 @@ const cargarLogoTransparente = (src) =>
  */
 const agregarEncabezado = (pdf, logoDataUrl, titulo, subtitulo) => {
   const pageW = pdf.internal.pageSize.getWidth();
+  const HEADER_H = 30;
 
-  // Franja principal vino oscuro
-  pdf.setFillColor(107, 29, 51);
-  pdf.rect(0, 0, pageW, 28, 'F');
+  // Fondo guinda
+  pdf.setFillColor(96, 26, 42);
+  pdf.rect(0, 0, pageW, HEADER_H, 'F');
 
-  // Logo en la esquina superior izquierda
+  // Franja decorativa inferior (más oscura)
+  pdf.setFillColor(70, 15, 30);
+  pdf.rect(0, HEADER_H - 1.5, pageW, 1.5, 'F');
+
+  // Logo en la esquina superior izquierda con proporciones correctas
   if (logoDataUrl) {
-    pdf.addImage(logoDataUrl, 'PNG', 6, 6, 40, 16);
+    const logoH = 22;
+    const props = pdf.getImageProperties(logoDataUrl);
+    const logoW = logoH * (props.width / props.height);
+    pdf.addImage(logoDataUrl, 'PNG', 7, (HEADER_H - logoH) / 2, logoW, logoH);
   }
 
-  // Título centrado
+  // Institución (Subtítulo dorado arriba)
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(6.5);
+  pdf.setTextColor(197, 160, 89);
+  pdf.text('SISTEMA DE TRANSPORTE METROPOLITANO DE HIDALGO', pageW / 2, 11, { align: 'center' });
+
+  // Título principal
   pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(18);
+  pdf.setFontSize(15);
   pdf.setFont('helvetica', 'bold');
-  pdf.text(titulo, pageW / 2, 14, { align: 'center' });
+  pdf.text(titulo, pageW / 2, 18, { align: 'center' });
 
   if (subtitulo) {
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(subtitulo, pageW / 2, 22, { align: 'center' });
+    pdf.text(subtitulo, pageW / 2, 24, { align: 'center' });
   }
+
+  // Resetear color
+  pdf.setTextColor(0, 0, 0);
 };
 
 /**
@@ -83,12 +100,11 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   const calcularDias = (fecha) => {
     if (!fecha) return '—';
     const startDate = new Date(fecha);
-    startDate.setHours(0, 0, 0, 0); // Inicio del día en que entró
-    
     const endDate = new Date(now);
-    endDate.setHours(0, 0, 0, 0); // Inicio del día actual
 
-    const diff = Math.abs(endDate - startDate);
+    const diff = endDate - startDate;
+    if (diff < 0) return '0';
+    
     return Math.floor(diff / (1000 * 60 * 60 * 24)).toString();
   };
 
@@ -104,20 +120,20 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   let filename;
 
   if (tipo === 'pendientes') {
-    // Tienen número de incidencia registrada pero NO tienen folio MANT- generado aún
+    // Tienen número de incidencia registrada pero NO tienen folio generado aún
     unidadesFiltradas = unidades.filter(
-      (u) => !u.folio_mantenimiento || !String(u.folio_mantenimiento).toUpperCase().startsWith('MANT-')
+      (u) => !u.folio_mantenimiento || String(u.folio_mantenimiento).trim() === ''
     );
     titulo = 'UNIDADES PENDIENTES DE MANTENIMIENTO';
     subtitulo = 'Con incidencia registrada — sin orden de mantenimiento generada';
     filename = `Reporte_Pendientes_Mantenimiento_${fechaStr.replace(/ /g, '_')}.pdf`;
   } else {
-    // Ya tienen folio MANT-XXX completo generado (en mantenimiento activo)
+    // Ya tienen folio completo generado (en mantenimiento activo)
     unidadesFiltradas = unidades.filter(
-      (u) => u.folio_mantenimiento && String(u.folio_mantenimiento).toUpperCase().startsWith('MANT-')
+      (u) => u.folio_mantenimiento && String(u.folio_mantenimiento).trim() !== ''
     );
     titulo = 'UNIDADES YA EN MANTENIMIENTO';
-    subtitulo = 'Con orden de mantenimiento activa (Folio MANT- generado)';
+    subtitulo = 'Con orden de mantenimiento activa (Folio generado)';
     filename = `Reporte_En_Mantenimiento_${fechaStr.replace(/ /g, '_')}.pdf`;
   }
 
