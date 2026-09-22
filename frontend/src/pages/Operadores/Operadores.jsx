@@ -329,6 +329,7 @@ export default function Operadores() {
   const [ref2Telefono, setRef2Telefono] = useState('');
   const [fechaIngreso, setFechaIngreso] = useState('');
   const [foto, setFoto] = useState(null);
+  const [qrFile, setQrFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const tipoOptions = [
@@ -652,6 +653,26 @@ export default function Operadores() {
         }
       }
 
+      // Subir QR si se seleccionó uno
+      if (qrFile && data.conductor?.id) {
+        if (qrFile.size > 5 * 1024 * 1024) {
+          throw new Error('El código QR excede el tamaño máximo permitido de 5MB.');
+        }
+        const formDataQr = new FormData();
+        formDataQr.append('qr', qrFile);
+
+        const qrRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/qr`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+          },
+          body: formDataQr
+        });
+        if (!qrRes.ok) {
+          console.error("Error al subir código QR durante la creación del operador");
+        }
+      }
+
       setShowAddModal(false);
       Swal.fire({
         icon: 'success',
@@ -697,6 +718,7 @@ export default function Operadores() {
     setRef2Telefono(r2t);
     setFechaIngreso(c.fecha_ingreso || '');
     setFoto(null);
+    setQrFile(null);
     setShowEditModal(true);
   };
 
@@ -772,6 +794,28 @@ export default function Operadores() {
         if (!photoRes.ok) {
           console.error("Error al subir foto");
           // Podríamos lanzar error, pero preferimos que el conductor se haya guardado
+        }
+      }
+
+      // Subir el QR si se seleccionó uno
+      if (qrFile) {
+        if (qrFile.size > 5 * 1024 * 1024) {
+          throw new Error('El código QR excede el tamaño máximo permitido de 5MB.');
+        }
+
+        const formDataQr = new FormData();
+        formDataQr.append('qr', qrFile);
+
+        const qrRes = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}/qr`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+          },
+          body: formDataQr
+        });
+
+        if (!qrRes.ok) {
+          console.error("Error al subir código QR");
         }
       }
 
@@ -1368,38 +1412,154 @@ export default function Operadores() {
       {/* Modal Agregar T6 */}
       {showAddModal && (
         <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="modal-header-title">
-                <h2>Agregar Nuevo T6</h2>
-                <p>Ingresa los datos del T6 a registrar</p>
-              </div>
-              <button className="close-btn" onClick={() => setShowAddModal(false)} aria-label="Cerrar">&times;</button>
-            </div>
+          <div className="modal-content" style={{ position: 'relative' }}>
+            <button 
+              className="close-btn" 
+              onClick={() => setShowAddModal(false)} 
+              aria-label="Cerrar"
+              style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280' }}
+            >
+              &times;
+            </button>
+            <h2 style={{ fontSize: '1.25rem', color: '#111827', marginBottom: '24px', fontWeight: '500' }}>Agregar Nuevo T6</h2>
             <form onSubmit={handleAddSubmit} className="modal-form">
-              <div className="form-group">
-                <label className="form-label">Fotografía del T6 (Opcional)</label>
-                {foto && (
-                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img
-                      src={URL.createObjectURL(foto)}
-                      alt="Vista previa"
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }}
+              {/* Contenedor Flex para QR y Foto */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '2rem' }}>
+                
+                {/* Campo para código QR (Izquierda) */}
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 0 }}>
+                  <div 
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '8px', 
+                      backgroundColor: '#f3f4f6', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      marginBottom: '1rem',
+                      border: '3px solid #e5e7eb',
+                      position: 'relative'
+                    }}
+                  >
+                    {qrFile ? (
+                      <img
+                        src={URL.createObjectURL(qrFile)}
+                        alt="Vista previa QR"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <svg style={{width: '50px', height: '50px', color: '#9ca3af'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 1v2h2V5H5zm10-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zm2 1v2h2V5h-2zM3 16a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm2 1v2h2v-2H5zm10-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zm2 1v2h2v-2h-2z" />
+                      </svg>
+                    )}
+                  </div>
+                  
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                    <button type="button" style={{ 
+                      backgroundColor: 'white', 
+                      border: '1px solid #d1d5db', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '0.5rem', 
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      fontWeight: '500'
+                    }}>
+                      Subir código QR
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setQrFile(e.target.files[0])}
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        opacity: 0,
+                        width: '100%',
+                        height: '100%',
+                        cursor: 'pointer'
+                      }}
                     />
                   </div>
-                )}
-                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
-                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                  </svg>
-                  <span style={{ marginLeft: '8px' }}>{foto ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFoto(e.target.files[0])}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+                  <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                    JPG, PNG, GIF, WEBP (máx. 2 MB)
+                  </small>
+                </div>
+
+                {/* Campo para foto de perfil (Derecha) */}
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 0 }}>
+                  <div 
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '50%', 
+                      backgroundColor: '#f3f4f6', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      marginBottom: '1rem',
+                      border: '3px solid #e5e7eb',
+                      position: 'relative'
+                    }}
+                  >
+                    {foto ? (
+                      <img
+                        src={URL.createObjectURL(foto)}
+                        alt="Vista previa"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <svg style={{width: '60px', height: '60px', color: '#9ca3af'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    )}
+                  </div>
+                  
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                    <button type="button" style={{ 
+                      backgroundColor: 'white', 
+                      border: '1px solid #d1d5db', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '0.5rem', 
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      fontWeight: '500'
+                    }}>
+                      Subir foto de perfil
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setFoto(e.target.files[0])}
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        opacity: 0,
+                        width: '100%',
+                        height: '100%',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+                  <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                    JPG, PNG, GIF, WEBP (máx. 2 MB)
+                  </small>
+                </div>
+                
               </div>
 
               <div className="form-group">
@@ -1519,38 +1679,154 @@ export default function Operadores() {
       {/* Modal Editar T6 */}
       {showEditModal && selectedConductor && (
         <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="modal-header-title">
-                <h2>Editar T6</h2>
-                <p>Modifica el nombre o tipo de tarjetón asignado</p>
-              </div>
-              <button className="close-btn" onClick={() => setShowEditModal(false)} aria-label="Cerrar">&times;</button>
-            </div>
+          <div className="modal-content" style={{ position: 'relative' }}>
+            <button 
+              className="close-btn" 
+              onClick={() => setShowEditModal(false)} 
+              aria-label="Cerrar"
+              style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280' }}
+            >
+              &times;
+            </button>
+            <h2 style={{ fontSize: '1.25rem', color: '#111827', marginBottom: '24px', fontWeight: '500' }}>Editar T6</h2>
             <form onSubmit={handleEditSubmit} className="modal-form">
-              <div className="form-group">
-                <label className="form-label">Fotografía del T6 (Opcional)</label>
-                {(foto || selectedConductor?.foto) && (
-                  <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    <img
-                      src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`}
-                      alt="Vista previa"
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ccc', margin: '0 auto' }}
+              {/* Contenedor Flex para QR y Foto */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '2rem' }}>
+                
+                {/* Campo para código QR (Izquierda) */}
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 0 }}>
+                  <div 
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '8px', 
+                      backgroundColor: '#f3f4f6', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      marginBottom: '1rem',
+                      border: '3px solid #e5e7eb',
+                      position: 'relative'
+                    }}
+                  >
+                    {(qrFile || selectedConductor?.qr_documento) ? (
+                      <img
+                        src={qrFile ? URL.createObjectURL(qrFile) : `${API_BASE}/storage/${selectedConductor.qr_documento}`}
+                        alt="Vista previa QR"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <svg style={{width: '50px', height: '50px', color: '#9ca3af'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 1v2h2V5H5zm10-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zm2 1v2h2V5h-2zM3 16a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm2 1v2h2v-2H5zm10-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zm2 1v2h2v-2h-2z" />
+                      </svg>
+                    )}
+                  </div>
+                  
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                    <button type="button" style={{ 
+                      backgroundColor: 'white', 
+                      border: '1px solid #d1d5db', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '0.5rem', 
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      fontWeight: '500'
+                    }}>
+                      {(qrFile || selectedConductor?.qr_documento) ? 'Cambiar código QR' : 'Subir código QR'}
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setQrFile(e.target.files[0])}
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        opacity: 0,
+                        width: '100%',
+                        height: '100%',
+                        cursor: 'pointer'
+                      }}
                     />
                   </div>
-                )}
-                <label className="custom-file-upload-btn" style={{ color: '#fff', width: '100%', flexDirection: 'row', justifyContent: 'center' }}>
-                  <svg width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                  </svg>
-                  <span style={{ marginLeft: '8px' }}>{(foto || selectedConductor?.foto) ? 'Cambiar Fotografía' : 'Seleccionar Fotografía'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setFoto(e.target.files[0])}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+                  <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                    JPG, PNG, GIF, WEBP (máx. 2 MB)
+                  </small>
+                </div>
+
+                {/* Campo para foto de perfil (Derecha) */}
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 0 }}>
+                  <div 
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '50%', 
+                      backgroundColor: '#f3f4f6', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      marginBottom: '1rem',
+                      border: '3px solid #e5e7eb',
+                      position: 'relative'
+                    }}
+                  >
+                    {(foto || selectedConductor?.foto) ? (
+                      <img
+                        src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`}
+                        alt="Vista previa"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <svg style={{width: '60px', height: '60px', color: '#9ca3af'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    )}
+                  </div>
+                  
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                    <button type="button" style={{ 
+                      backgroundColor: 'white', 
+                      border: '1px solid #d1d5db', 
+                      padding: '0.5rem 1rem', 
+                      borderRadius: '0.5rem', 
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      color: '#374151',
+                      fontWeight: '500'
+                    }}>
+                      {(foto || selectedConductor?.foto) ? 'Cambiar foto de perfil' : 'Subir foto de perfil'}
+                    </button>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setFoto(e.target.files[0])}
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        opacity: 0,
+                        width: '100%',
+                        height: '100%',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+                  <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                    JPG, PNG, GIF, WEBP (máx. 2 MB)
+                  </small>
+                </div>
+
               </div>
 
               <div className="form-group">
