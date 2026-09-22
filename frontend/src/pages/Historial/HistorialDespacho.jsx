@@ -96,8 +96,11 @@ export default function HistorialDespacho() {
         'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
         'ECO': d.economico || '',
         'RUTA': d.ruta || '',
-        'TARJETON': d.numero_tarjeton || '',
-        'CONDUCTOR': d.nombre_conductor || 'SIN ASIGNAR',
+        'TARJETÓN TITULAR': d.numero_tarjeton || '',
+        'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
+        'TARJETÓN RELEVO': d.relevo_tarjeton || '',
+        'CONDUCTOR RELEVO': d.relevo_conductor || '',
+        'HORA RELEVO': d.relevo_hora || '',
         'CORRIDAS FALTANTES': d.corridas || '',
         'CICLO PERDIDO': d.ciclo || '',
         'MOTIVO DE FALTANTE': d.motivo || '',
@@ -279,8 +282,22 @@ export default function HistorialDespacho() {
                     <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td style={{ fontWeight: '700' }}>{d.economico}</td>
                     <td>{d.ruta || '-'}</td>
-                    <td>{d.numero_tarjeton || '-'}</td>
-                    <td>{d.nombre_conductor || 'SIN ASIGNAR'}</td>
+                    <td>
+                      <div>{d.numero_tarjeton || '-'}</div>
+                      {d.relevo_tarjeton && (
+                        <div style={{ fontSize: '0.85em', color: '#16a34a', marginTop: '4px', fontWeight: 'bold' }}>
+                          R: {d.relevo_tarjeton}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div>{d.nombre_conductor || 'SIN ASIGNAR'}</div>
+                      {d.relevo_conductor && (
+                        <div style={{ fontSize: '0.85em', color: '#16a34a', marginTop: '4px', fontWeight: 'bold' }}>
+                          R: {d.relevo_conductor}
+                        </div>
+                      )}
+                    </td>
                     <td className="text-center">{d.corridas || '-'}</td>
                     <td className="text-center">{d.ciclo || '-'}</td>
                     <td>{d.motivo || '-'}</td>
