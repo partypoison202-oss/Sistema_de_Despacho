@@ -10,6 +10,7 @@ import InfoGeneralOperador from './InfoGeneralOperador';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import GeneracionGafete from './GeneracionGafete';
 import EstadisticasOperadores from './EstadisticasOperadores';
+import GestionFaltasOperadores from './GestionFaltasOperadores';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -980,6 +981,24 @@ export default function Operadores() {
           </button>
           <button
             type="button"
+            className={`tab-btn ${activeTab === 'gestion_faltas' ? 'active' : ''}`}
+            onClick={() => setActiveTab('gestion_faltas')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              color: activeTab === 'gestion_faltas' ? '#6b1d33' : '#64748b',
+              borderBottom: activeTab === 'gestion_faltas' ? '3px solid #6b1d33' : '3px solid transparent',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            Gestión de Faltas
+          </button>
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'info_general' ? 'active' : ''}`}
             onClick={() => setActiveTab('info_general')}
             style={{
@@ -1022,7 +1041,7 @@ export default function Operadores() {
           </div>
         )}
 
-        {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && activeTab !== 'estadisticas' && (
+        {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && activeTab !== 'estadisticas' && activeTab !== 'gestion_faltas' && (
           <div className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-slate-200">
             <div className="flex flex-col md:flex-row items-center gap-4">
               <div className="relative w-full md:flex-1">
@@ -1337,6 +1356,8 @@ export default function Operadores() {
               </table>
             </div>
           </div>
+        ) : activeTab === 'gestion_faltas' ? (
+          <GestionFaltasOperadores conductores={conductores} onRefresh={fetchConductores} getAuthHeaders={getAuthHeaders} />
         ) : activeTab === 'info_general' ? (
           <InfoGeneralOperador conductores={conductores} />
         ) : activeTab === 'generacion_gafete' ? (

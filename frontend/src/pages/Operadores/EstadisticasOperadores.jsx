@@ -23,6 +23,10 @@ const getDetailArray = (conductor, type) => {
 };
 
 export default function EstadisticasOperadores({ conductores = [] }) {
+  const [rangoFaltas, setRangoFaltas] = React.useState('TODOS');
+  const [minFaltasCustom, setMinFaltasCustom] = React.useState(1);
+  const [maxFaltasCustom, setMaxFaltasCustom] = React.useState(10);
+
   const stats = useMemo(() => {
     let activos = 0;
     let bajas = 0;
@@ -57,7 +61,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         }
 
         // Top listas
-        if (faltas > 0) topFaltistas.push({ nombre: c.nombre, faltas });
+        if (faltas > 0) topFaltistas.push({ nombre: c.nombre, tarjeton: c.tarjeton, faltas });
         if (retardos > 0) topRetardos.push({ nombre: c.nombre, retardos });
         if (accidentes > 0) topAccidentes.push({ nombre: c.nombre, accidentes });
 
@@ -67,8 +71,24 @@ export default function EstadisticasOperadores({ conductores = [] }) {
       }
     });
 
+    // Filtrar Top 5 Faltas según el rango seleccionado
+    let topFaltistasFiltrados = topFaltistas;
+    if (rangoFaltas === '1-2') {
+      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 1 && f.faltas <= 2);
+    } else if (rangoFaltas === '3-5') {
+      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 3 && f.faltas <= 5);
+    } else if (rangoFaltas === '6-10') {
+      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 6 && f.faltas <= 10);
+    } else if (rangoFaltas === '10+') {
+      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 10);
+    } else if (rangoFaltas === 'CUSTOM') {
+      const min = Math.max(0, Number(minFaltasCustom) || 0);
+      const max = Math.max(min, Number(maxFaltasCustom) || 999);
+      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= min && f.faltas <= max);
+    }
+
     // Ordenar y limitar tops
-    const top5Faltas = topFaltistas.sort((a, b) => b.faltas - a.faltas).slice(0, 5);
+    const top5Faltas = topFaltistasFiltrados.sort((a, b) => b.faltas - a.faltas).slice(0, 5);
     const top5Retardos = topRetardos.sort((a, b) => b.retardos - a.retardos).slice(0, 5);
     const top5Accidentes = topAccidentes.sort((a, b) => b.accidentes - a.accidentes).slice(0, 5);
 
@@ -91,7 +111,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
       top5Accidentes,
       tarjetonesData
     };
-  }, [conductores]);
+  }, [conductores, rangoFaltas, minFaltasCustom, maxFaltasCustom]);
 
   // Renderizador personalizado para leyenda del PieChart
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
@@ -147,14 +167,65 @@ export default function EstadisticasOperadores({ conductores = [] }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         
-        {/* Gráfica Top Faltas */}
+        {/* Gráfica Top Faltas con Filtro por Rango */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <svg width="24" height="24" fill="none" stroke="#ef4444" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            Top 5 T6 con Faltas
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <svg width="22" height="22" fill="none" stroke="#ef4444" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Top 5 T6 con Faltas
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {rangoFaltas === 'TODOS' ? 'Vista General' : `Filtrado por rango de faltas`}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="select-rango-faltas" className="text-xs font-bold text-slate-500">Rango:</label>
+                <select
+                  id="select-rango-faltas"
+                  value={rangoFaltas}
+                  onChange={(e) => setRangoFaltas(e.target.value)}
+                  className="text-xs font-bold bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all cursor-pointer"
+                >
+                  <option value="TODOS">General (Todas)</option>
+                  <option value="1-2">1 a 2 Faltas</option>
+                  <option value="3-5">3 a 5 Faltas</option>
+                  <option value="6-10">6 a 10 Faltas</option>
+                  <option value="10+">10+ Faltas</option>
+                  <option value="CUSTOM">Personalizado...</option>
+                </select>
+              </div>
+
+              {rangoFaltas === 'CUSTOM' && (
+                <div className="flex items-center gap-1 bg-red-50/50 p-1 rounded-lg border border-red-100">
+                  <input
+                    type="number"
+                    min="0"
+                    value={minFaltasCustom}
+                    onChange={(e) => setMinFaltasCustom(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="w-12 text-center text-xs font-bold bg-white border border-red-200 rounded py-1 text-slate-800 outline-none"
+                    placeholder="Mín"
+                    title="Faltas Mínimas"
+                  />
+                  <span className="text-xs text-slate-400 font-bold">-</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={maxFaltasCustom}
+                    onChange={(e) => setMaxFaltasCustom(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="w-12 text-center text-xs font-bold bg-white border border-red-200 rounded py-1 text-slate-800 outline-none"
+                    placeholder="Máx"
+                    title="Faltas Máximas"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
           {stats.top5Faltas.length > 0 ? (
             <div style={{ width: '100%', height: 300 }}>
               <ResponsiveContainer>
@@ -168,7 +239,18 @@ export default function EstadisticasOperadores({ conductores = [] }) {
               </ResponsiveContainer>
             </div>
           ) : (
-             <div className="h-[300px] flex items-center justify-center text-slate-400 italic">No hay faltas registradas.</div>
+             <div className="h-[300px] flex flex-col items-center justify-center text-slate-400 italic gap-2">
+               <span>No hay operadores registradas en el rango de faltas seleccionado.</span>
+               {rangoFaltas !== 'TODOS' && (
+                 <button
+                   type="button"
+                   onClick={() => setRangoFaltas('TODOS')}
+                   className="text-xs text-red-600 font-bold underline not-italic hover:text-red-700"
+                 >
+                   Restablecer a vista General
+                 </button>
+               )}
+             </div>
           )}
         </div>
 

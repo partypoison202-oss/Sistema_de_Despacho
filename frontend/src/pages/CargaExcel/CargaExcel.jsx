@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import ExcelPreview from './ExcelVista/ExcelVista';
 import ModalTrasladoPatioNorte from './ModalTrasladoPatioNorte';
+import ModalReservaT6 from './ModalReservaT6';
 import ModalCambioUnidad from './ModalCambioUnidad';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
@@ -25,6 +26,7 @@ export default function CargaExcel({ isPasteles = false }) {
   const [cargandoInicio, setCargandoInicio] = useState(false);
   const [tabActiva, setTabActiva] = useState('HOY');
   const [showTrasladoModal, setShowTrasladoModal] = useState(false);
+  const [showReservaModal, setShowReservaModal] = useState(false);
   const [modalCambioData, setModalCambioData] = useState({
     isOpen: false,
     unidadSaliente: null,
@@ -960,6 +962,16 @@ export default function CargaExcel({ isPasteles = false }) {
             </button>
             <button
               type="button"
+              onClick={() => setShowReservaModal(true)}
+              className="excel-btn-capsule excel-btn-capsule--gold"
+            >
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Reserva T6
+            </button>
+            <button
+              type="button"
               onClick={handleExportExcel}
               className="excel-btn-capsule excel-btn-capsule--verde"
             >
@@ -1011,6 +1023,13 @@ export default function CargaExcel({ isPasteles = false }) {
         onClose={() => setShowTrasladoModal(false)} 
         previewData={previewData} 
         logoUrl="/images/logo_tuzobus.png" 
+      />
+
+      <ModalReservaT6
+        isOpen={showReservaModal}
+        onClose={() => setShowReservaModal(false)}
+        catalogConductores={catalogConductores}
+        tabActiva={tabActiva}
       />
 
       {/* Modal para sustitución de unidad en modo Pasteles */}
