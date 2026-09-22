@@ -92,10 +92,15 @@ export default function EstadisticasOperadores({ conductores = [] }) {
 
         // Resumen de conductores
         const estado = String(c.estado_servicio || 'disponible').toLowerCase();
-        if (estado === 'disponible' || estado === 'en_servicio') resumenOperacion++;
-        else if (estado === 'descanso') resumenDescansos++;
-        else if (estado === 'incapacidad') resumenIncapacidades++;
-        else if (estado === 'maniobrista' || c.estatus === 'maniobrista') resumenManiobristas++;
+        if (estado === 'disponible' || estado === 'en_servicio') {
+          resumenOperacion++;
+        } else if (estado === 'descanso') {
+          resumenDescansos++;
+        } else if (estado === 'incapacidad') {
+          resumenIncapacidades++;
+        } else if (estado === 'maniobrista' || c.estatus === 'maniobrista') {
+          resumenManiobristas++;
+        }
       }
     });
 
