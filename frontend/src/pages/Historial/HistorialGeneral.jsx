@@ -259,8 +259,11 @@ export default function HistorialGeneral() {
         'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
         'ECO': d.economico || '',
         'RUTA': d.ruta || '',
-        'TARJETÓN': d.numero_tarjeton || '',
-        'CONDUCTOR': d.nombre_conductor || 'SIN ASIGNAR',
+        'TARJETÓN TITULAR': d.numero_tarjeton || '',
+        'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
+        'TARJETÓN RELEVO': d.relevo_tarjeton || '',
+        'CONDUCTOR RELEVO': d.relevo_conductor || '',
+        'HORA RELEVO': d.relevo_hora || '',
         'ESTATUS': d.estatus || '',
         'HORA DE ACOPLE': d.hora_acople || '00:00',
         'CORRIDAS': d.corridas || '',
@@ -485,8 +488,22 @@ export default function HistorialGeneral() {
                     <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td style={{ fontWeight: '700' }}>{d.economico}</td>
                     <td>{d.ruta || '-'}</td>
-                    <td>{d.numero_tarjeton || '-'}</td>
-                    <td>{d.nombre_conductor || 'SIN ASIGNAR'}</td>
+                    <td>
+                      <div>{d.numero_tarjeton || '-'}</div>
+                      {d.relevo_tarjeton && (
+                        <div style={{ fontSize: '0.85em', color: '#16a34a', marginTop: '4px', fontWeight: 'bold' }}>
+                          R: {d.relevo_tarjeton}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div>{d.nombre_conductor || 'SIN ASIGNAR'}</div>
+                      {d.relevo_conductor && (
+                        <div style={{ fontSize: '0.85em', color: '#16a34a', marginTop: '4px', fontWeight: 'bold' }}>
+                          R: {d.relevo_conductor}
+                        </div>
+                      )}
+                    </td>
                     <td>
                       <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
                         {d.estatus}
