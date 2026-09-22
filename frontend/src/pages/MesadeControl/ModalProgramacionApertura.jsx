@@ -496,38 +496,46 @@ export default function ModalProgramacionApertura({
                           )}
                         </td>
 
-                        {/* Conductor */}
+                        {/* Conductor de Apertura */}
                         <td>
-                          <div className="ap-driver-box">
-                            {u.tarjeton ? (
-                              <span className="ap-driver-tarjeton">TARJETÓN: {u.tarjeton}</span>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>SIN TARJETÓN</span>
-                            )}
-                            <span
-                              className="ap-driver-name"
-                              style={{ color: u.nombre_conductor ? '#0f172a' : '#94a3b8' }}
-                            >
-                              {u.nombre_conductor || 'Sin conductor asignado'}
-                            </span>
-                          </div>
+                          {u.tarjeton ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                              <span className="ap-driver-tarjeton">
+                                TARJETÓN: {u.tarjeton}
+                              </span>
+                              <span className="ap-driver-name">{u.nombre_conductor}</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', opacity: 0.6 }}>
+                              <span className="ap-driver-tarjeton" style={{ color: '#94a3b8' }}>
+                                SIN TARJETÓN
+                              </span>
+                              <span className="ap-driver-name" style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                                Sin conductor asignado
+                              </span>
+                            </div>
+                          )}
                         </td>
 
-                        {/* Conductor Relevo */}
+                        {/* Conductor de Relevo */}
                         <td>
-                          <div className="ap-driver-box">
-                            {u.relevo_tarjeton ? (
-                              <span className="ap-driver-tarjeton" style={{ color: '#0f766e' }}>TARJETÓN: {u.relevo_tarjeton}</span>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>SIN RELEVO</span>
-                            )}
-                            <span
-                              className="ap-driver-name"
-                              style={{ color: u.relevo_conductor ? '#0f172a' : '#94a3b8' }}
-                            >
-                              {u.relevo_conductor || '-'}
-                            </span>
-                          </div>
+                          {u.relevo_tarjeton ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                              <span className="ap-driver-tarjeton" style={{ color: '#0f766e' }}>
+                                TARJETÓN: {u.relevo_tarjeton}
+                              </span>
+                              <span className="ap-driver-name">{u.relevo_conductor}</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', opacity: 0.6 }}>
+                              <span className="ap-driver-tarjeton" style={{ color: '#94a3b8' }}>
+                                SIN RELEVO
+                              </span>
+                              <span className="ap-driver-name" style={{ color: '#94a3b8' }}>
+                                -
+                              </span>
+                            </div>
+                          )}
                         </td>
 
                         {/* Horarios */}

@@ -57,7 +57,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
          <h2 className="text-2xl font-bold text-gray-900 uppercase">{conductor.nombre}</h2>
          <div className="flex items-center gap-4 mt-2 text-gray-700">
            <span><strong>ID:</strong> {conductor.id}</span>
-           <span><strong>Tarjetón:</strong> {conductor.tarjeton}</span>
+           <span><strong>Tarjetón:</strong> {conductor.tarjeton ? conductor.tarjeton.split('_BAJA_')[0] : ''}</span>
            <span className={`px-2 py-1 text-xs rounded-full font-bold uppercase ${conductor.estatus === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{conductor.estatus === 'activo' ? 'ACTIVO' : 'BAJA'}</span>
          </div>
          <p className="mt-1 text-xs text-gray-500"><strong>Vigencia Licencia:</strong> {conductor.vigencia_licencia ? new Date(conductor.vigencia_licencia).toLocaleDateString() : 'No registrada'}</p>
@@ -244,7 +244,7 @@ export default function InfoGeneralOperador({ conductores }) {
         printWindow.document.write(`
           <html>
             <head>
-              <title>Expediente Operador - ${displayConductor.tarjeton}</title>
+              <title>Expediente Operador - ${displayConductor.tarjeton ? displayConductor.tarjeton.split('_BAJA_')[0] : ''}</title>
               <style>body { margin: 0; padding: 0; overflow: hidden; }</style>
             </head>
             <body>
@@ -266,7 +266,7 @@ export default function InfoGeneralOperador({ conductores }) {
     if (!selectedConductor) return;
     try {
       const pdf = await generarDocumentoPDF();
-      pdf.save(`Expediente_Operador_${displayConductor.tarjeton}.pdf`);
+      pdf.save(`Expediente_Operador_${displayConductor.tarjeton ? displayConductor.tarjeton.split('_BAJA_')[0] : ''}.pdf`);
     } catch (err) {
       console.error('Error al guardar PDF:', err);
     }
@@ -311,7 +311,7 @@ export default function InfoGeneralOperador({ conductores }) {
                   >
                     <div>
                       <p className="text-sm font-bold text-gray-900">{c.nombre}</p>
-                      <p className="text-xs text-gray-500">ID: {c.id} | Tarjetón: {c.tarjeton}</p>
+                      <p className="text-xs text-gray-500">ID: {c.id} | Tarjetón: {c.tarjeton ? c.tarjeton.split('_BAJA_')[0] : ''}</p>
                     </div>
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${c.estatus === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {c.estatus === 'activo' ? 'Activo' : 'Baja'}
@@ -375,7 +375,7 @@ export default function InfoGeneralOperador({ conductores }) {
                     <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
                       <span><span className="font-semibold">ID / Empleado:</span> {displayConductor.id}</span>
                       <span>•</span>
-                      <span><span className="font-semibold">Tarjetón:</span> {displayConductor.tarjeton}</span>
+                      <span><span className="font-semibold">Tarjetón:</span> {displayConductor.tarjeton ? displayConductor.tarjeton.split('_BAJA_')[0] : ''}</span>
                     </div>
                   </div>
                 </div>
