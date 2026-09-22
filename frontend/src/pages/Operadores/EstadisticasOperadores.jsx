@@ -131,7 +131,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     <div className="estadisticas-operadores" style={{ animation: 'fadeIn 0.5s ease' }}>
       
       {/* Top Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 border-l-4 border-l-[#10b981]">
           <p className="text-slate-500 text-sm font-medium mb-1">Operadores Activos</p>
           <div className="flex items-end justify-between">
@@ -145,14 +145,6 @@ export default function EstadisticasOperadores({ conductores = [] }) {
           <div className="flex items-end justify-between">
             <h3 className="text-3xl font-bold text-slate-800">{stats.totalFaltas}</h3>
             <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded-full text-center">Crítico para bonos</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 border-l-4 border-l-[#f59e0b]">
-          <p className="text-slate-500 text-sm font-medium mb-1">Total Retardos (Activos)</p>
-          <div className="flex items-end justify-between">
-            <h3 className="text-3xl font-bold text-slate-800">{stats.totalRetardos}</h3>
-            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full text-center">Afecta puntualidad</span>
           </div>
         </div>
 
@@ -286,7 +278,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Top Accidentes */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -307,30 +299,6 @@ export default function EstadisticasOperadores({ conductores = [] }) {
           ) : (
             <div className="p-4 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-slate-100">
               Excelente, no hay accidentes registrados en operadores activos.
-            </div>
-          )}
-        </div>
-
-        {/* Top Retardos */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <svg width="24" height="24" fill="none" stroke="#3b82f6" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Top 5 T6 con Retardos
-          </h3>
-          {stats.top5Retardos.length > 0 ? (
-            <div className="space-y-3">
-              {stats.top5Retardos.map((op, i) => (
-                <div key={i} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-                  <span className="font-medium text-slate-700">{op.nombre}</span>
-                  <span className="bg-white text-blue-600 font-bold px-3 py-1 rounded-md shadow-sm">{op.retardos} retardos</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-4 text-center text-slate-400 italic bg-slate-50 rounded-lg border border-slate-100">
-              No hay retardos registrados en operadores activos.
             </div>
           )}
         </div>
