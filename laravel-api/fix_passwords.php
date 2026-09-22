@@ -37,7 +37,7 @@ $TODOS = [
     'despacho','encierro','capturista','relevos','mantenimiento',
     'centro_control','historial','titan','infraccion','mesa_control',
     'operadores','maniobristas','carga_combustible','general','programacion_pasteles',
-    'rh',
+    'asistencias_t6',
 ];
 
 // Fuente de verdad: idéntico al RbacMatrizSeeder.php

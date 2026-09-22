@@ -234,9 +234,9 @@ const menuItems = [
     color: 'teal',
   },
   {
-    id: 'rh',
-    redirectTo: '/rh',
-    modulo: 'rh',
+    id: 'asistencias_t6',
+    redirectTo: '/asistencias-t6',
+    modulo: 'asistencias_t6',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -245,7 +245,7 @@ const menuItems = [
         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </svg>
     ),
-    label: 'Recursos Humanos',
+    label: 'Asistencias de T6',
     color: 'maroon',
   }
 ];

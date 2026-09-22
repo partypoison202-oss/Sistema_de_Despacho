@@ -2815,7 +2815,8 @@ class DespachoController extends Controller
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('informacion_operativa.estatus', 'mantenimiento')
             ->select(
-                'informacion_operativa.id as numero_incidencia',
+                'informacion_operativa.id as id_incidencia',
+                'informacion_operativa.numero_incidencia',
                 'unidades.numero_eco',
                 'informacion_operativa.tipo',
                 'informacion_operativa.folio_mantenimiento',
