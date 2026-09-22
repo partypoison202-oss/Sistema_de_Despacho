@@ -21,7 +21,7 @@ class RbacMatrizSeeder extends Seeder
             'despacho','encierro','capturista','relevos','mantenimiento',
             'centro_control','historial','titan','infraccion','mesa_control',
             'operadores','maniobristas','carga_combustible','general','programacion_pasteles',
-            'rh',
+            'asistencias_t6',
         ];
 
         // ── USUARIOS A CREAR / ACTUALIZAR ─────────────────────────────────

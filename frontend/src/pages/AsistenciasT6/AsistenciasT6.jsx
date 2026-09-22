@@ -7,7 +7,7 @@ import '../Operadores/Operadores.css'; // Reutilizamos los estilos del módulo d
 import '../CentroControl/CentroControl.css'; // Importamos para los estilos del header (centro-welcome, page-title, etc)
 import GestionFaltasOperadores from '../Operadores/GestionFaltasOperadores';
 
-export default function Rh() {
+export default function AsistenciasT6() {
   const [conductores, setConductores] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -69,14 +69,14 @@ export default function Rh() {
   }, []);
 
   return (
-    <div className="rh-page bg-gray-50 min-h-screen">
-      <Header title="Recursos Humanos" eyebrow="Gestión de Personal" />
+    <div className="asistencias-t6-page bg-gray-50 min-h-screen">
+      <Header title="Asistencias de T6" eyebrow="Gestión de Personal" />
       <main className="max-w-[1400px] mx-auto px-4 py-8">
         
         {/* Titulo y descripción enfocados a RH (Estilo Centro de Control) */}
         <div className="centro-welcome" style={{ marginBottom: '32px' }}>
           <p className="page-eyebrow">Control de Incidencias</p>
-          <h1 className="page-title" style={{ fontSize: '2.5rem', marginBottom: '8px' }}>RECURSOS HUMANOS</h1>
+          <h1 className="page-title" style={{ fontSize: '2.5rem', marginBottom: '8px' }}>ASISTENCIAS DE T6</h1>
           <p className="centro-date">{fechaActual}</p>
           <p className="centro-subtitle" style={{ maxWidth: '600px', margin: '0 auto' }}>
             Consulta el padrón de conductores, revisa el historial de faltas activas,

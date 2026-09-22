@@ -57,7 +57,7 @@ const DashboardTitan         = lazy(() => lazyRetry(() => import('./pages/Titan/
 const DetalleUnidadTitan     = lazy(() => lazyRetry(() => import('./pages/Titan/DetalleUnidadTitan')));
 const Mantenimiento          = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/Mantenimiento')));
 const TitanDashboardStats      = lazy(() => lazyRetry(() => import('./pages/Titan/TitanDashboardStats')));
-const Rh                     = lazy(() => lazyRetry(() => import('./pages/Rh/Rh')));
+const AsistenciasT6          = lazy(() => lazyRetry(() => import('./pages/AsistenciasT6/AsistenciasT6')));
 const DetalleUnidadMantenimiento = lazy(() => lazyRetry(() => import('./pages/Mantenimiento/DetalleUnidadMantenimiento')));
 const ReportesTitanes        = lazy(() => lazyRetry(() => import('./pages/CentroControl/ReporteTitanes/ReporteTitanes')));
 const HistorialReportesTitanes = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialReportesTitanes')));
@@ -322,10 +322,10 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Recursos Humanos */}
-            <Route path="/rh" element={
-              <ProtectedRoute allowedModules={['rh']}>
-                <Rh />
+            {/* Asistencias T6 */}
+            <Route path="/asistencias-t6" element={
+              <ProtectedRoute allowedModules={['asistencias_t6']}>
+                <AsistenciasT6 />
               </ProtectedRoute>
             } />
 
