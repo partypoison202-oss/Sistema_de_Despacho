@@ -22,6 +22,53 @@ const getDetailArray = (conductor, type) => {
   return [];
 };
 
+// Funciones auxiliares para reducir la complejidad cognitiva de useMemo
+const calculateFaltasParaTop = (c, rangoFaltas, fechaSeleccionada, faltasGlobales) => {
+  if (!['FECHA_DIA', 'FECHA_MES', 'FECHA_AÑO'].includes(rangoFaltas) || !fechaSeleccionada) {
+    return faltasGlobales;
+  }
+  
+  const faltasDetalle = getDetailArray(c, 'faltas');
+  return faltasDetalle.filter(f => {
+    if (!f.fecha) {
+      return false;
+    }
+    const d = f.fecha.split('T')[0];
+    if (rangoFaltas === 'FECHA_DIA') {
+      return d === fechaSeleccionada;
+    }
+    if (rangoFaltas === 'FECHA_MES') {
+      return d.startsWith(fechaSeleccionada);
+    }
+    if (rangoFaltas === 'FECHA_AÑO') {
+      return d.startsWith(fechaSeleccionada);
+    }
+    return false;
+  }).length;
+};
+
+const filterTopFaltistas = (topFaltistas, rangoFaltas, minFaltasCustom, maxFaltasCustom) => {
+  if (rangoFaltas === '1-2') {
+    return topFaltistas.filter(f => f.faltas >= 1 && f.faltas <= 2);
+  }
+  if (rangoFaltas === '3-5') {
+    return topFaltistas.filter(f => f.faltas >= 3 && f.faltas <= 5);
+  }
+  if (rangoFaltas === '6-10') {
+    return topFaltistas.filter(f => f.faltas >= 6 && f.faltas <= 10);
+  }
+  if (rangoFaltas === '10+') {
+    return topFaltistas.filter(f => f.faltas >= 10);
+  }
+  if (rangoFaltas === 'CUSTOM') {
+    const min = Math.max(0, Number(minFaltasCustom) || 0);
+    const max = Math.max(min, Number(maxFaltasCustom) || 999);
+    return topFaltistas.filter(f => f.faltas >= min && f.faltas <= max);
+  }
+  return topFaltistas;
+};
+
+
 export default function EstadisticasOperadores({ conductores = [] }) {
   const [rangoFaltas, setRangoFaltas] = React.useState('TODOS');
   const [minFaltasCustom, setMinFaltasCustom] = React.useState(1);
@@ -43,6 +90,11 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     const topAccidentes = [];
     const tarjetonesCount = {};
 
+    let resumenOperacion = 0;
+    let resumenDescansos = 0;
+    let resumenIncapacidades = 0;
+    let resumenManiobristas = 0;
+
     conductores.forEach(c => {
       // Bajas vs Activos
       if (c.estatus === 'baja') {
@@ -58,18 +110,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         totalFaltas += faltasGlobales;
         totalRetardos += retardos;
         
-        let faltasParaTop = faltasGlobales;
-        if (['FECHA_DIA', 'FECHA_MES', 'FECHA_AÑO'].includes(rangoFaltas) && fechaSeleccionada) {
-           const faltasDetalle = getDetailArray(c, 'faltas');
-           faltasParaTop = faltasDetalle.filter(f => {
-             if (!f.fecha) return false;
-             const d = f.fecha.split('T')[0]; // Extraer 'YYYY-MM-DD'
-             if (rangoFaltas === 'FECHA_DIA') return d === fechaSeleccionada;
-             if (rangoFaltas === 'FECHA_MES') return d.startsWith(fechaSeleccionada);
-             if (rangoFaltas === 'FECHA_AÑO') return d.startsWith(fechaSeleccionada);
-             return false;
-           }).length;
-        }
+        let faltasParaTop = calculateFaltasParaTop(c, rangoFaltas, fechaSeleccionada, faltasGlobales);
 
         if (c.evaluacion) {
           sumaEvaluacion += Number(c.evaluacion);
@@ -84,24 +125,23 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         // Tipos de tarjetón
         const tipo = c.tipo_tarjeton || 'No definido';
         tarjetonesCount[tipo] = (tarjetonesCount[tipo] || 0) + 1;
+
+        // Resumen de conductores
+        const estado = String(c.estado_servicio || 'disponible').toLowerCase();
+        if (estado === 'disponible' || estado === 'en_servicio') {
+          resumenOperacion++;
+        } else if (estado === 'descanso') {
+          resumenDescansos++;
+        } else if (estado === 'incapacidad') {
+          resumenIncapacidades++;
+        } else if (estado === 'maniobrista' || c.estatus === 'maniobrista') {
+          resumenManiobristas++;
+        }
       }
     });
 
     // Filtrar Top 5 Faltas según el rango seleccionado
-    let topFaltistasFiltrados = topFaltistas;
-    if (rangoFaltas === '1-2') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 1 && f.faltas <= 2);
-    } else if (rangoFaltas === '3-5') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 3 && f.faltas <= 5);
-    } else if (rangoFaltas === '6-10') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 6 && f.faltas <= 10);
-    } else if (rangoFaltas === '10+') {
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= 10);
-    } else if (rangoFaltas === 'CUSTOM') {
-      const min = Math.max(0, Number(minFaltasCustom) || 0);
-      const max = Math.max(min, Number(maxFaltasCustom) || 999);
-      topFaltistasFiltrados = topFaltistas.filter(f => f.faltas >= min && f.faltas <= max);
-    }
+    let topFaltistasFiltrados = filterTopFaltistas(topFaltistas, rangoFaltas, minFaltasCustom, maxFaltasCustom);
 
     // Ordenar y limitar tops
     const top5Faltas = topFaltistasFiltrados.sort((a, b) => b.faltas - a.faltas).slice(0, 5);
@@ -125,7 +165,13 @@ export default function EstadisticasOperadores({ conductores = [] }) {
       top5Faltas,
       top5Retardos,
       top5Accidentes,
-      tarjetonesData
+      tarjetonesData,
+      resumen: {
+        operacion: resumenOperacion,
+        descansos: resumenDescansos,
+        incapacidades: resumenIncapacidades,
+        maniobristas: resumenManiobristas,
+      }
     };
   }, [conductores, rangoFaltas, minFaltasCustom, maxFaltasCustom, fechaSeleccionada]);
 
@@ -368,6 +414,52 @@ export default function EstadisticasOperadores({ conductores = [] }) {
               Excelente, no hay accidentes registrados en operadores activos.
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mt-8">
+        {/* Resúmen de Conductores */}
+        <div className="bg-white rounded-2xl p-0 shadow-sm border border-slate-200 overflow-hidden lg:col-span-1">
+          <div className="bg-[#591024] text-white p-3 text-center">
+            <h3 className="text-xl font-bold uppercase tracking-wide">Resumen de conductores</h3>
+            <p className="text-sm font-light opacity-90 capitalize">
+              {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[500px]">
+              <tbody className="divide-y divide-slate-200 text-slate-800">
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">OPERACIÓN</th>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.operacion}</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">DESCANSOS</th>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.descansos}</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">INCAPACIDADES</th>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.incapacidades}</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">MANIOBRISTAS</th>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.maniobristas}</td>
+                </tr>
+                <tr className="bg-slate-50/50">
+                  <th scope="row" className="p-3 px-6 font-semibold text-slate-400 uppercase text-left">PERMISOS</th>
+                  <td className="p-3 px-6 text-right font-bold text-xl text-slate-400">-</td>
+                </tr>
+                <tr className="hover:bg-slate-50 transition-colors">
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">YA NO SE PRESENTAN <span className="text-xs text-slate-400 normal-case ml-2">(Bajas)</span></th>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.bajas}</td>
+                </tr>
+                <tr className="bg-[#591024] text-white">
+                  <th scope="row" className="p-4 px-6 font-bold text-xl uppercase tracking-wider text-left">TOTAL OPERADORES</th>
+                  <td className="p-4 px-6 text-right font-bold text-3xl">{stats.activos}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
