@@ -1095,9 +1095,12 @@ export default function Operadores() {
         </div>
 
         {activeTab === 'estadisticas' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6 p-6">
-            <EstadisticasOperadores conductores={conductores} />
-          </div>
+          <>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6 p-6">
+              <EstadisticasOperadores conductores={conductores} />
+            </div>
+            <ResumenInasistenciasOperadores getAuthHeaders={getAuthHeaders} />
+          </>
         )}
 
         {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && activeTab !== 'estadisticas' && activeTab !== 'gestion_faltas' && (
@@ -1414,9 +1417,6 @@ export default function Operadores() {
         ) : activeTab === 'generacion_gafete' ? (
           <GeneracionGafete conductores={conductores} />
         ) : null}
-
-        {/* Resumen de Inasistencias Operadores y Simbología en la parte inferior del módulo */}
-        <ResumenInasistenciasOperadores getAuthHeaders={getAuthHeaders} />
       </main>
 
       {/* Modal Agregar T6 */}
