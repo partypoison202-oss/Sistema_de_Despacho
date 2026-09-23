@@ -61,7 +61,7 @@ const calcularEstadoPlazoFalta = (fechaStr) => {
   const vencida = diasTranscurridos > 3;
   const diasRestantes = Math.max(0, 3 - diasTranscurridos);
 
-  let textoPlazo = '';
+  let textoPlazo;
   if (vencida) {
     textoPlazo = `Plazo vencido (${diasTranscurridos} días transcurridos)`;
   } else if (diasTranscurridos <= 0) {
@@ -75,10 +75,16 @@ const calcularEstadoPlazoFalta = (fechaStr) => {
   return { diasTranscurridos, vencida, diasRestantes, textoPlazo };
 };
 
-export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders, readOnly = false }) {
-  const [busqueda, setBusqueda] = useState('');
+export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders, readOnly = false, initialBusqueda = '' }) {
+  const [busqueda, setBusqueda] = useState(initialBusqueda);
   const [filtroEstatus, setFiltroEstatus] = useState('TODOS'); // TODOS, PENDIENTES, JUSTIFICADAS
   const [conductorSeleccionado, setConductorSeleccionado] = useState(null);
+
+  React.useEffect(() => {
+    if (initialBusqueda) {
+      setBusqueda(initialBusqueda);
+    }
+  }, [initialBusqueda]);
   
   // Modal de Subida de Justificante
   const [modalSubidaOpen, setModalSubidaOpen] = useState(false);
