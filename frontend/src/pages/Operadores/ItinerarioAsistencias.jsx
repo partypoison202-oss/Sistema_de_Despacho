@@ -58,7 +58,6 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
 
   useEffect(() => {
     fetchItinerario();
-    // eslint-disable-next-line
   }, [desde, hasta]);
 
   const filtrados = data.matriz.filter(c => {

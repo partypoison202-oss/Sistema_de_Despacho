@@ -61,7 +61,7 @@ const calcularEstadoPlazoFalta = (fechaStr) => {
   const vencida = diasTranscurridos > 3;
   const diasRestantes = Math.max(0, 3 - diasTranscurridos);
 
-  let textoPlazo = '';
+  let textoPlazo;
   if (vencida) {
     textoPlazo = `Plazo vencido (${diasTranscurridos} días transcurridos)`;
   } else if (diasTranscurridos <= 0) {
