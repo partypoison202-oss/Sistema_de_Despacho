@@ -703,13 +703,10 @@ class ConductorController extends Controller
                     ->whereBetween('fecha_historial', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                     ->whereNotNull('numero_tarjeton')
                     ->where('numero_tarjeton', '!=', '')
-                    ->where(function ($q) {
-                        $q->where('estatus', '=', 'operacion')
-                          ->orWhere(function ($q2) {
-                              $q2->whereNotNull('hora_real_salida_patio')
-                                 ->where('hora_real_salida_patio', '!=', '');
-                          });
-                    })
+                    ->whereNotNull('hora_real_salida_patio')
+                    ->where('hora_real_salida_patio', '!=', '')
+                    ->where('hora_real_salida_patio', '!=', '00:00:00')
+                    ->where('hora_real_salida_patio', '!=', '00:00')
                     ->select('fecha_historial', 'numero_tarjeton')
                     ->get();
 
@@ -732,13 +729,10 @@ class ConductorController extends Controller
                     $hoyOps = DB::table('informacion_operativa')
                         ->whereNotNull('numero_tarjeton')
                         ->where('numero_tarjeton', '!=', '')
-                        ->where(function ($q) {
-                            $q->where('estatus', '=', 'operacion')
-                              ->orWhere(function ($q2) {
-                                  $q2->whereNotNull('hora_real_salida_patio')
-                                     ->where('hora_real_salida_patio', '!=', '');
-                              });
-                        })
+                        ->whereNotNull('hora_real_salida_patio')
+                        ->where('hora_real_salida_patio', '!=', '')
+                        ->where('hora_real_salida_patio', '!=', '00:00:00')
+                        ->where('hora_real_salida_patio', '!=', '00:00')
                         ->select('numero_tarjeton')
                         ->get();
 
