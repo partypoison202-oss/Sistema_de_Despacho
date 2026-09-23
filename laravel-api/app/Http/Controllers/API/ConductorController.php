@@ -373,6 +373,44 @@ class ConductorController extends Controller
 
         $conductor = Conductor::findOrFail($id);
 
+        // Validar plazo de 3 días naturales para poder justificar
+        $rawDetalle = $conductor->faltas_detalle;
+        $detalleCheck = [];
+        if (is_array($rawDetalle)) {
+            $detalleCheck = $rawDetalle;
+        } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+            $parsed = json_decode($rawDetalle, true);
+            if (is_array($parsed)) $detalleCheck = $parsed;
+        }
+
+        $faltaIndexCheck = $request->input('falta_index');
+        $faltaIdCheck = $request->input('falta_id');
+        $targetFecha = null;
+
+        foreach ($detalleCheck as $idx => $item) {
+            if (($faltaIdCheck && isset($item['id']) && (string)$item['id'] === (string)$faltaIdCheck) || ($faltaIndexCheck !== null && (int)$idx === (int)$faltaIndexCheck)) {
+                $targetFecha = $item['fecha'] ?? null;
+                break;
+            }
+        }
+
+        if (!$targetFecha) {
+            $targetFecha = $request->input('fecha_falta') ?: ($conductor->updated_at ? $conductor->updated_at->format('Y-m-d') : date('Y-m-d'));
+        }
+
+        if ($targetFecha && $targetFecha !== 'Fecha sin registrar') {
+            $faltaTs = strtotime(substr($targetFecha, 0, 10));
+            $todayTs = strtotime(date('Y-m-d'));
+            if ($faltaTs !== false) {
+                $diasDiferencia = (int)floor(($todayTs - $faltaTs) / 86400);
+                if ($diasDiferencia > 3) {
+                    return response()->json([
+                        'message' => 'El plazo límite de 3 días para justificar esta falta ha expirado. Esta falta ya no es justificable.'
+                    ], 422);
+                }
+            }
+        }
+
         if ($request->hasFile('justificante')) {
             $file = $request->file('justificante');
             $extension = strtolower($file->extension() ?: $file->guessExtension() ?: 'pdf');
