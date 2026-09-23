@@ -13,7 +13,7 @@ import EstadisticasOperadores from './EstadisticasOperadores';
 import GestionFaltasOperadores from './GestionFaltasOperadores';
 import ItinerarioAsistencias from './ItinerarioAsistencias';
 import ModalAsignarFechas from './ModalAsignarFechas';
-import ResumenInasistenciasOperadores from './ResumenInasistenciasOperadores';
+
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -1118,12 +1118,9 @@ export default function Operadores() {
         </div>
 
         {activeTab === 'estadisticas' && (
-          <>
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6 p-6">
-              <EstadisticasOperadores conductores={conductores} />
-            </div>
-            <ResumenInasistenciasOperadores getAuthHeaders={getAuthHeaders} />
-          </>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6 p-6">
+            <EstadisticasOperadores conductores={conductores} />
+          </div>
         )}
 
         {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && activeTab !== 'estadisticas' && activeTab !== 'gestion_faltas' && activeTab !== 'itinerario' && (

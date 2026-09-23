@@ -9,8 +9,21 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 
+use Illuminate\Support\Facades\Schema;
+
 class ItinerarioController extends Controller
 {
+    private function normalizarNombre($str)
+    {
+        if (empty($str)) return '';
+        $str = mb_strtoupper(trim($str), 'UTF-8');
+        $unwantedArray = [
+            'Á'=>'A', 'É'=>'E', 'Í'=>'I', 'Ó'=>'O', 'Ú'=>'U', 'Ü'=>'U', 'Ñ'=>'N'
+        ];
+        $str = strtr($str, $unwantedArray);
+        return preg_replace('/\s+/', ' ', $str);
+    }
+
     /**
      * Obtiene la matriz de asistencias en un rango de fechas
      */
@@ -50,14 +63,116 @@ class ItinerarioController extends Controller
             $fechas[] = $date->format('Y-m-d');
         }
 
+        // Mapeo de asistencias de Despacho (historial_operativo e informacion_operativa)
+        $historialMap = []; // [tarjetonKey][YYYY-MM-DD] = true
+        $nombreMap = [];    // [nombreNormalizado][YYYY-MM-DD] = true
+
+        try {
+            if (Schema::hasTable('historial_operativo')) {
+                $registrosHistorial = DB::table('historial_operativo')
+                    ->whereBetween('fecha_historial', [$desde->toDateString(), $hasta->toDateString()])
+                    ->get();
+
+                foreach ($registrosHistorial as $h) {
+                    $fecha = $h->fecha_historial;
+
+                    if (!empty($h->numero_tarjeton)) {
+                        $tRaw = trim((string)$h->numero_tarjeton);
+                        $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
+                        $historialMap[$tRaw][$fecha] = true;
+                        if ($tNum !== '0') {
+                            $historialMap[$tNum][$fecha] = true;
+                        }
+                    }
+
+                    if (!empty($h->nombre_conductor)) {
+                        $nNorm = $this->normalizarNombre($h->nombre_conductor);
+                        if ($nNorm) {
+                            $nombreMap[$nNorm][$fecha] = true;
+                        }
+                    }
+
+                    if (!empty($h->relevo_tarjeton)) {
+                        $tRawRel = trim((string)$h->relevo_tarjeton);
+                        $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
+                        $historialMap[$tRawRel][$fecha] = true;
+                        if ($tNumRel !== '0') {
+                            $historialMap[$tNumRel][$fecha] = true;
+                        }
+                    }
+
+                    if (!empty($h->relevo_conductor)) {
+                        $nNormRel = $this->normalizarNombre($h->relevo_conductor);
+                        if ($nNormRel) {
+                            $nombreMap[$nNormRel][$fecha] = true;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error consultando historial_operativo en Itinerario: ' . $e->getMessage());
+        }
+
+        $hoy = Carbon::today()->format('Y-m-d');
+
+        // Si hoy cae en el rango, incluir informacion_operativa para asistencias en tiempo real
+        if ($hoy >= $desde->toDateString() && $hoy <= $hasta->toDateString()) {
+            try {
+                if (Schema::hasTable('informacion_operativa')) {
+                    $hoyOps = DB::table('informacion_operativa')->get();
+
+                    foreach ($hoyOps as $op) {
+                        if (!empty($op->numero_tarjeton)) {
+                            $tRaw = trim((string)$op->numero_tarjeton);
+                            $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
+                            $historialMap[$tRaw][$hoy] = true;
+                            if ($tNum !== '0') {
+                                $historialMap[$tNum][$hoy] = true;
+                            }
+                        }
+
+                        if (!empty($op->nombre_conductor)) {
+                            $nNorm = $this->normalizarNombre($op->nombre_conductor);
+                            if ($nNorm) {
+                                $nombreMap[$nNorm][$hoy] = true;
+                            }
+                        }
+
+                        if (!empty($op->relevo_tarjeton)) {
+                            $tRawRel = trim((string)$op->relevo_tarjeton);
+                            $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
+                            $historialMap[$tRawRel][$hoy] = true;
+                            if ($tNumRel !== '0') {
+                                $historialMap[$tNumRel][$hoy] = true;
+                            }
+                        }
+
+                        if (!empty($op->relevo_conductor)) {
+                            $nNormRel = $this->normalizarNombre($op->relevo_conductor);
+                            if ($nNormRel) {
+                                $nombreMap[$nNormRel][$hoy] = true;
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Error consultando informacion_operativa en Itinerario: ' . $e->getMessage());
+            }
+        }
+
         // Obtener todos los conductores activos
         $conductores = Conductor::where('estatus', 'activo')
+                                ->orWhereNull('estatus')
                                 ->orderBy('tarjeton')
                                 ->get();
 
         $matriz = [];
 
         foreach ($conductores as $conductor) {
+            $tarjetonRaw = trim((string)($conductor->tarjeton ?? ''));
+            $tarjetonNum = (string)(int)preg_replace('/\D/', '', $tarjetonRaw);
+            $nombreCondNorm = $this->normalizarNombre($conductor->nombres . ' ' . $conductor->apellidos);
+
             $fila = [
                 'id' => $conductor->id,
                 'tarjeton' => $conductor->tarjeton,
@@ -73,14 +188,22 @@ class ItinerarioController extends Controller
             $vacaciones = $this->parseJsonDetalleConMotivo($conductor->vacaciones_detalle);
             $incapacidades = $this->parseJsonDetalleConMotivo($conductor->incapacidades_detalle);
 
-            $hoy = \Carbon\Carbon::today()->format('Y-m-d');
+            // Si el estado de servicio es falta y hoy cae en el rango
+            if ($conductor->estado_servicio === 'falta' && !isset($faltas[$hoy])) {
+                $faltas[$hoy] = 'Falta activa en servicio';
+            }
 
             foreach ($fechas as $fechaStr) {
-                // Si la fecha es en el futuro, no asumimos asistencia. Dejamos '-'
-                $estadoDia = ($fechaStr > $hoy) ? '-' : 'A';
+                $estadoDia = '';
                 $motivo = '';
 
-                // Prioridad: F > I > V > D > A
+                $tieneAsistencia = 
+                    (isset($historialMap[$tarjetonRaw][$fechaStr])) ||
+                    ($tarjetonNum !== '0' && isset($historialMap[$tarjetonNum][$fechaStr])) ||
+                    ($nombreCondNorm && isset($nombreMap[$nombreCondNorm][$fechaStr])) ||
+                    ($fechaStr === $hoy && $conductor->estado_servicio === 'en_servicio');
+
+                // Prioridad: F > I > V > D > A > (-) día futuro > (vacío)
                 if (isset($faltas[$fechaStr])) {
                     $estadoDia = 'F';
                     $motivo = $faltas[$fechaStr];
@@ -93,6 +216,11 @@ class ItinerarioController extends Controller
                 } elseif (isset($descansos[$fechaStr])) {
                     $estadoDia = 'D';
                     $motivo = $descansos[$fechaStr];
+                } elseif ($tieneAsistencia) {
+                    $estadoDia = 'A';
+                    $motivo = 'Asistencia registrada en Despacho';
+                } elseif ($fechaStr > $hoy) {
+                    $estadoDia = '-';
                 }
 
                 $fila['dias'][$fechaStr] = $estadoDia;
@@ -100,14 +228,21 @@ class ItinerarioController extends Controller
                     $fila['motivos'][$fechaStr] = $motivo;
                 }
                 
-                // Solo incrementamos totales si es un estado válido (no es '-')
-                if ($estadoDia !== '-') {
+                // Incrementar totales sólo para estados A, D, V, I, F
+                if (isset($fila['totales'][$estadoDia])) {
                     $fila['totales'][$estadoDia]++;
                 }
             }
 
             $matriz[] = $fila;
         }
+
+        // Ordenar por número numérico de tarjetón
+        usort($matriz, function ($a, $b) {
+            $numA = (int)preg_replace('/\D/', '', $a['tarjeton'] ?? '');
+            $numB = (int)preg_replace('/\D/', '', $b['tarjeton'] ?? '');
+            return $numA <=> $numB;
+        });
 
         return response()->json([
             'fechas' => $fechas,

@@ -130,12 +130,72 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
         </div>
       </div>
 
-      <div className="itinerario-leyenda">
-        <div className="leyenda-item"><span className="leyenda-color cell-a">A</span> Asistencia</div>
-        <div className="leyenda-item"><span className="leyenda-color cell-d">D</span> Descanso</div>
-        <div className="leyenda-item"><span className="leyenda-color cell-v">V</span> Vacaciones</div>
-        <div className="leyenda-item"><span className="leyenda-color cell-i">I</span> Incapacidad</div>
-        <div className="leyenda-item"><span className="leyenda-color cell-f">F</span> Falta</div>
+      {/* CUADRO DE SIMBOLOGÍA INSTITUCIONAL */}
+      <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-4">
+        <div>
+          <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider mb-2 flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            Simbología / Leyenda de Estatus
+          </h4>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {/* ASISTENCIA */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                A
+              </span>
+              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+                ASISTENCIA
+              </span>
+            </div>
+
+            {/* DESCANSO */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                D
+              </span>
+              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+                DESCANSO
+              </span>
+            </div>
+
+            {/* VACACIONES */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                V
+              </span>
+              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+                VACACIONES
+              </span>
+            </div>
+
+            {/* INCAPACIDAD */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                I
+              </span>
+              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+                INCAPACIDAD
+              </span>
+            </div>
+
+            {/* FALTA */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">
+                F
+              </span>
+              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+                FALTA
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-[11px] text-slate-500 italic font-medium bg-slate-50 p-3 rounded-xl border border-slate-200 max-w-xs">
+          💡 Nota: Las faltas y asistencias son actualizadas automáticamente desde los módulos de Programación, Control de Conductores y Despacho.
+        </div>
       </div>
 
       <div className="itinerario-grid-wrapper">
