@@ -44,6 +44,9 @@
   padding: 0.35rem 0.75rem;
   border-radius: 20px;
   white-space: nowrap;
+  min-width: 165px;
+  text-align: center;
+  display: inline-block;
 }
 
 .excel-table-header-right {

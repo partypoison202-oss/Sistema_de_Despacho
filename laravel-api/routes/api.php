@@ -123,6 +123,7 @@ Route::get('/fix-add-patio-norte', function() {
 // Autenticación pública (no requiere token)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
+Route::get('/justificantes/{filename}', [ConductorController::class, 'servirJustificante']);
 
 // Rutas que requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {

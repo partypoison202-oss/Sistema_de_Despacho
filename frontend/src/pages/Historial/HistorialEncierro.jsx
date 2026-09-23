@@ -100,8 +100,11 @@ export default function HistorialEncierro() {
         'ESTATUS': d.estatus ? String(d.estatus).toUpperCase() : '',
         'MOTIVO': d.motivo_estatus || '',
         'RUTA': d.ruta || '',
-        'TARJETON': d.tarjeton || '',
-        'CONDUCTOR': d.nombre_conductor || ''
+        'TARJETÓN TITULAR': d.tarjeton || '',
+        'CONDUCTOR TITULAR': d.nombre_conductor || '',
+        'TARJETÓN RELEVO': d.relevo_tarjeton || '',
+        'CONDUCTOR RELEVO': d.relevo_conductor || '',
+        'HORA RELEVO': d.relevo_hora || ''
       }));
     } else {
       worksheetData = activeData.map(d => ({
@@ -300,8 +303,22 @@ export default function HistorialEncierro() {
                     </td>
                     <td>{d.motivo_estatus || '-'}</td>
                     <td style={{ fontWeight: '600' }}>{d.ruta || '-'}</td>
-                    <td>{d.tarjeton || '-'}</td>
-                    <td>{d.nombre_conductor || '-'}</td>
+                    <td>
+                      <div>{d.tarjeton || '-'}</div>
+                      {d.relevo_tarjeton && (
+                        <div style={{ fontSize: '0.85em', color: '#16a34a', marginTop: '4px', fontWeight: 'bold' }}>
+                          R: {d.relevo_tarjeton}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div>{d.nombre_conductor || '-'}</div>
+                      {d.relevo_conductor && (
+                        <div style={{ fontSize: '0.85em', color: '#16a34a', marginTop: '4px', fontWeight: 'bold' }}>
+                          R: {d.relevo_conductor}
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {activeData.length === 0 && (

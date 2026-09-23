@@ -45,7 +45,7 @@ class ConductorController extends Controller
 
         $query = Conductor::query();
 
-        // Filtrar sólo operadores activos (no dados de baja) por defecto
+        // Filtrar sólo operadores activos (no dados de baja ni inhabilitados) por defecto
         if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
             $query->where(function ($q) {
                 $q->where('estatus', 'activo')
@@ -61,6 +61,23 @@ class ConductorController extends Controller
             ->toArray();
 
         $conductores = $query->get()->map(function ($c) use ($asignaciones) {
+            // Evaluar regla de 4 faltas en 30 días
+            $eval = $c->evaluarInhabilitacionFaltas();
+            if ($eval['inhabilitado'] && $c->estatus !== 'inhabilitado') {
+                $c->estatus = 'inhabilitado';
+                $c->estado_servicio = null;
+                DB::table('conductores')->where('id', $c->id)->update([
+                    'estatus' => 'inhabilitado',
+                    'estado_servicio' => null
+                ]);
+                DB::table('informacion_operativa')
+                    ->where('numero_tarjeton', $c->tarjeton)
+                    ->update([
+                        'numero_tarjeton' => null,
+                        'nombre_conductor' => null
+                    ]);
+            }
+
             $tarjetonClean = trim($c->tarjeton ?? '');
             $estaAsignado = false;
             foreach ($asignaciones as $t) {
@@ -69,7 +86,7 @@ class ConductorController extends Controller
                     break;
                 }
             }
-            if ($c->estatus === 'baja') {
+            if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                 $c->estado_servicio = null;
             } elseif ($c->estado_servicio === 'maniobrista') {
                 // Respetar siempre el estado maniobrista, aunque esté asignado
@@ -79,6 +96,13 @@ class ConductorController extends Controller
             }
             return $c;
         });
+
+        // Si no se incluyeron bajas/inhabilitados explícitamente, filtrar aquellos que hayan resultado inhabilitados al evaluar
+        if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
+            $conductores = $conductores->filter(function ($c) {
+                return $c->estatus === 'activo' || is_null($c->estatus);
+            })->values();
+        }
 
         return response()->json($conductores);
     }
@@ -395,7 +419,23 @@ class ConductorController extends Controller
             }
             $safeOriginalName = htmlspecialchars(basename($file->getClientOriginalName()), ENT_QUOTES, 'UTF-8');
             $filename = 'justificante_' . (int)$id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
+            
+            // Asegurar creación de directorios
+            $dirPublic = storage_path('app/public/justificantes');
+            $dirStorage = public_path('storage/justificantes');
+            $dirApp = storage_path('app/justificantes');
+            if (!file_exists($dirPublic)) @mkdir($dirPublic, 0777, true);
+            if (!file_exists($dirStorage)) @mkdir($dirStorage, 0777, true);
+            if (!file_exists($dirApp)) @mkdir($dirApp, 0777, true);
+
             $path = $file->storeAs('justificantes', $filename, 'public');
+
+            // Copiar explícitamente para garantizar redundancia en todos los directorios
+            $fullStoredPath = storage_path('app/public/' . $path);
+            if (file_exists($fullStoredPath)) {
+                @copy($fullStoredPath, public_path('storage/justificantes/' . $filename));
+                @copy($fullStoredPath, storage_path('app/justificantes/' . $filename));
+            }
 
             $rawDetalle = $conductor->faltas_detalle;
             $detalle = [];
@@ -414,7 +454,7 @@ class ConductorController extends Controller
                 if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
                     $item['estado'] = 'justificada';
                     $item['justificada'] = true;
-                    $item['justificante_url'] = '/storage/' . $path;
+                    $item['justificante_url'] = '/api/justificantes/' . $filename;
                     $item['justificante_nombre'] = $safeOriginalName;
                     $item['justificante_fecha'] = date('Y-m-d H:i');
                     $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
@@ -430,7 +470,7 @@ class ConductorController extends Controller
                     'motivo' => $request->input('motivo_falta') ?: 'Falta registrada',
                     'estado' => 'justificada',
                     'justificada' => true,
-                    'justificante_url' => '/storage/' . $path,
+                    'justificante_url' => '/api/justificantes/' . $filename,
                     'justificante_nombre' => $safeOriginalName,
                     'justificante_fecha' => date('Y-m-d H:i'),
                     'observaciones_justificacion' => $request->input('observaciones') ?: 'Justificante adjuntado correctamente',
@@ -443,12 +483,19 @@ class ConductorController extends Controller
                 $conductor->faltas = max(0, (int)$conductor->faltas - 1);
             }
 
+            // Reevaluar regla de 4 faltas en 30 días tras justificar
+            $eval = $conductor->evaluarInhabilitacionFaltas();
+            if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
+                $conductor->estatus = 'activo';
+                $conductor->estado_servicio = 'disponible';
+            }
+
             $conductor->save();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Falta justificada correctamente. El comprobante fue almacenado y la falta fue descontada del historial activo.',
-                'justificante_url' => '/storage/' . $path,
+                'justificante_url' => '/api/justificantes/' . $filename,
                 'conductor' => $conductor
             ], 200);
         }
@@ -490,12 +537,125 @@ class ConductorController extends Controller
         $detalle[] = $nuevaFalta;
         $conductor->faltas_detalle = $detalle;
         $conductor->faltas = ((int)($conductor->faltas ?? 0)) + 1;
+
+        // Evaluar regla de 4 faltas en 30 días
+        $eval = $conductor->evaluarInhabilitacionFaltas();
+        $fueInhabilitado = false;
+        if ($eval['inhabilitado']) {
+            $conductor->estatus = 'inhabilitado';
+            $conductor->estado_servicio = null;
+            $fueInhabilitado = true;
+
+            // Desvincular automáticamente de cualquier unidad asignada
+            DB::table('informacion_operativa')
+                ->where('numero_tarjeton', $conductor->tarjeton)
+                ->update([
+                    'numero_tarjeton' => null,
+                    'nombre_conductor' => null
+                ]);
+        }
+
         $conductor->save();
+
+        $mensaje = $fueInhabilitado
+            ? 'Falta registrada correctamente. ATENCIÓN: El operador ha sido INHABILITADO al acumular 4 faltas en un lapso de 30 días.'
+            : 'Falta registrada correctamente.';
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Falta registrada correctamente.',
-            'conductor' => $conductor
+            'message' => $mensaje,
+            'conductor' => $conductor,
+            'inhabilitado' => $fueInhabilitado
         ], 200);
+    }
+
+    /**
+     * Sirve el archivo justificante almacenado evitando problemas de permisos o 403 en Nginx/symlink.
+     */
+    public function servirJustificante($filename)
+    {
+        $filenameOnly = strtok($filename, '?');
+        $safeFilename = urldecode(basename(trim($filenameOnly)));
+        
+        $diskPath = '';
+        try {
+            $diskPath = \Illuminate\Support\Facades\Storage::disk('public')->path('justificantes/' . $safeFilename);
+        } catch (\Throwable $e) {
+            $diskPath = '';
+        }
+
+        $candidatePaths = array_values(array_filter(array_unique([
+            $diskPath,
+            storage_path('app/public/justificantes/' . $safeFilename),
+            storage_path('app/justificantes/' . $safeFilename),
+            public_path('storage/justificantes/' . $safeFilename),
+            public_path('justificantes/' . $safeFilename),
+            storage_path('app/private/justificantes/' . $safeFilename),
+        ])));
+
+        $foundPath = null;
+        foreach ($candidatePaths as $p) {
+            if (file_exists($p) && is_file($p)) {
+                $foundPath = $p;
+                break;
+            }
+        }
+
+        // Búsqueda escaneando directorios si no se encontró en rutas directas
+        if (!$foundPath) {
+            $folders = [
+                storage_path('app/public/justificantes'),
+                public_path('storage/justificantes'),
+                storage_path('app/justificantes'),
+                storage_path('app/private/justificantes'),
+            ];
+
+            foreach ($folders as $folder) {
+                if (is_dir($folder)) {
+                    $files = scandir($folder);
+                    foreach ($files as $f) {
+                        if ($f === '.' || $f === '..') continue;
+                        if (strcasecmp($f, $safeFilename) === 0 || str_contains($f, $safeFilename) || str_contains($safeFilename, $f)) {
+                            $foundPath = $folder . '/' . $f;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!$foundPath) {
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
+                <rect width="100%" height="100%" fill="#fff5f5" rx="16"/>
+                <rect x="2" y="2" width="596" height="296" fill="none" stroke="#fca5a5" stroke-width="2" rx="14" stroke-dasharray="8,8"/>
+                <path d="M300 65 L345 140 L255 140 Z" fill="#ef4444" />
+                <text x="300" y="125" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">!</text>
+                <text x="300" y="180" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#991b1b" text-anchor="middle">Archivo No Encontrado en el Servidor</text>
+                <text x="300" y="210" font-family="Arial, sans-serif" font-size="14" fill="#6b7280" text-anchor="middle">El comprobante (' . htmlspecialchars($safeFilename, ENT_QUOTES) . ') no existe en el almacenamiento.</text>
+                <text x="300" y="240" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#dc2626" text-anchor="middle">Por favor vuelva a adjuntar la justificación desde el panel de faltas.</text>
+            </svg>';
+
+            return response($svg, 200, [
+                'Content-Type' => 'image/svg+xml',
+                'Cache-Control' => 'no-cache',
+            ]);
+        }
+
+        $extension = strtolower(pathinfo($foundPath, PATHINFO_EXTENSION));
+        $contentTypes = [
+            'pdf' => 'application/pdf',
+            'png' => 'image/png',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+        ];
+
+        $contentType = $contentTypes[$extension] ?? (mime_content_type($foundPath) ?: 'application/octet-stream');
+
+        return response()->file($foundPath, [
+            'Content-Type' => $contentType,
+            'Content-Disposition' => 'inline; filename="' . $safeFilename . '"',
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 }

@@ -43,7 +43,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.estatus',
                 'historial_operativo.corridas',
                 'historial_operativo.ciclo',
-                'historial_operativo.motivo'
+                'historial_operativo.motivo',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -64,7 +67,10 @@ class HistorialOperativoController extends Controller
                     'historial_operativo.estatus',
                     'historial_operativo.corridas',
                     'historial_operativo.ciclo',
-                    'historial_operativo.motivo'
+                    'historial_operativo.motivo',
+                    'historial_operativo.relevo_tarjeton',
+                    'historial_operativo.relevo_conductor',
+                    'historial_operativo.relevo_hora'
                 )
                 ->orderBy('historial_operativo.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -106,7 +112,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.estatus',
                 'historial_operativo.corridas',
                 'historial_operativo.ciclo',
-                'historial_operativo.motivo'
+                'historial_operativo.motivo',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -124,7 +133,10 @@ class HistorialOperativoController extends Controller
                     'informacion_operativa.estatus',
                     'informacion_operativa.corridas',
                     'informacion_operativa.ciclo',
-                    'informacion_operativa.motivo'
+                    'informacion_operativa.motivo',
+                    'informacion_operativa.relevo_tarjeton',
+                    'informacion_operativa.relevo_conductor',
+                    'informacion_operativa.relevo_hora'
                 )
                 ->orderBy('informacion_operativa.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -246,7 +258,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.nombre_conductor',
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
-                'historial_operativo.hora_encierro'
+                'historial_operativo.hora_encierro',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.hora_encierro')
             ->get();
@@ -281,7 +296,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.ciclo',
                 'historial_operativo.motivo',
                 'historial_operativo.falla',
-                'historial_operativo.motivo_estatus'
+                'historial_operativo.motivo_estatus',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -305,7 +323,10 @@ class HistorialOperativoController extends Controller
                     'historial_operativo.ciclo',
                     'historial_operativo.motivo',
                     'historial_operativo.falla',
-                    'historial_operativo.motivo_estatus'
+                    'historial_operativo.motivo_estatus',
+                    'historial_operativo.relevo_tarjeton',
+                    'historial_operativo.relevo_conductor',
+                    'historial_operativo.relevo_hora'
                 )
                 ->orderBy('historial_operativo.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -348,7 +369,10 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.ciclo',
                 'historial_operativo.motivo',
                 'historial_operativo.falla',
-                'historial_operativo.motivo_estatus'
+                'historial_operativo.motivo_estatus',
+                'historial_operativo.relevo_tarjeton',
+                'historial_operativo.relevo_conductor',
+                'historial_operativo.relevo_hora'
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
@@ -369,7 +393,10 @@ class HistorialOperativoController extends Controller
                     'informacion_operativa.ciclo',
                     'informacion_operativa.motivo',
                     'informacion_operativa.falla',
-                    'informacion_operativa.motivo_estatus'
+                    'informacion_operativa.motivo_estatus',
+                    'informacion_operativa.relevo_tarjeton',
+                    'informacion_operativa.relevo_conductor',
+                    'informacion_operativa.relevo_hora'
                 )
                 ->orderBy('informacion_operativa.tipo')
                 ->orderBy('unidades.numero_eco')

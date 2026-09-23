@@ -29,7 +29,7 @@ const renderConductorInfo = (cargandoDatos, getConductorDisplay, datosOperativos
     ? String(datosOperativos.relevo_conductor).replace(/\s*\(\d+\)$/, '').trim() 
     : null;
 
-  const tarjetonTitular = datosOperativos.tarjeton || datosOperativos.titular_tarjeton;
+  const tarjetonTitular = datosOperativos.titular_tarjeton;
 
   return (
     <>

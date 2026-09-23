@@ -120,7 +120,21 @@ function StatusDropdown({ value, onChange, disabled = false }) {
     { value: 'descanso', label: 'DESCANSO', class: 'descanso' }
   ];
 
-  // Si el operador está marcado como maniobrista, mostrar badge de solo lectura
+  // Si el operador está marcado como maniobrista o inhabilitado, mostrar badge de solo lectura
+  if (value === 'inhabilitado') {
+    return (
+      <div className="status-dropdown-container" ref={dropdownRef}>
+        <div
+          className="status-dropdown-trigger inhabilitado"
+          title="Este operador está INHABILITADO por acumulación de 4 faltas en 30 días"
+          style={{ cursor: 'default', backgroundColor: '#dc2626', color: '#ffffff', fontWeight: 'bold' }}
+        >
+          <span className="status-text">INHABILITADO</span>
+        </div>
+      </div>
+    );
+  }
+
   if (value === 'maniobrista') {
     return (
       <div className="status-dropdown-container" ref={dropdownRef}>
@@ -1201,7 +1215,7 @@ export default function Operadores() {
                         </td>
                         <td>
                           <StatusDropdown
-                            value={c.estado_servicio}
+                            value={c.estatus === 'inhabilitado' || c.info_ventana_faltas?.inhabilitado ? 'inhabilitado' : c.estado_servicio}
                             onChange={(newStatus) => handleStatusChange(c, newStatus)}
                             disabled={!canEdit}
                           />
@@ -1259,7 +1273,6 @@ export default function Operadores() {
                     <th style={{ width: '210px' }}>Próxima capacitación</th>
                     <th style={{ width: '220px', textAlign: 'center' }}>Accidentes y Siniestros</th>
                     <th style={{ width: '120px', textAlign: 'center' }}>Faltas</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Retardos</th>
                     <th style={{ width: '180px', textAlign: 'center' }}>Amonestaciones</th>
                     <th style={{ width: '180px', textAlign: 'center' }}>Reconocimientos</th>
                     <th style={{ width: '280px' }}>Condicionamientos médicos</th>
@@ -1341,13 +1354,6 @@ export default function Operadores() {
                             type="number"
                             value={c.faltas}
                             onChange={(val) => autoSaveField(c.id, 'faltas', val)}
-                          />
-                        </td>
-                        <td>
-                          <EditableCell
-                            type="number"
-                            value={c.retardos}
-                            onChange={(val) => autoSaveField(c.id, 'retardos', val)}
                           />
                         </td>
                         <td className="text-center">
