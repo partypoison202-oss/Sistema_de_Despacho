@@ -174,6 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
+    Route::get('/conductores/resumen-inasistencias', [ConductorController::class, 'resumenInasistencias']);
     Route::post('/conductores', [ConductorController::class, 'store']);
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/foto', [ConductorController::class, 'uploadFoto']);
@@ -181,6 +182,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
     Route::post('/conductores/{id}/justificar-falta', [ConductorController::class, 'justificarFalta']);
     Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
+
+    // Itinerario de Asistencias
+    Route::get('/operadores/itinerario', [\App\Http\Controllers\API\ItinerarioController::class, 'getItinerario']);
+    Route::post('/operadores/itinerario/asignar', [\App\Http\Controllers\API\ItinerarioController::class, 'asignarBloque']);
 
     // Gestión de Maniobristas
     Route::get('/maniobristas', [ManiobristaController::class, 'index']);

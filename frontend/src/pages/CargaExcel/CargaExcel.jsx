@@ -129,6 +129,78 @@ export default function CargaExcel({ isPasteles = false }) {
 
   const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));
 
+  const solicitarFaltaSiAplica = async (originalTarjeton, originalName, ecoUnidad, rol = 'conductor') => {
+    if (!originalTarjeton) return;
+    const origConductorObj = catalogConductores.find(
+      c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(originalTarjeton)
+    );
+
+    const labelRol = rol === 'relevo' ? 'relevo' : 'conductor';
+    const confirmFalta = await Swal.fire({
+      title: `¿Registrar falta al ${labelRol} anterior?`,
+      html: `
+        <div style="text-align: left; font-size: 0.9rem; color: #334155; line-height: 1.5;">
+          <p style="margin-bottom: 0.5rem;">Se ha retirado/reemplazado al ${labelRol} <strong>${originalName || originalTarjeton}</strong> (Tarjetón: <strong>${originalTarjeton}</strong>) de la unidad <strong>Eco #${ecoUnidad || 'N/A'}</strong>.</p>
+          <p style="color: #64748b;">¿Deseas registrar una <strong>falta no justificada</strong> a su expediente en el sistema?</p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#475569',
+      confirmButtonText: 'Sí, registrar falta',
+      cancelButtonText: 'No, solo reemplazar',
+      reverseButtons: true
+    });
+
+    if (confirmFalta.isConfirmed && origConductorObj) {
+      try {
+        const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+        const response = await fetch(`${API_BASE}/api/conductores/${origConductorObj.id}/agregar-falta`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            fecha: new Date().toISOString().split('T')[0],
+            motivo: `Inasistencia por reemplazo de tarjetón en Programación (Eco: ${ecoUnidad || 'N/A'})`
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          origConductorObj.estado_servicio = 'falta';
+          origConductorObj.faltas = (origConductorObj.faltas || 0) + 1;
+
+          if (data.inhabilitado) {
+            origConductorObj.estatus = 'inhabilitado';
+            Swal.fire({
+              icon: 'warning',
+              title: 'Operador Inhabilitado',
+              html: `El operador <b>${origConductorObj.nombre}</b> ha sido <b>INHABILITADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
+              confirmButtonColor: '#ef4444'
+            });
+          } else {
+            Swal.fire({
+              icon: 'success',
+              title: 'Falta Registrada',
+              text: `Se ha registrado la falta en el expediente de ${origConductorObj.nombre}.`,
+              confirmButtonColor: '#10b981',
+              timer: 1800
+            });
+          }
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al registrar falta',
+            text: data.message || 'No se pudo registrar la falta.',
+            confirmButtonColor: '#6b1d33'
+          });
+        }
+      } catch (err) {
+        console.error('Error al solicitar falta:', err);
+      }
+    }
+  };
+
   const handleUpdateRecord = async (index, field, value) => {
     const updatedData = [...previewData];
     const valStr = String(value ?? '').trim();
@@ -196,6 +268,16 @@ export default function CargaExcel({ isPasteles = false }) {
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
       const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
 
+      if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Operador Inhabilitado',
+          text: `El operador ${newDriverName} (Tarjetón: ${newDriverConductor.tarjeton}) está INHABILITADO por acumulación de faltas y no puede ser asignado.`,
+          confirmButtonColor: '#ef4444'
+        });
+        return;
+      }
+
       if (newDriverConductor && newDriverConductor.estado_servicio === 'falta') {
         const confirm = await Swal.fire({
           title: 'Confirmar asignación',
@@ -243,7 +325,14 @@ export default function CargaExcel({ isPasteles = false }) {
     }
 
     if (field === 'TARJETON') {
+      const currentTarjeton = updatedData[index]['TARJETON'];
+      const currentDriverName = updatedData[index]['NOMBRE_CONDUCTOR'];
+      const currentEco = updatedData[index]['ECONOMICO'];
+
       if (valStr === '') {
+        if (isPasteles && currentTarjeton) {
+          await solicitarFaltaSiAplica(currentTarjeton, currentDriverName, currentEco, 'conductor');
+        }
         updatedData[index]['TARJETON'] = '';
         updatedData[index]['NOMBRE_CONDUCTOR'] = '';
         setPreviewData(updatedData);
@@ -254,6 +343,16 @@ export default function CargaExcel({ isPasteles = false }) {
       const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.TARJETON) === normalizeTarjeton(valStr));
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
       const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
+
+      if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
+        Swal.fire({
+          icon: 'error',
+          title: 'Operador Inhabilitado',
+          text: `El operador ${newDriverName} (Tarjetón: ${newDriverConductor.tarjeton}) está INHABILITADO por acumulación de faltas y no puede ser asignado.`,
+          confirmButtonColor: '#ef4444'
+        });
+        return;
+      }
 
       if (newDriverConductor && newDriverConductor.estado_servicio === 'falta') {
         const confirm = await Swal.fire({
@@ -296,6 +395,9 @@ export default function CargaExcel({ isPasteles = false }) {
         }
         return;
       } else {
+        if (isPasteles && currentTarjeton && normalizeTarjeton(currentTarjeton) !== normalizeTarjeton(valStr)) {
+          await solicitarFaltaSiAplica(currentTarjeton, currentDriverName, currentEco, 'conductor');
+        }
         updatedData[index]['TARJETON'] = valStr;
         updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
       }

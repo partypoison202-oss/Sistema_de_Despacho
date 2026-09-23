@@ -1786,12 +1786,13 @@ class DespachoController extends Controller
             ->map(fn($id) => (int)$id)
             ->toArray();
 
-        $registros = DB::table('informacion_operativa')
-            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+        $registros = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->select(
                 'unidades.id as unidad_id',
                 'unidades.numero_eco',
-                'informacion_operativa.tipo',
+                DB::raw('COALESCE(informacion_operativa.tipo, transportes.nombre) as tipo'),
                 'informacion_operativa.ruta',
                 'informacion_operativa.numero_tarjeton as tarjeton',
                 'informacion_operativa.nombre_conductor',
@@ -1800,7 +1801,7 @@ class DespachoController extends Controller
                 $hasRelevo ? 'informacion_operativa.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? 'informacion_operativa.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                'informacion_operativa.estatus',
+                DB::raw("COALESCE(informacion_operativa.estatus, 'no_programada') as estatus"),
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
@@ -1821,7 +1822,7 @@ class DespachoController extends Controller
                 'informacion_operativa.mantenimiento_corrida',
                 'informacion_operativa.mantenimiento_kilometraje'
             )
-            ->orderBy('informacion_operativa.tipo')
+            ->orderBy(DB::raw('COALESCE(informacion_operativa.tipo, transportes.nombre)'))
             ->orderBy('unidades.numero_eco')
             ->get();
 
@@ -1904,11 +1905,11 @@ class DespachoController extends Controller
 
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
 
-        $registros = DB::table('informacion_operativa_manana')
-            ->join('unidades', 'informacion_operativa_manana.unidad_id', '=', 'unidades.id')
+        $registros = DB::table('unidades')
+            ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
-                'informacion_operativa_manana.tipo',
+                DB::raw('COALESCE(informacion_operativa_manana.tipo, unidades.tipo) as tipo'),
                 'informacion_operativa_manana.ruta',
                 'informacion_operativa_manana.numero_tarjeton as tarjeton',
                 'informacion_operativa_manana.nombre_conductor',
@@ -1917,7 +1918,7 @@ class DespachoController extends Controller
                 $hasRelevo ? 'informacion_operativa_manana.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                'informacion_operativa_manana.estatus',
+                DB::raw("COALESCE(informacion_operativa_manana.estatus, 'no_programada') as estatus"),
                 'informacion_operativa_manana.falla',
                 'informacion_operativa_manana.corridas',
                 'informacion_operativa_manana.ciclo',
@@ -1928,7 +1929,7 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.hora_real_salida_patio',
                 'informacion_operativa_manana.patio_norte'
             )
-            ->orderBy('informacion_operativa_manana.tipo')
+            ->orderBy(DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre)'))
             ->orderBy('unidades.numero_eco')
             ->get();
 
@@ -1992,11 +1993,12 @@ class DespachoController extends Controller
 
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn($tableName, 'relevo_tarjeton');
 
-        $registros = DB::table($tableName)
-            ->join('unidades', "{$tableName}.unidad_id", '=', 'unidades.id')
+        $registros = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->leftJoin($tableName, 'unidades.id', '=', "{$tableName}.unidad_id")
             ->select(
                 'unidades.numero_eco',
-                "{$tableName}.tipo",
+                DB::raw("COALESCE({$tableName}.tipo, transportes.nombre) as tipo"),
                 "{$tableName}.ruta",
                 "{$tableName}.numero_tarjeton as tarjeton",
                 "{$tableName}.nombre_conductor",
@@ -2005,7 +2007,7 @@ class DespachoController extends Controller
                 $hasRelevo ? "{$tableName}.relevo_tarjeton" : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? "{$tableName}.relevo_conductor" : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? "{$tableName}.relevo_hora" : DB::raw('NULL as relevo_hora'),
-                "{$tableName}.estatus",
+                DB::raw("COALESCE({$tableName}.estatus, 'no_programada') as estatus"),
                 "{$tableName}.falla",
                 "{$tableName}.corridas",
                 "{$tableName}.ciclo",
@@ -2016,7 +2018,7 @@ class DespachoController extends Controller
                 "{$tableName}.hora_real_salida_patio",
                 "{$tableName}.patio_norte"
             )
-            ->orderBy("{$tableName}.tipo")
+            ->orderBy(DB::raw("COALESCE({$tableName}.tipo, transportes.nombre)"))
             ->orderBy('unidades.numero_eco')
             ->get();
 
@@ -2080,11 +2082,12 @@ class DespachoController extends Controller
 
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
 
-        $registros = DB::table('informacion_operativa_manana')
-            ->join('unidades', 'informacion_operativa_manana.unidad_id', '=', 'unidades.id')
+        $registros = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
-                'informacion_operativa_manana.tipo',
+                DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre) as tipo'),
                 'informacion_operativa_manana.ruta',
                 'informacion_operativa_manana.numero_tarjeton as tarjeton',
                 'informacion_operativa_manana.nombre_conductor',
@@ -2093,7 +2096,7 @@ class DespachoController extends Controller
                 $hasRelevo ? 'informacion_operativa_manana.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                'informacion_operativa_manana.estatus',
+                DB::raw("COALESCE(informacion_operativa_manana.estatus, 'no_programada') as estatus"),
                 'informacion_operativa_manana.falla',
                 'informacion_operativa_manana.corridas',
                 'informacion_operativa_manana.ciclo',
@@ -2104,7 +2107,7 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.hora_real_salida_patio',
                 'informacion_operativa_manana.patio_norte'
             )
-            ->orderBy('informacion_operativa_manana.tipo')
+            ->orderBy(DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre)'))
             ->orderBy('unidades.numero_eco')
             ->get();
 
@@ -2156,11 +2159,12 @@ class DespachoController extends Controller
 
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn($tableName, 'relevo_tarjeton');
 
-        $registros = DB::table($tableName)
-            ->join('unidades', "{$tableName}.unidad_id", '=', 'unidades.id')
+        $registros = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->leftJoin($tableName, 'unidades.id', '=', "{$tableName}.unidad_id")
             ->select(
                 'unidades.numero_eco',
-                "{$tableName}.tipo",
+                DB::raw("COALESCE({$tableName}.tipo, transportes.nombre) as tipo"),
                 "{$tableName}.ruta",
                 "{$tableName}.numero_tarjeton as tarjeton",
                 "{$tableName}.nombre_conductor",
@@ -2169,7 +2173,7 @@ class DespachoController extends Controller
                 $hasRelevo ? "{$tableName}.relevo_tarjeton" : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? "{$tableName}.relevo_conductor" : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? "{$tableName}.relevo_hora" : DB::raw('NULL as relevo_hora'),
-                "{$tableName}.estatus",
+                DB::raw("COALESCE({$tableName}.estatus, 'no_programada') as estatus"),
                 "{$tableName}.falla",
                 "{$tableName}.corridas",
                 "{$tableName}.ciclo",
@@ -2180,7 +2184,7 @@ class DespachoController extends Controller
                 "{$tableName}.hora_real_salida_patio",
                 "{$tableName}.patio_norte"
             )
-            ->orderBy("{$tableName}.tipo")
+            ->orderBy(DB::raw("COALESCE({$tableName}.tipo, transportes.nombre)"))
             ->orderBy('unidades.numero_eco')
             ->get();
 
@@ -2227,11 +2231,11 @@ class DespachoController extends Controller
 
         $columns = [
             'unidades.numero_eco',
-            'historial_operativo.tipo',
+            DB::raw("COALESCE(historial_operativo.tipo, transportes.nombre) as tipo"),
             'historial_operativo.ruta',
             'historial_operativo.numero_tarjeton as tarjeton',
             'historial_operativo.nombre_conductor',
-            'historial_operativo.estatus',
+            DB::raw("COALESCE(historial_operativo.estatus, 'no_programada') as estatus"),
             'historial_operativo.falla',
             'historial_operativo.corridas',
             'historial_operativo.ciclo',
@@ -2260,12 +2264,15 @@ class DespachoController extends Controller
             $columns[] = 'historial_operativo.hora_real_salida_patio';
         }
 
-        $registros = DB::table('historial_operativo')
-            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
-            ->where('fecha_historial', $fechaHoy)
-            ->where('momento', 'INICIO')
+        $registros = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->leftJoin('historial_operativo', function($join) use ($fechaHoy) {
+                $join->on('unidades.id', '=', 'historial_operativo.unidad_id')
+                     ->where('historial_operativo.fecha_historial', $fechaHoy)
+                     ->where('historial_operativo.momento', 'INICIO');
+            })
             ->select($columns)
-            ->orderBy('historial_operativo.tipo')
+            ->orderBy(DB::raw("COALESCE(historial_operativo.tipo, transportes.nombre)"))
             ->orderBy('unidades.numero_eco')
             ->get();
 
