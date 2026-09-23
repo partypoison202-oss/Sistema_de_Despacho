@@ -11,6 +11,7 @@ import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import GeneracionGafete from './GeneracionGafete';
 import EstadisticasOperadores from './EstadisticasOperadores';
 import GestionFaltasOperadores from './GestionFaltasOperadores';
+import ItinerarioAsistencias from './ItinerarioAsistencias';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -1077,6 +1078,24 @@ export default function Operadores() {
           >
             Generación de Gafete
           </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'itinerario' ? 'active' : ''}`}
+            onClick={() => setActiveTab('itinerario')}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              color: activeTab === 'itinerario' ? '#6b1d33' : '#64748b',
+              borderBottom: activeTab === 'itinerario' ? '3px solid #6b1d33' : '3px solid transparent',
+              fontSize: '0.95rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            Itinerario de Asistencias
+          </button>
         </div>
 
         {activeTab === 'estadisticas' && (
@@ -1085,7 +1104,7 @@ export default function Operadores() {
           </div>
         )}
 
-        {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && activeTab !== 'estadisticas' && activeTab !== 'gestion_faltas' && (
+        {activeTab !== 'info_general' && activeTab !== 'generacion_gafete' && activeTab !== 'estadisticas' && activeTab !== 'gestion_faltas' && activeTab !== 'itinerario' && (
           <div className="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-slate-200">
             <div className="flex flex-col md:flex-row items-center gap-4">
               <div className="relative w-full md:flex-1">
@@ -1402,6 +1421,8 @@ export default function Operadores() {
           </div>
         ) : activeTab === 'gestion_faltas' ? (
           <GestionFaltasOperadores conductores={conductores} onRefresh={fetchConductores} getAuthHeaders={getAuthHeaders} />
+        ) : activeTab === 'itinerario' ? (
+          <ItinerarioAsistencias getAuthHeaders={getAuthHeaders} conductores={conductores} />
         ) : activeTab === 'info_general' ? (
           <InfoGeneralOperador conductores={conductores} />
         ) : activeTab === 'generacion_gafete' ? (

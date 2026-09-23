@@ -198,6 +198,43 @@ class ConductorController extends Controller
             $nuevoEstado = $request->estado_servicio;
             $conductor->estado_servicio = $nuevoEstado;
 
+            // Lógica de Bitácora de Asistencias Diarias (Itinerario)
+            if (in_array($nuevoEstado, ['falta', 'descanso', 'vacaciones', 'incapacidad'])) {
+                $campo = $nuevoEstado === 'falta' ? 'faltas_detalle' : 
+                         ($nuevoEstado === 'descanso' ? 'descansos_detalle' : 
+                         ($nuevoEstado === 'vacaciones' ? 'vacaciones_detalle' : 'incapacidades_detalle'));
+                
+                $hoy = date('Y-m-d');
+                $rawDetalle = $conductor->$campo;
+                $detalle = [];
+                if (is_array($rawDetalle)) $detalle = $rawDetalle;
+                elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+                    $parsed = json_decode($rawDetalle, true);
+                    if (is_array($parsed)) $detalle = $parsed;
+                }
+                
+                $existe = false;
+                foreach ($detalle as $item) {
+                    if (isset($item['fecha']) && $item['fecha'] === $hoy) {
+                        $existe = true; break;
+                    }
+                }
+                
+                if (!$existe) {
+                    $detalle[] = [
+                        'id' => $nuevoEstado . '_' . time() . '_' . random_int(1000, 9999),
+                        'fecha' => $hoy,
+                        'motivo' => 'Asignado desde Mesa de Control',
+                        'estado' => 'pendiente',
+                        'justificada' => false
+                    ];
+                    $conductor->$campo = $detalle;
+                    if ($nuevoEstado === 'falta') {
+                        $conductor->faltas = ((int)($conductor->faltas ?? 0)) + 1;
+                    }
+                }
+            }
+
             // Si el nuevo estado NO es en_servicio, y el conductor estaba asignado a alguna unidad,
             // desvincular al conductor de la unidad
             if ($nuevoEstado !== 'en_servicio') {

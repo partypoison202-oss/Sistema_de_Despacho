@@ -181,6 +181,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores/{id}/justificar-falta', [ConductorController::class, 'justificarFalta']);
     Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
 
+    // Itinerario de Asistencias
+    Route::get('/operadores/itinerario', [\App\Http\Controllers\API\ItinerarioController::class, 'getItinerario']);
+    Route::post('/operadores/itinerario/asignar', [\App\Http\Controllers\API\ItinerarioController::class, 'asignarBloque']);
+
     // Gestión de Maniobristas
     Route::get('/maniobristas', [ManiobristaController::class, 'index']);
     Route::post('/maniobristas', [ManiobristaController::class, 'store']);
