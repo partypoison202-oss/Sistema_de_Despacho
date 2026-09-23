@@ -135,13 +135,13 @@ export default function ResumenInasistenciasOperadores({ getAuthHeaders }) {
           </div>
         ) : (
           <table className="w-full border-collapse text-[11px] text-slate-800 select-none">
-            <thead>
+            <thead className="sticky top-0 z-30 shadow-xs">
               {/* FILA ENCABEZADO PRINCIPAL */}
               <tr className="bg-slate-800 text-white font-extrabold text-center uppercase tracking-wider">
-                <th className="py-2.5 px-3 bg-[#501323] text-white border-r border-b border-[#6b1d33] min-w-[70px] sticky left-0 z-20">
+                <th className="py-2.5 px-3 bg-[#501323] text-white border-r border-b border-[#6b1d33] min-w-[70px] sticky left-0 z-40">
                   TRJ.
                 </th>
-                <th className="py-2.5 px-3 bg-[#501323] text-white border-r border-b border-[#6b1d33] text-left min-w-[220px] sticky left-[70px] z-20">
+                <th className="py-2.5 px-3 bg-[#501323] text-white border-r border-b border-[#6b1d33] text-left min-w-[220px] sticky left-[70px] z-40">
                   OPERADOR
                 </th>
                 
@@ -158,8 +158,8 @@ export default function ResumenInasistenciasOperadores({ getAuthHeaders }) {
 
               {/* FILA SUB-ENCABEZADO DE COLUMNAS A D V I F Y DÍAS */}
               <tr className="bg-slate-100 text-slate-700 font-black text-center border-b border-slate-300 text-[10px]">
-                <th className="py-1 px-1 bg-slate-200 border-r border-slate-300 sticky left-0 z-20"></th>
-                <th className="py-1 px-1 bg-slate-200 border-r border-slate-300 sticky left-[70px] z-20"></th>
+                <th className="py-1 px-1 bg-slate-200 border-r border-slate-300 sticky left-0 z-40"></th>
+                <th className="py-1 px-1 bg-slate-200 border-r border-slate-300 sticky left-[70px] z-40"></th>
 
                 {/* COLUMNAS DE RESUMEN */}
                 <th className="py-1.5 px-2 bg-[#a7f3d0] text-[#065f46] border-r border-slate-300 font-extrabold">A</th>
