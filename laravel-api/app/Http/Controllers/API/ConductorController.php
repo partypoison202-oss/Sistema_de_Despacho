@@ -694,7 +694,7 @@ class ConductorController extends Controller
             ->orWhereNull('estatus')
             ->get();
 
-        // Obtener historial operativo de asistencias en el mes
+        // Obtener historial operativo de asistencias validadas en el mes
         $historialMap = []; // [tarjetonNormalizado][YYYY-MM-DD] = true
         
         try {
@@ -703,7 +703,14 @@ class ConductorController extends Controller
                     ->whereBetween('fecha_historial', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                     ->whereNotNull('numero_tarjeton')
                     ->where('numero_tarjeton', '!=', '')
-                    ->select('fecha_historial', 'numero_tarjeton', 'estatus', 'hora_real_salida_patio')
+                    ->where(function ($q) {
+                        $q->where('estatus', '=', 'operacion')
+                          ->orWhere(function ($q2) {
+                              $q2->whereNotNull('hora_real_salida_patio')
+                                 ->where('hora_real_salida_patio', '!=', '');
+                          });
+                    })
+                    ->select('fecha_historial', 'numero_tarjeton')
                     ->get();
 
                 foreach ($registrosHistorial as $h) {
@@ -725,7 +732,14 @@ class ConductorController extends Controller
                     $hoyOps = DB::table('informacion_operativa')
                         ->whereNotNull('numero_tarjeton')
                         ->where('numero_tarjeton', '!=', '')
-                        ->select('numero_tarjeton', 'estatus', 'hora_real_salida_patio')
+                        ->where(function ($q) {
+                            $q->where('estatus', '=', 'operacion')
+                              ->orWhere(function ($q2) {
+                                  $q2->whereNotNull('hora_real_salida_patio')
+                                     ->where('hora_real_salida_patio', '!=', '');
+                              });
+                        })
+                        ->select('numero_tarjeton')
                         ->get();
 
                     foreach ($hoyOps as $op) {
@@ -788,9 +802,6 @@ class ConductorController extends Controller
                     $codigo = 'F';
                     $countF++;
                 } elseif ($tarjetonNum && isset($historialMap[$tarjetonNum][$dateStr])) {
-                    $codigo = 'A';
-                    $countA++;
-                } elseif ($c->estado_servicio === 'en_servicio' && $dateStr === $todayStr) {
                     $codigo = 'A';
                     $countA++;
                 }
