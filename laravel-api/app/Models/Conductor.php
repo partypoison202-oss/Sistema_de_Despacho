@@ -57,6 +57,17 @@ class Conductor extends Model
         'faltas_detalle' => 'array',
     ];
 
+    public function setTarjetonAttribute($value)
+    {
+        if (empty($value)) {
+            $this->attributes['tarjeton'] = $value;
+            return;
+        }
+        $parts = explode('_BAJA_', $value);
+        $parts[0] = str_pad($parts[0], 4, '0', STR_PAD_LEFT);
+        $this->attributes['tarjeton'] = implode('_BAJA_', $parts);
+    }
+
     public function getNombreAttribute()
     {
         return trim("{$this->apellidos} {$this->nombres}");
