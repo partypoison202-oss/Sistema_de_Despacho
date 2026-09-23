@@ -228,6 +228,7 @@ export default function ExcelPreview({
 
   // Devuelve el estado_servicio real: si ya está en la tabla lo fuerza a 'en_servicio'
   const getEstadoEfectivo = (conductor) => {
+    if (conductor.estatus === 'inhabilitado') return 'inhabilitado';
     const tarjNorm = normalizeTarjeton(conductor.tarjeton);
     if (tarjetonesEnUso.has(tarjNorm)) return 'en_servicio';
     return conductor.estado_servicio || 'disponible';

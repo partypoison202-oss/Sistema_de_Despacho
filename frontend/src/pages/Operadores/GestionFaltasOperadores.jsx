@@ -38,6 +38,43 @@ const getFaltasArray = (conductor) => {
   return items;
 };
 
+const calcularEstadoPlazoFalta = (fechaStr) => {
+  if (!fechaStr || fechaStr === 'Fecha sin registrar') {
+    return { diasTranscurridos: 0, vencida: false, diasRestantes: 3, textoPlazo: 'Plazo activo (3 días)' };
+  }
+  
+  const fechaPartes = fechaStr.substring(0, 10).split('-');
+  if (fechaPartes.length !== 3) {
+    return { diasTranscurridos: 0, vencida: false, diasRestantes: 3, textoPlazo: 'Plazo activo' };
+  }
+
+  const ano = parseInt(fechaPartes[0], 10);
+  const mes = parseInt(fechaPartes[1], 10) - 1;
+  const dia = parseInt(fechaPartes[2], 10);
+
+  const fechaFalta = new Date(ano, mes, dia);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  const diffTime = hoy.getTime() - fechaFalta.getTime();
+  const diasTranscurridos = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const vencida = diasTranscurridos > 3;
+  const diasRestantes = Math.max(0, 3 - diasTranscurridos);
+
+  let textoPlazo = '';
+  if (vencida) {
+    textoPlazo = `Plazo vencido (${diasTranscurridos} días transcurridos)`;
+  } else if (diasTranscurridos <= 0) {
+    textoPlazo = 'Día 1 de 3 (3 días restantes)';
+  } else if (diasRestantes === 0) {
+    textoPlazo = 'Último día (Vence hoy)';
+  } else {
+    textoPlazo = `Quedan ${diasRestantes} día(s) para justificar`;
+  }
+
+  return { diasTranscurridos, vencida, diasRestantes, textoPlazo };
+};
+
 export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders, readOnly = false }) {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstatus, setFiltroEstatus] = useState('TODOS'); // TODOS, PENDIENTES, JUSTIFICADAS
@@ -589,6 +626,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
               ) : (
                 conductorActualData.listaFaltas.map((falta, idx) => {
                   const esJustificada = falta.estado === 'justificada' || falta.justificada;
+                  const estadoPlazo = !esJustificada ? calcularEstadoPlazoFalta(falta.fecha) : null;
 
                   return (
                     <div
@@ -596,12 +634,14 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                       className={`p-4 rounded-xl border transition-all ${
                         esJustificada
                           ? 'bg-emerald-50/40 border-emerald-200'
+                          : estadoPlazo?.vencida
+                          ? 'bg-slate-50 border-slate-300 shadow-sm opacity-90'
                           : 'bg-red-50/40 border-red-200 shadow-sm'
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-extrabold text-slate-800 text-sm">
                               Fecha: {falta.fecha || 'Sin fecha registrada'}
                             </span>
@@ -612,14 +652,23 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                                 </svg>
                                 JUSTIFICADA
                               </span>
+                            ) : estadoPlazo?.vencida ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-slate-700 bg-slate-200 px-2.5 py-0.5 rounded-full border border-slate-300">
+                                <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <line x1="12" y1="8" x2="12" y2="12" />
+                                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                NO JUSTIFICABLE (PLAZO VENCIDO &gt; 3 DÍAS)
+                              </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-red-700 bg-red-100 px-2.5 py-0.5 rounded-full border border-red-300">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                                <svg className="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                                   <circle cx="12" cy="12" r="9" />
                                   <line x1="12" y1="8" x2="12" y2="12" />
                                   <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
-                                PENDIENTE POR JUSTIFICAR
+                                PENDIENTE POR JUSTIFICAR ({estadoPlazo?.textoPlazo})
                               </span>
                             )}
                           </div>
@@ -627,6 +676,12 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                           <p className="text-xs text-slate-600 font-medium">
                             Motivo: <strong>{falta.motivo || 'Inasistencia'}</strong>
                           </p>
+
+                          {!esJustificada && estadoPlazo?.vencida && (
+                            <p className="text-[11px] font-semibold text-red-600/90 flex items-center gap-1 mt-1">
+                              ⚠️ Expiró el plazo de 3 días naturales para presentar justificante ({estadoPlazo.diasTranscurridos} días transcurridos). Esta falta ya no es justificable.
+                            </p>
+                          )}
 
                           {esJustificada && (
                             <div className="mt-2 text-xs text-emerald-900 bg-emerald-100/60 p-2.5 rounded-lg border border-emerald-200/80 space-y-1">
@@ -680,7 +735,19 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                                 Ver Comprobante
                               </a>
                             );
-                          })() : (
+                          })() : estadoPlazo?.vencida ? (
+                            <button
+                              type="button"
+                              disabled
+                              title="Esta falta no se puede justificar porque superó el plazo máximo de 3 días naturales."
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 text-slate-400 font-bold text-xs rounded-lg cursor-not-allowed border border-slate-300 shadow-none"
+                            >
+                              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                              Plazo Expirado
+                            </button>
+                          ) : (
                             !readOnly && (
                               <button
                                 type="button"
