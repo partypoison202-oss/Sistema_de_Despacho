@@ -73,8 +73,11 @@ class ItinerarioController extends Controller
             $vacaciones = $this->parseJsonDetalleConMotivo($conductor->vacaciones_detalle);
             $incapacidades = $this->parseJsonDetalleConMotivo($conductor->incapacidades_detalle);
 
+            $hoy = \Carbon\Carbon::today()->format('Y-m-d');
+
             foreach ($fechas as $fechaStr) {
-                $estadoDia = 'A'; // Por defecto Asistencia
+                // Si la fecha es en el futuro, no asumimos asistencia. Dejamos '-'
+                $estadoDia = ($fechaStr > $hoy) ? '-' : 'A';
                 $motivo = '';
 
                 // Prioridad: F > I > V > D > A
@@ -96,7 +99,11 @@ class ItinerarioController extends Controller
                 if ($motivo) {
                     $fila['motivos'][$fechaStr] = $motivo;
                 }
-                $fila['totales'][$estadoDia]++;
+                
+                // Solo incrementamos totales si es un estado válido (no es '-')
+                if ($estadoDia !== '-') {
+                    $fila['totales'][$estadoDia]++;
+                }
             }
 
             $matriz[] = $fila;

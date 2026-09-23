@@ -74,6 +74,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
       case 'D': return 'cell-d';
       case 'V': return 'cell-v';
       case 'I': return 'cell-i';
+      case '-': return 'cell-empty';
       default: return '';
     }
   };
@@ -85,6 +86,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
       case 'D': return 'Descanso';
       case 'V': return 'Vacaciones';
       case 'I': return 'Incapacidad';
+      case '-': return 'Sin Registro (Día Futuro)';
       default: return estado;
     }
   };
@@ -173,7 +175,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
                     const motivo = c.motivos && c.motivos[f] ? ` | Motivo: ${c.motivos[f]}` : '';
                     return (
                       <td key={f} className="day-cell">
-                        <div className={`status-bubble ${getCellClass(estado)}`} title={`${f} - ${getCellLabel(estado)}${motivo}`}>
+                        <div className={`status-bubble ${getCellClass(estado)}`} data-tooltip={`${f} - ${getCellLabel(estado)}${motivo}`}>
                           {estado}
                         </div>
                       </td>

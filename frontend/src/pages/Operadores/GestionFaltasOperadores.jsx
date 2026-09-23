@@ -38,10 +38,16 @@ const getFaltasArray = (conductor) => {
   return items;
 };
 
-export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders, readOnly = false }) {
-  const [busqueda, setBusqueda] = useState('');
+export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders, readOnly = false, initialBusqueda = '' }) {
+  const [busqueda, setBusqueda] = useState(initialBusqueda);
   const [filtroEstatus, setFiltroEstatus] = useState('TODOS'); // TODOS, PENDIENTES, JUSTIFICADAS
   const [conductorSeleccionado, setConductorSeleccionado] = useState(null);
+
+  React.useEffect(() => {
+    if (initialBusqueda) {
+      setBusqueda(initialBusqueda);
+    }
+  }, [initialBusqueda]);
   
   // Modal de Subida de Justificante
   const [modalSubidaOpen, setModalSubidaOpen] = useState(false);

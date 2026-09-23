@@ -12,6 +12,7 @@ import GeneracionGafete from './GeneracionGafete';
 import EstadisticasOperadores from './EstadisticasOperadores';
 import GestionFaltasOperadores from './GestionFaltasOperadores';
 import ItinerarioAsistencias from './ItinerarioAsistencias';
+import ModalAsignarFechas from './ModalAsignarFechas';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -318,6 +319,9 @@ const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder =
 
 export default function Operadores() {
   const { user } = useContext(AuthContext);
+  const [modalFaltasOpen, setModalFaltasOpen] = useState(false);
+  const [selectedConductorForFalta, setSelectedConductorForFalta] = useState('');
+  const [busquedaFaltas, setBusquedaFaltas] = useState('');
   const [conductores, setConductores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1349,12 +1353,15 @@ export default function Operadores() {
                             </button>
                           </div>
                         </td>
-                        <td>
-                          <EditableCell
-                            type="number"
-                            value={c.faltas}
-                            onChange={(val) => autoSaveField(c.id, 'faltas', val)}
-                          />
+                        <td className="text-center">
+                          <button
+                            type="button"
+                            className="btn-details-badge"
+                            onClick={() => openDetailsModal(c, 'faltas')}
+                          >
+                            <span className="badge-number">{c.faltas ?? 0}</span>
+                            <span className="badge-text">Detalles</span>
+                          </button>
                         </td>
                         <td className="text-center">
                           <button
@@ -1426,7 +1433,7 @@ export default function Operadores() {
             </div>
           </div>
         ) : activeTab === 'gestion_faltas' ? (
-          <GestionFaltasOperadores conductores={conductores} onRefresh={fetchConductores} getAuthHeaders={getAuthHeaders} />
+          <GestionFaltasOperadores conductores={conductores} onRefresh={fetchConductores} getAuthHeaders={getAuthHeaders} initialBusqueda={busquedaFaltas} />
         ) : activeTab === 'itinerario' ? (
           <ItinerarioAsistencias getAuthHeaders={getAuthHeaders} conductores={conductores} />
         ) : activeTab === 'info_general' ? (
@@ -1990,7 +1997,18 @@ export default function Operadores() {
               {/* Lista actual */}
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0' }}>
                 {getDetailArray(detailsConductor, detailsType).map((d, index) => (
-                  <li key={d.id || index} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem' }}>
+                  <li 
+                    key={d.id || index} 
+                    style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem', cursor: detailsType === 'faltas' ? 'pointer' : 'default' }}
+                    onClick={(e) => {
+                      if (e.target.closest('button')) return;
+                      if (detailsType === 'faltas') {
+                         setShowDetailsModal(false);
+                         setBusquedaFaltas(detailsConductor.tarjeton);
+                         setActiveTab('gestion_faltas');
+                      }
+                    }}
+                  >
                     <div>
                       <strong style={{ display: 'block', color: '#333' }}>{d.motivo}</strong>
                       <span style={{ fontSize: '0.8rem', color: '#888' }}>
@@ -2011,19 +2029,49 @@ export default function Operadores() {
                 )}
               </ul>
 
-              <form onSubmit={handleAddDetail}>
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label className="form-label">Nuevo Motivo</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value.toUpperCase())} placeholder="Ej. Motivo del registro..." required />
-                </div>
-                <button type="submit" className="btn-save" style={{ width: '100%', padding: '0.75rem', opacity: savingDetail ? 0.7 : 1, cursor: savingDetail ? 'wait' : 'pointer' }} disabled={savingDetail}>
-                  {savingDetail ? 'Guardando registro...' : 'Agregar Registro'}
+              {detailsType === 'faltas' ? (
+                <button 
+                  type="button"
+                  className="btn-save" 
+                  style={{ width: '100%', padding: '0.75rem', marginTop: '1rem', background: '#6b1d33' }}
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedConductorForFalta(detailsConductor.id);
+                    setModalFaltasOpen(true);
+                  }}
+                >
+                  + Agendar Nueva Falta en Itinerario
                 </button>
-              </form>
+              ) : (
+                <form onSubmit={handleAddDetail}>
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label className="form-label">Nuevo Motivo</label>
+                    <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={newDetailMotivo} onChange={(e) => setNewDetailMotivo(e.target.value.toUpperCase())} placeholder="Ej. Motivo del registro..." required />
+                  </div>
+                  <button type="submit" className="btn-save" style={{ width: '100%', padding: '0.75rem', opacity: savingDetail ? 0.7 : 1, cursor: savingDetail ? 'wait' : 'pointer' }} disabled={savingDetail}>
+                    {savingDetail ? 'Guardando registro...' : 'Agregar Registro'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Modal de Asignación de Faltas desde Kardex */}
+      <ModalAsignarFechas 
+        isOpen={modalFaltasOpen} 
+        onClose={() => setModalFaltasOpen(false)} 
+        conductores={conductores}
+        getAuthHeaders={getAuthHeaders}
+        initialConductorId={selectedConductorForFalta}
+        initialEstado="falta"
+        lockEstado={true}
+        onSuccess={() => {
+          setModalFaltasOpen(false);
+          fetchConductores();
+        }}
+      />
     </div>
   );
 }

@@ -210,6 +210,7 @@
 .cell-d { background-color: #ffedd5; color: #9a3412; }
 .cell-v { background-color: #fef08a; color: #854d0e; }
 .cell-i { background-color: #dbeafe; color: #1e40af; }
+.cell-empty { background-color: #f1f5f9; color: #94a3b8; }
 
 /* Header Totals Styling */
 .header-a { color: #166534 !important; background-color: #f0fdf4 !important; }
@@ -229,4 +230,58 @@
   text-align: center;
   color: #6b7280;
   font-size: 1.1rem;
+}
+
+/* Custom Tooltip */
+.status-bubble[data-tooltip] {
+  position: relative;
+}
+
+.status-bubble[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1e293b;
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 500;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, bottom 0.2s ease;
+}
+
+.status-bubble[data-tooltip]::after {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, bottom 0.2s ease;
+  z-index: 9999;
+}
+
+.status-bubble[data-tooltip]:hover::before {
+  opacity: 1;
+  visibility: visible;
+  bottom: calc(100% + 14px);
+}
+
+.status-bubble[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+  bottom: calc(100% + 6px);
 }

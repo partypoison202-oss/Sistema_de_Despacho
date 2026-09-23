@@ -97,7 +97,7 @@ function CustomColorSelect({ value, onChange }) {
   );
 }
 
-export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAuthHeaders, onSuccess }) {
+export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAuthHeaders, onSuccess, initialConductorId = '', initialEstado = 'vacaciones', lockEstado = false }) {
   const [conductorId, setConductorId] = useState('');
   const [estado, setEstado] = useState('vacaciones');
   const [fecha, setFecha] = useState(() => new Date().toISOString().split('T')[0]);
@@ -108,13 +108,13 @@ export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAu
   // Limpiar form al abrir
   useEffect(() => {
     if (isOpen) {
-      setConductorId('');
-      setEstado('vacaciones');
+      setConductorId(initialConductorId);
+      setEstado(initialEstado);
       setFecha(new Date().toISOString().split('T')[0]);
       setMotivo('');
       setBusqueda('');
     }
-  }, [isOpen]);
+  }, [isOpen, initialConductorId, initialEstado]);
 
   if (!isOpen) return null;
 
@@ -162,7 +162,7 @@ export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAu
     return c.nombres.toLowerCase().includes(term) || 
            c.apellidos.toLowerCase().includes(term) || 
            c.tarjeton.toLowerCase().includes(term);
-  });
+  }).sort((a, b) => a.nombres.localeCompare(b.nombres));
 
   const modalContent = (
     <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 99999 }}>
@@ -229,10 +229,12 @@ export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAu
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>TIPO DE ASIGNACIÓN</label>
-            <CustomColorSelect value={estado} onChange={setEstado} />
-          </div>
+          {!lockEstado && (
+            <div className="form-group">
+              <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>TIPO DE ASIGNACIÓN</label>
+              <CustomColorSelect value={estado} onChange={setEstado} />
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>FECHA</label>

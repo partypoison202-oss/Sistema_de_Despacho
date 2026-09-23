@@ -115,12 +115,12 @@ export const generarPDFItinerario = async (data, desde, hasta) => {
 
   // Build the table body
   const body = data.matriz.map(row => {
-    const asistenciasObj = row.asistencias;
+    const asistenciasObj = row.dias || {};
     const rowDays = data.fechas.map(f => asistenciasObj[f] || 'A'); // Default A
     
     return [
-      row.conductor.tarjeton,
-      `${row.conductor.nombres} ${row.conductor.apellidos}`,
+      row.tarjeton,
+      row.nombre,
       row.totales.A.toString(),
       row.totales.F.toString(),
       row.totales.D.toString(),
