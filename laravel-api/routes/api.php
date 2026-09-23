@@ -174,6 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
+    Route::get('/conductores/resumen-inasistencias', [ConductorController::class, 'resumenInasistencias']);
     Route::post('/conductores', [ConductorController::class, 'store']);
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/foto', [ConductorController::class, 'uploadFoto']);
