@@ -13,10 +13,17 @@ class BitacoraHelper
      * Toma una foto de 'informacion_operativa' y la guarda como 'INICIO'
      * si aún no existe en historial_operativo.
      */
-    public static function ensureInicioSnapshot()
+    public static function ensureInicioSnapshot($forzar = false)
     {
         try {
             $hoy = Carbon::today()->toDateString();
+
+            if ($forzar) {
+                DB::table('historial_operativo')
+                    ->where('fecha_historial', $hoy)
+                    ->where('momento', 'INICIO')
+                    ->delete();
+            }
 
             // Verificar si ya existe el snapshot de INICIO para hoy
             $existe = DB::table('historial_operativo')

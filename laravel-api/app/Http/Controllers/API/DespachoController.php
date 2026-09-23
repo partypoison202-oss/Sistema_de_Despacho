@@ -272,8 +272,26 @@ class DespachoController extends Controller
             )
             ->distinct()
             ->orderBy('unidades.numero_eco')
+            ->get();
+
+        // ─── Pre-cargar movimientos manuales de HOY para evitar N+1 ─────────────
+        $unidadIds = $unidades->pluck('unidad_id')->toArray();
+        $fechaHoy = \Carbon\Carbon::now('America/Mexico_City')->toDateString();
+
+        // Obtener el último movimiento de conductor de hoy por unidad.
+        // NO filtramos whereNotNull(conductor_asignado) porque un retiro sin
+        // reemplazo (conductor_asignado = NULL) también debe contar como evento.
+        $ultimoMovPorUnidad = DB::table('plataforma_movimientos')
+            ->whereIn('unidad_id', $unidadIds)
+            ->whereDate('created_at', $fechaHoy)
+            ->whereIn('tipo_movimiento', ['RETIRO_CONDUCTOR', 'ASIGNACION_CONDUCTOR'])
+            ->orderBy('created_at', 'asc')
             ->get()
-            ->map(function ($unidad) {
+            ->groupBy('unidad_id')
+            ->map(fn($movs) => $movs->last());
+        // ──────────────────────────────────────────────────────────────────────
+
+        $unidades = $unidades->map(function ($unidad) use ($ultimoMovPorUnidad) {
                 $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
                 if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                     $estatus = 'operacion';
@@ -288,25 +306,78 @@ class DespachoController extends Controller
                         ->exists();
                 }
 
-                $conductorEfectivo = !empty($unidad->relevo_conductor) ? $unidad->relevo_conductor : $unidad->nombre_conductor;
-                $tarjetonEfectivo  = !empty($unidad->relevo_tarjeton) ? $unidad->relevo_tarjeton : $unidad->tarjeton;
-
                 $titularConductorResp = $unidad->nombre_conductor ?? null;
                 $titularTarjetonResp  = $unidad->tarjeton ?? '';
                 $relevoConductorResp  = $unidad->relevo_conductor ?? null;
                 $relevoTarjetonResp   = $unidad->relevo_tarjeton ?? null;
                 $relevoHoraResp       = $unidad->relevo_hora ?? null;
 
+                $horaActual = \Carbon\Carbon::now('America/Mexico_City')->format('H:i');
+                $relevoYaVigente = false;
+
+                // Paso 1: ¿El relevo programado ya entró en vigor según el reloj?
                 if (!empty($unidad->relevo_hora) && !empty($unidad->relevo_conductor)) {
-                    $horaActual = date('H:i');
                     if ($horaActual >= $unidad->relevo_hora) {
                         $titularConductorResp = $unidad->relevo_conductor;
                         $titularTarjetonResp  = $unidad->relevo_tarjeton;
                         $relevoConductorResp  = null;
                         $relevoTarjetonResp   = null;
                         $relevoHoraResp       = null;
+                        $relevoYaVigente      = true;
                     }
                 }
+
+                // Paso 2: Evaluar movimientos manuales de hoy en plataforma
+                $ultimoMov = $ultimoMovPorUnidad->get($unidad->unidad_id);
+                if ($ultimoMov) {
+                    $horaUltimoMov = \Carbon\Carbon::parse($ultimoMov->created_at)
+                        ->setTimezone('America/Mexico_City')->format('H:i');
+                    $relevoHoraBase = $unidad->relevo_hora ?? '00:00';
+
+                    if (!empty($unidad->relevo_hora) && !empty($unidad->relevo_conductor)) {
+                        // Si hay relevo programado:
+                        if ($horaUltimoMov >= $relevoHoraBase) {
+                            // Movimiento manual posterior a la hora del relevo: prioridad
+                            if ($ultimoMov->conductor_asignado !== null) {
+                                $titularConductorResp = $unidad->nombre_conductor;
+                                $titularTarjetonResp  = $unidad->tarjeton;
+                            } else {
+                                $titularConductorResp = null;
+                                $titularTarjetonResp  = null;
+                            }
+                            $relevoConductorResp = null;
+                            $relevoTarjetonResp  = null;
+                            $relevoHoraResp      = null;
+                        } else {
+                            // Movimiento manual previo a la hora del relevo:
+                            // solo afecta al turno matutino si el relevo aún no está vigente.
+                            if (!$relevoYaVigente) {
+                                if ($ultimoMov->conductor_asignado !== null) {
+                                    $titularConductorResp = $unidad->nombre_conductor;
+                                    $titularTarjetonResp  = $unidad->tarjeton;
+                                } else {
+                                    $titularConductorResp = null;
+                                    $titularTarjetonResp  = null;
+                                }
+                            }
+                        }
+                    } else {
+                        // No hay relevo programado
+                        if ($ultimoMov->conductor_asignado !== null) {
+                            $titularConductorResp = $unidad->nombre_conductor;
+                            $titularTarjetonResp  = $unidad->tarjeton;
+                        } else {
+                            $titularConductorResp = null;
+                            $titularTarjetonResp  = null;
+                        }
+                        $relevoConductorResp = null;
+                        $relevoTarjetonResp  = null;
+                        $relevoHoraResp      = null;
+                    }
+                }
+
+                $conductorEfectivo = $titularConductorResp;
+                $tarjetonEfectivo  = $titularTarjetonResp;
 
                 return [
                     'unidad_id' => $unidad->unidad_id,
@@ -511,25 +582,89 @@ class DespachoController extends Controller
             }
         }
 
-        $conductorEfectivo = !empty($info->relevo_conductor) ? $info->relevo_conductor : $info->nombre_conductor;
-        $tarjetonEfectivo  = !empty($info->relevo_tarjeton) ? $info->relevo_tarjeton : ($info->numero_tarjeton ?? '');
-
         $titularConductorResp = $info ? $info->nombre_conductor : null;
         $titularTarjetonResp  = $info ? ($info->numero_tarjeton ?? '') : '';
         $relevoConductorResp  = $info ? ($info->relevo_conductor ?? null) : null;
         $relevoTarjetonResp   = $info ? ($info->relevo_tarjeton ?? null) : null;
         $relevoHoraResp       = $info ? ($info->relevo_hora ?? null) : null;
 
-        if ($info && !empty($info->relevo_hora) && !empty($info->relevo_conductor)) {
-            $horaActual = date('H:i');
-            if ($horaActual >= $info->relevo_hora) {
-                $titularConductorResp = $info->relevo_conductor;
-                $titularTarjetonResp  = $info->relevo_tarjeton;
-                $relevoConductorResp  = null;
-                $relevoTarjetonResp   = null;
-                $relevoHoraResp       = null;
+        if ($info) {
+            $horaActual = \Carbon\Carbon::now('America/Mexico_City')->format('H:i');
+            $fechaHoy   = \Carbon\Carbon::now('America/Mexico_City')->toDateString();
+            $relevoYaVigente = false;
+
+            // Paso 1: ¿El relevo programado ya entró en vigor según el reloj?
+            if (!empty($info->relevo_hora) && !empty($info->relevo_conductor)) {
+                if ($horaActual >= $info->relevo_hora) {
+                    $titularConductorResp = $info->relevo_conductor;
+                    $titularTarjetonResp  = $info->relevo_tarjeton;
+                    $relevoConductorResp  = null;
+                    $relevoTarjetonResp   = null;
+                    $relevoHoraResp       = null;
+                    $relevoYaVigente      = true;
+                }
+            }
+
+            // Paso 2: Evaluar movimientos manuales de hoy en plataforma
+            if ($unidadBase) {
+                $ultimoMovManual = DB::table('plataforma_movimientos')
+                    ->where('unidad_id', $unidadBase->id)
+                    ->whereDate('created_at', $fechaHoy)
+                    ->whereIn('tipo_movimiento', ['RETIRO_CONDUCTOR', 'ASIGNACION_CONDUCTOR'])
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if ($ultimoMovManual) {
+                    $horaUltimoMov  = \Carbon\Carbon::parse($ultimoMovManual->created_at)
+                        ->setTimezone('America/Mexico_City')->format('H:i');
+                    $relevoHoraBase = $info->relevo_hora ?? '00:00';
+
+                    if (!empty($info->relevo_hora) && !empty($info->relevo_conductor)) {
+                        // Si hay relevo programado:
+                        if ($horaUltimoMov >= $relevoHoraBase) {
+                            // Movimiento manual posterior a la hora del relevo: prioridad
+                            if ($ultimoMovManual->conductor_asignado !== null) {
+                                $titularConductorResp = $info->nombre_conductor;
+                                $titularTarjetonResp  = $info->numero_tarjeton;
+                            } else {
+                                $titularConductorResp = null;
+                                $titularTarjetonResp  = null;
+                            }
+                            $relevoConductorResp = null;
+                            $relevoTarjetonResp  = null;
+                            $relevoHoraResp      = null;
+                        } else {
+                            // Movimiento manual previo a la hora del relevo:
+                            // solo afecta al turno matutino si el relevo aún no está vigente.
+                            if (!$relevoYaVigente) {
+                                if ($ultimoMovManual->conductor_asignado !== null) {
+                                    $titularConductorResp = $info->nombre_conductor;
+                                    $titularTarjetonResp  = $info->numero_tarjeton;
+                                } else {
+                                    $titularConductorResp = null;
+                                    $titularTarjetonResp  = null;
+                                }
+                            }
+                        }
+                    } else {
+                        // No hay relevo programado
+                        if ($ultimoMovManual->conductor_asignado !== null) {
+                            $titularConductorResp = $info->nombre_conductor;
+                            $titularTarjetonResp  = $info->numero_tarjeton;
+                        } else {
+                            $titularConductorResp = null;
+                            $titularTarjetonResp  = null;
+                        }
+                        $relevoConductorResp = null;
+                        $relevoTarjetonResp  = null;
+                        $relevoHoraResp      = null;
+                    }
+                }
             }
         }
+
+        $conductorEfectivo = $titularConductorResp;
+        $tarjetonEfectivo  = ($titularTarjetonResp !== null && $titularTarjetonResp !== '') ? $titularTarjetonResp : '';
 
         return response()->json(
             $info ? [
@@ -568,9 +703,6 @@ class DespachoController extends Controller
                 'mantenimiento_ruta' => $info->mantenimiento_ruta,
                 'mantenimiento_corrida' => $info->mantenimiento_corrida,
                 'mantenimiento_kilometraje' => $info->mantenimiento_kilometraje,
-                'relevo_conductor' => $info->relevo_conductor ?? null,
-                'relevo_tarjeton'  => $info->relevo_tarjeton ?? null,
-                'relevo_hora'       => $info->relevo_hora ?? null,
                 // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
@@ -805,6 +937,9 @@ class DespachoController extends Controller
             $errores[] = "Error al eliminar registros obsoletos: " . $e->getMessage();
             $eliminados = 0;
         }
+
+        // Regenerar el snapshot de inicio para hoy con las asignaciones actualizadas de Logística
+        \App\Helpers\BitacoraHelper::ensureInicioSnapshot(true);
 
         return response()->json([
             'status' => 'success',
@@ -3407,7 +3542,7 @@ class DespachoController extends Controller
                     return trim($c->tarjeton);
                 });
 
-            // 3. Obtener asignaciones de inicio de operación (Programación y Logística)
+            // 3. Obtener asignaciones originales de Programación y Logística (Apertura INICIO congelada)
             $historialInicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
                 ->where('historial_operativo.fecha_historial', $hoy)
@@ -3426,6 +3561,25 @@ class DespachoController extends Controller
                 ->get()
                 ->keyBy('unidad_id');
 
+            // Fallback a informacion_operativa solo si aún no existiese historial_operativo INICIO para hoy
+            if ($historialInicio->isEmpty()) {
+                $historialInicio = DB::table('informacion_operativa')
+                    ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                    ->select(
+                        'unidades.id as unidad_id',
+                        'unidades.numero_eco',
+                        'informacion_operativa.tipo',
+                        'informacion_operativa.ruta as ruta_inicial',
+                        'informacion_operativa.corridas as corrida_inicial',
+                        'informacion_operativa.numero_tarjeton as tarjeton_inicial',
+                        'informacion_operativa.nombre_conductor as conductor_inicial',
+                        'informacion_operativa.hora_salida_patio as hora_salida_patio_inicial',
+                        'informacion_operativa.estatus as estatus_inicial'
+                    )
+                    ->get()
+                    ->keyBy('unidad_id');
+            }
+
             // 4. Obtener estado operativo actual
             $queryActual = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -3437,6 +3591,9 @@ class DespachoController extends Controller
                     'informacion_operativa.corridas as corrida_actual',
                     'informacion_operativa.numero_tarjeton as tarjeton_actual',
                     'informacion_operativa.nombre_conductor as conductor_actual',
+                    'informacion_operativa.relevo_tarjeton',
+                    'informacion_operativa.relevo_conductor',
+                    'informacion_operativa.relevo_hora',
                     'informacion_operativa.estatus as estatus_actual',
                     'informacion_operativa.hora_salida_patio',
                     'informacion_operativa.hora_real_salida_patio',
@@ -3492,12 +3649,16 @@ class DespachoController extends Controller
                     $conductorAct = $catalogoConductores[$tarjetonAct]->nombre_completo;
                 }
 
-                $estatusActual = strtolower(trim((string)($u->estatus_actual ?? 'operacion')));
-                if ($estatusActual === 'operacion') {
-                    $totalOperacion++;
+                // Evaluar si aplica Relevo de T6 programado por horario
+                $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
+                $relevoYaVigente = false;
+                if (!empty($u->relevo_hora) && !empty($u->relevo_conductor) && $horaActual >= $u->relevo_hora) {
+                    $conductorAct = $u->relevo_conductor;
+                    $tarjetonAct = $u->relevo_tarjeton ?? '';
+                    $relevoYaVigente = true;
                 }
 
-                // Revisar movimientos de conductor registrados hoy
+                // Revisar movimientos de conductor registrados hoy en plataforma
                 $movimientosUnidad = $movimientosHoy->get($uid);
                 $bitacoraUnidad = $bitacoraHoy->get($uid);
                 $ultimoMov = $movimientosUnidad ? $movimientosUnidad->first() : null;
@@ -3507,6 +3668,18 @@ class DespachoController extends Controller
                 $tipoMovimientoRegistrado = null;
 
                 if ($ultimoMov) {
+                    $horaUltimoMov = Carbon::parse($ultimoMov->created_at)->setTimezone('America/Mexico_City')->format('H:i');
+                    $relevoHoraBase = $u->relevo_hora ?? '00:00';
+
+                    // Si hubo movimiento manual y es posterior al relevo (o no hubo relevo vigente)
+                    if (!$relevoYaVigente || $horaUltimoMov >= $relevoHoraBase) {
+                        $tarjetonAct = trim((string)($u->tarjeton_actual ?? ''));
+                        $conductorAct = trim((string)($u->conductor_actual ?? ''));
+                        if (empty($conductorAct) && !empty($tarjetonAct) && isset($catalogoConductores[$tarjetonAct])) {
+                            $conductorAct = $catalogoConductores[$tarjetonAct]->nombre_completo;
+                        }
+                    }
+
                     $horaMovimiento = Carbon::parse($ultimoMov->created_at)->format('H:i');
                     $motivoMovimiento = $ultimoMov->motivo;
                     $tipoMovimientoRegistrado = $ultimoMov->tipo_movimiento;
@@ -3519,6 +3692,11 @@ class DespachoController extends Controller
                         $motivoMovimiento = $bItem->detalles;
                         $tipoMovimientoRegistrado = $bItem->tipo_accion;
                     }
+                }
+
+                $estatusActual = strtolower(trim((string)($u->estatus_actual ?? 'operacion')));
+                if ($estatusActual === 'operacion') {
+                    $totalOperacion++;
                 }
 
                 // Determinar estado del conductor
@@ -3539,6 +3717,11 @@ class DespachoController extends Controller
                     $tieneRelevo = true;
                     $estadoVisual = 'relevo';
                     $descripcionEstado = 'Relevo / Asignación en Plataforma';
+                    $totalRelevos++;
+                } elseif ($relevoYaVigente) {
+                    $tieneRelevo = true;
+                    $estadoVisual = 'relevo';
+                    $descripcionEstado = 'Relevo Programado Realizado';
                     $totalRelevos++;
                 } else {
                     $totalTitulares++;
@@ -3652,7 +3835,7 @@ class DespachoController extends Controller
             // 1. Asegurar snapshot de inicio si no existe aún para el día
             BitacoraHelper::ensureInicioSnapshot();
 
-            // 2. Definir columnas defensivas
+            // 2. Consultar primordialmente el snapshot de apertura (04:30 AM congelada de Logística)
             $columns = [
                 'unidades.id as unidad_id',
                 'unidades.numero_eco',
@@ -3671,28 +3854,20 @@ class DespachoController extends Controller
                 'informacion_operativa.relevo_hora'
             ];
 
-            $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
-            if ($hasManiobrista) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista')) {
                 $columns[] = 'historial_operativo.tarjeton_maniobrista';
                 $columns[] = 'historial_operativo.nombre_maniobrista';
             }
-
-            $hasHoraProg = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida_patio');
-            if ($hasHoraProg) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida_patio')) {
                 $columns[] = 'historial_operativo.hora_salida_patio';
             }
-
-            $hasAcople = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople');
-            if ($hasAcople) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople')) {
                 $columns[] = 'historial_operativo.acople';
             }
-
-            $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
-            if ($hasHoraSalida) {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio')) {
                 $columns[] = 'historial_operativo.hora_real_salida_patio';
             }
 
-            // 3. Consultar snapshot INICIO de hoy
             $query = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
                 ->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
@@ -3715,8 +3890,7 @@ class DespachoController extends Controller
                 ->unique('numero_eco')
                 ->values();
 
-            // Si por alguna razón histórica no hubiera registros en historial_operativo para hoy,
-            // usamos la tabla informacion_operativa como fallback para que nunca quede vacío.
+            // Si aún no existe historial_operativo INICIO, usar informacion_operativa como fallback inicial
             if ($registros->isEmpty()) {
                 $queryFallback = DB::table('informacion_operativa')
                     ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -3768,7 +3942,7 @@ class DespachoController extends Controller
                 'sin_conductor' => 0,
             ];
 
-            $unidadesFormateadas = $registros->map(function ($r) use (&$kpis, $hasManiobrista, $hasHoraProg, $hasAcople, $hasHoraSalida) {
+            $unidadesFormateadas = $registros->map(function ($r) use (&$kpis) {
                 $estatus = strtolower(trim($r->estatus ?? 'reserva'));
                 if ($estatus === 'operacion') $kpis['total_operacion']++;
                 elseif ($estatus === 'reserva') $kpis['total_reserva']++;
@@ -3791,15 +3965,15 @@ class DespachoController extends Controller
                     'ciclo'                => $r->ciclo ?? '',
                     'tarjeton'             => $r->tarjeton ?? '',
                     'nombre_conductor'     => $r->nombre_conductor ?? '',
-                    'tarjeton_maniobrista' => $hasManiobrista ? ($r->tarjeton_maniobrista ?? '') : '',
-                    'nombre_maniobrista'   => $hasManiobrista ? ($r->nombre_maniobrista ?? '') : '',
+                    'tarjeton_maniobrista' => $r->tarjeton_maniobrista ?? '',
+                    'nombre_maniobrista'   => $r->nombre_maniobrista ?? '',
                     'estatus'              => $estatus,
                     'falla'                => $r->falla ?? '',
                     'motivo'               => $r->motivo ?? '',
                     'motivo_estatus'       => $r->motivo_estatus ?? '',
-                    'hora_salida_patio'      => $hasHoraProg ? ($r->hora_salida_patio ?? '') : '',
-                    'acople'               => $hasAcople ? ($r->acople ?? '') : '',
-                    'hora_real_salida_patio'          => $hasHoraSalida ? ($r->hora_real_salida_patio ?? '') : '',
+                    'hora_salida_patio'    => $r->hora_salida_patio ?? '',
+                    'acople'               => $r->acople ?? '',
+                    'hora_real_salida_patio' => $r->hora_real_salida_patio ?? '',
                     'relevo_tarjeton'      => $r->relevo_tarjeton ?? '',
                     'relevo_conductor'     => $r->relevo_conductor ?? '',
                     'relevo_hora'          => $r->relevo_hora ?? ''

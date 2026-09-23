@@ -375,6 +375,34 @@ class PlataformaController extends Controller
                     return response()->json(['error' => 'No hay registro operativo para esta unidad.'], 404);
                 }
 
+                // ─── Determinar conductor vigente ANTES de este cambio ───────────
+                // Regla: se busca el último movimiento de hoy para esta unidad
+                // (RETIRO_CONDUCTOR o ASIGNACION_CONDUCTOR) sin filtrar por NULL,
+                // ya que un retiro sin reemplazo también es un evento válido.
+                $fechaHoy = Carbon::now('America/Mexico_City')->toDateString();
+                $horaActualStr = Carbon::now('America/Mexico_City')->format('H:i');
+
+                $ultimoMovHoy = DB::table('plataforma_movimientos')
+                    ->where('unidad_id', $unidadId)
+                    ->whereDate('created_at', $fechaHoy)
+                    ->whereIn('tipo_movimiento', ['RETIRO_CONDUCTOR', 'ASIGNACION_CONDUCTOR'])
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if ($ultimoMovHoy) {
+                    // El último evento manual de hoy define al conductor actual
+                    $conductorAnteriorRegistro = $ultimoMovHoy->conductor_asignado;
+                } else {
+                    // No hay movimientos manuales hoy: evaluar titular vs relevo programado
+                    $conductorAnteriorRegistro = $registroOperativo->numero_tarjeton;
+                    if (!empty($registroOperativo->relevo_hora) && !empty($registroOperativo->relevo_tarjeton)) {
+                        if ($horaActualStr >= $registroOperativo->relevo_hora) {
+                            $conductorAnteriorRegistro = $registroOperativo->relevo_tarjeton;
+                        }
+                    }
+                }
+                // ─────────────────────────────────────────────────────────────────
+
                 // 1) Liberar conductor anterior
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
                     $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
@@ -450,17 +478,27 @@ class PlataformaController extends Controller
             }
 
             // Registrar movimiento en plataforma_movimientos
+            // Para RETIRO_CONDUCTOR, conductor_asignado = el nuevo conductor (puede ser NULL si solo retira)
+            $conductorAsignadoFinal = null;
+            if ($tipoMovimiento === 'RETIRO_CONDUCTOR') {
+                // Si hay reemplazo, conductor_asignado ya se guardó en $datosUpdate['numero_tarjeton']
+                $conductorAsignadoFinal = $datosUpdate['numero_tarjeton'] ?? null;
+            } else {
+                $conductorAsignadoFinal = $request->numero_tarjeton_nuevo ?? $request->numero_tarjeton ?? $request->conductor;
+            }
+
             DB::table('plataforma_movimientos')->insert([
-                'unidad_id'          => $unidadId,
-                'usuario_id'         => $usuarioId,
-                'tipo_movimiento'    => $tipoMovimiento,
-                'estatus_anterior'   => $estatusAnterior,
-                'estatus_nuevo'      => $estatusNuevo,
-                'conductor_asignado' => $request->numero_tarjeton_nuevo ?? $request->numero_tarjeton ?? $request->conductor,
-                'ruta_asignada'      => $request->ruta,
-                'motivo'             => $request->motivo,
-                'created_at'         => Carbon::now(),
-                'updated_at'         => Carbon::now()
+                'unidad_id'           => $unidadId,
+                'usuario_id'          => $usuarioId,
+                'tipo_movimiento'     => $tipoMovimiento,
+                'estatus_anterior'    => $estatusAnterior,
+                'estatus_nuevo'       => $estatusNuevo,
+                'conductor_anterior'  => $conductorAnteriorRegistro ?? null,
+                'conductor_asignado'  => $conductorAsignadoFinal,
+                'ruta_asignada'       => $request->ruta,
+                'motivo'              => $request->motivo,
+                'created_at'          => Carbon::now(),
+                'updated_at'          => Carbon::now()
             ]);
 
             // Registrar acción en la bitácora de cambios diaria
