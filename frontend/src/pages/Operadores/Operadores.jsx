@@ -11,6 +11,7 @@ import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import GeneracionGafete from './GeneracionGafete';
 import EstadisticasOperadores from './EstadisticasOperadores';
 import GestionFaltasOperadores from './GestionFaltasOperadores';
+import ResumenInasistenciasOperadores from './ResumenInasistenciasOperadores';
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -1413,6 +1414,9 @@ export default function Operadores() {
         ) : activeTab === 'generacion_gafete' ? (
           <GeneracionGafete conductores={conductores} />
         ) : null}
+
+        {/* Resumen de Inasistencias Operadores y Simbología en la parte inferior del módulo */}
+        <ResumenInasistenciasOperadores getAuthHeaders={getAuthHeaders} />
       </main>
 
       {/* Modal Agregar T6 */}

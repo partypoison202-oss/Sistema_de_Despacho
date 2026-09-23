@@ -659,4 +659,172 @@ class ConductorController extends Controller
             'Cache-Control' => 'public, max-age=86400',
         ]);
     }
+
+    /**
+     * Retorna el resumen mensual de asistencias e inasistencias por conductor para el módulo de Control de Personas Conductoras.
+     */
+    public function resumenInasistencias(Request $request)
+    {
+        $mesStr = $request->query('mes'); // Formato YYYY-MM
+        if (!$mesStr || !preg_match('/^\d{4}-\d{2}$/', $mesStr)) {
+            $mesStr = date('Y-m');
+        }
+
+        try {
+            $startOfMonth = \Carbon\Carbon::parse($mesStr . '-01')->startOfMonth();
+            $endOfMonth = \Carbon\Carbon::parse($mesStr . '-01')->endOfMonth();
+        } catch (\Throwable $e) {
+            $startOfMonth = \Carbon\Carbon::now()->startOfMonth();
+            $endOfMonth = \Carbon\Carbon::now()->endOfMonth();
+            $mesStr = \Carbon\Carbon::now()->format('Y-m');
+        }
+
+        $daysInMonth = $startOfMonth->daysInMonth;
+
+        $nombresMeses = [
+            '01' => 'ENERO', '02' => 'FEBRERO', '03' => 'MARZO', '04' => 'ABRIL',
+            '05' => 'MAYO', '06' => 'JUNIO', '07' => 'JULIO', '08' => 'AGOSTO',
+            '09' => 'SEPTIEMBRE', '10' => 'OCTUBRE', '11' => 'NOVIEMBRE', '12' => 'DICIEMBRE'
+        ];
+        $mesNum = $startOfMonth->format('m');
+        $nombreMes = ($nombresMeses[$mesNum] ?? 'MES') . ' ' . $startOfMonth->format('Y');
+
+        // Obtener lista de conductores
+        $conductores = Conductor::where('estatus', '!=', 'baja')
+            ->orWhereNull('estatus')
+            ->get();
+
+        // Obtener historial operativo de asistencias en el mes
+        $historialMap = []; // [tarjetonNormalizado][YYYY-MM-DD] = true
+        
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('historial_operativo')) {
+                $registrosHistorial = DB::table('historial_operativo')
+                    ->whereBetween('fecha_historial', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                    ->whereNotNull('numero_tarjeton')
+                    ->where('numero_tarjeton', '!=', '')
+                    ->select('fecha_historial', 'numero_tarjeton', 'estatus', 'hora_real_salida_patio')
+                    ->get();
+
+                foreach ($registrosHistorial as $h) {
+                    $tarjNorm = preg_replace('/\D/', '', (string)$h->numero_tarjeton);
+                    if ($tarjNorm) {
+                        $historialMap[$tarjNorm][$h->fecha_historial] = true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error consultando historial_operativo para resumen: ' . $e->getMessage());
+        }
+
+        // Consultar informacion_operativa si el mes incluye el día de hoy
+        $todayStr = date('Y-m-d');
+        if ($todayStr >= $startOfMonth->toDateString() && $todayStr <= $endOfMonth->toDateString()) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('informacion_operativa')) {
+                    $hoyOps = DB::table('informacion_operativa')
+                        ->whereNotNull('numero_tarjeton')
+                        ->where('numero_tarjeton', '!=', '')
+                        ->select('numero_tarjeton', 'estatus', 'hora_real_salida_patio')
+                        ->get();
+
+                    foreach ($hoyOps as $op) {
+                        $tarjNorm = preg_replace('/\D/', '', (string)$op->numero_tarjeton);
+                        if ($tarjNorm) {
+                            $historialMap[$tarjNorm][$todayStr] = true;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Error consultando informacion_operativa para resumen: ' . $e->getMessage());
+            }
+        }
+
+        // Procesar matriz por conductor
+        $resultado = [];
+
+        foreach ($conductores as $c) {
+            $tarjetonRaw = $c->tarjeton ?: '';
+            $tarjetonNum = preg_replace('/\D/', '', $tarjetonRaw);
+            
+            // Faltas del conductor
+            $rawDetalle = $c->faltas_detalle;
+            $faltasDetalle = [];
+            if (is_array($rawDetalle)) {
+                $faltasDetalle = $rawDetalle;
+            } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+                $parsed = json_decode($rawDetalle, true);
+                if (is_array($parsed)) $faltasDetalle = $parsed;
+            }
+
+            $faltasFechasMap = [];
+            foreach ($faltasDetalle as $f) {
+                $fFecha = $f['fecha'] ?? null;
+                if ($fFecha && $fFecha !== 'Fecha sin registrar') {
+                    $fFechaClean = substr($fFecha, 0, 10);
+                    $faltasFechasMap[$fFechaClean] = true;
+                }
+            }
+
+            // Si el estado de servicio es 'falta' y hoy cae en el mes
+            if ($c->estado_servicio === 'falta' && $todayStr >= $startOfMonth->toDateString() && $todayStr <= $endOfMonth->toDateString()) {
+                $faltasFechasMap[$todayStr] = true;
+            }
+
+            $diasMatriz = [];
+            $countA = 0;
+            $countD = 0;
+            $countV = 0;
+            $countI = 0;
+            $countF = 0;
+
+            for ($day = 1; $day <= $daysInMonth; $day++) {
+                $dayKey = sprintf('%02d', $day);
+                $dateStr = $startOfMonth->copy()->day($day)->format('Y-m-d');
+
+                $codigo = null;
+
+                if (isset($faltasFechasMap[$dateStr])) {
+                    $codigo = 'F';
+                    $countF++;
+                } elseif ($tarjetonNum && isset($historialMap[$tarjetonNum][$dateStr])) {
+                    $codigo = 'A';
+                    $countA++;
+                } elseif ($c->estado_servicio === 'en_servicio' && $dateStr === $todayStr) {
+                    $codigo = 'A';
+                    $countA++;
+                }
+
+                $diasMatriz[$dayKey] = $codigo;
+            }
+
+            $resultado[] = [
+                'id' => $c->id,
+                'tarjeton' => $c->tarjeton,
+                'nombre' => $c->nombre,
+                'resumen' => [
+                    'A' => $countA,
+                    'D' => $countD,
+                    'V' => $countV,
+                    'I' => $countI,
+                    'F' => $countF,
+                ],
+                'dias' => $diasMatriz,
+            ];
+        }
+
+        // Ordenar por número numérico de tarjetón
+        usort($resultado, function ($a, $b) {
+            $numA = (int)preg_replace('/\D/', '', $a['tarjeton'] ?? '');
+            $numB = (int)preg_replace('/\D/', '', $b['tarjeton'] ?? '');
+            return $numA <=> $numB;
+        });
+
+        return response()->json([
+            'mes' => $mesStr,
+            'nombre_mes' => $nombreMes,
+            'dias_mes' => $daysInMonth,
+            'conductores' => $resultado,
+        ]);
+    }
 }
