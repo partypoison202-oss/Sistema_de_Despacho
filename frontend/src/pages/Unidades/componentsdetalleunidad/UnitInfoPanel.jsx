@@ -597,7 +597,7 @@ export default function UnitInfoPanel({
                             type="text"
                             readOnly={!!salidaCongelada}
                             disabled={!!salidaCongelada}
-                            placeholder={datosOperativos.tarjeton ? String(datosOperativos.tarjeton) : "Buscar o escribir tarjetón..."}
+                            placeholder={datosOperativos.tarjeton ? String(datosOperativos.tarjeton).padStart(4, '0') : "Buscar o escribir tarjetón..."}
                             value={formTarjeton}
                             onChange={(e) => {
                               if(salidaCongelada) return;
@@ -686,7 +686,7 @@ export default function UnitInfoPanel({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
                     </svg>
                     <p className="info-card__value">
-                      {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                      {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton ? String(datosOperativos.tarjeton).padStart(4, '0') : 'No asignado')}
                     </p>
                   </div>
                 </div>
