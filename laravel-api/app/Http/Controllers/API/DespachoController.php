@@ -568,9 +568,6 @@ class DespachoController extends Controller
                 'mantenimiento_ruta' => $info->mantenimiento_ruta,
                 'mantenimiento_corrida' => $info->mantenimiento_corrida,
                 'mantenimiento_kilometraje' => $info->mantenimiento_kilometraje,
-                'relevo_conductor' => $info->relevo_conductor ?? null,
-                'relevo_tarjeton'  => $info->relevo_tarjeton ?? null,
-                'relevo_hora'       => $info->relevo_hora ?? null,
                 // Nuevos campos de mantenimiento
                 'nivel_combustible'  => $unidadBase->nivel_combustible ?? null,
                 'nivel_adblue'       => $unidadBase->nivel_adblue ?? null,
