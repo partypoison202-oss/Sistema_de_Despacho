@@ -291,6 +291,23 @@ class DespachoController extends Controller
                 $conductorEfectivo = !empty($unidad->relevo_conductor) ? $unidad->relevo_conductor : $unidad->nombre_conductor;
                 $tarjetonEfectivo  = !empty($unidad->relevo_tarjeton) ? $unidad->relevo_tarjeton : $unidad->tarjeton;
 
+                $titularConductorResp = $unidad->nombre_conductor ?? null;
+                $titularTarjetonResp  = $unidad->tarjeton ?? '';
+                $relevoConductorResp  = $unidad->relevo_conductor ?? null;
+                $relevoTarjetonResp   = $unidad->relevo_tarjeton ?? null;
+                $relevoHoraResp       = $unidad->relevo_hora ?? null;
+
+                if (!empty($unidad->relevo_hora) && !empty($unidad->relevo_conductor)) {
+                    $horaActual = date('H:i');
+                    if ($horaActual >= $unidad->relevo_hora) {
+                        $titularConductorResp = $unidad->relevo_conductor;
+                        $titularTarjetonResp  = $unidad->relevo_tarjeton;
+                        $relevoConductorResp  = null;
+                        $relevoTarjetonResp   = null;
+                        $relevoHoraResp       = null;
+                    }
+                }
+
                 return [
                     'unidad_id' => $unidad->unidad_id,
                     'numero_eco' => $unidad->numero_eco,
@@ -298,8 +315,8 @@ class DespachoController extends Controller
                     'estatus' => $estatus,
                     'ruta' => $unidad->ruta,
                     'nombre_conductor' => $conductorEfectivo,
-                    'titular_conductor' => $unidad->nombre_conductor,
-                    'titular_tarjeton'  => $unidad->tarjeton,
+                    'titular_conductor' => $titularConductorResp,
+                    'titular_tarjeton'  => $titularTarjetonResp,
                     'tarjeton_maniobrista' => $unidad->tarjeton_maniobrista,
                     'nombre_maniobrista' => $unidad->nombre_maniobrista,
                     'falla' => $unidad->falla,
@@ -318,9 +335,9 @@ class DespachoController extends Controller
                     'mantenimiento_ruta' => $unidad->mantenimiento_ruta,
                     'mantenimiento_corrida' => $unidad->mantenimiento_corrida,
                     'mantenimiento_kilometraje' => $unidad->mantenimiento_kilometraje,
-                    'relevo_conductor' => $unidad->relevo_conductor ?? null,
-                    'relevo_tarjeton' => $unidad->relevo_tarjeton ?? null,
-                    'relevo_hora' => $unidad->relevo_hora ?? null,
+                    'relevo_conductor' => $relevoConductorResp,
+                    'relevo_tarjeton' => $relevoTarjetonResp,
+                    'relevo_hora' => $relevoHoraResp,
                     'ya_encerrada' => $yaEncerrada
                 ];
             });
@@ -497,6 +514,23 @@ class DespachoController extends Controller
         $conductorEfectivo = !empty($info->relevo_conductor) ? $info->relevo_conductor : $info->nombre_conductor;
         $tarjetonEfectivo  = !empty($info->relevo_tarjeton) ? $info->relevo_tarjeton : ($info->numero_tarjeton ?? '');
 
+        $titularConductorResp = $info ? $info->nombre_conductor : null;
+        $titularTarjetonResp  = $info ? ($info->numero_tarjeton ?? '') : '';
+        $relevoConductorResp  = $info ? ($info->relevo_conductor ?? null) : null;
+        $relevoTarjetonResp   = $info ? ($info->relevo_tarjeton ?? null) : null;
+        $relevoHoraResp       = $info ? ($info->relevo_hora ?? null) : null;
+
+        if ($info && !empty($info->relevo_hora) && !empty($info->relevo_conductor)) {
+            $horaActual = date('H:i');
+            if ($horaActual >= $info->relevo_hora) {
+                $titularConductorResp = $info->relevo_conductor;
+                $titularTarjetonResp  = $info->relevo_tarjeton;
+                $relevoConductorResp  = null;
+                $relevoTarjetonResp   = null;
+                $relevoHoraResp       = null;
+            }
+        }
+
         return response()->json(
             $info ? [
                 'status'    => 'success',
@@ -504,11 +538,11 @@ class DespachoController extends Controller
                 'ruta'      => $info->ruta,
                 'conductor' => $conductorEfectivo,
                 'tarjeton'  => $tarjetonEfectivo,
-                'titular_conductor' => $info->nombre_conductor,
-                'titular_tarjeton'  => $info->numero_tarjeton ?? '',
-                'relevo_conductor' => $info->relevo_conductor ?? null,
-                'relevo_tarjeton' => $info->relevo_tarjeton ?? null,
-                'relevo_hora' => $info->relevo_hora ?? null,
+                'titular_conductor' => $titularConductorResp,
+                'titular_tarjeton'  => $titularTarjetonResp,
+                'relevo_conductor' => $relevoConductorResp,
+                'relevo_tarjeton' => $relevoTarjetonResp,
+                'relevo_hora' => $relevoHoraResp,
                 'estatus'   => $estatus,
                 'falla'     => $info->falla,
                 'corridas'  => $info->corridas,
