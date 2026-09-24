@@ -400,7 +400,7 @@ class ConductorController extends Controller
         $this->ensureColumnsExist();
 
         $request->validate([
-            'justificante' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240', // Max 10MB
+            'justificante' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:25600', // Max 25MB
             'falta_id' => 'nullable|string',
             'falta_index' => 'nullable|integer',
             'observaciones' => 'nullable|string|max:1000',

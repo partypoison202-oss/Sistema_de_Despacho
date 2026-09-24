@@ -191,6 +191,18 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       return;
     }
 
+    const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+    if (archivoSeleccionado.size > MAX_SIZE_BYTES) {
+      const pesoMB = (archivoSeleccionado.size / (1024 * 1024)).toFixed(1);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Archivo muy pesado',
+        text: `El archivo seleccionado pesa ${pesoMB} MB. El límite máximo permitido es de 25 MB.`,
+        confirmButtonColor: '#6b1d33'
+      });
+      return;
+    }
+
     if (!conductorActualData || !faltaAJustificar) return;
 
     setSubiendo(true);
@@ -880,7 +892,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
               {/* Input de archivo */}
               <div>
                 <label htmlFor="file-justificante-input" className="block font-bold text-slate-700 mb-1.5">
-                  Selecciona el archivo justificante (PDF, PNG, JPG, JPEG, WebP):
+                  Selecciona el archivo justificante (PDF, PNG, JPG, JPEG, WebP - Máx. 25 MB):
                 </label>
                 <input
                   id="file-justificante-input"

@@ -10,5 +10,5 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('historial:guardar')->dailyAt('22:05');
-Schedule::command('despacho:cambio-dia-automatico')->dailyAt('15:25')->timezone('America/Mexico_City');
+Schedule::command('despacho:cambio-dia-automatico')->dailyAt('03:30')->timezone('America/Mexico_City');
 
