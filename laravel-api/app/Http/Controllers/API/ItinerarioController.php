@@ -183,12 +183,26 @@ class ItinerarioController extends Controller
             ];
 
             // Parsear JSONs con motivo
-            $faltas = $this->parseJsonDetalleConMotivo($conductor->faltas_detalle);
+            $faltas = [];
+            $retardos = $this->parseJsonDetalleConMotivo($conductor->retardos_detalle ?? []);
+            
+            $faltasDecoded = is_string($conductor->faltas_detalle) ? json_decode($conductor->faltas_detalle, true) : $conductor->faltas_detalle;
+            if (is_array($faltasDecoded)) {
+                foreach ($faltasDecoded as $item) {
+                    if (isset($item['fecha'])) {
+                        if (isset($item['estado']) && $item['estado'] === 'retardo') {
+                            $retardos[$item['fecha']] = $item['motivo'] ?? '';
+                        } else {
+                            $faltas[$item['fecha']] = $item['motivo'] ?? '';
+                        }
+                    }
+                }
+            }
+
             $descansos = $this->parseJsonDetalleConMotivo($conductor->descansos_detalle);
             $vacaciones = $this->parseJsonDetalleConMotivo($conductor->vacaciones_detalle);
             $incapacidades = $this->parseJsonDetalleConMotivo($conductor->incapacidades_detalle);
-            $permutas = $this->parseJsonPermutas($conductor->permutas_detalle);
-            $retardos = $this->parseJsonDetalleConMotivo($conductor->retardos_detalle);
+            $permutas = $this->parseJsonDetalleConMotivo($conductor->permutas_detalle ?? []);
 
             // Si el estado de servicio es falta y hoy cae en el rango
             if ($conductor->estado_servicio === 'falta' && !isset($faltas[$hoy])) {
