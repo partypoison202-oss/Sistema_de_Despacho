@@ -90,7 +90,7 @@ export default function Usuarios() {
   // Manejar apertura del modal (edición o creación)
   const handleOpenModal = (user = null) => {
     if (user) {
-      const parts = user.nombre_completo ? user.nombre_completo.split(' ') : [];
+      const parts = (user.nombre_completo || user.usuario || '').split(' ');
       let n = '';
       let a = '';
       if (parts.length >= 4) {
@@ -461,7 +461,7 @@ export default function Usuarios() {
   const filteredUsers = users
     .filter(
       (user) =>
-        user.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.nombre_completo || user.usuario || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.usuario.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (user.role?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -575,9 +575,9 @@ export default function Usuarios() {
                   filteredUsers.map((user) => (
                     <tr key={user.id}>
                       <td>
-                        <UserAvatar fotoUrl={user.foto_url} nombre={user.nombre_completo} size={40} />
+                        <UserAvatar fotoUrl={user.foto_url} nombre={user.nombre_completo || user.usuario} size={40} />
                       </td>
-                      <td>{user.nombre_completo}</td>
+                      <td>{user.nombre_completo || user.usuario || 'Sin nombre'}</td>
                       <td>{user.usuario}</td>
                       <td>
                         <span className={`role-badge ${getRoleBadgeClass(user.role?.nombre)}`}>
