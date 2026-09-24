@@ -202,12 +202,7 @@ class ItinerarioController extends Controller
             $descansos = $this->parseJsonDetalleConMotivo($conductor->descansos_detalle);
             $vacaciones = $this->parseJsonDetalleConMotivo($conductor->vacaciones_detalle);
             $incapacidades = $this->parseJsonDetalleConMotivo($conductor->incapacidades_detalle);
-<<<<<<< HEAD
             $permutas = $this->parseJsonDetalleConMotivo($conductor->permutas_detalle ?? []);
-=======
-            $permutas = $this->parseJsonPermutas($conductor->permutas_detalle);
-            $retardos = $this->parseJsonDetalleConMotivo($conductor->retardos_detalle);
->>>>>>> 9be134432549b072c2e4ccff88293d83dedfa99b
 
             // Si el estado de servicio es falta y hoy cae en el rango
             if ($conductor->estado_servicio === 'falta' && !isset($faltas[$hoy])) {
