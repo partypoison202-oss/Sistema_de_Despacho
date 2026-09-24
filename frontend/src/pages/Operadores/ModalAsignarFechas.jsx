@@ -282,6 +282,7 @@ export default function ModalAsignarFechas({
             </div>
           )}
 
+<<<<<<< HEAD
           {/* Selección de Conductores */}
           {estado === 'permuta' ? (
             <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200">
@@ -318,7 +319,7 @@ export default function ModalAsignarFechas({
           {/* Fecha */}
           <div className="space-y-1">
             <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">FECHA</label>
-            <AppleDatePicker value={fecha} onChange={setFecha} />
+            <AppleDatePicker value={fecha} onChange={setFecha} disableFuture={false} />
           </div>
 
           {/* Motivo (Opcional) */}
