@@ -94,6 +94,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
     let resumenDescansos = 0;
     let resumenIncapacidades = 0;
     let resumenManiobristas = 0;
+    let resumenPermutas = 0;
 
     conductores.forEach(c => {
       // Bajas vs Activos
@@ -136,6 +137,8 @@ export default function EstadisticasOperadores({ conductores = [] }) {
           resumenIncapacidades++;
         } else if (estado === 'maniobrista' || c.estatus === 'maniobrista') {
           resumenManiobristas++;
+        } else if (estado === 'permuta') {
+          resumenPermutas++;
         }
       }
     });
@@ -171,6 +174,7 @@ export default function EstadisticasOperadores({ conductores = [] }) {
         descansos: resumenDescansos,
         incapacidades: resumenIncapacidades,
         maniobristas: resumenManiobristas,
+        permutas: resumenPermutas,
       }
     };
   }, [conductores, rangoFaltas, minFaltasCustom, maxFaltasCustom, fechaSeleccionada]);
@@ -445,12 +449,12 @@ export default function EstadisticasOperadores({ conductores = [] }) {
                   <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">MANIOBRISTAS</th>
                   <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.maniobristas}</td>
                 </tr>
-                <tr className="bg-slate-50/50">
-                  <th scope="row" className="p-3 px-6 font-semibold text-slate-400 uppercase text-left">PERMISOS</th>
-                  <td className="p-3 px-6 text-right font-bold text-xl text-slate-400">-</td>
+                <tr className="bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">PERMUTAS</th>
+                  <td className="p-3 px-6 text-right font-bold text-xl">{stats.resumen.permutas}</td>
                 </tr>
                 <tr className="hover:bg-slate-50 transition-colors">
-                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">YA NO SE PRESENTAN <span className="text-xs text-slate-400 normal-case ml-2">(Bajas)</span></th>
+                  <th scope="row" className="p-3 px-6 font-semibold uppercase text-left">YA NO SE PRESENTAN</th>
                   <td className="p-3 px-6 text-right font-bold text-xl">{stats.bajas}</td>
                 </tr>
                 <tr className="bg-[#591024] text-white">
