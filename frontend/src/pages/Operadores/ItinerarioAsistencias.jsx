@@ -102,6 +102,93 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
     }
   };
 
+  const verAsignacionesFuturas = async (tipo, titulo, color) => {
+    try {
+      Swal.fire({
+        title: 'Cargando...',
+        text: `Buscando ${titulo.toLowerCase()} futuras...`,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const response = await fetch(`${API_BASE}/api/conductores`, {
+        headers: getAuthHeaders()
+      });
+      if (!response.ok) throw new Error("Error fetching data");
+      const data = await response.json();
+      
+      const hoy = new Date();
+      const hoyStr = new Date(hoy.getTime() - (hoy.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      
+      const futuros = [];
+      data.forEach(c => {
+        if (c[tipo]) {
+          const detalles = typeof c[tipo] === 'string' ? JSON.parse(c[tipo]) : c[tipo];
+          if (Array.isArray(detalles)) {
+            detalles.forEach(item => {
+              if (item.fecha && item.fecha >= hoyStr) {
+                futuros.push({ 
+                  nombre: c.nombre || c.nombres || 'Operador', 
+                  tarjeton: c.numero_tarjeton || c.tarjeton || 'S/T', 
+                  fecha: item.fecha, 
+                  motivo: (item.motivo === 'Asignación manual' || !item.motivo) ? '' : item.motivo 
+                });
+              }
+            });
+          }
+        }
+      });
+
+      futuros.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+      if (futuros.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Sin Asignaciones',
+          text: `No hay ${titulo.toLowerCase()} programadas a futuro.`
+        });
+        return;
+      }
+
+      let tableHtml = `
+        <div style="max-height: 400px; overflow-y: auto; text-align: left; font-size: 0.9rem;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead style="position: sticky; top: 0; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <tr>
+                <th style="padding: 8px; border-bottom: 2px solid ${color}; color: ${color};">Fecha</th>
+                <th style="padding: 8px; border-bottom: 2px solid ${color}; color: ${color};">Operador</th>
+                <th style="padding: 8px; border-bottom: 2px solid ${color}; color: ${color};">Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${futuros.map(f => `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 8px; font-weight: bold;">${f.fecha}</td>
+                  <td style="padding: 8px;">[${f.tarjeton}] ${f.nombre}</td>
+                  <td style="padding: 8px; color: #64748b;">${f.motivo || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      Swal.fire({
+        title: `Próximas ${titulo}`,
+        html: tableHtml,
+        width: '600px',
+        confirmButtonColor: color,
+        confirmButtonText: 'Cerrar'
+      });
+
+    } catch (error) {
+      console.error(error);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar las asignaciones.' });
+    }
+  };
+
   return (
     <div className="itinerario-container">
       <div className="itinerario-header">
@@ -164,7 +251,11 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
             </div>
 
             {/* DESCANSO */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+            <div 
+              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => verAsignacionesFuturas('descansos_detalle', 'DESCANSOS', '#9a3412')}
+              title="Ver Descansos Futuros"
+            >
               <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300">
                 D
               </span>
@@ -174,7 +265,11 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
             </div>
 
             {/* VACACIONES */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+            <div 
+              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => verAsignacionesFuturas('vacaciones_detalle', 'VACACIONES', '#854d0e')}
+              title="Ver Vacaciones Futuras"
+            >
               <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300">
                 V
               </span>
@@ -184,7 +279,11 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
             </div>
 
             {/* INCAPACIDAD */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+            <div 
+              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => verAsignacionesFuturas('incapacidades_detalle', 'INCAPACIDADES', '#1e40af')}
+              title="Ver Incapacidades Futuras"
+            >
               <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300">
                 I
               </span>
