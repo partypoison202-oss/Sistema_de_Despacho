@@ -33,6 +33,10 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
   const [cargando, setCargando] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   
+  // Paginación para mejor rendimiento
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 50;
+  
   const [modalOpen, setModalOpen] = useState(false);
 
   const fetchItinerario = async () => {
@@ -66,6 +70,15 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
     return c.nombre.toLowerCase().includes(term) || c.tarjeton.toLowerCase().includes(term);
   });
 
+  const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
+  const indiceInicio = (paginaActual - 1) * registrosPorPagina;
+  const registrosPaginados = filtrados.slice(indiceInicio, indiceInicio + registrosPorPagina);
+
+  // Reiniciar a la página 1 cuando cambia la búsqueda
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda]);
+
   const getCellClass = (estado) => {
     switch(estado) {
       case 'A': return 'cell-a';
@@ -73,6 +86,9 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
       case 'D': return 'cell-d';
       case 'V': return 'cell-v';
       case 'I': return 'cell-i';
+      case 'AP': return 'cell-ap';
+      case 'DP': return 'cell-dp';
+      case 'R': return 'cell-r';
       case '-': return 'cell-empty';
       default: return '';
     }
@@ -85,6 +101,9 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
       case 'D': return 'Descanso';
       case 'V': return 'Vacaciones';
       case 'I': return 'Incapacidad';
+      case 'AP': return 'Asistencia (Permuta)';
+      case 'DP': return 'Descanso (Permuta)';
+      case 'R': return 'Retardo';
       case '-': return 'Sin Registro (Día Futuro)';
       default: return estado;
     }
@@ -140,7 +159,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
             Simbología / Leyenda de Estatus
           </h4>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
             {/* ASISTENCIA */}
             <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
               <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">
@@ -186,8 +205,28 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">
                 F
               </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
                 FALTA
+              </span>
+            </div>
+
+            {/* PERMUTA */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                P
+              </span>
+              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
+                PERMUTA
+              </span>
+            </div>
+
+            {/* RETARDO */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+              <span className="w-8 h-8 bg-[#ffedd5] text-[#ea580c] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                R
+              </span>
+              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
+                RETARDO
               </span>
             </div>
           </div>
@@ -212,6 +251,9 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
                 <th className="sticky-col sum-col header-v" title="Total Vacaciones">V</th>
                 <th className="sticky-col sum-col header-i" title="Total Incapacidades">I</th>
                 <th className="sticky-col sum-col header-f" title="Total Faltas">F</th>
+                <th className="sticky-col sum-col header-ap" title="Total Asistencias Permuta">AP</th>
+                <th className="sticky-col sum-col header-dp" title="Total Descansos Permuta">DP</th>
+                <th className="sticky-col sum-col header-r" title="Total Retardos">R</th>
                 {data.fechas.map(f => {
                   const [y, m, d] = f.split('-');
                   return <th key={f} className="day-col" title={f}>{d}</th>
@@ -219,22 +261,25 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               </tr>
             </thead>
             <tbody>
-              {filtrados.map(c => (
+              {registrosPaginados.map(c => (
                 <tr key={c.id}>
                   <td className="sticky-col first-col font-mono">{c.tarjeton}</td>
                   <td className="sticky-col second-col conductor-nombre">{c.nombre}</td>
-                  <td className="sticky-col sum-col sum-val-a">{c.totales.A}</td>
-                  <td className="sticky-col sum-col sum-val-d">{c.totales.D}</td>
-                  <td className="sticky-col sum-col sum-val-v">{c.totales.V}</td>
-                  <td className="sticky-col sum-col sum-val-i">{c.totales.I}</td>
-                  <td className="sticky-col sum-col sum-val-f">{c.totales.F}</td>
+                  <td className="sticky-col sum-col sum-val-a">{c.totales?.A || 0}</td>
+                  <td className="sticky-col sum-col sum-val-d">{c.totales?.D || 0}</td>
+                  <td className="sticky-col sum-col sum-val-v">{c.totales?.V || 0}</td>
+                  <td className="sticky-col sum-col sum-val-i">{c.totales?.I || 0}</td>
+                  <td className="sticky-col sum-col sum-val-f">{c.totales?.F || 0}</td>
+                  <td className="sticky-col sum-col sum-val-ap">{c.totales?.AP || 0}</td>
+                  <td className="sticky-col sum-col sum-val-dp">{c.totales?.DP || 0}</td>
+                  <td className="sticky-col sum-col sum-val-r">{c.totales?.R || 0}</td>
                   
                   {data.fechas.map(f => {
                     const estado = c.dias[f];
                     const motivo = c.motivos && c.motivos[f] ? ` | Motivo: ${c.motivos[f]}` : '';
                     return (
                       <td key={f} className="day-cell">
-                        <div className={`status-bubble ${getCellClass(estado)}`} data-tooltip={`${f} - ${getCellLabel(estado)}${motivo}`}>
+                        <div className={`status-bubble ${getCellClass(estado)}`} title={`${f} - ${getCellLabel(estado)}${motivo}`}>
                           {estado}
                         </div>
                       </td>
@@ -244,7 +289,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={7 + data.fechas.length} className="no-results">
+                  <td colSpan={10 + data.fechas.length} className="no-results">
                     No se encontraron conductores.
                   </td>
                 </tr>
@@ -253,6 +298,34 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
           </table>
         )}
       </div>
+
+      {/* Controles de Paginación */}
+      {!cargando && totalPaginas > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 mt-2 rounded-xl">
+          <div className="text-sm text-slate-500">
+            Mostrando <span className="font-medium">{indiceInicio + 1}</span> a <span className="font-medium">{Math.min(indiceInicio + registrosPorPagina, filtrados.length)}</span> de <span className="font-medium">{filtrados.length}</span> conductores
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+              disabled={paginaActual === 1}
+              className="px-3 py-1 text-sm border border-slate-300 rounded-md bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <span className="text-sm font-medium text-slate-700">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <button
+              onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+              disabled={paginaActual === totalPaginas}
+              className="px-3 py-1 text-sm border border-slate-300 rounded-md bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
 
       <ModalAsignarFechas 
         isOpen={modalOpen} 

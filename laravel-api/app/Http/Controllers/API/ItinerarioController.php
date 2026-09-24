@@ -187,6 +187,8 @@ class ItinerarioController extends Controller
             $descansos = $this->parseJsonDetalleConMotivo($conductor->descansos_detalle);
             $vacaciones = $this->parseJsonDetalleConMotivo($conductor->vacaciones_detalle);
             $incapacidades = $this->parseJsonDetalleConMotivo($conductor->incapacidades_detalle);
+            $permutas = $this->parseJsonDetalleConMotivo($conductor->permutas_detalle);
+            $retardos = $this->parseJsonDetalleConMotivo($conductor->retardos_detalle);
 
             // Si el estado de servicio es falta y hoy cae en el rango
             if ($conductor->estado_servicio === 'falta' && !isset($faltas[$hoy])) {
@@ -203,7 +205,7 @@ class ItinerarioController extends Controller
                     ($nombreCondNorm && isset($nombreMap[$nombreCondNorm][$fechaStr])) ||
                     ($fechaStr === $hoy && $conductor->estado_servicio === 'en_servicio');
 
-                // Prioridad: F > I > V > D > A > (-) día futuro > (vacío)
+                // Prioridad: F > I > V > D > AP > DP > R > A > (-) día futuro > (vacío)
                 if (isset($faltas[$fechaStr])) {
                     $estadoDia = 'F';
                     $motivo = $faltas[$fechaStr];
@@ -216,6 +218,17 @@ class ItinerarioController extends Controller
                 } elseif (isset($descansos[$fechaStr])) {
                     $estadoDia = 'D';
                     $motivo = $descansos[$fechaStr];
+                } elseif (isset($permutas[$fechaStr])) {
+                    if ($tieneAsistencia) {
+                        $estadoDia = 'AP';
+                        $motivo = $permutas[$fechaStr] . ' (Asistencia registrada)';
+                    } else {
+                        $estadoDia = 'DP';
+                        $motivo = $permutas[$fechaStr] . ' (Descanso)';
+                    }
+                } elseif (isset($retardos[$fechaStr])) {
+                    $estadoDia = 'R';
+                    $motivo = $retardos[$fechaStr];
                 } elseif ($tieneAsistencia) {
                     $estadoDia = 'A';
                     $motivo = 'Asistencia registrada en Despacho';
@@ -228,7 +241,11 @@ class ItinerarioController extends Controller
                     $fila['motivos'][$fechaStr] = $motivo;
                 }
                 
-                // Incrementar totales sólo para estados A, D, V, I, F
+                // Incrementar totales sólo para estados A, D, V, I, F, AP, DP, R
+                if (!isset($fila['totales']['AP'])) $fila['totales']['AP'] = 0;
+                if (!isset($fila['totales']['DP'])) $fila['totales']['DP'] = 0;
+                if (!isset($fila['totales']['R'])) $fila['totales']['R'] = 0;
+                
                 if (isset($fila['totales'][$estadoDia])) {
                     $fila['totales'][$estadoDia]++;
                 }
@@ -257,7 +274,7 @@ class ItinerarioController extends Controller
     {
         $request->validate([
             'conductor_id' => 'required|exists:conductores,id',
-            'estado' => 'required|in:falta,descanso,vacaciones,incapacidad',
+            'estado' => 'required|in:falta,descanso,vacaciones,incapacidad,permuta,retardo',
             'desde' => 'required|date',
             'hasta' => 'required|date|after_or_equal:desde',
             'motivo' => 'nullable|string'
@@ -266,9 +283,16 @@ class ItinerarioController extends Controller
         $conductor = Conductor::findOrFail($request->input('conductor_id'));
         $estado = $request->input('estado');
         
-        $campo = $estado === 'falta' ? 'faltas_detalle' : 
-                 ($estado === 'descanso' ? 'descansos_detalle' : 
-                 ($estado === 'vacaciones' ? 'vacaciones_detalle' : 'incapacidades_detalle'));
+        $campoMap = [
+            'falta' => 'faltas_detalle',
+            'descanso' => 'descansos_detalle',
+            'vacaciones' => 'vacaciones_detalle',
+            'incapacidad' => 'incapacidades_detalle',
+            'permuta' => 'permutas_detalle',
+            'retardo' => 'retardos_detalle'
+        ];
+        
+        $campo = $campoMap[$estado];
 
         $desde = Carbon::parse($request->input('desde'));
         $hasta = Carbon::parse($request->input('hasta'));

@@ -131,6 +131,18 @@ body {
   min-width: 320px;
 }
 
+/* Bloquea el scroll del body cuando hay un modal abierto */
+body:has(
+  .modal-backdrop,
+  .modal-overlay,
+  .ajustes-modal-overlay,
+  [role="dialog"],
+  .fixed.inset-0.z-50:not(.pointer-events-none),
+  .swal2-container
+) {
+  overflow: hidden !important;
+}
+
 #root {
   min-height: 100svh;
 }

@@ -396,6 +396,14 @@ export default function Operadores() {
     }
   };
 
+  const handleRefNombreChange = (e, setter) => {
+    const val = e.target.value.toUpperCase();
+    const filtered = val.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+    if (filtered.length <= 100) {
+      setter(filtered);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('catalogo'); // 'catalogo' o 'kardex' o 'info_general'
   const [savingId, setSavingId] = useState(null);
 
@@ -1447,17 +1455,21 @@ export default function Operadores() {
       {/* Modal Agregar T6 */}
       {showAddModal && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ position: 'relative' }}>
-            <button 
-              className="close-btn" 
-              onClick={() => setShowAddModal(false)} 
-              aria-label="Cerrar"
-              style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280' }}
-            >
-              &times;
-            </button>
-            <h2 style={{ fontSize: '1.25rem', color: '#111827', marginBottom: '24px', fontWeight: '500' }}>Agregar Nuevo T6</h2>
-            <form onSubmit={handleAddSubmit} className="modal-form">
+          <div className="modal-content" style={{ position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+            <div className="modal-header" style={{ backgroundColor: '#6A1B29', borderBottom: 'none', flexShrink: 0 }}>
+              <div className="modal-header-title">
+                <h2 style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600' }}>Agregar Nuevo T6</h2>
+              </div>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowAddModal(false)} 
+                aria-label="Cerrar"
+                style={{ color: 'white', opacity: 0.8 }}
+              >
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleAddSubmit} className="modal-form" style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
               {/* Contenedor Flex para QR y Foto */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '2rem' }}>
                 
@@ -1495,17 +1507,9 @@ export default function Operadores() {
                     )}
                   </div>
                   
-                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
-                    <button type="button" style={{ 
-                      backgroundColor: 'white', 
-                      border: '1px solid #d1d5db', 
-                      padding: '0.5rem 1rem', 
-                      borderRadius: '0.5rem', 
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      color: '#374151',
-                      fontWeight: '500'
-                    }}>
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block', width: '100%' }}>
+                    <button type="button" className="custom-file-upload-btn">
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                       Subir código QR
                     </button>
                     <input
@@ -1562,17 +1566,9 @@ export default function Operadores() {
                     )}
                   </div>
                   
-                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
-                    <button type="button" style={{ 
-                      backgroundColor: 'white', 
-                      border: '1px solid #d1d5db', 
-                      padding: '0.5rem 1rem', 
-                      borderRadius: '0.5rem', 
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      color: '#374151',
-                      fontWeight: '500'
-                    }}>
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block', width: '100%' }}>
+                    <button type="button" className="custom-file-upload-btn">
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                       Subir foto de perfil
                     </button>
                     <input
@@ -1663,7 +1659,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => setRef1Nombre(e.target.value)} placeholder="Ej. Juan Pérez" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => handleRefNombreChange(e, setRef1Nombre)} placeholder="Ej. Juan Pérez" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Teléfono</label>
@@ -1674,7 +1670,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => setRef2Nombre(e.target.value)} placeholder="Ej. María López" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => handleRefNombreChange(e, setRef2Nombre)} placeholder="Ej. María López" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Teléfono</label>
@@ -1714,17 +1710,21 @@ export default function Operadores() {
       {/* Modal Editar T6 */}
       {showEditModal && selectedConductor && (
         <div className="modal-backdrop">
-          <div className="modal-content" style={{ position: 'relative' }}>
-            <button 
-              className="close-btn" 
-              onClick={() => setShowEditModal(false)} 
-              aria-label="Cerrar"
-              style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#6b7280' }}
-            >
-              &times;
-            </button>
-            <h2 style={{ fontSize: '1.25rem', color: '#111827', marginBottom: '24px', fontWeight: '500' }}>Editar T6</h2>
-            <form onSubmit={handleEditSubmit} className="modal-form">
+          <div className="modal-content" style={{ position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+            <div className="modal-header" style={{ backgroundColor: '#6A1B29', borderBottom: 'none', flexShrink: 0 }}>
+              <div className="modal-header-title">
+                <h2 style={{ color: 'white', fontSize: '1.25rem', fontWeight: '600' }}>Editar T6</h2>
+              </div>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowEditModal(false)} 
+                aria-label="Cerrar"
+                style={{ color: 'white', opacity: 0.8 }}
+              >
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="modal-form" style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
               {/* Contenedor Flex para QR y Foto */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '2rem' }}>
                 
@@ -1745,7 +1745,7 @@ export default function Operadores() {
                       position: 'relative'
                     }}
                   >
-                    {(qrFile || selectedConductor?.qr_documento) ? (
+                    {(qrFile || (selectedConductor?.qr_documento && selectedConductor.qr_documento !== 'null')) ? (
                       <img
                         src={qrFile ? URL.createObjectURL(qrFile) : `${API_BASE}/storage/${selectedConductor.qr_documento}`}
                         alt="Vista previa QR"
@@ -1753,6 +1753,11 @@ export default function Operadores() {
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
+                        }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="none" stroke="%239ca3af" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 1v2h2V5H5zm10-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zm2 1v2h2V5h-2zM3 16a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm2 1v2h2v-2H5zm10-1a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zm2 1v2h2v-2h-2z" /></svg>';
+                          e.target.style.objectFit = 'none';
                         }}
                       />
                     ) : (
@@ -1762,17 +1767,9 @@ export default function Operadores() {
                     )}
                   </div>
                   
-                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
-                    <button type="button" style={{ 
-                      backgroundColor: 'white', 
-                      border: '1px solid #d1d5db', 
-                      padding: '0.5rem 1rem', 
-                      borderRadius: '0.5rem', 
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      color: '#374151',
-                      fontWeight: '500'
-                    }}>
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block', width: '100%' }}>
+                    <button type="button" className="custom-file-upload-btn">
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                       {(qrFile || selectedConductor?.qr_documento) ? 'Cambiar código QR' : 'Subir código QR'}
                     </button>
                     <input
@@ -1812,7 +1809,7 @@ export default function Operadores() {
                       position: 'relative'
                     }}
                   >
-                    {(foto || selectedConductor?.foto) ? (
+                    {(foto || (selectedConductor?.foto && selectedConductor.foto !== 'null')) ? (
                       <img
                         src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`}
                         alt="Vista previa"
@@ -1820,6 +1817,11 @@ export default function Operadores() {
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
+                        }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="none" stroke="%239ca3af" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
+                          e.target.style.objectFit = 'none';
                         }}
                       />
                     ) : (
@@ -1829,18 +1831,10 @@ export default function Operadores() {
                     )}
                   </div>
                   
-                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
-                    <button type="button" style={{ 
-                      backgroundColor: 'white', 
-                      border: '1px solid #d1d5db', 
-                      padding: '0.5rem 1rem', 
-                      borderRadius: '0.5rem', 
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      color: '#374151',
-                      fontWeight: '500'
-                    }}>
-                      {(foto || selectedConductor?.foto) ? 'Cambiar foto de perfil' : 'Subir foto de perfil'}
+                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block', width: '100%' }}>
+                    <button type="button" className="custom-file-upload-btn">
+                      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      {(foto || selectedConductor?.foto) ? 'Cambiar foto' : 'Subir foto'}
                     </button>
                     <input
                       type="file"
@@ -1940,7 +1934,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => setRef1Nombre(e.target.value)} placeholder="Ej. Juan Pérez" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref1Nombre} onChange={e => handleRefNombreChange(e, setRef1Nombre)} placeholder="Ej. Juan Pérez" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 1 - Teléfono</label>
@@ -1951,7 +1945,7 @@ export default function Operadores() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Nombre</label>
-                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => setRef2Nombre(e.target.value)} placeholder="Ej. María López" />
+                  <input type="text" className="modal-input" style={{ width: '100%', padding: '0.6rem' }} value={ref2Nombre} onChange={e => handleRefNombreChange(e, setRef2Nombre)} placeholder="Ej. María López" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Ref. 2 - Teléfono</label>

@@ -232,56 +232,22 @@
   font-size: 1.1rem;
 }
 
-/* Custom Tooltip */
-.status-bubble[data-tooltip] {
-  position: relative;
-}
+/* NUEVOS COLORES PERMUTAS Y RETARDOS */
+.cell-ap { background-color: #ede9fe; color: #6d28d9; } /* Morado */
+.cell-dp { background-color: #e0e7ff; color: #4338ca; } /* Indigo */
+.cell-r { background-color: #ffedd5; color: #ea580c; } /* Naranja */
 
-.status-bubble[data-tooltip]::before {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #1e293b;
-  color: #fff;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  white-space: nowrap;
-  font-size: 0.8rem;
-  font-weight: 500;
-  z-index: 9999;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease, bottom 0.2s ease;
-}
+.header-ap { color: #6d28d9 !important; background-color: #f5f3ff !important; }
+.header-dp { color: #4338ca !important; background-color: #eef2ff !important; }
+.header-r { color: #ea580c !important; background-color: #fff7ed !important; }
 
-.status-bubble[data-tooltip]::after {
-  content: "";
-  position: absolute;
-  bottom: calc(100% + 2px);
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 6px;
-  border-style: solid;
-  border-color: #1e293b transparent transparent transparent;
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease, bottom 0.2s ease;
-  z-index: 9999;
-}
+.sum-val-ap { font-weight: bold; color: #6d28d9; background-color: #f5f3ff !important; }
+.sum-val-dp { font-weight: bold; color: #4338ca; background-color: #eef2ff !important; }
+.sum-val-r { font-weight: bold; color: #ea580c; background-color: #fff7ed !important; }
 
-.status-bubble[data-tooltip]:hover::before {
-  opacity: 1;
-  visibility: visible;
-  bottom: calc(100% + 14px);
-}
-
-.status-bubble[data-tooltip]:hover::after {
-  opacity: 1;
-  visibility: visible;
-  bottom: calc(100% + 6px);
-}
+/* 
+   OPTIMIZACIÓN DE RENDIMIENTO:
+   Se eliminaron las reglas de .status-bubble[data-tooltip] para evitar 
+   renderizar decenas de miles de pseudo-elementos innecesarios.
+   Ahora se usa el atributo HTML nativo 'title'.
+*/
