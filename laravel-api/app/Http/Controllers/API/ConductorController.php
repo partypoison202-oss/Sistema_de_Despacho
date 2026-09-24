@@ -542,6 +542,79 @@ class ConductorController extends Controller
     }
 
     /**
+     * Convierte una falta pendiente en un retardo.
+     */
+    public function marcarRetardo(Request $request, $id)
+    {
+        $this->ensureColumnsExist();
+
+        $request->validate([
+            'falta_id' => 'nullable|string',
+            'falta_index' => 'nullable|integer',
+            'fecha_falta' => 'nullable|string',
+            'motivo_falta' => 'nullable|string',
+        ]);
+
+        $conductor = Conductor::findOrFail($id);
+
+        $rawDetalle = $conductor->faltas_detalle;
+        $detalle = [];
+        if (is_array($rawDetalle)) {
+            $detalle = $rawDetalle;
+        } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+            $parsed = json_decode($rawDetalle, true);
+            if (is_array($parsed)) $detalle = $parsed;
+        }
+
+        $faltaIndex = $request->input('falta_index');
+        $faltaId = $request->input('falta_id');
+        $updated = false;
+
+        foreach ($detalle as $idx => &$item) {
+            if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
+                $item['estado'] = 'retardo';
+                $item['justificada'] = false; 
+                $item['observaciones_justificacion'] = 'Convertido a retardo el ' . date('Y-m-d H:i');
+                $updated = true;
+                break;
+            }
+        }
+
+        if (!$updated) {
+            $detalle[] = [
+                'id' => 'retardo_' . time() . '_' . random_int(1000, 9999),
+                'fecha' => $request->input('fecha_falta') ?: date('Y-m-d'),
+                'motivo' => ($request->input('motivo_falta') ?: 'Falta registrada') . ' (Convertido a retardo)',
+                'estado' => 'retardo',
+                'justificada' => false,
+                'observaciones_justificacion' => 'Convertido a retardo el ' . date('Y-m-d H:i'),
+            ];
+        }
+
+        $conductor->faltas_detalle = $detalle;
+
+        if ($conductor->faltas > 0) {
+            $conductor->faltas = max(0, (int)$conductor->faltas - 1);
+        }
+        $conductor->retardos = (int)$conductor->retardos + 1;
+
+        // Reevaluar regla de 4 faltas en 30 días tras justificar/retardo
+        $eval = $conductor->evaluarInhabilitacionFaltas();
+        if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
+            $conductor->estatus = 'activo';
+            $conductor->estado_servicio = 'disponible';
+        }
+
+        $conductor->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Falta convertida a retardo correctamente. Se descontó la falta y sumó al historial de retardos.',
+            'conductor' => $conductor
+        ], 200);
+    }
+
+    /**
      * Registra una falta con fecha y motivo detallado para un conductor.
      */
     public function agregarFalta(Request $request, $id)

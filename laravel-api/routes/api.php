@@ -181,6 +181,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores/{id}/qr', [ConductorController::class, 'uploadQr']);
     Route::post('/conductores/{id}/baja', [ConductorController::class, 'darDeBaja']);
     Route::post('/conductores/{id}/justificar-falta', [ConductorController::class, 'justificarFalta']);
+    Route::post('/conductores/{id}/marcar-retardo', [ConductorController::class, 'marcarRetardo']);
     Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
 
     // Itinerario de Asistencias
