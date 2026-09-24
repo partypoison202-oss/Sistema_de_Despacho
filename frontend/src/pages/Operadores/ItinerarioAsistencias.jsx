@@ -203,13 +203,23 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               </span>
             </div>
 
-            {/* PERMUTA */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+            {/* DESCANSO PERMUTA */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Descanso por Permuta">
               <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                P
+                DP
               </span>
               <span className="text-[10px] font-extrabold text-slate-700 pr-2">
-                PERMUTA
+                DESCANSO (PERMUTA)
+              </span>
+            </div>
+
+            {/* ASISTENCIA PERMUTA */}
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Asistencia por Permuta">
+              <span className="w-8 h-8 bg-[#e0e7ff] text-[#3730a3] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                AP
+              </span>
+              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
+                ASISTENCIA (PERMUTA)
               </span>
             </div>
 
