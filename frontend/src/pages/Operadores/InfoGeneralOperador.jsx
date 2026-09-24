@@ -34,31 +34,36 @@ const calcularAntiguedad = (fechaIngreso) => {
 const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
   <div className="bg-white p-8 w-[800px] mx-auto text-sm text-gray-800 font-sans" id="printable-pdf-template">
     {/* Membrete Oficial */}
-    <div className="border-b-2 border-[#6A1B29] pb-4 mb-6 flex items-center justify-between">
+    <div className="bg-[#6A1B29] py-4 px-6 mb-6 flex items-center justify-between rounded-t-lg" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
       {/* Left Logo */}
-      <img src={sitmahOrangeUrl} alt="SITMAH" className="h-10 w-auto object-contain" />
+      <img src="/images/sistema_de_tm.webp" alt="Sistema TM" crossOrigin="anonymous" className="h-12 w-auto object-contain brightness-0 invert" />
       
       {/* Center Text */}
       <div className="text-center flex-1 mx-4">
-        <h2 className="text-xl font-bold text-[#6A1B29]">CONSULTA DE INFORMACIÓN DE LA PERSONA CONDUCTORA</h2>
-        <p className="text-[10px] text-gray-500 mt-1">Fecha de Impresión: {new Date().toLocaleDateString()} | Reporte Operativo SITMAH</p>
+        <h2 className="text-xl font-bold text-white">CONSULTA DE INFORMACIÓN DE LA PERSONA CONDUCTORA</h2>
+        <p className="text-[10px] text-gray-200 mt-1">Fecha de Impresión: {new Date().toLocaleDateString()} | Reporte Operativo SITMAH</p>
       </div>
 
       {/* Right Logo */}
-      <img src="/images/sistema_de_tm.webp" alt="Sistema TM" crossOrigin="anonymous" className="h-16 w-auto object-contain" />
+      <img src="/images/sitmah_logo.webp" alt="SITMAH" crossOrigin="anonymous" className="h-10 w-auto object-contain" />
     </div>
 
     {/* Identidad */}
     <div className="flex items-center gap-6 mb-6 pb-4 border-b border-gray-100">
-      <div className="h-24 w-24 shrink-0 rounded-full flex items-center justify-center text-white text-4xl font-bold overflow-hidden" style={{ backgroundColor: '#6A1B29' }}>
-         {conductor.nombre && conductor.nombre !== '------------------------' ? conductor.nombre.charAt(0).toUpperCase() : 'O'}
+      <div className="relative h-24 w-24 shrink-0 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-inner overflow-hidden" style={{ backgroundColor: '#6A1B29' }}>
+        <span className="absolute inset-0 flex items-center justify-center z-0">
+          {conductor.nombre && conductor.nombre !== '------------------------' ? conductor.nombre.charAt(0).toUpperCase() : 'O'}
+        </span>
+        {conductor.foto && (
+          <img src={conductor.foto} alt={conductor.nombre} crossOrigin="anonymous" className="absolute inset-0 w-full h-full object-cover z-10" />
+        )}
       </div>
       <div className="flex-1">
          <h2 className="text-2xl font-bold text-gray-900 uppercase">{conductor.nombre}</h2>
          <div className="flex items-center gap-4 mt-2 text-gray-700">
            <span><strong>ID:</strong> {conductor.id}</span>
            <span><strong>Tarjetón:</strong> {conductor.tarjeton ? conductor.tarjeton.split('_BAJA_')[0] : ''}</span>
-           <span className={`px-2 py-1 text-xs rounded-full font-bold uppercase ${conductor.estatus === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{conductor.estatus === 'activo' ? 'ACTIVO' : 'BAJA'}</span>
+           <span className={`px-2 py-1 text-xs rounded-full font-bold uppercase ${conductor.estatus === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>{conductor.estatus === 'activo' ? 'ACTIVO' : 'BAJA'}</span>
          </div>
          <p className="mt-1 text-xs text-gray-500"><strong>Vigencia Licencia:</strong> {conductor.vigencia_licencia ? new Date(conductor.vigencia_licencia).toLocaleDateString() : 'No registrada'}</p>
       </div>
@@ -409,13 +414,13 @@ export default function InfoGeneralOperador({ conductores }) {
                   <span className="text-gray-500 font-medium">Teléfono</span>
                   <span className="text-gray-900 font-semibold">{displayConductor.telefono || 'No registrado'}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-50 pb-2">
-                  <span className="text-gray-500 font-medium">Referencia 1</span>
-                  <span className="text-gray-900 font-semibold">{displayConductor.referencia_1 || 'No registrada'}</span>
+                <div className="flex justify-between border-b border-gray-50 pb-2 gap-4">
+                  <span className="text-gray-500 font-medium whitespace-nowrap min-w-[100px]">Referencia 1</span>
+                  <span className="text-gray-900 font-semibold text-right break-words">{displayConductor.referencia_1 || 'No registrada'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500 font-medium">Referencia 2</span>
-                  <span className="text-gray-900 font-semibold">{displayConductor.referencia_2 || 'No registrada'}</span>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500 font-medium whitespace-nowrap min-w-[100px]">Referencia 2</span>
+                  <span className="text-gray-900 font-semibold text-right break-words">{displayConductor.referencia_2 || 'No registrada'}</span>
                 </div>
               </div>
             </div>

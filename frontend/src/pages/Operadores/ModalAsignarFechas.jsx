@@ -8,7 +8,9 @@ const colorStyles = {
   vacaciones: { dot: '#eab308', text: 'Vacaciones (V)' },
   incapacidad: { dot: '#3b82f6', text: 'Incapacidad (I)' },
   descanso: { dot: '#f97316', text: 'Descanso (D)' },
-  falta: { dot: '#ef4444', text: 'Falta (F)' }
+  falta: { dot: '#ef4444', text: 'Falta (F)' },
+  permuta: { dot: '#8b5cf6', text: 'Permuta (P)' },
+  retardo: { dot: '#ea580c', text: 'Retardo (R)' }
 };
 
 function CustomColorSelect({ value, onChange }) {

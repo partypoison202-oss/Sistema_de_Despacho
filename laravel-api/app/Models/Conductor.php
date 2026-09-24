@@ -45,7 +45,8 @@ class Conductor extends Model
         'permutas_detalle',
         'condicionamientos_medicos',
         'accidentes_siniestros_detalle',
-        'faltas_detalle'
+        'faltas_detalle',
+        'retardos_detalle'
     ];
 
     protected $casts = [
@@ -55,6 +56,7 @@ class Conductor extends Model
         'permutas_detalle' => 'array',
         'accidentes_siniestros_detalle' => 'array',
         'faltas_detalle' => 'array',
+        'retardos_detalle' => 'array',
     ];
 
     public function setTarjetonAttribute($value)

@@ -563,11 +563,11 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* MODAL / DRAWER: DETALLE DE FALTAS DEL CONDUCTOR */}
       {conductorActualData && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn my-auto">
             
             {/* Header del Modal */}
-            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#6b1d33]/10 text-[#6b1d33] flex items-center justify-center font-bold text-lg">
                   {conductorActualData.tarjeton || 'T6'}
@@ -599,8 +599,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
             </div>
 
             {/* Sub-header de estadísticas rápida */}
-            <div className="bg-slate-100/70 px-6 py-3 border-b border-slate-200 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4 text-xs font-bold">
+            <div className="bg-slate-100/70 px-6 py-3 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0 overflow-x-auto">
+              <div className="flex items-center gap-4 text-xs font-bold whitespace-nowrap">
                 <span className="text-red-700 bg-red-100/80 px-3 py-1 rounded-full border border-red-200">
                   Activas por Justificar: {conductorActualData.pendientesCount}
                 </span>
@@ -625,7 +625,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
             </div>
 
             {/* Contenido principal del Modal: Lista de Faltas */}
-            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 min-h-0">
               
               {/* Tarjeta Informativa de la Ventana de 30 Días */}
               {(() => {
