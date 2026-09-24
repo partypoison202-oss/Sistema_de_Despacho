@@ -19,13 +19,6 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
   
   const [hasta, setHasta] = useState(() => {
     const d = new Date();
-    if (d.getDate() <= 15) {
-      d.setDate(15);
-    } else {
-      // Último día del mes actual
-      d.setMonth(d.getMonth() + 1);
-      d.setDate(0);
-    }
     return d.toISOString().split('T')[0];
   });
   
@@ -96,11 +89,11 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
         <div className="itinerario-filters">
           <div className="filter-group">
             <label>Desde:</label>
-            <AppleDatePicker value={desde} onChange={setDesde} />
+            <AppleDatePicker value={desde} onChange={setDesde} disableFuture={true} />
           </div>
           <div className="filter-group">
             <label>Hasta:</label>
-            <AppleDatePicker value={hasta} onChange={setHasta} />
+            <AppleDatePicker value={hasta} onChange={setHasta} disableFuture={true} minDate={desde} />
           </div>
           <div className="filter-group" style={{ flex: 1, minWidth: '250px' }}>
             <label>Buscar Conductor:</label>
