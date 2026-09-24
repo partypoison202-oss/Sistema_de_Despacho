@@ -54,8 +54,8 @@ return new class extends Migration
                 $rolMap[$rolName] = $rolId;
             }
 
-            // Look for the user by exactly full name
-            $existingUser = DB::table('usuarios')->where('nombre_completo', $u['nombre'])->first();
+            // Look for the user by username or full name
+            $existingUser = DB::table('usuarios')->where('usuario', $u['usuario'])->orWhere('nombre_completo', $u['nombre'])->first();
 
             if ($existingUser) {
                 // UPDATE
