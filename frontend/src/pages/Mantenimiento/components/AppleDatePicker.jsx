@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 const CALENDAR_WIDTH = 288; // w-72
 const CALENDAR_HEIGHT = 320; // approx height
 
-const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false, mode = "date" }) => {
+const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false, mode = "date", minDate, maxDate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState(mode === 'month' ? 'months' : 'days'); // 'days' | 'months' | 'years'
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -168,7 +168,24 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     
     const isFuture = disableFuture && currentDate > todayDateOnly;
     const isPast = disablePast && currentDate < todayDateOnly;
-    const isDisabled = isFuture || isPast;
+    
+    // Custom date constraints
+    let isBeforeMin = false;
+    let isAfterMax = false;
+    
+    if (minDate) {
+      const [mYear, mMonth, mDay] = minDate.split('-');
+      const minD = new Date(parseInt(mYear), parseInt(mMonth) - 1, parseInt(mDay));
+      isBeforeMin = currentDate < minD;
+    }
+    
+    if (maxDate) {
+      const [mxYear, mxMonth, mxDay] = maxDate.split('-');
+      const maxD = new Date(parseInt(mxYear), parseInt(mxMonth) - 1, parseInt(mxDay));
+      isAfterMax = currentDate > maxD;
+    }
+
+    const isDisabled = isFuture || isPast || isBeforeMin || isAfterMax;
 
     days.push(
       <button
