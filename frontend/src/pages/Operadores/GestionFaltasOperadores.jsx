@@ -289,6 +289,63 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
     }
   };
 
+  // Handler para marcar retardo en lugar de falta
+  const handleMarcarRetardo = async (faltaInfo) => {
+    if (!conductorActualData) return;
+    
+    const confirm = await Swal.fire({
+      title: '¿Convertir a retardo?',
+      text: 'Esta acción cambiará la falta a un retardo, descontando una falta del historial y sumando un retardo al operador.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d97706',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, dar retardo',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const headers = getAuthHeaders ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+      headers['Content-Type'] = 'application/json';
+
+      const bodyData = {};
+      if (faltaInfo.id) bodyData.falta_id = faltaInfo.id;
+      if (faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
+      if (faltaInfo.fecha) bodyData.fecha_falta = faltaInfo.fecha;
+      if (faltaInfo.motivo) bodyData.motivo_falta = faltaInfo.motivo;
+
+      const res = await fetch(`${API_BASE}/api/conductores/${conductorActualData.id}/marcar-retardo`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(bodyData)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al convertir en retardo');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Retardo Registrado',
+        text: 'La falta ha sido convertida exitosamente a retardo.',
+        confirmButtonColor: '#10b981',
+        timer: 1500
+      });
+
+      if (typeof onRefresh === 'function') {
+        onRefresh();
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message,
+        confirmButtonColor: '#6b1d33'
+      });
+    }
+  };
+
   return (
     <div className="gestion-faltas-container space-y-6">
       
@@ -755,19 +812,31 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                             </button>
                           ) : (
                             !readOnly && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setFaltaAJustificar({ ...falta, index: idx });
-                                  setModalSubidaOpen(true);
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                                </svg>
-                                Subir Justificante
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarcarRetardo({ ...falta, index: idx })}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Dar Retardo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFaltaAJustificar({ ...falta, index: idx });
+                                    setModalSubidaOpen(true);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                  </svg>
+                                  Subir Justificante
+                                </button>
+                              </>
                             )
                           )}
                         </div>
