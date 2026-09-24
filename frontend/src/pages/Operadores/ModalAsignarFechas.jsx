@@ -282,7 +282,6 @@ export default function ModalAsignarFechas({
             </div>
           )}
 
-<<<<<<< HEAD
           {/* Selección de Conductores */}
           {estado === 'permuta' ? (
             <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200">
