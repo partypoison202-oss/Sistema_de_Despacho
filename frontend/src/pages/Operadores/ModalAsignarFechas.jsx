@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
@@ -9,7 +9,7 @@ const colorStyles = {
   incapacidad: { dot: '#3b82f6', text: 'Incapacidad (I)' },
   descanso: { dot: '#f97316', text: 'Descanso (D)' },
   falta: { dot: '#ef4444', text: 'Falta (F)' },
-  permuta: { dot: '#8b5cf6', text: 'Permuta (P)' },
+  permuta: { dot: '#8b5cf6', text: 'Permuta (DP / AP)' },
   retardo: { dot: '#ea580c', text: 'Retardo (R)' }
 };
 
@@ -30,44 +30,20 @@ function CustomColorSelect({ value, onChange }) {
   const currentStyle = colorStyles[value] || colorStyles.vacaciones;
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', width: '100%' }}>
+    <div ref={dropdownRef} className="relative w-full">
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          backgroundColor: 'white',
-          color: '#1e293b',
-          padding: '0.6rem 1rem',
-          borderRadius: '8px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          border: '1px solid #cbd5e1',
-          transition: 'border-color 0.2s'
-        }}
+        className="bg-white text-slate-800 px-3.5 py-2.5 rounded-xl font-semibold cursor-pointer flex justify-between items-center border border-slate-300 transition-colors shadow-2xs hover:border-slate-400"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: currentStyle.dot, boxShadow: '0 0 0 2px rgba(255,255,255,0.8)' }}></div>
-          <span>{currentStyle.text}</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: currentStyle.dot, boxShadow: '0 0 0 2px rgba(255,255,255,0.8)' }}></div>
+          <span className="text-xs sm:text-sm">{currentStyle.text}</span>
         </div>
-        <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>▼</span>
+        <span className="text-slate-400 text-xs">▼</span>
       </div>
       
       {isOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
-          marginTop: '6px',
-          backgroundColor: 'white',
-          border: '1px solid #e2e8f0',
-          borderRadius: '8px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          zIndex: 1000,
-          overflow: 'hidden'
-        }}>
+        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-[1000] overflow-hidden divide-y divide-slate-100">
           {Object.entries(colorStyles).map(([key, style]) => (
             <div 
               key={key}
@@ -75,21 +51,9 @@ function CustomColorSelect({ value, onChange }) {
                 onChange(key);
                 setIsOpen(false);
               }}
-              style={{
-                padding: '0.75rem 1rem',
-                backgroundColor: value === key ? '#f8fafc' : 'white',
-                color: value === key ? '#0f172a' : '#334155',
-                fontWeight: value === key ? '700' : '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = value === key ? '#f8fafc' : 'white'}
+              className={`px-3.5 py-2.5 text-xs sm:text-sm cursor-pointer flex items-center gap-2.5 transition-colors ${value === key ? 'bg-slate-100 text-slate-900 font-bold' : 'text-slate-700 hover:bg-slate-50 font-medium'}`}
             >
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: style.dot }}></div>
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: style.dot }}></div>
               <span>{style.text}</span>
             </div>
           ))}
@@ -99,22 +63,138 @@ function CustomColorSelect({ value, onChange }) {
   );
 }
 
-export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAuthHeaders, onSuccess, initialConductorId = '', initialEstado = 'vacaciones', lockEstado = false }) {
+function SearchableConductorSelect({ label, sublabel, selectedId, onSelect, conductores = [], excludeId = null, placeholder }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedConductor = conductores.find(c => String(c.id) === String(selectedId));
+
+  const condFiltrados = conductores.filter(c => {
+    if (c.estatus !== 'activo') return false;
+    if (excludeId && String(c.id) === String(excludeId)) return false;
+    const term = busqueda.toLowerCase().trim();
+    if (!term) return true;
+    return (c.nombres || '').toLowerCase().includes(term) || 
+           (c.apellidos || '').toLowerCase().includes(term) || 
+           (c.tarjeton || '').toLowerCase().includes(term);
+  }).sort((a, b) => (a.nombres || '').localeCompare(b.nombres || ''));
+
+  return (
+    <div className="space-y-1.5" ref={dropdownRef}>
+      <div className="flex flex-col">
+        <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">
+          {label}
+        </label>
+        {sublabel && (
+          <span className="text-[11px] text-slate-500 font-medium">
+            {sublabel}
+          </span>
+        )}
+      </div>
+
+      {selectedConductor ? (
+        <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-300 rounded-xl shadow-2xs transition-all hover:bg-slate-100/80">
+          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+            <span className="font-mono font-black text-xs text-[#6b1d33] bg-[#6b1d33]/10 px-2 py-1 rounded-md shrink-0">
+              {selectedConductor.tarjeton}
+            </span>
+            <span className="font-bold text-xs sm:text-sm text-slate-800 truncate">
+              {selectedConductor.nombres} {selectedConductor.apellidos}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onSelect('');
+              setIsOpen(true);
+            }}
+            className="text-xs font-extrabold text-red-600 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors shrink-0"
+          >
+            ✕ Cambiar
+          </button>
+        </div>
+      ) : (
+        <div className="relative w-full">
+          <input 
+            type="text" 
+            placeholder={placeholder || "Buscar por nombre o tarjetón..."} 
+            value={busqueda}
+            onFocus={() => setIsOpen(true)}
+            onChange={e => {
+              setBusqueda(e.target.value);
+              setIsOpen(true);
+            }}
+            className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b1d33] focus:border-transparent transition-all shadow-2xs"
+          />
+          {isOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-[1050] max-h-48 overflow-y-auto divide-y divide-slate-100">
+              {condFiltrados.length === 0 ? (
+                <div className="p-3 text-xs text-slate-400 text-center font-medium">
+                  No se encontraron conductores
+                </div>
+              ) : (
+                condFiltrados.map(c => (
+                  <div 
+                    key={c.id}
+                    onClick={() => {
+                      onSelect(c.id);
+                      setIsOpen(false);
+                      setBusqueda('');
+                    }}
+                    className="p-2.5 hover:bg-slate-50 cursor-pointer flex items-center gap-2.5 transition-colors"
+                  >
+                    <span className="font-mono font-bold text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded shrink-0">
+                      {c.tarjeton}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-700 truncate">
+                      {c.nombres} {c.apellidos}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ModalAsignarFechas({ 
+  isOpen, 
+  onClose, 
+  conductores = [], 
+  getAuthHeaders, 
+  onSuccess, 
+  initialConductorId = '', 
+  initialEstado = 'vacaciones', 
+  lockEstado = false 
+}) {
   const [conductorId, setConductorId] = useState('');
+  const [conductorRelacionadoId, setConductorRelacionadoId] = useState('');
   const [estado, setEstado] = useState('vacaciones');
   const [fecha, setFecha] = useState(() => new Date().toISOString().split('T')[0]);
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
 
-  // Limpiar form al abrir
   useEffect(() => {
     if (isOpen) {
       setConductorId(initialConductorId);
+      setConductorRelacionadoId('');
       setEstado(initialEstado);
       setFecha(new Date().toISOString().split('T')[0]);
       setMotivo('');
-      setBusqueda('');
     }
   }, [isOpen, initialConductorId, initialEstado]);
 
@@ -122,32 +202,44 @@ export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAu
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!conductorId) {
-      return Swal.fire('Atención', 'Selecciona un conductor', 'warning');
+      return Swal.fire('Atención', 'Por favor selecciona el conductor que descansa (DP)', 'warning');
     }
-    // No need to validate final date < initial date because it's a single date.
+
+    if (estado === 'permuta') {
+      if (!conductorRelacionadoId) {
+        return Swal.fire('Atención', 'Para asignar una permuta debes seleccionar a ambos conductores (quien descansa y quien asiste en su lugar).', 'warning');
+      }
+      if (String(conductorId) === String(conductorRelacionadoId)) {
+        return Swal.fire('Atención', 'No puedes hacer una permuta con el mismo conductor.', 'warning');
+      }
+    }
 
     setEnviando(true);
     try {
+      const payload = {
+        conductor_id: conductorId,
+        estado,
+        desde: fecha,
+        hasta: fecha,
+        motivo,
+        conductor_relacionado_id: estado === 'permuta' ? conductorRelacionadoId : null
+      };
+
       const res = await fetch(`${API_BASE}/api/operadores/itinerario/asignar`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          conductor_id: conductorId,
-          estado,
-          desde: fecha,
-          hasta: fecha,
-          motivo
-        })
+        body: JSON.stringify(payload)
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Error al guardar');
+      if (!res.ok) throw new Error(json.message || 'Error al guardar asignación');
       
       Swal.fire({
         icon: 'success',
         title: 'Asignado',
-        text: 'Bloque de fechas asignado correctamente',
-        timer: 1500,
+        text: json.message || 'Asignación registrada correctamente',
+        timer: 2000,
         showConfirmButton: false
       });
       onSuccess();
@@ -158,107 +250,103 @@ export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAu
     }
   };
 
-  const condFiltrados = conductores.filter(c => {
-    if (c.estatus !== 'activo') return false;
-    const term = busqueda.toLowerCase();
-    return c.nombres.toLowerCase().includes(term) || 
-           c.apellidos.toLowerCase().includes(term) || 
-           c.tarjeton.toLowerCase().includes(term);
-  }).sort((a, b) => a.nombres.localeCompare(b.nombres));
-
   const modalContent = (
-    <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 99999 }}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '550px', padding: 0, overflow: 'hidden' }}>
-        
-        <div style={{ background: '#6b1d33', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center z-[99999] p-3 sm:p-4 overflow-y-auto" onClick={onClose}>
+      <div 
+        className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-auto border border-slate-100 max-h-[92vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-[#6b1d33] px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-sm">
           <div>
-            <h2 style={{ color: 'white', margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>Asignar Fechas al Itinerario</h2>
-            <p style={{ color: '#e2e8f0', margin: '0.2rem 0 0 0', fontSize: '0.85rem' }}>Selecciona un conductor para agendar vacaciones, incapacidades o faltas.</p>
+            <h2 className="text-base sm:text-lg font-extrabold m-0">Asignar Fechas al Itinerario</h2>
+            <p className="text-slate-200 text-xs mt-0.5 m-0 font-medium">Agendar vacaciones, descansos, permutas, faltas o retardo.</p>
           </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer', opacity: 0.8 }}>&times;</button>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="text-white hover:text-slate-200 text-2xl font-light leading-none p-1 transition-opacity opacity-80 hover:opacity-100 cursor-pointer"
+          >
+            &times;
+          </button>
         </div>
         
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto shrink grow">
           
-          <div className="form-group">
-            <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>CONDUCTOR</label>
-            <input 
-              type="text" 
-              className="modal-input" 
-              placeholder="Buscar por nombre o tarjetón..." 
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <div style={{ 
-              maxHeight: '160px', 
-              overflowY: 'auto', 
-              border: '1px solid #cbd5e1', 
-              borderRadius: '8px',
-              backgroundColor: 'white',
-              boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'
-            }}>
-              {condFiltrados.length === 0 && (
-                <div style={{ padding: '1rem', color: '#94a3b8', textAlign: 'center', fontSize: '0.9rem' }}>
-                  No se encontraron conductores
-                </div>
-              )}
-              {condFiltrados.map(c => (
-                <div 
-                  key={c.id}
-                  onClick={() => setConductorId(c.id)}
-                  style={{ 
-                    padding: '0.6rem 1rem', 
-                    cursor: 'pointer',
-                    backgroundColor: conductorId === c.id ? '#f1f5f9' : 'white',
-                    color: conductorId === c.id ? '#0f172a' : '#475569',
-                    fontWeight: conductorId === c.id ? '700' : '500',
-                    borderBottom: '1px solid #f8fafc',
-                    borderLeft: conductorId === c.id ? '4px solid #6b1d33' : '4px solid transparent',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (conductorId !== c.id) e.currentTarget.style.backgroundColor = '#f8fafc';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (conductorId !== c.id) e.currentTarget.style.backgroundColor = 'white';
-                  }}
-                >
-                  <span style={{ fontFamily: 'monospace', color: '#64748b', marginRight: '0.5rem' }}>{c.tarjeton}</span>
-                  {c.nombres} {c.apellidos}
-                </div>
-              ))}
-            </div>
-          </div>
-
+          {/* Tipo de asignación (Si no está bloqueado) */}
           {!lockEstado && (
-            <div className="form-group">
-              <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>TIPO DE ASIGNACIÓN</label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">TIPO DE ASIGNACIÓN</label>
               <CustomColorSelect value={estado} onChange={setEstado} />
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>FECHA</label>
+          {/* Selección de Conductores */}
+          {estado === 'permuta' ? (
+            <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200">
+              <SearchableConductorSelect 
+                label="1. Conductor que Descansa (DP)"
+                sublabel="Persona que tomará el día de descanso por permuta"
+                selectedId={conductorId}
+                onSelect={setConductorId}
+                conductores={conductores}
+                placeholder="Buscar al primer conductor (que descansa)..."
+              />
+
+              <SearchableConductorSelect 
+                label="2. Conductor que Asiste en su lugar (AP)"
+                sublabel="Persona que cubrirá la asistencia por permuta"
+                selectedId={conductorRelacionadoId}
+                onSelect={setConductorRelacionadoId}
+                conductores={conductores}
+                excludeId={conductorId}
+                placeholder="Buscar al segundo conductor (que asiste)..."
+              />
+            </div>
+          ) : (
+            <SearchableConductorSelect 
+              label="Conductor"
+              sublabel="Selecciona a la persona conductora"
+              selectedId={conductorId}
+              onSelect={setConductorId}
+              conductores={conductores}
+              placeholder="Buscar por nombre o tarjetón..."
+            />
+          )}
+
+          {/* Fecha */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">FECHA</label>
             <AppleDatePicker value={fecha} onChange={setFecha} />
           </div>
 
-          <div className="form-group">
-            <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>MOTIVO (OPCIONAL)</label>
+          {/* Motivo (Opcional) */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">MOTIVO (OPCIONAL)</label>
             <input 
               type="text" 
-              className="modal-input" 
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b1d33] focus:border-transparent transition-all shadow-2xs" 
               value={motivo} 
               onChange={e => setMotivo(e.target.value.toUpperCase())}
-              placeholder="EJ. VACACIONES PROGRAMADAS"
+              placeholder="EJ. VACACIONES PROGRAMADAS / ACUERDO ENTRE OPERADORES"
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
-            <button type="button" className="btn-cancel" onClick={onClose} style={{ padding: '0.6rem 1.2rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>
+          {/* Footer Actions */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 shrink-0">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+            >
               Cancelar
             </button>
-            <button type="submit" className="btn-save" disabled={enviando} style={{ padding: '0.6rem 1.2rem', borderRadius: '8px', border: 'none', background: '#6b1d33', color: 'white', fontWeight: '600', cursor: enviando ? 'wait' : 'pointer' }}>
+            <button 
+              type="submit" 
+              disabled={enviando} 
+              className="px-4 py-2.5 rounded-xl border-none bg-[#6b1d33] text-white text-xs sm:text-sm font-bold hover:bg-[#831843] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait cursor-pointer"
+            >
               {enviando ? 'Guardando...' : 'Asignar Fechas'}
             </button>
           </div>

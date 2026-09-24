@@ -187,7 +187,7 @@ class ItinerarioController extends Controller
             $descansos = $this->parseJsonDetalleConMotivo($conductor->descansos_detalle);
             $vacaciones = $this->parseJsonDetalleConMotivo($conductor->vacaciones_detalle);
             $incapacidades = $this->parseJsonDetalleConMotivo($conductor->incapacidades_detalle);
-            $permutas = $this->parseJsonDetalleConMotivo($conductor->permutas_detalle);
+            $permutas = $this->parseJsonPermutas($conductor->permutas_detalle);
             $retardos = $this->parseJsonDetalleConMotivo($conductor->retardos_detalle);
 
             // Si el estado de servicio es falta y hoy cae en el rango
@@ -219,12 +219,24 @@ class ItinerarioController extends Controller
                     $estadoDia = 'D';
                     $motivo = $descansos[$fechaStr];
                 } elseif (isset($permutas[$fechaStr])) {
-                    if ($tieneAsistencia) {
-                        $estadoDia = 'AP';
-                        $motivo = $permutas[$fechaStr] . ' (Asistencia registrada)';
-                    } else {
+                    $itemP = $permutas[$fechaStr];
+                    $tipoP = is_array($itemP) ? ($itemP['tipo'] ?? null) : null;
+                    $motivoP = is_array($itemP) ? ($itemP['motivo'] ?? '') : (is_string($itemP) ? $itemP : '');
+
+                    if ($tipoP === 'DP') {
                         $estadoDia = 'DP';
-                        $motivo = $permutas[$fechaStr] . ' (Descanso)';
+                        $motivo = $motivoP ?: 'Descanso (Permuta)';
+                    } elseif ($tipoP === 'AP') {
+                        $estadoDia = 'AP';
+                        $motivo = $motivoP ?: 'Asistencia (Permuta)';
+                    } else {
+                        if ($tieneAsistencia) {
+                            $estadoDia = 'AP';
+                            $motivo = $motivoP ? ($motivoP . ' (Asistencia registrada)') : 'Asistencia (Permuta)';
+                        } else {
+                            $estadoDia = 'DP';
+                            $motivo = $motivoP ? ($motivoP . ' (Descanso)') : 'Descanso (Permuta)';
+                        }
                     }
                 } elseif (isset($retardos[$fechaStr])) {
                     $estadoDia = 'R';
@@ -277,26 +289,109 @@ class ItinerarioController extends Controller
             'estado' => 'required|in:falta,descanso,vacaciones,incapacidad,permuta,retardo',
             'desde' => 'required|date',
             'hasta' => 'required|date|after_or_equal:desde',
-            'motivo' => 'nullable|string'
+            'motivo' => 'nullable|string',
+            'conductor_relacionado_id' => 'nullable|exists:conductores,id'
         ]);
 
         $conductor = Conductor::findOrFail($request->input('conductor_id'));
         $estado = $request->input('estado');
         
+        $desde = Carbon::parse($request->input('desde'));
+        $hasta = Carbon::parse($request->input('hasta'));
+        $period = CarbonPeriod::create($desde, $hasta);
+
+        // Lógica especial para PERMUTA (Involucra a 2 conductores: 1 descansa [DP], 2 asiste [AP])
+        if ($estado === 'permuta') {
+            $relacionadoId = $request->input('conductor_relacionado_id');
+            if (!$relacionadoId || (string)$relacionadoId === (string)$conductor->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Para asignar una permuta debes seleccionar a ambos conductores (el que descansa y el que cubre la asistencia).'
+                ], 422);
+            }
+
+            $conductor2 = Conductor::find($relacionadoId);
+            if (!$conductor2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El segundo conductor seleccionado no fue encontrado.'
+                ], 404);
+            }
+
+            $motivoBase = trim($request->input('motivo') ?? '');
+
+            // Detalle Conductor 1 (Persona que descansa -> DP)
+            $rawDetalle1 = $conductor->permutas_detalle;
+            $detalle1 = is_string($rawDetalle1) ? (json_decode($rawDetalle1, true) ?: []) : (is_array($rawDetalle1) ? $rawDetalle1 : []);
+            $fechasExistentes1 = array_column($detalle1, 'fecha');
+
+            // Detalle Conductor 2 (Persona que asiste -> AP)
+            $rawDetalle2 = $conductor2->permutas_detalle;
+            $detalle2 = is_string($rawDetalle2) ? (json_decode($rawDetalle2, true) ?: []) : (is_array($rawDetalle2) ? $rawDetalle2 : []);
+            $fechasExistentes2 = array_column($detalle2, 'fecha');
+
+            $diasAgregados1 = 0;
+            $diasAgregados2 = 0;
+
+            foreach ($period as $date) {
+                $fechaStr = $date->format('Y-m-d');
+
+                // Conductor 1 (Descansa - DP)
+                if (!in_array($fechaStr, $fechasExistentes1)) {
+                    $detalle1[] = [
+                        'id' => 'permuta_dp_' . time() . '_' . random_int(1000, 9999),
+                        'fecha' => $fechaStr,
+                        'tipo' => 'DP',
+                        'motivo' => "Permuta con {$conductor2->tarjeton} - {$conductor2->nombres} {$conductor2->apellidos}" . ($motivoBase ? " ({$motivoBase})" : ''),
+                        'conductor_relacionado_id' => $conductor2->id,
+                        'conductor_relacionado_tarjeton' => $conductor2->tarjeton,
+                        'conductor_relacionado_nombre' => trim("{$conductor2->nombres} {$conductor2->apellidos}"),
+                        'estado' => 'aprobada',
+                        'justificada' => true
+                    ];
+                    $diasAgregados1++;
+                }
+
+                // Conductor 2 (Asiste - AP)
+                if (!in_array($fechaStr, $fechasExistentes2)) {
+                    $detalle2[] = [
+                        'id' => 'permuta_ap_' . time() . '_' . random_int(1000, 9999),
+                        'fecha' => $fechaStr,
+                        'tipo' => 'AP',
+                        'motivo' => "Permuta con {$conductor->tarjeton} - {$conductor->nombres} {$conductor->apellidos}" . ($motivoBase ? " ({$motivoBase})" : ''),
+                        'conductor_relacionado_id' => $conductor->id,
+                        'conductor_relacionado_tarjeton' => $conductor->tarjeton,
+                        'conductor_relacionado_nombre' => trim("{$conductor->nombres} {$conductor->apellidos}"),
+                        'estado' => 'aprobada',
+                        'justificada' => true
+                    ];
+                    $diasAgregados2++;
+                }
+            }
+
+            $conductor->permutas_detalle = $detalle1;
+            $conductor->permutas = ((int)($conductor->permutas ?? 0)) + $diasAgregados1;
+            $conductor->save();
+
+            $conductor2->permutas_detalle = $detalle2;
+            $conductor2->permutas = ((int)($conductor2->permutas ?? 0)) + $diasAgregados2;
+            $conductor2->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Permuta asignada correctamente: {$conductor->nombres} (DP - Descanso) y {$conductor2->nombres} (AP - Asistencia)."
+            ]);
+        }
+
         $campoMap = [
             'falta' => 'faltas_detalle',
             'descanso' => 'descansos_detalle',
             'vacaciones' => 'vacaciones_detalle',
             'incapacidad' => 'incapacidades_detalle',
-            'permuta' => 'permutas_detalle',
             'retardo' => 'retardos_detalle'
         ];
         
         $campo = $campoMap[$estado];
-
-        $desde = Carbon::parse($request->input('desde'));
-        $hasta = Carbon::parse($request->input('hasta'));
-        $period = CarbonPeriod::create($desde, $hasta);
 
         $rawDetalle = $conductor->$campo;
         $detalle = is_string($rawDetalle) ? (json_decode($rawDetalle, true) ?: []) : (is_array($rawDetalle) ? $rawDetalle : []);
@@ -331,6 +426,21 @@ class ItinerarioController extends Controller
             'success' => true,
             'message' => 'Bloque asignado correctamente.'
         ]);
+    }
+
+    private function parseJsonPermutas($json)
+    {
+        if (empty($json)) return [];
+        $decoded = is_string($json) ? json_decode($json, true) : $json;
+        if (!is_array($decoded)) return [];
+        
+        $result = [];
+        foreach ($decoded as $item) {
+            if (isset($item['fecha'])) {
+                $result[$item['fecha']] = $item;
+            }
+        }
+        return $result;
     }
 
     private function parseJsonDetalle($raw)
