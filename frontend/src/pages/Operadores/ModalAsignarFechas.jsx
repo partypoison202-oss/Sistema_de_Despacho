@@ -240,7 +240,7 @@ export default function ModalAsignarFechas({ isOpen, onClose, conductores, getAu
 
           <div className="form-group">
             <label className="form-label" style={{ color: '#6b1d33', fontWeight: 'bold' }}>FECHA</label>
-            <AppleDatePicker value={fecha} onChange={setFecha} />
+            <AppleDatePicker value={fecha} onChange={setFecha} disableFuture={false} />
           </div>
 
           <div className="form-group">
