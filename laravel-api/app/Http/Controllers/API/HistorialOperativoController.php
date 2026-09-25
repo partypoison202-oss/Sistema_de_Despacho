@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
+use App\Helpers\BitacoraConductorHelper;
 
 class HistorialOperativoController extends Controller
 {
@@ -943,6 +944,81 @@ class HistorialOperativoController extends Controller
                     'total_cambios_bitacora' => 0
                 ],
                 'error' => $e->getMessage()
+            ], 200);
+        }
+    }
+
+    /**
+     * Obtiene el historial de acciones sobre personas conductoras.
+     */
+    public function getHistorialConductores(Request $request)
+    {
+        try {
+            BitacoraConductorHelper::ensureTableExists();
+
+            $fecha = $request->query('fecha');
+            $busqueda = trim((string)$request->query('busqueda'));
+            $tipoAccion = trim((string)$request->query('tipo_accion'));
+
+            // 1. Fechas únicas con actividad de conductores
+            $fechas = DB::table('bitacora_conductores')
+                ->select('fecha')
+                ->distinct()
+                ->orderBy('fecha', 'desc')
+                ->pluck('fecha');
+
+            if ($fechas->isEmpty()) {
+                $fechas = collect([Carbon::today()->toDateString()]);
+            }
+
+            $fechaSel = $fecha ?: $fechas->first();
+
+            $query = DB::table('bitacora_conductores')
+                ->where('fecha', $fechaSel);
+
+            if (!empty($tipoAccion) && $tipoAccion !== 'TODAS') {
+                $query->where('tipo_accion', $tipoAccion);
+            }
+
+            if (!empty($busqueda)) {
+                $q = strtolower($busqueda);
+                $query->where(function($sub) use ($q) {
+                    $sub->whereRaw("LOWER(CAST(tarjeton AS VARCHAR)) LIKE ?", ["%{$q}%"])
+                        ->orWhereRaw("LOWER(CAST(nombre_conductor AS VARCHAR)) LIKE ?", ["%{$q}%"])
+                        ->orWhereRaw("LOWER(CAST(usuario_nombre AS VARCHAR)) LIKE ?", ["%{$q}%"])
+                        ->orWhereRaw("LOWER(CAST(detalles AS VARCHAR)) LIKE ?", ["%{$q}%"])
+                        ->orWhereRaw("LOWER(CAST(tipo_accion AS VARCHAR)) LIKE ?", ["%{$q}%"]);
+                });
+            }
+
+            $acciones = $query->orderBy('created_at', 'desc')->get();
+
+            $resumen = [
+                'total_acciones'   => $acciones->count(),
+                'bajas_reingresos' => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['BAJA', 'REINGRESO']))->count(),
+                'faltas_retardos' => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['FALTA_REGISTRADA', 'FALTA_JUSTIFICADA', 'RETARDO']))->count(),
+                'modificaciones'   => $acciones->filter(fn($a) => in_array($a->tipo_accion, ['CREACION', 'EDICION', 'SUBIR_FOTO', 'SUBIR_QR']))->count(),
+            ];
+
+            return response()->json([
+                'fechas'   => $fechas,
+                'fecha'    => $fechaSel,
+                'acciones' => $acciones,
+                'resumen'  => $resumen
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Error en getHistorialConductores: ' . $e->getMessage());
+            return response()->json([
+                'fechas'   => [Carbon::today()->toDateString()],
+                'fecha'    => Carbon::today()->toDateString(),
+                'acciones' => [],
+                'resumen'  => [
+                    'total_acciones'   => 0,
+                    'bajas_reingresos' => 0,
+                    'faltas_retardos'  => 0,
+                    'modificaciones'   => 0
+                ],
+                'error'    => $e->getMessage()
             ], 200);
         }
     }

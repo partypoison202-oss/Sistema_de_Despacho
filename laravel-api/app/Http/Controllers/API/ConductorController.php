@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Conductor;
+use App\Helpers\BitacoraConductorHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -162,6 +163,15 @@ class ConductorController extends Controller
             'condicionamientos_medicos' => null,
         ]);
 
+        BitacoraConductorHelper::registrarAccion(
+            $conductor->id,
+            $conductor->tarjeton,
+            $conductor->nombres . ' ' . $conductor->apellidos,
+            'CREACION',
+            "Registro de nuevo operador con Tarjetón {$conductor->tarjeton} ({$conductor->tipo_tarjeton})",
+            $request
+        );
+
         return response()->json([
             'message' => 'Operador registrado correctamente',
             'conductor' => $conductor
@@ -307,6 +317,15 @@ class ConductorController extends Controller
 
         $conductor->save();
 
+        BitacoraConductorHelper::registrarAccion(
+            $conductor->id,
+            $conductor->tarjeton,
+            $conductor->nombres . ' ' . $conductor->apellidos,
+            'EDICION',
+            "Actualización de datos del operador (estatus: " . ($conductor->estatus ?? 'activo') . ", servicio: " . ($conductor->estado_servicio ?? 'disponible') . ")",
+            $request
+        );
+
         return response()->json([
             'message' => 'Operador actualizado correctamente',
             'conductor' => $conductor
@@ -332,6 +351,15 @@ class ConductorController extends Controller
             
             $conductor->foto = $path;
             $conductor->save();
+
+            BitacoraConductorHelper::registrarAccion(
+                $conductor->id,
+                $conductor->tarjeton,
+                $conductor->nombres . ' ' . $conductor->apellidos,
+                'SUBIR_FOTO',
+                "Actualización de fotografía oficial del operador",
+                $request
+            );
 
             return response()->json([
                 'message' => 'Foto subida exitosamente',
@@ -361,6 +389,15 @@ class ConductorController extends Controller
             $conductor->qr_documento = $path;
             $conductor->save();
 
+            BitacoraConductorHelper::registrarAccion(
+                $conductor->id,
+                $conductor->tarjeton,
+                $conductor->nombres . ' ' . $conductor->apellidos,
+                'SUBIR_QR',
+                "Actualización de documento QR del operador",
+                $request
+            );
+
             return response()->json([
                 'message' => 'Código QR subido exitosamente',
                 'qr_url' => '/storage/' . $path,
@@ -385,6 +422,15 @@ class ConductorController extends Controller
         $conductor->estado_servicio = null;
         $conductor->tipo_tarjeton = null;
         $conductor->save();
+
+        BitacoraConductorHelper::registrarAccion(
+            $conductor->id,
+            $conductor->tarjeton,
+            $conductor->nombres . ' ' . $conductor->apellidos,
+            'BAJA',
+            "Baja de operador en el sistema. " . ($request->motivo ? "Motivo: {$request->motivo}" : "Sin motivo registrado"),
+            $request
+        );
 
         return response()->json([
             'message' => 'Operador dado de baja correctamente',
@@ -530,6 +576,15 @@ class ConductorController extends Controller
 
             $conductor->save();
 
+            BitacoraConductorHelper::registrarAccion(
+                $conductor->id,
+                $conductor->tarjeton,
+                $conductor->nombres . ' ' . $conductor->apellidos,
+                'FALTA_JUSTIFICADA',
+                "Falta justificada. Comprobante adjuntado: " . ($safeOriginalName ?? 'documento.pdf') . ($request->input('observaciones') ? " - Obs: {$request->input('observaciones')}" : ""),
+                $request
+            );
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Falta justificada correctamente. El comprobante fue almacenado y la falta fue descontada del historial activo.',
@@ -642,6 +697,15 @@ class ConductorController extends Controller
 
         $conductor->save();
 
+        BitacoraConductorHelper::registrarAccion(
+            $conductor->id,
+            $conductor->tarjeton,
+            $conductor->nombres . ' ' . $conductor->apellidos,
+            'RETARDO',
+            "Falta convertida a retardo para la fecha " . ($fechaFalta ?? date('Y-m-d')),
+            $request
+        );
+
         return response()->json([
             'status' => 'success',
             'message' => 'Falta convertida a retardo correctamente. Se descontó la falta y sumó al historial de retardos.',
@@ -702,6 +766,15 @@ class ConductorController extends Controller
         }
 
         $conductor->save();
+
+        BitacoraConductorHelper::registrarAccion(
+            $conductor->id,
+            $conductor->tarjeton,
+            $conductor->nombres . ' ' . $conductor->apellidos,
+            'FALTA_REGISTRADA',
+            "Inasistencia registrada para la fecha {$request->input('fecha')}. Motivo: " . ($request->input('motivo') ?: 'Inasistencia no justificada'),
+            $request
+        );
 
         $mensaje = $fueInhabilitado
             ? 'Falta registrada correctamente. ATENCIÓN: El operador ha sido INHABILITADO al acumular 4 faltas en un lapso de 30 días.'

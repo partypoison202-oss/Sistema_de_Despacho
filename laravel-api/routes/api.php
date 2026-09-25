@@ -224,6 +224,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/programacion/{fecha}', [HistorialOperativoController::class, 'getHistorialProgramacion']);
     Route::get('/historial-operativo/relevos/{fecha}', [HistorialOperativoController::class, 'getHistorialRelevos']);
+    Route::get('/historial-operativo/conductores', [HistorialOperativoController::class, 'getHistorialConductores']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
     Route::get('/historial-operativo/alimentadoras-ayer', [HistorialOperativoController::class, 'getHistorialAlimentadorasAyer']);
     Route::get('/bitacoras-diarias', [\App\Http\Controllers\API\BitacorasCentroController::class, 'getBitacoras']);

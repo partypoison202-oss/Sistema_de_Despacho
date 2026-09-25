@@ -92,7 +92,7 @@ class AuthController extends Controller
                 'PROGRAMACION'         => ['capturista', 'relevos', 'historial'],
                 'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
                 'PROGRAMACION_PASTELES' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
-                'GESTOR_OPERADORES'    => ['operadores'],
+                'GESTOR_OPERADORES'    => ['operadores', 'historial'],
                 'ENCIERRO'             => ['encierro', 'historial'],
                 'CENTRO_CONTROL'       => ['centro_control', 'historial'],
                 'TITAN'                => ['titan'],
