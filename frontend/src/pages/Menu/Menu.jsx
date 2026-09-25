@@ -262,9 +262,14 @@ export default function Menu() {
     ? [...user.modulos]
     : [...(ROLE_DEFAULT_MODULES[rol] || [])];
 
-  const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PROGRAMACION', 'CAPTURISTA', 'PASTELES', 'PROGRAMACION_PASTELES', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES'];
-  if (rolesConHistorial.includes(rol) && !modulos.includes('historial')) {
+  const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PROGRAMACION', 'CAPTURISTA', 'PASTELES', 'PROGRAMACION_PASTELES', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES'];
+  const rolUpper = String(rol || '').toUpperCase().trim();
+  if (rolesConHistorial.some(r => r === rolUpper || (rolUpper && rolUpper.includes(r))) && !modulos.includes('historial')) {
     modulos.push('historial');
+  }
+
+  if (rolUpper === 'MANTENIMIENTO') {
+    modulos = modulos.filter(m => m !== 'encierro');
   }
 
   const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
@@ -272,7 +277,7 @@ export default function Menu() {
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (isSuper) return true;
-    if (isPasteles && ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'].includes(item.modulo)) {
+    if (isPasteles && ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'].includes(item.modulo)) {
       return true;
     }
     if (!item.modulo) return true;

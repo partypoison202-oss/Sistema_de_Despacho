@@ -7,15 +7,18 @@ export const ROLE_DEFAULT_MODULES = {
   PLATAFORMA: ['mesa_control', 'historial'],
   MESA_CONTROL: ['mesa_control', 'relevos', 'centro_control', 'historial'],
   PROGRAMACION: ['capturista', 'relevos', 'historial'],
-  PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
-  PROGRAMACION_PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
+  PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
+  PROGRAMACION_PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
   GESTOR_OPERADORES: ['operadores', 'historial'],
+  GESTOR_DE_OPERADORES: ['operadores', 'historial'],
+  GESTOR_OPERADOR: ['operadores', 'historial'],
+  CONTROL_CONDUCTORES: ['operadores', 'historial'],
   ENCIERRO: ['encierro', 'historial'],
   CENTRO_CONTROL: ['centro_control', 'historial'],
   TITAN: ['titan'],
   INFRACCION: ['infraccion'],
   GENERAL: ['general', 'historial'],
-  MANTENIMIENTO: ['mantenimiento', 'encierro', 'carga_combustible', 'historial'],
+  MANTENIMIENTO: ['mantenimiento', 'carga_combustible', 'historial'],
   CARGA_DE_COMBUSTIBLE: ['carga_combustible'],
 };
 
@@ -46,8 +49,12 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
     modulos.push('historial');
   }
 
+  if (rol === 'MANTENIMIENTO') {
+    modulos = modulos.filter(m => m !== 'encierro');
+  }
+
   if (rol === 'PASTELES' || rol === 'PROGRAMACION_PASTELES') {
-    ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'].forEach(m => {
+    ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'].forEach(m => {
       if (!modulos.includes(m)) modulos.push(m);
     });
   }

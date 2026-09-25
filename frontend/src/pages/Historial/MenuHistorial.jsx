@@ -37,7 +37,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL PROGRAMACIÓN Y LOGÍSTICA',
     color: 'emerald',
-    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'DESPACHO', 'PLATAFORMA'],
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA'],
   },
   {
     id: 'historial-programacion-pasteles',
@@ -84,7 +84,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL DE CONDUCTORES',
     color: 'maroon',
-    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'GESTOR_OPERADORES', 'CONTROL_CONDUCTORES', 'PROGRAMACION', 'PASTELES', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'DESPACHO', 'PLATAFORMA'],
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES'],
   },
   {
     id: 'historial-checklist',
@@ -128,7 +128,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL ENCIERRO',
     color: 'gold',
-    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'ENCIERRO'],
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'ENCIERRO', 'PASTELES', 'PROGRAMACION_PASTELES'],
   },
   {
     id: 'historial-reportes-titanes',
@@ -162,7 +162,8 @@ export default function MenuHistorial() {
   const { user } = useContext(AuthContext);
 
   const rol = String(user?.role?.codigo || '').toUpperCase().trim();
-  const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
+  const isCentroControl = ['CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL'].includes(rol);
+  const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA' || isCentroControl;
 
   const visibleItems = historialItems.filter((item) => {
     if (isSuper) return true;

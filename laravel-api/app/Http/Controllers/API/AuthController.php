@@ -96,15 +96,15 @@ class AuthController extends Controller
                 'PLATAFORMA'           => ['mesa_control', 'historial'],
                 'MESA_CONTROL'         => ['mesa_control', 'relevos', 'centro_control', 'historial'],
                 'PROGRAMACION'         => ['capturista', 'relevos', 'historial'],
-                'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
-                'PROGRAMACION_PASTELES' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
+                'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
+                'PROGRAMACION_PASTELES' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
                 'GESTOR_OPERADORES'    => ['operadores', 'historial'],
                 'ENCIERRO'             => ['encierro', 'historial'],
                 'CENTRO_CONTROL'       => ['centro_control', 'historial'],
                 'TITAN'                => ['titan'],
                 'INFRACCION'           => ['infraccion'],
                 'GENERAL'              => ['general'],
-                'MANTENIMIENTO'        => ['mantenimiento', 'encierro', 'carga_combustible', 'historial'],
+                'MANTENIMIENTO'        => ['mantenimiento', 'carga_combustible', 'historial'],
                 'CARGA_DE_COMBUSTIBLE' => ['carga_combustible'],
             ];
 

@@ -215,7 +215,7 @@ function App() {
 
             {/* Historial */}
             <Route path="/historial" element={
-              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'PASTELES', 'PROGRAMACION_PASTELES']}>
+              <ProtectedRoute allowedModules={['historial', 'operadores', 'conductores']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'PASTELES', 'PROGRAMACION_PASTELES', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'CONTROL_CONDUCTORES']}>
                 <MenuHistorial />
               </ProtectedRoute>
             } />
@@ -225,7 +225,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/historial/programacion" element={
-              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'DESPACHO', 'PLATAFORMA']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA']}>
                 <HistorialProgramacion />
               </ProtectedRoute>
             } />
@@ -240,22 +240,22 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/historial/conductores" element={
-              <ProtectedRoute allowedModules={['historial', 'conductores', 'operadores']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'GESTOR_OPERADORES', 'CONTROL_CONDUCTORES', 'PROGRAMACION', 'PASTELES', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'DESPACHO', 'PLATAFORMA']}>
+              <ProtectedRoute allowedModules={['historial', 'conductores', 'operadores']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL']}>
                 <HistorialConductores />
               </ProtectedRoute>
             } />
             <Route path="/historial/despacho" element={
-              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'DESPACHO']}>
                 <HistorialDespacho />
               </ProtectedRoute>
             } />
             <Route path="/historial/encierro" element={
-              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'ENCIERRO']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'ENCIERRO', 'PASTELES', 'PROGRAMACION_PASTELES']}>
                 <HistorialEncierro />
               </ProtectedRoute>
             } />
             <Route path="/historial/mantenimiento" element={
-              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'MANTENIMIENTO']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'MANTENIMIENTO']}>
                 <HistorialMantenimiento />
               </ProtectedRoute>
             } />
@@ -277,7 +277,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/checklist/historial" element={
-              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'MANTENIMIENTO']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'MANTENIMIENTO']}>
                 <HistorialCheckList />
               </ProtectedRoute>
             } />
