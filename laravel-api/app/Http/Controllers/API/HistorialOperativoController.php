@@ -823,6 +823,39 @@ class HistorialOperativoController extends Controller
                 ->get();
             }
 
+            if ($relevosQuery->isEmpty() && $fecha === Carbon::tomorrow()->toDateString() && Schema::hasTable('informacion_operativa_manana')) {
+                $hasMananaRel = Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
+                if ($hasMananaRel) {
+                    $queryManana = DB::table('informacion_operativa_manana')
+                        ->join('unidades', 'informacion_operativa_manana.unidad_id', '=', 'unidades.id')
+                        ->where(function($q) {
+                            $q->where(function($q1) {
+                                $q1->whereNotNull('informacion_operativa_manana.relevo_conductor')
+                                   ->whereRaw("TRIM(CAST(informacion_operativa_manana.relevo_conductor AS VARCHAR)) != ''");
+                            })->orWhere(function($q2) {
+                                $q2->whereNotNull('informacion_operativa_manana.relevo_tarjeton')
+                                   ->whereRaw("TRIM(CAST(informacion_operativa_manana.relevo_tarjeton AS VARCHAR)) != ''");
+                            });
+                        });
+
+                    $relevosQuery = $queryManana->select(
+                        'unidades.numero_eco as economico',
+                        'unidades.tipo as tipo_unidad',
+                        'informacion_operativa_manana.tipo',
+                        'informacion_operativa_manana.ruta',
+                        'informacion_operativa_manana.numero_tarjeton as titular_tarjeton',
+                        'informacion_operativa_manana.nombre_conductor as titular_conductor',
+                        'informacion_operativa_manana.estatus',
+                        'informacion_operativa_manana.relevo_tarjeton',
+                        'informacion_operativa_manana.relevo_conductor',
+                        Schema::hasColumn('informacion_operativa_manana', 'relevo_hora') ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
+                        'informacion_operativa_manana.fecha_registro as created_at'
+                    )
+                    ->orderBy('unidades.numero_eco')
+                    ->get();
+                }
+            }
+
             if ($relevosQuery->isEmpty() && Schema::hasTable('historial_operativo')) {
                 $query = DB::table('historial_operativo')
                     ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')

@@ -47,7 +47,7 @@ export default function HistorialRelevos() {
   }, []);
 
   // 2. Obtener datos de relevos de la fecha seleccionada
-  const { data: serverData = { relevos: [], bitacora: [], resumen: {} }, isLoading: isLoadingDatos } = useQuery({
+  const { data: serverData = { relevos: [], bitacora: [], resumen: {} }, isLoading: isLoadingDatos, refetch: refetchRelevos, isFetching } = useQuery({
     queryKey: ['historial-relevos', selectedFecha],
     queryFn: async () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -61,7 +61,8 @@ export default function HistorialRelevos() {
       return response.json();
     },
     enabled: !!selectedFecha,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const cargando = isLoadingFechas || (isLoadingDatos && !!selectedFecha);
@@ -154,6 +155,32 @@ export default function HistorialRelevos() {
           </div>
 
           <div className="historial-filter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => refetchRelevos()}
+              disabled={cargando || isFetching}
+              style={{
+                backgroundColor: '#f1f5f9',
+                color: '#0f172a',
+                border: '1px solid #cbd5e1',
+                borderRadius: '0.5rem',
+                padding: '0.5rem 0.85rem',
+                fontSize: '0.875rem',
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              title="Refrescar datos en vivo"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: isFetching ? 'spin 1s linear infinite' : 'none' }}>
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              </svg>
+              {isFetching ? 'Actualizando...' : 'Actualizar'}
+            </button>
+
             <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
             <div className="custom-dropdown-container" ref={dropdownRef}>
               <button
