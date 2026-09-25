@@ -960,7 +960,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* MODAL REGISTRAR FALTA MANUAL */}
       {modalNuevaFaltaOpen && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fadeIn">
             <h3 className="font-extrabold text-slate-900 text-base">Registrar Nueva Falta a Operador</h3>
             
