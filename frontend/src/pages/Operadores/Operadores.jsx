@@ -328,6 +328,7 @@ export default function Operadores() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterEstadoServicio, setFilterEstadoServicio] = useState('');
+  const [mostrarBajasKardex, setMostrarBajasKardex] = useState(true);
   const navigate = useNavigate();
 
   // Modal states
@@ -950,6 +951,9 @@ export default function Operadores() {
     if (activeTab === 'catalogo' && c.estatus === 'baja') {
       return false;
     }
+    if (activeTab === 'kardex' && !mostrarBajasKardex && c.estatus === 'baja') {
+      return false;
+    }
 
     // Filtros por Tipo y Estado
     if (filterTipo && c.tipo_tarjeton !== filterTipo) return false;
@@ -1185,6 +1189,19 @@ export default function Operadores() {
                 </div>
               )}
 
+              {activeTab === 'kardex' && (
+                <div className="flex w-full md:w-auto items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 text-[#6b1d33] rounded border-gray-300 focus:ring-[#6b1d33]"
+                      checked={mostrarBajasKardex}
+                      onChange={(e) => setMostrarBajasKardex(e.target.checked)}
+                    />
+                    Mostrar Operadores en Baja
+                  </label>
+                </div>
+              )}
             </div>
           </div>
         )}
