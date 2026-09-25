@@ -44,9 +44,11 @@ const CheckList              = lazy(() => lazyRetry(() => import('./pages/CheckL
 const HistorialCheckList     = lazy(() => lazyRetry(() => import('./pages/CheckList/HistorialCheckList')));
 const MenuHistorial          = lazy(() => lazyRetry(() => import('./pages/Historial/MenuHistorial')));
 const HistorialGeneral       = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialGeneral')));
+const HistorialProgramacion  = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialProgramacion')));
 const HistorialDespacho      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialDespacho')));
 const HistorialEncierro      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialEncierro')));
 const HistorialMantenimiento = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialMantenimiento')));
+const HistorialRelevos       = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialRelevos')));
 const FleetSelection         = lazy(() => lazyRetry(() => import('./components/Checklist/FleetSelection')));
 const CentroControl          = lazy(() => lazyRetry(() => import('./pages/CentroControl/CentroControl')));
 const DashboardInfracciones  = lazy(() => lazyRetry(() => import('./pages/CentroControl/DashboardInfracciones')));
@@ -212,27 +214,42 @@ function App() {
 
             {/* Historial */}
             <Route path="/historial" element={
-              <ProtectedRoute allowedModules={['historial']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'PASTELES', 'PROGRAMACION_PASTELES']}>
                 <MenuHistorial />
               </ProtectedRoute>
             } />
             <Route path="/historial/general" element={
-              <ProtectedRoute allowedModules={['historial']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA']}>
                 <HistorialGeneral />
               </ProtectedRoute>
             } />
+            <Route path="/historial/programacion" element={
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'DESPACHO', 'PLATAFORMA']}>
+                <HistorialProgramacion />
+              </ProtectedRoute>
+            } />
+            <Route path="/historial/programacion-pasteles" element={
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PASTELES', 'PROGRAMACION_PASTELES', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA']}>
+                <HistorialProgramacion isPastelesOnly={true} />
+              </ProtectedRoute>
+            } />
+            <Route path="/historial/relevos" element={
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'RELEVOS', 'PASTELES', 'PROGRAMACION_PASTELES', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA']}>
+                <HistorialRelevos />
+              </ProtectedRoute>
+            } />
             <Route path="/historial/despacho" element={
-              <ProtectedRoute allowedModules={['historial']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO']}>
                 <HistorialDespacho />
               </ProtectedRoute>
             } />
             <Route path="/historial/encierro" element={
-              <ProtectedRoute allowedModules={['historial']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'ENCIERRO']}>
                 <HistorialEncierro />
               </ProtectedRoute>
             } />
             <Route path="/historial/mantenimiento" element={
-              <ProtectedRoute allowedModules={['historial']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'MANTENIMIENTO']}>
                 <HistorialMantenimiento />
               </ProtectedRoute>
             } />
@@ -254,7 +271,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/checklist/historial" element={
-              <ProtectedRoute allowedModules={['historial']}>
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'MANTENIMIENTO']}>
                 <HistorialCheckList />
               </ProtectedRoute>
             } />
@@ -331,7 +348,11 @@ function App() {
 
             {/* Reportes Titanes */}
             <Route path="/reportestitanes" element={<ReportesTitanes />} />
-            <Route path="/historial/reportes-titanes" element={<HistorialReportesTitanes />} />
+            <Route path="/historial/reportes-titanes" element={
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL']}>
+                <HistorialReportesTitanes />
+              </ProtectedRoute>
+            } />
 
             {/* Redirección por defecto */}
             <Route path="*" element={<Navigate to="/" replace />} />

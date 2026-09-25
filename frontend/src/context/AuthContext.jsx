@@ -26,37 +26,10 @@ export const MODULO_RUTAS = {
 
 /**
  * Decide la ruta a la que debe ir el usuario tras el login:
- *  - 1 módulo único → va directo a ese módulo (bypass del menú)
- *  - 2+ módulos o admin/lectura → va al /menu
+ * Todos los usuarios van al /menu donde ven los módulos permitidos para su rol.
  */
 export function getDefaultRoute(user) {
-  const rol     = user?.role?.codigo;
-  const modulos = user?.modulos ?? [];
-
-  if (rol === 'ADMINISTRADOR' || rol === 'LECTURA') return '/menu';
-
-  if (modulos.length === 1) {
-    return MODULO_RUTAS[modulos[0]] ?? '/menu';
-  }
-
-  if (modulos.length > 1) return '/menu';
-
-  // Fallback por rol (compatibilidad con cuentas sin módulos asignados)
-  const fallback = {
-    PROGRAMACION      : '/menu',
-    PASTELES          : '/menu',
-    CARGA_DE_COMBUSTIBLE: '/menu',
-    GESTOR_OPERADORES : '/operadores',
-    ENCIERRO          : '/encierro/dashboard',
-    CENTRO_CONTROL    : '/centro-control',
-    TITAN             : '/titan/dashboard',
-    INFRACCION        : '/infraccion/dashboard',
-    GENERAL           : '/general',
-    DESPACHO          : '/dashboard',
-    PLATAFORMA        : '/dashboard',
-    MANTENIMIENTO     : '/mantenimiento',
-  };
-  return fallback[rol] ?? '/menu';
+  return '/menu';
 }
 
 export const AuthProvider = ({ children }) => {

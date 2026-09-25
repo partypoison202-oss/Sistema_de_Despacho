@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import API_BASE from '../../config/api';
+import { formatAccion } from '../../utils/historialHelper';
 import './DashboardBitacora.css';
 import Swal from 'sweetalert2';
 
@@ -95,15 +96,6 @@ export default function DashboardBitacora() {
     return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const formatAccion = (accion) => {
-    switch(accion) {
-      case 'CAMBIO_ESTATUS': return 'Cambio de Estatus';
-      case 'INCORPORACION': return 'Incorporación';
-      case 'DESINCORPORACION': return 'Desincorporación';
-      case 'CAMBIO_UNIDAD_REEMPLAZO': return 'Reemplazo de Unidad';
-      default: return accion || 'Acción';
-    }
-  };
 
   const handleVerDetalles = (reg) => {
     Swal.fire({

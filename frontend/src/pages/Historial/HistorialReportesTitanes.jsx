@@ -55,8 +55,9 @@ export default function HistorialReportesTitanes() {
 
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL'].includes(user.role?.codigo)) {
-      navigate('/');
+    const rol = String(user.role?.codigo || '').toUpperCase().trim();
+    if (!['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL'].includes(rol)) {
+      navigate('/menu');
     }
   }, [user, navigate]);
 

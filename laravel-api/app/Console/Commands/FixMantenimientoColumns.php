@@ -50,7 +50,8 @@ class FixMantenimientoColumns extends Command
                     'informacion_operativa_sabado',
                     'informacion_operativa_domingo',
                     'informacion_operativa_lunes',
-                    'informacion_operativa_festivo'
+                    'informacion_operativa_festivo',
+                    'historial_operativo'
                 ];
             BEGIN
                 FOREACH t IN ARRAY tables LOOP
@@ -58,6 +59,8 @@ class FixMantenimientoColumns extends Command
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_tarjeton varchar(255) null';
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_conductor varchar(255) null';
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS acople varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_salida_patio varchar(50) null';
                     END IF;
                 END LOOP;
             END \$\$;
