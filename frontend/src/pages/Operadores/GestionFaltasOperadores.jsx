@@ -581,7 +581,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* MODAL / DRAWER: DETALLE DE FALTAS DEL CONDUCTOR */}
       {conductorActualData && (
-        <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 overflow-hidden">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
             
             {/* Header del Modal */}
@@ -870,7 +870,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* MODAL DE SUBIDA DE JUSTIFICANTE */}
       {modalSubidaOpen && faltaAJustificar && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-fadeIn">
             
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -960,7 +960,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* MODAL REGISTRAR FALTA MANUAL */}
       {modalNuevaFaltaOpen && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-fadeIn">
             <h3 className="font-extrabold text-slate-900 text-base">Registrar Nueva Falta a Operador</h3>
             
