@@ -40,6 +40,12 @@ const parseDetalle = (jsonStr) => {
   }
 };
 
+const formatearFechaDetalle = (fechaStr) => {
+  if (!fechaStr) return 'Fecha no registrada';
+  const iso = fechaStr.includes('T') ? fechaStr : `${fechaStr}T00:00:00`;
+  return new Date(iso).toLocaleDateString();
+};
+
 const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
   const faltas = parseDetalle(conductor.faltas_detalle);
   const retardos = parseDetalle(conductor.retardos_detalle);
@@ -132,9 +138,10 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
     {/* Kardex Métricas */}
     <div className="border border-gray-200 rounded-lg p-4 mb-6">
       <h3 className="font-bold text-[#6A1B29] border-b border-gray-100 pb-2 mb-3 text-xs">MÉTRICAS OPERATIVAS (KARDEX)</h3>
-      <div className="grid grid-cols-3 gap-4 text-center">
+      <div className="grid grid-cols-4 gap-4 text-center">
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.accidentes_siniestros ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Accidentes y Siniestros</p></div>
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.faltas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Faltas</p></div>
+        <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.retardos || parseDetalle(conductor.retardos_detalle).length || 0}</p><p className="text-[10px] text-gray-500 uppercase">Retardos</p></div>
         <div className="bg-gray-50 p-3 rounded"><p className="text-2xl font-bold">{conductor.cambios ?? conductor.permutas ?? 0}</p><p className="text-[10px] text-gray-500 uppercase">Permutas</p></div>
       </div>
     </div>
@@ -216,7 +223,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
 
         {/* Incapacidades */}
         <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
-           <h4 className="font-bold text-purple-800 bg-purple-50 p-2 rounded mb-3">Incapacidades (IMSS / Otros)</h4>
+           <h4 className="font-bold text-purple-800 bg-purple-50 p-2 rounded mb-3">Incapacidades (ISSSTE / Otros)</h4>
            <ul className="list-disc pl-4 space-y-2 text-gray-700">
               {incapacidades.length === 0 && <li className="italic text-gray-400">Sin incapacidades registradas</li>}
               {incapacidades.map((inc, i) => (
@@ -234,6 +241,18 @@ export default function InfoGeneralOperador({ conductores }) {
   const [selectedConductor, setSelectedConductor] = useState(null);
   const [sitmahOrangeUrl, setSitmahOrangeUrl] = useState('/images/sitmah_logo.webp');
   const [printMount, setPrintMount] = useState(null);
+  const [metricModal, setMetricModal] = useState(null);
+
+  useEffect(() => {
+    if (!metricModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMetricModal(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [metricModal]);
 
   useEffect(() => {
     let div = document.getElementById('print-mount');
@@ -286,7 +305,39 @@ export default function InfoGeneralOperador({ conductores }) {
     accidentes_siniestros: 0, faltas: 0, retardos: 0, amonestaciones: 0,
     reconocimientos: 0, permutas: 0, permisos: 0, condicionamientos_medicos: '---',
     condicionamientos_juridicos: '---', evaluacion: '---', observaciones: '---',
-    ultima_capacitacion: null, proxima_capacitacion: null
+    ultima_capacitacion: null, proxima_capacitacion: null,
+    retardos_detalle: [], faltas_detalle: [], permutas_detalle: [], accidentes_siniestros_detalle: []
+  };
+
+  const handleOpenMetricModal = (tipo) => {
+    let titulo = '';
+    let items = [];
+    let badgeColor = 'bg-gray-100 text-gray-700';
+
+    if (tipo === 'retardos') {
+      titulo = 'Historial de Retardos';
+      badgeColor = 'bg-amber-100 text-amber-800';
+      items = parseDetalle(displayConductor.retardos_detalle);
+    } else if (tipo === 'faltas') {
+      titulo = 'Historial de Faltas';
+      badgeColor = 'bg-red-100 text-red-800';
+      items = parseDetalle(displayConductor.faltas_detalle);
+    } else if (tipo === 'permutas') {
+      titulo = 'Historial de Permutas';
+      badgeColor = 'bg-blue-100 text-blue-800';
+      items = parseDetalle(displayConductor.permutas_detalle);
+    } else if (tipo === 'accidentes_siniestros') {
+      titulo = 'Historial de Accidentes y Siniestros';
+      badgeColor = 'bg-orange-100 text-orange-800';
+      items = parseDetalle(displayConductor.accidentes_siniestros_detalle);
+    }
+
+    setMetricModal({
+      tipo,
+      titulo,
+      badgeColor,
+      items: Array.isArray(items) ? items : []
+    });
   };
 
   const displayConductor = selectedConductor || defaultConductor;
@@ -487,19 +538,54 @@ export default function InfoGeneralOperador({ conductores }) {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 Historial y Métricas Operativas (Kardex)
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-gray-800">{displayConductor.accidentes_siniestros ?? 0}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <button
+                  type="button" 
+                  onClick={() => handleOpenMetricModal('accidentes_siniestros')}
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
+                  title="Clic para ver desglose de accidentes y siniestros"
+                >
+                  <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
+                    {displayConductor.accidentes_siniestros ?? 0}
+                  </div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Accidentes y Siniestros</div>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-gray-800">{displayConductor.faltas ?? 0}</div>
+                </button>
+
+                <button
+                  type="button" 
+                  onClick={() => handleOpenMetricModal('faltas')}
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
+                  title="Clic para ver desglose de faltas"
+                >
+                  <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
+                    {displayConductor.faltas || parseDetalle(displayConductor.faltas_detalle).length || 0}
+                  </div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Faltas</div>
-                </div>
-                <div className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-gray-800">{displayConductor.cambios ?? displayConductor.permutas ?? 0}</div>
+                </button>
+
+                <button
+                  type="button" 
+                  onClick={() => handleOpenMetricModal('retardos')}
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
+                  title="Clic para ver desglose de retardos"
+                >
+                  <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
+                    {displayConductor.retardos || parseDetalle(displayConductor.retardos_detalle).length || 0}
+                  </div>
+                  <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Retardos</div>
+                </button>
+
+                <button
+                  type="button" 
+                  onClick={() => handleOpenMetricModal('permutas')}
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
+                  title="Clic para ver desglose de permutas"
+                >
+                  <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
+                    {displayConductor.cambios ?? displayConductor.permutas ?? parseDetalle(displayConductor.permutas_detalle).length ?? 0}
+                  </div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Permutas</div>
-                </div>
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -588,6 +674,80 @@ export default function InfoGeneralOperador({ conductores }) {
           </div>
         </div>
       </div>
+
+      {/* Modal de Detalle de Métrica Kardex */}
+      {metricModal && (
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+        >
+          {/* Backdrop con botón accesible nativo */}
+          <button
+            type="button"
+            aria-label="Cerrar ventana emergente"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm w-full h-full border-0 cursor-default"
+            onClick={() => setMetricModal(null)}
+          />
+
+          <div 
+            className="relative bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-200 z-10"
+          >
+            <div className="bg-[#6A1B29] text-white px-5 py-4 flex items-center justify-between">
+              <div>
+                <h3 id="metric-modal-title" className="font-bold text-base">{metricModal.titulo}</h3>
+                <p className="text-xs text-white/80 mt-0.5">
+                  Operador: {displayConductor.nombre} {displayConductor.tarjeton && displayConductor.tarjeton !== '---' ? `(T-${displayConductor.tarjeton.split('_BAJA_')[0]})` : ''}
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setMetricModal(null)}
+                className="text-white/80 hover:text-white text-2xl leading-none p-1 rounded hover:bg-white/10 transition-colors"
+                title="Cerrar"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-5 max-h-80 overflow-y-auto">
+              {metricModal.items.length === 0 ? (
+                <div className="text-center py-6 text-gray-400 italic text-sm">
+                  No hay registros detallados para esta métrica.
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-100 space-y-2">
+                  {metricModal.items.map((item, idx) => (
+                    <li key={item.id || idx} className="pt-2 first:pt-0">
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span className="font-semibold text-gray-700">
+                          {formatearFechaDetalle(item.fecha)}
+                        </span>
+                        {item.estado && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${metricModal.badgeColor}`}>
+                            {item.estado}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-800 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                        {item.motivo || item.descripcion || 'Sin motivo especificado'}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setMetricModal(null)}
+                className="px-4 py-2 bg-[#6A1B29] text-white text-xs font-bold rounded-lg hover:bg-[#802234] transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
