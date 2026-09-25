@@ -59,6 +59,49 @@ class ImportarConductoresPlantillaSeeder extends Seeder
             DB::table('conductores')->insert($chunk);
         }
 
+        // Limpiar y normalizar tarjetones en tablas operativas para que no queden fantasmas
+        $validTarjetones = array_column($records, 'tarjeton');
+        $opTables = [
+            'informacion_operativa',
+            'informacion_operativa_manana',
+            'informacion_operativa_sabado',
+            'informacion_operativa_domingo',
+            'informacion_operativa_lunes',
+            'informacion_operativa_festivo',
+        ];
+
+        foreach ($opTables as $tbl) {
+            if (!\Illuminate\Support\Facades\Schema::hasTable($tbl)) continue;
+
+            // 0083 -> 1045 (JOSÉ ACAXTENGO MORGADO)
+            DB::table($tbl)->whereIn('numero_tarjeton', ['0083', '83', '083'])->update([
+                'numero_tarjeton' => '1045',
+                'nombre_conductor' => 'JOSÉ ACAXTENGO MORGADO'
+            ]);
+
+            // 980 -> 0915 (NOEHLIA ISLAS MORALES)
+            DB::table($tbl)->whereIn('numero_tarjeton', ['980', '0980'])->update([
+                'numero_tarjeton' => '0915',
+                'nombre_conductor' => 'NOEHLIA ISLAS MORALES'
+            ]);
+
+            // Limpiar asignaciones que tengan un tarjetón que NO existe en la plantilla (ej. 1092)
+            $assignedRows = DB::table($tbl)
+                ->whereNotNull('numero_tarjeton')
+                ->where('numero_tarjeton', '!=', '')
+                ->get(['id', 'numero_tarjeton']);
+
+            foreach ($assignedRows as $row) {
+                $tj = str_pad(trim($row->numero_tarjeton), 4, '0', STR_PAD_LEFT);
+                if (!in_array($tj, $validTarjetones)) {
+                    DB::table($tbl)->where('id', $row->id)->update([
+                        'numero_tarjeton' => null,
+                        'nombre_conductor' => null,
+                    ]);
+                }
+            }
+        }
+
         $total = DB::table('conductores')->count();
         $this->command->info("Tabla conductores limpiada y repoblada exitosamente con {$total} operadores.");
     }

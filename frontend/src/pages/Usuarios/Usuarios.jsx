@@ -7,7 +7,7 @@ import './Usuarios.css';
 import API_BASE from '../../config/api';
 
 export default function Usuarios() {
-  const { token } = useContext(AuthContext);
+  const { token, user: currentUser, setUser } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +90,11 @@ export default function Usuarios() {
   // Manejar apertura del modal (edición o creación)
   const handleOpenModal = (user = null) => {
     if (user) {
-      const parts = (user.nombre_completo || user.usuario || '').split(' ');
+      let rawName = (user.nombre_completo || user.usuario || '').trim();
+      if (rawName.toLowerCase() === 'undefined') {
+        rawName = user.usuario || '';
+      }
+      const parts = rawName.split(/\s+/).filter(Boolean);
       let n = '';
       let a = '';
       if (parts.length >= 4) {
@@ -115,6 +119,7 @@ export default function Usuarios() {
         rol_id: user.rol_id,
         foto_url: user.foto_url || null, // Cargar foto existente
       });
+
       // Si hay foto, mostrarla como previsualización (opcional)
       if (user.foto_url) {
         setPreviewUrl(user.foto_url);
@@ -299,7 +304,8 @@ export default function Usuarios() {
 
     // Construir FormData
     const formDataToSend = new FormData();
-    formDataToSend.append('nombre_completo', formData.nombre_completo);
+    const nombreCompleto = `${(formData.nombres || '').trim()} ${(formData.apellidos || '').trim()}`.trim();
+    formDataToSend.append('nombre_completo', nombreCompleto);
     formDataToSend.append('usuario', formData.usuario);
     if (formData.contrasena) {
       formDataToSend.append('contrasena', formData.contrasena);
@@ -346,6 +352,11 @@ export default function Usuarios() {
         });
         setIsSubmitting(false);
         return;
+      }
+
+      // Si el usuario editado es el mismo que tiene la sesión abierta, actualizar contexto
+      if (currentUser && data && data.id === currentUser.id && setUser) {
+        setUser((prev) => ({ ...prev, ...data }));
       }
 
       Swal.fire({

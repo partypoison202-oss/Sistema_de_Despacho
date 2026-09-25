@@ -79,6 +79,15 @@ class UserController extends Controller
 
         $data = $request->except(['contrasena', 'activo', 'foto']);
 
+        if (isset($data['nombre_completo'])) {
+            $nombre = trim((string)$data['nombre_completo']);
+            if ($nombre === 'undefined' || $nombre === '' || strtolower($nombre) === 'null') {
+                unset($data['nombre_completo']);
+            } else {
+                $data['nombre_completo'] = $nombre;
+            }
+        }
+
         if ($request->filled('contrasena')) {
             $data['contrasena'] = Hash::make($request->contrasena);
         }
