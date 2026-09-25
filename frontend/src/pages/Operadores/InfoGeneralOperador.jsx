@@ -40,6 +40,12 @@ const parseDetalle = (jsonStr) => {
   }
 };
 
+const formatearFechaDetalle = (fechaStr) => {
+  if (!fechaStr) return 'Fecha no registrada';
+  const iso = fechaStr.includes('T') ? fechaStr : `${fechaStr}T00:00:00`;
+  return new Date(iso).toLocaleDateString();
+};
+
 const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
   const faltas = parseDetalle(conductor.faltas_detalle);
   const retardos = parseDetalle(conductor.retardos_detalle);
@@ -236,6 +242,17 @@ export default function InfoGeneralOperador({ conductores }) {
   const [sitmahOrangeUrl, setSitmahOrangeUrl] = useState('/images/sitmah_logo.webp');
   const [printMount, setPrintMount] = useState(null);
   const [metricModal, setMetricModal] = useState(null);
+
+  useEffect(() => {
+    if (!metricModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMetricModal(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [metricModal]);
 
   useEffect(() => {
     let div = document.getElementById('print-mount');
@@ -522,49 +539,53 @@ export default function InfoGeneralOperador({ conductores }) {
                 Historial y Métricas Operativas (Kardex)
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div 
+                <button
+                  type="button" 
                   onClick={() => handleOpenMetricModal('accidentes_siniestros')}
-                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group"
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
                   title="Clic para ver desglose de accidentes y siniestros"
                 >
                   <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
                     {displayConductor.accidentes_siniestros ?? 0}
                   </div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Accidentes y Siniestros</div>
-                </div>
+                </button>
 
-                <div 
+                <button
+                  type="button" 
                   onClick={() => handleOpenMetricModal('faltas')}
-                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group"
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
                   title="Clic para ver desglose de faltas"
                 >
                   <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
                     {displayConductor.faltas || parseDetalle(displayConductor.faltas_detalle).length || 0}
                   </div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Faltas</div>
-                </div>
+                </button>
 
-                <div 
+                <button
+                  type="button" 
                   onClick={() => handleOpenMetricModal('retardos')}
-                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group"
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
                   title="Clic para ver desglose de retardos"
                 >
                   <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
                     {displayConductor.retardos || parseDetalle(displayConductor.retardos_detalle).length || 0}
                   </div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Retardos</div>
-                </div>
+                </button>
 
-                <div 
+                <button
+                  type="button" 
                   onClick={() => handleOpenMetricModal('permutas')}
-                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group"
+                  className="border border-gray-100 bg-gray-50 rounded-lg p-4 text-center hover:bg-white hover:border-[#6A1B29]/30 hover:shadow-sm transition-all cursor-pointer group w-full"
                   title="Clic para ver desglose de permutas"
                 >
                   <div className="text-3xl font-bold text-gray-800 group-hover:text-[#6A1B29] transition-colors">
                     {displayConductor.cambios ?? displayConductor.permutas ?? parseDetalle(displayConductor.permutas_detalle).length ?? 0}
                   </div>
                   <div className="text-xs text-gray-500 uppercase font-bold mt-1 tracking-wider">Permutas</div>
-                </div>
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -657,21 +678,31 @@ export default function InfoGeneralOperador({ conductores }) {
       {/* Modal de Detalle de Métrica Kardex */}
       {metricModal && (
         <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={() => setMetricModal(null)}
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="metric-modal-title"
         >
+          {/* Backdrop con botón accesible nativo */}
+          <button
+            type="button"
+            aria-label="Cerrar ventana emergente"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm w-full h-full border-0 cursor-default"
+            onClick={() => setMetricModal(null)}
+          />
+
           <div 
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-200"
-            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-200 z-10"
           >
             <div className="bg-[#6A1B29] text-white px-5 py-4 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-base">{metricModal.titulo}</h3>
+                <h3 id="metric-modal-title" className="font-bold text-base">{metricModal.titulo}</h3>
                 <p className="text-xs text-white/80 mt-0.5">
                   Operador: {displayConductor.nombre} {displayConductor.tarjeton && displayConductor.tarjeton !== '---' ? `(T-${displayConductor.tarjeton.split('_BAJA_')[0]})` : ''}
                 </p>
               </div>
               <button 
+                type="button"
                 onClick={() => setMetricModal(null)}
                 className="text-white/80 hover:text-white text-2xl leading-none p-1 rounded hover:bg-white/10 transition-colors"
                 title="Cerrar"
@@ -691,7 +722,7 @@ export default function InfoGeneralOperador({ conductores }) {
                     <li key={item.id || idx} className="pt-2 first:pt-0">
                       <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                         <span className="font-semibold text-gray-700">
-                          {item.fecha ? new Date(item.fecha.includes('T') ? item.fecha : item.fecha + 'T00:00:00').toLocaleDateString() : 'Fecha no registrada'}
+                          {formatearFechaDetalle(item.fecha)}
                         </span>
                         {item.estado && (
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${metricModal.badgeColor}`}>
