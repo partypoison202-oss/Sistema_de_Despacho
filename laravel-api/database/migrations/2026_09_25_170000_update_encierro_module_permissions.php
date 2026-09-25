@@ -2,18 +2,21 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        $column = Schema::hasColumn('usuarios', 'rol_id') ? 'rol_id' : 'role_id';
+
         // 1. Quitar módulo 'encierro' de todos los usuarios con rol MANTENIMIENTO
         $mantenimientoRoleIds = DB::table('roles')
             ->whereIn('codigo', ['MANTENIMIENTO'])
             ->pluck('id');
 
         $mantenimientoUserIds = DB::table('usuarios')
-            ->whereIn('role_id', $mantenimientoRoleIds)
+            ->whereIn($column, $mantenimientoRoleIds)
             ->pluck('id');
 
         if ($mantenimientoUserIds->isNotEmpty()) {
@@ -29,7 +32,7 @@ return new class extends Migration
             ->pluck('id');
 
         $pastelesUserIds = DB::table('usuarios')
-            ->whereIn('role_id', $pastelesRoleIds)
+            ->whereIn($column, $pastelesRoleIds)
             ->pluck('id');
 
         foreach ($pastelesUserIds as $uId) {
