@@ -1,6 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { jsPDF } from 'jspdf';
-import { toJpeg } from 'html-to-image';
 import API_BASE from '../../config/api';
 
 // Función para calcular edad
@@ -31,8 +29,26 @@ const calcularAntiguedad = (fechaIngreso) => {
   return `${anios} años, ${meses} meses`;
 };
 
-const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
-  <div className="bg-white p-8 w-[800px] mx-auto text-sm text-gray-800 font-sans" id="printable-pdf-template">
+const parseDetalle = (jsonStr) => {
+  if (!jsonStr) return [];
+  try {
+    const parsed = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
+  const faltas = parseDetalle(conductor.faltas_detalle);
+  const retardos = parseDetalle(conductor.retardos_detalle);
+  const descansos = parseDetalle(conductor.descansos_detalle);
+  const permutas = parseDetalle(conductor.permutas_detalle);
+  const vacaciones = parseDetalle(conductor.vacaciones_detalle);
+  const incapacidades = parseDetalle(conductor.incapacidades_detalle);
+
+  return (
+  <div className="bg-white p-4 sm:p-8 w-full max-w-4xl mx-auto text-sm text-gray-800 font-sans" id="printable-pdf-template">
     {/* Membrete Oficial */}
     <div className="bg-[#6A1B29] py-4 px-6 mb-6 flex items-center justify-between rounded-t-lg" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
       {/* Left Logo */}
@@ -152,8 +168,65 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => (
          <p className="whitespace-pre-wrap">{conductor.observaciones || 'Sin observaciones registradas...'}</p>
       </div>
     </div>
+
+    {/* Historial Detallado */}
+    <div className="mt-8 page-break-before-auto">
+      <h3 className="font-bold text-[#6A1B29] border-b-2 border-[#6A1B29] pb-2 mb-4 text-sm uppercase tracking-wide">HISTORIAL DETALLADO (ASIGNACIONES E INCIDENCIAS)</h3>
+      
+      <div className="grid grid-cols-2 gap-6 text-xs">
+        {/* Faltas y Retardos */}
+        <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+           <h4 className="font-bold text-red-800 bg-red-50 p-2 rounded mb-3">Faltas y Retardos</h4>
+           <ul className="list-disc pl-4 space-y-2 text-gray-700">
+              {faltas.length === 0 && retardos.length === 0 && <li className="italic text-gray-400">Sin faltas ni retardos registrados</li>}
+              {faltas.map((f, i) => (
+                <li key={`f-${i}`}><strong>{f.fecha}:</strong> Falta {f.estado === 'justificada' ? '(Justificada)' : ''} - {f.motivo}</li>
+              ))}
+              {retardos.map((r, i) => (
+                <li key={`r-${i}`}><strong>{r.fecha}:</strong> Retardo - {r.motivo}</li>
+              ))}
+           </ul>
+        </div>
+
+        {/* Permutas */}
+        <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+           <h4 className="font-bold text-blue-800 bg-blue-50 p-2 rounded mb-3">Permutas Realizadas</h4>
+           <ul className="list-disc pl-4 space-y-2 text-gray-700">
+              {permutas.length === 0 && <li className="italic text-gray-400">Sin permutas registradas</li>}
+              {permutas.map((p, i) => (
+                <li key={`p-${i}`}><strong>{p.fecha}:</strong> {p.motivo}</li>
+              ))}
+           </ul>
+        </div>
+
+        {/* Descansos y Vacaciones */}
+        <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+           <h4 className="font-bold text-emerald-800 bg-emerald-50 p-2 rounded mb-3">Descansos y Vacaciones</h4>
+           <ul className="list-disc pl-4 space-y-2 text-gray-700">
+              {descansos.length === 0 && vacaciones.length === 0 && <li className="italic text-gray-400">Sin descansos o vacaciones registradas</li>}
+              {vacaciones.map((v, i) => (
+                <li key={`v-${i}`}><strong>{v.fecha}:</strong> Vacaciones - {v.motivo}</li>
+              ))}
+              {descansos.map((d, i) => (
+                <li key={`d-${i}`}><strong>{d.fecha}:</strong> Descanso - {d.motivo}</li>
+              ))}
+           </ul>
+        </div>
+
+        {/* Incapacidades */}
+        <div className="border border-gray-200 rounded-lg p-4 shadow-sm">
+           <h4 className="font-bold text-purple-800 bg-purple-50 p-2 rounded mb-3">Incapacidades (IMSS / Otros)</h4>
+           <ul className="list-disc pl-4 space-y-2 text-gray-700">
+              {incapacidades.length === 0 && <li className="italic text-gray-400">Sin incapacidades registradas</li>}
+              {incapacidades.map((inc, i) => (
+                <li key={`inc-${i}`}><strong>{inc.fecha}:</strong> {inc.motivo}</li>
+              ))}
+           </ul>
+        </div>
+      </div>
+    </div>
   </div>
-);
+)};
 
 export default function InfoGeneralOperador({ conductores }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -207,73 +280,9 @@ export default function InfoGeneralOperador({ conductores }) {
 
   const displayConductor = selectedConductor || defaultConductor;
 
-  const generarDocumentoPDF = async () => {
-    const element = document.getElementById('printable-pdf-template');
-    
-    // Usamos html-to-image que tiene soporte nativo para CSS moderno como oklch (Tailwind v4)
-    const imgDataUrl = await toJpeg(element, { quality: 0.98, pixelRatio: 2 });
-    
-    // Crear el documento PDF
-    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    
-    // Obtener dimensiones reales de la imagen generada
-    const img = new Image();
-    img.src = imgDataUrl;
-    await new Promise((resolve) => { img.onload = resolve; });
-    
-    // Ajustar la imagen al tamaño de la página A4 con 10mm de margen
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const margin = 10;
-    const imgWidth = pdfWidth - margin * 2;
-    const imgHeight = (img.height * imgWidth) / img.width;
-    
-    pdf.addImage(imgDataUrl, 'JPEG', margin, margin, imgWidth, imgHeight);
-    return pdf;
-  };
-
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!selectedConductor) return;
-    
-    // Abrimos la ventana síncronamente para evitar que Safari la bloquee
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write('<div style="font-family: sans-serif; padding: 20px; text-align: center;">Generando documento oficial en PDF, por favor espere...</div>');
-    }
-
-    try {
-      const pdf = await generarDocumentoPDF();
-      const pdfUrl = pdf.output('bloburl');
-      if (printWindow) {
-        printWindow.document.open();
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Expediente Operador - ${displayConductor.tarjeton ? displayConductor.tarjeton.split('_BAJA_')[0] : ''}</title>
-              <style>body { margin: 0; padding: 0; overflow: hidden; }</style>
-            </head>
-            <body>
-              <iframe src="${pdfUrl}" width="100%" height="100%" frameborder="0" style="border:0;"></iframe>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-      }
-    } catch (err) {
-      console.error('Error al generar PDF:', err);
-      if (printWindow) {
-        printWindow.document.write('<div style="color: red; text-align: center;">Ocurrió un error al generar el PDF.</div>');
-      }
-    }
-  };
-
-  const handleSave = async () => {
-    if (!selectedConductor) return;
-    try {
-      const pdf = await generarDocumentoPDF();
-      pdf.save(`Expediente_Operador_${displayConductor.tarjeton ? displayConductor.tarjeton.split('_BAJA_')[0] : ''}.pdf`);
-    } catch (err) {
-      console.error('Error al guardar PDF:', err);
-    }
+    window.print();
   };
 
   return (
@@ -335,18 +344,10 @@ export default function InfoGeneralOperador({ conductores }) {
         <button 
           onClick={handlePrint}
           disabled={!selectedConductor}
-          className={`px-4 py-2 bg-white border border-gray-300 rounded shadow-sm text-sm font-medium text-gray-700 transition-colors flex items-center gap-2 ${!selectedConductor ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-          Imprimir
-        </button>
-        <button 
-          onClick={handleSave}
-          disabled={!selectedConductor}
           className={`px-4 py-2 bg-[#6A1B29] border border-transparent rounded shadow-sm text-sm font-medium text-white transition-colors flex items-center gap-2 ${!selectedConductor ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#50131f]'}`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-          Guardar
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+          Imprimir / Guardar como PDF
         </button>
       </div>
 
