@@ -570,6 +570,41 @@ class ConductorController extends Controller
         $faltaId = $request->input('falta_id');
         $updated = false;
 
+        $fechaFalta = null;
+
+        // 1. Determinar la fecha de la falta a convertir
+        foreach ($detalle as $idx => $item) {
+            if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
+                $fechaFalta = $item['fecha'] ?? null;
+                break;
+            }
+        }
+        if (!$fechaFalta) {
+            $fechaFalta = $request->input('fecha_falta') ?: date('Y-m-d');
+        }
+
+        // 2. Validar que no exista ya un retardo en esa misma fecha dentro de faltas_detalle
+        foreach ($detalle as $idx => $item) {
+            if (isset($item['fecha']) && $item['fecha'] === $fechaFalta && isset($item['estado']) && $item['estado'] === 'retardo') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'El operador ya tiene un retardo registrado para el día ' . $fechaFalta . '. Solo se permite un retardo por día.'
+                ], 400);
+            }
+        }
+
+        // 3. Validar también en retardos_detalle por si acaso
+        $rawRetardos = $conductor->retardos_detalle;
+        $retardosList = is_string($rawRetardos) ? json_decode($rawRetardos, true) : (is_array($rawRetardos) ? $rawRetardos : []);
+        foreach ($retardosList as $r) {
+            if (isset($r['fecha']) && $r['fecha'] === $fechaFalta) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'El operador ya tiene un retardo registrado para el día ' . $fechaFalta . '. Solo se permite un retardo por día.'
+                ], 400);
+            }
+        }
+
         foreach ($detalle as $idx => &$item) {
             if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
                 $item['estado'] = 'retardo';

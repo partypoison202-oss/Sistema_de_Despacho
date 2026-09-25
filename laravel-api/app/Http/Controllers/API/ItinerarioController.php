@@ -411,27 +411,45 @@ class ItinerarioController extends Controller
         $detalle = is_string($rawDetalle) ? (json_decode($rawDetalle, true) ?: []) : (is_array($rawDetalle) ? $rawDetalle : []);
         $fechasExistentes = array_column($detalle, 'fecha');
 
+        // Si es falta o retardo, cruzamos con el otro campo para evitar empalmes
+        $fechasCruzadas = [];
+        if ($estado === 'falta' || $estado === 'retardo') {
+            $otroCampo = $estado === 'falta' ? 'retardos_detalle' : 'faltas_detalle';
+            $rawOtro = $conductor->$otroCampo;
+            $detalleOtro = is_string($rawOtro) ? (json_decode($rawOtro, true) ?: []) : (is_array($rawOtro) ? $rawOtro : []);
+            $fechasCruzadas = array_column($detalleOtro, 'fecha');
+        }
+
         $motivo = $request->input('motivo') ?: 'Asignación manual';
         $diasAgregados = 0;
 
         foreach ($period as $date) {
             $fechaStr = $date->format('Y-m-d');
-            if (!in_array($fechaStr, $fechasExistentes)) {
+            if (!in_array($fechaStr, $fechasExistentes) && !in_array($fechaStr, $fechasCruzadas)) {
                 $detalle[] = [
                     'id' => $estado . '_' . time() . '_' . random_int(1000, 9999),
                     'fecha' => $fechaStr,
                     'motivo' => $motivo,
-                    'estado' => 'pendiente',
+                    'estado' => $estado === 'retardo' ? 'retardo' : 'pendiente',
                     'justificada' => false
                 ];
                 $diasAgregados++;
             }
         }
 
+        if ($diasAgregados === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo asignar. Es posible que el operador ya tenga un registro de este tipo (o un conflicto de falta/retardo) en las fechas seleccionadas.'
+            ], 400);
+        }
+
         $conductor->$campo = $detalle;
         
         if ($estado === 'falta') {
             $conductor->faltas = ((int)($conductor->faltas ?? 0)) + $diasAgregados;
+        } elseif ($estado === 'retardo') {
+            $conductor->retardos = ((int)($conductor->retardos ?? 0)) + $diasAgregados;
         }
 
         $conductor->save();

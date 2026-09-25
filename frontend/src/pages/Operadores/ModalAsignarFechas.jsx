@@ -200,6 +200,31 @@ export default function ModalAsignarFechas({
 
   if (!isOpen) return null;
 
+  // Lógica de validación en vivo
+  let errorMessage = '';
+  const selectedConductorData = conductores.find(c => String(c.id) === String(conductorId));
+
+  if (selectedConductorData && (estado === 'falta' || estado === 'retardo')) {
+    const parseJson = (val) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string' && val.trim() !== '') {
+        try { const p = JSON.parse(val); return Array.isArray(p) ? p : []; } catch { return []; }
+      }
+      return [];
+    };
+
+    const faltas = parseJson(selectedConductorData.faltas_detalle);
+    const retardos = parseJson(selectedConductorData.retardos_detalle);
+    
+    const yaTieneFaltaORetardo = faltas.some(f => f.fecha === fecha) || retardos.some(r => r.fecha === fecha);
+
+    if (yaTieneFaltaORetardo) {
+      errorMessage = `Ya existe una falta o retardo para el ${fecha}.`;
+    }
+  }
+
+  const isBotonDeshabilitado = enviando || (errorMessage !== '');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -276,7 +301,7 @@ export default function ModalAsignarFechas({
           
           {/* Tipo de asignación (Si no está bloqueado) */}
           {!lockEstado && (
-            <div className="space-y-1">
+            <div className="space-y-1 relative z-[60]">
               <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">TIPO DE ASIGNACIÓN</label>
               <CustomColorSelect value={estado} onChange={setEstado} />
             </div>
@@ -284,7 +309,7 @@ export default function ModalAsignarFechas({
 
           {/* Selección de Conductores */}
           {estado === 'permuta' ? (
-            <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200">
+            <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200 relative z-[50]">
               <SearchableConductorSelect 
                 label="1. Conductor que Descansa (DP)"
                 sublabel="Persona que tomará el día de descanso por permuta"
@@ -305,18 +330,20 @@ export default function ModalAsignarFechas({
               />
             </div>
           ) : (
-            <SearchableConductorSelect 
-              label="Conductor"
-              sublabel="Selecciona a la persona conductora"
-              selectedId={conductorId}
-              onSelect={setConductorId}
-              conductores={conductores}
-              placeholder="Buscar por nombre o tarjetón..."
-            />
+            <div className="relative z-[50]">
+              <SearchableConductorSelect 
+                label="Conductor"
+                sublabel="Selecciona a la persona conductora"
+                selectedId={conductorId}
+                onSelect={setConductorId}
+                conductores={conductores}
+                placeholder="Buscar por nombre o tarjetón..."
+              />
+            </div>
           )}
 
           {/* Fecha */}
-          <div className="space-y-1">
+          <div className="space-y-1 relative z-[40]">
             <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">FECHA</label>
             <AppleDatePicker value={fecha} onChange={setFecha} disableFuture={false} />
           </div>
@@ -334,21 +361,28 @@ export default function ModalAsignarFechas({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 shrink-0">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button 
-              type="submit" 
-              disabled={enviando} 
-              className="px-4 py-2.5 rounded-xl border-none bg-[#6b1d33] text-white text-xs sm:text-sm font-bold hover:bg-[#831843] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait cursor-pointer"
-            >
-              {enviando ? 'Guardando...' : 'Asignar Fechas'}
-            </button>
+          <div className="flex flex-col gap-2 pt-3 border-t border-slate-100 shrink-0">
+            {errorMessage && (
+              <div className="bg-red-50 text-red-600 text-xs font-semibold p-2 rounded-lg border border-red-200 text-center">
+                {errorMessage}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                disabled={isBotonDeshabilitado} 
+                className="px-4 py-2.5 rounded-xl border-none bg-[#6b1d33] text-white text-xs sm:text-sm font-bold hover:bg-[#831843] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {enviando ? 'Guardando...' : 'Asignar Fechas'}
+              </button>
+            </div>
           </div>
 
         </form>
