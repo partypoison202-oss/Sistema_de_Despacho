@@ -925,7 +925,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                   rows="3"
                   value={observacionesJustificante}
                   onChange={(e) => setObservacionesJustificante(e.target.value)}
-                  placeholder="Ej. Incapacidad expedida por el IMSS por enfermedad general..."
+                  placeholder="Ej. Incapacidad expedida por el ISSSTE por enfermedad general..."
                   className="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#6b1d33]/20 focus:border-[#6b1d33]"
                 />
               </div>
