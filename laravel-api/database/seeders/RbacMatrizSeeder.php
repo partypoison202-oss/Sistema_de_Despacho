@@ -50,7 +50,7 @@ class RbacMatrizSeeder extends Seeder
 
             // ── Gestor de Operadores ──
             ['nombre_completo' => 'Iván Martínez Acosta', 'usuario' => 'Ivan_Martinez', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => ['maniobristas', 'operadores'], 'contrasena' => 'MAI_DD26'],
-            ['nombre_completo' => 'Omar Avilés Lugo', 'usuario' => 'Omar_Aviles', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => ['operadores'], 'contrasena' => 'ALO_CD26'],
+            ['nombre_completo' => 'Omar Avilés Lugo', 'usuario' => 'Omar_Aviles', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => ['maniobristas', 'operadores', 'despacho'], 'contrasena' => 'ALO_CD26'],
 
             // ── Despacho ──
             ['nombre_completo' => 'Bacilio Tapia Padilla', 'usuario' => 'Bacilio_Tapia', 'rol_codigo' => 'DESPACHO', 'modulos' => ['despacho'], 'contrasena' => 'TPB_DD26'],
@@ -86,8 +86,8 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Jose Gabriel Angeles Martinez', 'usuario' => 'Jose_Angeles', 'rol_codigo' => 'ENCIERRO', 'modulos' => ['encierro'], 'contrasena' => 'AMJ_EN26'],
 
             // ── Pasteles ──
-            ['nombre_completo' => 'Ricardo Macías Vargas', 'usuario' => 'Ricardo_Macias', 'rol_codigo' => 'PASTELES', 'modulos' => ['centro_control', 'mesa_control', 'programacion_pasteles'], 'contrasena' => 'MVR_PL26'],
-            ['nombre_completo' => 'Victor Esteban Alonso Garcia', 'usuario' => 'Victor_Alonso', 'rol_codigo' => 'PASTELES', 'modulos' => ['centro_control', 'mesa_control', 'programacion_pasteles'], 'contrasena' => 'AGV_PL26'],
+            ['nombre_completo' => 'Ricardo Macías Vargas', 'usuario' => 'Ricardo_Macias', 'rol_codigo' => 'PASTELES', 'modulos' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro'], 'contrasena' => 'MVR_PL26'],
+            ['nombre_completo' => 'Victor Esteban Alonso Garcia', 'usuario' => 'Victor_Alonso', 'rol_codigo' => 'PASTELES', 'modulos' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro'], 'contrasena' => 'AGV_PL26'],
         ];
 
         foreach ($matriz as $entry) {
