@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import API_BASE from '../../config/api';
 
 // Función para calcular edad
@@ -232,8 +233,18 @@ export default function InfoGeneralOperador({ conductores }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConductor, setSelectedConductor] = useState(null);
   const [sitmahOrangeUrl, setSitmahOrangeUrl] = useState('/images/sitmah_logo.webp');
+  const [printMount, setPrintMount] = useState(null);
 
   useEffect(() => {
+    let div = document.getElementById('print-mount');
+    if (!div) {
+      div = document.createElement('div');
+      div.id = 'print-mount';
+      div.className = 'hidden print:block w-full absolute top-0 left-0 bg-white z-[999999] min-h-screen';
+      document.body.appendChild(div);
+    }
+    setPrintMount(div);
+
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = '/images/sitmah_logo.webp';
@@ -290,15 +301,27 @@ export default function InfoGeneralOperador({ conductores }) {
     setTimeout(() => {
       window.print();
       document.title = originalTitle;
-    }, 50);
+    }, 100);
   };
 
   return (
     <>
-      {/* Plantilla oculta para PDF y Print */}
-      <div className="absolute -left-[9999px] top-0 print:static print:w-full print:block">
-        <PrintableTemplate conductor={displayConductor} sitmahOrangeUrl={sitmahOrangeUrl} />
-      </div>
+      <style>{`
+        @media print {
+          body > :not(#print-mount) {
+            display: none !important;
+          }
+          @page {
+            margin: 10mm;
+          }
+        }
+      `}</style>
+
+      {/* Plantilla oculta para PDF y Print (Usando Portal para evitar que herede otros layouts) */}
+      {printMount && createPortal(
+        <PrintableTemplate conductor={displayConductor} sitmahOrangeUrl={sitmahOrangeUrl} />,
+        printMount
+      )}
 
       <div className="info-general-container print:hidden">
       {/* Buscador Superior */}
