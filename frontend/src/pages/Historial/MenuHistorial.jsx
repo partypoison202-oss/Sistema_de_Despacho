@@ -17,6 +17,59 @@ const historialItems = [
     ),
     label: 'HISTORIAL GENERAL',
     color: 'blue',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA'],
+  },
+  {
+    id: 'historial-programacion',
+    redirectTo: '/historial/programacion',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+        <path d="M8 14h.01" />
+        <path d="M12 14h.01" />
+        <path d="M16 14h.01" />
+        <path d="M8 18h.01" />
+        <path d="M12 18h.01" />
+      </svg>
+    ),
+    label: 'HISTORIAL PROGRAMACIÓN Y LOGÍSTICA',
+    color: 'emerald',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'DESPACHO', 'PLATAFORMA'],
+  },
+  {
+    id: 'historial-programacion-pasteles',
+    redirectTo: '/historial/programacion-pasteles',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
+        <path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2 1 2 1" />
+        <path d="M2 21h20" />
+        <path d="M7 8v3" />
+        <path d="M12 8v3" />
+        <path d="M17 8v3" />
+      </svg>
+    ),
+    label: 'HISTORIAL PROGRAMACIÓN (PASTELES)',
+    color: 'teal',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'PASTELES', 'PROGRAMACION_PASTELES', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA'],
+  },
+  {
+    id: 'historial-relevos',
+    redirectTo: '/historial/relevos',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 2.1l4 4-4 4" />
+        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+        <path d="M7 21.9l-4-4 4-4" />
+        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+      </svg>
+    ),
+    label: 'HISTORIAL DE RELEVOS',
+    color: 'blue',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'PROGRAMACION', 'CAPTURISTA', 'RELEVOS', 'PASTELES', 'PROGRAMACION_PASTELES', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA'],
   },
   {
     id: 'historial-checklist',
@@ -29,6 +82,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL CHECK LIST',
     color: 'orange',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'MANTENIMIENTO'],
   },
   {
     id: 'historial-despacho',
@@ -44,6 +98,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL DESPACHO',
     color: 'maroon',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO'],
   },
   {
     id: 'historial-encierro',
@@ -58,8 +113,8 @@ const historialItems = [
     ),
     label: 'HISTORIAL ENCIERRO',
     color: 'gold',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'ENCIERRO'],
   },
-
   {
     id: 'historial-reportes-titanes',
     redirectTo: '/historial/reportes-titanes',
@@ -71,6 +126,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL REPORTES TITANES',
     color: 'purple',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL'],
   },
   {
     id: 'historial-mantenimiento',
@@ -82,6 +138,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL MANTENIMIENTO',
     color: 'emerald',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'MANTENIMIENTO'],
   }
 ];
 
@@ -89,12 +146,20 @@ export default function MenuHistorial() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
 
+  const rol = String(user?.role?.codigo || '').toUpperCase().trim();
+  const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
+
+  const visibleItems = historialItems.filter((item) => {
+    if (isSuper) return true;
+    return item.allowedRoles.includes(rol);
+  });
+
   useEffect(() => {
     if (!user) return;
-    if (!['ADMINISTRADOR', 'DESPACHO', 'GENERAL'].includes(user.role?.codigo)) {
-      navigate('/');
+    if (visibleItems.length === 0) {
+      navigate('/menu');
     }
-  }, [user, navigate]);
+  }, [user, visibleItems.length, navigate]);
 
   return (
     <div className="dashboard-container">
@@ -107,7 +172,7 @@ export default function MenuHistorial() {
         </div>
 
         <div className="menu-dashboard-grid">
-          {historialItems.map((item) => (
+          {visibleItems.map((item) => (
             <button
               key={item.id}
               className={`dashboard-card dashboard-card--${item.color}`}

@@ -87,21 +87,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
   }, [profileRef]);
 
   let showBackButton = false;
-  if (!hideBackButton && user && location.pathname !== '/') {
-    const isDashboard = location.pathname === '/menu' || 
-                        location.pathname === '/dashboard' ||
-                        location.pathname === '/encierro/dashboard' ||
-                        location.pathname === '/centro-control' ||
-                        location.pathname === '/cargar-excel' ||
-                        location.pathname === '/general' ||
-                        location.pathname === '/titan/dashboard' ||
-                        location.pathname === '/infraccion/dashboard' ||
-                        location.pathname === '/mantenimiento' ||
-                        location.pathname === '/carga-combustible' ||
-                        location.pathname === '/operadores' ||
-                        location.pathname === '/maniobristas' ||
-                        location.pathname === '/mesa-control';
-    showBackButton = !isDashboard;
+  if (!hideBackButton && user && location.pathname !== '/' && location.pathname !== '/menu') {
+    showBackButton = true;
   }
 
   return (
@@ -175,6 +162,14 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                     <span className="profile-role">{user.role.nombre}</span>
                   </div>
                   <hr />
+                  <button className="profile-menu-btn" onClick={() => {
+                    handleConfirmExit(() => {
+                      setShowProfileMenu(false);
+                      navigate('/menu');
+                    });
+                  }}>
+                    Menú Principal
+                  </button>
                   <button className="profile-menu-btn" onClick={() => {
                     setShowProfileMenu(false);
                     setShowAjustes(true);

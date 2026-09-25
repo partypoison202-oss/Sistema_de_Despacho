@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useContext, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
+import { ROLE_DEFAULT_MODULES } from '../../components/ProtectedRoute';
 import Header from '../../components/Header/Header';
 import './Menu.css';
 
@@ -257,13 +258,21 @@ export default function Menu() {
   if (!user) return null;
 
   const rol = user.role?.codigo;
-  const modulos = user.modulos || [];
+  let modulos = (user.modulos && user.modulos.length > 0)
+    ? [...user.modulos]
+    : [...(ROLE_DEFAULT_MODULES[rol] || [])];
+
+  const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PROGRAMACION', 'CAPTURISTA', 'PASTELES', 'PROGRAMACION_PASTELES'];
+  if (rolesConHistorial.includes(rol) && !modulos.includes('historial')) {
+    modulos.push('historial');
+  }
+
   const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
-  const isPasteles = rol === 'PASTELES';
+  const isPasteles = rol === 'PASTELES' || rol === 'PROGRAMACION_PASTELES';
 
   const visibleMenuItems = menuItems.filter((item) => {
     if (isSuper) return true;
-    if (isPasteles && ['centro_control', 'mesa_control', 'programacion_pasteles'].includes(item.modulo)) {
+    if (isPasteles && ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'].includes(item.modulo)) {
       return true;
     }
     if (!item.modulo) return true;
