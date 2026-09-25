@@ -200,6 +200,31 @@ export default function ModalAsignarFechas({
 
   if (!isOpen) return null;
 
+  // Lógica de validación en vivo
+  let errorMessage = '';
+  const selectedConductorData = conductores.find(c => String(c.id) === String(conductorId));
+
+  if (selectedConductorData && (estado === 'falta' || estado === 'retardo')) {
+    const parseJson = (val) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string' && val.trim() !== '') {
+        try { const p = JSON.parse(val); return Array.isArray(p) ? p : []; } catch { return []; }
+      }
+      return [];
+    };
+
+    const faltas = parseJson(selectedConductorData.faltas_detalle);
+    const retardos = parseJson(selectedConductorData.retardos_detalle);
+    
+    const yaTieneFaltaORetardo = faltas.some(f => f.fecha === fecha) || retardos.some(r => r.fecha === fecha);
+
+    if (yaTieneFaltaORetardo) {
+      errorMessage = `Este operador ya cuenta con una falta o retardo registrado para el día ${fecha}. No se puede duplicar.`;
+    }
+  }
+
+  const isBotonDeshabilitado = enviando || (errorMessage !== '');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -336,21 +361,28 @@ export default function ModalAsignarFechas({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 shrink-0">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button 
-              type="submit" 
-              disabled={enviando} 
-              className="px-4 py-2.5 rounded-xl border-none bg-[#6b1d33] text-white text-xs sm:text-sm font-bold hover:bg-[#831843] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait cursor-pointer"
-            >
-              {enviando ? 'Guardando...' : 'Asignar Fechas'}
-            </button>
+          <div className="flex flex-col gap-2 pt-3 border-t border-slate-100 shrink-0">
+            {errorMessage && (
+              <div className="bg-red-50 text-red-600 text-xs font-semibold p-2 rounded-lg border border-red-200 text-center">
+                {errorMessage}
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                disabled={isBotonDeshabilitado} 
+                className="px-4 py-2.5 rounded-xl border-none bg-[#6b1d33] text-white text-xs sm:text-sm font-bold hover:bg-[#831843] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {enviando ? 'Guardando...' : 'Asignar Fechas'}
+              </button>
+            </div>
           </div>
 
         </form>
