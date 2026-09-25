@@ -66,6 +66,14 @@ class PlataformaController extends Controller
             $estatusAnterior = strtoupper(trim($estatusAnteriorRaw));
             $estatusNuevo = $estatusAnterior;
 
+            $conductorAnteriorRegistro = $registroOperativo
+                ? (!empty($registroOperativo->numero_tarjeton)
+                    ? $registroOperativo->numero_tarjeton
+                    : (!empty($registroOperativo->nombre_conductor)
+                        ? $registroOperativo->nombre_conductor
+                        : ($registroOperativo->mantenimiento_tarjeton ?? $registroOperativo->mantenimiento_conductor ?? null)))
+                : null;
+
             $datosUpdate = [];
             $mensajeBitacora = "";
 
@@ -112,7 +120,21 @@ class PlataformaController extends Controller
                     $datosUpdate['falla'] = $request->motivo ? strtoupper($request->motivo) : 'MANTENIMIENTO';
                 }
                 
-                // Limpiar conductor y ruta al desincorporar
+                // Preservar datos operativos de la unidad desincorporada en mantenimiento_*
+                $datosUpdate['mantenimiento_conductor'] = !empty($registroOperativo->nombre_conductor)
+                    ? $registroOperativo->nombre_conductor
+                    : ($registroOperativo->mantenimiento_conductor ?? null);
+                $datosUpdate['mantenimiento_tarjeton'] = !empty($registroOperativo->numero_tarjeton)
+                    ? $registroOperativo->numero_tarjeton
+                    : ($registroOperativo->mantenimiento_tarjeton ?? null);
+                $datosUpdate['mantenimiento_ruta'] = !empty($registroOperativo->ruta)
+                    ? $registroOperativo->ruta
+                    : ($registroOperativo->mantenimiento_ruta ?? null);
+                $datosUpdate['mantenimiento_corrida'] = !empty($registroOperativo->corridas)
+                    ? $registroOperativo->corridas
+                    : ($registroOperativo->mantenimiento_corrida ?? null);
+
+                // Limpiar conductor y ruta en servicio activo al desincorporar
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
                     $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
                     $tarjetonClean = ltrim($tarjetonAnterior, '0');
@@ -140,10 +162,6 @@ class PlataformaController extends Controller
                 $datosUpdate['relevo_hora'] = null;
                 $datosUpdate['tarjeton_maniobrista'] = null;
                 $datosUpdate['nombre_maniobrista'] = null;
-                $datosUpdate['mantenimiento_conductor'] = null;
-                $datosUpdate['mantenimiento_tarjeton'] = null;
-                $datosUpdate['mantenimiento_ruta'] = null;
-                $datosUpdate['mantenimiento_corrida'] = null;
                 $datosUpdate['patio_norte'] = 'false';
                 $datosUpdate['transporte_patio_norte'] = 'false';
 
@@ -451,13 +469,13 @@ class PlataformaController extends Controller
 
                     $mensajeBitacora = "CAMBIO DE CONDUCTOR A: " . $conductorNuevo->tarjeton . " - " . $nombreCompleto . " - MOTIVO RETIRO ANTERIOR: " . strtoupper($request->motivo ?? '');
                 } else {
+                    $datosUpdate['mantenimiento_conductor'] = $registroOperativo->nombre_conductor ?? $registroOperativo->mantenimiento_conductor ?? null;
+                    $datosUpdate['mantenimiento_tarjeton'] = $registroOperativo->numero_tarjeton ?? $registroOperativo->mantenimiento_tarjeton ?? null;
                     $datosUpdate['numero_tarjeton'] = null;
                     $datosUpdate['nombre_conductor'] = null;
                     $datosUpdate['relevo_tarjeton'] = null;
                     $datosUpdate['relevo_conductor'] = null;
                     $datosUpdate['relevo_hora'] = null;
-                    $datosUpdate['mantenimiento_conductor'] = null;
-                    $datosUpdate['mantenimiento_tarjeton'] = null;
                     $mensajeBitacora = "RETIRO DE CONDUCTOR: " . ($registroOperativo->numero_tarjeton ?? $registroOperativo->nombre_conductor ?? 'SIN TARJETÓN') . " - MOTIVO: " . strtoupper($request->motivo ?? '');
                 }
             }
@@ -483,8 +501,15 @@ class PlataformaController extends Controller
             if ($tipoMovimiento === 'RETIRO_CONDUCTOR') {
                 // Si hay reemplazo, conductor_asignado ya se guardó en $datosUpdate['numero_tarjeton']
                 $conductorAsignadoFinal = $datosUpdate['numero_tarjeton'] ?? null;
+            } else if ($tipoMovimiento === 'DESINCORPORACION') {
+                $conductorAsignadoFinal = null;
             } else {
                 $conductorAsignadoFinal = $request->numero_tarjeton_nuevo ?? $request->numero_tarjeton ?? $request->conductor;
+            }
+
+            $rutaMovimientoFinal = $request->ruta;
+            if ($tipoMovimiento === 'DESINCORPORACION') {
+                $rutaMovimientoFinal = $registroOperativo->ruta ?? $datosUpdate['mantenimiento_ruta'] ?? null;
             }
 
             DB::table('plataforma_movimientos')->insert([
@@ -495,7 +520,7 @@ class PlataformaController extends Controller
                 'estatus_nuevo'       => $estatusNuevo,
                 'conductor_anterior'  => $conductorAnteriorRegistro ?? null,
                 'conductor_asignado'  => $conductorAsignadoFinal,
-                'ruta_asignada'       => $request->ruta,
+                'ruta_asignada'       => $rutaMovimientoFinal,
                 'motivo'              => $request->motivo,
                 'created_at'          => Carbon::now(),
                 'updated_at'          => Carbon::now()

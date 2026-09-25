@@ -2,19 +2,20 @@ import { useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext, getDefaultRoute } from '../context/AuthContext';
 
-const ROLE_DEFAULT_MODULES = {
-  DESPACHO: ['despacho'],
-  PLATAFORMA: ['mesa_control'],
-  MESA_CONTROL: ['mesa_control', 'relevos', 'centro_control'],
-  PROGRAMACION: ['capturista', 'relevos'],
-  PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles'],
+export const ROLE_DEFAULT_MODULES = {
+  DESPACHO: ['despacho', 'historial'],
+  PLATAFORMA: ['mesa_control', 'historial'],
+  MESA_CONTROL: ['mesa_control', 'relevos', 'centro_control', 'historial'],
+  PROGRAMACION: ['capturista', 'relevos', 'historial'],
+  PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
+  PROGRAMACION_PASTELES: ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'],
   GESTOR_OPERADORES: ['operadores'],
-  ENCIERRO: ['encierro'],
-  CENTRO_CONTROL: ['centro_control'],
+  ENCIERRO: ['encierro', 'historial'],
+  CENTRO_CONTROL: ['centro_control', 'historial'],
   TITAN: ['titan'],
   INFRACCION: ['infraccion'],
-  GENERAL: ['general'],
-  MANTENIMIENTO: ['mantenimiento', 'encierro', 'carga_combustible'],
+  GENERAL: ['general', 'historial'],
+  MANTENIMIENTO: ['mantenimiento', 'encierro', 'carga_combustible', 'historial'],
   CARGA_DE_COMBUSTIBLE: ['carga_combustible'],
 };
 
@@ -38,10 +39,15 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
   const rol = user.role?.codigo;
   let modulos = (user.modulos && user.modulos.length > 0)
     ? [...user.modulos]
-    : (ROLE_DEFAULT_MODULES[rol] || []);
+    : [...(ROLE_DEFAULT_MODULES[rol] || [])];
 
-  if (rol === 'PASTELES') {
-    ['centro_control', 'mesa_control', 'programacion_pasteles'].forEach(m => {
+  const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PASTELES', 'PROGRAMACION_PASTELES', 'PROGRAMACION', 'CAPTURISTA'];
+  if (rolesConHistorial.includes(rol) && !modulos.includes('historial')) {
+    modulos.push('historial');
+  }
+
+  if (rol === 'PASTELES' || rol === 'PROGRAMACION_PASTELES') {
+    ['centro_control', 'mesa_control', 'programacion_pasteles', 'historial'].forEach(m => {
       if (!modulos.includes(m)) modulos.push(m);
     });
   }
@@ -63,8 +69,8 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
     }
   }
 
-  // Verificación por roles (lógica antigua como fallback)
-  if (allowedRoles && !isSuper && !allowedModules) {
+  // Verificación por roles
+  if (allowedRoles && !isSuper) {
     if (!allowedRoles.includes(rol)) {
       let fallbackRoute = getDefaultRoute(user);
       if (fallbackRoute === location.pathname) {

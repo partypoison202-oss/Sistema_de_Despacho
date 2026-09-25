@@ -921,11 +921,10 @@ export default function DetalleUnidadMesaControl() {
             conductor: shouldClearConductor ? null : (foundConductor ? foundConductor.nombre : (data.conductor_asignado || old.conductor)),
             ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || old.ruta),
             tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || old.tarjeton),
-            corridas: shouldClearConductor ? null : (modalEstatusCorrida || data.corridas || old.corridas),
-            mantenimiento_conductor: shouldClearConductor ? null : old.mantenimiento_conductor,
-            mantenimiento_tarjeton: shouldClearConductor ? null : old.mantenimiento_tarjeton,
-            mantenimiento_ruta: shouldClearConductor ? null : old.mantenimiento_ruta,
-            mantenimiento_corrida: shouldClearConductor ? null : old.mantenimiento_corrida,
+            mantenimiento_conductor: shouldClearConductor ? (old.conductor || old.mantenimiento_conductor || null) : old.mantenimiento_conductor,
+            mantenimiento_tarjeton: shouldClearConductor ? (old.tarjeton || old.mantenimiento_tarjeton || null) : old.mantenimiento_tarjeton,
+            mantenimiento_ruta: shouldClearConductor ? (old.ruta || old.mantenimiento_ruta || null) : old.mantenimiento_ruta,
+            mantenimiento_corrida: shouldClearConductor ? (old.corridas || old.mantenimiento_corrida || null) : old.mantenimiento_corrida,
             hora_salida_patio: shouldClearConductor ? null : old.hora_salida_patio,
             acople: shouldClearConductor ? null : old.acople,
             hora_real_salida_patio: shouldClearConductor ? null : old.hora_real_salida_patio,
@@ -949,6 +948,10 @@ export default function DetalleUnidadMesaControl() {
                 ruta: shouldClearConductor ? null : (modalEstatusRuta || data.ruta_asignada || u.ruta),
                 tarjeton: shouldClearConductor ? null : (modalEstatusConductor || data.tarjeton || u.tarjeton),
                 corridas: shouldClearConductor ? null : u.corridas,
+                mantenimiento_conductor: shouldClearConductor ? (u.nombre_conductor || u.mantenimiento_conductor || null) : u.mantenimiento_conductor,
+                mantenimiento_tarjeton: shouldClearConductor ? (u.tarjeton || u.mantenimiento_tarjeton || null) : u.mantenimiento_tarjeton,
+                mantenimiento_ruta: shouldClearConductor ? (u.ruta || u.mantenimiento_ruta || null) : u.mantenimiento_ruta,
+                mantenimiento_corrida: shouldClearConductor ? (u.corridas || u.mantenimiento_corrida || null) : u.mantenimiento_corrida,
               };
             }
             if (cambioUnidadActivo && unidadReemplazoSeleccionada && String(u.eco).padStart(3, '0') === String(unidadReemplazoSeleccionada.eco).padStart(3, '0')) {

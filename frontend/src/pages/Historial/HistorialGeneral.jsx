@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
+import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
 import './Historial.css';
 
 const processResumenData = (inicio, cambios, fin) => {
@@ -237,7 +238,7 @@ export default function HistorialGeneral() {
         'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
         'ECO': d.economico || '',
         'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
-        'MODIFICACIÓN': d.tipo_accion || '',
+        'MODIFICACIÓN': formatAccion(d.tipo_accion),
         'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
         'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
         'DETALLES': d.detalles || '',
@@ -412,13 +413,13 @@ export default function HistorialGeneral() {
                     <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
                     <td style={{ fontWeight: '600' }}>{d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '-'}</td>
                     <td>
-                      <span className={`estatus-badge estatus-accion`}>
-                        {d.tipo_accion}
+                      <span className="estatus-badge" style={getAccionBadgeStyle(d.tipo_accion)}>
+                        {formatAccion(d.tipo_accion)}
                       </span>
                     </td>
-                    <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior || 'N/A'}</td>
-                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo || 'N/A'}</td>
-                    <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', paddingRight: '1rem' }}>{d.detalles}</td>
+                    <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : '-'}</td>
+                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : '-'}</td>
+                    <td style={{ wordBreak: 'break-word', whiteSpace: 'normal', paddingRight: '1rem', color: '#334155' }}>{d.detalles || 'Sin detalles adicionales'}</td>
                     <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                   </tr>
                 ))}

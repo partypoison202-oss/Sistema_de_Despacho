@@ -551,7 +551,7 @@ class DespachoController extends Controller
                 $estatus = 'operacion';
             }
 
-            // Si la unidad está desincorporada (reserva, mantenimiento, percance), NO debe tener conductor ni ruta asignados
+            // Si la unidad está desincorporada (reserva, mantenimiento, percance), NO debe tener conductor ni ruta asignados en servicio activo
             if (in_array($estatus, ['mantenimiento', 'reserva', 'percance'], true)) {
                 $info->ruta = null;
                 $info->nombre_conductor = null;
@@ -561,10 +561,6 @@ class DespachoController extends Controller
                 $info->hora_salida_patio = null;
                 $info->acople = null;
                 $info->hora_real_salida_patio = null;
-                $info->mantenimiento_conductor = null;
-                $info->mantenimiento_tarjeton = null;
-                $info->mantenimiento_ruta = null;
-                $info->mantenimiento_corrida = null;
                 $info->relevo_conductor = null;
                 $info->relevo_tarjeton = null;
                 $info->relevo_hora = null;
@@ -1566,6 +1562,21 @@ class DespachoController extends Controller
                     DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->where('faltas', '>', 0)->decrement('faltas');
                 }
             }
+
+            // Registrar en bitácora datos adicionales modificados
+            $detallesArray = [];
+            if ($request->has('corridas') && $request->corridas !== $registro->corridas) $detallesArray[] = "CORRIDAS: " . ($registro->corridas ?? '0') . " -> " . $request->corridas;
+            if ($request->has('ciclo') && $request->ciclo !== $registro->ciclo) $detallesArray[] = "CICLO: " . ($registro->ciclo ?? 'N/A') . " -> " . $request->ciclo;
+            if ($request->has('motivo') && $request->motivo !== $registro->motivo) $detallesArray[] = "MOTIVO: " . ($registro->motivo ?? 'SIN MOTIVO') . " -> " . $request->motivo;
+            if ($request->has('falla') && $request->falla !== $registro->falla) $detallesArray[] = "FALLA: " . ($registro->falla ?? 'SIN FALLA') . " -> " . $request->falla;
+
+            if (!empty($detallesArray)) {
+                \App\Helpers\BitacoraHelper::registrarCambio(
+                    $registro->unidad_id,
+                    'ACTUALIZACION_DATOS',
+                    "ACTUALIZACIÓN DE DATOS - " . implode(' | ', $detallesArray)
+                );
+            }
         }
 
         if ($actualizado !== false) {
@@ -1642,6 +1653,14 @@ class DespachoController extends Controller
         DB::table('conductores')
             ->where('tarjeton', $tarjetonLimpio)
             ->update(['estado_servicio' => 'en_servicio']);
+
+        \App\Helpers\BitacoraHelper::registrarCambio(
+            $registro->unidad_id,
+            'ASIGNAR_OPERADOR',
+            "ASIGNACIÓN DE CONDUCTOR - TARJETÓN " . $tarjetonLimpio . " (" . strtoupper($conductor->nombre) . ")" . ($registro->nombre_conductor ? " REEMPLAZA A: " . strtoupper($registro->nombre_conductor) : ""),
+            $registro->nombre_conductor ?? 'SIN ASIGNAR',
+            $conductor->nombre
+        );
 
         return response()->json([
             'status' => 'success',
@@ -1725,12 +1744,36 @@ class DespachoController extends Controller
                     ->where('id', $registro->id)
                     ->update($updateData);
 
-                // Registrar acción en la bitácora de cambios
-                \App\Helpers\BitacoraHelper::registrarCambio(
-                    $registro->unidad_id,
-                    'CAMBIO_HORAS',
-                    "ACTUALIZÓ HORA DE SALIDA DE PATIO (ANTERIOR: " . ($registro->hora_salida_patio ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->hora_salida_patio ?? 'SIN ASIGNAR') . ") Y ACOPLE (ANTERIOR: " . ($registro->acople ?? 'SIN ASIGNAR') . ", NUEVA: " . ($request->acople ?? 'SIN ASIGNAR') . ")"
-                );
+                // Registrar acción detallada en la bitácora de cambios
+                if ($request->filled('hora_real_salida_patio')) {
+                    \App\Helpers\BitacoraHelper::registrarCambio(
+                        $registro->unidad_id,
+                        'VALIDAR_DESPACHO',
+                        "SALIDA VALIDADA DE PATIO A LAS " . $request->hora_real_salida_patio . ($request->observaciones ? " - OBS: " . strtoupper($request->observaciones) : ""),
+                        $registro->estatus ?? 'reserva',
+                        'operacion'
+                    );
+                } else {
+                    $detallesHoras = [];
+                    if ($request->has('hora_salida_patio') && $request->hora_salida_patio !== $registro->hora_salida_patio) {
+                        $detallesHoras[] = "HORA SALIDA: " . ($registro->hora_salida_patio ?? 'SIN ASIGNAR') . " -> " . ($request->hora_salida_patio ?? 'SIN ASIGNAR');
+                    }
+                    if ($request->has('acople') && $request->acople !== $registro->acople) {
+                        $detallesHoras[] = "ACOPLE: " . ($registro->acople ?? 'SIN ASIGNAR') . " -> " . ($request->acople ?? 'SIN ASIGNAR');
+                    }
+                    if ($request->has('observaciones') && $request->observaciones !== $registro->observaciones) {
+                        $detallesHoras[] = "OBSERVACIONES: " . ($request->observaciones ?? 'SIN OBS');
+                    }
+                    if (empty($detallesHoras)) {
+                        $detallesHoras[] = "ACTUALIZACIÓN DE HORARIO / ACOPLE";
+                    }
+
+                    \App\Helpers\BitacoraHelper::registrarCambio(
+                        $registro->unidad_id,
+                        'CAMBIO_HORAS',
+                        implode(' | ', $detallesHoras)
+                    );
+                }
 
                 return response()->json([
                     'status' => 'success',
@@ -2604,6 +2647,11 @@ class DespachoController extends Controller
         }
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance') {
+            $updateData['mantenimiento_conductor'] = !empty($registroOperativo->nombre_conductor) ? $registroOperativo->nombre_conductor : ($registroOperativo->mantenimiento_conductor ?? null);
+            $updateData['mantenimiento_tarjeton'] = !empty($registroOperativo->numero_tarjeton) ? $registroOperativo->numero_tarjeton : ($registroOperativo->mantenimiento_tarjeton ?? null);
+            $updateData['mantenimiento_ruta'] = !empty($registroOperativo->ruta) ? $registroOperativo->ruta : ($registroOperativo->mantenimiento_ruta ?? null);
+            $updateData['mantenimiento_corrida'] = !empty($registroOperativo->corridas) ? $registroOperativo->corridas : ($registroOperativo->mantenimiento_corrida ?? null);
+
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
             $updateData['ruta'] = null;
@@ -2624,10 +2672,6 @@ class DespachoController extends Controller
             $updateData['relevo_hora'] = null;
             $updateData['tarjeton_maniobrista'] = null;
             $updateData['nombre_maniobrista'] = null;
-            $updateData['mantenimiento_conductor'] = null;
-            $updateData['mantenimiento_tarjeton'] = null;
-            $updateData['mantenimiento_ruta'] = null;
-            $updateData['mantenimiento_corrida'] = null;
             $updateData['patio_norte'] = 'false';
             $updateData['transporte_patio_norte'] = 'false';
 
