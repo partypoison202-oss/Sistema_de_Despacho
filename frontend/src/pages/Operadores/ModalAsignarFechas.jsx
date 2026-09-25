@@ -219,7 +219,7 @@ export default function ModalAsignarFechas({
     const yaTieneFaltaORetardo = faltas.some(f => f.fecha === fecha) || retardos.some(r => r.fecha === fecha);
 
     if (yaTieneFaltaORetardo) {
-      errorMessage = `Este operador ya cuenta con una falta o retardo registrado para el día ${fecha}. No se puede duplicar.`;
+      errorMessage = `Ya existe una falta o retardo para el ${fecha}.`;
     }
   }
 
