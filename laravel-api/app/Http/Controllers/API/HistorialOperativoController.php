@@ -793,7 +793,37 @@ class HistorialOperativoController extends Controller
 
             $relevosQuery = collect();
 
-            if (Schema::hasTable('historial_operativo')) {
+            if ($fecha === Carbon::today()->toDateString() && Schema::hasTable('informacion_operativa') && $hasRelevoInfo) {
+                $queryInfo = DB::table('informacion_operativa')
+                    ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                    ->where(function($q) {
+                        $q->where(function($q1) {
+                            $q1->whereNotNull('informacion_operativa.relevo_conductor')
+                               ->whereRaw("TRIM(CAST(informacion_operativa.relevo_conductor AS VARCHAR)) != ''");
+                        })->orWhere(function($q2) {
+                            $q2->whereNotNull('informacion_operativa.relevo_tarjeton')
+                               ->whereRaw("TRIM(CAST(informacion_operativa.relevo_tarjeton AS VARCHAR)) != ''");
+                        });
+                    });
+
+                $relevosQuery = $queryInfo->select(
+                    'unidades.numero_eco as economico',
+                    'unidades.tipo as tipo_unidad',
+                    'informacion_operativa.tipo',
+                    'informacion_operativa.ruta',
+                    'informacion_operativa.numero_tarjeton as titular_tarjeton',
+                    'informacion_operativa.nombre_conductor as titular_conductor',
+                    'informacion_operativa.estatus',
+                    'informacion_operativa.relevo_tarjeton',
+                    'informacion_operativa.relevo_conductor',
+                    Schema::hasColumn('informacion_operativa', 'relevo_hora') ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora'),
+                    'informacion_operativa.created_at'
+                )
+                ->orderBy('unidades.numero_eco')
+                ->get();
+            }
+
+            if ($relevosQuery->isEmpty() && Schema::hasTable('historial_operativo')) {
                 $query = DB::table('historial_operativo')
                     ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
                     ->where('fecha_historial', $fecha);
@@ -827,40 +857,7 @@ class HistorialOperativoController extends Controller
                 }
             }
 
-            if ($relevosQuery->isEmpty() && $fecha === Carbon::today()->toDateString() && Schema::hasTable('informacion_operativa')) {
-                $queryInfo = DB::table('informacion_operativa')
-                    ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id');
-
-                if ($hasRelevoInfo) {
-                    $queryInfo->where(function($q) {
-                        $q->where(function($q1) {
-                            $q1->whereNotNull('informacion_operativa.relevo_conductor')
-                               ->whereRaw("TRIM(CAST(informacion_operativa.relevo_conductor AS VARCHAR)) != ''");
-                        })->orWhere(function($q2) {
-                            $q2->whereNotNull('informacion_operativa.relevo_tarjeton')
-                               ->whereRaw("TRIM(CAST(informacion_operativa.relevo_tarjeton AS VARCHAR)) != ''");
-                        });
-                    });
-
-                    $relevosQuery = $queryInfo->select(
-                        'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
-                        'informacion_operativa.tipo',
-                        'informacion_operativa.ruta',
-                        'informacion_operativa.numero_tarjeton as titular_tarjeton',
-                        'informacion_operativa.nombre_conductor as titular_conductor',
-                        'informacion_operativa.estatus',
-                        'informacion_operativa.relevo_tarjeton',
-                        'informacion_operativa.relevo_conductor',
-                        Schema::hasColumn('informacion_operativa', 'relevo_hora') ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                        'informacion_operativa.created_at'
-                    )
-                    ->orderBy('unidades.numero_eco')
-                    ->get();
-                }
-            }
-
-            // Obtener bitácora de cambios de relevo en esa fecha
+            // Obtener bitácora de cambios de relevo / conductor en esa fecha
             $cambiosBitacora = collect();
             if (Schema::hasTable('bitacora_cambios_unidades')) {
                 $cambiosBitacora = DB::table('bitacora_cambios_unidades')
@@ -869,7 +866,11 @@ class HistorialOperativoController extends Controller
                     ->where('bitacora_cambios_unidades.fecha', $fecha)
                     ->where(function($q) {
                         $q->whereRaw("LOWER(CAST(bitacora_cambios_unidades.tipo_accion AS VARCHAR)) LIKE '%relevo%'")
-                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%relevo%'");
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%relevo%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.tipo_accion AS VARCHAR)) LIKE '%cambio%conductor%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%cambio%conductor%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.tipo_accion AS VARCHAR)) LIKE '%asignaci%conductor%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%asignaci%conductor%'");
                     })
                     ->select(
                         'bitacora_cambios_unidades.id',
