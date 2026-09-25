@@ -276,7 +276,7 @@ export default function ModalAsignarFechas({
           
           {/* Tipo de asignación (Si no está bloqueado) */}
           {!lockEstado && (
-            <div className="space-y-1">
+            <div className="space-y-1 relative z-[60]">
               <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">TIPO DE ASIGNACIÓN</label>
               <CustomColorSelect value={estado} onChange={setEstado} />
             </div>
@@ -284,7 +284,7 @@ export default function ModalAsignarFechas({
 
           {/* Selección de Conductores */}
           {estado === 'permuta' ? (
-            <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200">
+            <div className="space-y-3.5 bg-purple-50/60 p-3.5 rounded-2xl border border-purple-200 relative z-[50]">
               <SearchableConductorSelect 
                 label="1. Conductor que Descansa (DP)"
                 sublabel="Persona que tomará el día de descanso por permuta"
@@ -305,18 +305,20 @@ export default function ModalAsignarFechas({
               />
             </div>
           ) : (
-            <SearchableConductorSelect 
-              label="Conductor"
-              sublabel="Selecciona a la persona conductora"
-              selectedId={conductorId}
-              onSelect={setConductorId}
-              conductores={conductores}
-              placeholder="Buscar por nombre o tarjetón..."
-            />
+            <div className="relative z-[50]">
+              <SearchableConductorSelect 
+                label="Conductor"
+                sublabel="Selecciona a la persona conductora"
+                selectedId={conductorId}
+                onSelect={setConductorId}
+                conductores={conductores}
+                placeholder="Buscar por nombre o tarjetón..."
+              />
+            </div>
           )}
 
           {/* Fecha */}
-          <div className="space-y-1">
+          <div className="space-y-1 relative z-[40]">
             <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">FECHA</label>
             <AppleDatePicker value={fecha} onChange={setFecha} disableFuture={false} />
           </div>
