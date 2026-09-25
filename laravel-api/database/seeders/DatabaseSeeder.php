@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             NeonImportSeeder::class,
             RbacMatrizSeeder::class,
+            ImportarConductoresPlantillaSeeder::class,
         ]);
 
         // Crear administrador de respaldo eliminado por petición.
