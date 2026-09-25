@@ -575,8 +575,8 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* MODAL / DRAWER: DETALLE DE FALTAS DEL CONDUCTOR */}
       {conductorActualData && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn my-auto">
+        <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-hidden">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
             
             {/* Header del Modal */}
             <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
