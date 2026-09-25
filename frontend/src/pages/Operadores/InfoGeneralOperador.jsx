@@ -282,7 +282,15 @@ export default function InfoGeneralOperador({ conductores }) {
 
   const handlePrint = () => {
     if (!selectedConductor) return;
-    window.print();
+    
+    const originalTitle = document.title;
+    const tarjeton = displayConductor.tarjeton ? displayConductor.tarjeton.split('_BAJA_')[0] : 'Desconocido';
+    document.title = `Expediente_Operador_T${tarjeton}`;
+    
+    setTimeout(() => {
+      window.print();
+      document.title = originalTitle;
+    }, 50);
   };
 
   return (
