@@ -113,7 +113,7 @@ const historialItems = [
     ),
     label: 'HISTORIAL DESPACHO',
     color: 'maroon',
-    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO'],
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'DESPACHO', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES'],
   },
   {
     id: 'historial-encierro',
