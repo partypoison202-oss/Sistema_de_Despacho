@@ -679,9 +679,6 @@ export default function InfoGeneralOperador({ conductores }) {
       {metricModal && (
         <div 
           className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="metric-modal-title"
         >
           {/* Backdrop con botón accesible nativo */}
           <button
