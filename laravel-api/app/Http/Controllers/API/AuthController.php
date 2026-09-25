@@ -74,6 +74,12 @@ class AuthController extends Controller
             return array_values(array_unique(array_merge($modulos, $defaultPasteles)));
         }
 
+        if ($user->role && in_array($user->role->codigo, ['GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES'])) {
+            if (!in_array('historial', $modulos)) {
+                $modulos[] = 'historial';
+            }
+        }
+
         if (empty($modulos) && $user->role) {
             $defaultModulesByRole = [
                 'ADMINISTRADOR'        => [

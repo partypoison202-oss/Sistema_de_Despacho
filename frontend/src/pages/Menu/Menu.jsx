@@ -262,7 +262,7 @@ export default function Menu() {
     ? [...user.modulos]
     : [...(ROLE_DEFAULT_MODULES[rol] || [])];
 
-  const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PROGRAMACION', 'CAPTURISTA', 'PASTELES', 'PROGRAMACION_PASTELES'];
+  const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PROGRAMACION', 'CAPTURISTA', 'PASTELES', 'PROGRAMACION_PASTELES', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES'];
   if (rolesConHistorial.includes(rol) && !modulos.includes('historial')) {
     modulos.push('historial');
   }
