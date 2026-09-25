@@ -191,13 +191,13 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       return;
     }
 
-    const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // Reducido a 5 MB por límites comunes de servidores (Nginx/PHP)
     if (archivoSeleccionado.size > MAX_SIZE_BYTES) {
       const pesoMB = (archivoSeleccionado.size / (1024 * 1024)).toFixed(1);
       Swal.fire({
         icon: 'warning',
         title: 'Archivo muy pesado',
-        text: `El archivo seleccionado pesa ${pesoMB} MB. El límite máximo permitido es de 25 MB.`,
+        text: `El archivo seleccionado pesa ${pesoMB} MB. El límite máximo permitido es de 5 MB. Por favor, comprime el PDF o toma una foto de menor resolución.`,
         confirmButtonColor: '#6b1d33'
       });
       return;
@@ -225,8 +225,14 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
         body: formData
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Error al guardar justificante');
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error('El servidor devolvió una respuesta inesperada (Probablemente el archivo excede el límite del servidor Nginx/PHP). Intenta subir un archivo más ligero.');
+      }
+
+      if (!res.ok) throw new Error(data?.message || 'Error al guardar justificante');
 
       Swal.fire({
         icon: 'success',
@@ -575,7 +581,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
       {/* MODAL / DRAWER: DETALLE DE FALTAS DEL CONDUCTOR */}
       {conductorActualData && (
-        <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 overflow-hidden">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
             
             {/* Header del Modal */}
@@ -892,7 +898,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
               {/* Input de archivo */}
               <div>
                 <label htmlFor="file-justificante-input" className="block font-bold text-slate-700 mb-1.5">
-                  Selecciona el archivo justificante (PDF, PNG, JPG, JPEG, WebP - Máx. 25 MB):
+                  Selecciona el archivo justificante (PDF, PNG, JPG, JPEG, WebP - Máx. 5 MB):
                 </label>
                 <input
                   id="file-justificante-input"
