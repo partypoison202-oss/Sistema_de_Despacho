@@ -48,6 +48,7 @@ const HistorialProgramacion  = lazy(() => lazyRetry(() => import('./pages/Histor
 const HistorialDespacho      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialDespacho')));
 const HistorialEncierro      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialEncierro')));
 const HistorialMantenimiento = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialMantenimiento')));
+const HistorialCombustible   = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialCombustible')));
 const HistorialRelevos       = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialRelevos')));
 const HistorialConductores   = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialConductores')));
 const FleetSelection         = lazy(() => lazyRetry(() => import('./components/Checklist/FleetSelection')));
@@ -257,6 +258,11 @@ function App() {
             <Route path="/historial/mantenimiento" element={
               <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'MANTENIMIENTO']}>
                 <HistorialMantenimiento />
+              </ProtectedRoute>
+            } />
+            <Route path="/historial/combustible" element={
+              <ProtectedRoute allowedModules={['historial', 'carga_combustible', 'mantenimiento']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE']}>
+                <HistorialCombustible />
               </ProtectedRoute>
             } />
 
