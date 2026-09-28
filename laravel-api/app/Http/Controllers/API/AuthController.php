@@ -95,6 +95,7 @@ class AuthController extends Controller
                 'DESPACHO'             => ['despacho', 'historial'],
                 'PLATAFORMA'           => ['mesa_control', 'historial'],
                 'MESA_CONTROL'         => ['mesa_control', 'relevos', 'centro_control', 'historial'],
+                'MESA_DE_CONTROL'      => ['mesa_control', 'relevos', 'centro_control', 'historial'],
                 'PROGRAMACION'         => ['capturista', 'relevos', 'historial'],
                 'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
                 'PROGRAMACION_PASTELES' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
