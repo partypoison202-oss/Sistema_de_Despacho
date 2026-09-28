@@ -21,7 +21,16 @@ class HistorialOperativoController extends Controller
 
         $fechas = $fechasOperativo->union($fechasAcciones)
             ->orderBy('fecha', 'desc')
-            ->pluck('fecha');
+            ->pluck('fecha')
+            ->toArray();
+
+        $hoy = Carbon::today()->toDateString();
+        $hoyMx = Carbon::now('America/Mexico_City')->toDateString();
+        if (!in_array($hoy, $fechas)) array_unshift($fechas, $hoy);
+        if (!in_array($hoyMx, $fechas)) array_unshift($fechas, $hoyMx);
+
+        $fechas = array_values(array_unique(array_filter($fechas)));
+        rsort($fechas);
 
         return response()->json($fechas);
     }
@@ -794,7 +803,11 @@ class HistorialOperativoController extends Controller
 
             $relevosQuery = collect();
 
-            if ($fecha === Carbon::today()->toDateString() && Schema::hasTable('informacion_operativa') && $hasRelevoInfo) {
+            $todayUtc = Carbon::today()->toDateString();
+            $todayMx = Carbon::now('America/Mexico_City')->toDateString();
+            $isToday = in_array($fecha, [$todayUtc, $todayMx], true);
+
+            if ($isToday && Schema::hasTable('informacion_operativa') && $hasRelevoInfo) {
                 $queryInfo = DB::table('informacion_operativa')
                     ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                     ->where(function($q) {
@@ -818,13 +831,13 @@ class HistorialOperativoController extends Controller
                     'informacion_operativa.relevo_tarjeton',
                     'informacion_operativa.relevo_conductor',
                     Schema::hasColumn('informacion_operativa', 'relevo_hora') ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                    'informacion_operativa.created_at'
+                    DB::raw("COALESCE(informacion_operativa.fecha_registro, CURRENT_TIMESTAMP) as created_at")
                 )
                 ->orderBy('unidades.numero_eco')
                 ->get();
             }
 
-            if ($relevosQuery->isEmpty() && $fecha === Carbon::tomorrow()->toDateString() && Schema::hasTable('informacion_operativa_manana')) {
+            if ($relevosQuery->isEmpty() && ($fecha === Carbon::tomorrow()->toDateString() || $fecha === Carbon::now('America/Mexico_City')->addDay()->toDateString()) && Schema::hasTable('informacion_operativa_manana')) {
                 $hasMananaRel = Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
                 if ($hasMananaRel) {
                     $queryManana = DB::table('informacion_operativa_manana')
@@ -884,7 +897,7 @@ class HistorialOperativoController extends Controller
                         'historial_operativo.relevo_tarjeton',
                         'historial_operativo.relevo_conductor',
                         Schema::hasColumn('historial_operativo', 'relevo_hora') ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                        'historial_operativo.created_at'
+                        Schema::hasColumn('historial_operativo', 'created_at') ? 'historial_operativo.created_at' : DB::raw("COALESCE(historial_operativo.fecha_registro, CURRENT_TIMESTAMP) as created_at")
                     )
                     ->orderBy('unidades.numero_eco')
                     ->get();
