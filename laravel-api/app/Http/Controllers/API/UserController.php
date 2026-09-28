@@ -172,13 +172,11 @@ class UserController extends Controller
             $user->delete();
             return response()->json(['message' => 'Usuario eliminado correctamente']);
         } catch (\Illuminate\Database\QueryException $e) {
-            // Manejar error de llave foránea (1451 en MySQL, 23503 en PostgreSQL)
             if ($e->getCode() == '23503' || $e->getCode() == '1451') {
                 return response()->json([
                     'message' => 'No se puede eliminar el usuario porque tiene registros de operación o movimientos asociados. Te recomendamos desactivarlo (cambiar estado a Inactivo) en lugar de eliminarlo.'
                 ], 409);
             }
-            // Otro error de BD
             return response()->json(['message' => 'Error de base de datos al intentar eliminar el usuario.'], 500);
         }
     }
