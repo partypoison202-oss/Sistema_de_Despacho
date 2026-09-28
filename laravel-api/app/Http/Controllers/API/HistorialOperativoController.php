@@ -1035,4 +1035,125 @@ class HistorialOperativoController extends Controller
             ], 200);
         }
     }
+
+    /**
+     * Obtiene el historial de combustible (cargas, bitácora y reportes) para una fecha.
+     */
+    public function getHistorialCombustible($fecha)
+    {
+        try {
+            // 1. Cargas de combustible registradas en esa fecha
+            $cargas = DB::table('historial_mantenimiento')
+                ->join('unidades', 'historial_mantenimiento.unidad_id', '=', 'unidades.id')
+                ->where(function($q) use ($fecha) {
+                    $q->whereDate('historial_mantenimiento.fecha_registro', $fecha)
+                      ->orWhereDate('historial_mantenimiento.created_at', $fecha)
+                      ->orWhere('historial_mantenimiento.fecha_ultima_carga', $fecha);
+                })
+                ->where(function($q) {
+                    $q->whereNotNull('historial_mantenimiento.litros_combustible')
+                      ->orWhereNotNull('historial_mantenimiento.nivel_combustible')
+                      ->orWhereNotNull('historial_mantenimiento.numero_cincho');
+                })
+                ->select(
+                    'unidades.numero_eco as economico',
+                    'historial_mantenimiento.tipo_vehiculo as tipo',
+                    'historial_mantenimiento.nivel_combustible',
+                    'historial_mantenimiento.litros_combustible',
+                    'historial_mantenimiento.nivel_adblue',
+                    'historial_mantenimiento.litros_adblue',
+                    'historial_mantenimiento.numero_cincho',
+                    'historial_mantenimiento.numero_cincho_adblue',
+                    'historial_mantenimiento.kilometraje',
+                    'historial_mantenimiento.odometro',
+                    'historial_mantenimiento.fecha_ultima_carga',
+                    DB::raw("COALESCE(historial_mantenimiento.fecha_registro, historial_mantenimiento.created_at) as hora_guardado")
+                )
+                ->orderBy('unidades.numero_eco')
+                ->get();
+
+            // Si es hoy y no hay en historial_mantenimiento, checar unidades que tienen carga registrada hoy
+            $todayUtc = Carbon::today()->toDateString();
+            $todayMx = Carbon::now('America/Mexico_City')->toDateString();
+            if ($cargas->isEmpty() && in_array($fecha, [$todayUtc, $todayMx], true)) {
+                $cargas = DB::table('unidades')
+                    ->where(function($q) use ($fecha) {
+                        $q->where('fecha_ultima_carga', $fecha)
+                          ->orWhere(function($sub) {
+                              $sub->whereNotNull('litros_combustible')
+                                  ->whereRaw("CAST(litros_combustible AS VARCHAR) != '' AND CAST(litros_combustible AS VARCHAR) != '0'");
+                          });
+                    })
+                    ->select(
+                        'unidades.numero_eco as economico',
+                        'unidades.tipo',
+                        'unidades.nivel_combustible',
+                        'unidades.litros_combustible',
+                        'unidades.nivel_adblue',
+                        'unidades.litros_adblue',
+                        'unidades.numero_cincho',
+                        'unidades.numero_cincho_adblue',
+                        'unidades.kilometraje',
+                        'unidades.odometro',
+                        'unidades.fecha_ultima_carga',
+                        'unidades.updated_at as hora_guardado'
+                    )
+                    ->orderBy('unidades.numero_eco')
+                    ->get();
+            }
+
+            // 2. Cambios en bitácora relacionados a combustible
+            $cambios = collect();
+            if (Schema::hasTable('bitacora_cambios_unidades')) {
+                $cambios = DB::table('bitacora_cambios_unidades')
+                    ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+                    ->where('bitacora_cambios_unidades.fecha', $fecha)
+                    ->where(function($q) {
+                        $q->whereRaw("LOWER(CAST(bitacora_cambios_unidades.tipo_accion AS VARCHAR)) LIKE '%combustible%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%combustible%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%litros%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%adblue%'")
+                          ->orWhereRaw("LOWER(CAST(bitacora_cambios_unidades.detalles AS VARCHAR)) LIKE '%cincho%'");
+                    })
+                    ->select(
+                        'bitacora_cambios_unidades.id',
+                        'unidades.numero_eco as economico',
+                        'unidades.tipo as tipo_unidad',
+                        'usuarios.nombre_completo as usuario_nombre',
+                        'bitacora_cambios_unidades.tipo_accion',
+                        'bitacora_cambios_unidades.estatus_anterior',
+                        'bitacora_cambios_unidades.estatus_nuevo',
+                        'bitacora_cambios_unidades.detalles',
+                        'bitacora_cambios_unidades.created_at as hora'
+                    )
+                    ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+                    ->get();
+            }
+
+            // 3. Reportes diarios generados (folios COMB)
+            $reportes = collect();
+            if (Schema::hasTable('reportes_combustible')) {
+                $reportes = DB::table('reportes_combustible')
+                    ->whereDate('fecha_reporte', $fecha)
+                    ->orderBy('id', 'desc')
+                    ->get();
+            }
+
+            return response()->json([
+                'fecha' => $fecha,
+                'cargas' => $cargas,
+                'cambios' => $cambios,
+                'reportes' => $reportes
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Error en getHistorialCombustible: ' . $e->getMessage());
+            return response()->json([
+                'fecha' => $fecha,
+                'cargas' => [],
+                'cambios' => [],
+                'reportes' => []
+            ]);
+        }
+    }
 }
