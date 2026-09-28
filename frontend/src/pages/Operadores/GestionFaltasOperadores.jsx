@@ -17,6 +17,9 @@ const getFaltasArray = (conductor) => {
     }
   }
 
+  // Filtrar estrictamente los que fueron convertidos a retardo
+  items = items.filter(f => f.estado !== 'retardo');
+
   // Si el conductor tiene una cantidad de faltas numéricas superior a los items registrados en faltas_detalle,
   // generamos faltas pendientes virtuales para que el usuario pueda seleccionar y justificar cada una.
   const faltasNumericas = Number(conductor.faltas) || 0;
