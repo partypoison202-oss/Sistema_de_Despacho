@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import API_BASE from '../../config/api';
 import './CargaExcel.css'; // Mismos estilos base
@@ -20,6 +20,18 @@ const fetchHistorialAlimentadoras = async () => {
 const ModalComparativaAlimentadoras = ({ isOpen, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [rutaExpandida, setRutaExpandida] = useState(null);
+
+  // Bloquear scroll de fondo cuando el modal está abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['historialAlimentadorasAyer'],
