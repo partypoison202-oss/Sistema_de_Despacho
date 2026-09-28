@@ -47,7 +47,6 @@ return new class extends Migration
                 $table->id();
                 $table->string('nombre_completo', 150);
                 $table->string('usuario', 50)->unique();
-                $table->string('correo', 150)->nullable()->unique();
                 $table->string('contrasena', 255);
                 $table->boolean('activo')->default(true);
                 $table->foreignId('rol_id')->nullable()->constrained('roles');

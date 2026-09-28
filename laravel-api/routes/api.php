@@ -122,34 +122,63 @@ Route::get('/fix-add-patio-norte', function() {
 
 Route::get('/api/fix-data', function() {
     try {
-        // 1. Cambiar 'operacion' a 'ruta'
-        \Illuminate\Support\Facades\DB::table('informacion_operativa')
-            ->where('estatus', 'operacion')
-            ->update(['estatus' => 'ruta']);
+        $dsn = "pgsql:host=ep-small-cloud-ay6nitqn-pooler.c-5.us-east-2.aws.neon.tech;port=5432;dbname=neondb;sslmode=require";
+        $user = "neondb_owner";
+        $password = "npg_gcJSlU0a3feO";
+        $pdo = new \PDO($dsn, $user, $password, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
 
-        // 2. Limpiar mantenimientos como pidió el usuario
-        \Illuminate\Support\Facades\DB::table('informacion_operativa')
-            ->where('estatus', 'mantenimiento')
-            ->orWhereNotNull('folio_mantenimiento')
-            ->update([
-                'estatus' => 'reserva',
-                'folio_mantenimiento' => null,
-                'fecha_folio_mantenimiento' => null,
-                'falla_reportada' => null,
-                'diagnostico' => null,
-            ]);
+        $jsonStr = file_get_contents('/tmp/usuarios_clean.json');
+        $usuarios = json_decode($jsonStr, true);
+        
+        $rolesCache = [];
+        $stmtRoles = $pdo->query("SELECT id, nombre FROM roles");
+        while ($row = $stmtRoles->fetch(\PDO::FETCH_ASSOC)) {
+            $rolesCache[strtoupper(trim($row['nombre']))] = $row['id'];
+        }
 
-        $estatus = \Illuminate\Support\Facades\DB::table('informacion_operativa')
-            ->select('estatus', \Illuminate\Support\Facades\DB::raw('count(*) as total'))
-            ->groupBy('estatus')
-            ->pluck('total', 'estatus');
+        $inserted = 0;
+        $updated = 0;
+
+        foreach ($usuarios as $u) {
+            $rolExcel = strtoupper(trim($u['Rol Asignado']));
+            if (!isset($rolesCache[$rolExcel])) {
+                // Si no existe, default LECTURA o el ID 2
+                $rolId = $rolesCache['LECTURA'] ?? 2;
+            } else {
+                $rolId = $rolesCache[$rolExcel];
+            }
+
+            $nombre = trim($u['Nombre Completo']);
+            $usuario = trim($u['Usuario']);
+            $contrasenaRaw = trim($u['Contraseña']);
+            $estatus = strtoupper(trim($u['Estatus'])) === 'ACTIVO' ? 'true' : 'false';
+            
+            // Laravel usa bcrypt
+            $hashedPassword = password_hash($contrasenaRaw, PASSWORD_BCRYPT);
+
+            // Verificar si el usuario ya existe
+            $stmtCheck = $pdo->prepare("SELECT id FROM usuarios WHERE usuario = ?");
+            $stmtCheck->execute([$usuario]);
+            if ($row = $stmtCheck->fetch(\PDO::FETCH_ASSOC)) {
+                // Actualizar
+                $stmtUpd = $pdo->prepare("UPDATE usuarios SET nombre_completo = ?, contrasena = ?, rol_id = ?, activo = ? WHERE id = ?");
+                $stmtUpd->execute([$nombre, $hashedPassword, $rolId, $estatus, $row['id']]);
+                $updated++;
+            } else {
+                // Insertar
+                $stmtIns = $pdo->prepare("INSERT INTO usuarios (nombre_completo, usuario, contrasena, rol_id, activo, fecha_creacion, fecha_actualizacion) VALUES (?, ?, ?, ?, ?, NOW(), NOW())");
+                $stmtIns->execute([$nombre, $usuario, $hashedPassword, $rolId, $estatus]);
+                $inserted++;
+            }
+        }
 
         return response()->json([
-            'message' => 'Listo, datos operativos corregidos',
-            'estatus' => $estatus
+            'message' => 'Importación exitosa',
+            'insertados' => $inserted,
+            'actualizados' => $updated
         ]);
     } catch (\Throwable $e) {
-        return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        return response()->json(['error' => $e->getMessage()]);
     }
 });
 

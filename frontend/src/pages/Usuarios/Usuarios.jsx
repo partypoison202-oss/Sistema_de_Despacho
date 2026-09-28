@@ -535,6 +535,9 @@ export default function Usuarios() {
         if (res.ok) {
           Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
           fetchData();
+        } else {
+          const data = await res.json();
+          Swal.fire('No se pudo eliminar', data.message || 'Error desconocido', 'error');
         }
       } catch (_err) {
         Swal.fire('Error', 'No se pudo eliminar el usuario', 'error');
