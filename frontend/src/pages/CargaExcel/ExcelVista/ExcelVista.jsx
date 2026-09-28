@@ -238,8 +238,27 @@ export default function ExcelPreview({
   const filteredData = sortedData.filter(fila => {
     if (!fila) return false;
 
-    if (isRelevos && String(fila.ESTATUS || '').trim().toLowerCase() !== 'operacion') {
-      return false;
+    if (isRelevos) {
+      const statusNorm = String(fila.ESTATUS || 'operacion')
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+      const noEsOperacion =
+        statusNorm.includes('reserva') ||
+        statusNorm.includes('no_programada') ||
+        statusNorm.includes('no programada') ||
+        statusNorm.includes('mantenimiento') ||
+        statusNorm.includes('inhabilitad') ||
+        statusNorm.includes('percance') ||
+        statusNorm.includes('encierro') ||
+        statusNorm.includes('baja') ||
+        statusNorm.includes('taller');
+
+      if (noEsOperacion) {
+        return false;
+      }
     }
 
     if (selectedTech) {
@@ -259,26 +278,32 @@ export default function ExcelPreview({
 
     // Solo buscar en los campos visibles del modo actual + identificadores clave
     // (evita matches falsos en campos ocultos como RELEVO_TARJETON cuando no estamos en modo relevos)
-    const searchableKeys = new Set([
-      'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE',
-      ...headers, // headers activos según el modo (titular, relevos, etc.)
-    ]);
+    if (searchTerm && searchTerm.trim()) {
+      const searchableKeys = new Set([
+        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE',
+        ...headers, // headers activos según el modo (titular, relevos, etc.)
+      ]);
 
-    return Array.from(searchableKeys).some(key => {
-      const val = fila[key];
-      if (val == null) return false;
-      // Para tarjetones, también comparar sin ceros a la izquierda
-      const valStr = String(val).toLowerCase();
-      const termLower = searchTerm.toLowerCase();
-      if (valStr.includes(termLower)) return true;
-      // Coincidencia normalizada para tarjetones (ej. buscar "1051" encuentra "0151")
-      if (['TARJETON', 'RELEVO_TARJETON', 'TARJETON_MANIOBRISTA'].includes(key)) {
-        const valNorm = normalizeTarjeton(val);
-        const termNorm = normalizeTarjeton(searchTerm);
-        if (termNorm && valNorm.includes(termNorm)) return true;
-      }
-      return false;
-    });
+      const termLower = searchTerm.toLowerCase().trim();
+      const matches = Array.from(searchableKeys).some(key => {
+        const val = fila[key];
+        if (val == null) return false;
+        // Para tarjetones, también comparar sin ceros a la izquierda
+        const valStr = String(val).toLowerCase();
+        if (valStr.includes(termLower)) return true;
+        // Coincidencia normalizada para tarjetones (ej. buscar "1051" encuentra "0151")
+        if (['TARJETON', 'RELEVO_TARJETON', 'TARJETON_MANIOBRISTA'].includes(key)) {
+          const valNorm = normalizeTarjeton(val);
+          const termNorm = normalizeTarjeton(searchTerm);
+          if (termNorm && valNorm.includes(termNorm)) return true;
+        }
+        return false;
+      });
+
+      if (!matches) return false;
+    }
+
+    return true;
   });
 
   const handleOpenDropdown = (e, rowIndex, field) => {
