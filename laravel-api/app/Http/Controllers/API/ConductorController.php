@@ -213,7 +213,8 @@ class ConductorController extends Controller
             'reconocimientos_detalle' => 'sometimes|array',
             'permisos_detalle' => 'sometimes|array',
             'permutas_detalle' => 'sometimes|array',
-            'accidentes_siniestros_detalle' => 'sometimes|array'
+            'accidentes_siniestros_detalle' => 'sometimes|array',
+            'retardos_detalle' => 'sometimes|array'
         ]);
 
         if ($request->has('nombres')) {
@@ -306,7 +307,8 @@ class ConductorController extends Controller
             'reconocimientos_detalle',
             'permisos_detalle',
             'permutas_detalle',
-            'accidentes_siniestros_detalle'
+            'accidentes_siniestros_detalle',
+            'retardos_detalle'
         ];
 
         foreach ($kardexFields as $field) {

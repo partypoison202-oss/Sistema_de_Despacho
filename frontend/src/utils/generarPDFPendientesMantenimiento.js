@@ -1,8 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-import stmLogo from '../assets/logo-stm.webp';
-
 /**
  * Carga una imagen y elimina el fondo blanco usando canvas,
  * devolviendo un dataURL PNG con transparencia.
@@ -19,10 +17,16 @@ const cargarLogoTransparente = (src) =>
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
-      // Quitar píxeles casi-blancos (umbral 230)
+      // Quitar fondo y pintar el logo de blanco (como brightness-0 invert)
       for (let i = 0; i < data.length; i += 4) {
         if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
-          data[i + 3] = 0; // alpha = transparente
+          // Fondo casi-blanco -> hacerlo transparente
+          data[i + 3] = 0; 
+        } else if (data[i + 3] > 0) {
+          // Si el pixel no es transparente, hacerlo completamente blanco
+          data[i] = 255;
+          data[i + 1] = 255;
+          data[i + 2] = 255;
         }
       }
       ctx.putImageData(imageData, 0, 0);
@@ -86,8 +90,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   const pdf = new jsPDF('l', 'mm', 'letter');
   const pageW = pdf.internal.pageSize.getWidth();
 
-  // Cargar logo con fondo transparente
-  const logoDataUrl = await cargarLogoTransparente(stmLogo);
+  // Cargar logo de alta calidad con fondo transparente
+  const logoDataUrl = await cargarLogoTransparente('/images/sistema_de_tm.webp');
 
   // Fecha / hora
   const now = new Date();
@@ -124,17 +128,17 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
     unidadesFiltradas = unidades.filter(
       (u) => !u.folio_mantenimiento || String(u.folio_mantenimiento).trim() === ''
     );
-    titulo = 'UNIDADES PENDIENTES DE MANTENIMIENTO';
-    subtitulo = 'Con incidencia registrada — sin orden de mantenimiento generada';
-    filename = `Reporte_Pendientes_Mantenimiento_${fechaStr.replace(/ /g, '_')}.pdf`;
+    titulo = 'ECONÓMICOS EN MANTENIMIENTO';
+    subtitulo = 'Económicos con incidencia asignada';
+    filename = `Reporte_Economicos_Mantenimiento_${fechaStr.replace(/ /g, '_')}.pdf`;
   } else {
     // Ya tienen folio completo generado (en mantenimiento activo)
     unidadesFiltradas = unidades.filter(
       (u) => u.folio_mantenimiento && String(u.folio_mantenimiento).trim() !== ''
     );
-    titulo = 'UNIDADES YA EN MANTENIMIENTO';
-    subtitulo = 'Con orden de mantenimiento activa (Folio generado)';
-    filename = `Reporte_En_Mantenimiento_${fechaStr.replace(/ /g, '_')}.pdf`;
+    titulo = 'ECONÓMICOS CON FOLIO';
+    subtitulo = 'Unidades con reporte de falla activo';
+    filename = `Reporte_Economicos_Folio_${fechaStr.replace(/ /g, '_')}.pdf`;
   }
 
   // Encabezado
@@ -219,5 +223,6 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
     },
   });
 
-  pdf.save(filename);
+  const blob = pdf.output('blob');
+  return { blob, filename };
 };
