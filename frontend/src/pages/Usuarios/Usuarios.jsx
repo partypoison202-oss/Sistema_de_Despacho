@@ -33,6 +33,49 @@ export default function Usuarios() {
   const [togglingUserId, setTogglingUserId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Módulos seleccionados y sus permisos de solo lectura
+  const [modulosSeleccionados, setModulosSeleccionados] = useState([]);
+  const [modulosSoloLectura, setModulosSoloLectura] = useState([]);
+
+  // Catálogo completo de módulos del sistema
+  const TODOS_LOS_MODULOS = [
+    { codigo: 'despacho',             label: 'Despacho de Unidades' },
+    { codigo: 'encierro',             label: 'Encierro de Unidades' },
+    { codigo: 'capturista',           label: 'Programación y Logística' },
+    { codigo: 'relevos',              label: 'Relevos de T6' },
+    { codigo: 'mantenimiento',        label: 'Mantenimiento Parque Vehicular' },
+    { codigo: 'centro_control',       label: 'Centro de Control' },
+    { codigo: 'mesa_control',         label: 'Mesa de Control' },
+    { codigo: 'historial',            label: 'Historial de Conductores' },
+    { codigo: 'titan',                label: 'Titan' },
+    { codigo: 'infraccion',           label: 'Gestión de Infracciones' },
+    { codigo: 'operadores',           label: 'Control de Personas Conductoras' },
+    { codigo: 'maniobristas',         label: 'Gestión de Maniobristas' },
+    { codigo: 'carga_combustible',    label: 'Control de Combustible' },
+    { codigo: 'general',              label: 'Reporte General' },
+    { codigo: 'programacion_pasteles',label: 'Programación Pasteles' },
+    { codigo: 'asistencias_t6',       label: 'Asistencias T6 (RR.HH.)' },
+  ];
+
+  // Módulos predeterminados por rol (espejo del backend)
+  const MODULOS_POR_ROL = {
+    ADMINISTRADOR:    TODOS_LOS_MODULOS.map(m => m.codigo),
+    LECTURA:          TODOS_LOS_MODULOS.map(m => m.codigo),
+    DESPACHO:         ['despacho', 'historial'],
+    MESA_CONTROL:     ['mesa_control', 'relevos', 'centro_control', 'historial'],
+    PROGRAMACION:     ['capturista', 'relevos', 'historial'],
+    PASTELES:         ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
+    GESTOR_OPERADORES:['operadores', 'historial'],
+    ENCIERRO:         ['encierro', 'historial'],
+    CENTRO_CONTROL:   ['centro_control', 'historial'],
+    TITAN:            ['titan'],
+    INFRACCION:       ['infraccion'],
+    GENERAL:          ['general'],
+    MANTENIMIENTO:    ['mantenimiento', 'carga_combustible', 'historial'],
+    CARGA_DE_COMBUSTIBLE: ['carga_combustible'],
+    RECURSOS_HUMANOS: ['asistencias_t6'],
+  };
+
   const formatRoleName = (name) => {
     if (!name) return '';
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
@@ -140,6 +183,9 @@ export default function Usuarios() {
     }
     setSelectedFile(null); // Limpiar archivo seleccionado
     setShowPassword(false);
+    // Limpiar módulos
+    setModulosSeleccionados([]);
+    setModulosSoloLectura([]);
     setIsModalOpen(true);
   };
 
@@ -289,6 +335,17 @@ export default function Usuarios() {
     }
   }, [formData.nombres, formData.apellidos, formData.rol_id, formData.id, roles]);
 
+  // Cuando cambia el rol, pre-cargar módulos predeterminados (solo en creación o si no hay selección custom)
+  useEffect(() => {
+    if (!formData.rol_id) return;
+    const role = roles.find(r => r.id.toString() === formData.rol_id.toString());
+    if (!role) return;
+    const codigo = role.codigo || role.nombre?.toUpperCase().replace(/ /g, '_');
+    const defaultMods = MODULOS_POR_ROL[codigo] || [];
+    setModulosSeleccionados(defaultMods);
+    setModulosSoloLectura([]); // Reset solo-lectura al cambiar rol
+  }, [formData.rol_id, roles]);
+
   // Envío del formulario (con FormData)
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -311,6 +368,10 @@ export default function Usuarios() {
       formDataToSend.append('contrasena', formData.contrasena);
     }
     formDataToSend.append('rol_id', formData.rol_id);
+
+    // Enviar módulos personalizados
+    modulosSeleccionados.forEach(m => formDataToSend.append('modulos[]', m));
+    modulosSoloLectura.forEach(m => formDataToSend.append('modulos_solo_lectura[]', m));
 
     // Si se seleccionó un archivo, lo agregamos
     if (selectedFile) {
@@ -887,10 +948,139 @@ export default function Usuarios() {
                 </span>
               </div>
 
+              {/* ── Sección de Módulos ── */}
+              <div className="form-group" style={{ marginTop: '1.5rem' }}>
+                <label style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
+                  Módulos de Acceso
+                  <span style={{ fontWeight: '400', fontSize: '0.8rem', color: '#666', marginLeft: '0.5rem' }}>
+                    (se pre-seleccionan por rol, ajusta si es necesario)
+                  </span>
+                </label>
 
+                {/* Botones de selección rápida */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setModulosSeleccionados(TODOS_LOS_MODULOS.map(m => m.codigo))}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #c5a059', background: '#fdf8f0', color: '#7a5c1e', cursor: 'pointer', fontWeight: '500' }}
+                  >
+                    Seleccionar todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setModulosSeleccionados([]); setModulosSoloLectura([]); }}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #d1d5db', background: '#f9fafb', color: '#374151', cursor: 'pointer', fontWeight: '500' }}
+                  >
+                    Limpiar todo
+                  </button>
+                </div>
 
+                {/* Lista de módulos con checkboxes */}
+                <div style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  maxHeight: '280px',
+                  overflowY: 'auto',
+                }}>
+                  {/* Cabecera de la tabla */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 90px 90px',
+                    backgroundColor: '#f3f4f6',
+                    padding: '0.5rem 0.75rem',
+                    borderBottom: '1px solid #e5e7eb',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}>
+                    <span>Módulo</span>
+                    <span style={{ textAlign: 'center' }}>Acceso</span>
+                    <span style={{ textAlign: 'center' }}>Solo Vista</span>
+                  </div>
+
+                  {/* Filas de módulos */}
+                  {TODOS_LOS_MODULOS.map((mod, idx) => {
+                    const isSelected = modulosSeleccionados.includes(mod.codigo);
+                    const isSoloLectura = modulosSoloLectura.includes(mod.codigo);
+                    return (
+                      <div
+                        key={mod.codigo}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 90px 90px',
+                          padding: '0.5rem 0.75rem',
+                          alignItems: 'center',
+                          backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb',
+                          borderBottom: '1px solid #f3f4f6',
+                          transition: 'background-color 0.15s',
+                        }}
+                      >
+                        <span style={{
+                          fontSize: '0.875rem',
+                          color: isSelected ? '#111827' : '#9ca3af',
+                          fontWeight: isSelected ? '500' : '400',
+                        }}>
+                          {mod.label}
+                        </span>
+
+                        {/* Checkbox Acceso */}
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <input
+                            type="checkbox"
+                            id={`mod-${mod.codigo}`}
+                            checked={isSelected}
+                            disabled={isSubmitting}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setModulosSeleccionados(prev => [...prev, mod.codigo]);
+                              } else {
+                                setModulosSeleccionados(prev => prev.filter(m => m !== mod.codigo));
+                                setModulosSoloLectura(prev => prev.filter(m => m !== mod.codigo));
+                              }
+                            }}
+                            style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer', accentColor: '#601a2a' }}
+                          />
+                        </div>
+
+                        {/* Checkbox Solo Lectura */}
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <input
+                            type="checkbox"
+                            id={`sl-${mod.codigo}`}
+                            checked={isSelected && isSoloLectura}
+                            disabled={!isSelected || isSubmitting}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setModulosSoloLectura(prev => [...prev, mod.codigo]);
+                              } else {
+                                setModulosSoloLectura(prev => prev.filter(m => m !== mod.codigo));
+                              }
+                            }}
+                            title={!isSelected ? 'Primero habilita el acceso al módulo' : 'Solo puede ver y descargar, sin editar'}
+                            style={{
+                              width: '1.1rem',
+                              height: '1.1rem',
+                              cursor: isSelected ? 'pointer' : 'not-allowed',
+                              opacity: isSelected ? 1 : 0.3,
+                              accentColor: '#c5a059',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <span className="form-hint" style={{ marginTop: '0.5rem', display: 'block' }}>
+                  <b>Acceso</b> = puede usar el módulo. <b>Solo Vista</b> = puede ver y descargar PDFs, pero no editar.
+                </span>
+              </div>
 
               <div className="modal-actions">
+
                 <button
                   type="button"
                   className="btn-cancel"

@@ -37,7 +37,11 @@ class UserController extends Controller
             'usuario' => ['required', 'string', 'max:50', 'unique:usuarios', 'regex:/^[a-zA-Z0-9_.ñÑ]+$/'],
             'contrasena' => ['required', 'string', 'min:6', 'regex:/^[\x20-\x7E]+$/'],
             'rol_id' => 'required|integer|exists:roles,id',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'modulos' => 'nullable|array',
+            'modulos.*' => 'string',
+            'modulos_solo_lectura' => 'nullable|array',
+            'modulos_solo_lectura.*' => 'string',
         ], [
             'usuario.regex' => 'El usuario solo puede contener letras, números, puntos, guiones bajos y la letra ñ.',
             'contrasena.regex' => 'La contraseña no debe contener acentos.'
@@ -56,7 +60,13 @@ class UserController extends Controller
             'foto_url' => $fotoBase64
         ]);
 
-        $this->sincronizarModulosPorRol($user->id, $user->rol_id);
+        // Si el admin mandó módulos custom, usarlos; si no, usar defaults del rol
+        if ($request->has('modulos') && is_array($request->modulos)) {
+            $soloLectura = $request->modulos_solo_lectura ?? [];
+            $this->asignarModulosCustom($user->id, $request->modulos, $soloLectura);
+        } else {
+            $this->sincronizarModulosPorRol($user->id, $user->rol_id);
+        }
 
         return response()->json($user->load('role'), 201);
     }
@@ -102,7 +112,11 @@ class UserController extends Controller
             $user->update($data);
         }
 
-        if ($request->has('rol_id')) {
+        // Si el admin mandó módulos custom, usarlos; si no (y cambió de rol), usar defaults del rol
+        if ($request->has('modulos') && is_array($request->modulos)) {
+            $soloLectura = $request->modulos_solo_lectura ?? [];
+            $this->asignarModulosCustom($user->id, $request->modulos, $soloLectura);
+        } elseif ($request->has('rol_id')) {
             $this->sincronizarModulosPorRol($user->id, $request->rol_id);
         }
 
@@ -116,6 +130,27 @@ class UserController extends Controller
         }
 
         return response()->json($user->load('role'));
+    }
+
+    /**
+     * Asigna módulos personalizados (con flag de solo lectura) a un usuario.
+     */
+    private function asignarModulosCustom($userId, array $modulos, array $soloLectura = []): void
+    {
+        \Illuminate\Support\Facades\DB::table('usuario_modulos')->where('usuario_id', $userId)->delete();
+        $inserts = [];
+        foreach ($modulos as $m) {
+            $inserts[] = [
+                'usuario_id' => $userId,
+                'modulo_codigo' => $m,
+                'solo_lectura' => in_array($m, $soloLectura) ? true : false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        if (!empty($inserts)) {
+            \Illuminate\Support\Facades\DB::table('usuario_modulos')->insert($inserts);
+        }
     }
 
     private function sincronizarModulosPorRol($userId, $rolId): void
