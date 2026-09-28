@@ -434,6 +434,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
         onClose={() => setModalOpen(false)} 
         conductores={conductores}
         getAuthHeaders={getAuthHeaders}
+        origen="Itinerario de Asistencias"
         onSuccess={() => {
           setModalOpen(false);
           fetchItinerario();

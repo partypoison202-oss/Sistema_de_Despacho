@@ -179,7 +179,8 @@ export default function ModalAsignarFechas({
   onSuccess, 
   initialConductorId = '', 
   initialEstado = 'vacaciones', 
-  lockEstado = false 
+  lockEstado = false,
+  origen = 'Itinerario de Asistencias'
 }) {
   const [conductorId, setConductorId] = useState('');
   const [conductorRelacionadoId, setConductorRelacionadoId] = useState('');
@@ -241,6 +242,16 @@ export default function ModalAsignarFechas({
       }
     }
 
+    const defaultMotivos = {
+      falta: `Falta registrada desde ${origen}`,
+      retardo: `Retardo registrado desde ${origen}`,
+      descanso: `Descanso registrado desde ${origen}`,
+      vacaciones: `Vacaciones registradas desde ${origen}`,
+      incapacidad: `Incapacidad registrada desde ${origen}`,
+      permuta: `Permuta registrada desde ${origen}`
+    };
+    const motivoFinal = motivo.trim() || defaultMotivos[estado] || `Registrado desde ${origen}`;
+
     setEnviando(true);
     try {
       const payload = {
@@ -248,7 +259,8 @@ export default function ModalAsignarFechas({
         estado,
         desde: fecha,
         hasta: fecha,
-        motivo,
+        motivo: motivoFinal,
+        origen,
         conductor_relacionado_id: estado === 'permuta' ? conductorRelacionadoId : null
       };
 
@@ -356,7 +368,7 @@ export default function ModalAsignarFechas({
               className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b1d33] focus:border-transparent transition-all shadow-2xs" 
               value={motivo} 
               onChange={e => setMotivo(e.target.value.toUpperCase())}
-              placeholder="EJ. VACACIONES PROGRAMADAS / ACUERDO ENTRE OPERADORES"
+              placeholder={`EJ. ${estado === 'retardo' ? 'RETARDO REGISTRADO DESDE ' + origen.toUpperCase() : estado === 'falta' ? 'FALTA REGISTRADA DESDE ' + origen.toUpperCase() : 'VACACIONES / ACUERDO ENTRE OPERADORES'}`}
             />
           </div>
 
