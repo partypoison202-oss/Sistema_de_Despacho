@@ -95,7 +95,7 @@ export default function Usuarios() {
         rawName = user.usuario || '';
       }
       const parts = rawName.split(/\s+/).filter(Boolean);
-      let n = '';
+      let n;
       let a = '';
       if (parts.length >= 4) {
         n = parts[0] + ' ' + parts[1];
@@ -461,6 +461,9 @@ export default function Usuarios() {
         if (res.ok) {
           Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
           fetchData();
+        } else {
+          const data = await res.json();
+          Swal.fire('No se pudo eliminar', data.message || 'Error desconocido', 'error');
         }
       } catch (_err) {
         Swal.fire('Error', 'No se pudo eliminar el usuario', 'error');

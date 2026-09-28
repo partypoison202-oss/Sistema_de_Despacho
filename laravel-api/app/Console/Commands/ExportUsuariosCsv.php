@@ -34,7 +34,6 @@ class ExportUsuariosCsv extends Command
                 'usuarios.id',
                 'usuarios.nombre_completo',
                 'usuarios.usuario',
-                'usuarios.correo',
                 'roles.nombre as rol',
                 'usuarios.activo',
                 'usuarios.contrasena'
@@ -53,7 +52,7 @@ class ExportUsuariosCsv extends Command
         fputs($file, $bom =(chr(0xEF) . chr(0xBB) . chr(0xBF)));
 
         // Encabezados
-        fputcsv($file, ['ID', 'Nombre Completo', 'Usuario', 'Correo', 'Rol', 'Activo', 'Contrasena Hash']);
+        fputcsv($file, ['ID', 'Nombre Completo', 'Usuario', 'Rol', 'Activo', 'Contrasena Hash']);
 
         // Filas
         foreach ($usuarios as $u) {
@@ -61,7 +60,6 @@ class ExportUsuariosCsv extends Command
                 $u->id,
                 $u->nombre_completo,
                 $u->usuario,
-                $u->correo,
                 $u->rol,
                 $u->activo ? 'SI' : 'NO',
                 $u->contrasena

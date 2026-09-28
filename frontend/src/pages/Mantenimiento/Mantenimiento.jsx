@@ -27,7 +27,21 @@ export default function Mantenimiento() {
   const [pdfData, setPdfData] = useState(null);
   const [pdfTotales, setPdfTotales] = useState(null);
   const pdfRef = useRef(null);
+  
+  // Estado para el modal de previsualización
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [previewFilename, setPreviewFilename] = useState('');
+
   const queryClient = useQueryClient();
+
+  // Limpieza del object URL cuando el componente se desmonta o cambia
+  useEffect(() => {
+    return () => {
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+      }
+    };
+  }, [previewPdfUrl]);
 
   useGlobalPrefetch();
 
@@ -215,11 +229,15 @@ export default function Mantenimiento() {
       if (!response.ok) throw new Error('Error al obtener datos');
       const data = await response.json();
       if (data && data.length > 0) {
-        await generarPDFPendientesMantenimiento(data, tipo);
+        const { blob, filename } = await generarPDFPendientesMantenimiento(data, tipo);
+        Swal.close();
+        const url = URL.createObjectURL(blob);
+        setPreviewPdfUrl(url);
+        setPreviewFilename(filename);
       } else {
         Swal.close();
+        Swal.fire('Atención', 'No hay unidades con este estatus', 'info');
       }
-      Swal.fire('Éxito', 'Reporte generado exitosamente.', 'success');
     } catch (error) {
       console.error('Error generando reporte de pendientes:', error);
       Swal.close();
@@ -289,8 +307,8 @@ export default function Mantenimiento() {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   <span>
-                    <strong>Pendientes de Mantenimiento</strong>
-                    <small>Sin orden de mantenimiento asignada</small>
+                    <strong>Económicos en mantenimiento</strong>
+                    <small>Económicos con incidencia asignada</small>
                   </span>
                 </button>
 
@@ -305,8 +323,8 @@ export default function Mantenimiento() {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   <span>
-                    <strong>Ya en Mantenimiento</strong>
-                    <small>Con orden de mantenimiento activa</small>
+                    <strong>Económicos con folio</strong>
+                    <small>Unidades con reporte de falla activo</small>
                   </span>
                 </button>
               </div>
@@ -339,6 +357,55 @@ export default function Mantenimiento() {
           <ReporteCombustiblePDF ref={pdfRef} data={pdfData} totales={pdfTotales} />
         </main>
       </div>
+
+      {/* Modal de Previsualización de PDF */}
+      {previewPdfUrl && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem'
+        }}>
+          <div style={{
+            backgroundColor: '#fff', borderRadius: '8px', padding: '1rem',
+            width: '100%', maxWidth: '900px', height: '85vh', display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, color: '#601a2a', fontSize: '1.25rem', fontWeight: 'bold' }}>Vista Previa del Reporte</h3>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button
+                  style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', backgroundColor: '#601a2a', color: '#fff', cursor: 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s' }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#4a1420'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#601a2a'}
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = previewPdfUrl;
+                    a.download = previewFilename;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
+                >
+                  Descargar PDF
+                </button>
+                <button
+                  style={{ padding: '0.5rem 1rem', border: '1px solid #d1d5db', borderRadius: '6px', backgroundColor: '#f9fafb', color: '#374151', cursor: 'pointer', fontWeight: '500', transition: 'background-color 0.2s' }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                  onClick={() => {
+                    URL.revokeObjectURL(previewPdfUrl);
+                    setPreviewPdfUrl(null);
+                    setPreviewFilename('');
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+            <iframe src={previewPdfUrl} title="Vista previa PDF" style={{ flex: 1, border: '1px solid #e5e7eb', borderRadius: '4px' }} />
+          </div>
+        </div>
+      )}
     </>
   );
 }
