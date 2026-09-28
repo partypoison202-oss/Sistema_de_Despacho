@@ -95,7 +95,7 @@ export default function Usuarios() {
         rawName = user.usuario || '';
       }
       const parts = rawName.split(/\s+/).filter(Boolean);
-      let n = '';
+      let n;
       let a = '';
       if (parts.length >= 4) {
         n = parts[0] + ' ' + parts[1];

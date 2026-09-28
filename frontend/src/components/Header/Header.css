@@ -111,6 +111,7 @@
 .app-header__brand-logo-2 {
   height: 37px;
   width: auto;
+  filter: brightness(0) invert(1);
 }
 
 @media (max-width: 640px) {

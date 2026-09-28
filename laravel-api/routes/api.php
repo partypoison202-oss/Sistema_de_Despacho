@@ -120,7 +120,40 @@ Route::get('/fix-add-patio-norte', function() {
     return empty($added) ? 'La columna patio_norte ya existe en todas las tablas.' : 'Columna agregada a: ' . implode(', ', $added);
 });
 
-// Autenticación pública (no requiere token)
+Route::get('/api/fix-data', function() {
+    try {
+        // 1. Cambiar 'operacion' a 'ruta'
+        \Illuminate\Support\Facades\DB::table('informacion_operativa')
+            ->where('estatus', 'operacion')
+            ->update(['estatus' => 'ruta']);
+
+        // 2. Limpiar mantenimientos como pidió el usuario
+        \Illuminate\Support\Facades\DB::table('informacion_operativa')
+            ->where('estatus', 'mantenimiento')
+            ->orWhereNotNull('folio_mantenimiento')
+            ->update([
+                'estatus' => 'reserva',
+                'folio_mantenimiento' => null,
+                'fecha_folio_mantenimiento' => null,
+                'falla_reportada' => null,
+                'diagnostico' => null,
+            ]);
+
+        $estatus = \Illuminate\Support\Facades\DB::table('informacion_operativa')
+            ->select('estatus', \Illuminate\Support\Facades\DB::raw('count(*) as total'))
+            ->groupBy('estatus')
+            ->pluck('total', 'estatus');
+
+        return response()->json([
+            'message' => 'Listo, datos operativos corregidos',
+            'estatus' => $estatus
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+    }
+});
+
+
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 Route::get('/justificantes/{filename}', [ConductorController::class, 'servirJustificante']);
