@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
 import './Historial.css';
 
 export default function HistorialRelevos() {
-  const [selectedFecha, setSelectedFecha] = useState('');
+  const [selectedFecha, setSelectedFecha] = useState(() => {
+    return new Date().toLocaleDateString('en-CA');
+  });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('tabla'); // 'tabla', 'bitacora', 'rutas'
   const [busqueda, setBusqueda] = useState('');
@@ -182,34 +185,14 @@ export default function HistorialRelevos() {
             </button>
 
             <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
-            <div className="custom-dropdown-container" ref={dropdownRef}>
-              <button
-                type="button"
-                className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
-                onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
-                disabled={cargando}
-              >
-                {selectedFecha || 'SELECCIONAR'}
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 10l5 5 5-5H7z" />
-                </svg>
-              </button>
-              {isDropdownOpen && (
-                <div className="custom-dropdown-menu">
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {fechas.map(f => (
-                      <button
-                        key={f}
-                        type="button"
-                        className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
-                        onClick={() => handleFechaChange(f)}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div style={{ minWidth: '160px' }}>
+              <AppleDatePicker
+                value={selectedFecha}
+                onChange={(val) => {
+                  if (val) setSelectedFecha(val);
+                }}
+                disableFuture={false}
+              />
             </div>
 
             <button
