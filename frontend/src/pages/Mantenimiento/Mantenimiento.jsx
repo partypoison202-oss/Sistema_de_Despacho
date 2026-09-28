@@ -34,6 +34,15 @@ export default function Mantenimiento() {
 
   const queryClient = useQueryClient();
 
+  // Limpieza del object URL cuando el componente se desmonta o cambia
+  useEffect(() => {
+    return () => {
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+      }
+    };
+  }, [previewPdfUrl]);
+
   useGlobalPrefetch();
 
   const normalizarNumeroEco = (valor) => {
@@ -371,7 +380,10 @@ export default function Mantenimiento() {
                     const a = document.createElement('a');
                     a.href = previewPdfUrl;
                     a.download = previewFilename;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                   }}
                 >
                   Descargar PDF
