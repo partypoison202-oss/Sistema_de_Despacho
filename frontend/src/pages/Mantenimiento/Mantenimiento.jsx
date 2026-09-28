@@ -314,7 +314,7 @@ export default function Mantenimiento() {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   <span>
-                    <strong>Económicos con incidencia</strong>
+                    <strong>Económicos con folio</strong>
                     <small>Unidades con reporte de falla activo</small>
                   </span>
                 </button>

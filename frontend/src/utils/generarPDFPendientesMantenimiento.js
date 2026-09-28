@@ -136,9 +136,9 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
     unidadesFiltradas = unidades.filter(
       (u) => u.folio_mantenimiento && String(u.folio_mantenimiento).trim() !== ''
     );
-    titulo = 'ECONÓMICOS CON INCIDENCIA';
+    titulo = 'ECONÓMICOS CON FOLIO';
     subtitulo = 'Unidades con reporte de falla activo';
-    filename = `Reporte_Economicos_Incidencia_${fechaStr.replace(/ /g, '_')}.pdf`;
+    filename = `Reporte_Economicos_Folio_${fechaStr.replace(/ /g, '_')}.pdf`;
   }
 
   // Encabezado
