@@ -420,7 +420,16 @@ class ItinerarioController extends Controller
             $fechasCruzadas = array_column($detalleOtro, 'fecha');
         }
 
-        $motivo = $request->input('motivo') ?: 'Asignación manual';
+        $origen = $request->input('origen') ?: 'Itinerario de Asistencias';
+        $defaultMotivos = [
+            'falta' => "Falta registrada desde {$origen}",
+            'retardo' => "Retardo registrado desde {$origen}",
+            'descanso' => "Descanso registrado desde {$origen}",
+            'vacaciones' => "Vacaciones registradas desde {$origen}",
+            'incapacidad' => "Incapacidad registrada desde {$origen}",
+            'permuta' => "Permuta registrada desde {$origen}"
+        ];
+        $motivo = $request->input('motivo') ?: ($defaultMotivos[$estado] ?? "Registrado desde {$origen}");
         $diasAgregados = 0;
 
         foreach ($period as $date) {

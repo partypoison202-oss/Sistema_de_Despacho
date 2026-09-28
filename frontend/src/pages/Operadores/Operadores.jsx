@@ -322,6 +322,7 @@ export default function Operadores() {
   const { user } = useContext(AuthContext);
   const [modalFaltasOpen, setModalFaltasOpen] = useState(false);
   const [selectedConductorForFalta, setSelectedConductorForFalta] = useState('');
+  const [selectedEstadoForAsignar, setSelectedEstadoForAsignar] = useState('falta');
   const [busquedaFaltas, setBusquedaFaltas] = useState('');
   const [conductores, setConductores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -418,16 +419,57 @@ export default function Operadores() {
   const getDetailArray = (conductor, type) => {
     if (!conductor) return [];
     const val = conductor[`${type}_detalle`];
-    if (Array.isArray(val)) return val;
-    if (typeof val === 'string') {
+    let items = [];
+    if (Array.isArray(val)) {
+      items = [...val];
+    } else if (typeof val === 'string' && val.trim() !== '') {
       try {
         const parsed = JSON.parse(val);
-        return Array.isArray(parsed) ? parsed : [];
+        if (Array.isArray(parsed)) items = [...parsed];
       } catch {
-        return [];
+        items = [];
       }
     }
-    return [];
+
+    if (type === 'faltas') {
+      return items.filter(f => f.estado !== 'retardo');
+    }
+
+    if (type === 'retardos') {
+      const faltasVal = conductor.faltas_detalle;
+      let faltasItems = [];
+      if (Array.isArray(faltasVal)) {
+        faltasItems = faltasVal;
+      } else if (typeof faltasVal === 'string' && faltasVal.trim() !== '') {
+        try {
+          const parsed = JSON.parse(faltasVal);
+          if (Array.isArray(parsed)) faltasItems = parsed;
+        } catch {
+          faltasItems = [];
+        }
+      }
+      const retardosEnFaltas = faltasItems.filter(f => f.estado === 'retardo');
+      retardosEnFaltas.forEach(rf => {
+        if (!items.some(it => (it.id && it.id === rf.id) || (it.fecha && it.fecha === rf.fecha))) {
+          items.push(rf);
+        }
+      });
+
+      const retardosNumericos = Number(conductor.retardos) || 0;
+      if (retardosNumericos > items.length) {
+        const diff = retardosNumericos - items.length;
+        for (let i = 0; i < diff; i++) {
+          items.push({
+            id: `virtual_retardo_${conductor.id}_${i}`,
+            fecha: conductor.updated_at ? String(conductor.updated_at).substring(0, 10) : 'Fecha sin registrar',
+            motivo: 'Retardo registrado en sistema',
+            estado: 'retardo'
+          });
+        }
+      }
+    }
+
+    return items;
   };
 
   const openDetailsModal = (c, type) => {
@@ -1291,7 +1333,7 @@ export default function Operadores() {
         ) : activeTab === 'kardex' ? (
           <div className="operadores-table-card">
             <div className="table-responsive" style={{ overflowX: 'auto' }}>
-              <table className="operadores-table kardex-table" style={{ minWidth: '3300px', tableLayout: 'fixed' }}>
+              <table className="operadores-table kardex-table" style={{ minWidth: '3500px', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
                     <th style={{ width: '110px' }}>Tarjetón</th>
@@ -1301,13 +1343,14 @@ export default function Operadores() {
                     <th style={{ width: '130px' }}>Estatus</th>
                     <th style={{ width: '210px' }}>Última capacitación</th>
                     <th style={{ width: '210px' }}>Próxima capacitación</th>
-                    <th style={{ width: '220px', textAlign: 'center' }}>Accidentes y Siniestros</th>
-                    <th style={{ width: '120px', textAlign: 'center' }}>Faltas</th>
-                    <th style={{ width: '180px', textAlign: 'center' }}>Amonestaciones</th>
-                    <th style={{ width: '180px', textAlign: 'center' }}>Reconocimientos</th>
+                    <th style={{ width: '200px', textAlign: 'center' }}>Accidentes y Siniestros</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Faltas</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Retardos</th>
+                    <th style={{ width: '170px', textAlign: 'center' }}>Amonestaciones</th>
+                    <th style={{ width: '170px', textAlign: 'center' }}>Reconocimientos</th>
                     <th style={{ width: '280px' }}>Condicionamientos médicos</th>
-                    <th style={{ minWidth: '180px' }}>Condicionamientos Jurídicos</th>
-                    <th style={{ width: '130px', textAlign: 'center' }}>Permutas</th>
+                    <th style={{ minWidth: '190px' }}>Condicionamientos Jurídicos</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Permutas</th>
                     <th style={{ width: '150px', textAlign: 'center' }}>Evaluación</th>
                     <th style={{ width: '350px' }}>Observaciones</th>
                   </tr>
@@ -1315,7 +1358,7 @@ export default function Operadores() {
                 <tbody>
                   {filteredConductores.length === 0 ? (
                     <tr>
-                      <td colSpan="15" className="empty-table-cell">
+                      <td colSpan="17" className="empty-table-cell">
                         No se encontraron T6 registrados.
                       </td>
                     </tr>
@@ -1367,17 +1410,15 @@ export default function Operadores() {
                             />
                           </div>
                         </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                            <button
-                              type="button"
-                              className="btn-details-badge"
-                              onClick={() => openDetailsModal(c, 'accidentes_siniestros')}
-                            >
-                              <span className="badge-number">{c.accidentes_siniestros ?? 0}</span>
-                              <span className="badge-text">Detalles</span>
-                            </button>
-                          </div>
+                        <td className="text-center">
+                          <button
+                            type="button"
+                            className="btn-details-badge"
+                            onClick={() => openDetailsModal(c, 'accidentes_siniestros')}
+                          >
+                            <span className="badge-number">{c.accidentes_siniestros ?? 0}</span>
+                            <span className="badge-text">Detalles</span>
+                          </button>
                         </td>
                         <td className="text-center">
                           <button
@@ -1386,6 +1427,18 @@ export default function Operadores() {
                             onClick={() => openDetailsModal(c, 'faltas')}
                           >
                             <span className="badge-number">{c.faltas ?? 0}</span>
+                            <span className="badge-text">Detalles</span>
+                          </button>
+                        </td>
+                        <td className="text-center">
+                          <button
+                            type="button"
+                            className="btn-details-badge"
+                            onClick={() => openDetailsModal(c, 'retardos')}
+                          >
+                            <span className="badge-number" style={{ backgroundColor: '#ea580c' }}>
+                              {Math.max(Number(c.retardos) || 0, getDetailArray(c, 'retardos').length)}
+                            </span>
                             <span className="badge-text">Detalles</span>
                           </button>
                         </td>
@@ -2011,10 +2064,10 @@ export default function Operadores() {
                 {getDetailArray(detailsConductor, detailsType).map((d, index) => (
                   <li 
                     key={d.id || index} 
-                    style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem', cursor: detailsType === 'faltas' ? 'pointer' : 'default' }}
+                    style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', marginBottom: '0.5rem', cursor: (detailsType === 'faltas' || detailsType === 'retardos') ? 'pointer' : 'default' }}
                     onClick={(e) => {
                       if (e.target.closest('button')) return;
-                      if (detailsType === 'faltas') {
+                      if (detailsType === 'faltas' || detailsType === 'retardos') {
                          setShowDetailsModal(false);
                          setBusquedaFaltas(detailsConductor.tarjeton);
                          setActiveTab('gestion_faltas');
@@ -2022,12 +2075,13 @@ export default function Operadores() {
                     }}
                   >
                     <div>
-                      <strong style={{ display: 'block', color: '#333' }}>{d.motivo}</strong>
+                      <strong style={{ display: 'block', color: '#333' }}>{d.motivo || `Registro de ${detailsType}`}</strong>
                       <span style={{ fontSize: '0.8rem', color: '#888' }}>
-                        {d.fecha ? new Date(d.fecha).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Fecha no disponible'}
+                        {d.fecha ? new Date(d.fecha.includes('T') ? d.fecha : `${d.fecha}T00:00:00`).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Fecha no disponible'}
                       </span>
                     </div>
                     <button
+                      type="button"
                       onClick={() => handleRemoveDetail(d.id)}
                       style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0.5rem' }}
                       title="Eliminar"
@@ -2049,10 +2103,25 @@ export default function Operadores() {
                   onClick={() => {
                     setShowDetailsModal(false);
                     setSelectedConductorForFalta(detailsConductor.id);
+                    setSelectedEstadoForAsignar('falta');
                     setModalFaltasOpen(true);
                   }}
                 >
                   + Agendar Nueva Falta en Itinerario
+                </button>
+              ) : detailsType === 'retardos' ? (
+                <button 
+                  type="button"
+                  className="btn-save" 
+                  style={{ width: '100%', padding: '0.75rem', marginTop: '1rem', background: '#ea580c' }}
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedConductorForFalta(detailsConductor.id);
+                    setSelectedEstadoForAsignar('retardo');
+                    setModalFaltasOpen(true);
+                  }}
+                >
+                  + Agendar Nuevo Retardo en Itinerario
                 </button>
               ) : (
                 <form onSubmit={handleAddDetail}>
@@ -2070,15 +2139,16 @@ export default function Operadores() {
         </div>
       )}
 
-      {/* Modal de Asignación de Faltas desde Kardex */}
+      {/* Modal de Asignación de Faltas/Retardos desde Kardex */}
       <ModalAsignarFechas 
         isOpen={modalFaltasOpen} 
         onClose={() => setModalFaltasOpen(false)} 
         conductores={conductores}
         getAuthHeaders={getAuthHeaders}
         initialConductorId={selectedConductorForFalta}
-        initialEstado="falta"
+        initialEstado={selectedEstadoForAsignar || "falta"}
         lockEstado={true}
+        origen="Kardex de T6"
         onSuccess={() => {
           setModalFaltasOpen(false);
           fetchConductores();
