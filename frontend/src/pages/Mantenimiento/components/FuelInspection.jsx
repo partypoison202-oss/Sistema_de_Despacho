@@ -338,10 +338,9 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     const isVagoneta = tipoTransporte?.toLowerCase() === 'vagoneta';
     const faltantes = [];
 
-    // 1. Validar que todos los campos requeridos estén llenos
+    // 1. Validar que los campos obligatorios estén llenos
     if (form.kilometrajeGasolina === '') faltantes.push('Kilometraje Actual');
     if (form.litrosGasolina === '') faltantes.push(`Litros Cargados (${combustibleLabel})`);
-    if (form.nivelGasolina === '') faltantes.push(`Nivel de ${combustibleLabel}`);
 
     if (faltantes.length > 0) {
       Swal.fire({

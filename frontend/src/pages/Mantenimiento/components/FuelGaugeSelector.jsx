@@ -155,7 +155,7 @@ export default function FuelGaugeSelector({
                 key={`zone-${n.value}`}
                 d={describeAnnularSector(CX, CY, 25, 100, angleStart, angleEnd)}
                 fill="transparent"
-                onClick={() => onChange(String(n.value))}
+                onClick={() => onChange(nivelActual === n.value ? '' : String(n.value))}
                 style={{ cursor: 'pointer' }}
               />
             );
