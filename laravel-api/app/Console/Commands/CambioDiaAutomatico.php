@@ -19,7 +19,7 @@ class CambioDiaAutomatico extends Command
      *
      * @var string
      */
-    protected $description = 'Aplica el cambio de día operativo automáticamente a las 3:30 AM volcando la programación a informacion_operativa';
+    protected $description = 'Aplica el cambio de día operativo automáticamente a las 12:00 AM (00:00) volcando la programación a informacion_operativa';
 
     /**
      * Execute the console command.
