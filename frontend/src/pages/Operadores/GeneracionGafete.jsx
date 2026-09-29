@@ -195,7 +195,7 @@ export default function GeneracionGafete({ conductores }) {
                 {/* 3. CÓDIGO QR - Lado Izquierdo */}
                 <div className="absolute bg-white p-1 z-10"
                      style={{ left: '19%', top: '13.5%', width: '16%', aspectRatio: '1/1' }}>
-                  {selectedConductor?.qr_documento && !qrImageError ? (
+                  {selectedConductor?.qr_documento && !qrImageError && (
                     <img 
                       src={selectedConductor.qr_documento.startsWith('data:image') ? selectedConductor.qr_documento : `${API_BASE}/storage/${selectedConductor.qr_documento}`} 
                       alt="Código QR del T6" 
@@ -203,13 +203,6 @@ export default function GeneracionGafete({ conductores }) {
                       onError={(e) => {
                         setQrImageError(true);
                       }}
-                    />
-                  ) : (
-                    <QRCode
-                      value={qrValue}
-                      size={256}
-                      style={{ height: "100%", width: "100%" }}
-                      viewBox={`0 0 256 256`}
                     />
                   )}
                 </div>
