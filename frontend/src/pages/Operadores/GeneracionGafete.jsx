@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import QRCode from 'react-qr-code';
 import API_BASE from '../../config/api';
 import plantillaGafete from '../../assets/plantilla_gafete.png';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
@@ -40,7 +39,6 @@ export default function GeneracionGafete({ conductores }) {
   };
 
   const nameParts = formatName(selectedConductor?.nombre);
-  const qrValue = selectedConductor ? `ID:${selectedConductor.id}|TARJETON:${selectedConductor.tarjeton ? selectedConductor.tarjeton.split('_BAJA_')[0] : ''}` : 'SITMAH';
   const fotoUrl = selectedConductor?.foto 
     ? (selectedConductor.foto.startsWith('data:image') 
         ? selectedConductor.foto 
