@@ -40,7 +40,11 @@ export default function GeneracionGafete({ conductores }) {
 
   const nameParts = formatName(selectedConductor?.nombre);
   const qrValue = selectedConductor ? `ID:${selectedConductor.id}|TARJETON:${selectedConductor.tarjeton ? selectedConductor.tarjeton.split('_BAJA_')[0] : ''}` : 'SITMAH';
-  const fotoUrl = selectedConductor?.foto ? `${API_BASE}/storage/${selectedConductor.foto}` : null;
+  const fotoUrl = selectedConductor?.foto 
+    ? (selectedConductor.foto.startsWith('data:image') 
+        ? selectedConductor.foto 
+        : `${API_BASE}/storage/${selectedConductor.foto}`) 
+    : null;
 
   const handlePrint = () => {
     window.print();
@@ -190,9 +194,13 @@ export default function GeneracionGafete({ conductores }) {
                      style={{ left: '19%', top: '13.5%', width: '16%', aspectRatio: '1/1' }}>
                   {selectedConductor?.qr_documento ? (
                     <img 
-                      src={`${API_BASE}/storage/${selectedConductor.qr_documento}`} 
+                      src={selectedConductor.qr_documento.startsWith('data:image') ? selectedConductor.qr_documento : `${API_BASE}/storage/${selectedConductor.qr_documento}`} 
                       alt="Código QR del T6" 
                       style={{ height: "100%", width: "100%", objectFit: "contain" }} 
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                      }}
                     />
                   ) : (
                     <QRCode

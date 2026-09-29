@@ -1817,7 +1817,7 @@ export default function Operadores() {
                   >
                     {(qrFile || (selectedConductor?.qr_documento && selectedConductor.qr_documento !== 'null')) ? (
                       <img
-                        src={qrFile ? URL.createObjectURL(qrFile) : `${API_BASE}/storage/${selectedConductor.qr_documento}`}
+                        src={qrFile ? URL.createObjectURL(qrFile) : (selectedConductor.qr_documento.startsWith('data:image') ? selectedConductor.qr_documento : `${API_BASE}/storage/${selectedConductor.qr_documento}`)}
                         alt="Vista previa QR"
                         style={{
                           width: '100%',
@@ -1881,7 +1881,7 @@ export default function Operadores() {
                   >
                     {(foto || (selectedConductor?.foto && selectedConductor.foto !== 'null')) ? (
                       <img
-                        src={foto ? URL.createObjectURL(foto) : `${API_BASE}/storage/${selectedConductor.foto}`}
+                        src={foto ? URL.createObjectURL(foto) : (selectedConductor.foto.startsWith('data:image') ? selectedConductor.foto : `${API_BASE}/storage/${selectedConductor.foto}`)}
                         alt="Vista previa"
                         style={{
                           width: '100%',
