@@ -202,7 +202,9 @@ export default function CargaExcel({ isPasteles = false }) {
   };
 
   const handleUpdateRecord = async (index, field, value) => {
+    if (index == null || index < 0 || index >= previewData.length) return;
     const updatedData = [...previewData];
+    updatedData[index] = { ...updatedData[index] };
     const valStr = String(value ?? '').trim();
 
     if (field === 'ESTATUS') {
@@ -294,6 +296,7 @@ export default function CargaExcel({ isPasteles = false }) {
       }
 
       if (existingRowIndex !== -1) {
+        updatedData[existingRowIndex] = { ...updatedData[existingRowIndex] };
         const existingRow = updatedData[existingRowIndex];
         const currentUnitDriverTarjeton = updatedData[index]['RELEVO_TARJETON'];
         const currentUnitDriverName = updatedData[index]['RELEVO_CONDUCTOR'];
@@ -370,6 +373,7 @@ export default function CargaExcel({ isPasteles = false }) {
       }
 
       if (existingRowIndex !== -1) {
+        updatedData[existingRowIndex] = { ...updatedData[existingRowIndex] };
         const existingRow = updatedData[existingRowIndex];
         const currentUnitDriverTarjeton = updatedData[index]['TARJETON'];
         const currentUnitDriverName = updatedData[index]['NOMBRE_CONDUCTOR'];
@@ -430,6 +434,7 @@ export default function CargaExcel({ isPasteles = false }) {
       }
 
       if (existingRowIndex !== -1) {
+        updatedData[existingRowIndex] = { ...updatedData[existingRowIndex] };
         const existingRow = updatedData[existingRowIndex];
         const currentUnitManiobristaTarjeton = updatedData[index]['TARJETON_MANIOBRISTA'];
         const currentUnitManiobristaName = updatedData[index]['NOMBRE_MANIOBRISTA'];

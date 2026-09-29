@@ -754,21 +754,42 @@ class DespachoController extends Controller
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
 
-        $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
+        $unidadesRaw = DB::table('unidades')->select('id', 'numero_eco')->get();
+        $unidadesMap = collect();
+        foreach ($unidadesRaw as $u) {
+            $eco = trim((string)$u->numero_eco);
+            if ($eco !== '') {
+                $unidadesMap->put($eco, $u);
+                $unidadesMap->put(ltrim($eco, '0'), $u);
+                $unidadesMap->put(str_pad(ltrim($eco, '0'), 3, '0', STR_PAD_LEFT), $u);
+            }
+        }
 
-        $conductoresMap = DB::table('conductores')
+        $conductoresRaw = DB::table('conductores')
             ->select('tarjeton', DB::raw("CONCAT(nombres, ' ', apellidos) AS nombre"))
-            ->get()
-            ->keyBy(function ($c) {
-                return trim($c->tarjeton);
-            });
+            ->get();
+        $conductoresMap = collect();
+        foreach ($conductoresRaw as $c) {
+            $t = trim((string)$c->tarjeton);
+            if ($t !== '') {
+                $conductoresMap->put($t, $c);
+                $conductoresMap->put(ltrim($t, '0'), $c);
+                $conductoresMap->put(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT), $c);
+            }
+        }
 
-        $maniobristasMap = DB::table('maniobristas')
+        $maniobristasRaw = DB::table('maniobristas')
             ->select('tarjeton', 'nombre')
-            ->get()
-            ->keyBy(function ($m) {
-                return trim($m->tarjeton);
-            });
+            ->get();
+        $maniobristasMap = collect();
+        foreach ($maniobristasRaw as $m) {
+            $t = trim((string)$m->tarjeton);
+            if ($t !== '') {
+                $maniobristasMap->put($t, $m);
+                $maniobristasMap->put(ltrim($t, '0'), $m);
+                $maniobristasMap->put(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT), $m);
+            }
+        }
 
         $infoOperativaIds = DB::table('informacion_operativa')->pluck('id', 'unidad_id')->all();
 
@@ -783,10 +804,11 @@ class DespachoController extends Controller
         DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
 
         foreach ($unidadesReq as $fila) {
-            $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
-            $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
+            $ecoVal = trim((string) ($fila['ECONOMICO'] ?? ''));
+            $numeroEco = ltrim($ecoVal, '0');
+            $numeroEcoClean = str_pad($numeroEco === '' ? '0' : $numeroEco, 3, '0', STR_PAD_LEFT);
 
-            $unidad = $unidadesMap->get($numeroEcoClean);
+            $unidad = $unidadesMap->get($ecoVal) ?? $unidadesMap->get($numeroEcoClean) ?? $unidadesMap->get($numeroEco);
             if (!$unidad) {
                 $errores[] = "ECO no encontrado: {$numeroEcoClean}";
                 continue;
@@ -798,10 +820,10 @@ class DespachoController extends Controller
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
             if ($tarjetonVal !== '') {
-                $conductorCatalog = $conductoresMap->get($tarjetonVal);
+                $conductorCatalog = $conductoresMap->get($tarjetonVal) ?? $conductoresMap->get(ltrim($tarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($tarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($conductorCatalog) {
                     $conductorNombre = $conductorCatalog->nombre;
-                    $tarjetonesEnServicio[] = $tarjetonVal;
+                    $tarjetonesEnServicio[] = $conductorCatalog->tarjeton;
                 } else {
                     $conductorNombre = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
                 }
@@ -811,10 +833,10 @@ class DespachoController extends Controller
             $tarjetonManiobristaVal = trim((string) ($fila['TARJETON_MANIOBRISTA'] ?? ''));
             $maniobristaNombre = '';
             if ($tarjetonManiobristaVal !== '') {
-                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal);
+                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal) ?? $maniobristasMap->get(ltrim($tarjetonManiobristaVal, '0')) ?? $maniobristasMap->get(str_pad(ltrim($tarjetonManiobristaVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($maniobristaCatalog) {
                     $maniobristaNombre = $maniobristaCatalog->nombre;
-                    $maniobristasEnServicio[] = $tarjetonManiobristaVal;
+                    $maniobristasEnServicio[] = $maniobristaCatalog->tarjeton;
                 } else {
                     $maniobristaNombre = trim((string) ($fila['NOMBRE_MANIOBRISTA'] ?? ''));
                 }
@@ -824,10 +846,10 @@ class DespachoController extends Controller
             $relevoTarjetonVal = trim((string) ($fila['RELEVO_TARJETON'] ?? ''));
             $relevoConductorNombre = '';
             if ($relevoTarjetonVal !== '') {
-                $relevoCatalog = $conductoresMap->get($relevoTarjetonVal);
+                $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($relevoCatalog) {
                     $relevoConductorNombre = $relevoCatalog->nombre;
-                    $tarjetonesEnServicio[] = $relevoTarjetonVal;
+                    $tarjetonesEnServicio[] = $relevoCatalog->tarjeton;
                 } else {
                     $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
                 }
@@ -836,9 +858,6 @@ class DespachoController extends Controller
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
-            $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
-            $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
@@ -855,7 +874,7 @@ class DespachoController extends Controller
                 'relevo_conductor'     => preg_replace('/\s*\(\d+\)$/', '', $relevoConductorNombre !== '' ? $relevoConductorNombre : trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''))),
                 'relevo_hora'          => trim((string) ($fila['RELEVO_HORA'] ?? '')),
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
-                'hora_salida_patio'      => $horaProgVal === '' ? null : $horaProgVal,
+                'hora_salida_patio'    => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
@@ -949,21 +968,42 @@ class DespachoController extends Controller
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
 
-        $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
+        $unidadesRaw = DB::table('unidades')->select('id', 'numero_eco')->get();
+        $unidadesMap = collect();
+        foreach ($unidadesRaw as $u) {
+            $eco = trim((string)$u->numero_eco);
+            if ($eco !== '') {
+                $unidadesMap->put($eco, $u);
+                $unidadesMap->put(ltrim($eco, '0'), $u);
+                $unidadesMap->put(str_pad(ltrim($eco, '0'), 3, '0', STR_PAD_LEFT), $u);
+            }
+        }
 
-        $conductoresMap = DB::table('conductores')
+        $conductoresRaw = DB::table('conductores')
             ->select('tarjeton', DB::raw("CONCAT(nombres, ' ', apellidos) AS nombre"))
-            ->get()
-            ->keyBy(function ($c) {
-                return trim($c->tarjeton);
-            });
+            ->get();
+        $conductoresMap = collect();
+        foreach ($conductoresRaw as $c) {
+            $t = trim((string)$c->tarjeton);
+            if ($t !== '') {
+                $conductoresMap->put($t, $c);
+                $conductoresMap->put(ltrim($t, '0'), $c);
+                $conductoresMap->put(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT), $c);
+            }
+        }
 
-        $maniobristasMap = DB::table('maniobristas')
+        $maniobristasRaw = DB::table('maniobristas')
             ->select('tarjeton', 'nombre')
-            ->get()
-            ->keyBy(function ($m) {
-                return trim($m->tarjeton);
-            });
+            ->get();
+        $maniobristasMap = collect();
+        foreach ($maniobristasRaw as $m) {
+            $t = trim((string)$m->tarjeton);
+            if ($t !== '') {
+                $maniobristasMap->put($t, $m);
+                $maniobristasMap->put(ltrim($t, '0'), $m);
+                $maniobristasMap->put(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT), $m);
+            }
+        }
 
         $infoOperativaIds = DB::table('informacion_operativa_manana')->pluck('id', 'unidad_id')->all();
 
@@ -973,10 +1013,11 @@ class DespachoController extends Controller
         $errores = [];
 
         foreach ($unidadesReq as $fila) {
-            $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
-            $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
+            $ecoVal = trim((string) ($fila['ECONOMICO'] ?? ''));
+            $numeroEco = ltrim($ecoVal, '0');
+            $numeroEcoClean = str_pad($numeroEco === '' ? '0' : $numeroEco, 3, '0', STR_PAD_LEFT);
 
-            $unidad = $unidadesMap->get($numeroEcoClean);
+            $unidad = $unidadesMap->get($ecoVal) ?? $unidadesMap->get($numeroEcoClean) ?? $unidadesMap->get($numeroEco);
             if (!$unidad) {
                 $errores[] = "ECO no encontrado: {$numeroEcoClean}";
                 continue;
@@ -987,7 +1028,7 @@ class DespachoController extends Controller
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
             if ($tarjetonVal !== '') {
-                $conductorCatalog = $conductoresMap->get($tarjetonVal);
+                $conductorCatalog = $conductoresMap->get($tarjetonVal) ?? $conductoresMap->get(ltrim($tarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($tarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($conductorCatalog) {
                     $conductorNombre = $conductorCatalog->nombre;
                 } else {
@@ -998,12 +1039,26 @@ class DespachoController extends Controller
             $tarjetonManiobristaVal = trim((string) ($fila['TARJETON_MANIOBRISTA'] ?? ''));
             $maniobristaNombre = '';
             if ($tarjetonManiobristaVal !== '') {
-                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal);
+                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal) ?? $maniobristasMap->get(ltrim($tarjetonManiobristaVal, '0')) ?? $maniobristasMap->get(str_pad(ltrim($tarjetonManiobristaVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($maniobristaCatalog) {
                     $maniobristaNombre = $maniobristaCatalog->nombre;
                 } else {
                     $maniobristaNombre = trim((string) ($fila['NOMBRE_MANIOBRISTA'] ?? ''));
                 }
+            }
+
+            // Procesar Relevo
+            $relevoTarjetonVal = trim((string) ($fila['RELEVO_TARJETON'] ?? ''));
+            $relevoConductorNombre = '';
+            if ($relevoTarjetonVal !== '') {
+                $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
+                if ($relevoCatalog) {
+                    $relevoConductorNombre = $relevoCatalog->nombre;
+                } else {
+                    $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                }
+            } else {
+                $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
@@ -1019,13 +1074,16 @@ class DespachoController extends Controller
                 'nombre_conductor'     => $conductorNombre,
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista'   => $maniobristaNombre,
+                'relevo_tarjeton'      => trim((string) ($fila['RELEVO_TARJETON'] ?? '')),
+                'relevo_conductor'     => preg_replace('/\s*\(\d+\)$/', '', $relevoConductorNombre !== '' ? $relevoConductorNombre : trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''))),
+                'relevo_hora'          => trim((string) ($fila['RELEVO_HORA'] ?? '')),
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
-                'hora_salida_patio'      => $horaProgVal === '' ? null : $horaProgVal,
+                'hora_salida_patio'    => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte'          => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_Norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
             if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva', 'no_programada'])) {
@@ -1034,6 +1092,9 @@ class DespachoController extends Controller
                 $data['nombre_conductor'] = '';
                 $data['tarjeton_maniobrista'] = '';
                 $data['nombre_maniobrista'] = '';
+                $data['relevo_tarjeton'] = '';
+                $data['relevo_conductor'] = '';
+                $data['relevo_hora'] = '';
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
@@ -1100,21 +1161,42 @@ class DespachoController extends Controller
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
 
-        $unidadesMap = DB::table('unidades')->select('id', 'numero_eco')->get()->keyBy('numero_eco');
+        $unidadesRaw = DB::table('unidades')->select('id', 'numero_eco')->get();
+        $unidadesMap = collect();
+        foreach ($unidadesRaw as $u) {
+            $eco = trim((string)$u->numero_eco);
+            if ($eco !== '') {
+                $unidadesMap->put($eco, $u);
+                $unidadesMap->put(ltrim($eco, '0'), $u);
+                $unidadesMap->put(str_pad(ltrim($eco, '0'), 3, '0', STR_PAD_LEFT), $u);
+            }
+        }
 
-        $conductoresMap = DB::table('conductores')
+        $conductoresRaw = DB::table('conductores')
             ->select('tarjeton', DB::raw("CONCAT(nombres, ' ', apellidos) AS nombre"))
-            ->get()
-            ->keyBy(function ($c) {
-                return trim($c->tarjeton);
-            });
+            ->get();
+        $conductoresMap = collect();
+        foreach ($conductoresRaw as $c) {
+            $t = trim((string)$c->tarjeton);
+            if ($t !== '') {
+                $conductoresMap->put($t, $c);
+                $conductoresMap->put(ltrim($t, '0'), $c);
+                $conductoresMap->put(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT), $c);
+            }
+        }
 
-        $maniobristasMap = DB::table('maniobristas')
+        $maniobristasRaw = DB::table('maniobristas')
             ->select('tarjeton', 'nombre')
-            ->get()
-            ->keyBy(function ($m) {
-                return trim($m->tarjeton);
-            });
+            ->get();
+        $maniobristasMap = collect();
+        foreach ($maniobristasRaw as $m) {
+            $t = trim((string)$m->tarjeton);
+            if ($t !== '') {
+                $maniobristasMap->put($t, $m);
+                $maniobristasMap->put(ltrim($t, '0'), $m);
+                $maniobristasMap->put(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT), $m);
+            }
+        }
 
         $infoOperativaIds = DB::table($tableName)->pluck('id', 'unidad_id')->all();
 
@@ -1124,10 +1206,11 @@ class DespachoController extends Controller
         $errores = [];
 
         foreach ($unidadesReq as $fila) {
-            $numeroEco = ltrim(trim((string) ($fila['ECONOMICO'] ?? '')), '0');
-            $numeroEcoClean = str_pad($numeroEco, 3, '0', STR_PAD_LEFT);
+            $ecoVal = trim((string) ($fila['ECONOMICO'] ?? ''));
+            $numeroEco = ltrim($ecoVal, '0');
+            $numeroEcoClean = str_pad($numeroEco === '' ? '0' : $numeroEco, 3, '0', STR_PAD_LEFT);
 
-            $unidad = $unidadesMap->get($numeroEcoClean);
+            $unidad = $unidadesMap->get($ecoVal) ?? $unidadesMap->get($numeroEcoClean) ?? $unidadesMap->get($numeroEco);
             if (!$unidad) {
                 $errores[] = "ECO no encontrado: {$numeroEcoClean}";
                 continue;
@@ -1138,7 +1221,7 @@ class DespachoController extends Controller
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
             if ($tarjetonVal !== '') {
-                $conductorCatalog = $conductoresMap->get($tarjetonVal);
+                $conductorCatalog = $conductoresMap->get($tarjetonVal) ?? $conductoresMap->get(ltrim($tarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($tarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($conductorCatalog) {
                     $conductorNombre = $conductorCatalog->nombre;
                 } else {
@@ -1149,12 +1232,26 @@ class DespachoController extends Controller
             $tarjetonManiobristaVal = trim((string) ($fila['TARJETON_MANIOBRISTA'] ?? ''));
             $maniobristaNombre = '';
             if ($tarjetonManiobristaVal !== '') {
-                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal);
+                $maniobristaCatalog = $maniobristasMap->get($tarjetonManiobristaVal) ?? $maniobristasMap->get(ltrim($tarjetonManiobristaVal, '0')) ?? $maniobristasMap->get(str_pad(ltrim($tarjetonManiobristaVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($maniobristaCatalog) {
                     $maniobristaNombre = $maniobristaCatalog->nombre;
                 } else {
                     $maniobristaNombre = trim((string) ($fila['NOMBRE_MANIOBRISTA'] ?? ''));
                 }
+            }
+
+            // Procesar Relevo
+            $relevoTarjetonVal = trim((string) ($fila['RELEVO_TARJETON'] ?? ''));
+            $relevoConductorNombre = '';
+            if ($relevoTarjetonVal !== '') {
+                $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
+                if ($relevoCatalog) {
+                    $relevoConductorNombre = $relevoCatalog->nombre;
+                } else {
+                    $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                }
+            } else {
+                $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
@@ -1170,8 +1267,11 @@ class DespachoController extends Controller
                 'nombre_conductor'     => $conductorNombre,
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista'   => $maniobristaNombre,
+                'relevo_tarjeton'      => trim((string) ($fila['RELEVO_TARJETON'] ?? '')),
+                'relevo_conductor'     => preg_replace('/\s*\(\d+\)$/', '', $relevoConductorNombre !== '' ? $relevoConductorNombre : trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''))),
+                'relevo_hora'          => trim((string) ($fila['RELEVO_HORA'] ?? '')),
                 'corridas'             => $corridasVal === '' ? null : (int)$corridasVal,
-                'hora_salida_patio'      => $horaProgVal === '' ? null : $horaProgVal,
+                'hora_salida_patio'    => $horaProgVal === '' ? null : $horaProgVal,
                 'acople'               => $acopleVal === '' ? null : $acopleVal,
                 'tipo'                 => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
                 'estatus'              => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
@@ -1185,6 +1285,9 @@ class DespachoController extends Controller
                 $data['nombre_conductor'] = '';
                 $data['tarjeton_maniobrista'] = '';
                 $data['nombre_maniobrista'] = '';
+                $data['relevo_tarjeton'] = '';
+                $data['relevo_conductor'] = '';
+                $data['relevo_hora'] = '';
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
