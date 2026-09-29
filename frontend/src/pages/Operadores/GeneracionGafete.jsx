@@ -9,6 +9,7 @@ export default function GeneracionGafete({ conductores }) {
   const [selectedConductor, setSelectedConductor] = useState(null);
   const [fechaExpedicion, setFechaExpedicion] = useState('2026-01-01');
   const [fechaVigencia, setFechaVigencia] = useState('2026-12-01');
+  const [qrImageError, setQrImageError] = useState(false);
 
   const formatMonthYear = (dateString) => {
     if (!dateString) return '';
@@ -74,6 +75,7 @@ export default function GeneracionGafete({ conductores }) {
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setSelectedConductor(null);
+                setQrImageError(false);
               }}
             />
             {searchTerm && !selectedConductor && (
@@ -86,6 +88,7 @@ export default function GeneracionGafete({ conductores }) {
                       onClick={() => {
                         setSelectedConductor(c);
                         setSearchTerm(c.nombre);
+                        setQrImageError(false);
                       }}
                     >
                       <div className="font-bold text-slate-800">{c.nombre}</div>
@@ -192,14 +195,13 @@ export default function GeneracionGafete({ conductores }) {
                 {/* 3. CÓDIGO QR - Lado Izquierdo */}
                 <div className="absolute bg-white p-1 z-10"
                      style={{ left: '19%', top: '13.5%', width: '16%', aspectRatio: '1/1' }}>
-                  {selectedConductor?.qr_documento ? (
+                  {selectedConductor?.qr_documento && !qrImageError ? (
                     <img 
                       src={selectedConductor.qr_documento.startsWith('data:image') ? selectedConductor.qr_documento : `${API_BASE}/storage/${selectedConductor.qr_documento}`} 
                       alt="Código QR del T6" 
                       style={{ height: "100%", width: "100%", objectFit: "contain" }} 
                       onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
+                        setQrImageError(true);
                       }}
                     />
                   ) : (
