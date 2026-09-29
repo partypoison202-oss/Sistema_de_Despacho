@@ -346,12 +346,10 @@ class ConductorController extends Controller
 
         if ($request->hasFile('foto')) {
             $file = $request->file('foto');
-            $extension = strtolower($file->extension() ?: $file->guessExtension() ?: 'jpg');
-            $filename = 'conductor_' . (int)$id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
-            // Guardar en public/storage/conductores
-            $path = $file->storeAs('conductores', $filename, 'public');
+            $fileContent = $file->getContent();
+            $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode($fileContent);
             
-            $conductor->foto = $path;
+            $conductor->foto = $base64;
             $conductor->save();
 
             BitacoraConductorHelper::registrarAccion(
@@ -383,12 +381,10 @@ class ConductorController extends Controller
 
         if ($request->hasFile('qr')) {
             $file = $request->file('qr');
-            $extension = strtolower($file->extension() ?: $file->guessExtension() ?: 'jpg');
-            $filename = 'conductor_qr_' . (int)$id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
-            // Guardar en public/storage/conductores
-            $path = $file->storeAs('conductores', $filename, 'public');
+            $fileContent = $file->getContent();
+            $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode($fileContent);
             
-            $conductor->qr_documento = $path;
+            $conductor->qr_documento = $base64;
             $conductor->save();
 
             BitacoraConductorHelper::registrarAccion(
