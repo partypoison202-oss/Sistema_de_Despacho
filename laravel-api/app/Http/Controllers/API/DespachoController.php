@@ -1901,12 +1901,12 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
-        // Auto-ejecución del cambio de día si son las 03:30 AM o más
+        // Auto-ejecución del cambio de día a partir de las 12:00 AM (00:00)
         $nowMexico = Carbon::now('America/Mexico_City');
         $hoy = $nowMexico->toDateString();
         $horaActual = $nowMexico->format('H:i');
 
-        if ($horaActual >= '03:30') {
+        if ($horaActual >= '00:00') {
             $tieneManana = DB::table('informacion_operativa_manana')->count() > 0;
             $primerRegistro = DB::table('informacion_operativa')->first();
             $esDiaAnterior = $primerRegistro && isset($primerRegistro->fecha_registro) && $primerRegistro->fecha_registro < $hoy;
