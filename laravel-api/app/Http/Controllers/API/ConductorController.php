@@ -346,7 +346,7 @@ class ConductorController extends Controller
 
         if ($request->hasFile('foto')) {
             $file = $request->file('foto');
-            $fileContent = file_get_contents($file->getRealPath());
+            $fileContent = $file->getContent();
             $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode($fileContent);
             
             $conductor->foto = $base64;
@@ -381,7 +381,7 @@ class ConductorController extends Controller
 
         if ($request->hasFile('qr')) {
             $file = $request->file('qr');
-            $fileContent = file_get_contents($file->getRealPath());
+            $fileContent = $file->getContent();
             $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode($fileContent);
             
             $conductor->qr_documento = $base64;
