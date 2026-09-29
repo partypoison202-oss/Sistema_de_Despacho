@@ -71,6 +71,16 @@ class BitacoraHelper
                             $item['hora_salida'] = $registro->hora_salida ?? null;
                         }
 
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio')) {
+                            $item['hora_real_salida_patio'] = $registro->hora_real_salida_patio ?? null;
+                        }
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'relevo_tarjeton')) {
+                            $item['relevo_tarjeton'] = $registro->relevo_tarjeton ?? null;
+                            $item['relevo_conductor'] = $registro->relevo_conductor ?? null;
+                            $item['relevo_hora'] = $registro->relevo_hora ?? null;
+                        }
+
                         return $item;
                     })->toArray();
 
