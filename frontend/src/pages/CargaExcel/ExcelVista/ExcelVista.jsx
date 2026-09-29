@@ -182,7 +182,7 @@ export default function ExcelPreview({
   };
 
   // 1. Ordenar los datos por tipo de unidad (según el orden de la lista) y luego por ECO numérico
-  const sortedData = [...(data || [])].sort((a, b) => {
+  const sortedData = (data || []).map((fila, idx) => ({ ...fila, __originalIndex: idx })).sort((a, b) => {
     const typeA = String(a.TIPO_DE_UNIDAD || '').toUpperCase();
     const typeB = String(b.TIPO_DE_UNIDAD || '').toUpperCase();
 
