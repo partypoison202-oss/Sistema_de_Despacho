@@ -67,29 +67,27 @@ export default function CentroControl() {
       });
       const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
+      // Operación = las que YA salieron de despacho (tienen hora real de salida de patio)
       const unidadesOperacion = units.filter((d) => {
-        const est = getEstatus(d);
-        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada || d.yaEncerrada);
-        const isOperacion = est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
-        return isOperacion && horaSalida !== '' && !isEncerrada;
+        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
+        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+        return horaSalida !== '' && !isEncerrada;
       });
-      const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
-      const unidadesReserva = units.filter((d) => {
-        const est = getEstatus(d);
-        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada || d.yaEncerrada);
-        return horaSalida === '' && !isEncerrada && !est.includes('MANTENIMIENTO') && !est.includes('PERCANCE') && !est.includes('DESINCORPORADA');
-      });
-      const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
+      // Reserva = todas las que tienen estatus 'reserva' (programadas pero sin despachar)
+      const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
+      // Mantenimiento = todas las que tienen estatus 'mantenimiento'
+      const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
+      const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
-      const operacion = unidadesOperacion.length;
+      const operacion    = unidadesOperacion.length;
       const mantenimiento = unidadesMantenimiento.length;
-      const reserva = unidadesReserva.length;
-      const percance = unidadesPercance.length;
-      const otros = 0;
+      const reserva      = unidadesReserva.length;
+      const percance     = unidadesPercance.length;
+      const otros        = 0;
       
+      // Total programadas = Operación + Reserva + Mantenimiento
       const programadas = operacion + reserva + mantenimiento;
+
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,

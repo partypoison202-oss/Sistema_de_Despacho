@@ -1975,7 +1975,10 @@ class DespachoController extends Controller
         $formateados = $registros->map(function ($reg) use ($idsEncerradasHoy) {
             $isEncerrada = in_array((int)$reg->unidad_id, $idsEncerradasHoy, true);
             $estatusNorm = strtolower(trim($reg->estatus ?? ''));
-            $isDesincorporada = $isEncerrada || in_array($estatusNorm, ['reserva', 'mantenimiento', 'percance'], true);
+            // Solo ocultamos datos de unidades en mantenimiento/percance o ya encerradas.
+            // Las unidades en 'reserva' SÍ deben enviar su hora_real_salida_patio para
+            // que el frontend pueda calcular dinámicamente cuántas han salido y cuántas siguen en reserva.
+            $isDesincorporada = $isEncerrada || in_array($estatusNorm, ['mantenimiento', 'percance'], true);
             $horaSalidaEfectiva = $isDesincorporada ? null : $reg->hora_real_salida_patio;
 
             return [
