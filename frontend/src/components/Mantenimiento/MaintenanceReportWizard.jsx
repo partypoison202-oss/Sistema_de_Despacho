@@ -385,9 +385,9 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Servicio <span className="text-red-500">*</span></label>
               {(() => {
                 const tipo = String(initialData?.tipoTransporte || initialData?.tipo || '').toLowerCase();
-                // urbanuss, articulado, padron = troncal
-                const esUrbanuss = ['urbanuss', 'zafiro', 'orion', 'articulado', 'padron', 'troncal'].includes(tipo);
-                const opciones = esUrbanuss
+                // urbanuss, articulado, padron = troncal; zafiro, orion, vagoneta = alimentadora
+                const esTroncal = ['urbanuss', 'articulado', 'padron', 'troncal'].includes(tipo);
+                const opciones = esTroncal
                   ? ['T01', 'T02', 'T04', 'T05']
                   : ['1A', '1B', '2A', '2B', '2D', '2E', '3', '4A', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15A', '15B', '15C', '16', '17', '19', '20B', 'Especial', 'Sin ruta asignada'];
                 return opciones.length > 0 ? (
