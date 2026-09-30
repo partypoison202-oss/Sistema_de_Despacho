@@ -224,7 +224,7 @@ export default function Dashboard() {
                 {isGeneratingExcel ? (
                   <>
                     <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
-                    Generando Excel...
+                    <span>Generando Excel...</span>
                   </>
                 ) : (
                   <>
@@ -235,7 +235,7 @@ export default function Dashboard() {
                       <line x1="8" y1="17" x2="16" y2="17"></line>
                       <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
-                    Resumen Despacho (Excel)
+                    <span>Resumen Despacho (Excel)</span>
                   </>
                 )}
               </button>
