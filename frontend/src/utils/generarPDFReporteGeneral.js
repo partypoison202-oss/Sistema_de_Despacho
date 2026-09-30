@@ -136,8 +136,16 @@ export const generarPDFReporteGeneral = async (data) => {
     // TABLA A LA DERECHA
     const head = [
         [
-            { content: `${troncales.length} SERVICIOS DE TRONCAL /\n${alimentadoras.length} RUTA ALIMENTADORA`, rowSpan: 2, styles: { halign: 'center', valign: 'middle', fontSize: 7, fillColor: COLOR_GUINDA } },
-            { content: `N° UNIDADES`, colSpan: 4, styles: { halign: 'center', fontSize: 16 } }
+            { 
+                content: troncales.length > 0 && alimentadoras.length > 0
+                    ? `${troncales.length} SERVICIOS DE TRONCAL /\n${alimentadoras.length} RUTA ALIMENTADORA`
+                    : troncales.length > 0
+                    ? `${troncales.length} SERVICIOS DE TRONCAL`
+                    : `${alimentadoras.length} RUTA ALIMENTADORA`, 
+                rowSpan: 2, 
+                styles: { halign: 'center', valign: 'middle', fontSize: 7, fillColor: COLOR_GUINDA } 
+            },
+            { content: `N° UNIDADES`, colSpan: 4, styles: { halign: 'center', fontSize: 15 } }
         ],
         [
             { content: 'EN OPERACIÓN', colSpan: 2, styles: { halign: 'center', fillColor: COLOR_GOLD } },
@@ -151,50 +159,53 @@ export const generarPDFReporteGeneral = async (data) => {
     // TRONCALES
     troncales.forEach((item, i) => {
         const row = [
-            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: 12, textColor: [0,0,0] } },
-            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: 11 } }
+            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: 11.5, textColor: [0,0,0], cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 } } },
+            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: 11, cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 } } }
         ];
         if (i === 0) {
             row.push({ 
                 content: `${troncalOperacion}`, 
-                rowSpan: troncales.length, 
+                rowSpan: Math.max(1, troncales.length), 
                 styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 24 } 
             });
             row.push({ 
                 content: `${troncalMantenimiento}\nUNIDADES\nEN MANTENIMIENTO`, 
-                rowSpan: troncales.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 10 } 
+                rowSpan: Math.max(1, troncales.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 9.5 } 
             });
             row.push({ 
                 content: `${troncalTotal}`, 
-                rowSpan: troncales.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 30 } 
+                rowSpan: Math.max(1, troncales.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 28 } 
             });
         }
         body.push(row);
     });
 
+    const alimPaddingY = alimentadoras.length > 12 ? 0.8 : 1.1;
+    const alimFontSize = alimentadoras.length > 12 ? 8.5 : 9.5;
+
     // ALIMENTADORAS
     alimentadoras.forEach((item, i) => {
         const row = [
-            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: 11, textColor: [0,0,0] } },
-            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: 10 } }
+            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: alimFontSize, textColor: [0,0,0], cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1.5, right: 1.5 } } },
+            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: alimFontSize, cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1.5, right: 1.5 } } }
         ];
         if (i === 0) {
             row.push({ 
                 content: `${alimentadoraOperacion}`, 
-                rowSpan: alimentadoras.length, 
+                rowSpan: Math.max(1, alimentadoras.length), 
                 styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 24 } 
             });
             row.push({ 
                 content: `${alimentadoraMantenimiento}\nUNIDADES\nEN MANTENIMIENTO`, 
-                rowSpan: alimentadoras.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 10 } 
+                rowSpan: Math.max(1, alimentadoras.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 9.5 } 
             });
             row.push({ 
                 content: `${alimentadoraTotal}`, 
-                rowSpan: alimentadoras.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 30 } 
+                rowSpan: Math.max(1, alimentadoras.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 28 } 
             });
         }
         body.push(row);
@@ -202,7 +213,9 @@ export const generarPDFReporteGeneral = async (data) => {
 
     autoTable(pdf, {
         startY: 40,
-        margin: { left: 98, right: 10 },
+        margin: { left: 98, right: 10.4, bottom: 8 },
+        tableWidth: 171,
+        pageBreak: 'avoid',
         head: head,
         body: body,
         theme: 'grid',
@@ -220,7 +233,6 @@ export const generarPDFReporteGeneral = async (data) => {
         },
         styles: {
             fontSize: 9,
-            cellPadding: 2,
             valign: 'middle',
             lineColor: [0, 0, 0],
             lineWidth: 0.5
