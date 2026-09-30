@@ -36,8 +36,8 @@ const getLogoData = (url) => {
 
 // Precarga inmediata de logos en segundo plano
 if (typeof window !== 'undefined') {
-  getLogoData('/images/sistema_de_tm.webp');
-  getLogoData('/images/sitmah_logo.webp');
+  getLogoData('/images/sistema_de_tm.webp').catch(() => {});
+  getLogoData('/images/sitmah_logo.webp').catch(() => {});
 }
 
 export const generarPDFProgramacionOperativa = async (previewData, action = 'base64', totales = null, options = {}) => {

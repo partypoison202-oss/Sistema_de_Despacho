@@ -117,8 +117,12 @@ export default function Dashboard() {
     }
   };
 
-  const handleGenerarReporte = () => {
-    descargarReportesGeneralesConAlerta(setIsGenerating, queryClient);
+  const handleGenerarReporte = async () => {
+    try {
+      await descargarReportesGeneralesConAlerta(setIsGenerating, queryClient);
+    } catch (err) {
+      console.error('Error al generar reporte general:', err);
+    }
   };
 
   const handleGenerarResumenExcel = async () => {
@@ -132,8 +136,12 @@ export default function Dashboard() {
     }
   };
 
-  const handleGenerarProgramacionOperativa = () => {
-    descargarProgramacionOperativaDespachoConAlerta(setIsGeneratingProgramacion, queryClient);
+  const handleGenerarProgramacionOperativa = async () => {
+    try {
+      await descargarProgramacionOperativaDespachoConAlerta(setIsGeneratingProgramacion, queryClient);
+    } catch (err) {
+      console.error('Error al generar programación operativa:', err);
+    }
   };
 
   const fetchConteos = async () => {
