@@ -88,56 +88,19 @@ export const generarPDFReporteGeneral = async (data) => {
     const urbanusImg = await loadImage('/images/urbanu.webp');
     const zafiroImg = await loadImage('/images/alimentadora.webp');
 
-    // Caja 1 (Urbanus)
-    pdf.setFillColor(...COLOR_BEIGE);
-    pdf.roundedRect(23, 45, 70, 60, 5, 5, 'F');
-    if (urbanusImg && (urbanusImg.naturalWidth > 0 || urbanusImg.width > 0)) {
-        const canvas = document.createElement('canvas');
-        canvas.width  = urbanusImg.naturalWidth  || urbanusImg.width;
-        canvas.height = urbanusImg.naturalHeight || urbanusImg.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(urbanusImg, 0, 0);
-        
-        const maxW = 65;
-        const maxH = 50;
-        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-        const drawW = canvas.width * ratio;
-        const drawH = canvas.height * ratio;
-        const x = 25.5 + (maxW - drawW) / 2;
-        const y = 50 + (maxH - drawH) / 2;
-        
-        if (drawW > 0 && drawH > 0) {
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
-        }
-    }
-
-    // Caja 2 (Alimentadoras)
-    pdf.roundedRect(23, 115, 70, 80, 5, 5, 'F');
-    if (zafiroImg && (zafiroImg.naturalWidth > 0 || zafiroImg.width > 0)) {
-        const canvas = document.createElement('canvas');
-        canvas.width  = zafiroImg.naturalWidth  || zafiroImg.width;
-        canvas.height = zafiroImg.naturalHeight || zafiroImg.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(zafiroImg, 0, 0);
-        
-        const maxW = 65;
-        const maxH = 70;
-        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-        const drawW = canvas.width * ratio;
-        const drawH = canvas.height * ratio;
-        const x = 25.5 + (maxW - drawW) / 2;
-        const y = 120 + (maxH - drawH) / 2;
-        
-        if (drawW > 0 && drawH > 0) {
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
-        }
-    }
-
     // TABLA A LA DERECHA
     const head = [
         [
-            { content: `${troncales.length} SERVICIOS DE TRONCAL /\n${alimentadoras.length} RUTA ALIMENTADORA`, rowSpan: 2, styles: { halign: 'center', valign: 'middle', fontSize: 7, fillColor: COLOR_GUINDA } },
-            { content: `N° UNIDADES`, colSpan: 4, styles: { halign: 'center', fontSize: 16 } }
+            { 
+                content: troncales.length > 0 && alimentadoras.length > 0
+                    ? `${troncales.length} SERVICIOS DE TRONCAL /\n${alimentadoras.length} RUTA ALIMENTADORA`
+                    : troncales.length > 0
+                    ? `${troncales.length} SERVICIOS DE TRONCAL`
+                    : `${alimentadoras.length} RUTA ALIMENTADORA`, 
+                rowSpan: 2, 
+                styles: { halign: 'center', valign: 'middle', fontSize: 7, fillColor: COLOR_GUINDA } 
+            },
+            { content: `N° UNIDADES`, colSpan: 4, styles: { halign: 'center', fontSize: 15 } }
         ],
         [
             { content: 'EN OPERACIÓN', colSpan: 2, styles: { halign: 'center', fillColor: COLOR_GOLD } },
@@ -151,58 +114,67 @@ export const generarPDFReporteGeneral = async (data) => {
     // TRONCALES
     troncales.forEach((item, i) => {
         const row = [
-            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: 12, textColor: [0,0,0] } },
-            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: 11 } }
+            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: 11.5, textColor: [0,0,0], cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 } } },
+            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: 11, cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 } } }
         ];
         if (i === 0) {
             row.push({ 
                 content: `${troncalOperacion}`, 
-                rowSpan: troncales.length, 
+                rowSpan: Math.max(1, troncales.length), 
                 styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 24 } 
             });
             row.push({ 
                 content: `${troncalMantenimiento}\nUNIDADES\nEN MANTENIMIENTO`, 
-                rowSpan: troncales.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 10 } 
+                rowSpan: Math.max(1, troncales.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 9.5 } 
             });
             row.push({ 
                 content: `${troncalTotal}`, 
-                rowSpan: troncales.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 30 } 
+                rowSpan: Math.max(1, troncales.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 28 } 
             });
         }
         body.push(row);
     });
+
+    const alimPaddingY = alimentadoras.length > 12 ? 0.8 : 1.1;
+    const alimFontSize = alimentadoras.length > 12 ? 8.5 : 9.5;
 
     // ALIMENTADORAS
     alimentadoras.forEach((item, i) => {
         const row = [
-            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: 11, textColor: [0,0,0] } },
-            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: 10 } }
+            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: alimFontSize, textColor: [0,0,0], cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1.5, right: 1.5 } } },
+            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: alimFontSize, cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1.5, right: 1.5 } } }
         ];
         if (i === 0) {
             row.push({ 
                 content: `${alimentadoraOperacion}`, 
-                rowSpan: alimentadoras.length, 
+                rowSpan: Math.max(1, alimentadoras.length), 
                 styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 24 } 
             });
             row.push({ 
                 content: `${alimentadoraMantenimiento}\nUNIDADES\nEN MANTENIMIENTO`, 
-                rowSpan: alimentadoras.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 10 } 
+                rowSpan: Math.max(1, alimentadoras.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 9.5 } 
             });
             row.push({ 
                 content: `${alimentadoraTotal}`, 
-                rowSpan: alimentadoras.length, 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 30 } 
+                rowSpan: Math.max(1, alimentadoras.length), 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 28 } 
             });
         }
         body.push(row);
     });
 
+    let troncalEndY = 0;
+    let alimStartY = 0;
+    let alimEndY = 0;
+
     autoTable(pdf, {
         startY: 40,
-        margin: { left: 98, right: 10 },
+        margin: { left: 98, right: 10.4, bottom: 8 },
+        tableWidth: 171,
+        pageBreak: 'avoid',
         head: head,
         body: body,
         theme: 'grid',
@@ -220,15 +192,86 @@ export const generarPDFReporteGeneral = async (data) => {
         },
         styles: {
             fontSize: 9,
-            cellPadding: 2,
             valign: 'middle',
             lineColor: [0, 0, 0],
             lineWidth: 0.5
         },
         alternateRowStyles: {
             fillColor: COLOR_WHITE
+        },
+        didDrawCell: (data) => {
+            if (data.column.index === 0 && data.row.section === 'body') {
+                if (data.row.index === troncales.length - 1) {
+                    troncalEndY = data.cell.y + data.cell.height;
+                }
+                if (data.row.index === troncales.length) {
+                    alimStartY = data.cell.y;
+                }
+                if (data.row.index === troncales.length + alimentadoras.length - 1) {
+                    alimEndY = data.cell.y + data.cell.height;
+                }
+            }
         }
     });
+
+    const finalTroncalEnd = troncalEndY || 102;
+    const finalAlimStart  = alimStartY || finalTroncalEnd;
+    const finalAlimEnd    = alimEndY || (pdf.lastAutoTable ? pdf.lastAutoTable.finalY : 175);
+
+    // Caja 1 (Urbanus) - Alineada con la sección de Troncales
+    const c1_x = 23;
+    const c1_w = 70;
+    const c1_y = 40;
+    const c1_h = (finalTroncalEnd - c1_y) - 1.5;
+
+    pdf.setFillColor(...COLOR_BEIGE);
+    pdf.roundedRect(c1_x, c1_y, c1_w, c1_h, 5, 5, 'F');
+    if (urbanusImg && (urbanusImg.naturalWidth > 0 || urbanusImg.width > 0)) {
+        const canvas = document.createElement('canvas');
+        canvas.width  = urbanusImg.naturalWidth  || urbanusImg.width;
+        canvas.height = urbanusImg.naturalHeight || urbanusImg.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(urbanusImg, 0, 0);
+        
+        const maxW = c1_w - 6;
+        const maxH = Math.max(10, c1_h - 10);
+        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+        const drawW = canvas.width * ratio;
+        const drawH = canvas.height * ratio;
+        const x = c1_x + (c1_w - drawW) / 2;
+        const y = c1_y + (c1_h - drawH) / 2;
+        
+        if (drawW > 0 && drawH > 0) {
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
+        }
+    }
+
+    // Caja 2 (Alimentadoras) - Alineada con la sección de Alimentadoras
+    const c2_x = 23;
+    const c2_w = 70;
+    const c2_y = finalAlimStart + 1.5;
+    const c2_h = finalAlimEnd - c2_y;
+
+    pdf.roundedRect(c2_x, c2_y, c2_w, c2_h, 5, 5, 'F');
+    if (zafiroImg && (zafiroImg.naturalWidth > 0 || zafiroImg.width > 0)) {
+        const canvas = document.createElement('canvas');
+        canvas.width  = zafiroImg.naturalWidth  || zafiroImg.width;
+        canvas.height = zafiroImg.naturalHeight || zafiroImg.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(zafiroImg, 0, 0);
+        
+        const maxW = c2_w - 6;
+        const maxH = Math.max(10, c2_h - 10);
+        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+        const drawW = canvas.width * ratio;
+        const drawH = canvas.height * ratio;
+        const x = c2_x + (c2_w - drawW) / 2;
+        const y = c2_y + (c2_h - drawH) / 2;
+        
+        if (drawW > 0 && drawH > 0) {
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
+        }
+    }
 
     pdf.save(`Reporte_Rutas_${new Date().toISOString().slice(0,10)}.pdf`);
 };

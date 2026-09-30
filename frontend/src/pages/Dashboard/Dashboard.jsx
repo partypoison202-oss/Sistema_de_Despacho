@@ -5,7 +5,7 @@ import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
 import './Dashboard.css';
-import { descargarReportesGeneralesConAlerta } from '../../utils/reporteGeneralUtils';
+import { descargarReportesGeneralesConAlerta, descargarProgramacionOperativaDespachoConAlerta } from '../../utils/reporteGeneralUtils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
 import API_BASE from '../../config/api';
@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
+  const [isGeneratingProgramacion, setIsGeneratingProgramacion] = useState(false);
   const [busquedaEco, setBusquedaEco] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -116,8 +117,12 @@ export default function Dashboard() {
     }
   };
 
-  const handleGenerarReporte = () => {
-    descargarReportesGeneralesConAlerta(setIsGenerating);
+  const handleGenerarReporte = async () => {
+    try {
+      await descargarReportesGeneralesConAlerta(setIsGenerating, queryClient);
+    } catch (err) {
+      console.error('Error al generar reporte general:', err);
+    }
   };
 
   const handleGenerarResumenExcel = async () => {
@@ -128,6 +133,14 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
       setIsGeneratingExcel(false);
+    }
+  };
+
+  const handleGenerarProgramacionOperativa = async () => {
+    try {
+      await descargarProgramacionOperativaDespachoConAlerta(setIsGeneratingProgramacion, queryClient);
+    } catch (err) {
+      console.error('Error al generar programación operativa:', err);
     }
   };
 
@@ -236,6 +249,38 @@ export default function Dashboard() {
                       <polyline points="10 9 9 9 8 9"></polyline>
                     </svg>
                     <span>Resumen Despacho (Excel)</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleGenerarProgramacionOperativa}
+                disabled={isGeneratingProgramacion}
+                className="btn-reporte btn-reporte--programacion"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: '#1e3a8a',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  cursor: isGeneratingProgramacion ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isGeneratingProgramacion ? (
+                  <>
+                    <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                    <span>Generando PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Programación Operativa</span>
                   </>
                 )}
               </button>
