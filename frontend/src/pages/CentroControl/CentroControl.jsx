@@ -85,8 +85,9 @@ export default function CentroControl() {
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      // Total programadas = Operación + Reserva + Mantenimiento
-      const programadas = operacion + reserva + mantenimiento;
+      // Total programadas = todas las que ya están cargadas en el despacho (tienen asignación),
+      // independientemente de si ya salieron o no. Las NO_PROGRAMADA ya fueron excluidas en `units`.
+      const programadas = units.length;
 
 
       const idsConEstatus = new Set([
