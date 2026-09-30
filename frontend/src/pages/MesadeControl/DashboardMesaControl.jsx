@@ -1,17 +1,21 @@
-// src/pages/MesaControl/DashboardMesaControl.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import TransportCard from '../../components/TransportCard';
 import { transportModules } from '../../config/transportModules';
-import '../Mantenimiento/Mantenimiento.css'; // Reutiliza el CSS de Mantenimiento
+import '../Mantenimiento/Mantenimiento.css';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGlobalPrefetch } from '../../hooks/useGlobalPrefetch';
+import ModalMonitoreoConductores from './ModalMonitoreoConductores';
+import ModalProgramacionApertura from './ModalProgramacionApertura';
+
 export default function DashboardMesaControl() {
   const [busquedaEco, setBusquedaEco] = useState('');
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
+  const [modalMonitoreoOpen, setModalMonitoreoOpen] = useState(false);
+  const [modalAperturaOpen, setModalAperturaOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -122,9 +126,63 @@ export default function DashboardMesaControl() {
       <main className="mantenimiento__main">
         <p className="page-eyebrow">MONITOREO Y GESTIÓN</p>
         <h1 className="page-title">MESA DE CONTROL</h1>
-        <p className="mantenimiento__subtitle text-gray-500">
+        <p className="mantenimiento__subtitle text-gray-500 mb-4">
           Toque la imagen del transporte para gestionar la unidad
         </p>
+          
+        <div className="flex justify-center gap-6 mb-8">
+          <button
+            onClick={() => setModalMonitoreoOpen(true)}
+            className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-full border border-slate-200 transition-all duration-300"
+            style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#6b1d33';
+              e.currentTarget.style.background = '#fdf8f9';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(107, 29, 51, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+            }}
+            title="Ver pantalla general de conductores y relevos del día"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span style={{color: '#1e293b', fontWeight: '500', fontSize: '0.95rem'}}>Conductores y Relevos</span>
+          </button>
+
+          <button
+            onClick={() => setModalAperturaOpen(true)}
+            className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-full border border-slate-200 transition-all duration-300"
+            style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#6b1d33';
+              e.currentTarget.style.background = '#fdf8f9';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(107, 29, 51, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+            }}
+            title="Ver programación de apertura (Todas las tecnologías)"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b1d33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span style={{color: '#1e293b', fontWeight: '500', fontSize: '0.95rem'}}>Programación de Apertura</span>
+          </button>
+        </div>
 
         <form className="mantenimiento__search" onSubmit={handleBuscarUnidad}>
           <input
@@ -157,6 +215,30 @@ export default function DashboardMesaControl() {
           ))}
         </div>
       </main>
+
+      <ModalMonitoreoConductores
+        isOpen={modalMonitoreoOpen}
+        onClose={() => setModalMonitoreoOpen(false)}
+        tipoTransporte="TODOS"
+        configActual={{ id: 'general', title: 'Todas las Tecnologías', color: '#6b1d33' }}
+        onSelectUnit={(eco) => {
+          setBusquedaEco(eco);
+          setModalMonitoreoOpen(false);
+          handleBuscarUnidad({ preventDefault: () => {} });
+        }}
+      />
+
+      <ModalProgramacionApertura
+        isOpen={modalAperturaOpen}
+        onClose={() => setModalAperturaOpen(false)}
+        tipoTransporte="TODOS"
+        configActual={{ id: 'general', title: 'Todas las Tecnologías', color: '#6b1d33' }}
+        onSelectUnit={(eco) => {
+          setBusquedaEco(eco);
+          setModalAperturaOpen(false);
+          handleBuscarUnidad({ preventDefault: () => {} });
+        }}
+      />
     </div>
   );
 }
