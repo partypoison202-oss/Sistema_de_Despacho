@@ -1906,14 +1906,11 @@ class DespachoController extends Controller
         $hoy = $nowMexico->toDateString();
         $horaActual = $nowMexico->format('H:i');
 
-        if ($horaActual >= '00:00') {
-            $tieneManana = DB::table('informacion_operativa_manana')->count() > 0;
-            $primerRegistro = DB::table('informacion_operativa')->first();
-            $esDiaAnterior = $primerRegistro && isset($primerRegistro->fecha_registro) && $primerRegistro->fecha_registro < $hoy;
+        $primerRegistro = DB::table('informacion_operativa')->first();
+        $esDiaAnterior = $primerRegistro && isset($primerRegistro->fecha_registro) && $primerRegistro->fecha_registro < $hoy;
 
-            if ($tieneManana || ($esDiaAnterior && !\Illuminate\Support\Facades\Cache::has('cambio_dia_operativo_ejecutado_' . $hoy))) {
-                self::ejecutarCambioDiaAutomatico();
-            }
+        if ($esDiaAnterior && !\Illuminate\Support\Facades\Cache::has('cambio_dia_operativo_ejecutado_' . $hoy)) {
+            self::ejecutarCambioDiaAutomatico();
         }
 
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
