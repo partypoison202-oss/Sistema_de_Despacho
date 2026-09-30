@@ -88,51 +88,6 @@ export const generarPDFReporteGeneral = async (data) => {
     const urbanusImg = await loadImage('/images/urbanu.webp');
     const zafiroImg = await loadImage('/images/alimentadora.webp');
 
-    // Caja 1 (Urbanus)
-    pdf.setFillColor(...COLOR_BEIGE);
-    pdf.roundedRect(23, 45, 70, 60, 5, 5, 'F');
-    if (urbanusImg && (urbanusImg.naturalWidth > 0 || urbanusImg.width > 0)) {
-        const canvas = document.createElement('canvas');
-        canvas.width  = urbanusImg.naturalWidth  || urbanusImg.width;
-        canvas.height = urbanusImg.naturalHeight || urbanusImg.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(urbanusImg, 0, 0);
-        
-        const maxW = 65;
-        const maxH = 50;
-        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-        const drawW = canvas.width * ratio;
-        const drawH = canvas.height * ratio;
-        const x = 25.5 + (maxW - drawW) / 2;
-        const y = 50 + (maxH - drawH) / 2;
-        
-        if (drawW > 0 && drawH > 0) {
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
-        }
-    }
-
-    // Caja 2 (Alimentadoras)
-    pdf.roundedRect(23, 115, 70, 80, 5, 5, 'F');
-    if (zafiroImg && (zafiroImg.naturalWidth > 0 || zafiroImg.width > 0)) {
-        const canvas = document.createElement('canvas');
-        canvas.width  = zafiroImg.naturalWidth  || zafiroImg.width;
-        canvas.height = zafiroImg.naturalHeight || zafiroImg.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(zafiroImg, 0, 0);
-        
-        const maxW = 65;
-        const maxH = 70;
-        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-        const drawW = canvas.width * ratio;
-        const drawH = canvas.height * ratio;
-        const x = 25.5 + (maxW - drawW) / 2;
-        const y = 120 + (maxH - drawH) / 2;
-        
-        if (drawW > 0 && drawH > 0) {
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
-        }
-    }
-
     // TABLA A LA DERECHA
     const head = [
         [
@@ -211,6 +166,10 @@ export const generarPDFReporteGeneral = async (data) => {
         body.push(row);
     });
 
+    let troncalEndY = 0;
+    let alimStartY = 0;
+    let alimEndY = 0;
+
     autoTable(pdf, {
         startY: 40,
         margin: { left: 98, right: 10.4, bottom: 8 },
@@ -239,8 +198,80 @@ export const generarPDFReporteGeneral = async (data) => {
         },
         alternateRowStyles: {
             fillColor: COLOR_WHITE
+        },
+        didDrawCell: (data) => {
+            if (data.column.index === 0 && data.row.section === 'body') {
+                if (data.row.index === troncales.length - 1) {
+                    troncalEndY = data.cell.y + data.cell.height;
+                }
+                if (data.row.index === troncales.length) {
+                    alimStartY = data.cell.y;
+                }
+                if (data.row.index === troncales.length + alimentadoras.length - 1) {
+                    alimEndY = data.cell.y + data.cell.height;
+                }
+            }
         }
     });
+
+    const finalTroncalEnd = troncalEndY || 102;
+    const finalAlimStart  = alimStartY || finalTroncalEnd;
+    const finalAlimEnd    = alimEndY || (pdf.lastAutoTable ? pdf.lastAutoTable.finalY : 175);
+
+    // Caja 1 (Urbanus) - Alineada con la sección de Troncales
+    const c1_x = 23;
+    const c1_w = 70;
+    const c1_y = 40;
+    const c1_h = (finalTroncalEnd - c1_y) - 1.5;
+
+    pdf.setFillColor(...COLOR_BEIGE);
+    pdf.roundedRect(c1_x, c1_y, c1_w, c1_h, 5, 5, 'F');
+    if (urbanusImg && (urbanusImg.naturalWidth > 0 || urbanusImg.width > 0)) {
+        const canvas = document.createElement('canvas');
+        canvas.width  = urbanusImg.naturalWidth  || urbanusImg.width;
+        canvas.height = urbanusImg.naturalHeight || urbanusImg.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(urbanusImg, 0, 0);
+        
+        const maxW = c1_w - 6;
+        const maxH = Math.max(10, c1_h - 10);
+        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+        const drawW = canvas.width * ratio;
+        const drawH = canvas.height * ratio;
+        const x = c1_x + (c1_w - drawW) / 2;
+        const y = c1_y + (c1_h - drawH) / 2;
+        
+        if (drawW > 0 && drawH > 0) {
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
+        }
+    }
+
+    // Caja 2 (Alimentadoras) - Alineada con la sección de Alimentadoras
+    const c2_x = 23;
+    const c2_w = 70;
+    const c2_y = finalAlimStart + 1.5;
+    const c2_h = finalAlimEnd - c2_y;
+
+    pdf.roundedRect(c2_x, c2_y, c2_w, c2_h, 5, 5, 'F');
+    if (zafiroImg && (zafiroImg.naturalWidth > 0 || zafiroImg.width > 0)) {
+        const canvas = document.createElement('canvas');
+        canvas.width  = zafiroImg.naturalWidth  || zafiroImg.width;
+        canvas.height = zafiroImg.naturalHeight || zafiroImg.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(zafiroImg, 0, 0);
+        
+        const maxW = c2_w - 6;
+        const maxH = Math.max(10, c2_h - 10);
+        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+        const drawW = canvas.width * ratio;
+        const drawH = canvas.height * ratio;
+        const x = c2_x + (c2_w - drawW) / 2;
+        const y = c2_y + (c2_h - drawH) / 2;
+        
+        if (drawW > 0 && drawH > 0) {
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
+        }
+    }
 
     pdf.save(`Reporte_Rutas_${new Date().toISOString().slice(0,10)}.pdf`);
 };
