@@ -436,7 +436,8 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
             prevLitrosGas: registroAnterior.litros_combustible || 0,
             prevLitrosAdblue: registroAnterior.litros_adblue || 0,
             prevNivelGas: registroAnterior.nivel_combustible,
-            prevNivelAdblue: registroAnterior.nivel_adblue
+            prevNivelAdblue: registroAnterior.nivel_adblue,
+            lastForm: { ...form }
           });
         } else {
            setComparativaGuardada(null);
@@ -749,8 +750,32 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       {/* ── Comparativa Guardada (se muestra solo después de guardar) ── */}
       {comparativaGuardada && (
         <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#fafafa', borderRadius: '0.75rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#6b1d33', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
-            Resumen de Carga (Comparativa)
+          <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#6b1d33', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontWeight: 700 }}>
+            <span>Resumen de Carga (Comparativa)</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (comparativaGuardada.lastForm) {
+                  setForm(comparativaGuardada.lastForm);
+                }
+                setComparativaGuardada(null);
+              }}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #d1d5db',
+                color: '#374151',
+                fontSize: '0.75rem',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.borderColor = '#9ca3af'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#d1d5db'; }}
+            >
+              Editar captura
+            </button>
           </h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
             
