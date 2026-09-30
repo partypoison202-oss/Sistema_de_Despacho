@@ -193,7 +193,7 @@ export default function CentroControl() {
   const handleGenerarProgramacionOperativa = async () => {
     setIsGeneratingProgramacion(true);
     try {
-      await generarPDFProgramacionOperativa(apiData, 'download');
+      await generarPDFProgramacionOperativa(apiData, 'download', totales);
       Swal.fire({
         icon: 'success',
         title: '¡Reporte Generado!',
