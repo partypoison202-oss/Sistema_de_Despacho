@@ -348,16 +348,7 @@ export default function Usuarios() {
     }
   }, [formData.nombres, formData.apellidos, formData.rol_id, formData.id, roles]);
 
-  // Pre-cargar módulos predeterminados cuando cambia el rol
-  useEffect(() => {
-    if (!formData.rol_id) return;
-    const role = roles.find(r => r.id.toString() === formData.rol_id.toString());
-    if (!role) return;
-    const codigo = role.codigo || role.nombre?.toUpperCase().replace(/ /g, '_');
-    const defaultMods = MODULOS_POR_ROL[codigo] || [];
-    setModulosSeleccionados(defaultMods);
-    setModulosSoloLectura([]);
-  }, [formData.rol_id, roles]);
+  // Los módulos NO se pre-asignan por rol; el administrador los selecciona libremente.
 
   // Envío del formulario (con FormData)
   const handleSubmit = async (e) => {
@@ -969,7 +960,7 @@ export default function Usuarios() {
                 <label style={{ fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>
                   Módulos de Acceso
                   <span style={{ fontWeight: '400', fontSize: '0.8rem', color: '#888', marginLeft: '0.5rem' }}>
-                    (pre-seleccionados por rol, ajusta si es necesario)
+                    (selecciona los módulos que tendrá este usuario)
                   </span>
                 </label>
 
