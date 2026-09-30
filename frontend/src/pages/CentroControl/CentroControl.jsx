@@ -67,29 +67,21 @@ export default function CentroControl() {
       });
       const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
-      const unidadesOperacion = units.filter((d) => {
-        const est = getEstatus(d);
-        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada || d.yaEncerrada);
-        const isOperacion = est.includes('OPERACI') || (!est.includes('MANTENIMIENTO') && !est.includes('RESERVA') && !est.includes('PERCANCE'));
-        return isOperacion && horaSalida !== '' && !isEncerrada;
-      });
-      const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
-      const unidadesReserva = units.filter((d) => {
-        const est = getEstatus(d);
-        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
-        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada || d.yaEncerrada);
-        return horaSalida === '' && !isEncerrada && !est.includes('MANTENIMIENTO') && !est.includes('PERCANCE') && !est.includes('DESINCORPORADA');
-      });
-      const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
+      // Cada grupo se basa directamente en el estatus asignado en la base de datos
+      const unidadesOperacion    = units.filter((d) => getEstatus(d) === 'OPERACION');
+      const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
+      const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
+      const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
-      const operacion = unidadesOperacion.length;
+      const operacion    = unidadesOperacion.length;
       const mantenimiento = unidadesMantenimiento.length;
-      const reserva = unidadesReserva.length;
-      const percance = unidadesPercance.length;
-      const otros = 0;
+      const reserva      = unidadesReserva.length;
+      const percance     = unidadesPercance.length;
+      const otros        = 0;
       
+      // Total programadas = suma de las tres categorías activas
       const programadas = operacion + reserva + mantenimiento;
+
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
