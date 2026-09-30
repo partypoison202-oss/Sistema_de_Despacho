@@ -743,6 +743,7 @@ export default function DetalleUnidadMantenimiento() {
         'FALTA DE COMBUSTIBLE',
         'CONDICIONES CLIMATICAS',
         'DESVIO OPERACIONAL',
+        'VERIFICACIÓN',
         'OTRO'
       ];
 
