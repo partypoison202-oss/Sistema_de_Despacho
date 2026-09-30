@@ -224,7 +224,7 @@ export default function DashboardMesaControl() {
         onSelectUnit={(eco) => {
           setBusquedaEco(eco);
           setModalMonitoreoOpen(false);
-          handleBuscarUnidad({ preventDefault: () => {} });
+          void handleBuscarUnidad({ preventDefault: () => {} });
         }}
       />
 
@@ -236,7 +236,7 @@ export default function DashboardMesaControl() {
         onSelectUnit={(eco) => {
           setBusquedaEco(eco);
           setModalAperturaOpen(false);
-          handleBuscarUnidad({ preventDefault: () => {} });
+          void handleBuscarUnidad({ preventDefault: () => {} });
         }}
       />
     </div>
