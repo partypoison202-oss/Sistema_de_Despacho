@@ -1,29 +1,46 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// Helper: Carga una imagen y retorna promesa con objeto { base64, width, height }
-const loadImageAsBase64 = (url) => {
-  return new Promise((resolve, reject) => {
+// Helper: Caché en memoria para evitar recargas y conversiones de canvas repetidas
+const logoCache = new Map();
+
+const getLogoData = (url) => {
+  if (logoCache.has(url)) {
+    return logoCache.get(url);
+  }
+  const promise = new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      resolve({
-        base64: canvas.toDataURL('image/png'),
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-      });
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve({
+          base64: canvas.toDataURL('image/png'),
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      } catch {
+        resolve(null);
+      }
     };
-    img.onerror = reject;
+    img.onerror = () => resolve(null);
     img.src = url;
   });
+  logoCache.set(url, promise);
+  return promise;
 };
 
-export const generarPDFProgramacionOperativa = async (previewData, action = 'base64', totales = null) => {
+// Precarga inmediata de logos en segundo plano
+if (typeof window !== 'undefined') {
+  getLogoData('/images/sistema_de_tm.webp');
+  getLogoData('/images/sitmah_logo.webp');
+}
+
+export const generarPDFProgramacionOperativa = async (previewData, action = 'base64', totales = null, options = {}) => {
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -55,25 +72,27 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
   let textoX = 14;
   let textoRightLimit = pageWidth - 14;
 
-  // ── LOGO IZQUIERDO: sistema_de_tm ──
+  // ── LOGOS (Carga paralela y ultra-rápida en memoria) ──
   try {
-    const { base64, width, height } = await loadImageAsBase64('/images/sistema_de_tm.webp');
-    const anchoMM = (width / height) * logoAltoMM;
-    doc.addImage(base64, 'PNG', 14, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
-    textoX = 14 + anchoMM + 6;
-  } catch (e) {
-    console.warn('No se pudo cargar el logo sistema_de_tm.webp para el PDF:', e);
-  }
+    const [logoLeft, logoRight] = await Promise.all([
+      getLogoData('/images/sistema_de_tm.webp'),
+      getLogoData('/images/sitmah_logo.webp'),
+    ]);
 
-  // ── LOGO DERECHO: sitmah_logo ──
-  try {
-    const { base64, width, height } = await loadImageAsBase64('/images/sitmah_logo.png');
-    const anchoMM = (width / height) * logoAltoMM;
-    const logoXDerecho = pageWidth - 14 - anchoMM;
-    doc.addImage(base64, 'PNG', logoXDerecho, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
-    textoRightLimit = logoXDerecho - 6;
+    if (logoLeft?.base64 && logoLeft.height > 0) {
+      const anchoMM = (logoLeft.width / logoLeft.height) * logoAltoMM;
+      doc.addImage(logoLeft.base64, 'PNG', 14, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
+      textoX = 14 + anchoMM + 6;
+    }
+
+    if (logoRight?.base64 && logoRight.height > 0) {
+      const anchoMM = (logoRight.width / logoRight.height) * logoAltoMM;
+      const logoXDerecho = pageWidth - 14 - anchoMM;
+      doc.addImage(logoRight.base64, 'PNG', logoXDerecho, logoY, anchoMM, logoAltoMM, undefined, 'FAST');
+      textoRightLimit = logoXDerecho - 6;
+    }
   } catch (e) {
-    console.warn('No se pudo cargar el logo sitmah_logo para el PDF:', e);
+    console.warn('Advertencia al cargar logos para el PDF:', e);
   }
 
   // ── TÍTULO (centrado entre ambos logos) ──
@@ -137,9 +156,30 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
   });
 
   // ── TABLA ──
-  const columnas = ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Rel. Tarjetón', 'Rel. Conductor', 'Rel. Hora', 'Hora Acople', 'Hora Salida', 'Patio Norte', 'Acople', 'Corrida'];
-  const filas = previewData.map(fila => {
+  const omitirRelevosYPatioNorte = Boolean(options?.omitirRelevosYPatioNorte || options?.esDespacho);
+
+  const columnas = omitirRelevosYPatioNorte
+    ? ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora Acople', 'Hora Salida', 'Acople', 'Corrida']
+    : ['Económico', 'Tipo', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Rel. Tarjetón', 'Rel. Conductor', 'Rel. Hora', 'Hora Acople', 'Hora Salida', 'Patio Norte', 'Acople', 'Corrida'];
+
+  const filas = (Array.isArray(previewData) ? previewData : []).map(fila => {
     const isPatioNorte = fila.PATIO_NORTE === true || fila.PATIO_NORTE === 1 || fila.PATIO_NORTE === '1' || String(fila.PATIO_NORTE).toLowerCase() === 'true' || String(fila.PATIO_NORTE).toUpperCase() === 'SÍ' || String(fila.PATIO_NORTE).toUpperCase() === 'SI' || fila.TRANSPORTE_PATIO_NORTE === true || fila.TRANSPORTE_PATIO_NORTE === 1 || fila.TRANSPORTE_PATIO_NORTE === '1' || String(fila.TRANSPORTE_PATIO_NORTE).toLowerCase() === 'true' || String(fila.TRANSPORTE_PATIO_NORTE).toUpperCase() === 'SÍ' || String(fila.TRANSPORTE_PATIO_NORTE).toUpperCase() === 'SI' || fila['PATIO NORTE'] || fila['Patio Norte'];
+
+    if (omitirRelevosYPatioNorte) {
+      return [
+        fila.ECONOMICO ?? '',
+        fila.TIPO_DE_UNIDAD ?? '',
+        (fila.ESTATUS ?? '').toUpperCase(),
+        fila.RUTA ?? '',
+        fila.TARJETON ? String(fila.TARJETON).padStart(4, '0') : '',
+        fila.NOMBRE_CONDUCTOR ?? '',
+        fila.HORA_DE_ACOPLE ?? '',
+        fila.HORA_REAL_SALIDA_PATIO ?? '',
+        fila.ACOPLE ?? '',
+        fila.CORRIDAS ?? '',
+      ];
+    }
+
     return [
       fila.ECONOMICO ?? '',
       fila.TIPO_DE_UNIDAD ?? '',
@@ -206,18 +246,15 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
           data.cell.styles.fillColor = [198, 239, 206];
           data.cell.styles.textColor = [30, 90, 30];
           data.cell.styles.fontStyle = 'bold';
-        }
-        if (estatus === 'reserva') {
+        } else if (estatus === 'reserva') {
           data.cell.styles.fillColor = [221, 235, 247];
           data.cell.styles.textColor = [20, 60, 110];
           data.cell.styles.fontStyle = 'bold';
-        }
-        if (estatus === 'mantenimiento') {
+        } else if (estatus === 'mantenimiento') {
           data.cell.styles.fillColor = [255, 242, 204];
           data.cell.styles.textColor = [130, 95, 10];
           data.cell.styles.fontStyle = 'bold';
-        }
-        if (estatus === 'percance') {
+        } else if (estatus === 'percance') {
           data.cell.styles.fillColor = [252, 228, 228];
           data.cell.styles.textColor = [150, 40, 40];
           data.cell.styles.fontStyle = 'bold';
@@ -241,7 +278,8 @@ export const generarPDFProgramacionOperativa = async (previewData, action = 'bas
   });
 
   if (action === 'download') {
-    doc.save('Programacion_Operativa.pdf');
+    const nombreArchivo = options?.nombreArchivo || (omitirRelevosYPatioNorte ? 'Programacion_Operativa_Despacho.pdf' : 'Programacion_Operativa.pdf');
+    doc.save(nombreArchivo);
     return null;
   }
   return doc.output('datauristring').split(',')[1];
