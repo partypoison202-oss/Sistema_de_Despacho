@@ -131,6 +131,9 @@
 .dashboard__actions {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
   margin-top: 3rem; /* Espacio entre las tarjetas y el botón */
 }
 
@@ -143,11 +146,23 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-reporte:hover {
   background-color: var(--brand-maroon-text); /* Un tono un poco más oscuro al pasar el mouse */
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.btn-reporte--excel {
+  background-color: #15803d !important;
+  color: #ffffff !important;
+}
+
+.btn-reporte--excel:hover {
+  background-color: #166534 !important;
+  transform: translateY(-1px);
 }
 /* MODO OSCURO EXPLÍCITO (Anti-fallback) */
 html.dark .dashboard__title {

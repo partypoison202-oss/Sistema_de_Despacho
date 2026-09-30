@@ -25,7 +25,8 @@
     "recharts": "^3.9.0",
     "sweetalert2": "^11.26.25",
     "sweetalert2-react-content": "^5.1.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
