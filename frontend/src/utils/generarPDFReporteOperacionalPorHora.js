@@ -23,7 +23,6 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
         throw new Error("No hay datos para generar el reporte.");
     }
 
-    // Clasificar datos
     const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
     const getTipo = (d) => (d.TIPO_DE_UNIDAD || '').toUpperCase().trim();
 
@@ -47,104 +46,30 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
 
         if (techKey) {
             const estatus = getEstatus(unit);
-            const isNoProgramada = estatus === 'NO_PROGRAMADA' || estatus === 'NO PROGRAMADA';
-            const horaSalida = (unit.HORA_REAL_SALIDA_PATIO || unit.hora_real_salida_patio || unit.HORA_SALIDA || unit.hora_salida || '').toString().trim();
-            const isEncerrada = Boolean(unit.YA_ENCERRADA || unit.ya_encerrada || unit.yaEncerrada);
+            const isNoProgramada = estatus === 'NO_PROGRAMADA' || estatus === 'NO PROGRAMADA' || estatus.includes('ENCIERRO OPERATIVO') || estatus.includes('INTERMEDIA');
 
+            // No contemplamos las que no están programadas (o encierros que no cuentan como flota real del día)
+            if (isNoProgramada) return;
+
+            // Se suma a la flota total
+            unidadesPorTecnologia[techKey].flota++;
+            totalFlota++;
+
+            // Clasificación dentro de patio
             const isMantenimiento = estatus.includes('MANTENIMIENTO');
-            const isPercance = estatus.includes('PERCANCE') || estatus.includes('DESINCORPORADA');
-            
-            const isOperacionBasico = estatus.includes('OPERACI') || (!estatus.includes('MANTENIMIENTO') && !estatus.includes('RESERVA') && !estatus.includes('PERCANCE'));
-            const isOperacionReal = isOperacionBasico && horaSalida !== '' && !isEncerrada;
-            const isReservaReal = !isNoProgramada && horaSalida === '' && !isEncerrada && !isMantenimiento && !isPercance;
-
-            if (isOperacionReal || isReservaReal || isMantenimiento) {
-                unidadesPorTecnologia[techKey].flota++;
-                totalFlota++;
-            }
+            const isItinerario = estatus.includes('ITINERARIO') || estatus.includes('DESINCORPORADA') || estatus.includes('PERCANCE');
+            const isReserva = estatus.includes('RESERVA') && !estatus.includes('INTERMEDIA');
 
             if (isMantenimiento) {
                 unidadesPorTecnologia[techKey].taller.push(unit);
-            } else if (isPercance) {
+            } else if (isItinerario) {
                 unidadesPorTecnologia[techKey].desincorporada.push(unit);
-            } else if (isReservaReal) {
+            } else if (isReserva) {
                 unidadesPorTecnologia[techKey].reserva.push(unit);
             }
         }
     });
 
-    const now = new Date();
-    const fechaStr = now.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const horaStr = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }).replace('.', '');
-
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
-    const pw = pdf.internal.pageSize.getWidth();
-    
-    // ==========================================
-    // 1. BANNER INSTITUCIONAL Y ENCABEZADOS
-    // ==========================================
-    pdf.setFillColor(...COLOR_GUINDA);
-    pdf.rect(0, 0, pw, 18, 'F');
-    
-    // Logo 1
-    const logoImg = await loadImage('/images/sistema_de_tm.webp');
-    if (logoImg) {
-        const canvas = document.createElement('canvas');
-        canvas.width = logoImg.width; canvas.height = logoImg.height;
-        canvas.getContext('2d').drawImage(logoImg, 0, 0);
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 5, 2, 40, 14);
-    }
-    
-    // Logo 2 (Opcional - usamos los que suelen estar disponibles si existen)
-    const sitmahImg = await loadImage('/images/sitmah-logo.png');
-    if (sitmahImg) {
-        const canvas = document.createElement('canvas');
-        canvas.width = sitmahImg.width; canvas.height = sitmahImg.height;
-        canvas.getContext('2d').drawImage(sitmahImg, 0, 0);
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pw - 70, 2, 25, 12);
-    }
-
-    const hgoImg = await loadImage('/images/stmhidalgo.png');
-    if (hgoImg) {
-        const canvas = document.createElement('canvas');
-        canvas.width = hgoImg.width; canvas.height = hgoImg.height;
-        canvas.getContext('2d').drawImage(hgoImg, 0, 0);
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pw - 40, 2, 35, 14);
-    }
-
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(22);
-    pdf.setTextColor(...COLOR_WHITE);
-    pdf.text('ESTATUS OPERATIVO POR HORA', 55, 12);
-
-    // Barra dorada
-    pdf.setFillColor(...COLOR_GOLD);
-    pdf.rect(0, 18, pw, 6, 'F');
-    pdf.setFontSize(10);
-    pdf.setTextColor(...COLOR_GUINDA);
-    pdf.text('Seguimiento de parque vehicular — Patio | Taller | Reserva | Desincorporadas', pw / 2, 22, { align: 'center' });
-
-    // Barra de Fecha / Hora / Flota
-    pdf.setFillColor(...COLOR_GUINDA);
-    pdf.rect(0, 26, pw, 6, 'F');
-    pdf.setTextColor(...COLOR_WHITE);
-    pdf.text('FECHA', pw * 0.15, 30, { align: 'center' });
-    pdf.text('HORA DE CORTE', pw * 0.5, 30, { align: 'center' });
-    pdf.text('FLOTA TOTAL', pw * 0.85, 30, { align: 'center' });
-
-    pdf.setFillColor(...COLOR_LIGHT_GRAY);
-    pdf.rect(0, 32, pw, 8, 'F');
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(fechaStr, pw * 0.15, 37, { align: 'center' });
-    pdf.text(horaStr, pw * 0.5, 37, { align: 'center' });
-    pdf.text(totalFlota.toString(), pw * 0.85, 37, { align: 'center' });
-
-    // ==========================================
-    // 2. TABLAS RESUMEN
-    // ==========================================
-    const startY = 44;
-    
-    // Calcular totales para las tablas resumen
     let totalPatio = 0, totalTaller = 0, totalReserva = 0, totalDesinc = 0;
     techNames.forEach(t => {
         const d = unidadesPorTecnologia[t];
@@ -155,224 +80,263 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
         totalDesinc += d.desincorporada.length;
     });
 
-    // Helper for percentage
-    const getPct = (val, tot) => tot > 0 ? ((val / tot) * 100).toFixed(1) + '%' : '0.0%';
+    const now = new Date();
+    const fechaStr = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const horaStr = now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-    // Tabla 1: Patio
-    const bodyPatio = techNames.map(t => {
-        const d = unidadesPorTecnologia[t];
-        const patio = d.taller.length + d.reserva.length + d.desincorporada.length;
-        return [t, d.flota, patio, getPct(patio, d.flota)];
-    });
-    bodyPatio.push(['TOTAL', totalFlota, totalPatio, getPct(totalPatio, totalFlota)]);
-
-    autoTable(pdf, {
-        startY: startY,
-        margin: { left: 5 },
-        tableWidth: 80,
-        head: [['UNIDADES EN PATIO POR TECNOLOGÍA'], ['Tecnología', 'Flota', 'En patio', '% Patio']],
-        body: bodyPatio,
-        theme: 'grid',
-        styles: { fontSize: 8, halign: 'center' },
-        headStyles: { fillColor: COLOR_GUINDA, textColor: COLOR_WHITE },
-        didParseCell: (data) => {
-            if (data.row.index === 0 && data.section === 'head') {
-                data.cell.colSpan = 4;
-            }
-            if (data.row.index === bodyPatio.length - 1 && data.section === 'body') {
-                data.cell.styles.fontStyle = 'bold';
-                data.cell.styles.fillColor = COLOR_BEIGE;
-                data.cell.styles.textColor = COLOR_GUINDA;
-            } else if (data.row.index >= 0 && data.section === 'body' && data.column.index === 3) {
-                data.cell.styles.fillColor = COLOR_GUINDA;
-                data.cell.styles.textColor = COLOR_WHITE;
-            }
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+    const pw = pdf.internal.pageSize.getWidth();
+    
+    // ==========================================
+    // 1. BANNER INSTITUCIONAL Y ENCABEZADOS
+    // ==========================================
+    pdf.setFillColor(...COLOR_GUINDA);
+    pdf.rect(0, 0, pw, 22, 'F');
+    
+    // Logo STM (Izquierda)
+    try {
+        const logoImg = await loadImage('/images/sistema_de_tm.webp');
+        if (logoImg) {
+            const canvas = document.createElement('canvas');
+            canvas.width = logoImg.width; canvas.height = logoImg.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(logoImg, 0, 0);
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 5, 2, 45, 18);
         }
-    });
-
-    // Tabla 2: Taller Clasificación
-    // Como no tenemos clasificación explícita, asumimos todo como Correctivo por defecto
-    const bodyTaller = [
-        ['Preventivo', 0, '0.0%'],
-        ['Correctivo', totalTaller, getPct(totalTaller, totalFlota)],
-        ['En diagnóstico', 0, '0.0%'],
-        ['TOTAL', totalTaller, getPct(totalTaller, totalFlota)]
-    ];
-
-    autoTable(pdf, {
-        startY: startY,
-        margin: { left: 88 },
-        tableWidth: 55,
-        head: [['UNIDADES EN TALLER'], ['Clasificación', 'Cantidad', '% Flota']],
-        body: bodyTaller,
-        theme: 'grid',
-        styles: { fontSize: 8, halign: 'center' },
-        headStyles: { fillColor: COLOR_GUINDA, textColor: COLOR_WHITE },
-        didParseCell: (data) => {
-            if (data.row.index === 0 && data.section === 'head') data.cell.colSpan = 3;
-            if (data.row.index === bodyTaller.length - 1 && data.section === 'body') {
-                data.cell.styles.fontStyle = 'bold';
-                data.cell.styles.fillColor = COLOR_BEIGE;
-                data.cell.styles.textColor = COLOR_GUINDA;
-            } else if (data.row.index >= 0 && data.section === 'body' && data.column.index === 2) {
-                data.cell.styles.fillColor = COLOR_GUINDA;
-                data.cell.styles.textColor = COLOR_WHITE;
-            }
+    } catch(e) {}
+    
+    // Logo Hidalgo (Derecha)
+    try {
+        const hgoImg = await loadImage('/images/escudo_hidalgo.png');
+        if (hgoImg) {
+            const canvas = document.createElement('canvas');
+            canvas.width = hgoImg.width; canvas.height = hgoImg.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(hgoImg, 0, 0);
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pw - 25, 2, 20, 20);
         }
-    });
+    } catch(e) {}
 
-    // Tabla 3 y 4 combinadas visualmente (Reserva y Desincorporadas)
-    const bodyReservaDesinc = techNames.map(t => {
-        const d = unidadesPorTecnologia[t];
-        return [t, d.reserva.length, getPct(d.reserva.length, d.flota), t, d.desincorporada.length, getPct(d.desincorporada.length, d.flota)];
-    });
-    bodyReservaDesinc.push(['TOTAL', totalReserva, getPct(totalReserva, totalFlota), 'TOTAL', totalDesinc, getPct(totalDesinc, totalFlota)]);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.setTextColor(...COLOR_WHITE);
+    pdf.text('ESTATUS OPERATIVO POR HORA', pw / 2, 8, { align: 'center' });
+    pdf.setFontSize(10);
+    pdf.text('SEGUIMIENTO A PARQUE VEHICULAR - PATIO | MANTENIMIENTO | RESERVA | ITINERARIO', pw / 2, 16, { align: 'center' });
 
-    autoTable(pdf, {
-        startY: startY,
-        margin: { left: 146 },
-        tableWidth: pw - 151,
-        head: [
-            [{ content: 'UNIDADES DE RESERVA', colSpan: 3 }, { content: 'DESINCORPORADAS POR ITINERARIO', colSpan: 3 }],
-            ['Tecnología', 'Cantidad', '% Flota', 'Tecnología', 'Cantidad', '% Flota']
-        ],
-        body: bodyReservaDesinc,
-        theme: 'grid',
-        styles: { fontSize: 8, halign: 'center' },
-        headStyles: { fillColor: COLOR_GUINDA, textColor: COLOR_WHITE },
-        didParseCell: (data) => {
-            if (data.row.index === bodyReservaDesinc.length - 1 && data.section === 'body') {
-                data.cell.styles.fontStyle = 'bold';
-                data.cell.styles.fillColor = COLOR_BEIGE;
-                data.cell.styles.textColor = COLOR_GUINDA;
-            } else if (data.row.index >= 0 && data.section === 'body' && (data.column.index === 2 || data.column.index === 5)) {
-                data.cell.styles.fillColor = COLOR_GUINDA;
-                data.cell.styles.textColor = COLOR_WHITE;
-            }
-        }
-    });
+    // Barra Beige de Fecha
+    pdf.setFillColor(...COLOR_BEIGE);
+    pdf.rect(0, 22, pw, 10, 'F');
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(10);
+    pdf.text(`FECHA: ${fechaStr}`, pw - 5, 26, { align: 'right' });
+    pdf.text(`HORA DE CORTE:`, pw - 45, 30, { align: 'right' });
+    pdf.text(`${horaStr}`, pw - 15, 30, { align: 'right' });
 
     // ==========================================
-    // 3. CAJAS DE INDICADORES GRANDES
+    // 2. TARJETAS DE INDICADORES (4 COLUMNAS)
     // ==========================================
-    const boxesY = pdf.lastAutoTable.finalY + 4;
-    const boxWidth = (pw - 20) / 4;
-    const boxNames = ['UNIDADES EN PATIO', 'UNIDADES EN TALLER', 'RESERVA', 'DESINCORPORADAS'];
-    const boxValues = [
-        { count: totalPatio, pct: getPct(totalPatio, totalFlota) },
-        { count: totalTaller, pct: getPct(totalTaller, totalFlota) },
-        { count: totalReserva, pct: getPct(totalReserva, totalFlota) },
-        { count: totalDesinc, pct: getPct(totalDesinc, totalFlota) }
+    const margin = 10;
+    const gap = 5;
+    const colW = (pw - (margin * 2) - (gap * 3)) / 4;
+    let startY = 36;
+
+    const cards = [
+        { title: 'UNIDADES EN PATIO', count: totalPatio, pctDenominator: totalFlota },
+        { title: 'MANTENIMIENTO', count: totalTaller, pctDenominator: totalPatio },
+        { title: 'RESERVA', count: totalReserva, pctDenominator: totalPatio },
+        { title: 'ITINERARIO', count: totalDesinc, pctDenominator: totalPatio }
     ];
 
-    boxNames.forEach((name, i) => {
-        const x = 5 + (i * (boxWidth + 3));
+    const getPct = (val, den) => den > 0 ? ((val / den) * 100).toFixed(1) + '%' : '0.0%';
+
+    cards.forEach((c, i) => {
+        const x = margin + (colW + gap) * i;
+        
         pdf.setFillColor(...COLOR_GUINDA);
-        pdf.rect(x, boxesY, boxWidth, 6, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(name, x + boxWidth / 2, boxesY + 4, { align: 'center' });
+        pdf.rect(x, startY, colW, 7, 'F');
+        pdf.setTextColor(...COLOR_WHITE);
+        pdf.setFontSize(11);
+        pdf.text(c.title, x + colW / 2, startY + 5, { align: 'center' });
 
-        pdf.setFillColor(255, 255, 255);
+        pdf.setFillColor(...COLOR_WHITE);
         pdf.setDrawColor(200, 200, 200);
-        pdf.rect(x, boxesY + 6, boxWidth, 12, 'FD');
-        
+        pdf.rect(x, startY + 7, colW, 14, 'FD');
+
         pdf.setTextColor(...COLOR_GUINDA);
-        pdf.setFontSize(18);
-        pdf.text(boxValues[i].count.toString(), x + boxWidth * 0.3, boxesY + 14, { align: 'center' });
-        
+        pdf.setFontSize(22);
+        pdf.text(c.count.toString(), x + colW * 0.3, startY + 17.5, { align: 'center' });
+
         pdf.setTextColor(...COLOR_GOLD);
-        pdf.setFontSize(16);
-        pdf.text(boxValues[i].pct, x + boxWidth * 0.7, boxesY + 14, { align: 'center' });
+        pdf.setFontSize(20);
+        pdf.text(getPct(c.count, c.pctDenominator), x + colW * 0.75, startY + 17.5, { align: 'center' });
     });
 
     // ==========================================
-    // 4. TABLAS DE DETALLE (TALLER Y RESERVA)
+    // 3. TABLAS PEQUEÑAS DE TECNOLOGÍA
     // ==========================================
-    const detailStartY = boxesY + 22;
+    startY += 24;
 
-    // Helper para formatear falla
-    const getFalla = (u) => (u.falla || u.motivo_estatus || u.motivo || 'SIN DETALLE').toUpperCase();
+    const tableHeaders = [
+        { title: 'UNIDADES EN PATIO', col2: 'EN PATIO' },
+        { title: 'UNIDADES EN MANTENIMIENTO', col2: 'CANTIDAD' },
+        { title: 'UNIDADES EN RESERVA', col2: 'CANTIDAD' },
+        { title: 'ITINERARIO', col2: 'CANTIDAD' }
+    ];
 
-    // Tabla Detalles Taller
-    const maxTallerRows = Math.max(...techNames.map(t => unidadesPorTecnologia[t].taller.length));
-    const bodyDetalleTaller = [];
-    for (let i = 0; i < maxTallerRows; i++) {
-        const row = [];
-        techNames.forEach(t => {
-            const unit = unidadesPorTecnologia[t].taller[i];
-            if (unit) {
-                row.push(unit.numero_eco, getFalla(unit));
-            } else {
-                row.push('', '');
+    const didDrawCellSmallTable = (data, denominator) => {
+        if (data.section === 'body' && data.column.index === 2) {
+            const rowData = data.row.raw;
+            const val = parseFloat(rowData[2]); 
+            const p = isNaN(val) ? 0 : val;
+            
+            const w = data.cell.width;
+            const h = data.cell.height;
+            const x = data.cell.x;
+            const y = data.cell.y;
+
+            if (p > 0) {
+                const fillW = (p / 100) * (w - 12);
+                pdf.setFillColor(156, 30, 63); 
+                pdf.rect(x + 1, y + 1, fillW, h - 2, 'F');
+            }
+
+            pdf.setTextColor(0, 0, 0); 
+            pdf.setFontSize(7);
+            pdf.text(rowData[2], x + w - 2, y + h / 2 + 1, { align: 'right' });
+        }
+    };
+
+    [0, 1, 2, 3].forEach(i => {
+        const x = margin + (colW + gap) * i;
+        
+        let bodyData = [];
+        let denominator = totalPatio;
+
+        if (i === 0) {
+            denominator = totalFlota;
+            bodyData = techNames.map(t => {
+                const p = unidadesPorTecnologia[t].taller.length + unidadesPorTecnologia[t].reserva.length + unidadesPorTecnologia[t].desincorporada.length;
+                return [t, p, getPct(p, denominator)];
+            });
+        } else if (i === 1) {
+            bodyData = techNames.map(t => [t, unidadesPorTecnologia[t].taller.length, getPct(unidadesPorTecnologia[t].taller.length, denominator)]);
+        } else if (i === 2) {
+            bodyData = techNames.map(t => [t, unidadesPorTecnologia[t].reserva.length, getPct(unidadesPorTecnologia[t].reserva.length, denominator)]);
+        } else if (i === 3) {
+            bodyData = techNames.map(t => [t, unidadesPorTecnologia[t].desincorporada.length, getPct(unidadesPorTecnologia[t].desincorporada.length, denominator)]);
+        }
+
+        autoTable(pdf, {
+            startY: startY,
+            margin: { left: x },
+            tableWidth: colW,
+            head: [
+                [{ content: tableHeaders[i].title, colSpan: 3, styles: { fillColor: COLOR_GUINDA, textColor: COLOR_WHITE, halign: 'center', fontSize: 8 } }],
+                [{ content: 'TECNOLOGÍA', styles: { fillColor: COLOR_BEIGE, textColor: [0,0,0] } }, 
+                 { content: tableHeaders[i].col2, styles: { fillColor: COLOR_BEIGE, textColor: [0,0,0] } }, 
+                 { content: '% FLOTA', styles: { fillColor: COLOR_BEIGE, textColor: [0,0,0] } }]
+            ],
+            body: bodyData,
+            theme: 'grid',
+            styles: { fontSize: 7, halign: 'center', cellPadding: 1, lineColor: [220, 220, 220] },
+            columnStyles: { 0: { cellWidth: colW * 0.4 }, 1: { cellWidth: colW * 0.3 }, 2: { cellWidth: colW * 0.3 } },
+            didDrawCell: (data) => didDrawCellSmallTable(data, denominator),
+            willDrawCell: (data) => {
+                if (data.section === 'body' && data.column.index === 2) {
+                    data.doc.setTextColor(255, 255, 255); 
+                }
             }
         });
-        bodyDetalleTaller.push(row);
-    }
-    if (bodyDetalleTaller.length === 0) {
-        bodyDetalleTaller.push(['', '', '', '', '', '', '', '']);
+    });
+
+    // ==========================================
+    // 4. TABLA UNIDADES EN MANTENIMIENTO
+    // ==========================================
+    const detailStartY = pdf.lastAutoTable.finalY + 8;
+    
+    const getFalla = (u) => {
+        const val = u.FALLA_REPORTADA || u.FALLA || u.MOTIVO_ESTATUS || u.MOTIVO || '';
+        return val ? val.toUpperCase() : '';
+    };
+    const getEco = (u) => u.ECONOMICO || u.numero_eco || '';
+
+    const maxTallerRows = Math.max(...techNames.map(t => unidadesPorTecnologia[t].taller.length), 5); // min 5 rows
+    const bodyTaller = [];
+    for (let r = 0; r < maxTallerRows; r++) {
+        const row = [];
+        techNames.forEach(t => {
+            const unit = unidadesPorTecnologia[t].taller[r];
+            row.push(unit ? getEco(unit) : '', unit ? getFalla(unit) : '');
+        });
+        bodyTaller.push(row);
     }
 
     autoTable(pdf, {
         startY: detailStartY,
-        margin: { left: 5, right: 5 },
+        margin: { left: margin, right: margin },
         head: [
-            [{ content: 'UNIDADES EN TALLER', colSpan: 8, styles: { fillColor: COLOR_GUINDA, textColor: COLOR_WHITE, halign: 'center', fontSize: 10 } }],
+            [{ content: 'UNIDADES EN MANTENIMIENTO', colSpan: 8, styles: { fillColor: COLOR_GUINDA, textColor: COLOR_WHITE, halign: 'center', fontSize: 10 } }],
             [
                 { content: 'URBANUSS', colSpan: 2 },
                 { content: 'ZAFIRO', colSpan: 2 },
                 { content: 'VAGONETA', colSpan: 2 },
-                { content: 'ORION', colSpan: 2 }
+                { content: 'ORIÓN', colSpan: 2 }
             ]
         ],
-        body: bodyDetalleTaller,
+        body: bodyTaller,
         theme: 'grid',
-        styles: { fontSize: 7, halign: 'center', cellPadding: 1, textColor: [0, 0, 0] },
-        headStyles: { fillColor: COLOR_LIGHT_GRAY, textColor: [0, 0, 0], halign: 'center' },
+        styles: { fontSize: 7, cellPadding: 1.5, lineColor: [220, 220, 220] },
+        headStyles: { fillColor: COLOR_BEIGE, textColor: [0, 0, 0], halign: 'center' },
         columnStyles: {
-            0: { cellWidth: 15 }, 1: { cellWidth: 'auto' },
-            2: { cellWidth: 15 }, 3: { cellWidth: 'auto' },
-            4: { cellWidth: 15 }, 5: { cellWidth: 'auto' },
-            6: { cellWidth: 15 }, 7: { cellWidth: 'auto' }
+            0: { cellWidth: 15, halign: 'center' }, 1: { cellWidth: 'auto', halign: 'left' },
+            2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 'auto', halign: 'left' },
+            4: { cellWidth: 15, halign: 'center' }, 5: { cellWidth: 'auto', halign: 'left' },
+            6: { cellWidth: 15, halign: 'center' }, 7: { cellWidth: 'auto', halign: 'left' }
+        },
+        willDrawCell: (data) => {
+            if (data.section === 'body') {
+                if (data.column.index % 2 === 1) {
+                    data.cell.styles.lineWidth = { top: 0.1, bottom: 0.1, right: 0.1, left: 0 };
+                } else {
+                    data.cell.styles.lineWidth = { top: 0.1, bottom: 0.1, left: 0.1, right: 0 };
+                }
+            }
         }
     });
 
-    // Tabla Detalles Reserva
-    const maxReservaRows = Math.max(
-        Math.ceil(unidadesPorTecnologia['URBANUSS'].reserva.length / 2),
-        Math.ceil(unidadesPorTecnologia['ZAFIRO'].reserva.length / 2),
-        Math.ceil(unidadesPorTecnologia['VAGONETA'].reserva.length / 2),
-        Math.ceil(unidadesPorTecnologia['ORION'].reserva.length / 2)
-    ) || 1;
-
-    const bodyDetalleReserva = [];
-    for (let i = 0; i < maxReservaRows; i++) {
+    // ==========================================
+    // 5. TABLA UNIDADES EN PATIO RESERVA
+    // ==========================================
+    const detailReservaStartY = pdf.lastAutoTable.finalY + 8;
+    
+    const maxReservaRows = Math.max(...techNames.map(t => unidadesPorTecnologia[t].reserva.length), 5); // min 5 rows
+    const bodyReserva = [];
+    for (let r = 0; r < maxReservaRows; r++) {
         const row = [];
         techNames.forEach(t => {
-            const u1 = unidadesPorTecnologia[t].reserva[i * 2];
-            const u2 = unidadesPorTecnologia[t].reserva[i * 2 + 1];
-            row.push(u1 ? u1.numero_eco : '', u2 ? u2.numero_eco : '');
+            const unit = unidadesPorTecnologia[t].reserva[r];
+            row.push(unit ? getEco(unit) : '');
         });
-        bodyDetalleReserva.push(row);
+        bodyReserva.push(row);
     }
 
     autoTable(pdf, {
-        startY: pdf.lastAutoTable.finalY,
-        margin: { left: 5, right: 5 },
+        startY: detailReservaStartY,
+        margin: { left: margin, right: margin },
         head: [
-            [{ content: 'UNIDADES EN RESERVA', colSpan: 8, styles: { fillColor: COLOR_GOLD, textColor: COLOR_WHITE, halign: 'center', fontSize: 10 } }]
+            [{ content: 'UNIDADES EN PATIO RESERVA', colSpan: 4, styles: { fillColor: COLOR_GUINDA, textColor: COLOR_WHITE, halign: 'center', fontSize: 10 } }],
+            [ 'URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORIÓN' ]
         ],
-        body: bodyDetalleReserva,
+        body: bodyReserva,
         theme: 'grid',
-        styles: { fontSize: 8, halign: 'center', cellPadding: 1, textColor: [0, 0, 0] },
+        styles: { fontSize: 8, halign: 'left', cellPadding: 1.5, lineColor: [220, 220, 220] },
+        headStyles: { fillColor: COLOR_BEIGE, textColor: [0, 0, 0], halign: 'center' },
         columnStyles: {
-            0: { cellWidth: 'auto' }, 1: { cellWidth: 'auto' },
-            2: { cellWidth: 'auto' }, 3: { cellWidth: 'auto' },
-            4: { cellWidth: 'auto' }, 5: { cellWidth: 'auto' },
-            6: { cellWidth: 'auto' }, 7: { cellWidth: 'auto' }
+            0: { cellWidth: '25%' }, 1: { cellWidth: '25%' },
+            2: { cellWidth: '25%' }, 3: { cellWidth: '25%' }
         }
     });
 
-    pdf.save(`Reporte_Operacional_Hora_${fechaStr.replace(/\//g, '-')}_${horaStr}.pdf`);
+    pdf.save(`Reporte_Operacional_Hora_${fechaStr.replace(/\//g, '-')}_${horaStr.replace(/:/g, '-')}.pdf`);
 };
