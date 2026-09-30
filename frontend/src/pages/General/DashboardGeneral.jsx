@@ -33,7 +33,7 @@ const esRutaAlimentador = (ruta) => {
 
 const normalizarEstatus = (valor) => {
   const texto = normalizarTexto(valor);
-  if (texto === 'OPERACION' || texto === 'OPERANDO' || texto === 'EN OPERACION' || texto === 'RESERVA' || texto === 'EN RESERVA') {
+  if (texto === 'OPERACION' || texto === 'OPERANDO' || texto === 'EN OPERACION') {
     return 'OPERACION';
   }
   return 'FUERA';
@@ -44,6 +44,9 @@ const construirResumen = (registros, tipo) => {
   const filasPorServicio = new Map();
 
   registros.forEach((registro) => {
+    const estRaw = String(registro.estatus || '').toLowerCase().trim();
+    if (!estRaw.includes('operaci')) return;
+
     const ruta = normalizarRuta(registro.ruta);
     const coincide = tipo === 'troncal' ? esRutaTroncal(ruta) : esRutaAlimentador(ruta);
     if (!coincide) return;

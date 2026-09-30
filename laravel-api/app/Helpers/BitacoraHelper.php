@@ -36,8 +36,12 @@ class BitacoraHelper
 
                 if ($registros->isNotEmpty()) {
                     $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
+                    $hasAcople = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople');
+                    $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida');
+                    $hasHoraReal = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
+                    $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'relevo_tarjeton');
 
-                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista) {
+                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo) {
                         $item = [
                             'fecha_historial' => $hoy,
                             'momento'         => 'INICIO',
@@ -63,19 +67,19 @@ class BitacoraHelper
                             $item['nombre_maniobrista'] = $registro->nombre_maniobrista ?? null;
                         }
 
-                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople')) {
+                        if ($hasAcople) {
                             $item['acople'] = $registro->acople ?? null;
                         }
 
-                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida')) {
+                        if ($hasHoraSalida) {
                             $item['hora_salida'] = $registro->hora_salida ?? null;
                         }
 
-                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio')) {
+                        if ($hasHoraReal) {
                             $item['hora_real_salida_patio'] = $registro->hora_real_salida_patio ?? null;
                         }
 
-                        if (\Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'relevo_tarjeton')) {
+                        if ($hasRelevo) {
                             $item['relevo_tarjeton'] = $registro->relevo_tarjeton ?? null;
                             $item['relevo_conductor'] = $registro->relevo_conductor ?? null;
                             $item['relevo_hora'] = $registro->relevo_hora ?? null;

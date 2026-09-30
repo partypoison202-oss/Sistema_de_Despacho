@@ -56,7 +56,11 @@ class UserController extends Controller
             'foto_url' => $fotoBase64
         ]);
 
-        $this->sincronizarModulosPorRol($user->id, $user->rol_id);
+        // Guardar los módulos que el admin seleccionó manualmente.
+        // Si no viene ninguno en el request, se deja sin accesos.
+        $modulos = $request->input('modulos', []);
+        $modulosSoloLectura = $request->input('modulos_solo_lectura', []);
+        $this->guardarModulos($user->id, $modulos, $modulosSoloLectura);
 
         return response()->json($user->load('role'), 201);
     }
@@ -103,7 +107,15 @@ class UserController extends Controller
         }
 
         if ($request->has('rol_id')) {
-            $this->sincronizarModulosPorRol($user->id, $request->rol_id);
+            // NO re-asignamos módulos automáticamente por rol;
+            // solo actualizamos el rol del usuario.
+        }
+
+        // Si el request trae módulos explícitos, los guardamos.
+        if ($request->has('modulos')) {
+            $modulos = $request->input('modulos', []);
+            $modulosSoloLectura = $request->input('modulos_solo_lectura', []);
+            $this->guardarModulos($user->id, $modulos, $modulosSoloLectura);
         }
 
         if ($request->has('activo')) {
@@ -118,6 +130,28 @@ class UserController extends Controller
         return response()->json($user->load('role'));
     }
 
+    /**
+     * Guarda directamente los módulos que el administrador seleccionó para el usuario.
+     */
+    private function guardarModulos($userId, array $modulos, array $modulosSoloLectura = []): void
+    {
+        \Illuminate\Support\Facades\DB::table('usuario_modulos')->where('usuario_id', $userId)->delete();
+
+        if (!empty($modulos)) {
+            $inserts = array_map(fn($m) => [
+                'usuario_id'    => $userId,
+                'modulo_codigo' => $m,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ], $modulos);
+            \Illuminate\Support\Facades\DB::table('usuario_modulos')->insert($inserts);
+        }
+    }
+
+    /**
+     * @deprecated — ya no se usa para asignar módulos automáticamente.
+     * Se mantiene por si se necesita como referencia futura.
+     */
     private function sincronizarModulosPorRol($userId, $rolId): void
     {
         $role = Role::find($rolId);

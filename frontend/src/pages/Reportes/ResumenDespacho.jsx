@@ -49,7 +49,7 @@ export default function ResumenDespacho() {
         
         const aggregated = modelsConfig.map(mc => {
           const units = apiData.filter(d => d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id));
-          const prog = units.length;
+          const prog = units.filter(d => (d.ESTATUS || '').toUpperCase().trim().includes('OPERACI')).length;
           const oper = units.filter(d => {
             const status = (d.ESTATUS || '').toUpperCase().trim();
             const isOper = status.includes('OPERACI');

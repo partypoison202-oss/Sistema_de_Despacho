@@ -46,16 +46,29 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
         else if (tipo.includes('ORION') || tipo.includes('ORIÓN')) techKey = 'ORION';
 
         if (techKey) {
-            unidadesPorTecnologia[techKey].flota++;
-            totalFlota++;
-
             const estatus = getEstatus(unit);
-            if (estatus.includes('MANTENIMIENTO')) {
+            const isNoProgramada = estatus === 'NO_PROGRAMADA' || estatus === 'NO PROGRAMADA';
+            const horaSalida = (unit.HORA_REAL_SALIDA_PATIO || unit.hora_real_salida_patio || unit.HORA_SALIDA || unit.hora_salida || '').toString().trim();
+            const isEncerrada = Boolean(unit.YA_ENCERRADA || unit.ya_encerrada || unit.yaEncerrada);
+
+            const isMantenimiento = estatus.includes('MANTENIMIENTO');
+            const isPercance = estatus.includes('PERCANCE') || estatus.includes('DESINCORPORADA');
+            
+            const isOperacionBasico = estatus.includes('OPERACI') || (!estatus.includes('MANTENIMIENTO') && !estatus.includes('RESERVA') && !estatus.includes('PERCANCE'));
+            const isOperacionReal = isOperacionBasico && horaSalida !== '' && !isEncerrada;
+            const isReservaReal = !isNoProgramada && horaSalida === '' && !isEncerrada && !isMantenimiento && !isPercance;
+
+            if (isOperacionReal || isReservaReal || isMantenimiento) {
+                unidadesPorTecnologia[techKey].flota++;
+                totalFlota++;
+            }
+
+            if (isMantenimiento) {
                 unidadesPorTecnologia[techKey].taller.push(unit);
-            } else if (estatus.includes('RESERVA')) {
-                unidadesPorTecnologia[techKey].reserva.push(unit);
-            } else if (estatus.includes('DESINCORPORADA')) {
+            } else if (isPercance) {
                 unidadesPorTecnologia[techKey].desincorporada.push(unit);
+            } else if (isReservaReal) {
+                unidadesPorTecnologia[techKey].reserva.push(unit);
             }
         }
     });

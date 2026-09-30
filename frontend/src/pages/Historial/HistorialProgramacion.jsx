@@ -118,11 +118,14 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
     baseProgramacion.forEach(d => {
       let t = d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : 'OTRO';
       if (!tiposMap[t]) {
-        tiposMap[t] = { tipo: t, total: 0, operacion: 0, reserva: 0, mantenimiento: 0, percance: 0 };
+        tiposMap[t] = { tipo: t, total: 0, programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0, percance: 0 };
       }
       tiposMap[t].total++;
       const est = String(d.estatus || '').toLowerCase();
-      if (est.includes('operaci')) tiposMap[t].operacion++;
+      if (est.includes('operaci')) {
+        tiposMap[t].programadas++;
+        tiposMap[t].operacion++;
+      }
       else if (est.includes('reserva')) tiposMap[t].reserva++;
       else if (est.includes('mantenimiento')) tiposMap[t].mantenimiento++;
       else if (est.includes('percance')) tiposMap[t].percance++;
@@ -144,7 +147,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
     });
 
     return {
-      total_programadas: total,
+      total_programadas: operacion,
       operacion,
       reserva,
       mantenimiento,
@@ -484,7 +487,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
                 {(resumen.por_tipo || []).map((t, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: '800', color: '#0f172a' }}>{t.tipo}</td>
-                    <td className="text-center" style={{ fontWeight: '800', fontSize: '1.05rem', color: '#0f172a' }}>{t.total}</td>
+                    <td className="text-center" style={{ fontWeight: '800', fontSize: '1.05rem', color: '#0f172a' }}>{t.programadas ?? t.operacion}</td>
                     <td className="text-center" style={{ fontWeight: '700', color: '#16a34a' }}>{t.operacion}</td>
                     <td className="text-center" style={{ fontWeight: '700', color: '#0284c7' }}>{t.reserva}</td>
                     <td className="text-center" style={{ fontWeight: '700', color: '#d97706' }}>{t.mantenimiento}</td>

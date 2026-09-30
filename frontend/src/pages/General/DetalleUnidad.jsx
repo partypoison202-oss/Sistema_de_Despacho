@@ -55,15 +55,16 @@ export default function DetalleUnidad() {
         estatus: registro.ESTATUS !== null && registro.ESTATUS !== undefined
           ? String(registro.ESTATUS).trim()
           : '',
-        horaRealSalidaPatio: registro.HORA_SALIDA_PATIO,
+        horaRealSalidaPatio: registro.HORA_REAL_SALIDA_PATIO || registro.hora_real_salida_patio || registro.HORA_SALIDA || '',
         acopleRuta: registro.HORA_DE_ACOPLE,
         corrida: registro.CORRIDAS,
       }))
       .sort((a, b) => Number(a.eco) - Number(b.eco));
   }, [registrosHoy, id]);
 
-  const programadas = unidades.length;
-  const operando = unidades.filter((u) => esOperacion(u.estatus)).length;
+  const unidadesProgramadas = unidades.filter((u) => esOperacion(u.estatus));
+  const programadas = unidadesProgramadas.length;
+  const operando = unidadesProgramadas.filter((u) => u.horaRealSalidaPatio && String(u.horaRealSalidaPatio).trim() !== '').length;
   const faltantes = programadas - operando;
 
   return (

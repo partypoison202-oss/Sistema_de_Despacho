@@ -13,6 +13,7 @@ import API_BASE from '../../config/api';
 export default function Dashboard() {
   const [buscandoUnidad, setBuscandoUnidad] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const [busquedaEco, setBusquedaEco] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -119,6 +120,17 @@ export default function Dashboard() {
     descargarReportesGeneralesConAlerta(setIsGenerating);
   };
 
+  const handleGenerarResumenExcel = async () => {
+    setIsGeneratingExcel(true);
+    try {
+      const { descargarResumenDespachoExcel } = await import('../../utils/generarExcelResumenDespacho');
+      await descargarResumenDespachoExcel(setIsGeneratingExcel);
+    } catch (err) {
+      console.error(err);
+      setIsGeneratingExcel(false);
+    }
+  };
+
   const fetchConteos = async () => {
     const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
       headers: {
@@ -178,7 +190,7 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Botón para generar reportes */}
+          {/* Botones para generar reportes */}
           <div className="dashboard__actions">
               <button
                 onClick={handleGenerarReporte}
@@ -192,6 +204,40 @@ export default function Dashboard() {
                     Generando reportes...
                   </>
                 ) : 'Reporte General'}
+              </button>
+
+              <button
+                onClick={handleGenerarResumenExcel}
+                disabled={isGeneratingExcel}
+                className="btn-reporte btn-reporte--excel"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: '#15803d',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  cursor: isGeneratingExcel ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isGeneratingExcel ? (
+                  <>
+                    <span className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', margin: 0, borderColor: 'rgba(255, 255, 255, 0.3)', borderTopColor: '#ffffff' }}></span>
+                    <span>Generando Excel...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="8" y1="13" x2="16" y2="13"></line>
+                      <line x1="8" y1="17" x2="16" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>Resumen Despacho (Excel)</span>
+                  </>
+                )}
               </button>
           </div>
         </main>

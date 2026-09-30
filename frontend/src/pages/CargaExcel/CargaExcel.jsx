@@ -579,14 +579,19 @@ export default function CargaExcel({ isPasteles = false }) {
     doc.text(`${fechaCapitalizada} · Generado a las ${horaGeneracion} hrs`, tituloCentro, 22.5, { align: 'center' });
 
     // ── RESUMEN POR ESTATUS ──
-    const conteo = previewData.reduce((acc, fila) => {
-      const est = String(fila.ESTATUS || 'sin_estatus').toLowerCase();
-      acc[est] = (acc[est] || 0) + 1;
+    const conteo = (Array.isArray(previewData) ? previewData : []).reduce((acc, fila) => {
+      const est = String(fila.ESTATUS || 'sin_estatus').toLowerCase().trim();
+      if (est.includes('operaci')) acc.operacion = (acc.operacion || 0) + 1;
+      else if (est.includes('reserva')) acc.reserva = (acc.reserva || 0) + 1;
+      else if (est.includes('mantenimiento')) acc.mantenimiento = (acc.mantenimiento || 0) + 1;
+      else if (est.includes('percance')) acc.percance = (acc.percance || 0) + 1;
       return acc;
-    }, {});
+    }, { operacion: 0, reserva: 0, mantenimiento: 0, percance: 0 });
+
+    const totalProgramadas = conteo.operacion;
 
     const resumenItems = [
-      { label: 'Total unidades', valor: previewData.length, color: vinoOscuro },
+      { label: 'Total programadas', valor: totalProgramadas, color: vinoOscuro },
       { label: 'En operación', valor: conteo.operacion || 0, color: [46, 125, 50] },
       { label: 'En reserva', valor: conteo.reserva || 0, color: [30, 90, 168] },
       { label: 'Mantenimiento', valor: conteo.mantenimiento || 0, color: [184, 134, 11] },

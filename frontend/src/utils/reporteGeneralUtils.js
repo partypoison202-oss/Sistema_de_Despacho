@@ -24,7 +24,7 @@ export const procesarDatosReportesGenerales = (apiData) => {
     const unidades = list.filter((u) => {
       const match = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase().includes(id);
       const est = (u.ESTATUS || u.estatus || '').toLowerCase().trim();
-      return match && !est.includes('no_programada') && !est.includes('no programada');
+      return match && est.includes('operaci');
     });
 
     const enServicio = unidades.filter((u) => {
