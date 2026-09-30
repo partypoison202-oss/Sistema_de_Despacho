@@ -55,11 +55,18 @@ class ManiobristaController extends Controller
         $todos = $maniobristasDb->concat($conductoresDb);
 
         // Obtener todos los tarjetones asignados en tiempo real en despacho
-        $asignaciones = DB::table('informacion_operativa')
-            ->whereNotNull('tarjeton_maniobrista')
-            ->where('tarjeton_maniobrista', '!=', '')
-            ->pluck('tarjeton_maniobrista')
-            ->toArray();
+        $asignaciones = [];
+        try {
+            if (Schema::hasTable('informacion_operativa')) {
+                $asignaciones = DB::table('informacion_operativa')
+                    ->whereNotNull('tarjeton_maniobrista')
+                    ->where('tarjeton_maniobrista', '!=', '')
+                    ->pluck('tarjeton_maniobrista')
+                    ->toArray();
+            }
+        } catch (\Throwable $e) {
+            $asignaciones = [];
+        }
 
         $maniobristas = $todos->map(function ($c) use ($asignaciones) {
             $tarjetonClean = trim($c->tarjeton ?? '');
