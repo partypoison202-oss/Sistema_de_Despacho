@@ -44,6 +44,7 @@ class ConductorController extends Controller
 
     public function index(Request $request)
     {
+        @ini_set('memory_limit', '512M');
         try {
             $this->ensureColumnsExist();
 
