@@ -89,7 +89,7 @@ export default function CentroControl() {
       const percance = unidadesPercance.length;
       const otros = 0;
       
-      const programadas = operacion + reserva + mantenimiento;
+      const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
@@ -127,7 +127,7 @@ export default function CentroControl() {
     { programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0 }
   );
 
-  const eficienciaGlobal = totales.programadas > 0 ? Math.round(((totales.operacion + totales.reserva) / totales.programadas) * 100) : 0;
+  const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round((totales.operacion / totales.programadas) * 100)) : 0;
 
   const handleGenerarReporte = () => {
     descargarReportesGeneralesConAlerta(setIsGenerating);
@@ -601,7 +601,7 @@ export default function CentroControl() {
                         <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
                         <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
                         <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
-                          {cargando ? '—' : `${Math.round(pct(m.operacion + m.reserva, m.programadas))}%`}
+                          {cargando ? '—' : `${Math.min(100, Math.round(pct(m.operacion, m.programadas)))}%`}
                         </span>
                         <span className="centro-status-value"></span>
                       </div>
