@@ -112,5 +112,16 @@ export function useGlobalPrefetch() {
       });
     });
 
+    // Prefetch despacho de hoy (usado para reportes y programación operativa instantánea)
+    queryClient.prefetchQuery({
+      queryKey: ['despacho-hoy'],
+      queryFn: async () => {
+        const res = await fetch(`${API_BASE}/api/despacho/hoy`, { headers });
+        if (!res.ok) return [];
+        return res.json();
+      },
+      staleTime: 30000,
+    });
+
   }, [queryClient]);
 }

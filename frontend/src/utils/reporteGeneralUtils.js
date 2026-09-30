@@ -2,6 +2,7 @@ import Swal from 'sweetalert2';
 import API_BASE from '../config/api';
 import { generarPDFReporteGeneral } from './generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from './generarPDFReporteUnidades';
+import { generarPDFProgramacionOperativa } from './generarPDFProgramacionOperativa';
 
 const MODELOS_CONFIG = [
   { id: 'URBANUS' },
@@ -92,15 +93,21 @@ export const procesarDatosReportesGenerales = (apiData) => {
   return { dataUnidades: { tipos, totales }, dataRutas };
 };
 
-export const descargarReportesGeneralesConAlerta = async (setLoading) => {
+export const descargarReportesGeneralesConAlerta = async (setLoading, queryClient = null) => {
   setLoading(true);
   try {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    });
-    if (!res.ok) throw new Error('Error al consultar datos');
-    const data = await res.json();
+    let data = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-hoy']) : null;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error('Error al consultar datos');
+      data = await res.json();
+      if (queryClient?.setQueryData) {
+        queryClient.setQueryData(['despacho-hoy'], data);
+      }
+    }
     const { dataUnidades, dataRutas } = procesarDatosReportesGenerales(data);
     await generarPDFReporteGeneral(dataRutas);
     await generarPDFReporteUnidades(dataUnidades);
@@ -119,6 +126,84 @@ export const descargarReportesGeneralesConAlerta = async (setLoading) => {
       icon: 'error',
       title: 'Error',
       text: err.message || 'Error al generar los reportes.',
+      confirmButtonColor: '#601a2a',
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+export const calcularTotalesOperativos = (apiData) => {
+  const models = ['URBANUS', 'ZAFIRO', 'VAGONETA', 'ORION'];
+  const list = Array.isArray(apiData) ? apiData : [];
+
+  return models.reduce((acc, modelId) => {
+    const units = list.filter((d) => {
+      const match = (d.TIPO_DE_UNIDAD || d.tipo || '').toUpperCase().includes(modelId);
+      const est = (d.ESTATUS || d.estatus || '').toLowerCase().trim();
+      return match && est !== 'no_programada' && est !== 'no programada';
+    });
+
+    const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+
+    const operacion = units.filter((d) => {
+      const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
+      const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+      return horaSalida !== '' && !isEncerrada;
+    }).length;
+
+    const reserva = units.filter((d) => getEstatus(d) === 'RESERVA').length;
+    const mantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO').length;
+    const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
+
+    return {
+      programadas: acc.programadas + programadas,
+      operacion: acc.operacion + operacion,
+      reserva: acc.reserva + reserva,
+      mantenimiento: acc.mantenimiento + mantenimiento,
+    };
+  }, { programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0 });
+};
+
+export const descargarProgramacionOperativaDespachoConAlerta = async (setLoading, queryClient = null) => {
+  setLoading(true);
+  try {
+    let data = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-hoy']) : null;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error('Error al consultar datos');
+      data = await res.json();
+      if (queryClient?.setQueryData) {
+        queryClient.setQueryData(['despacho-hoy'], data);
+      }
+    }
+
+    const totales = calcularTotalesOperativos(data);
+
+    await generarPDFProgramacionOperativa(data, 'download', totales, {
+      omitirRelevosYPatioNorte: true,
+      nombreArchivo: 'Programacion_Operativa_Despacho.pdf',
+    });
+
+    Swal.fire({
+      icon: 'success',
+      title: '¡Reporte Generado!',
+      text: 'La Programación Operativa se ha descargado correctamente.',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+    });
+  } catch (err) {
+    console.error('Error al generar programación operativa:', err);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: err.message || 'Error al generar la Programación Operativa.',
       confirmButtonColor: '#601a2a',
     });
   } finally {
