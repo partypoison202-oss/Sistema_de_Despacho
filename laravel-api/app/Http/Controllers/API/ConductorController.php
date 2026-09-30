@@ -44,87 +44,92 @@ class ConductorController extends Controller
 
     public function index(Request $request)
     {
-        $this->ensureColumnsExist();
-
-        $query = Conductor::query();
-
-        // Filtrar sólo operadores activos (no dados de baja ni inhabilitados) por defecto
-        if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
-            $query->where(function ($q) {
-                $q->where('estatus', 'activo')
-                  ->orWhereNull('estatus');
-            });
-        }
-
-        // Obtener todos los tarjetones asignados en tiempo real en despacho
-        $asignaciones = [];
         try {
-            if (Schema::hasTable('informacion_operativa')) {
-                $asignaciones = DB::table('informacion_operativa')
-                    ->whereNotNull('numero_tarjeton')
-                    ->where('numero_tarjeton', '!=', '')
-                    ->pluck('numero_tarjeton')
-                    ->toArray();
-            }
-        } catch (\Throwable $e) {
-            $asignaciones = [];
-        }
+            $this->ensureColumnsExist();
 
-        $conductores = $query->get()->map(function ($c) use ($asignaciones) {
+            $query = Conductor::query();
+
+            // Filtrar sólo operadores activos (no dados de baja ni inhabilitados) por defecto
+            if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
+                $query->where(function ($q) {
+                    $q->where('estatus', 'activo')
+                      ->orWhereNull('estatus');
+                });
+            }
+
+            // Obtener todos los tarjetones asignados en tiempo real en despacho
+            $asignaciones = [];
             try {
-                // Evaluar regla de 4 faltas en 30 días
-                $eval = $c->evaluarInhabilitacionFaltas();
-                if (!empty($eval['inhabilitado']) && $c->estatus !== 'inhabilitado') {
-                    $c->estatus = 'inhabilitado';
-                    $c->estado_servicio = null;
-                    try {
-                        DB::table('conductores')->where('id', $c->id)->update([
-                            'estatus' => 'inhabilitado',
-                            'estado_servicio' => null
-                        ]);
-                        if (Schema::hasTable('informacion_operativa')) {
-                            DB::table('informacion_operativa')
-                                ->where('numero_tarjeton', $c->tarjeton)
-                                ->update([
-                                    'numero_tarjeton' => null,
-                                    'nombre_conductor' => null
-                                ]);
-                        }
-                    } catch (\Throwable $e) {
-                        // Ignorar errores de actualización en lectura
-                    }
+                if (Schema::hasTable('informacion_operativa')) {
+                    $asignaciones = DB::table('informacion_operativa')
+                        ->whereNotNull('numero_tarjeton')
+                        ->where('numero_tarjeton', '!=', '')
+                        ->pluck('numero_tarjeton')
+                        ->toArray();
                 }
             } catch (\Throwable $e) {
-                // Ignorar error individual por registro
+                $asignaciones = [];
             }
 
-            $tarjetonClean = trim($c->tarjeton ?? '');
-            $estaAsignado = false;
-            foreach ($asignaciones as $t) {
-                if (trim($t) === $tarjetonClean) {
-                    $estaAsignado = true;
-                    break;
+            $conductores = $query->get()->map(function ($c) use ($asignaciones) {
+                try {
+                    // Evaluar regla de 4 faltas en 30 días
+                    $eval = $c->evaluarInhabilitacionFaltas();
+                    if (!empty($eval['inhabilitado']) && $c->estatus !== 'inhabilitado') {
+                        $c->estatus = 'inhabilitado';
+                        $c->estado_servicio = null;
+                        try {
+                            DB::table('conductores')->where('id', $c->id)->update([
+                                'estatus' => 'inhabilitado',
+                                'estado_servicio' => null
+                            ]);
+                            if (Schema::hasTable('informacion_operativa')) {
+                                DB::table('informacion_operativa')
+                                    ->where('numero_tarjeton', $c->tarjeton)
+                                    ->update([
+                                        'numero_tarjeton' => null,
+                                        'nombre_conductor' => null
+                                    ]);
+                            }
+                        } catch (\Throwable $e) {
+                            // Ignorar errores de actualización en lectura
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Ignorar error individual por registro
                 }
-            }
-            if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
-                $c->estado_servicio = null;
-            } elseif ($c->estado_servicio === 'maniobrista') {
-                // Respetar siempre el estado maniobrista, aunque esté asignado
-                $c->estado_servicio = 'maniobrista';
-            } else {
-                $c->estado_servicio = $estaAsignado ? 'en_servicio' : ($c->estado_servicio ?? 'disponible');
-            }
-            return $c;
-        });
 
-        // Si no se incluyeron bajas/inhabilitados explícitamente, filtrar aquellos que hayan resultado inhabilitados al evaluar
-        if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
-            $conductores = $conductores->filter(function ($c) {
-                return $c->estatus === 'activo' || is_null($c->estatus);
-            })->values();
+                $tarjetonClean = trim($c->tarjeton ?? '');
+                $estaAsignado = false;
+                foreach ($asignaciones as $t) {
+                    if (trim($t) === $tarjetonClean) {
+                        $estaAsignado = true;
+                        break;
+                    }
+                }
+                if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
+                    $c->estado_servicio = null;
+                } elseif ($c->estado_servicio === 'maniobrista') {
+                    // Respetar siempre el estado maniobrista, aunque esté asignado
+                    $c->estado_servicio = 'maniobrista';
+                } else {
+                    $c->estado_servicio = $estaAsignado ? 'en_servicio' : ($c->estado_servicio ?? 'disponible');
+                }
+                return $c;
+            });
+
+            // Si no se incluyeron bajas/inhabilitados explícitamente, filtrar aquellos que hayan resultado inhabilitados al evaluar
+            if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
+                $conductores = $conductores->filter(function ($c) {
+                    return $c->estatus === 'activo' || is_null($c->estatus);
+                })->values();
+            }
+
+            return response()->json($conductores);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error al listar conductores: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al listar conductores', 'message' => $e->getMessage()], 500);
         }
-
-        return response()->json($conductores);
     }
 
     public function store(Request $request)
