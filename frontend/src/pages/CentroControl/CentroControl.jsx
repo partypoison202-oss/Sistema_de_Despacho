@@ -85,7 +85,7 @@ export default function CentroControl() {
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
+      const programadas = units.length;
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
