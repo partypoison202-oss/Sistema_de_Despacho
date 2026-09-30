@@ -15,28 +15,30 @@ class ConductorController extends Controller
     private function ensureColumnsExist()
     {
         try {
-            if (!Schema::hasColumn('conductores', 'estatus')) {
-                Schema::table('conductores', function (Blueprint $table) {
-                    $table->string('estatus', 20)->default('activo');
-                });
+            if (Schema::hasTable('conductores')) {
+                if (!Schema::hasColumn('conductores', 'estatus')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->string('estatus', 20)->default('activo');
+                    });
+                }
+                if (!Schema::hasColumn('conductores', 'tipo_tarjeton')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->string('tipo_tarjeton', 50)->nullable();
+                    });
+                }
+                if (!Schema::hasColumn('conductores', 'foto')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->string('foto', 255)->nullable();
+                    });
+                }
+                if (!Schema::hasColumn('conductores', 'faltas_detalle')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->text('faltas_detalle')->nullable();
+                    });
+                }
             }
-            if (!Schema::hasColumn('conductores', 'tipo_tarjeton')) {
-                Schema::table('conductores', function (Blueprint $table) {
-                    $table->string('tipo_tarjeton', 50)->nullable();
-                });
-            }
-            if (!Schema::hasColumn('conductores', 'foto')) {
-                Schema::table('conductores', function (Blueprint $table) {
-                    $table->string('foto', 255)->nullable();
-                });
-            }
-            if (!Schema::hasColumn('conductores', 'faltas_detalle')) {
-                Schema::table('conductores', function (Blueprint $table) {
-                    $table->text('faltas_detalle')->nullable();
-                });
-            }
-        } catch (\Exception $e) {
-            // Manejo silencioso si las columnas ya existen
+        } catch (\Throwable $e) {
+            // Manejo silencioso si las columnas ya existen o si el driver de DB rechaza DDL durante GET
         }
     }
 
@@ -55,28 +57,45 @@ class ConductorController extends Controller
         }
 
         // Obtener todos los tarjetones asignados en tiempo real en despacho
-        $asignaciones = DB::table('informacion_operativa')
-            ->whereNotNull('numero_tarjeton')
-            ->where('numero_tarjeton', '!=', '')
-            ->pluck('numero_tarjeton')
-            ->toArray();
+        $asignaciones = [];
+        try {
+            if (Schema::hasTable('informacion_operativa')) {
+                $asignaciones = DB::table('informacion_operativa')
+                    ->whereNotNull('numero_tarjeton')
+                    ->where('numero_tarjeton', '!=', '')
+                    ->pluck('numero_tarjeton')
+                    ->toArray();
+            }
+        } catch (\Throwable $e) {
+            $asignaciones = [];
+        }
 
         $conductores = $query->get()->map(function ($c) use ($asignaciones) {
-            // Evaluar regla de 4 faltas en 30 días
-            $eval = $c->evaluarInhabilitacionFaltas();
-            if ($eval['inhabilitado'] && $c->estatus !== 'inhabilitado') {
-                $c->estatus = 'inhabilitado';
-                $c->estado_servicio = null;
-                DB::table('conductores')->where('id', $c->id)->update([
-                    'estatus' => 'inhabilitado',
-                    'estado_servicio' => null
-                ]);
-                DB::table('informacion_operativa')
-                    ->where('numero_tarjeton', $c->tarjeton)
-                    ->update([
-                        'numero_tarjeton' => null,
-                        'nombre_conductor' => null
-                    ]);
+            try {
+                // Evaluar regla de 4 faltas en 30 días
+                $eval = $c->evaluarInhabilitacionFaltas();
+                if (!empty($eval['inhabilitado']) && $c->estatus !== 'inhabilitado') {
+                    $c->estatus = 'inhabilitado';
+                    $c->estado_servicio = null;
+                    try {
+                        DB::table('conductores')->where('id', $c->id)->update([
+                            'estatus' => 'inhabilitado',
+                            'estado_servicio' => null
+                        ]);
+                        if (Schema::hasTable('informacion_operativa')) {
+                            DB::table('informacion_operativa')
+                                ->where('numero_tarjeton', $c->tarjeton)
+                                ->update([
+                                    'numero_tarjeton' => null,
+                                    'nombre_conductor' => null
+                                ]);
+                        }
+                    } catch (\Throwable $e) {
+                        // Ignorar errores de actualización en lectura
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignorar error individual por registro
             }
 
             $tarjetonClean = trim($c->tarjeton ?? '');
@@ -363,7 +382,7 @@ class ConductorController extends Controller
 
             return response()->json([
                 'message' => 'Foto subida exitosamente',
-                'foto_url' => '/storage/' . $path,
+                'foto_url' => $conductor->foto,
                 'conductor' => $conductor
             ]);
         }
@@ -398,7 +417,7 @@ class ConductorController extends Controller
 
             return response()->json([
                 'message' => 'Código QR subido exitosamente',
-                'qr_url' => '/storage/' . $path,
+                'qr_url' => $conductor->qr_documento,
                 'conductor' => $conductor
             ]);
         }
@@ -476,7 +495,7 @@ class ConductorController extends Controller
         }
 
         if (!$targetFecha) {
-            $targetFecha = $request->input('fecha_falta') ?: ($conductor->updated_at ? $conductor->updated_at->format('Y-m-d') : date('Y-m-d'));
+            $targetFecha = $request->input('fecha_falta') ?: ($conductor->updated_at ? ($conductor->updated_at instanceof \DateTimeInterface ? $conductor->updated_at->format('Y-m-d') : (is_string($conductor->updated_at) ? substr($conductor->updated_at, 0, 10) : date('Y-m-d'))) : date('Y-m-d'));
         }
 
         if ($targetFecha && $targetFecha !== 'Fecha sin registrar') {
