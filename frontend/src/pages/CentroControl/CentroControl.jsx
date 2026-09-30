@@ -75,15 +75,21 @@ export default function CentroControl() {
         return isOperacion && horaSalida !== '' && !isEncerrada;
       });
       const unidadesMantenimiento = units.filter((d) => getEstatus(d).includes('MANTENIMIENTO'));
-      const unidadesReserva = units.filter((d) => getEstatus(d).includes('RESERVA'));
+      const unidadesReserva = units.filter((d) => {
+        const est = getEstatus(d);
+        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
+        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada || d.yaEncerrada);
+        return horaSalida === '' && !isEncerrada && !est.includes('MANTENIMIENTO') && !est.includes('PERCANCE') && !est.includes('DESINCORPORADA');
+      });
       const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
-      const programadas = units.length;
       const operacion = unidadesOperacion.length;
       const mantenimiento = unidadesMantenimiento.length;
       const reserva = unidadesReserva.length;
       const percance = unidadesPercance.length;
       const otros = 0;
+      
+      const programadas = operacion + reserva + mantenimiento;
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
