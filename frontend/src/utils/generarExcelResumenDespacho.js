@@ -174,7 +174,7 @@ function procesarModelos(listaUnidades) {
       return matchPattern.some(p => tipo.includes(p));
     });
 
-    const prog = units.length;
+    const prog = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
     const oper = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       const isOper = status.includes('OPERACI');

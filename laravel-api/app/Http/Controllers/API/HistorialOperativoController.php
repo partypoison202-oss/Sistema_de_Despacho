@@ -708,7 +708,7 @@ class HistorialOperativoController extends Controller
         }
 
         // Calcular resumen logístico
-        $totalProgramadas = $programacion->count();
+        $totalProgramadas = 0;
         $operacionCount = 0;
         $reservaCount = 0;
         $mantenimientoCount = 0;
@@ -723,6 +723,7 @@ class HistorialOperativoController extends Controller
             $est = strtolower(trim($row->estatus ?? ''));
             if ($est === 'operacion' || $est === 'operación') {
                 $operacionCount++;
+                $totalProgramadas++;
             } elseif ($est === 'reserva') {
                 $reservaCount++;
             } elseif ($est === 'mantenimiento') {
@@ -744,6 +745,7 @@ class HistorialOperativoController extends Controller
                 $porTipoMap[$tipoKey] = [
                     'tipo' => $tipoKey,
                     'total' => 0,
+                    'programadas' => 0,
                     'operacion' => 0,
                     'reserva' => 0,
                     'mantenimiento' => 0,
@@ -751,7 +753,10 @@ class HistorialOperativoController extends Controller
                 ];
             }
             $porTipoMap[$tipoKey]['total']++;
-            if ($est === 'operacion' || $est === 'operación') $porTipoMap[$tipoKey]['operacion']++;
+            if ($est === 'operacion' || $est === 'operación') {
+                $porTipoMap[$tipoKey]['programadas']++;
+                $porTipoMap[$tipoKey]['operacion']++;
+            }
             elseif ($est === 'reserva') $porTipoMap[$tipoKey]['reserva']++;
             elseif ($est === 'mantenimiento') $porTipoMap[$tipoKey]['mantenimiento']++;
             elseif ($est === 'percance') $porTipoMap[$tipoKey]['percance']++;

@@ -175,7 +175,7 @@ class DespachoController extends Controller
     {
         $conteos = DB::table('informacion_operativa')
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
-            ->whereRaw("LOWER(COALESCE(estatus, '')) != 'no_programada'")
+            ->whereRaw("LOWER(COALESCE(estatus, '')) = 'operacion'")
             ->groupBy('tipo')
             ->get();
 
