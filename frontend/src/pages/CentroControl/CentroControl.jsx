@@ -67,9 +67,15 @@ export default function CentroControl() {
       });
       const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
 
-      // Cada grupo se basa directamente en el estatus asignado en la base de datos
-      const unidadesOperacion    = units.filter((d) => getEstatus(d) === 'OPERACION');
+      // Operación = las que YA salieron de despacho (tienen hora real de salida de patio)
+      const unidadesOperacion = units.filter((d) => {
+        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
+        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+        return horaSalida !== '' && !isEncerrada;
+      });
+      // Reserva = todas las que tienen estatus 'reserva' (programadas pero sin despachar)
       const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
+      // Mantenimiento = todas las que tienen estatus 'mantenimiento'
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
       const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
@@ -79,7 +85,7 @@ export default function CentroControl() {
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      // Total programadas = suma de las tres categorías activas
+      // Total programadas = Operación + Reserva + Mantenimiento
       const programadas = operacion + reserva + mantenimiento;
 
 
