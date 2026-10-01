@@ -295,12 +295,13 @@ const PatioDashboard = () => {
 
   // --- Función para asignar slots a unidades en idle --------------------
   const assignSlotsToUnits = (idleUnits) => {
-    const reserveCon = idleUnits.filter((u) => u.estatus === 'reserva' && unitHasConductor(u));
-    const reserveSin = idleUnits.filter((u) => u.estatus === 'reserva' && !unitHasConductor(u));
+    // Prioridad: estatus 'reserva' siempre va a la zona azul (Reserva),
+    // sin importar si tiene conductor o no.
+    const reserveCon = idleUnits.filter((u) => u.estatus === 'reserva');
+    const reserveSin = []; // La zona amarilla queda vacía por ahora
     const mantenimiento = idleUnits.filter((u) => u.estatus === 'mantenimiento');
 
     reserveCon.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
-    reserveSin.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
     mantenimiento.sort((a, b) => a.numero_eco.localeCompare(b.numero_eco));
 
     const slotsVerde = buildZonaVerdeSlots(mantenimiento.length);
@@ -602,7 +603,26 @@ const PatioDashboard = () => {
   // --- Handlers de hover -----------------------------------------------
   const handleMouseEnterUnit = async (eco, status) => {
     setHoveredUnitEco(eco);
-    if (unitDetailsCache[eco] && unitDetailsCache[eco].nombre_conductor !== 'No asignado' && unitDetailsCache[eco].nombre_conductor !== undefined) return;
+
+    // Precarga inmediata desde los datos ya disponibles en displayUnits
+    // para que el tooltip aparezca al instante sin esperar el fetch.
+    if (!unitDetailsCache[eco]) {
+      const unitData = displayUnits.find((u) => u.numero_eco === eco);
+      if (unitData) {
+        setUnitDetailsCache((prev) => ({
+          ...prev,
+          [eco]: {
+            nombre_conductor: unitData.nombre_conductor || unitData.conductor || null,
+            numero_tarjeton: unitData.numero_tarjeton || unitData.tarjeton || null,
+            ruta: unitData.ruta || null,
+            falla: unitData.falla || unitData.motivo_estatus || null,
+          },
+        }));
+      }
+    }
+
+    // Fetch en background para refrescar con datos más completos si es necesario
+    if (unitDetailsCache[eco] && unitDetailsCache[eco]._fetched) return;
 
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
     try {
@@ -622,6 +642,7 @@ const PatioDashboard = () => {
             ...data,
             nombre_conductor: data.conductor || data.nombre_conductor,
             numero_tarjeton: data.tarjeton,
+            _fetched: true,
           },
         }));
       }
@@ -710,6 +731,12 @@ const PatioDashboard = () => {
             <div className="tooltip-body-content">
               {details ? (
                 <>
+                  {details.falla && (
+                    <div className="tooltip-info-item warning-text">
+                      <span className="lbl">Falla:</span>
+                      <span className="val">{details.falla}</span>
+                    </div>
+                  )}
                   <div className="tooltip-info-item">
                     <span className="lbl">Conductor:</span>
                     <span className="val">{details.nombre_conductor || 'No asignado'}</span>
@@ -722,12 +749,6 @@ const PatioDashboard = () => {
                     <span className="lbl">Tarjetón:</span>
                     <span className="val">{details.numero_tarjeton || 'S/T'}</span>
                   </div>
-                  {details.falla && (
-                    <div className="tooltip-info-item warning-text">
-                      <span className="lbl">Falla:</span>
-                      <span className="val">{details.falla}</span>
-                    </div>
-                  )}
                 </>
               ) : (
                 <div className="tooltip-loading-text">Cargando detalles...</div>

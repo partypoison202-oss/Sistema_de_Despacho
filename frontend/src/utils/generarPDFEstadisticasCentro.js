@@ -207,22 +207,28 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         if (m.reserva > 0) activeSegments.push({ val: m.reserva, color: COLOR_GOLD });
         if (m.mantenimiento > 0) activeSegments.push({ val: m.mantenimiento, color: COLOR_RED });
 
+        // Calculamos el divisor seguro
+        const divisor = m.programadas > 0 ? m.programadas : (m.operacion + m.reserva + m.mantenimiento);
+
         activeSegments.forEach((seg, i) => {
-            const segW = (seg.val / m.programadas) * barW;
-            const isFirst = i === 0;
-            const isLast = i === activeSegments.length - 1;
+            const segW = divisor > 0 ? (seg.val / divisor) * barW : 0;
             
-            pdf.setFillColor(...seg.color);
-            // Draw rounded rect for the full width to get rounded corners
-            pdf.roundedRect(currentBarX, barY, segW, barH, 2, 2, 'F');
-            
-            // Square off the left side if not first
-            if (!isFirst) pdf.rect(currentBarX, barY, 2, barH, 'F');
-            
-            // Square off the right side if not last
-            if (!isLast) pdf.rect(currentBarX + segW - 2, barY, 2, barH, 'F');
-            
-            currentBarX += segW;
+            if (segW > 0) {
+                const isFirst = i === 0;
+                const isLast = i === activeSegments.length - 1;
+                
+                pdf.setFillColor(...seg.color);
+                // Draw rounded rect for the full width to get rounded corners
+                pdf.roundedRect(currentBarX, barY, segW, barH, 2, 2, 'F');
+                
+                // Square off the left side if not first
+                if (!isFirst) pdf.rect(currentBarX, barY, 2, barH, 'F');
+                
+                // Square off the right side if not last
+                if (!isLast) pdf.rect(currentBarX + segW - 2, barY, 2, barH, 'F');
+                
+                currentBarX += segW;
+            }
         });
 
         // List Rows

@@ -164,6 +164,16 @@
   background-color: #166534 !important;
   transform: translateY(-1px);
 }
+
+.btn-reporte--programacion {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+}
+
+.btn-reporte--programacion:hover {
+  background-color: #172554 !important;
+  transform: translateY(-1px);
+}
 /* MODO OSCURO EXPLÍCITO (Anti-fallback) */
 html.dark .dashboard__title {
   color: #ffffff !important;
