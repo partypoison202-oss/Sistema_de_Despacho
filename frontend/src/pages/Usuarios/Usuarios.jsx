@@ -32,6 +32,8 @@ export default function Usuarios() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingUserId, setTogglingUserId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isOtroRol, setIsOtroRol] = useState(false);
+  const [nuevoRolNombre, setNuevoRolNombre] = useState('');
 
   // Módulos seleccionados y sus permisos de solo lectura
   const [modulosSeleccionados, setModulosSeleccionados] = useState([]);
@@ -184,12 +186,19 @@ export default function Usuarios() {
         setPreviewUrl(null);
       }
 
-      // Cargar módulos existentes
+      // Cargar módulos existentes desde la base de datos (y nada más que eso)
       if (user.modulos && Array.isArray(user.modulos)) {
-        const codigos = user.modulos.map(m => m.modulo_codigo);
-        setModulosSeleccionados(codigos);
+        const seleccionados = user.modulos.map(m => m.modulo_codigo);
+        // Ahora sí la BD devolverá solo_lectura (1 o true) si corresponde
+        const soloLectura = user.modulos
+          .filter(m => m.solo_lectura === true || m.solo_lectura === 1)
+          .map(m => m.modulo_codigo);
+        
+        setModulosSeleccionados(seleccionados);
+        setModulosSoloLectura(soloLectura);
       } else {
         setModulosSeleccionados([]);
+        setModulosSoloLectura([]);
       }
     } else {
       setFormData({
@@ -203,10 +212,12 @@ export default function Usuarios() {
       });
       setPreviewUrl(null);
       setModulosSeleccionados([]);
+      setModulosSoloLectura([]);
     }
     setSelectedFile(null); // Limpiar archivo seleccionado
     setShowPassword(false);
-    setModulosSoloLectura([]);
+    setIsOtroRol(false);
+    setNuevoRolNombre('');
     setIsModalOpen(true);
   };
 
@@ -379,9 +390,15 @@ export default function Usuarios() {
     if (formData.contrasena) {
       formDataToSend.append('contrasena', formData.contrasena);
     }
-    formDataToSend.append('rol_id', formData.rol_id);
+    if (isOtroRol) {
+      formDataToSend.append('nuevo_rol_nombre', nuevoRolNombre);
+    } else {
+      formDataToSend.append('rol_id', formData.rol_id);
+    }
 
-    // Enviar módulos personalizados al backend
+    // Siempre enviamos los módulos al backend para que los actualice.
+    // Si la lista está vacía, el backend borrará todos los módulos del usuario.
+    formDataToSend.append('sync_modulos', '1');
     modulosSeleccionados.forEach(m => formDataToSend.append('modulos[]', m));
     modulosSoloLectura.forEach(m => formDataToSend.append('modulos_solo_lectura[]', m));
 
@@ -826,9 +843,17 @@ export default function Usuarios() {
               <div className="form-group">
                 <label>Rol</label>
                 <select
-                  value={formData.rol_id}
-                  onChange={(e) => setFormData({ ...formData, rol_id: e.target.value })}
-                  required
+                  value={isOtroRol ? 'otro' : formData.rol_id}
+                  onChange={(e) => {
+                    if (e.target.value === 'otro') {
+                      setIsOtroRol(true);
+                      setFormData({ ...formData, rol_id: '' });
+                    } else {
+                      setIsOtroRol(false);
+                      setFormData({ ...formData, rol_id: e.target.value });
+                    }
+                  }}
+                  required={!isOtroRol}
                   disabled={isSubmitting}
                 >
                   <option value="">Seleccione un rol</option>
@@ -837,7 +862,27 @@ export default function Usuarios() {
                       {formatRoleName(role.nombre)}
                     </option>
                   ))}
+                  <option value="otro">Otro (Crear nuevo rol)</option>
                 </select>
+                {isOtroRol && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Ingrese el nombre del nuevo rol"
+                      value={nuevoRolNombre}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const formatted = val.split(' ').map(word => {
+                          if (word.length === 0) return '';
+                          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                        }).join(' ');
+                        setNuevoRolNombre(formatted);
+                      }}
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="form-group-row" style={{ display: 'flex', gap: '1rem', marginBottom: '0.2rem' }}>
