@@ -25,46 +25,49 @@ const ROUTE_DESCRIPTIONS = {
   'T02': { tipo: 'troncal', label: 'T-02', desc: 'T-02 Exprés (Téllez - Prepa 1)' },
   'T04': { tipo: 'troncal', label: 'T-04', desc: 'T-04 Exprés (Téllez - Matilde - Centro)' },
   'T05': { tipo: 'troncal', label: 'T-05', desc: 'T-05 Parador (Téllez - Centro)' },
-  '1A': { tipo: 'alimentadora', label: 'RA 1A', desc: '1A Matilde Ida' },
-  '1B': { tipo: 'alimentadora', label: 'RA 1B', desc: '1B Matilde Regreso' },
-  '2A': { tipo: 'alimentadora', label: 'RA 2A', desc: '2A San Alfonso - Matilde' },
-  '2B': { tipo: 'alimentadora', label: 'RA 2B', desc: '2B Fracc. Villa Fontana - Jagüey T.' },
-  '2D': { tipo: 'alimentadora', label: 'RA 2D', desc: '2D Priv. Portobello - Téllez' },
-  '2E': { tipo: 'alimentadora', label: 'RA 2E', desc: '2E Cetram Téllez - Amores de Don Juan' },
-  '3': { tipo: 'alimentadora', label: 'RA 3', desc: '3 Real de Toledo - Efrén Rebolledo' },
-  '4A': { tipo: 'alimentadora', label: 'RA 4A', desc: '4A Fracc. Lomas de Plata - T. Edad' },
-  '5': { tipo: 'alimentadora', label: 'RA 5', desc: '5 Parque Urbano - E. Mexicano' },
-  '6': { tipo: 'alimentadora', label: 'RA 6', desc: '6 Hogares Unión - E. Mexicano' },
-  '7': { tipo: 'alimentadora', label: 'RA 7', desc: '7 Rancho La Colonia - E. F. Ángeles' },
-  '8': { tipo: 'alimentadora', label: 'RA 8', desc: '8 Los Tuzos - E. Juan C. Doria' },
-  '9': { tipo: 'alimentadora', label: 'RA 9', desc: '9 Pitahayas - E. C. Justicia' },
-  '10': { tipo: 'alimentadora', label: 'RA 10', desc: '10 Paseo de Camelinas - E. C. Justicia' },
-  '11': { tipo: 'alimentadora', label: 'RA 11', desc: '11 El Huixmí - E. C. Justicia' },
-  '12': { tipo: 'alimentadora', label: 'RA 12', desc: '12 La Colonia - E. Juan C. Doria' },
-  '13': { tipo: 'alimentadora', label: 'RA 13', desc: '13 El Venado - E. Hospitales' },
-  '14': { tipo: 'alimentadora', label: 'RA 14', desc: '14 San Pedro Nopalcalco - E. Bicentenario' },
-  '15A': { tipo: 'alimentadora', label: 'RA 15A', desc: '15A La Loma - Central de Autobuses' },
-  '15B': { tipo: 'alimentadora', label: 'RA 15B', desc: '15B Abetos - E. C. de Autobuses' },
-  '15C': { tipo: 'alimentadora', label: 'RA 15C', desc: '15C Fracc. Colosio - E. C. de Autobuses' },
-  '16': { tipo: 'alimentadora', label: 'RA 16', desc: '16 San Carlos - E. Zona Plateada' },
-  '17': { tipo: 'alimentadora', label: 'RA 17', desc: '17 Tezontle - Av. Universidad' },
-  '19': { tipo: 'alimentadora', label: 'RA 19', desc: '19 Parque de Poblamiento 1 y 2' },
-  '20B': { tipo: 'alimentadora', label: 'RA 20B', desc: '20B Ruta Incluyente Poniente - Oriente' },
+  '1': { tipo: 'alimentadora', label: '1', desc: '1 Alimentadora' },
+  '1A': { tipo: 'alimentadora', label: '1A', desc: '1A Matilde Ida' },
+  '1B': { tipo: 'alimentadora', label: '1B', desc: '1B Matilde Regreso' },
+  '2': { tipo: 'alimentadora', label: '2', desc: '2 Alimentadora' },
+  '2A': { tipo: 'alimentadora', label: '2A', desc: '2A San Alfonso - Matilde' },
+  '2B': { tipo: 'alimentadora', label: '2B', desc: '2B Fracc. Villa Fontana - Jagüey T.' },
+  '2D': { tipo: 'alimentadora', label: '2D', desc: '2D Priv. Portobello - Téllez' },
+  '2E': { tipo: 'alimentadora', label: '2E', desc: '2E Cetram Téllez - Amores de Don Juan' },
+  '3': { tipo: 'alimentadora', label: '3', desc: '3 Real de Toledo - Efrén Rebolledo' },
+  '4': { tipo: 'alimentadora', label: '4', desc: '4 Fracc. Lomas de Plata - T. Edad' },
+  '4A': { tipo: 'alimentadora', label: '4', desc: '4 Fracc. Lomas de Plata - T. Edad' },
+  '5': { tipo: 'alimentadora', label: '5', desc: '5 Parque Urbano - E. Mexicano' },
+  '6': { tipo: 'alimentadora', label: '6', desc: '6 Hogares Unión - E. Mexicano' },
+  '7': { tipo: 'alimentadora', label: '7', desc: '7 Rancho La Colonia - E. F. Ángeles' },
+  '8': { tipo: 'alimentadora', label: '8', desc: '8 Los Tuzos - E. Juan C. Doria' },
+  '9': { tipo: 'alimentadora', label: '9', desc: '9 Pitahayas - E. C. Justicia' },
+  '10': { tipo: 'alimentadora', label: '10', desc: '10 Paseo de Camelinas - E. C. Justicia' },
+  '11': { tipo: 'alimentadora', label: '11', desc: '11 El Huixmí - E. C. Justicia' },
+  '12': { tipo: 'alimentadora', label: '12', desc: '12 La Colonia - E. Juan C. Doria' },
+  '13': { tipo: 'alimentadora', label: '13', desc: '13 El Venado - E. Hospitales' },
+  '14': { tipo: 'alimentadora', label: '14', desc: '14 San Pedro Nopalcalco - E. Bicentenario' },
+  '15A': { tipo: 'alimentadora', label: '15A', desc: '15A La Loma - Central de Autobuses' },
+  '15B': { tipo: 'alimentadora', label: '15B', desc: '15B Abetos - E. C. de Autobuses' },
+  '15C': { tipo: 'alimentadora', label: '15C', desc: '15C Fracc. Colosio - E. C. de Autobuses' },
+  '16': { tipo: 'alimentadora', label: '16', desc: '16 San Carlos - E. Zona Plateada' },
+  '17': { tipo: 'alimentadora', label: '17', desc: '17 Tezontle - Av. Universidad' },
+  '19': { tipo: 'alimentadora', label: '19', desc: '19 Parque de Poblamiento 1 y 2' },
+  '20B': { tipo: 'alimentadora', label: '20B', desc: '20B Ruta Incluyente Poniente - Oriente' },
   'T-SIN ASIGNAR': { tipo: 'troncal', label: 'T-SIN ASIGNAR', desc: 'Troncal Sin Asignar' },
-  'RA-SIN ASIGNAR': { tipo: 'alimentadora', label: 'RA-SIN ASIGNAR', desc: 'Alimentadora Sin Asignar' }
+  'SIN ASIGNAR': { tipo: 'alimentadora', label: 'SIN ASIGNAR', desc: 'Alimentadora Sin Asignar' }
 };
 
 const normalizeRutaKey = (rawRuta, tipoUnidad) => {
   if (!rawRuta || rawRuta.trim() === '' || rawRuta.toUpperCase().includes('SIN ASIGNAR')) {
     const isTroncal = (tipoUnidad || '').toUpperCase().includes('URBANUS');
-    return isTroncal ? 'T-SIN ASIGNAR' : 'RA-SIN ASIGNAR';
+    return isTroncal ? 'T-SIN ASIGNAR' : 'SIN ASIGNAR';
   }
   let clean = rawRuta.toUpperCase().trim();
   const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)/i);
   if (tMatch) return 'T' + tMatch[1].padStart(2, '0');
 
   clean = clean.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
-  if (clean === '4') clean = '4A';
+  if (clean === '4A') clean = '4';
   const m = clean.match(/^0*(\d+[A-Z]*)/i);
   if (m) return m[1].toUpperCase();
   return clean;
@@ -351,10 +354,12 @@ export default function CentroControl() {
       const key = normalizeRutaKey(rawRuta, tipoUnidad);
 
       if (!routesMap[key]) {
+        const isTroncal = key.startsWith('T');
+        const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
         const info = ROUTE_DESCRIPTIONS[key] || {
-          tipo: key.startsWith('T') ? 'troncal' : 'alimentadora',
-          label: key.startsWith('T') ? key : (key.startsWith('RA') ? key : `RA ${key}`),
-          desc: `Ruta ${key}`
+          tipo: isTroncal ? 'troncal' : 'alimentadora',
+          label: isTroncal ? key : cleanKey,
+          desc: `Ruta ${cleanKey}`
         };
         routesMap[key] = {
           id: key,
