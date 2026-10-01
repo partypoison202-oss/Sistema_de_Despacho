@@ -19,21 +19,30 @@ export default function LocalSearchBar({ unidades = [], onSelectUnit, moduleName
       return;
     }
 
+    // Identificar si el usuario busca por ECO (ej. '7', '007', 'ECO007', 'ECO 7')
+    const esBusquedaEco = /^(ECO\s*[-_]?)?\d+$/i.test(searchTerm);
+    const searchAsEco = esBusquedaEco ? normalizarNumeroEco(searchTerm) : null;
+    const searchLimpio = searchTerm.replace(/[-\s]/g, '');
+
     // Buscar la unidad en la lista de unidades del componente padre
     const encontrada = unidades.find(u => {
       const valorEco = u.numero_eco !== undefined ? u.numero_eco : u.eco;
       const ecoUnidad = normalizarNumeroEco(valorEco);
       const ruta = u.ruta_asignada || u.ruta || u.ruta_nombre || '';
       const rutaNormalizada = ruta.toString().trim().toUpperCase();
+      const rutaLimpia = rutaNormalizada.replace(/[-\s]/g, '');
       
-      // Coincidencia exacta por ECO (Ej. si usuario tecleó '7' o '007' o 'ECO007')
-      const searchAsEco = normalizarNumeroEco(searchTerm);
+      // Coincidencia directa por eco o display
+      if (valorEco && String(valorEco).trim().toUpperCase() === searchTerm) return true;
+      if (u.display && String(u.display).trim().toUpperCase().replace(/\s+/g, '') === searchTerm.replace(/\s+/g, '')) return true;
+
+      // Coincidencia normalizada por ECO (Ej. si usuario tecleó '7' o '007' o 'ECO007')
       if (searchAsEco && ecoUnidad === searchAsEco) {
         return true;
       }
       
-      // Coincidencia EXACTA por Ruta (Ej. si usuario tecleó 'T01', no queremos que 'T' haga match con 'T01')
-      if (rutaNormalizada === searchTerm) {
+      // Coincidencia EXACTA o flexible por Ruta (Ej. si usuario tecleó 'T01' o 'T-01')
+      if (rutaNormalizada && (rutaNormalizada === searchTerm || (rutaLimpia && rutaLimpia === searchLimpio))) {
         return true;
       }
       
