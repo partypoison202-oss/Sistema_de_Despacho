@@ -1616,24 +1616,28 @@ class DespachoController extends Controller
         $request->validate([
             'tipo' => 'required|string',
             'numero_eco' => 'required|string',
-            'falla' => 'nullable|string|max:50',
+            'falla' => 'nullable|string|max:100',
             'corridas' => 'nullable|integer',
-            'ciclo' => 'nullable|string|max:10',
-            'motivo' => 'nullable|string|max:50'
+            'ciclo' => 'nullable|string|max:50',
+            'motivo' => 'nullable|string|max:150'
         ]);
 
         $tipoNormalizado = strtolower(trim($request->tipo));
-
-
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
-        $fechaHoy = Carbon::today()->toDateString();
-        $fechaHoy = Carbon::today()->toDateString();
 
         $registro = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
             ->where('unidades.numero_eco', $numeroEcoClean)
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->select('informacion_operativa.id', 'informacion_operativa.numero_tarjeton', 'informacion_operativa.motivo')
+            ->select(
+                'informacion_operativa.id',
+                'informacion_operativa.unidad_id',
+                'informacion_operativa.numero_tarjeton',
+                'informacion_operativa.motivo',
+                'informacion_operativa.ciclo',
+                'informacion_operativa.corridas',
+                'informacion_operativa.falla'
+            )
             ->first();
 
         if (!$registro) {
@@ -1646,47 +1650,60 @@ class DespachoController extends Controller
         if ($request->has('ciclo')) $updateData['ciclo'] = $request->ciclo;
         if ($request->has('motivo')) $updateData['motivo'] = $request->motivo;
 
-        $actualizado = false;
-        if (!empty($updateData)) {
-            $actualizado = DB::table('informacion_operativa')
-                ->where('id', $registro->id)
-                ->update($updateData);
+        try {
+            if (!empty($updateData)) {
+                DB::table('informacion_operativa')
+                    ->where('id', $registro->id)
+                    ->update($updateData);
 
-            // Logica para sumar o restar faltas si el motivo cambia a/desde "Falta de Operador"
-            if ($request->has('motivo') && $registro->numero_tarjeton) {
-                $oldMotivo = $registro->motivo;
-                $newMotivo = $request->motivo;
-                
-                if ($newMotivo === 'Falta de Operador' && $oldMotivo !== 'Falta de Operador') {
-                    // Agregar falta al conductor
-                    DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->increment('faltas');
-                } elseif ($oldMotivo === 'Falta de Operador' && $newMotivo !== 'Falta de Operador') {
-                    // Quitar falta si se equivocaron
-                    DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->where('faltas', '>', 0)->decrement('faltas');
+                // Logica para sumar o restar faltas si el motivo cambia a/desde "Falta de Operador"
+                if ($request->has('motivo') && !empty($registro->numero_tarjeton)) {
+                    $oldMotivo = strtoupper(trim((string)($registro->motivo ?? '')));
+                    $newMotivo = strtoupper(trim((string)($request->motivo ?? '')));
+                    
+                    if ($newMotivo === 'FALTA DE OPERADOR' && $oldMotivo !== 'FALTA DE OPERADOR') {
+                        // Agregar falta al conductor
+                        DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->increment('faltas');
+                    } elseif ($oldMotivo === 'FALTA DE OPERADOR' && $newMotivo !== 'FALTA DE OPERADOR') {
+                        // Quitar falta si se equivocaron
+                        DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->where('faltas', '>', 0)->decrement('faltas');
+                    }
+                }
+
+                // Registrar en bitácora datos adicionales modificados
+                try {
+                    $detallesArray = [];
+                    if ($request->has('corridas') && $request->corridas != ($registro->corridas ?? null)) {
+                        $detallesArray[] = "CORRIDAS: " . ($registro->corridas ?? '0') . " -> " . $request->corridas;
+                    }
+                    if ($request->has('ciclo') && $request->ciclo != ($registro->ciclo ?? null)) {
+                        $detallesArray[] = "CICLO: " . ($registro->ciclo ?? 'N/A') . " -> " . ($request->ciclo ?? 'N/A');
+                    }
+                    if ($request->has('motivo') && $request->motivo != ($registro->motivo ?? null)) {
+                        $detallesArray[] = "MOTIVO: " . ($registro->motivo ?? 'SIN MOTIVO') . " -> " . ($request->motivo ?? 'SIN MOTIVO');
+                    }
+                    if ($request->has('falla') && $request->falla != ($registro->falla ?? null)) {
+                        $detallesArray[] = "FALLA: " . ($registro->falla ?? 'SIN FALLA') . " -> " . ($request->falla ?? 'SIN FALLA');
+                    }
+
+                    if (!empty($detallesArray) && !empty($registro->unidad_id)) {
+                        \App\Helpers\BitacoraHelper::registrarCambio(
+                            $registro->unidad_id,
+                            'ACTUALIZACION_DATOS',
+                            "ACTUALIZACIÓN DE DATOS - " . implode(' | ', $detallesArray)
+                        );
+                    }
+                } catch (\Throwable $bitacoraEx) {
+                    \Log::warning("Bitacora error al actualizar adicionales: " . $bitacoraEx->getMessage());
                 }
             }
 
-            // Registrar en bitácora datos adicionales modificados
-            $detallesArray = [];
-            if ($request->has('corridas') && $request->corridas !== $registro->corridas) $detallesArray[] = "CORRIDAS: " . ($registro->corridas ?? '0') . " -> " . $request->corridas;
-            if ($request->has('ciclo') && $request->ciclo !== $registro->ciclo) $detallesArray[] = "CICLO: " . ($registro->ciclo ?? 'N/A') . " -> " . $request->ciclo;
-            if ($request->has('motivo') && $request->motivo !== $registro->motivo) $detallesArray[] = "MOTIVO: " . ($registro->motivo ?? 'SIN MOTIVO') . " -> " . $request->motivo;
-            if ($request->has('falla') && $request->falla !== $registro->falla) $detallesArray[] = "FALLA: " . ($registro->falla ?? 'SIN FALLA') . " -> " . $request->falla;
-
-            if (!empty($detallesArray)) {
-                \App\Helpers\BitacoraHelper::registrarCambio(
-                    $registro->unidad_id,
-                    'ACTUALIZACION_DATOS',
-                    "ACTUALIZACIÓN DE DATOS - " . implode(' | ', $detallesArray)
-                );
-            }
-        }
-
-        if ($actualizado !== false) {
             return response()->json(['status' => 'success', 'message' => 'Datos adicionales guardados'], 200);
-        }
 
-        return response()->json(['status' => 'error', 'message' => 'No se pudo actualizar'], 500);
+        } catch (\Throwable $e) {
+            \Log::error("Error en actualizarAdicionales: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Error al guardar los datos adicionales'], 500);
+        }
     }
 
     /**
