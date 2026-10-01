@@ -122,7 +122,7 @@ export default function CentroControl() {
         const isNoProgramada = est === 'no_programada' || est === 'no programada';
         return matchesModel && !isNoProgramada;
       });
-      const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
+      const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
 
       // Operación = las que YA salieron de despacho (tienen hora real de salida de patio)
       const unidadesOperacion = units.filter((d) => {
@@ -142,7 +142,7 @@ export default function CentroControl() {
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      const programadas = units.length;
+      const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
