@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use App\Helpers\BitacoraHelper;
 
@@ -3428,25 +3429,45 @@ class DespachoController extends Controller
             $fechaFiltro = $request->query('fecha');
             if (!$fechaFiltro) {
                 // Al registrarse con fecha del día anterior, buscar la fecha más reciente registrada
-                $maxFecha = DB::table('unidades')
-                    ->whereNotNull('litros_combustible')
-                    ->where('litros_combustible', '>', 0)
-                    ->max('fecha_ultima_carga');
-                $fechaFiltro = $maxFecha ?: \Carbon\Carbon::yesterday()->toDateString();
+                $maxFecha = null;
+                if (Schema::hasTable('unidades')) {
+                    $maxFecha = DB::table('unidades')
+                        ->whereNotNull('litros_combustible')
+                        ->where('litros_combustible', '!=', '')
+                        ->where('litros_combustible', '!=', '0')
+                        ->where('litros_combustible', '!=', '0.0')
+                        ->whereNotNull('fecha_ultima_carga')
+                        ->max('fecha_ultima_carga');
+                }
+                
+                if (!$maxFecha && Schema::hasTable('historial_mantenimiento')) {
+                    $maxFecha = DB::table('historial_mantenimiento')
+                        ->whereNotNull('litros_combustible')
+                        ->where('litros_combustible', '!=', '')
+                        ->where('litros_combustible', '!=', '0')
+                        ->where('litros_combustible', '!=', '0.0')
+                        ->whereNotNull('fecha_ultima_carga')
+                        ->max('fecha_ultima_carga');
+                }
+
+                $fechaFiltro = $maxFecha ? Carbon::parse($maxFecha)->toDateString() : Carbon::yesterday()->toDateString();
             }
             $today = $fechaFiltro;
-            $unidades = DB::table('unidades')->get();
-            $informacion = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
-            $transportes = DB::table('transportes')->get()->keyBy('id');
+            $unidades = Schema::hasTable('unidades') ? DB::table('unidades')->get() : collect();
+            $informacion = Schema::hasTable('informacion_operativa') ? DB::table('informacion_operativa')->get()->keyBy('unidad_id') : collect();
+            $transportes = Schema::hasTable('transportes') ? DB::table('transportes')->get()->keyBy('id') : collect();
 
             // Cargar historial de mantenimiento con kilometraje/odometro para calcular rendimiento
-            $historialPorUnidad = DB::table('historial_mantenimiento')
-                ->where(function($q) {
-                    $q->whereNotNull('kilometraje')->orWhereNotNull('odometro');
-                })
-                ->orderBy('id', 'desc')
-                ->get()
-                ->groupBy('unidad_id');
+            $historialPorUnidad = collect();
+            if (Schema::hasTable('historial_mantenimiento')) {
+                $historialPorUnidad = DB::table('historial_mantenimiento')
+                    ->where(function($q) {
+                        $q->whereNotNull('kilometraje')->orWhereNotNull('odometro');
+                    })
+                    ->orderBy('id', 'desc')
+                    ->get()
+                    ->groupBy('unidad_id');
+            }
 
             $reporte = [];
             $tipos = ['urbanuss', 'zafiro', 'urvan', 'orion'];
@@ -3459,19 +3480,22 @@ class DespachoController extends Controller
                     $transporte = $transportes->get($u->transporte_id);
                     $nombreTrans = $transporte ? strtolower(trim($transporte->nombre)) : '';
                     if ($tipo === 'urvan' && $nombreTrans === 'vagoneta') return true;
-                    return $nombreTrans === $tipo;
+                    if ($nombreTrans === $tipo) return true;
+                    $tipoU = strtolower(trim($u->tipo ?? ''));
+                    if ($tipo === 'urvan' && ($tipoU === 'urvan' || $tipoU === 'vagoneta')) return true;
+                    return $tipoU === $tipo;
                 });
 
                 $parque = $unidadesTipo->count();
                 
                 $unidadesCargaron = $unidadesTipo->filter(function($u) use ($today) {
-                    $fecha = $u->fecha_ultima_carga ?? '';
-                    return str_starts_with($fecha, $today) && floatval($u->litros_combustible) > 0;
+                    $fecha = (string)($u->fecha_ultima_carga ?? '');
+                    return str_starts_with($fecha, $today) && floatval($u->litros_combustible ?? 0) > 0;
                 });
                 
                 $cargaronCount = $unidadesCargaron->count();
                 $sinCargarCount = $parque - $cargaronCount;
-                $litrosTotal = $unidadesCargaron->sum('litros_combustible');
+                $litrosTotal = round($unidadesCargaron->sum(fn($u) => floatval($u->litros_combustible ?? 0)), 2);
                 
                 $porcentaje = $parque > 0 ? round(($cargaronCount / $parque) * 100) : 0;
 
@@ -3480,7 +3504,7 @@ class DespachoController extends Controller
                 $litrosDeltaTipo = 0;
 
                 foreach ($unidadesCargaron as $u) {
-                    $litrosU = floatval($u->litros_combustible);
+                    $litrosU = floatval($u->litros_combustible ?? 0);
                     if ($litrosU <= 0) continue;
 
                     $records = $historialPorUnidad->get($u->id);
@@ -3526,26 +3550,27 @@ class DespachoController extends Controller
                 
                 if ($sinCargarCount > 0) {
                     $unidadesSinCargar = $unidadesTipo->filter(function($u) use ($today) {
-                        $fecha = $u->fecha_ultima_carga ?? '';
-                        return !(str_starts_with($fecha, $today) && floatval($u->litros_combustible) > 0);
+                        $fecha = (string)($u->fecha_ultima_carga ?? '');
+                        return !(str_starts_with($fecha, $today) && floatval($u->litros_combustible ?? 0) > 0);
                     });
                     
                     $estatusCounts = [];
                     foreach($unidadesSinCargar as $u) {
                         $info = $informacion->get($u->id);
-                        $est = $info ? strtolower(trim($info->estatus)) : 'operacion';
+                        $est = $info ? strtolower(trim($info->estatus ?? '')) : 'operacion';
+                        if (!$est) $est = 'operacion';
                         if(!isset($estatusCounts[$est])) $estatusCounts[$est] = 0;
                         $estatusCounts[$est]++;
                     }
                     
                     arsort($estatusCounts);
-                    $primaryEstatus = key($estatusCounts);
-                    $countEstatus = current($estatusCounts);
+                    $primaryEstatus = key($estatusCounts) ?: 'operacion';
+                    $countEstatus = current($estatusCounts) ?: 0;
                     
                     if ($primaryEstatus === 'reserva') {
                         $motivo = 'Combustible suficiente';
                         $obs = "UNIDADES RESERVA";
-                    } elseif (in_array($primaryEstatus, ['mantenimiento', 'taller', 'baja'])) {
+                    } elseif (in_array($primaryEstatus, ['mantenimiento', 'taller', 'baja', 'percance'])) {
                         $motivo = 'Fuera de operación';
                         $obs = "$countEstatus UNIDADES FUERA DE OPERACIÓN";
                     } else {
@@ -3575,7 +3600,7 @@ class DespachoController extends Controller
             }
 
             $totales = [
-                'litros_totales' => collect($reporte)->sum('litros_cargados'),
+                'litros_totales' => round(collect($reporte)->sum('litros_cargados'), 2),
                 'unidades_cargaron' => collect($reporte)->sum('unidades_cargaron'),
                 'unidades_sin_cargar' => collect($reporte)->sum('unidades_sin_cargar'),
                 'rendimiento' => $totalesLitrosKm > 0 ? round($totalesKm / $totalesLitrosKm, 2) : null,
@@ -3590,7 +3615,10 @@ class DespachoController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('[reporteCombustibleDiario] Error: ' . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Error al generar el reporte'], 500);
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'Error al generar el reporte: ' . $e->getMessage()
+            ], 500);
         }
     }
     /**
@@ -3604,6 +3632,19 @@ class DespachoController extends Controller
                 'totales' => 'required|array',
             ]);
 
+            // Si la tabla no existe en la base de datos de producción, crearla automáticamente
+            if (!Schema::hasTable('reportes_combustible')) {
+                Schema::create('reportes_combustible', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->id();
+                    $table->string('folio', 20)->unique();
+                    $table->date('fecha_reporte');
+                    $table->string('generado_por', 150)->nullable();
+                    $table->json('datos_resumen')->nullable();
+                    $table->json('datos_detalle')->nullable();
+                    $table->timestamps();
+                });
+            }
+
             // Generar folio incremental: contar registros existentes + 1
             $count = DB::table('reportes_combustible')->count();
             $folio = 'COMB-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
@@ -3616,7 +3657,7 @@ class DespachoController extends Controller
 
             // Obtener el nombre del usuario autenticado
             $usuario = $request->user();
-            $generadoPor = $usuario ? $usuario->nombre_completo : 'Sistema';
+            $generadoPor = $usuario ? ($usuario->nombre_completo ?? $usuario->nombre ?? 'Sistema') : 'Sistema';
 
             DB::table('reportes_combustible')->insert([
                 'folio'          => $folio,
@@ -3634,7 +3675,10 @@ class DespachoController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('[registrarReporteCombustible] Error: ' . $e->getMessage());
-            return response()->json(['status' => 'error', 'message' => 'Error al registrar el reporte'], 500);
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'Error al registrar el reporte: ' . $e->getMessage()
+            ], 500);
         }
     }
 

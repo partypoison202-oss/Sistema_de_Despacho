@@ -157,7 +157,14 @@ export default function Mantenimiento() {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error('Error al obtener datos');
+      if (!res.ok) {
+        let errMsg = 'Error al obtener datos';
+        try {
+          const errJson = await res.json();
+          if (errJson && errJson.message) errMsg = errJson.message;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
       const json = await res.json();
 
       if (json.status === 'success') {
@@ -207,7 +214,7 @@ export default function Mantenimiento() {
     } catch (e) {
       console.error(e);
       setGenerandoPDF(false);
-      Swal.fire('Error', 'No se pudo generar el reporte', 'error');
+      Swal.fire('Error', e.message || 'No se pudo generar el reporte', 'error');
     }
   };
 
