@@ -564,3 +564,331 @@
   justify-content: flex-end;
   margin-top: 20px;
 }
+
+/* ========================================================
+   SELECTOR DE VISTA: TIPO DE UNIDAD VS RUTAS
+   ======================================================== */
+.centro-view-selector {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1.5px solid #e2e8f0;
+  gap: 4px;
+}
+
+.centro-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.centro-view-tab:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.centro-view-tab.active {
+  background: #601a2a;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(96, 26, 42, 0.25);
+}
+
+/* ========================================================
+   BARRA DE HERRAMIENTAS Y FILTROS DE RUTA
+   ======================================================== */
+.centro-route-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: #ffffff;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.centro-route-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.centro-route-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.centro-route-pill:hover {
+  border-color: #601a2a;
+  color: #601a2a;
+  background: #ffffff;
+}
+
+.centro-route-pill.active {
+  background: #601a2a;
+  color: #ffffff;
+  border-color: #601a2a;
+  box-shadow: 0 2px 6px rgba(96, 26, 42, 0.2);
+}
+
+.centro-route-pill__count {
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.centro-route-pill.active .centro-route-pill__count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.centro-route-filter-input {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #e2e8f0;
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  min-width: 180px;
+  transition: all 0.2s ease;
+}
+
+.centro-route-filter-input:focus {
+  border-color: #601a2a;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.1);
+}
+
+/* ========================================================
+   CUADRÍCULA Y TARJETAS DE DESGLOSE POR RUTA
+   ======================================================== */
+.centro-route-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+  margin-bottom: 36px;
+}
+
+.centro-route-card {
+  background: var(--cc-card-bg);
+  border-radius: var(--cc-radius);
+  border: 1px solid var(--cc-border);
+  box-shadow: var(--cc-shadow);
+  padding: 20px;
+  border-top: 4px solid #601a2a;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.centro-route-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(96, 26, 42, 0.12);
+}
+
+.centro-route-card--troncal {
+  border-top-color: #601a2a;
+}
+
+.centro-route-card--alimentadora {
+  border-top-color: #c5a059;
+}
+
+.centro-route-card--sin-asignar {
+  border-top-color: #94a3b8;
+}
+
+.centro-route-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.centro-route-card__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.centro-route-badge {
+  font-size: 0.95rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  letter-spacing: 0.03em;
+}
+
+.centro-route-badge--troncal {
+  background: #601a2a;
+  color: #ffffff;
+}
+
+.centro-route-badge--alimentadora {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.centro-route-badge--sin-asignar {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.centro-route-type-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.centro-route-type-tag--troncal {
+  background: rgba(96, 26, 42, 0.08);
+  color: #601a2a;
+}
+
+.centro-route-type-tag--alimentadora {
+  background: rgba(197, 160, 89, 0.15);
+  color: #854d0e;
+}
+
+.centro-route-type-tag--sin-asignar {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.centro-route-card__total {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.centro-route-card__desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0 0 14px 0;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+/* Botón expandir unidades de ruta */
+.centro-route-toggle-units {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.centro-route-toggle-units:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.centro-route-units-list {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.centro-route-unit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  gap: 8px;
+}
+
+.centro-route-unit-row span.eco {
+  font-weight: 700;
+  color: #601a2a;
+  min-width: 60px;
+}
+
+.centro-route-unit-row span.cond {
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.centro-route-unit-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.centro-route-unit-badge--operacion {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.centro-route-unit-badge--reserva {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.centro-route-unit-badge--mantenimiento {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.centro-route-unit-badge--percance {
+  background: #fef2f2;
+  color: #b91c1c;
+}
