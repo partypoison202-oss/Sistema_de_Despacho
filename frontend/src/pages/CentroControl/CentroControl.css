@@ -857,6 +857,17 @@
   min-width: 60px;
 }
 
+.centro-route-unit-row span.corrida {
+  font-weight: 700;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
 .centro-route-unit-row span.cond {
   color: #334155;
   overflow: hidden;

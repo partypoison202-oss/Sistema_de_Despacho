@@ -197,7 +197,7 @@
 .detalle-table__head,
 .detalle-table__row {
   display: grid;
-  grid-template-columns: 80px 130px 1fr 100px 1.2fr;
+  grid-template-columns: 80px 130px 1fr 90px 100px 1.2fr;
   gap: 12px;
   align-items: center;
   padding: 12px 20px;
@@ -206,7 +206,7 @@
 @media (max-width: 768px) {
   .detalle-table__head,
   .detalle-table__row {
-    grid-template-columns: 80px 110px 1fr 90px;
+    grid-template-columns: 80px 110px 1fr 70px 90px;
   }
   .detalle-table__head span:last-child,
   .detalle-table__row .detalle-table__cell:last-child {
@@ -250,6 +250,11 @@
 .detalle-table__cell--unidad {
   font-weight: 700;
   color: var(--brand-maroon-text);
+}
+
+.detalle-table__cell--corrida {
+  font-weight: 600;
+  color: #1e40af;
 }
 
 .detalle-table__status {
