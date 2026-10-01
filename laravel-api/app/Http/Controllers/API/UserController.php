@@ -12,7 +12,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::with('role')
+        $users = User::with(['role', 'modulos'])
             ->where('usuario', '!=', 'sitmah_root')
             ->orderBy('id', 'asc')
             ->get();

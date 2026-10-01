@@ -183,21 +183,29 @@ export default function Usuarios() {
       } else {
         setPreviewUrl(null);
       }
+
+      // Cargar módulos existentes
+      if (user.modulos && Array.isArray(user.modulos)) {
+        const codigos = user.modulos.map(m => m.modulo_codigo);
+        setModulosSeleccionados(codigos);
+      } else {
+        setModulosSeleccionados([]);
+      }
     } else {
       setFormData({
         id: null,
         nombres: '',
-    apellidos: '',
+        apellidos: '',
         usuario: '',
         contrasena: '',
         rol_id: '',
         foto_url: null,
       });
       setPreviewUrl(null);
+      setModulosSeleccionados([]);
     }
     setSelectedFile(null); // Limpiar archivo seleccionado
     setShowPassword(false);
-    setModulosSeleccionados([]);
     setModulosSoloLectura([]);
     setIsModalOpen(true);
   };
