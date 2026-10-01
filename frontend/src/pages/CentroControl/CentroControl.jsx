@@ -904,7 +904,16 @@ export default function CentroControl() {
                     return (
                       <div
                         key={r.key}
-                        className={`centro-route-card centro-route-card--${cardModifier}`}
+                        className={`centro-route-card centro-route-card--${cardModifier} ${!cargando ? 'centro-route-card--clickable' : ''}`}
+                        style={cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}}
+                        onClick={() => !cargando && navigate(`/centro-control/detalle/ruta-${r.key}`, { state: { model: { ...r, isRoute: true } } })}
+                        role="button"
+                        tabIndex={cargando ? -1 : 0}
+                        onKeyDown={(e) => {
+                          if (!cargando && (e.key === 'Enter' || e.key === ' ')) {
+                            navigate(`/centro-control/detalle/ruta-${r.key}`, { state: { model: { ...r, isRoute: true } } });
+                          }
+                        }}
                       >
                         <div className="centro-route-card__header">
                           <div className="centro-route-card__badges">
@@ -979,52 +988,13 @@ export default function CentroControl() {
                           </div>
                         </div>
 
-                        {/* Botón desplegar unidades */}
-                        <button
-                          type="button"
-                          className="centro-route-toggle-units"
-                          onClick={() => setExpandedRoute(isExpanded ? null : r.key)}
-                        >
-                          <span>
-                            {isExpanded ? 'Ocultar unidades' : `Ver unidades asignadas (${r.units.length})`}
-                          </span>
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="16"
-                            height="16"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-                          >
-                            <polyline points="6 9 12 15 18 9" />
+                        {/* Pie interactivo para navegar al detalle */}
+                        <div className="centro-route-card__footer">
+                          <span>Ver detalle de unidades ({r.units.length})</span>
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 18 15 12 9 6" />
                           </svg>
-                        </button>
-
-                        {isExpanded && (
-                          <div className="centro-route-units-list">
-                            {r.units.map((u, uIdx) => {
-                              const uStatus = getUnitStatusInfo(u);
-                              return (
-                                <div key={uIdx} className="centro-route-unit-row">
-                                  <span className="eco">{getNumeroEconomico(u)}</span>
-                                  <span className="corrida" title={`Corrida: ${getCorrida(u)}`}>
-                                    {getCorrida(u) !== '—' ? `Corrida ${getCorrida(u)}` : 'S/C'}
-                                  </span>
-                                  <span className="cond" title={getConductor(u)}>
-                                    {getConductor(u)}
-                                    {getTarjeton(u) !== '—' && <small style={{ color: '#94a3b8' }}> ({getTarjeton(u)})</small>}
-                                  </span>
-                                  <span className={`centro-route-unit-badge centro-route-unit-badge--${uStatus.color}`}>
-                                    {uStatus.label}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}

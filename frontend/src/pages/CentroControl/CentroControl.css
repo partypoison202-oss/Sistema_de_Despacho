@@ -805,50 +805,40 @@
   font-weight: 500;
 }
 
-/* Botón expandir unidades de ruta */
-.centro-route-toggle-units {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 8px 12px;
-  margin-top: 14px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
-  font-size: 0.78rem;
-  font-weight: 600;
+/* Estilo clickeable y pie de tarjeta para navegar al detalle */
+.centro-route-card--clickable {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.centro-route-toggle-units:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #0f172a;
+.centro-route-card--clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(96, 26, 42, 0.14);
 }
 
-.centro-route-units-list {
-  margin-top: 10px;
-  padding-top: 10px;
+.centro-route-card__footer {
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid #f1f5f9;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.centro-route-unit-row {
-  display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
-  background: #f8fafc;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cc-maroon);
+  transition: color 0.15s ease;
+}
+
+.centro-route-card--clickable:hover .centro-route-card__footer {
+  color: #831843;
+}
+
+.centro-route-card__footer svg {
+  transition: transform 0.2s ease;
+}
+
+.centro-route-card--clickable:hover .centro-route-card__footer svg {
+  transform: translateX(4px);
 }
 
 .centro-route-unit-row span.eco {
