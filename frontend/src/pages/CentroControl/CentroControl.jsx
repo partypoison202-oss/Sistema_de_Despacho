@@ -282,6 +282,13 @@ export default function CentroControl() {
     d.NUMERO_ECONOMICO ?? d.NO_ECONOMICO ?? d.NUM_ECONOMICO ?? d.ECONOMICO ?? d.UNIDAD ?? d.NO_UNIDAD ?? 'S/N';
   const getRuta = (d) =>
     d.RUTA ?? d.NOMBRE_RUTA ?? d.NO_RUTA ?? d.RUTA_ASIGNADA ?? 'Sin ruta asignada';
+  const getCorrida = (d) => {
+    const val = d.CORRIDAS ?? d.CORRIDA ?? d.corrida ?? d.corridas ?? d.MANTENIMIENTO_CORRIDA ?? d.mantenimiento_corrida;
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      return String(val).trim();
+    }
+    return '—';
+  };
   const getConductor = (d) =>
     d.CONDUCTOR ?? d.NOMBRE_CONDUCTOR ?? d.CHOFER ?? d.NOMBRE_CHOFER ?? d.OPERADOR ?? 'Sin persona conductora asignada';
   const getTarjeton = (d) =>
@@ -317,6 +324,7 @@ export default function CentroControl() {
     allUnitsFiltered = allUnits.filter((u) =>
       getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
       getRuta(u).toLowerCase().includes(term) ||
+      getCorrida(u).toLowerCase().includes(term) ||
       getConductor(u).toLowerCase().includes(term) ||
       getTarjeton(u).toString().toLowerCase().includes(term) ||
       u.__statusLabel.toLowerCase().includes(term) ||
@@ -436,7 +444,8 @@ export default function CentroControl() {
         const matchUnits = r.units.some(u => {
           const eco = (u.NUMERO_ECONOMICO ?? u.ECONOMICO ?? '').toString().toLowerCase();
           const cond = (u.CONDUCTOR ?? u.NOMBRE_CONDUCTOR ?? '').toLowerCase();
-          return eco.includes(query) || cond.includes(query);
+          const cor = getCorrida(u).toLowerCase();
+          return eco.includes(query) || cond.includes(query) || cor.includes(query);
         });
         if (!matchLabel && !matchDesc && !matchUnits) return false;
       }
@@ -702,23 +711,25 @@ export default function CentroControl() {
             <section className="centro-global-results" style={{ backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 16px rgba(96, 26, 42, 0.08)', overflow: 'hidden', marginBottom: '32px' }}>
               {allUnitsFiltered.length > 0 ? (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', background: '#f9fafb', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', background: '#f9fafb', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>
                     <span>Unidad</span>
                     <span>Modelo</span>
                     <span>Estatus</span>
                     <span>Ruta</span>
+                    <span>Corrida</span>
                     <span>Tarjetón</span>
                     <span>Conductor</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {allUnitsFiltered.map((u, i) => (
-                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
+                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
                         <span style={{ fontWeight: '700', color: '#601a2a' }}>{getNumeroEconomico(u)}</span>
                         <span style={{ fontWeight: '600' }}>{u.__modelInfo.label}</span>
                         <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6' }}>
                           {u.__statusLabel}
                         </span>
                         <span>{getRuta(u)}</span>
+                        <span style={{ fontWeight: '600', color: '#1e40af' }}>{getCorrida(u)}</span>
                         <span>{getTarjeton(u)}</span>
                         <span>{getConductor(u)}</span>
                       </div>
@@ -999,6 +1010,9 @@ export default function CentroControl() {
                               return (
                                 <div key={uIdx} className="centro-route-unit-row">
                                   <span className="eco">{getNumeroEconomico(u)}</span>
+                                  <span className="corrida" title={`Corrida: ${getCorrida(u)}`}>
+                                    {getCorrida(u) !== '—' ? `Corrida ${getCorrida(u)}` : 'S/C'}
+                                  </span>
                                   <span className="cond" title={getConductor(u)}>
                                     {getConductor(u)}
                                     {getTarjeton(u) !== '—' && <small style={{ color: '#94a3b8' }}> ({getTarjeton(u)})</small>}

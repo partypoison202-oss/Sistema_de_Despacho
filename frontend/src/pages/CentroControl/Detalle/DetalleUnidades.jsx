@@ -22,6 +22,14 @@ const getRuta = (d) =>
   d.RUTA_ASIGNADA ??
   'Sin ruta asignada';
 
+const getCorrida = (d) => {
+  const val = d.CORRIDAS ?? d.CORRIDA ?? d.corrida ?? d.corridas ?? d.MANTENIMIENTO_CORRIDA ?? d.mantenimiento_corrida;
+  if (val !== undefined && val !== null && String(val).trim() !== '') {
+    return String(val).trim();
+  }
+  return '—';
+};
+
 const getConductor = (d) => {
   const rel = d.RELEVO_CONDUCTOR || d.relevo_conductor;
   if (rel && String(rel).trim() !== '') {
@@ -110,6 +118,7 @@ export default function DetalleUnidades() {
     allUnits = allUnits.filter(u => 
       getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
       getRuta(u).toLowerCase().includes(term) ||
+      getCorrida(u).toLowerCase().includes(term) ||
       getConductor(u).toLowerCase().includes(term) ||
       getTarjeton(u).toString().toLowerCase().includes(term) ||
       u.__statusLabel.toLowerCase().includes(term)
@@ -187,6 +196,7 @@ export default function DetalleUnidades() {
               <span>Unidad</span>
               <span>Estatus</span>
               <span>Ruta</span>
+              <span>Corrida</span>
               <span>Tarjetón</span>
               <span>Conductor</span>
             </div>
@@ -200,6 +210,7 @@ export default function DetalleUnidades() {
                     {u.__statusLabel}
                   </span>
                   <span className="detalle-table__cell">{getRuta(u)}</span>
+                  <span className="detalle-table__cell detalle-table__cell--corrida">{getCorrida(u)}</span>
                   <span className="detalle-table__cell">{getTarjeton(u)}</span>
                   <span className="detalle-table__cell">{getConductor(u)}</span>
                 </div>
