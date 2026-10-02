@@ -176,7 +176,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   }}>
                     Ajustes
                   </button>
-                  {((user.modulos && user.modulos.some(m => m.modulo_codigo === 'operadores')) || user.role.codigo === 'ADMINISTRADOR') && (
+                  {((user.modulos && user.modulos.some(m => (typeof m === 'object' ? m.modulo_codigo : m) === 'operadores')) || user.role.codigo === 'ADMINISTRADOR') && (
                     <button className="profile-menu-btn" onClick={() => {
                       handleConfirmExit(() => {
                         setShowProfileMenu(false);
@@ -186,7 +186,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                       Gestión de T6
                     </button>
                   )}
-                  {((user.modulos && user.modulos.some(m => m.modulo_codigo === 'maniobristas')) || user.role.codigo === 'ADMINISTRADOR') && (
+                  {((user.modulos && user.modulos.some(m => (typeof m === 'object' ? m.modulo_codigo : m) === 'maniobristas')) || user.role.codigo === 'ADMINISTRADOR') && (
                     <button className="profile-menu-btn" onClick={() => {
                       handleConfirmExit(() => {
                         setShowProfileMenu(false);
