@@ -2300,11 +2300,12 @@ export default function DetalleUnidadMantenimiento() {
             
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                <label htmlFor="folioInput" className="block text-sm font-semibold text-slate-700 mb-1">
                   Asignar número de folio:
                 </label>
                 <div className="relative">
                   <input
+                    id="folioInput"
                     type="text"
                     placeholder=""
                     value={folioFormValue}
@@ -2354,10 +2355,11 @@ export default function DetalleUnidadMantenimiento() {
             
             <div className="flex flex-col gap-5">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+                <label htmlFor="incidenciaInput" className="block text-sm font-bold text-slate-700 mb-2">
                   Asignar número de Incidencia (Opcional):
                 </label>
                 <input
+                  id="incidenciaInput"
                   type="text"
                   placeholder="Ej. 1234"
                   value={incidenciaFormValue}
@@ -2369,10 +2371,11 @@ export default function DetalleUnidadMantenimiento() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+                <label htmlFor="fallaInput" className="block text-sm font-bold text-slate-700 mb-2">
                   Falla Reportada:
                 </label>
                 <textarea
+                  id="fallaInput"
                   placeholder="Describa la falla brevemente..."
                   value={fallaFormValue}
                   maxLength={50}

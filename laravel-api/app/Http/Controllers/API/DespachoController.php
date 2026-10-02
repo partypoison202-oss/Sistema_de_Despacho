@@ -1632,7 +1632,6 @@ class DespachoController extends Controller
 
         $numeroEcoClean = str_pad(trim($request->numero_eco), 3, '0', STR_PAD_LEFT);
         $fechaHoy = Carbon::today()->toDateString();
-        $fechaHoy = Carbon::today()->toDateString();
 
         $registro = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -1661,11 +1660,12 @@ class DespachoController extends Controller
             if ($request->has('motivo') && $registro->numero_tarjeton) {
                 $oldMotivo = $registro->motivo;
                 $newMotivo = $request->motivo;
+                $motivoFalta = 'Falta de Operador';
                 
-                if ($newMotivo === 'Falta de Operador' && $oldMotivo !== 'Falta de Operador') {
+                if ($newMotivo === $motivoFalta && $oldMotivo !== $motivoFalta) {
                     // Agregar falta al conductor
                     DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->increment('faltas');
-                } elseif ($oldMotivo === 'Falta de Operador' && $newMotivo !== 'Falta de Operador') {
+                } elseif ($oldMotivo === $motivoFalta && $newMotivo !== $motivoFalta) {
                     // Quitar falta si se equivocaron
                     DB::table('conductores')->where('tarjeton', $registro->numero_tarjeton)->where('faltas', '>', 0)->decrement('faltas');
                 }
@@ -1673,10 +1673,10 @@ class DespachoController extends Controller
 
             // Registrar en bitácora datos adicionales modificados
             $detallesArray = [];
-            if ($request->has('corridas') && $request->corridas !== $registro->corridas) $detallesArray[] = "CORRIDAS: " . ($registro->corridas ?? '0') . " -> " . $request->corridas;
-            if ($request->has('ciclo') && $request->ciclo !== $registro->ciclo) $detallesArray[] = "CICLO: " . ($registro->ciclo ?? 'N/A') . " -> " . $request->ciclo;
-            if ($request->has('motivo') && $request->motivo !== $registro->motivo) $detallesArray[] = "MOTIVO: " . ($registro->motivo ?? 'SIN MOTIVO') . " -> " . $request->motivo;
-            if ($request->has('falla') && $request->falla !== $registro->falla) $detallesArray[] = "FALLA: " . ($registro->falla ?? 'SIN FALLA') . " -> " . $request->falla;
+            if ($request->has('corridas') && $request->corridas !== $registro->corridas) { $detallesArray[] = "CORRIDAS: " . ($registro->corridas ?? '0') . " -> " . $request->corridas; }
+            if ($request->has('ciclo') && $request->ciclo !== $registro->ciclo) { $detallesArray[] = "CICLO: " . ($registro->ciclo ?? 'N/A') . " -> " . $request->ciclo; }
+            if ($request->has('motivo') && $request->motivo !== $registro->motivo) { $detallesArray[] = "MOTIVO: " . ($registro->motivo ?? 'SIN MOTIVO') . " -> " . $request->motivo; }
+            if ($request->has('falla') && $request->falla !== $registro->falla) { $detallesArray[] = "FALLA: " . ($registro->falla ?? 'SIN FALLA') . " -> " . $request->falla; }
 
             if (!empty($detallesArray)) {
                 \App\Helpers\BitacoraHelper::registrarCambio(
@@ -2486,15 +2486,15 @@ class DespachoController extends Controller
                 }
 
                 $updateData = [];
-                if ($request->has('ruta')) $updateData['ruta'] = $request->ruta;
-                if ($request->has('tarjeton')) $updateData['numero_tarjeton'] = $request->tarjeton;
-                if ($request->has('conductor')) $updateData['nombre_conductor'] = $request->conductor;
-                if ($request->has('hora_salida_patio')) $updateData['hora_salida_patio'] = $request->hora_salida_patio;
-                if ($request->has('acople')) $updateData['acople'] = $request->acople;
-                if ($request->has('ciclo')) $updateData['ciclo'] = $request->ciclo;
-                if ($request->has('motivo')) $updateData['motivo'] = $request->motivo;
-                if ($request->has('falla')) $updateData['falla'] = $request->falla;
-                if ($request->has('hora_real_salida_patio')) $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio;
+                if ($request->has('ruta')) { $updateData['ruta'] = $request->ruta; }
+                if ($request->has('tarjeton')) { $updateData['numero_tarjeton'] = $request->tarjeton; }
+                if ($request->has('conductor')) { $updateData['nombre_conductor'] = $request->conductor; }
+                if ($request->has('hora_salida_patio')) { $updateData['hora_salida_patio'] = $request->hora_salida_patio; }
+                if ($request->has('acople')) { $updateData['acople'] = $request->acople; }
+                if ($request->has('ciclo')) { $updateData['ciclo'] = $request->ciclo; }
+                if ($request->has('motivo')) { $updateData['motivo'] = $request->motivo; }
+                if ($request->has('falla')) { $updateData['falla'] = $request->falla; }
+                if ($request->has('hora_real_salida_patio')) { $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio; }
                 $updateData['estatus'] = 'operacion';
 
                 DB::table('informacion_operativa')
@@ -3446,7 +3446,7 @@ class DespachoController extends Controller
                 $unidadesTipo = $unidades->filter(function($u) use ($tipo, $transportes) {
                     $transporte = $transportes->get($u->transporte_id);
                     $nombreTrans = $transporte ? strtolower(trim($transporte->nombre)) : '';
-                    if ($tipo === 'urvan' && $nombreTrans === 'vagoneta') return true;
+                    if ($tipo === 'urvan' && $nombreTrans === 'vagoneta') { return true; }
                     return $nombreTrans === $tipo;
                 });
 
@@ -3469,7 +3469,7 @@ class DespachoController extends Controller
 
                 foreach ($unidadesCargaron as $u) {
                     $litrosU = floatval($u->litros_combustible);
-                    if ($litrosU <= 0) continue;
+                    if ($litrosU <= 0) { continue; }
 
                     $records = $historialPorUnidad->get($u->id);
                     if ($records && $records->count() >= 2) {
@@ -3545,7 +3545,7 @@ class DespachoController extends Controller
                 $combustibleStr = in_array($tipo, ['urbanuss', 'zafiro', 'orion']) ? 'Diésel' : 'Gasolina';
                 $nombreDisplay = ucfirst($tipo);
                 // Mantenemos "Urbanuss" con doble 's' según solicitud
-                if ($nombreDisplay === 'Orion') $nombreDisplay = 'Orión';
+                if ($nombreDisplay === 'Orion') { $nombreDisplay = 'Orión'; }
 
                 $reporte[] = [
                     'tipo_unidad' => $nombreDisplay,
@@ -4096,10 +4096,10 @@ class DespachoController extends Controller
 
             $unidadesFormateadas = $registros->map(function ($r) use (&$kpis) {
                 $estatus = strtolower(trim($r->estatus ?? 'reserva'));
-                if ($estatus === 'operacion') $kpis['total_operacion']++;
-                elseif ($estatus === 'reserva') $kpis['total_reserva']++;
-                elseif ($estatus === 'mantenimiento') $kpis['total_mantenimiento']++;
-                else $kpis['total_reserva']++;
+                if ($estatus === 'operacion') { $kpis['total_operacion']++; }
+                elseif ($estatus === 'reserva') { $kpis['total_reserva']++; }
+                elseif ($estatus === 'mantenimiento') { $kpis['total_mantenimiento']++; }
+                else { $kpis['total_reserva']++; }
 
                 $tieneConductor = !empty(trim($r->nombre_conductor ?? '')) || !empty(trim($r->tarjeton ?? ''));
                 if ($tieneConductor) {

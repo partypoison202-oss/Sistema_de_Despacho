@@ -61,6 +61,33 @@ class AuthController extends Controller
         );
     }
 
+    private function getDefaultModulesByRole(string $role, string $usuario): array
+    {
+        if ($usuario === 'Miguel_Odon') {
+            return ['despacho', 'operadores'];
+        }
+        $defaults = [
+            'ADMINISTRADOR'        => ['despacho','encierro','capturista','relevos','mantenimiento','centro_control','historial','titan','infraccion','mesa_control','operadores','maniobristas','carga_combustible','general','programacion_pasteles'],
+            'LECTURA'              => ['despacho','encierro','capturista','relevos','mantenimiento','centro_control','historial','titan','infraccion','mesa_control','operadores','maniobristas','carga_combustible','general','programacion_pasteles'],
+            'DESPACHO'             => ['despacho', 'historial'],
+            'PLATAFORMA'           => ['mesa_control', 'historial'],
+            'MESA_CONTROL'         => ['mesa_control', 'relevos', 'centro_control', 'historial'],
+            'MESA_DE_CONTROL'      => ['mesa_control', 'relevos', 'centro_control', 'historial'],
+            'PROGRAMACION'         => ['capturista', 'relevos', 'historial'],
+            'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
+            'PROGRAMACION_PASTELES' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
+            'GESTOR_OPERADORES'    => ['operadores', 'historial'],
+            'ENCIERRO'             => ['encierro', 'historial'],
+            'CENTRO_CONTROL'       => ['centro_control', 'historial'],
+            'TITAN'                => ['titan'],
+            'INFRACCION'           => ['infraccion'],
+            'GENERAL'              => ['general'],
+            'MANTENIMIENTO'        => ['mantenimiento', 'carga_combustible', 'historial'],
+            'CARGA_DE_COMBUSTIBLE' => ['carga_combustible'],
+        ];
+        return $defaults[$role] ?? [];
+    }
+
     /**
      * Resuelve los módulos disponibles para el usuario, aplicando
      * fallback inteligente por rol en caso de no tener módulos asignados en BD.
@@ -69,10 +96,10 @@ class AuthController extends Controller
     {
         $modulosObjects = $user->modulos()->select('modulo_codigo', 'solo_lectura')->get()->toArray();
         $modulos = array_column($modulosObjects, 'modulo_codigo');
+        $roleCode = $user->role->codigo ?? '';
 
-        if ($user->role && $user->role->codigo === 'PASTELES') {
-            $defaultPasteles = ['centro_control', 'mesa_control', 'programacion_pasteles'];
-            foreach ($defaultPasteles as $dp) {
+        if ($roleCode === 'PASTELES') {
+            foreach (['centro_control', 'mesa_control', 'programacion_pasteles'] as $dp) {
                 if (!in_array($dp, $modulos)) {
                     $modulosObjects[] = ['modulo_codigo' => $dp, 'solo_lectura' => false];
                     $modulos[] = $dp;
@@ -80,60 +107,18 @@ class AuthController extends Controller
             }
         }
 
-        if ($user->role && in_array($user->role->codigo, ['GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES'])) {
-            if (!in_array('historial', $modulos)) {
-                $modulosObjects[] = ['modulo_codigo' => 'historial', 'solo_lectura' => false];
-                $modulos[] = 'historial';
-            }
+        if (in_array($roleCode, ['GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES']) && !in_array('historial', $modulos)) {
+            $modulosObjects[] = ['modulo_codigo' => 'historial', 'solo_lectura' => false];
+            $modulos[] = 'historial';
         }
 
-        if (empty($modulos) && $user->role) {
-            $defaultModulesByRole = [
-                'ADMINISTRADOR'        => [
-                    'despacho','encierro','capturista','relevos','mantenimiento',
-                    'centro_control','historial','titan','infraccion','mesa_control',
-                    'operadores','maniobristas','carga_combustible','general','programacion_pasteles'
-                ],
-                'LECTURA'              => [
-                    'despacho','encierro','capturista','relevos','mantenimiento',
-                    'centro_control','historial','titan','infraccion','mesa_control',
-                    'operadores','maniobristas','carga_combustible','general','programacion_pasteles'
-                ],
-                'DESPACHO'             => ['despacho', 'historial'],
-                'PLATAFORMA'           => ['mesa_control', 'historial'],
-                'MESA_CONTROL'         => ['mesa_control', 'relevos', 'centro_control', 'historial'],
-                'MESA_DE_CONTROL'      => ['mesa_control', 'relevos', 'centro_control', 'historial'],
-                'PROGRAMACION'         => ['capturista', 'relevos', 'historial'],
-                'PASTELES'             => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
-                'PROGRAMACION_PASTELES' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'],
-                'GESTOR_OPERADORES'    => ['operadores', 'historial'],
-                'ENCIERRO'             => ['encierro', 'historial'],
-                'CENTRO_CONTROL'       => ['centro_control', 'historial'],
-                'TITAN'                => ['titan'],
-                'INFRACCION'           => ['infraccion'],
-                'GENERAL'              => ['general'],
-                'MANTENIMIENTO'        => ['mantenimiento', 'carga_combustible', 'historial'],
-                'CARGA_DE_COMBUSTIBLE' => ['carga_combustible'],
-            ];
-
-            // Convertir fallbacks a array de objetos
-            $fallbacks = [];
-            $isLecturaRole = ($user->role->codigo === 'LECTURA');
+        if (empty($modulosObjects) && $roleCode !== '') {
+            $rawFallbacks = $this->getDefaultModulesByRole($roleCode, $user->usuario ?? '');
+            $isLecturaRole = ($roleCode === 'LECTURA');
             
-            // Caso especial usuario Miguel_Odon (perfil mixto)
-            if ($user->usuario === 'Miguel_Odon') {
-                $rawFallbacks = ['despacho', 'operadores'];
-            } else {
-                $rawFallbacks = $defaultModulesByRole[$user->role->codigo] ?? [];
-            }
-
-            foreach ($rawFallbacks as $fb) {
-                $fallbacks[] = [
-                    'modulo_codigo' => $fb,
-                    'solo_lectura' => $isLecturaRole
-                ];
-            }
-            return $fallbacks;
+            return array_map(function($fb) use ($isLecturaRole) {
+                return ['modulo_codigo' => $fb, 'solo_lectura' => $isLecturaRole];
+            }, $rawFallbacks);
         }
 
         return $modulosObjects;

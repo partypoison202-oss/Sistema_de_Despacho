@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useRef } from 'react';
+import { createContext, useState, useEffect, useRef, useMemo } from 'react';
 import API_BASE from '../config/api';
 import Swal from 'sweetalert2';
 
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const canEditModulo = (moduloCodigo) => {
-    if (!user || !user.modulos) return false;
+    if (!user?.modulos) return false;
     if (user.role?.codigo === 'ADMINISTRADOR') return true;
     if (user.role?.codigo === 'LECTURA') return false;
     
@@ -101,8 +101,12 @@ export const AuthProvider = ({ children }) => {
     return true;
   };
 
+  const contextValue = useMemo(() => ({
+    user, token, login, logout, loading, setUser, canEditModulo
+  }), [user, token, loading]);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, setUser, canEditModulo }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

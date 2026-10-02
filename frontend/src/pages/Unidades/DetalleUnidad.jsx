@@ -557,7 +557,7 @@ export default function DetalleUnidad() {
       const resultado = await respuesta.json();
       if (respuesta.ok && resultado.status === 'success') {
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: '¡Falla registrada!',
           text: 'El tipo de falla se ha guardado correctamente.',
@@ -566,7 +566,7 @@ export default function DetalleUnidad() {
         });
       } else {
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'error',
           title: 'Error',
           text: resultado.message || 'Error al guardar la falla',
@@ -576,7 +576,7 @@ export default function DetalleUnidad() {
     } catch (error) {
       console.error('Error al guardar falla:', error);
       const Swal = (await import('sweetalert2')).default;
-      Swal.fire({
+      await Swal.fire({
         icon: 'error',
         title: 'Error',
         text: 'Error de conexión',
@@ -620,7 +620,7 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: '¡Tarjetón Asignado!',
           text: `Se asignó al conductor: ${resultado.conductor}`,
@@ -629,7 +629,7 @@ export default function DetalleUnidad() {
         });
       } else {
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'error',
           title: 'Error de Asignación',
           text: resultado.message || 'Error al actualizar el tarjetón',
@@ -639,7 +639,7 @@ export default function DetalleUnidad() {
     } catch (error) {
       console.error('Error al guardar tarjetón:', error);
       const Swal = (await import('sweetalert2')).default;
-      Swal.fire({
+      await Swal.fire({
         icon: 'error',
         title: 'Error de conexión',
         text: 'No se pudo conectar con el servidor',
@@ -1095,7 +1095,7 @@ export default function DetalleUnidad() {
 
       const data = await res.json();
       if (res.ok && (data.success || data.status === 'success')) {
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: 'Estatus Actualizado',
           text: `La unidad cambió a ${nuevoEstatus}.`,
@@ -1156,11 +1156,11 @@ export default function DetalleUnidad() {
         // ✅ NUEVO: refrescar también el filtro por ruta si estaba activo
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
       } else {
-        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
+        await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
     } catch (error) {
       console.error(error);
-      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
+      await Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
     } finally {
       setCambiandoEstatus(false);
     }
@@ -1198,7 +1198,7 @@ export default function DetalleUnidad() {
 
       const data = await res.json();
       if (res.ok && (data.success || data.status === 'success')) {
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: 'Estatus Actualizado',
           text: `La unidad cambió a operación.`,
@@ -1250,11 +1250,11 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
       } else {
-        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
+        await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
     } catch (error) {
       console.error(error);
-      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
+      await Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
     } finally {
       setCambiandoEstatus(false);
     }
