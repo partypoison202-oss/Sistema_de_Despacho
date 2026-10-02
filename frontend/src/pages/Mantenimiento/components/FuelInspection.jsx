@@ -267,8 +267,8 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     numeroCinchoAdblue: '',
   });
   const [guardando, setGuardando] = useState(false);
-  const [comparativaGuardada, setComparativaGuardada] = useState(null);
-
+  const tieneDatosCapturados = form.kilometrajeGasolina !== '' || form.litrosGasolina !== '' || form.kilometrajeAdblue !== '' || form.litrosAdblue !== '' || form.numeroCincho !== '' || form.numeroCinchoAdblue !== '';
+  
   // ── Fetch del último registro ────────────────────────────────────────────
   const ecoLimpio = eco ? String(eco).replace(/\D/g, '').padStart(3, '0') : null;
 
@@ -288,8 +288,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
 
   // Limpiar la comparativa SOLO al cambiar de unidad
   useEffect(() => {
-    setComparativaGuardada(null);
-  }, [ecoLimpio]);
+      }, [ecoLimpio]);
 
   // ── Un único efecto que maneja tanto el reset como la pre-carga ─────────────
   // Esto evita la condición de carrera donde el reset pisaba al pre-populate.
@@ -352,31 +351,8 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       return;
     }
 
-    // 2. Validación de kilometraje: no puede ser menor al anterior
-    const kmAnterior = registroAnterior?.kilometraje !== undefined && registroAnterior?.kilometraje !== null
-      ? Number(registroAnterior.kilometraje) : null;
-
-    const kmGasolinaNum = Number(form.kilometrajeGasolina);
+    const kmGasolinaNum = form.kilometrajeGasolina !== '' ? Number(form.kilometrajeGasolina) : null;
     const kmAdblueNum = form.kilometrajeAdblue !== '' ? Number(form.kilometrajeAdblue) : null;
-
-    if (kmAnterior !== null && kmGasolinaNum < kmAnterior) {
-      Swal.fire({
-        icon: 'error',
-        title: '⚠️ Anomalía en Kilometraje',
-        html: `El kilometraje de ${combustibleLabel} ingresado (<b>${kmGasolinaNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el kilometraje y vuelve a intentarlo.`,
-        confirmButtonColor: '#6b1d33',
-      });
-      return;
-    }
-    if (!isVagoneta && kmAnterior !== null && kmAdblueNum !== null && kmAdblueNum < kmAnterior) {
-      Swal.fire({
-        icon: 'error',
-        title: '⚠️ Anomalía en Kilometraje',
-        html: `El kilometraje de AdBlue ingresado (<b>${kmAdblueNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el kilometraje y vuelve a intentarlo.`,
-        confirmButtonColor: '#6b1d33',
-      });
-      return;
-    }
 
     setGuardando(true);
     try {
@@ -411,38 +387,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
 
       if (response.ok && data.status === 'success') {
         // ── Calcular la comparativa antes de invalidar el caché ──
-        if (registroAnterior && (registroAnterior.kilometraje || registroAnterior.nivel_combustible)) {
-          const getDiff = (current, previous) => (Number(current) || 0) - (Number(previous) || 0);
-          const kmDiff = getDiff(form.kilometrajeGasolina, registroAnterior.kilometraje);
-          const prevKm = Number(registroAnterior.kilometraje) || 0;
-
-          setComparativaGuardada({
-            kmActual: form.kilometrajeGasolina,
-            kmDiff: kmDiff,
-            kmPct: prevKm > 0 ? (kmDiff / prevKm) * 100 : 0,
-            prevKm: prevKm,
-            fuelActual: form.nivelGasolina,
-            fuelCurrPct: fuelToPercentage(form.nivelGasolina),
-            fuelDiff: fuelToPercentage(form.nivelGasolina) - fuelToPercentage(registroAnterior.nivel_combustible),
-            fuelLitrosActual: form.litrosGasolina,
-            fuelLitrosDiff: getDiff(form.litrosGasolina, registroAnterior.litros_combustible),
-            adblueActual: form.nivelAdblue,
-            adblueCurrPct: fuelToPercentage(form.nivelAdblue),
-            adblueDiff: fuelToPercentage(form.nivelAdblue) - fuelToPercentage(registroAnterior.nivel_adblue),
-            adblueLitrosActual: form.litrosAdblue,
-            adblueLitrosDiff: getDiff(form.litrosAdblue, registroAnterior.litros_adblue),
-            isVagoneta: tipoTransporte?.toLowerCase() === 'vagoneta',
-            combustibleLabel: combustibleLabel,
-            prevLitrosGas: registroAnterior.litros_combustible || 0,
-            prevLitrosAdblue: registroAnterior.litros_adblue || 0,
-            prevNivelGas: registroAnterior.nivel_combustible,
-            prevNivelAdblue: registroAnterior.nivel_adblue,
-            lastForm: { ...form }
-          });
-        } else {
-           setComparativaGuardada(null);
-        }
-
+        
         // Invalidar cache para que al regresar a esta unidad se vea el nuevo registro
         queryClient.invalidateQueries(['mantenimiento-ultimo-registro', ecoLimpio]);
 
@@ -517,8 +462,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
             timer: 2500,
             showConfirmButton: false,
           });
-          setComparativaGuardada(null);
-          setForm(prev => ({
+                    setForm(prev => ({
             ...prev,
             kilometrajeGasolina: ''
           }));
@@ -680,7 +624,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '1rem' }}>
         {isAdmin && (
           <button
             type="button"
@@ -705,158 +649,94 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
             RESETEAR A 0
           </button>
         )}
-        <button
-          type="button"
-          disabled={guardando}
-          onClick={handleGuardar}
-          className="interactive-input"
-          style={{
-            width: 'auto',
-            padding: '0 1.5rem',
-            height: '2.3rem',
-            background: '#6b1d33',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: guardando ? 'not-allowed' : 'pointer',
-            opacity: guardando ? 0.6 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'opacity 0.2s',
-          }}
-        >
-          {guardando && (
-            <span
-              className="spinner"
-              style={{
-                width: '14px',
-                height: '14px',
-                borderWidth: '2px',
-                borderColor: 'rgba(255,255,255,0.3)',
-                borderTopColor: '#ffffff',
-                flexShrink: 0,
-                aspectRatio: '1',
-                boxSizing: 'border-box',
-              }}
-            />
-          )}
-          GUARDAR
-        </button>
+
+        {registroAnterior && !tieneDatosCapturados ? (
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={() => {
+              setForm(prev => ({
+                ...prev,
+                nivelGasolina: registroAnterior.nivel_combustible || '',
+                kilometrajeGasolina: registroAnterior.kilometraje || '',
+                fechaUltimaCargaGasolina: registroAnterior.fecha_ultima_carga || getFechaUltimaCargaDefault(),
+                litrosGasolina: registroAnterior.litros_combustible || '',
+                nivelAdblue: registroAnterior.nivel_adblue || '',
+                kilometrajeAdblue: registroAnterior.kilometraje || '',
+                fechaUltimaCargaAdblue: registroAnterior.fecha_ultima_carga || getFechaUltimaCargaDefault(),
+                litrosAdblue: registroAnterior.litros_adblue || '',
+                numeroCincho: registroAnterior.numero_cincho || '',
+                numeroCinchoAdblue: registroAnterior.numero_cincho_adblue || '',
+              }));
+            }}
+            className="interactive-input"
+            style={{
+              width: 'auto',
+              padding: '0 1rem',
+              height: '2.3rem',
+              background: 'transparent',
+              color: '#f59e0b',
+              border: '1px solid #f59e0b',
+              borderRadius: '0.5rem',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              opacity: guardando ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            EDITAR ÚLTIMO REGISTRO
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={handleGuardar}
+            className="interactive-input"
+            style={{
+              width: 'auto',
+              padding: '0 1.5rem',
+              height: '2.3rem',
+              background: '#6b1d33',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              opacity: guardando ? 0.6 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'opacity 0.2s',
+            }}
+          >
+            {guardando && (
+              <span
+                className="spinner"
+                style={{
+                  width: '14px',
+                  height: '14px',
+                  borderWidth: '2px',
+                  borderColor: 'rgba(255,255,255,0.3)',
+                  borderTopColor: '#ffffff',
+                  flexShrink: 0,
+                  aspectRatio: '1',
+                  boxSizing: 'border-box',
+                }}
+              />
+            )}
+            GUARDAR
+          </button>
+        )}
       </div>
-
-      {/* ── Comparativa Guardada (se muestra solo después de guardar) ── */}
-      {comparativaGuardada && (
-        <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#fafafa', borderRadius: '0.75rem', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#6b1d33', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', fontWeight: 700 }}>
-            <span>Resumen de Carga (Comparativa)</span>
-            <button
-              type="button"
-              onClick={() => {
-                if (comparativaGuardada.lastForm) {
-                  setForm(comparativaGuardada.lastForm);
-                }
-                setComparativaGuardada(null);
-              }}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #d1d5db',
-                color: '#374151',
-                fontSize: '0.75rem',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.borderColor = '#9ca3af'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#d1d5db'; }}
-            >
-              Editar captura
-            </button>
-          </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            
-            {comparativaGuardada.kmActual && (
-              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Kilometraje</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
-                    {Number(comparativaGuardada.kmActual || 0).toLocaleString('es-MX')} km
-                  </span>
-                  {comparativaGuardada.kmDiff !== undefined && comparativaGuardada.kmDiff !== 0 && (
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: comparativaGuardada.kmDiff >= 0 ? '#c5a059' : '#ef4444' }}>
-                      {comparativaGuardada.kmDiff > 0 ? '+' : ''}{(comparativaGuardada.kmDiff || 0).toLocaleString('es-MX')} km
-                    </span>
-                  )}
-                </div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Antes: {(comparativaGuardada.prevKm || 0).toLocaleString('es-MX')} km
-                </span>
-              </div>
-            )}
-
-            {comparativaGuardada.fuelActual !== '' && (
-              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Nivel {comparativaGuardada.combustibleLabel}</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
-                    {comparativaGuardada.fuelActual} <span style={{ fontSize: '0.85rem', color: '#6b1d33' }}>({comparativaGuardada.fuelCurrPct}%)</span>
-                  </span>
-                </div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Antes: {comparativaGuardada.prevNivelGas || '-'} {comparativaGuardada.prevNivelGas ? `(${fuelToPercentage(comparativaGuardada.prevNivelGas)}%)` : ''}
-                </span>
-              </div>
-            )}
-
-            {comparativaGuardada.fuelLitrosActual !== '' && (
-              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Litros Cargados ({comparativaGuardada.combustibleLabel})</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
-                    {comparativaGuardada.fuelLitrosActual} L
-                  </span>
-                </div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Antes: {comparativaGuardada.prevLitrosGas || 0} L
-                </span>
-              </div>
-            )}
-
-            {!comparativaGuardada.isVagoneta && comparativaGuardada.adblueActual !== '' && (
-              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Nivel AdBlue</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
-                    {comparativaGuardada.adblueActual} <span style={{ fontSize: '0.85rem', color: '#3b82f6' }}>({comparativaGuardada.adblueCurrPct}%)</span>
-                  </span>
-                </div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Antes: {comparativaGuardada.prevNivelAdblue || '-'} {comparativaGuardada.prevNivelAdblue ? `(${fuelToPercentage(comparativaGuardada.prevNivelAdblue)}%)` : ''}
-                </span>
-              </div>
-            )}
-
-            {!comparativaGuardada.isVagoneta && comparativaGuardada.adblueLitrosActual !== '' && (
-              <div style={{ background: '#fff', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid #f3f4f6' }}>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Litros Cargados (AdBlue)</span>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#374151' }}>
-                    {comparativaGuardada.adblueLitrosActual} L
-                  </span>
-                </div>
-                <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem', fontWeight: 500 }}>
-                  Antes: {comparativaGuardada.prevLitrosAdblue || 0} L
-                </span>
-              </div>
-            )}
-
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
+
+
+
+
+
+

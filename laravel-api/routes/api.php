@@ -287,6 +287,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/programacion/{fecha}', [HistorialOperativoController::class, 'getHistorialProgramacion']);
     Route::get('/historial-operativo/relevos/{fecha}', [HistorialOperativoController::class, 'getHistorialRelevos']);
     Route::get('/historial-operativo/combustible/{fecha}', [HistorialOperativoController::class, 'getHistorialCombustible']);
+    Route::post('/historial-operativo/editar-carga', [HistorialOperativoController::class, 'editarCargaCombustible']);
     Route::get('/historial-operativo/conductores', [HistorialOperativoController::class, 'getHistorialConductores']);
     Route::get('/historial-operativo/acciones/{fecha}', [HistorialOperativoController::class, 'getHistorialAcciones']);
     Route::get('/historial-operativo/alimentadoras-ayer', [HistorialOperativoController::class, 'getHistorialAlimentadorasAyer']);

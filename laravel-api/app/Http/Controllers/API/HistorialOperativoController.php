@@ -49,7 +49,8 @@ class HistorialOperativoController extends Controller
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -73,6 +74,7 @@ class HistorialOperativoController extends Controller
                 ->where('fecha_historial', $prevDate)
                 ->where('momento', 'FIN')
                 ->select(
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'historial_operativo.ruta',
                     'historial_operativo.numero_tarjeton',
@@ -101,7 +103,7 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -118,7 +120,8 @@ class HistorialOperativoController extends Controller
             ->where('fecha_historial', $fecha)
             ->where('momento', 'FIN')
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -139,6 +142,7 @@ class HistorialOperativoController extends Controller
             $fin = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->select(
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',
@@ -178,7 +182,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'INICIO')
             ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.tipo',
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
@@ -196,6 +201,7 @@ class HistorialOperativoController extends Controller
                 ->where('momento', 'FIN')
                 ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
                 ->select(
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'historial_operativo.tipo',
                     'historial_operativo.estatus',
@@ -217,7 +223,7 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -235,7 +241,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'FIN')
             ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.tipo',
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
@@ -250,6 +257,7 @@ class HistorialOperativoController extends Controller
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->whereIn('informacion_operativa.estatus', ['mantenimiento', 'reserva'])
                 ->select(
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'informacion_operativa.tipo',
                     'informacion_operativa.estatus',
@@ -267,7 +275,8 @@ class HistorialOperativoController extends Controller
             ->where('fecha_historial', $fecha)
             ->where('momento', 'ENCIERRO')
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.tipo',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton as tarjeton',
@@ -305,7 +314,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'INICIO')
             ->select(
                 'historial_operativo.tipo',
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -332,6 +342,7 @@ class HistorialOperativoController extends Controller
                 ->where('momento', 'FIN')
                 ->select(
                     'historial_operativo.tipo',
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'historial_operativo.ruta',
                     'historial_operativo.numero_tarjeton',
@@ -360,7 +371,7 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -378,7 +389,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'FIN')
             ->select(
                 'historial_operativo.tipo',
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -402,6 +414,7 @@ class HistorialOperativoController extends Controller
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->select(
                     'informacion_operativa.tipo',
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',
@@ -441,7 +454,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'INICIO')
             ->where('historial_operativo.estatus', 'MANTENIMIENTO')
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.tipo',
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
@@ -459,6 +473,7 @@ class HistorialOperativoController extends Controller
                 ->where('momento', 'FIN')
                 ->where('historial_operativo.estatus', 'MANTENIMIENTO')
                 ->select(
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'historial_operativo.tipo',
                     'historial_operativo.estatus',
@@ -480,7 +495,7 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -498,7 +513,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'FIN')
             ->where('historial_operativo.estatus', 'MANTENIMIENTO')
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.tipo',
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
@@ -513,6 +529,7 @@ class HistorialOperativoController extends Controller
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->where('informacion_operativa.estatus', 'mantenimiento')
                 ->select(
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'informacion_operativa.tipo',
                     'informacion_operativa.estatus',
@@ -529,7 +546,8 @@ class HistorialOperativoController extends Controller
             ->join('unidades', 'historial_mantenimiento.unidad_id', '=', 'unidades.id')
             ->whereDate('historial_mantenimiento.fecha_registro', $fecha)
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_mantenimiento.tipo_vehiculo as tipo',
                 'historial_mantenimiento.nivel_combustible',
                 'historial_mantenimiento.nivel_adblue',
@@ -575,7 +593,7 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -603,7 +621,8 @@ class HistorialOperativoController extends Controller
             ->whereNotNull('historial_operativo.ruta')
             ->whereRaw("TRIM(historial_operativo.ruta) != ''")
             ->select(
-                'unidades.numero_eco as economico',
+                'historial_mantenimiento.id as id_historial',
+                    'unidades.numero_eco as economico',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor'
@@ -659,7 +678,7 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'INICIO')
             ->select(
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                 'historial_operativo.tipo',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
@@ -685,7 +704,7 @@ class HistorialOperativoController extends Controller
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->select(
                     'unidades.numero_eco as economico',
-                    'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                     'informacion_operativa.tipo',
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',
@@ -827,7 +846,7 @@ class HistorialOperativoController extends Controller
 
                 $relevosQuery = $queryInfo->select(
                     'unidades.numero_eco as economico',
-                    'unidades.tipo as tipo_unidad',
+                        'unidades.tipo as tipo_unidad',
                     'informacion_operativa.tipo',
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton as titular_tarjeton',
@@ -1044,6 +1063,69 @@ class HistorialOperativoController extends Controller
     /**
      * Obtiene el historial de combustible (cargas, bitácora y reportes) para una fecha.
      */
+        public function editarCargaCombustible(Request $request)
+    {
+        try {
+            $request->validate([
+                'id_historial' => 'required|integer',
+                'nivel_combustible' => 'nullable|string',
+                'litros_combustible' => 'nullable|numeric',
+                'nivel_adblue' => 'nullable|string',
+                'litros_adblue' => 'nullable|numeric',
+                'numero_cincho' => 'nullable|string',
+                'numero_cincho_adblue' => 'nullable|string',
+                'kilometraje' => 'nullable|numeric',
+            ]);
+
+            $historial = DB::table('historial_mantenimiento')->where('id', $request->id_historial)->first();
+            if (!$historial) {
+                return response()->json(['status' => 'error', 'message' => 'Registro hist�rico no encontrado'], 404);
+            }
+
+            // Update historial_mantenimiento
+            DB::table('historial_mantenimiento')
+                ->where('id', $request->id_historial)
+                ->update([
+                    'nivel_combustible'  => $request->nivel_combustible,
+                    'litros_combustible' => $request->litros_combustible,
+                    'nivel_adblue'       => $request->nivel_adblue,
+                    'litros_adblue'      => $request->litros_adblue,
+                    'numero_cincho'      => $request->numero_cincho,
+                    'numero_cincho_adblue' => $request->numero_cincho_adblue,
+                    'kilometraje'        => $request->kilometraje,
+                    'odometro'           => $request->kilometraje, // Keep odometro in sync
+                    'updated_at'         => now(),
+                ]);
+
+            // Optional: Check if this is the most recent historial record for this unit
+            // If so, update the unidades table to keep it in sync
+            $latestHist = DB::table('historial_mantenimiento')
+                ->where('unidad_id', $historial->unidad_id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            if ($latestHist && $latestHist->id === $historial->id) {
+                DB::table('unidades')
+                    ->where('id', $historial->unidad_id)
+                    ->update([
+                        'nivel_combustible'  => $request->nivel_combustible,
+                        'litros_combustible' => $request->litros_combustible,
+                        'nivel_adblue'       => $request->nivel_adblue,
+                        'litros_adblue'      => $request->litros_adblue,
+                        'numero_cincho'      => $request->numero_cincho,
+                        'numero_cincho_adblue' => $request->numero_cincho_adblue,
+                        'kilometraje'        => $request->kilometraje,
+                        'odometro'           => $request->kilometraje,
+                        ]);
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Registro actualizado correctamente']);
+        } catch (\Exception $e) {
+            \Log::error('[editarCargaCombustible] Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Error al actualizar el registro'], 500);
+        }
+    }
+
     public function getHistorialCombustible($fecha)
     {
         try {
@@ -1061,6 +1143,7 @@ class HistorialOperativoController extends Controller
                       ->orWhereNotNull('historial_mantenimiento.numero_cincho');
                 })
                 ->select(
+                    'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
                     'historial_mantenimiento.tipo_vehiculo as tipo',
                     'historial_mantenimiento.nivel_combustible',
@@ -1090,6 +1173,7 @@ class HistorialOperativoController extends Controller
                           });
                     })
                     ->select(
+                        DB::raw('NULL as id_historial'),
                         'unidades.numero_eco as economico',
                         'unidades.tipo',
                         'unidades.nivel_combustible',
@@ -1101,7 +1185,7 @@ class HistorialOperativoController extends Controller
                         'unidades.kilometraje',
                         'unidades.odometro',
                         'unidades.fecha_ultima_carga',
-                        'unidades.updated_at as hora_guardado'
+                        'unidades.fecha_ultima_carga as hora_guardado'
                     )
                     ->orderBy('unidades.numero_eco')
                     ->get();
@@ -1162,3 +1246,7 @@ class HistorialOperativoController extends Controller
         }
     }
 }
+
+
+
+
