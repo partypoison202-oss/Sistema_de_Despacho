@@ -2778,10 +2778,10 @@ class DespachoController extends Controller
             $updateData['ruta'] = null;
             $updateData['corridas'] = null;
             $updateData['ciclo'] = null;
-            if ($nuevoEstatus !== 'mantenimiento') {
+            if ($nuevoEstatus !== 'mantenimiento' && $nuevoEstatus !== 'percance') {
                 $updateData['falla'] = null;
             } else if (empty($updateData['falla'])) {
-                $updateData['falla'] = $motivoEstatus ?: 'MANTENIMIENTO';
+                $updateData['falla'] = $motivoEstatus ?: strtoupper($nuevoEstatus);
             }
             $updateData['motivo'] = $motivoEstatus ?: strtoupper($nuevoEstatus);
             $updateData['motivo_estatus'] = $motivoEstatus ?: strtoupper($nuevoEstatus);
@@ -3154,7 +3154,7 @@ class DespachoController extends Controller
     {
         $unidades = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->where('informacion_operativa.estatus', 'mantenimiento')
+            ->whereIn(DB::raw("LOWER(informacion_operativa.estatus)"), ['mantenimiento', 'percance'])
             ->select(
                 'informacion_operativa.id as id_incidencia',
                 'informacion_operativa.numero_incidencia',
@@ -4154,7 +4154,7 @@ class DespachoController extends Controller
                 $estatus = strtolower(trim($r->estatus ?? 'reserva'));
                 if ($estatus === 'operacion') $kpis['total_operacion']++;
                 elseif ($estatus === 'reserva') $kpis['total_reserva']++;
-                elseif ($estatus === 'mantenimiento') $kpis['total_mantenimiento']++;
+                elseif ($estatus === 'mantenimiento' || $estatus === 'percance') $kpis['total_mantenimiento']++;
                 else $kpis['total_reserva']++;
 
                 $tieneConductor = !empty(trim($r->nombre_conductor ?? '')) || !empty(trim($r->tarjeton ?? ''));
