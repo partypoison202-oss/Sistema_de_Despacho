@@ -240,7 +240,6 @@ class DespachoController extends Controller
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
-            ->whereRaw("LOWER(COALESCE(informacion_operativa.estatus, '')) != 'no_programada'")
             ->select(
                 'unidades.id as unidad_id',
                 'unidades.numero_eco',
@@ -293,7 +292,9 @@ class DespachoController extends Controller
 
         $unidades = $unidades->map(function ($unidad) use ($ultimoMovPorUnidad) {
                 $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
-                if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
+                if ($estatus === 'no_programada') {
+                    $estatus = 'reserva';
+                } elseif (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                     $estatus = 'operacion';
                 }
 
@@ -547,7 +548,9 @@ class DespachoController extends Controller
 
         if ($info) {
             $estatus = strtolower(trim($info->estatus ?? 'operacion'));
-            if (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
+            if ($estatus === 'no_programada') {
+                $estatus = 'reserva';
+            } elseif (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
                 $estatus = 'operacion';
             }
 

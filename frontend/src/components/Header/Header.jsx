@@ -21,7 +21,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
         setShowProfileMenu(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -94,7 +94,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
   return (
     <header className="app-header">
       <div className="app-header__inner">
-        
+
         {/* Left Section: Back Button */}
         <div className="app-header__left">
           {showBackButton && (
@@ -125,7 +125,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             </button>
           )}
         </div>
-        
+
         {/* Center Section: Logo SITMAH */}
         <div className="app-header__center">
           <button
@@ -147,7 +147,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
         <div className="app-header__right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           {user && (
             <div className="app-header__profile" ref={profileRef}>
-              <button 
+              <button
                 className="app-header__profile-btn"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
@@ -214,9 +214,9 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             </div>
           )}
         </div>
-        
+
       </div>
-      
+
       {showAjustes && <AjustesModal onClose={() => setShowAjustes(false)} />}
     </header>
   );
