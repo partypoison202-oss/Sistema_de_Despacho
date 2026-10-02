@@ -96,6 +96,7 @@ export default function UnitInfoPanel({
   conductoresDisponibles,
   maniobristasDisponibles = [],
   unidadesReserva = [],
+  isAlimentadora = false,
   onUpdate,
 }) {
   const { user } = useContext(AuthContext);
@@ -126,6 +127,20 @@ export default function UnitInfoPanel({
   const [dropdownTarjetonOpen, setDropdownTarjetonOpen] = useState(false);
   const [dropdownTarjetonManiobristaOpen, setDropdownTarjetonManiobristaOpen] = useState(false);
   const [descargandoPDF, setDescargandoPDF] = useState(false);
+  const [busquedaEcoReemplazo, setBusquedaEcoReemplazo] = useState('');
+
+  const unidadesReservaFiltradas = useMemo(() => {
+    return (unidadesReserva || []).filter((u) => {
+      if (!busquedaEcoReemplazo.trim()) return true;
+      const q = busquedaEcoReemplazo.trim().toLowerCase();
+      return (
+        String(u.eco || '').includes(q) ||
+        (u.display && u.display.toLowerCase().includes(q)) ||
+        (u.tipo && u.tipo.toLowerCase().includes(q)) ||
+        (u.tarjeton && String(u.tarjeton).toLowerCase().includes(q))
+      );
+    });
+  }, [unidadesReserva, busquedaEcoReemplazo]);
 
   const isReservaOrMantenimiento = ['reserva', 'mantenimiento', 'percance'].includes((datosOperativos.estatus || '').toLowerCase());
 
@@ -426,6 +441,7 @@ export default function UnitInfoPanel({
   const handleToggleReemplazo = () => {
     const nuevoEstado = !reemplazoActivo;
     setReemplazoActivo(nuevoEstado);
+    setBusquedaEcoReemplazo('');
     if (nuevoEstado) {
       setRutaTipoSeleccionada(configActual?.id === 'urbanuss' ? 'troncales' : 'alimentadoras');
       setReemplazoForm({
@@ -476,6 +492,7 @@ export default function UnitInfoPanel({
     setOperadorMotivo('');
     setOperadorMotivoOtro('');
     setOperadorBusqueda('');
+    setBusquedaEcoReemplazo('');
   };
 
   const handleConfirmPlataforma = async () => {
@@ -519,6 +536,8 @@ export default function UnitInfoPanel({
           estatus_nuevo: platEstatus.toUpperCase(),
           reemplazo_activo: reemplazoActivo ? 1 : 0,
           eco_reemplazo: reemplazoActivo ? unidadReemplazoSeleccionada.eco : null,
+          tipo_reemplazo: reemplazoActivo ? (unidadReemplazoSeleccionada.tipo || null) : null,
+          unidad_id_reemplazo: reemplazoActivo ? (unidadReemplazoSeleccionada.unidad_id || null) : null,
           tarjeton_reemplazo: reemplazoActivo && reemplazoForm.tarjeton ? String(reemplazoForm.tarjeton).trim() : null,
           conductor_reemplazo: reemplazoActivo && reemplazoForm.conductor ? String(reemplazoForm.conductor).trim() : null,
           ruta_reemplazo: reemplazoActivo && reemplazoForm.ruta ? String(reemplazoForm.ruta).trim() : null,
@@ -604,6 +623,7 @@ export default function UnitInfoPanel({
         throw new Error(result.error || result.message || errorMessage);
       }
       queryClient.invalidateQueries(['unidades-list-mesacontrol']);
+      queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
       queryClient.invalidateQueries(['unidad-detalle']);
       queryClient.invalidateQueries(['despacho-hoy']);
       queryClient.invalidateQueries(['conteo-unidades-global']);
@@ -1379,8 +1399,25 @@ export default function UnitInfoPanel({
                         }}
                         onClick={() => setDropdownEcoOpen(!dropdownEcoOpen)}
                       >
-                        <span style={{ fontWeight: 600, color: unidadReemplazoSeleccionada ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                          {unidadReemplazoSeleccionada ? unidadReemplazoSeleccionada.display : 'SELECCIONAR'}
+                        <span style={{ fontWeight: 600, color: unidadReemplazoSeleccionada ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {unidadReemplazoSeleccionada ? (
+                            <>
+                              <span>{unidadReemplazoSeleccionada.display || `ECO${String(unidadReemplazoSeleccionada.eco).padStart(3, '0')}`}</span>
+                              {unidadReemplazoSeleccionada.tipo && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  padding: '0.1rem 0.45rem',
+                                  borderRadius: '9999px',
+                                  backgroundColor: unidadReemplazoSeleccionada.tipo === 'ZAFIRO' ? '#e0f2fe' : unidadReemplazoSeleccionada.tipo === 'VAGONETA' ? '#fef3c7' : unidadReemplazoSeleccionada.tipo === 'ORION' ? '#f3e8ff' : '#f1f5f9',
+                                  color: unidadReemplazoSeleccionada.tipo === 'ZAFIRO' ? '#0369a1' : unidadReemplazoSeleccionada.tipo === 'VAGONETA' ? '#b45309' : unidadReemplazoSeleccionada.tipo === 'ORION' ? '#7e22ce' : '#475569',
+                                  border: `1px solid ${unidadReemplazoSeleccionada.tipo === 'ZAFIRO' ? '#bae6fd' : unidadReemplazoSeleccionada.tipo === 'VAGONETA' ? '#fde68a' : unidadReemplazoSeleccionada.tipo === 'ORION' ? '#e9d5ff' : '#e2e8f0'}`,
+                                }}>
+                                  {unidadReemplazoSeleccionada.tipo}
+                                </span>
+                              )}
+                            </>
+                          ) : 'SELECCIONAR'}
                         </span>
                         <svg className={`arrow-icon ${dropdownEcoOpen ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: dropdownEcoOpen ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                           <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1388,19 +1425,49 @@ export default function UnitInfoPanel({
                       </button>
                       {dropdownEcoOpen && (
                         <div className="dropdown-menu shadow-lg border border-slate-100" style={{ width: '100%', minWidth: 'unset', top: 'calc(100% + 4px)', background: 'var(--tw-color-white)', opacity: 1, zIndex: 9999, borderRadius: '0.75rem', position: 'absolute' }}>
+                          <div style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                            <input
+                              type="text"
+                              placeholder="Buscar ECO..."
+                              value={busquedaEcoReemplazo}
+                              onChange={(e) => setBusquedaEcoReemplazo(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ width: '100%', padding: '0.4rem 0.6rem', fontSize: '0.85rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', outline: 'none' }}
+                              autoFocus
+                            />
+                          </div>
                           <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
-                            {(unidadesReserva || []).map(u => (
+                            {(unidadesReservaFiltradas || []).map(u => (
                               <button
-                                key={u.eco}
+                                key={`${u.tipo || ''}-${u.eco}`}
                                 type="button"
                                 className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                                style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: unidadReemplazoSeleccionada?.eco === u.eco ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                                style={{ padding: '0.65rem 0.85rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: unidadReemplazoSeleccionada?.eco === u.eco ? 'bold' : '500', textAlign: 'left', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                                 onClick={() => handleSelectReservaUnit(u)}
                               >
-                                {u.display} {u.tarjeton ? `(${u.tarjeton})` : '(Sin tarjetón)'}
+                                <span>
+                                  {u.display || `ECO${String(u.eco).padStart(3, '0')}`}{' '}
+                                  <span style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 'normal' }}>
+                                    {u.tarjeton ? `(${u.tarjeton})` : '(Sin tarjetón)'}
+                                  </span>
+                                </span>
+                                {u.tipo && (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    padding: '0.15rem 0.45rem',
+                                    borderRadius: '9999px',
+                                    backgroundColor: u.tipo === 'ZAFIRO' ? '#e0f2fe' : u.tipo === 'VAGONETA' ? '#fef3c7' : u.tipo === 'ORION' ? '#f3e8ff' : '#f1f5f9',
+                                    color: u.tipo === 'ZAFIRO' ? '#0369a1' : u.tipo === 'VAGONETA' ? '#b45309' : u.tipo === 'ORION' ? '#7e22ce' : '#475569',
+                                    border: `1px solid ${u.tipo === 'ZAFIRO' ? '#bae6fd' : u.tipo === 'VAGONETA' ? '#fde68a' : u.tipo === 'ORION' ? '#e9d5ff' : '#e2e8f0'}`,
+                                    letterSpacing: '0.02em',
+                                  }}>
+                                    {u.tipo}
+                                  </span>
+                                )}
                               </button>
                             ))}
-                            {(!unidadesReserva || unidadesReserva.length === 0) && (
+                            {(!unidadesReservaFiltradas || unidadesReservaFiltradas.length === 0) && (
                               <span style={{ color: '#6b7280', fontSize: '0.9rem', padding: '0.75rem 1rem', display: 'block' }}>No hay unidades en reserva disponibles</span>
                             )}
                           </div>
