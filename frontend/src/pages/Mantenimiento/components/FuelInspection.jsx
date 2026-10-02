@@ -681,6 +681,44 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '1rem' }}>
+        {registroAnterior && (
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={() => {
+              setForm(prev => ({
+                ...prev,
+                nivelGasolina: registroAnterior.nivel_combustible || '',
+                kilometrajeGasolina: registroAnterior.kilometraje || '',
+                fechaUltimaCargaGasolina: registroAnterior.fecha_ultima_carga || getFechaUltimaCargaDefault(),
+                litrosGasolina: registroAnterior.litros_combustible || '',
+                nivelAdblue: registroAnterior.nivel_adblue || '',
+                kilometrajeAdblue: registroAnterior.kilometraje || '',
+                fechaUltimaCargaAdblue: registroAnterior.fecha_ultima_carga || getFechaUltimaCargaDefault(),
+                litrosAdblue: registroAnterior.litros_adblue || '',
+                numeroCincho: registroAnterior.numero_cincho || '',
+                numeroCinchoAdblue: registroAnterior.numero_cincho_adblue || '',
+              }));
+            }}
+            className="interactive-input"
+            style={{
+              width: 'auto',
+              padding: '0 1rem',
+              height: '2.3rem',
+              background: 'transparent',
+              color: '#f59e0b',
+              border: '1px solid #f59e0b',
+              borderRadius: '0.5rem',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              opacity: guardando ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            EDITAR ÚLTIMO REGISTRO
+          </button>
+        )}
         {isAdmin && (
           <button
             type="button"
