@@ -1,4 +1,4 @@
-<?php
+ï»¿<?php
 
 namespace App\Http\Controllers\API;
 
@@ -1079,7 +1079,7 @@ class HistorialOperativoController extends Controller
 
             $historial = DB::table('historial_mantenimiento')->where('id', $request->id_historial)->first();
             if (!$historial) {
-                return response()->json(['status' => 'error', 'message' => 'Registro histórico no encontrado'], 404);
+                return response()->json(['status' => 'error', 'message' => 'Registro histï¿½rico no encontrado'], 404);
             }
 
             // Update historial_mantenimiento
@@ -1116,8 +1116,7 @@ class HistorialOperativoController extends Controller
                         'numero_cincho_adblue' => $request->numero_cincho_adblue,
                         'kilometraje'        => $request->kilometraje,
                         'odometro'           => $request->kilometraje,
-                        'updated_at'         => now(),
-                    ]);
+                        ]);
             }
 
             return response()->json(['status' => 'success', 'message' => 'Registro actualizado correctamente']);
@@ -1186,7 +1185,7 @@ class HistorialOperativoController extends Controller
                         'unidades.kilometraje',
                         'unidades.odometro',
                         'unidades.fecha_ultima_carga',
-                        'unidades.updated_at as hora_guardado'
+                        'unidades.fecha_ultima_carga as hora_guardado'
                     )
                     ->orderBy('unidades.numero_eco')
                     ->get();
@@ -1247,6 +1246,7 @@ class HistorialOperativoController extends Controller
         }
     }
 }
+
 
 
 

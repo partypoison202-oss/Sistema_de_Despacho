@@ -423,13 +423,13 @@ export default function HistorialCombustible() {
                       
                       {editingRow === d.id_historial && d.id_historial ? (
                         <>
-                          <td><input type="text" value={editForm.nivel_combustible} onChange={e => handleChangeEdit('nivel_combustible', e.target.value)} style={{width: '60px', padding: '4px'}} /></td>
-                          <td><input type="number" value={editForm.litros_combustible} onChange={e => handleChangeEdit('litros_combustible', e.target.value)} style={{width: '60px', padding: '4px'}} /></td>
-                          <td><input type="text" value={editForm.nivel_adblue} onChange={e => handleChangeEdit('nivel_adblue', e.target.value)} style={{width: '60px', padding: '4px'}} /></td>
-                          <td><input type="number" value={editForm.litros_adblue} onChange={e => handleChangeEdit('litros_adblue', e.target.value)} style={{width: '60px', padding: '4px'}} /></td>
-                          <td><input type="text" value={editForm.numero_cincho} onChange={e => handleChangeEdit('numero_cincho', e.target.value)} style={{width: '80px', padding: '4px'}} /></td>
-                          <td><input type="text" value={editForm.numero_cincho_adblue} onChange={e => handleChangeEdit('numero_cincho_adblue', e.target.value)} style={{width: '80px', padding: '4px'}} /></td>
-                          <td><input type="number" value={editForm.kilometraje} onChange={e => handleChangeEdit('kilometraje', e.target.value)} style={{width: '80px', padding: '4px'}} /></td>
+                          <td><input type="text" value={editForm.nivel_combustible} onChange={e => handleChangeEdit('nivel_combustible', e.target.value)} style={{width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827'}} /></td>
+                          <td><input type="number" value={editForm.litros_combustible} onChange={e => handleChangeEdit('litros_combustible', e.target.value)} style={{width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', fontWeight: 'bold'}} /></td>
+                          <td><input type="text" value={editForm.nivel_adblue} onChange={e => handleChangeEdit('nivel_adblue', e.target.value)} style={{width: '60px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827'}} /></td>
+                          <td><input type="number" value={editForm.litros_adblue} onChange={e => handleChangeEdit('litros_adblue', e.target.value)} style={{width: '70px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', fontWeight: 'bold'}} /></td>
+                          <td><input type="text" value={editForm.numero_cincho} onChange={e => handleChangeEdit('numero_cincho', e.target.value)} style={{width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', textTransform: 'uppercase'}} /></td>
+                          <td><input type="text" value={editForm.numero_cincho_adblue} onChange={e => handleChangeEdit('numero_cincho_adblue', e.target.value)} style={{width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827', textTransform: 'uppercase'}} /></td>
+                          <td><input type="number" value={editForm.kilometraje} onChange={e => handleChangeEdit('kilometraje', e.target.value)} style={{width: '90px', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', outline: 'none', fontSize: '0.85rem', color: '#111827'}} /></td>
                         </>
                       ) : (
                         <>
@@ -439,7 +439,7 @@ export default function HistorialCombustible() {
                           <td>{d.litros_adblue ? `${d.litros_adblue} L` : '-'}</td>
                           <td>{d.numero_cincho || '-'}</td>
                           <td>{d.numero_cincho_adblue || '-'}</td>
-                          <td>{d.kilometraje || d.odometro || '-'}</td>
+                          <td>{d.kilometraje ? Number(d.kilometraje).toLocaleString('es-MX') : d.odometro ? Number(d.odometro).toLocaleString('es-MX') : '-'}</td>
                         </>
                       )}
 
@@ -449,12 +449,12 @@ export default function HistorialCombustible() {
                       <td>
                         {d.id_historial ? (
                           editingRow === d.id_historial ? (
-                            <div style={{display: 'flex', gap: '5px'}}>
-                              <button onClick={() => handleSaveEdit(d.id_historial)} disabled={isSavingEdit} style={{background: '#047857', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer'}}>Guardar</button>
-                              <button onClick={handleCancelEdit} style={{background: '#ef4444', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer'}}>X</button>
+                            <div style={{display: 'flex', gap: '6px'}}>
+                              <button onClick={() => handleSaveEdit(d.id_historial)} disabled={isSavingEdit} style={{background: '#047857', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>✓ Guardar</button>
+                              <button onClick={handleCancelEdit} style={{background: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>✕</button>
                             </div>
                           ) : (
-                            <button onClick={() => handleEditClick(d)} style={{background: '#f59e0b', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer'}}>Editar</button>
+                            <button onClick={() => handleEditClick(d)} style={{background: '#f59e0b', color: 'white', border: '1px solid #d97706', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)'}}>✎ Editar</button>
                           )
                         ) : (
                           <span style={{fontSize: '0.8rem', color: '#9ca3af'}} title="Registro heredado">N/A</span>
