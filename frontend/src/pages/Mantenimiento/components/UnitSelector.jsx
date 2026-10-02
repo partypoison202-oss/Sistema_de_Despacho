@@ -20,7 +20,7 @@ export default function UnitSelector({
   return (
     <div className="dropdown-container" style={{ position: 'relative', overflow: 'visible' }}>
       <div style={{ position: 'relative', display: 'inline-block' }}>
-        <button onClick={toggleDropdown} className="dropdown-trigger">
+        <button onClick={toggleDropdown} className={`dropdown-trigger ${selectedEstado === estado ? 'dropdown-trigger--active' : ''}`}>
           <div className="dropdown-trigger__icon-container">
             <img src={configActual.image} alt={configActual.title} className="dropdown-trigger__icon" />
           </div>
