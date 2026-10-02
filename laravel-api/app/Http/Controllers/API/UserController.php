@@ -12,7 +12,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::with('role')
+        $users = User::with(['role', 'modulos'])
             ->where('usuario', '!=', 'sitmah_root')
             ->orderBy('id', 'asc')
             ->get();
@@ -36,7 +36,8 @@ class UserController extends Controller
             'nombre_completo' => 'required|string|max:150',
             'usuario' => ['required', 'string', 'max:50', 'unique:usuarios', 'regex:/^[a-zA-Z0-9_.ñÑ]+$/'],
             'contrasena' => ['required', 'string', 'min:6', 'regex:/^[\x20-\x7E]+$/'],
-            'rol_id' => 'required|integer|exists:roles,id',
+            'rol_id' => 'nullable|integer|exists:roles,id',
+            'nuevo_rol_nombre' => 'nullable|string|max:100',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ], [
             'usuario.regex' => 'El usuario solo puede contener letras, números, puntos, guiones bajos y la letra ñ.',
@@ -48,11 +49,27 @@ class UserController extends Controller
             $fotoBase64 = $this->fileToBase64($request->file('foto'));
         }
 
+        $rolId = $request->rol_id;
+        if ($request->filled('nuevo_rol_nombre')) {
+            $nuevoRolNombreRaw = trim($request->nuevo_rol_nombre);
+            $nuevoRolCodigo = str_replace(' ', '_', strtoupper($nuevoRolNombreRaw));
+            
+            $rol = \Illuminate\Support\Facades\DB::table('roles')->where('codigo', $nuevoRolCodigo)->first();
+            if (!$rol) {
+                $rolId = \Illuminate\Support\Facades\DB::table('roles')->insertGetId([
+                    'codigo' => $nuevoRolCodigo,
+                    'nombre' => $nuevoRolNombreRaw,
+                ]);
+            } else {
+                $rolId = $rol->id;
+            }
+        }
+
         $user = User::create([
             'nombre_completo' => $request->nombre_completo,
             'usuario' => $request->usuario,
             'contrasena' => Hash::make($request->contrasena),
-            'rol_id' => $request->rol_id,
+            'rol_id' => $rolId,
             'foto_url' => $fotoBase64
         ]);
 
@@ -73,7 +90,8 @@ class UserController extends Controller
             'nombre_completo' => 'sometimes|string|max:150',
             'usuario' => ['sometimes', 'string', 'max:50', 'unique:usuarios,usuario,'.$id, 'regex:/^[a-zA-Z0-9_.ñÑ]+$/'],
             'contrasena' => ['nullable', 'string', 'min:6', 'regex:/^[\x20-\x7E]+$/'],
-            'rol_id' => 'sometimes|integer|exists:roles,id',
+            'rol_id' => 'nullable|integer|exists:roles,id',
+            'nuevo_rol_nombre' => 'nullable|string|max:100',
             'activo' => 'sometimes|boolean',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ], [
@@ -81,7 +99,22 @@ class UserController extends Controller
             'contrasena.regex' => 'La contraseña no debe contener acentos.'
         ]);
 
-        $data = $request->except(['contrasena', 'activo', 'foto']);
+        $data = $request->except(['contrasena', 'activo', 'foto', 'nuevo_rol_nombre']);
+
+        if ($request->filled('nuevo_rol_nombre')) {
+            $nuevoRolNombreRaw = trim($request->nuevo_rol_nombre);
+            $nuevoRolCodigo = str_replace(' ', '_', strtoupper($nuevoRolNombreRaw));
+            
+            $rol = \Illuminate\Support\Facades\DB::table('roles')->where('codigo', $nuevoRolCodigo)->first();
+            if (!$rol) {
+                $data['rol_id'] = \Illuminate\Support\Facades\DB::table('roles')->insertGetId([
+                    'codigo' => $nuevoRolCodigo,
+                    'nombre' => $nuevoRolNombreRaw,
+                ]);
+            } else {
+                $data['rol_id'] = $rol->id;
+            }
+        }
 
         if (isset($data['nombre_completo'])) {
             $nombre = trim((string)$data['nombre_completo']);
@@ -111,8 +144,9 @@ class UserController extends Controller
             // solo actualizamos el rol del usuario.
         }
 
-        // Si el request trae módulos explícitos, los guardamos.
-        if ($request->has('modulos')) {
+        // Siempre actualizar módulos si el frontend indica que los enviamos.
+        // Esto permite quitar TODOS los módulos si la lista llega vacía.
+        if ($request->has('sync_modulos')) {
             $modulos = $request->input('modulos', []);
             $modulosSoloLectura = $request->input('modulos_solo_lectura', []);
             $this->guardarModulos($user->id, $modulos, $modulosSoloLectura);
@@ -141,6 +175,7 @@ class UserController extends Controller
             $inserts = array_map(fn($m) => [
                 'usuario_id'    => $userId,
                 'modulo_codigo' => $m,
+                'solo_lectura'  => in_array($m, $modulosSoloLectura) ? 'true' : 'false',
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ], $modulos);
