@@ -1999,7 +1999,7 @@ class DespachoController extends Controller
             return [
                 'UNIDAD_ID' => $reg->unidad_id,
                 'unidad_id' => $reg->unidad_id,
-                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'TIPO_DE_UNIDAD' => strtoupper((string)($reg->tipo ?? '')),
                 'RUTA' => $isDesincorporada ? null : $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $isDesincorporada ? null : $reg->tarjeton,
@@ -2099,7 +2099,7 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
-                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'TIPO_DE_UNIDAD' => strtoupper((string)($reg->tipo ?? '')),
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->tarjeton,
@@ -2188,7 +2188,7 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
-                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'TIPO_DE_UNIDAD' => strtoupper((string)($reg->tipo ?? '')),
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->tarjeton,
@@ -2277,7 +2277,7 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
-                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'TIPO_DE_UNIDAD' => strtoupper((string)($reg->tipo ?? '')),
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->tarjeton,
@@ -2354,7 +2354,7 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
-                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'TIPO_DE_UNIDAD' => strtoupper((string)($reg->tipo ?? '')),
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->tarjeton,
@@ -2442,7 +2442,7 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) use ($hasManiobrista, $hasHoraSalidaPatio, $hasAcople, $hasHoraSalida) {
             return [
-                'TIPO_DE_UNIDAD' => $reg->tipo,
+                'TIPO_DE_UNIDAD' => strtoupper((string)($reg->tipo ?? '')),
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->tarjeton,
@@ -2894,8 +2894,8 @@ class DespachoController extends Controller
             if ($unidadReemplazo) {
                 // 1. Determinar tipo de transporte
                 $tipoParaReemplazo = !empty($registroOperativo->tipo)
-                    ? strtolower(trim($registroOperativo->tipo))
-                    : strtolower(trim($tipoNormalizado ?? 'urbanuss'));
+                    ? strtoupper(trim($registroOperativo->tipo))
+                    : strtoupper(trim($tipoNormalizado ?? 'URBANUSS'));
 
                 // 2. Tarjetón y Conductor
                 $tarjetonReemplazo = !empty($tarjetonReemplazo)

@@ -190,8 +190,8 @@ class PlataformaController extends Controller
 
                     // 1. Tipo de transporte (esencial para filtros y vistas)
                     $tipoParaReemplazo = !empty($registroOperativo->tipo)
-                        ? strtolower(trim($registroOperativo->tipo))
-                        : strtolower(trim($request->tipo ?? 'urbanuss'));
+                        ? strtoupper(trim($registroOperativo->tipo))
+                        : strtoupper(trim($request->tipo ?? 'URBANUSS'));
 
                     // 2. Tarjetón y Conductor
                     $tarjetonReemplazo = !empty($request->tarjeton_reemplazo)
