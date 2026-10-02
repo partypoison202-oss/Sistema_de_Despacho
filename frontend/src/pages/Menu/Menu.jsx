@@ -258,8 +258,9 @@ export default function Menu() {
   if (!user) return null;
 
   const rol = user.role?.codigo;
+  // Convertimos el arreglo de objetos (o strings) de la base de datos a un arreglo de strings puros
   let modulos = (user.modulos && user.modulos.length > 0)
-    ? [...user.modulos]
+    ? user.modulos.map(m => typeof m === 'object' ? m.modulo_codigo : m)
     : [...(ROLE_DEFAULT_MODULES[rol] || [])];
 
   const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PROGRAMACION', 'CAPTURISTA', 'PASTELES', 'PROGRAMACION_PASTELES', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES'];
@@ -272,11 +273,16 @@ export default function Menu() {
     modulos = modulos.filter(m => m !== 'encierro');
   }
 
-  const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
   const isPasteles = rol === 'PASTELES' || rol === 'PROGRAMACION_PASTELES';
 
   const visibleMenuItems = menuItems.filter((item) => {
-    if (isSuper) return true;
+    // El rol Administrador ya debe tener sus módulos asignados en la BD, 
+    // pero si queremos asegurarnos de que el admin real siempre vea todo, 
+    // podemos dejarlo. Sin embargo, el usuario pidió que dependa solo de las etiquetas.
+    // Para no romper a los admin que no tengan módulos configurados, los dejamos pasar
+    // SOLO si son ADMINISTRADOR. LECTURA ya no es super usuario.
+    if (rol === 'ADMINISTRADOR') return true; 
+
     if (isPasteles && ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro', 'historial'].includes(item.modulo)) {
       return true;
     }

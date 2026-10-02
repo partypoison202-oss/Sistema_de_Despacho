@@ -41,7 +41,7 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
 
   const rol = user.role?.codigo;
   let modulos = (user.modulos && user.modulos.length > 0)
-    ? [...user.modulos]
+    ? user.modulos.map(m => typeof m === 'object' ? m.modulo_codigo : m)
     : [...(ROLE_DEFAULT_MODULES[rol] || [])];
 
   const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PASTELES', 'PROGRAMACION_PASTELES', 'PROGRAMACION', 'CAPTURISTA'];
@@ -59,8 +59,8 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
     });
   }
 
-  // Los ADMIN y LECTURA tienen acceso universal, a menos que el módulo esté explícitamente bloqueado (usualmente no)
-  const isSuper = rol === 'ADMINISTRADOR' || rol === 'LECTURA';
+  // Ahora el Administrador es el único que salta validaciones por defecto
+  const isSuper = rol === 'ADMINISTRADOR';
 
   // Verificación por módulos (nueva lógica)
   if (allowedModules && !isSuper) {

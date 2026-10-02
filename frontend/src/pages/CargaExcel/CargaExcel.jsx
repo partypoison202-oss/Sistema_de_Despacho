@@ -110,9 +110,18 @@ export default function CargaExcel({ isPasteles = false }) {
 
   useEffect(() => {
     if (serverData && !hasChanges) {
-      setPreviewData(serverData);
+      let dataToSet = serverData;
+      if (isPasteles) {
+        dataToSet = serverData.map(item => {
+          if (item.ESTATUS === 'no_programada') {
+            return { ...item, ESTATUS: 'reserva' };
+          }
+          return item;
+        });
+      }
+      setPreviewData(dataToSet);
     }
-  }, [serverData, hasChanges]);
+  }, [serverData, hasChanges, isPasteles]);
 
   const trimString = (str) => String(str ?? '').trim();
 
@@ -945,7 +954,18 @@ export default function CargaExcel({ isPasteles = false }) {
       });
       if (!response.ok) throw new Error('Error al obtener datos de inicio');
       const data = await response.json();
-      setInicioData(data);
+      
+      let finalData = data;
+      if (isPasteles) {
+        finalData = data.map(item => {
+          if (item.ESTATUS === 'no_programada') {
+            return { ...item, ESTATUS: 'reserva' };
+          }
+          return item;
+        });
+      }
+
+      setInicioData(finalData);
       setVerInicio(true);
     } catch (error) {
       console.error(error);
