@@ -85,8 +85,24 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('token');
   };
 
+  const canEditModulo = (moduloCodigo) => {
+    if (!user || !user.modulos) return false;
+    if (user.role?.codigo === 'ADMINISTRADOR') return true;
+    if (user.role?.codigo === 'LECTURA') return false;
+    
+    const mod = user.modulos.find(m => 
+      (typeof m === 'object' ? m.modulo_codigo : m) === moduloCodigo
+    );
+    
+    if (!mod) return false;
+    if (typeof mod === 'object') {
+      return !mod.solo_lectura;
+    }
+    return true;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, setUser }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, setUser, canEditModulo }}>
       {children}
     </AuthContext.Provider>
   );

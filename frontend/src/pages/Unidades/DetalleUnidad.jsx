@@ -14,11 +14,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CONDUCTORES from '../../data/conductores';
 import Swal from 'sweetalert2';
 import { normalizeRuta, normalizeRutaClave } from '../../utils/rutaUtils';
+import { AuthContext } from '../../context/AuthContext';
+import { useContext } from 'react';
 
 export default function DetalleUnidad() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { canEditModulo } = useContext(AuthContext);
+  const isLectura = !canEditModulo('despacho');
 
   // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -532,6 +536,7 @@ export default function DetalleUnidad() {
 
   // Guardar falla (solo el campo de fallas)
   const handleSaveFalla = async () => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -583,6 +588,7 @@ export default function DetalleUnidad() {
 
   // Guardar tarjetón y asignar conductor automáticamente
   const handleSaveTarjeton = async (nuevoTarjeton) => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -645,6 +651,7 @@ export default function DetalleUnidad() {
 
   // Guardar ruta
   const handleSaveRuta = async (nuevaRuta) => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -686,6 +693,7 @@ export default function DetalleUnidad() {
   };
 
   const handleSaveHoras = async (horaSalidaPatio, acople, horaRealSalidaPatio = null, observaciones = null) => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) throw new Error('No token');
@@ -743,6 +751,7 @@ export default function DetalleUnidad() {
   };
 
   const handleValidarDespacho = async (payload) => {
+    if (isLectura) throw new Error('Acceso denegado');
     try {
       const token = getToken();
       if (!token) {
@@ -823,6 +832,12 @@ export default function DetalleUnidad() {
   };
 
   const handleCambiarEstatus = async (nuevoEstatus) => {
+    if (isLectura) {
+      import('sweetalert2').then(module => {
+        module.default.fire({ icon: 'error', title: 'Acceso Denegado', text: 'No tienes permisos para modificar estatus.' });
+      });
+      return;
+    }
     if (!selectedOption) return;
     
     if (datosOperativos.estatus === nuevoEstatus) return;

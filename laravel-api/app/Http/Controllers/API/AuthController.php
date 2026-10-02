@@ -67,15 +67,22 @@ class AuthController extends Controller
      */
     private function resolverModulosUsuario($user): array
     {
-        $modulos = $user->modulos()->pluck('modulo_codigo')->toArray();
+        $modulosObjects = $user->modulos()->select('modulo_codigo', 'solo_lectura')->get()->toArray();
+        $modulos = array_column($modulosObjects, 'modulo_codigo');
 
         if ($user->role && $user->role->codigo === 'PASTELES') {
             $defaultPasteles = ['centro_control', 'mesa_control', 'programacion_pasteles'];
-            return array_values(array_unique(array_merge($modulos, $defaultPasteles)));
+            foreach ($defaultPasteles as $dp) {
+                if (!in_array($dp, $modulos)) {
+                    $modulosObjects[] = ['modulo_codigo' => $dp, 'solo_lectura' => false];
+                    $modulos[] = $dp;
+                }
+            }
         }
 
         if ($user->role && in_array($user->role->codigo, ['GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES'])) {
             if (!in_array('historial', $modulos)) {
+                $modulosObjects[] = ['modulo_codigo' => 'historial', 'solo_lectura' => false];
                 $modulos[] = 'historial';
             }
         }
@@ -109,14 +116,26 @@ class AuthController extends Controller
                 'CARGA_DE_COMBUSTIBLE' => ['carga_combustible'],
             ];
 
+            // Convertir fallbacks a array de objetos
+            $fallbacks = [];
+            $isLecturaRole = ($user->role->codigo === 'LECTURA');
+            
             // Caso especial usuario Miguel_Odon (perfil mixto)
             if ($user->usuario === 'Miguel_Odon') {
-                return ['despacho', 'operadores'];
+                $rawFallbacks = ['despacho', 'operadores'];
+            } else {
+                $rawFallbacks = $defaultModulesByRole[$user->role->codigo] ?? [];
             }
 
-            return $defaultModulesByRole[$user->role->codigo] ?? [];
+            foreach ($rawFallbacks as $fb) {
+                $fallbacks[] = [
+                    'modulo_codigo' => $fb,
+                    'solo_lectura' => $isLecturaRole
+                ];
+            }
+            return $fallbacks;
         }
 
-        return $modulos;
+        return $modulosObjects;
     }
 }

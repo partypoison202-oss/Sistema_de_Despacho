@@ -15,7 +15,8 @@ import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 import MaintenanceReportWizard from '../../components/Mantenimiento/MaintenanceReportWizard';
 import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
+import { AuthContext } from '../../context/AuthContext';
+import { useContext } from 'react';
 export default function DetalleUnidadMantenimiento() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
@@ -23,6 +24,8 @@ export default function DetalleUnidadMantenimiento() {
   const location = useLocation();
   const isInspeccion = location.pathname.startsWith('/carga-combustible');
   const queryClient = useQueryClient();
+  const { canEditModulo } = useContext(AuthContext);
+  const isLectura = !canEditModulo('mantenimiento');
 
   // ── Migración de localStorage: limpiar datos con esquema viejo ──
   useEffect(() => {
@@ -77,6 +80,7 @@ export default function DetalleUnidadMantenimiento() {
   }, [isFolioModalOpen]);
 
   const handleGuardarFolio = async () => {
+    if (isLectura) return;
     if (!folioFormValue.trim()) {
       Swal.fire('Atención', 'Debes ingresar el número de folio.', 'warning');
       return;
@@ -132,6 +136,7 @@ export default function DetalleUnidadMantenimiento() {
   };
 
   const handleGuardarIncidencia = async () => {
+    if (isLectura) return;
     if (!fallaFormValue.trim()) {
       Swal.fire({
         icon: 'warning',
@@ -688,6 +693,10 @@ export default function DetalleUnidadMantenimiento() {
 
   // ── Cambio de estatus (Movilidad y Estatus) ──
   const handleCambiarEstatus = async (nuevoEstatus) => {
+    if (isLectura) {
+      Swal.fire({ icon: 'error', title: 'Acceso Denegado', text: 'No tienes permisos para modificar estatus.' });
+      return;
+    }
     if (!selectedOption) return;
 
     const esMismoEstatus = datosOperativos.estatus === nuevoEstatus;
@@ -2355,6 +2364,7 @@ export default function DetalleUnidadMantenimiento() {
                   onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/\D/g, ''))}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-0 text-slate-700 font-medium transition-colors"
                   autoFocus
+                  disabled={isLectura}
                 />
               </div>
 
@@ -2369,6 +2379,7 @@ export default function DetalleUnidadMantenimiento() {
                   onChange={(e) => setFallaFormValue(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s.,;()]/g, '').toUpperCase())}
                   rows={4}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-0 text-slate-700 font-medium resize-none transition-colors"
+                  disabled={isLectura}
                 ></textarea>
                 <div className="text-right mt-1">
                   <span className={`text-xs font-semibold ${fallaFormValue.length >= 50 ? 'text-red-500' : 'text-slate-400'}`}>
@@ -2385,15 +2396,17 @@ export default function DetalleUnidadMantenimiento() {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="button"
-                  onClick={handleGuardarIncidencia}
-                  disabled={isGuardandoIncidencia}
-                  className="px-6 py-2.5 text-white font-semibold rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50"
-                  style={{ background: 'var(--brand-maroon-text, #601a2a)' }}
-                >
-                  {isGuardandoIncidencia ? 'Guardando...' : 'Continuar →'}
-                </button>
+                {!isLectura && (
+                  <button
+                    type="button"
+                    onClick={handleGuardarIncidencia}
+                    disabled={isGuardandoIncidencia}
+                    className="px-6 py-2.5 text-white font-semibold rounded-lg transition-colors shadow-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50"
+                    style={{ background: 'var(--brand-maroon-text, #601a2a)' }}
+                  >
+                    {isGuardandoIncidencia ? 'Guardando...' : 'Continuar →'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

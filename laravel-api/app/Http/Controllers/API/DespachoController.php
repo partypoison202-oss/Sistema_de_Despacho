@@ -291,12 +291,13 @@ class DespachoController extends Controller
         // ──────────────────────────────────────────────────────────────────────
 
         $unidades = $unidades->map(function ($unidad) use ($ultimoMovPorUnidad) {
-                $estatus = strtolower(trim($unidad->estatus ?? 'operacion'));
-                if ($estatus === 'no_programada') {
-                    $estatus = 'reserva';
-                } elseif (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
-                    $estatus = 'operacion';
-                }
+                $estatusRaw = strtolower(trim($unidad->estatus ?? 'operacion'));
+                $estatus = match($estatusRaw) {
+                    'no_programada', 'reserva' => 'reserva',
+                    'mantenimiento' => 'mantenimiento',
+                    'percance' => 'percance',
+                    default => 'operacion',
+                };
 
                 $yaEncerrada = false;
                 if (!empty($unidad->hora_real_salida_patio)) {
@@ -547,12 +548,13 @@ class DespachoController extends Controller
         }
 
         if ($info) {
-            $estatus = strtolower(trim($info->estatus ?? 'operacion'));
-            if ($estatus === 'no_programada') {
-                $estatus = 'reserva';
-            } elseif (!in_array($estatus, ['operacion', 'mantenimiento', 'reserva', 'percance'], true)) {
-                $estatus = 'operacion';
-            }
+            $estatusRaw = strtolower(trim($info->estatus ?? 'operacion'));
+            $estatus = match($estatusRaw) {
+                'no_programada', 'reserva' => 'reserva',
+                'mantenimiento' => 'mantenimiento',
+                'percance' => 'percance',
+                default => 'operacion',
+            };
 
             // Si la unidad está desincorporada (reserva, mantenimiento, percance), NO debe tener conductor ni ruta asignados en servicio activo
             if (in_array($estatus, ['mantenimiento', 'reserva', 'percance'], true)) {
@@ -885,7 +887,7 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva', 'no_programada'])) {
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -1089,7 +1091,7 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva', 'no_programada'])) {
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -1282,7 +1284,7 @@ class DespachoController extends Controller
                 'transporte_patio_norte'=> filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva', 'no_programada'])) {
+            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -1947,7 +1949,7 @@ class DespachoController extends Controller
                 $hasRelevo ? 'informacion_operativa.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? 'informacion_operativa.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                DB::raw("COALESCE(informacion_operativa.estatus, 'no_programada') as estatus"),
+                DB::raw("COALESCE(informacion_operativa.estatus, 'reserva') as estatus"),
                 'informacion_operativa.falla',
                 'informacion_operativa.corridas',
                 'informacion_operativa.ciclo',
@@ -2067,7 +2069,7 @@ class DespachoController extends Controller
                 $hasRelevo ? 'informacion_operativa_manana.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                DB::raw("COALESCE(informacion_operativa_manana.estatus, 'no_programada') as estatus"),
+                DB::raw("COALESCE(informacion_operativa_manana.estatus, 'reserva') as estatus"),
                 'informacion_operativa_manana.falla',
                 'informacion_operativa_manana.corridas',
                 'informacion_operativa_manana.ciclo',
@@ -2156,7 +2158,7 @@ class DespachoController extends Controller
                 $hasRelevo ? "{$tableName}.relevo_tarjeton" : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? "{$tableName}.relevo_conductor" : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? "{$tableName}.relevo_hora" : DB::raw('NULL as relevo_hora'),
-                DB::raw("COALESCE({$tableName}.estatus, 'no_programada') as estatus"),
+                DB::raw("COALESCE({$tableName}.estatus, 'reserva') as estatus"),
                 "{$tableName}.falla",
                 "{$tableName}.corridas",
                 "{$tableName}.ciclo",
@@ -2245,7 +2247,7 @@ class DespachoController extends Controller
                 $hasRelevo ? 'informacion_operativa_manana.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
-                DB::raw("COALESCE(informacion_operativa_manana.estatus, 'no_programada') as estatus"),
+                DB::raw("COALESCE(informacion_operativa_manana.estatus, 'reserva') as estatus"),
                 'informacion_operativa_manana.falla',
                 'informacion_operativa_manana.corridas',
                 'informacion_operativa_manana.ciclo',
@@ -2322,7 +2324,7 @@ class DespachoController extends Controller
                 $hasRelevo ? "{$tableName}.relevo_tarjeton" : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? "{$tableName}.relevo_conductor" : DB::raw('NULL as relevo_conductor'),
                 $hasRelevo ? "{$tableName}.relevo_hora" : DB::raw('NULL as relevo_hora'),
-                DB::raw("COALESCE({$tableName}.estatus, 'no_programada') as estatus"),
+                DB::raw("COALESCE({$tableName}.estatus, 'reserva') as estatus"),
                 "{$tableName}.falla",
                 "{$tableName}.corridas",
                 "{$tableName}.ciclo",
@@ -2384,7 +2386,7 @@ class DespachoController extends Controller
             'historial_operativo.ruta',
             'historial_operativo.numero_tarjeton as tarjeton',
             'historial_operativo.nombre_conductor',
-            DB::raw("COALESCE(historial_operativo.estatus, 'no_programada') as estatus"),
+            DB::raw("COALESCE(historial_operativo.estatus, 'reserva') as estatus"),
             'historial_operativo.falla',
             'historial_operativo.corridas',
             'historial_operativo.ciclo',

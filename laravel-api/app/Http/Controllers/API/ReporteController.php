@@ -124,7 +124,7 @@ class ReporteController extends Controller
                 $units = $registros->filter(function ($d) use ($tc) {
                     $tipo = strtoupper(trim($d->tipo ?? ''));
                     $est = strtolower(trim($d->estatus ?? ''));
-                    $isNoProg = $est === 'no_programada' || $est === 'no programada';
+                    $isNoProg = $est === 'reserva' || $est === 'no_programada' || $est === 'no programada';
                     return str_contains($tipo, $tc['pattern']) && !$isNoProg;
                 });
 
