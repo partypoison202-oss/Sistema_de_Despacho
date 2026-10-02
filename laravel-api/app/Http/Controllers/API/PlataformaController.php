@@ -174,9 +174,15 @@ class PlataformaController extends Controller
                     $ecoReemplazoPad = str_pad($ecoReemplazoClean === '' ? '0' : $ecoReemplazoClean, 3, '0', STR_PAD_LEFT);
                     $reemplazoCandidates = array_values(array_unique([$ecoReemplazo, $ecoReemplazoClean, $ecoReemplazoPad]));
 
-                    $unidadReemplazo = DB::table('unidades')
-                        ->whereIn('numero_eco', $reemplazoCandidates)
-                        ->first();
+                    $unidadReemplazo = null;
+                    if (!empty($request->unidad_id_reemplazo)) {
+                        $unidadReemplazo = DB::table('unidades')->where('id', $request->unidad_id_reemplazo)->first();
+                    }
+                    if (!$unidadReemplazo) {
+                        $unidadReemplazo = DB::table('unidades')
+                            ->whereIn('numero_eco', $reemplazoCandidates)
+                            ->first();
+                    }
 
                     if (!$unidadReemplazo) {
                         return response()->json(['error' => 'Unidad de reemplazo no encontrada: ' . $ecoReemplazo], 404);
@@ -188,10 +194,20 @@ class PlataformaController extends Controller
 
                     $estatusAnteriorReemplazo = strtoupper(trim($registroReemplazo->estatus ?? 'RESERVA'));
 
-                    // 1. Tipo de transporte (esencial para filtros y vistas)
-                    $tipoParaReemplazo = !empty($registroOperativo->tipo)
-                        ? strtoupper(trim($registroOperativo->tipo))
-                        : strtoupper(trim($request->tipo ?? 'URBANUSS'));
+                    // 1. Tipo de transporte de la unidad de reemplazo
+                    $nombreTransporteReemplazo = null;
+                    if (!empty($unidadReemplazo->transporte_id)) {
+                        $nombreTransporteReemplazo = DB::table('transportes')->where('id', $unidadReemplazo->transporte_id)->value('nombre');
+                    }
+                    $tipoParaReemplazo = strtoupper(trim(
+                        $request->tipo_reemplazo
+                        ?? $nombreTransporteReemplazo
+                        ?? $registroReemplazo->tipo
+                        ?? $unidadReemplazo->tipo
+                        ?? $registroOperativo->tipo
+                        ?? $request->tipo
+                        ?? 'URBANUSS'
+                    ));
 
                     // 2. Tarjetón y Conductor
                     $tarjetonReemplazo = !empty($request->tarjeton_reemplazo)

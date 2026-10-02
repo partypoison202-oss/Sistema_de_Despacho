@@ -2895,13 +2895,30 @@ class DespachoController extends Controller
             $rutaReemplazo = trim($request->ruta_reemplazo);
             $corridaReemplazo = trim($request->corrida_reemplazo);
 
-            $unidadReemplazo = DB::table('unidades')->where('numero_eco', $ecoReemplazo)->first();
+            $unidadReemplazo = null;
+            if (!empty($request->unidad_id_reemplazo)) {
+                $unidadReemplazo = DB::table('unidades')->where('id', $request->unidad_id_reemplazo)->first();
+            }
+            if (!$unidadReemplazo) {
+                $unidadReemplazo = DB::table('unidades')->where('numero_eco', $ecoReemplazo)->first();
+            }
             
             if ($unidadReemplazo) {
-                // 1. Determinar tipo de transporte
-                $tipoParaReemplazo = !empty($registroOperativo->tipo)
-                    ? strtoupper(trim($registroOperativo->tipo))
-                    : strtoupper(trim($tipoNormalizado ?? 'URBANUSS'));
+                // 1. Determinar tipo de transporte de la unidad de reemplazo
+                $nombreTransporteReemplazo = null;
+                if (!empty($unidadReemplazo->transporte_id)) {
+                    $nombreTransporteReemplazo = DB::table('transportes')->where('id', $unidadReemplazo->transporte_id)->value('nombre');
+                }
+                $registroReemplazoActual = DB::table('informacion_operativa')->where('unidad_id', $unidadReemplazo->id)->first();
+                $tipoParaReemplazo = strtoupper(trim(
+                    $request->tipo_reemplazo
+                    ?? $nombreTransporteReemplazo
+                    ?? $registroReemplazoActual->tipo
+                    ?? $unidadReemplazo->tipo
+                    ?? $registroOperativo->tipo
+                    ?? $tipoNormalizado
+                    ?? 'URBANUSS'
+                ));
 
                 // 2. Tarjetón y Conductor
                 $tarjetonReemplazo = !empty($tarjetonReemplazo)
