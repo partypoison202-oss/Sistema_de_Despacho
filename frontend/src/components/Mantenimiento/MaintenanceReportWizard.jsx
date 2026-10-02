@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import SignaturePad from '../SignaturePad/SignaturePad';
 import PrintableMaintenanceOrder from './PrintableMaintenanceOrder';
 import html2canvas from 'html2canvas';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { AuthContext } from '../../context/AuthContext';
-import { useContext } from 'react';
+
 
 export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1, printOnly = false, conductores = [] }) {
   const [step, setStep] = useState(1);

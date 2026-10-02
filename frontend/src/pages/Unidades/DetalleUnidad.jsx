@@ -1,5 +1,5 @@
 // src/pages/Unidades/DetalleUnidad.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
@@ -15,7 +15,6 @@ import CONDUCTORES from '../../data/conductores';
 import Swal from 'sweetalert2';
 import { normalizeRuta, normalizeRutaClave } from '../../utils/rutaUtils';
 import { AuthContext } from '../../context/AuthContext';
-import { useContext } from 'react';
 
 export default function DetalleUnidad() {
   const { tipoTransporte } = useParams();
