@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useRef } from 'react';
+import { createContext, useState, useEffect, useRef, useMemo } from 'react';
 import API_BASE from '../config/api';
 import Swal from 'sweetalert2';
 
@@ -85,8 +85,28 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('token');
   };
 
+  const canEditModulo = (moduloCodigo) => {
+    if (!user?.modulos) return false;
+    if (user.role?.codigo === 'ADMINISTRADOR') return true;
+    if (user.role?.codigo === 'LECTURA') return false;
+    
+    const mod = user.modulos.find(m => 
+      (typeof m === 'object' ? m.modulo_codigo : m) === moduloCodigo
+    );
+    
+    if (!mod) return false;
+    if (typeof mod === 'object') {
+      return !mod.solo_lectura;
+    }
+    return true;
+  };
+
+  const contextValue = useMemo(() => ({
+    user, token, login, logout, loading, setUser, canEditModulo
+  }), [user, token, loading]);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, setUser }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,5 @@
 // src/pages/Unidades/DetalleUnidad.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
 import Header from '../../components/Header/Header';
@@ -14,11 +14,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CONDUCTORES from '../../data/conductores';
 import Swal from 'sweetalert2';
 import { normalizeRuta, normalizeRutaClave } from '../../utils/rutaUtils';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function DetalleUnidad() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { canEditModulo } = useContext(AuthContext);
+  const isLectura = !canEditModulo('despacho');
 
   // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -92,7 +95,7 @@ export default function DetalleUnidad() {
   const getUnitStatusVisual = (u) => {
     if (!u.horaSalidaPatio) return u.horaRealSalidaPatio ? 'validated_ontime' : 'pending';
     
-    let targetTime = null;
+    let targetTime;
     if (u.horaRealSalidaPatio) {
       const doneTime = u.horaRealSalidaPatio;
       // Extract first valid time string "HH:MM"
@@ -532,6 +535,7 @@ export default function DetalleUnidad() {
 
   // Guardar falla (solo el campo de fallas)
   const handleSaveFalla = async () => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -553,7 +557,7 @@ export default function DetalleUnidad() {
       const resultado = await respuesta.json();
       if (respuesta.ok && resultado.status === 'success') {
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: '¡Falla registrada!',
           text: 'El tipo de falla se ha guardado correctamente.',
@@ -562,7 +566,7 @@ export default function DetalleUnidad() {
         });
       } else {
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'error',
           title: 'Error',
           text: resultado.message || 'Error al guardar la falla',
@@ -572,7 +576,7 @@ export default function DetalleUnidad() {
     } catch (error) {
       console.error('Error al guardar falla:', error);
       const Swal = (await import('sweetalert2')).default;
-      Swal.fire({
+      await Swal.fire({
         icon: 'error',
         title: 'Error',
         text: 'Error de conexión',
@@ -583,6 +587,7 @@ export default function DetalleUnidad() {
 
   // Guardar tarjetón y asignar conductor automáticamente
   const handleSaveTarjeton = async (nuevoTarjeton) => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -615,7 +620,7 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: '¡Tarjetón Asignado!',
           text: `Se asignó al conductor: ${resultado.conductor}`,
@@ -624,7 +629,7 @@ export default function DetalleUnidad() {
         });
       } else {
         const Swal = (await import('sweetalert2')).default;
-        Swal.fire({
+        await Swal.fire({
           icon: 'error',
           title: 'Error de Asignación',
           text: resultado.message || 'Error al actualizar el tarjetón',
@@ -634,7 +639,7 @@ export default function DetalleUnidad() {
     } catch (error) {
       console.error('Error al guardar tarjetón:', error);
       const Swal = (await import('sweetalert2')).default;
-      Swal.fire({
+      await Swal.fire({
         icon: 'error',
         title: 'Error de conexión',
         text: 'No se pudo conectar con el servidor',
@@ -645,35 +650,32 @@ export default function DetalleUnidad() {
 
   // Guardar ruta
   const handleSaveRuta = async (nuevaRuta) => {
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      const matchNumeros = selectedOption.match(/\d+/);
-      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-      const payload = {
-        tipo: tipoTransporte,
-        numero_eco: numeroLimpio,
+    if (isLectura) return;
+    const token = getToken();
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    const matchNumeros = selectedOption.match(/\d+/);
+    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+    const payload = {
+      tipo: tipoTransporte,
+      numero_eco: numeroLimpio,
+      ruta: nuevaRuta,
+    };
+    const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-ruta`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const resultado = await respuesta.json();
+    if (respuesta.ok && resultado.status === 'success') {
+      setDatosOperativos((prev) => ({
+        ...prev,
         ruta: nuevaRuta,
-      };
-      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-ruta`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const resultado = await respuesta.json();
-      if (respuesta.ok && resultado.status === 'success') {
-        setDatosOperativos((prev) => ({
-          ...prev,
-          ruta: nuevaRuta,
-        }));
-      } else {
-        throw new Error(resultado.message || 'Error al actualizar la ruta.');
-      }
-    } catch (error) {
-      throw error;
+      }));
+    } else {
+      throw new Error(resultado.message || 'Error al actualizar la ruta.');
     }
   };
 
@@ -686,6 +688,7 @@ export default function DetalleUnidad() {
   };
 
   const handleSaveHoras = async (horaSalidaPatio, acople, horaRealSalidaPatio = null, observaciones = null) => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) throw new Error('No token');
@@ -743,6 +746,7 @@ export default function DetalleUnidad() {
   };
 
   const handleValidarDespacho = async (payload) => {
+    if (isLectura) throw new Error('Acceso denegado');
     try {
       const token = getToken();
       if (!token) {
@@ -823,6 +827,12 @@ export default function DetalleUnidad() {
   };
 
   const handleCambiarEstatus = async (nuevoEstatus) => {
+    if (isLectura) {
+      import('sweetalert2').then(module => {
+        module.default.fire({ icon: 'error', title: 'Acceso Denegado', text: 'No tienes permisos para modificar estatus.' });
+      });
+      return;
+    }
     if (!selectedOption) return;
     
     if (datosOperativos.estatus === nuevoEstatus) return;
@@ -1085,7 +1095,7 @@ export default function DetalleUnidad() {
 
       const data = await res.json();
       if (res.ok && (data.success || data.status === 'success')) {
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: 'Estatus Actualizado',
           text: `La unidad cambió a ${nuevoEstatus}.`,
@@ -1146,11 +1156,11 @@ export default function DetalleUnidad() {
         // ✅ NUEVO: refrescar también el filtro por ruta si estaba activo
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
       } else {
-        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
+        await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
     } catch (error) {
       console.error(error);
-      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
+      await Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
     } finally {
       setCambiandoEstatus(false);
     }
@@ -1188,7 +1198,7 @@ export default function DetalleUnidad() {
 
       const data = await res.json();
       if (res.ok && (data.success || data.status === 'success')) {
-        Swal.fire({
+        await Swal.fire({
           icon: 'success',
           title: 'Estatus Actualizado',
           text: `La unidad cambió a operación.`,
@@ -1240,11 +1250,11 @@ export default function DetalleUnidad() {
         queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
       } else {
-        Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
+        await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
     } catch (error) {
       console.error(error);
-      Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
+      await Swal.fire('Error', 'Error de red al cambiar estatus', 'error');
     } finally {
       setCambiandoEstatus(false);
     }

@@ -1,5 +1,5 @@
 // src/pages/MesaControl/DetalleUnidadMesaControl.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { transportModules } from '../../config/transportModules';
@@ -17,11 +17,14 @@ import API_BASE from '../../config/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CONDUCTORES from '../../data/conductores';
 import Swal from 'sweetalert2';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function DetalleUnidadMesaControl() {
   const { tipoTransporte } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { canEditModulo } = useContext(AuthContext);
+  const isLectura = !canEditModulo('mesacontrol');
 
   // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -484,6 +487,7 @@ export default function DetalleUnidadMesaControl() {
   };
 
   const handleSaveFalla = async () => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -534,6 +538,7 @@ export default function DetalleUnidadMesaControl() {
   };
 
   const handleSaveTarjeton = async (nuevoTarjeton) => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -595,6 +600,7 @@ export default function DetalleUnidadMesaControl() {
   };
 
   const handleSaveTarjetonManiobrista = async (nuevoTarjeton) => {
+    if (isLectura) return;
     try {
       const token = getToken();
       if (!token) {
@@ -664,39 +670,37 @@ export default function DetalleUnidadMesaControl() {
   };
 
   const handleSaveRuta = async (nuevaRuta) => {
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      const matchNumeros = selectedOption.match(/\d+/);
-      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-      const payload = {
-        tipo: tipoTransporte,
-        numero_eco: numeroLimpio,
+    if (isLectura) return;
+    const token = getToken();
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    const matchNumeros = selectedOption.match(/\d+/);
+    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+    const payload = {
+      tipo: tipoTransporte,
+      numero_eco: numeroLimpio,
+      ruta: nuevaRuta,
+    };
+    const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-ruta`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const resultado = await respuesta.json();
+    if (respuesta.ok && resultado.status === 'success') {
+      setDatosOperativos((prev) => ({
+        ...prev,
         ruta: nuevaRuta,
-      };
-      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-ruta`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const resultado = await respuesta.json();
-      if (respuesta.ok && resultado.status === 'success') {
-        setDatosOperativos((prev) => ({
-          ...prev,
-          ruta: nuevaRuta,
-        }));
-      } else {
-        throw new Error(resultado.message || 'Error al actualizar la ruta.');
-      }
-    } catch (error) {
-      throw error;
+      }));
+    } else {
+      throw new Error(resultado.message || 'Error al actualizar la ruta.');
     }
   };
 
   const handleSaveHoras = async (horaSalidaPatio, acople) => {
+    if (isLectura) return;
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No estás autenticado.');
@@ -792,6 +796,10 @@ export default function DetalleUnidadMesaControl() {
 
   // ========== FUNCIONES DE CAMBIO DE ESTATUS (ya existentes) ==========
   const handleCambiarEstatus = async (nuevoEstatus) => {
+    if (isLectura) {
+      Swal.fire({ icon: 'error', title: 'Acceso Denegado', text: 'No tienes permisos para modificar estatus.' });
+      return;
+    }
     if (!selectedOption) return;
 
     if (datosOperativos.estatus === nuevoEstatus) return;

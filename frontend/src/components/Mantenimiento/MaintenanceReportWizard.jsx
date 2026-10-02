@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import Swal from 'sweetalert2';
 import SignaturePad from '../SignaturePad/SignaturePad';
 import PrintableMaintenanceOrder from './PrintableMaintenanceOrder';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { AuthContext } from '../../context/AuthContext';
+
 
 export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1, printOnly = false, conductores = [] }) {
   const [step, setStep] = useState(1);
@@ -14,6 +16,9 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   const printableRef = useRef(null);
   const hasInitialized = useRef(false);
   const hasPrinted = useRef(false);
+  
+  const { canEditModulo } = useContext(AuthContext);
+  const isLectura = !canEditModulo('mantenimiento');
 
   // Form Data
   const [incidencia, setIncidencia] = useState('');
@@ -310,6 +315,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-4"
           placeholder="Ej. 1234"
           autoFocus
+          disabled={isLectura}
         />
         <label className="block text-sm font-semibold text-gray-700 mb-2">Falla Reportada:</label>
         <textarea
@@ -318,17 +324,20 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:outline-none transition-colors"
           placeholder="Describa la falla brevemente..."
           rows="3"
+          disabled={isLectura}
         ></textarea>
       </div>
 
       <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
-        <button
-          onClick={handleNext}
-          disabled={loading}
-          className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Cargando...' : 'Continuar →'}
-        </button>
+        {!isLectura && (
+          <button
+            onClick={handleNext}
+            disabled={loading}
+            className="bg-[#6b1d33] hover:bg-[#832641] text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Cargando...' : 'Continuar →'}
+          </button>
+        )}
         <button
           onClick={onClose}
           disabled={loading}
@@ -460,19 +469,21 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         >
           Atrás (Cambiar Incidencia)
         </button>
-        <button
-          onClick={handleSave}
-          disabled={!isFormValid() || loading}
-          className={`px-6 py-2.5 rounded-lg font-medium text-white shadow-md flex items-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-[#6b1d33]/50 focus:ring-offset-1
-            ${(!isFormValid() || loading) ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-[#6b1d33] to-[#8d2846] hover:shadow-lg hover:-translate-y-0.5'}`}
-        >
-          {loading ? 'Procesando...' : (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-              Generar y Descargar PDF
-            </>
-          )}
-        </button>
+        {!isLectura && (
+          <button
+            onClick={handleSave}
+            disabled={!isFormValid() || loading}
+            className={`px-6 py-2.5 rounded-lg font-medium text-white shadow-md flex items-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-[#6b1d33]/50 focus:ring-offset-1
+              ${(!isFormValid() || loading) ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-[#6b1d33] to-[#8d2846] hover:shadow-lg hover:-translate-y-0.5'}`}
+          >
+            {loading ? 'Procesando...' : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Generar y Descargar PDF
+              </>
+            )}
+          </button>
+        )}
       </div>
 
 
