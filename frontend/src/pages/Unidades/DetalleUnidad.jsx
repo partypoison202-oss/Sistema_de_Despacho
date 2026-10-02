@@ -95,7 +95,7 @@ export default function DetalleUnidad() {
   const getUnitStatusVisual = (u) => {
     if (!u.horaSalidaPatio) return u.horaRealSalidaPatio ? 'validated_ontime' : 'pending';
     
-    let targetTime = null;
+    let targetTime;
     if (u.horaRealSalidaPatio) {
       const doneTime = u.horaRealSalidaPatio;
       // Extract first valid time string "HH:MM"
@@ -651,35 +651,31 @@ export default function DetalleUnidad() {
   // Guardar ruta
   const handleSaveRuta = async (nuevaRuta) => {
     if (isLectura) return;
-    try {
-      const token = getToken();
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-      const matchNumeros = selectedOption.match(/\d+/);
-      const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
-      const payload = {
-        tipo: tipoTransporte,
-        numero_eco: numeroLimpio,
+    const token = getToken();
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    const matchNumeros = selectedOption.match(/\d+/);
+    const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
+    const payload = {
+      tipo: tipoTransporte,
+      numero_eco: numeroLimpio,
+      ruta: nuevaRuta,
+    };
+    const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-ruta`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const resultado = await respuesta.json();
+    if (respuesta.ok && resultado.status === 'success') {
+      setDatosOperativos((prev) => ({
+        ...prev,
         ruta: nuevaRuta,
-      };
-      const respuesta = await fetch(`${API_BASE}/api/despacho/actualizar-ruta`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const resultado = await respuesta.json();
-      if (respuesta.ok && resultado.status === 'success') {
-        setDatosOperativos((prev) => ({
-          ...prev,
-          ruta: nuevaRuta,
-        }));
-      } else {
-        throw new Error(resultado.message || 'Error al actualizar la ruta.');
-      }
-    } catch (error) {
-      throw error;
+      }));
+    } else {
+      throw new Error(resultado.message || 'Error al actualizar la ruta.');
     }
   };
 

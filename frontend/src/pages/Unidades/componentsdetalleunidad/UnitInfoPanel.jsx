@@ -510,7 +510,6 @@ export default function UnitInfoPanel({
   const handleConfirmRuta = async (nuevaRutaStr = null) => {
     const rutaAUsar = typeof nuevaRutaStr === 'string' ? nuevaRutaStr.trim() : formRuta.trim();
     if (!rutaAUsar || rutaAUsar === datosOperativos.ruta) {
-      setEditandoRuta(false);
       return;
     }
     setGuardandoRuta(true);
@@ -526,7 +525,6 @@ export default function UnitInfoPanel({
           timer: 2000
         });
       }
-      setEditandoRuta(false);
     } catch (err) {
       console.error(err);
     } finally {
@@ -536,7 +534,6 @@ export default function UnitInfoPanel({
 
   const handleCancelRutaEdit = () => {
     setFormRuta(datosOperativos.ruta || '');
-    setEditandoRuta(false);
   };
 
   // ==================== JSX ====================
@@ -568,6 +565,7 @@ export default function UnitInfoPanel({
             {/* 2. Número de Tarjetón (Editable) */}
             <div className="info-card__item">
               <span className="info-card__label">Número de Tarjetón</span>
+              {/* eslint-disable-next-line no-constant-condition */}
               {false ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
                   <div ref={tarjetonRef} style={{ position: 'relative', width: '100%', zIndex: dropdownTarjetonOpen ? 50 : 1 }}>
@@ -709,6 +707,7 @@ export default function UnitInfoPanel({
             {/* 4. Ruta Asignada */}
             <div className="info-card__item" style={{ marginTop: '0.85rem' }}>
               <span className="info-card__label">Ruta Asignada</span>
+              {/* eslint-disable-next-line no-constant-condition */}
               {false ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', position: 'relative' }}>
                   <div ref={rutaRef} style={{ position: 'relative', width: '100%', zIndex: dropdownRutaOpen ? 50 : 1 }}>
