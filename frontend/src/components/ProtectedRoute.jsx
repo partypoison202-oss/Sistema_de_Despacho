@@ -41,7 +41,7 @@ export default function ProtectedRoute({ children, allowedRoles, allowedModules 
 
   const rol = user.role?.codigo;
   let modulos = (user.modulos && user.modulos.length > 0)
-    ? user.modulos.map(m => m.modulo_codigo)
+    ? user.modulos.map(m => typeof m === 'object' ? m.modulo_codigo : m)
     : [...(ROLE_DEFAULT_MODULES[rol] || [])];
 
   const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PASTELES', 'PROGRAMACION_PASTELES', 'PROGRAMACION', 'CAPTURISTA'];

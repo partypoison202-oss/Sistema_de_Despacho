@@ -258,9 +258,9 @@ export default function Menu() {
   if (!user) return null;
 
   const rol = user.role?.codigo;
-  // Convertimos el arreglo de objetos de la base de datos a un arreglo de strings
+  // Convertimos el arreglo de objetos (o strings) de la base de datos a un arreglo de strings puros
   let modulos = (user.modulos && user.modulos.length > 0)
-    ? user.modulos.map(m => m.modulo_codigo)
+    ? user.modulos.map(m => typeof m === 'object' ? m.modulo_codigo : m)
     : [...(ROLE_DEFAULT_MODULES[rol] || [])];
 
   const rolesConHistorial = ['DESPACHO', 'ENCIERRO', 'MANTENIMIENTO', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA', 'GENERAL', 'PROGRAMACION', 'CAPTURISTA', 'PASTELES', 'PROGRAMACION_PASTELES', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES'];
