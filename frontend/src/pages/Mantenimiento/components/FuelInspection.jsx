@@ -1,4 +1,4 @@
-﻿// src/pages/Mantenimiento/components/FuelInspection.jsx
+// src/pages/Mantenimiento/components/FuelInspection.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
@@ -351,31 +351,8 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
       return;
     }
 
-    // 2. Validación de kilometraje: no puede ser menor al anterior
-    const kmAnterior = registroAnterior?.kilometraje !== undefined && registroAnterior?.kilometraje !== null
-      ? Number(registroAnterior.kilometraje) : null;
-
-    const kmGasolinaNum = Number(form.kilometrajeGasolina);
+    const kmGasolinaNum = form.kilometrajeGasolina !== '' ? Number(form.kilometrajeGasolina) : null;
     const kmAdblueNum = form.kilometrajeAdblue !== '' ? Number(form.kilometrajeAdblue) : null;
-
-    if (kmAnterior !== null && kmGasolinaNum < kmAnterior) {
-      Swal.fire({
-        icon: 'error',
-        title: '⚠️ Anomalía en Kilometraje',
-        html: `El kilometraje de ${combustibleLabel} ingresado (<b>${kmGasolinaNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el kilometraje y vuelve a intentarlo.`,
-        confirmButtonColor: '#6b1d33',
-      });
-      return;
-    }
-    if (!isVagoneta && kmAnterior !== null && kmAdblueNum !== null && kmAdblueNum < kmAnterior) {
-      Swal.fire({
-        icon: 'error',
-        title: '⚠️ Anomalía en Kilometraje',
-        html: `El kilometraje de AdBlue ingresado (<b>${kmAdblueNum.toLocaleString('es-MX')} km</b>) es <b>menor</b> al último registro guardado (<b>${kmAnterior.toLocaleString('es-MX')} km</b>).<br><br>Verifica el kilometraje y vuelve a intentarlo.`,
-        confirmButtonColor: '#6b1d33',
-      });
-      return;
-    }
 
     setGuardando(true);
     try {
@@ -756,6 +733,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     </div>
   );
 }
+
 
 
 
