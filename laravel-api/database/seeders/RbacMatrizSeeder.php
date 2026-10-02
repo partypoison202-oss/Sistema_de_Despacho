@@ -61,6 +61,7 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Jairo Jared Jiménez Ramírez', 'usuario' => 'Jairo_Jimenez', 'rol_codigo' => 'DESPACHO', 'modulos' => ['despacho'], 'contrasena' => 'JRJ_DD26'],
             ['nombre_completo' => 'Marino Román Velázquez', 'usuario' => 'Marino_Roman', 'rol_codigo' => 'DESPACHO', 'modulos' => ['despacho'], 'contrasena' => 'RVM_DD26'],
             ['nombre_completo' => 'Miguel Odón', 'usuario' => 'Miguel_Odon', 'rol_codigo' => 'DESPACHO', 'modulos' => ['despacho', 'operadores'], 'contrasena' => 'OM_DD26'],
+            ['nombre_completo' => 'Ángel David Pérez Rueda', 'usuario' => 'Angel_Perez', 'rol_codigo' => 'DESPACHO', 'modulos' => ['despacho'], 'contrasena' => 'RPA_DD26'],
 
             // ── Mantenimiento ──
             ['nombre_completo' => 'Adrián Isidro Lopéz', 'usuario' => 'Adrian_Isidro', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'ILA_ME26'],
@@ -78,9 +79,21 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Bonifacio Alpizar López', 'usuario' => 'Bonifacio_Alpizar', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'ALB_ME26'],
             ['nombre_completo' => 'Diana Karina Vázquez García', 'usuario' => 'Diana_Vazquez', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'VGD_ME26'],
             ['nombre_completo' => 'Emilio Corona Montufar', 'usuario' => 'Emilio_Corona', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'CME_ME26'],
+            ['nombre_completo' => 'Adriana Diaz', 'usuario' => 'Adriana_Diaz', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'DA_ME26'],
+            ['nombre_completo' => 'Abigail Rodriguez Perez', 'usuario' => 'Abigail_Rodriguez', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'RPA_ME26'],
+            ['nombre_completo' => 'Fabian Oliver Chuio Garcia', 'usuario' => 'Fabian_Chuio', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'CGF_ME26'],
+            ['nombre_completo' => 'David Fragoso Martínez', 'usuario' => 'David_Fragoso', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'FMD_ME26'],
+            ['nombre_completo' => 'Rubicel Olvera Medina', 'usuario' => 'Rubicel_Olvera', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'OMR_ME26'],
+            ['nombre_completo' => 'Osmaret Vazquez Garcia', 'usuario' => 'Osmaret_Vazquez', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'VGO_ME26'],
 
             // ── Mesa de Control ──
             ['nombre_completo' => 'Angélica Gonzalez Santos', 'usuario' => 'Angelica_Gonzalez', 'rol_codigo' => 'MESA_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'relevos'], 'contrasena' => 'GSA_MC26'],
+            ['nombre_completo' => 'Alejandra Guadalupe Monroy Campos', 'usuario' => 'Alejandra_Monroy', 'rol_codigo' => 'MESA_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'relevos'], 'contrasena' => 'MCA_MC26'],
+            ['nombre_completo' => 'Mireidy Yañez Reyes', 'usuario' => 'Mireidy_Yanez', 'rol_codigo' => 'MESA_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'relevos'], 'contrasena' => 'YRM_MC26'],
+            ['nombre_completo' => 'Canales Hernández Tania Irán', 'usuario' => 'Tania_Canales', 'rol_codigo' => 'MESA_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'relevos'], 'contrasena' => 'CHT_MC26'],
+            ['nombre_completo' => 'Rolando Castillejos Fernández', 'usuario' => 'Rolando_Castillejos', 'rol_codigo' => 'MESA_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'relevos'], 'contrasena' => 'CFR_MC26'],
+            ['nombre_completo' => 'Ximena Montserrath Rosas Cruz', 'usuario' => 'Ximena_Rosas', 'rol_codigo' => 'MESA_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'relevos'], 'contrasena' => 'RCX_MC26'],
+            ['nombre_completo' => 'Ramírez Cerón Daniel Bigvai', 'usuario' => 'Daniel_Ramirez', 'rol_codigo' => 'MESA_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'relevos'], 'contrasena' => 'RCD_MC26'],
 
             // ── Encierro ──
             ['nombre_completo' => 'Jose Gabriel Angeles Martinez', 'usuario' => 'Jose_Angeles', 'rol_codigo' => 'ENCIERRO', 'modulos' => ['encierro'], 'contrasena' => 'AMJ_EN26'],
@@ -88,6 +101,7 @@ class RbacMatrizSeeder extends Seeder
             // ── Pasteles ──
             ['nombre_completo' => 'Ricardo Macías Vargas', 'usuario' => 'Ricardo_Macias', 'rol_codigo' => 'PASTELES', 'modulos' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro'], 'contrasena' => 'MVR_PL26'],
             ['nombre_completo' => 'Victor Esteban Alonso Garcia', 'usuario' => 'Victor_Alonso', 'rol_codigo' => 'PASTELES', 'modulos' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro'], 'contrasena' => 'AGV_PL26'],
+            ['nombre_completo' => 'Miguel Ángel Pérez Rodríguez', 'usuario' => 'Miguel_Perez', 'rol_codigo' => 'PASTELES', 'modulos' => ['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro'], 'contrasena' => 'RPM_PL26'],
         ];
 
         foreach ($matriz as $entry) {
