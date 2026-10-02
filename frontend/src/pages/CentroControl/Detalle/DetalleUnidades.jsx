@@ -22,6 +22,21 @@ const getRuta = (d) =>
   d.RUTA_ASIGNADA ??
   'Sin ruta asignada';
 
+const getModelo = (d) =>
+  d.TIPO_DE_UNIDAD ??
+  d.tipo ??
+  d.MODELO ??
+  d.__modelInfo?.label ??
+  '—';
+
+const getCorrida = (d) => {
+  const val = d.CORRIDAS ?? d.CORRIDA ?? d.corrida ?? d.corridas ?? d.MANTENIMIENTO_CORRIDA ?? d.mantenimiento_corrida;
+  if (val !== undefined && val !== null && String(val).trim() !== '') {
+    return String(val).trim();
+  }
+  return '—';
+};
+
 const getConductor = (d) => {
   const rel = d.RELEVO_CONDUCTOR || d.relevo_conductor;
   if (rel && String(rel).trim() !== '') {
@@ -73,7 +88,7 @@ export default function DetalleUnidades() {
           <div className="detalle-empty-state">
             <p>No se encontró información para mostrar.</p>
             <p className="detalle-empty-state__hint">
-              Vuelve al Centro de Control y selecciona una tarjeta de tipo de unidad.
+              Vuelve al Centro de Control y selecciona una tarjeta de tipo de unidad o ruta.
             </p>
           </div>
         </main>
@@ -87,17 +102,33 @@ export default function DetalleUnidades() {
   }));
 
   const getUnitStatusInfo = (u, group) => {
+    const est = (u.ESTATUS || u.estatus || '').toUpperCase().trim();
     const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
-    const label = group?.key === 'unidadesOperacion' && horaSalida ? 'Operación (Circulando)' : (group?.label || 'Operación');
-    return { color: group?.color || 'operacion', label };
+    const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
+
+    if (group) {
+      const label = group.key === 'unidadesOperacion' && horaSalida && !isEncerrada 
+        ? 'Operación (Circulando)' 
+        : group.label;
+      return { color: group.color, label };
+    }
+
+    if (est.includes('OPERACI')) {
+      if (horaSalida !== '' && !isEncerrada) return { color: 'operacion', label: 'Operación (Circulando)' };
+      return { color: 'operacion', label: 'Operación' };
+    }
+    if (est.includes('MANTENIMIENTO')) return { color: 'mantenimiento', label: 'Mantenimiento' };
+    if (est.includes('PERCANCE')) return { color: 'percance', label: 'Percance' };
+    if (est.includes('RESERVA')) return { color: 'reserva', label: 'Reserva' };
+    return { color: 'reserva', label: est || 'Registrado' };
   };
 
   let allUnits =
     activeTab === 'todas'
-      ? groups.flatMap((g) => g.units.map((u) => {
-          const info = getUnitStatusInfo(u, g);
+      ? (model.units && model.units.length > 0 ? model.units : groups.flatMap((g) => g.units)).map((u) => {
+          const info = getUnitStatusInfo(u);
           return { ...u, __statusColor: info.color, __statusLabel: info.label };
-        }))
+        })
       : (groups.find((g) => g.key === activeTab)?.units || []).map((u) => {
           const g = groups.find((grp) => grp.key === activeTab);
           const info = getUnitStatusInfo(u, g);
@@ -110,6 +141,8 @@ export default function DetalleUnidades() {
     allUnits = allUnits.filter(u => 
       getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
       getRuta(u).toLowerCase().includes(term) ||
+      getModelo(u).toLowerCase().includes(term) ||
+      getCorrida(u).toLowerCase().includes(term) ||
       getConductor(u).toLowerCase().includes(term) ||
       getTarjeton(u).toString().toLowerCase().includes(term) ||
       u.__statusLabel.toLowerCase().includes(term)
@@ -118,14 +151,31 @@ export default function DetalleUnidades() {
 
   return (
     <div className="detalle-page">
-      <Header title={`Detalle · ${model.label}`} eyebrow="Panel administrativo" />
+      <Header
+        title={model.isRoute ? `Detalle · Ruta ${model.label}` : `Detalle · ${model.label}`}
+        eyebrow={model.isRoute ? "Monitoreo de Rutas" : "Panel administrativo"}
+      />
 
       <main className="detalle-main">
         <div className="detalle-hero">
-          <img src={model.image} alt={model.label} className="detalle-hero__image" />
+          {model.image ? (
+            <img src={model.image} alt={model.label} className="detalle-hero__image" />
+          ) : (
+            <div className={`detalle-hero__route-badge detalle-hero__route-badge--${model.tipo === 'troncal' ? 'troncal' : 'alimentadora'}`}>
+              <span className="route-code">{model.label}</span>
+              <span className="route-type">{model.tipo === 'troncal' ? 'TRONCAL' : 'ALIMENTADORA'}</span>
+            </div>
+          )}
           <div>
-            <h1 className="detalle-hero__title">{model.label}</h1>
-            <p className="detalle-hero__subtitle">{model.programadas} unidades programadas en total</p>
+            <h1 className="detalle-hero__title">
+              {model.isRoute ? `Ruta ${model.label}` : model.label}
+              {model.desc && model.desc !== model.label ? ` — ${model.desc}` : ''}
+            </h1>
+            <p className="detalle-hero__subtitle">
+              {model.isRoute
+                ? `${model.tipo === 'troncal' ? 'Ruta Troncal' : 'Ruta Alimentadora'} · ${model.programadas} ${model.programadas === 1 ? 'unidad programada' : 'unidades programadas'} en total`
+                : `${model.programadas} unidades programadas en total`}
+            </p>
           </div>
         </div>
 
@@ -172,7 +222,7 @@ export default function DetalleUnidades() {
             </svg>
             <input 
               type="text" 
-              placeholder="Buscar unidad, ruta, tarjetón..." 
+              placeholder="Buscar unidad, ruta, corrida..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="detalle-search__input"
@@ -185,8 +235,9 @@ export default function DetalleUnidades() {
           <section className="detalle-table">
             <div className="detalle-table__head">
               <span>Unidad</span>
-              <span>Estatus</span>
-              <span>Ruta</span>
+              {model.isRoute ? <span>Modelo</span> : <span>Estatus</span>}
+              {model.isRoute ? <span>Estatus</span> : <span>Ruta</span>}
+              <span>Corrida</span>
               <span>Tarjetón</span>
               <span>Conductor</span>
             </div>
@@ -196,10 +247,23 @@ export default function DetalleUnidades() {
                   <span className="detalle-table__cell detalle-table__cell--unidad">
                     {getNumeroEconomico(u)}
                   </span>
-                  <span className={`detalle-table__cell detalle-table__status detalle-table__status--${u.__statusColor}`}>
-                    {u.__statusLabel}
-                  </span>
-                  <span className="detalle-table__cell">{getRuta(u)}</span>
+                  {model.isRoute ? (
+                    <span className="detalle-table__cell detalle-table__cell--modelo" style={{ fontWeight: 600 }}>
+                      {getModelo(u)}
+                    </span>
+                  ) : (
+                    <span className={`detalle-table__cell detalle-table__status detalle-table__status--${u.__statusColor}`}>
+                      {u.__statusLabel}
+                    </span>
+                  )}
+                  {model.isRoute ? (
+                    <span className={`detalle-table__cell detalle-table__status detalle-table__status--${u.__statusColor}`}>
+                      {u.__statusLabel}
+                    </span>
+                  ) : (
+                    <span className="detalle-table__cell">{getRuta(u)}</span>
+                  )}
+                  <span className="detalle-table__cell detalle-table__cell--corrida">{getCorrida(u)}</span>
                   <span className="detalle-table__cell">{getTarjeton(u)}</span>
                   <span className="detalle-table__cell">{getConductor(u)}</span>
                 </div>

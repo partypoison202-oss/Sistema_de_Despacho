@@ -374,8 +374,8 @@ export default function UnitInfoPanel({
           motivo: motivoVal || null
         })
       });
-      const result = await response.json();
-      if (response.ok && result.status === 'success') {
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && (result.status === 'success' || response.status === 200)) {
         const Swal = (await import('sweetalert2')).default;
         if (cicloVal) {
           Swal.fire({
@@ -397,6 +397,9 @@ export default function UnitInfoPanel({
         datosOperativos.ciclo = cicloVal || '';
         datosOperativos.motivo = motivoVal || '';
         setEditandoCiclos(false);
+        queryClient.invalidateQueries(['unidades-list-mesacontrol']);
+        queryClient.invalidateQueries(['unidad-detalle']);
+        queryClient.invalidateQueries(['despacho-hoy']);
       } else {
         const Swal = (await import('sweetalert2')).default;
         Swal.fire({
@@ -408,6 +411,13 @@ export default function UnitInfoPanel({
       }
     } catch (e) {
       console.error(e);
+      const Swal = (await import('sweetalert2')).default;
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo comunicar con el servidor.',
+        confirmButtonColor: '#6b1d33'
+      });
     } finally {
       setGuardandoPerdida(false);
     }

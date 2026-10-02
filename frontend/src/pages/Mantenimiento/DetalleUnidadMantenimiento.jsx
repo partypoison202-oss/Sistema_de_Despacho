@@ -55,6 +55,7 @@ export default function DetalleUnidadMantenimiento() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [selectedEstado, setSelectedEstado] = useState(null);
+  const [statusDestinoModal, setStatusDestinoModal] = useState('mantenimiento');
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [cambiandoEstatus, setCambiandoEstatus] = useState(false);
   const [isGenerandoFolio, setIsGenerandoFolio] = useState(false);
@@ -89,6 +90,8 @@ export default function DetalleUnidadMantenimiento() {
     try {
       const token = getToken();
       const fechaActualIso = new Date().toISOString();
+      const currentEstatus = String(datosOperativos.estatus || 'mantenimiento').toLowerCase();
+      const estatusToSave = currentEstatus === 'percance' ? 'percance' : 'mantenimiento';
       const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
         headers: { 
@@ -98,8 +101,8 @@ export default function DetalleUnidadMantenimiento() {
         body: JSON.stringify({
           numero_eco: selectedOption.replace(/\D/g, '').padStart(3, '0'),
           tipo: tipoTransporte,
-          estatus: 'mantenimiento',
-          motivo_estatus: 'MANTENIMIENTO',
+          estatus: estatusToSave,
+          motivo_estatus: estatusToSave.toUpperCase(),
           folio_mantenimiento: folioFormValue.trim(),
           fecha_folio_mantenimiento: fechaActualIso
         })
@@ -108,28 +111,28 @@ export default function DetalleUnidadMantenimiento() {
       if (response.ok && data.status === 'success') {
         setDatosOperativos(prev => ({
           ...prev,
-          estatus: 'mantenimiento',
-          motivo_estatus: 'MANTENIMIENTO',
+          estatus: estatusToSave,
+          motivo_estatus: estatusToSave.toUpperCase(),
           folio_mantenimiento: folioFormValue.trim(),
           fecha_folio_mantenimiento: fechaActualIso
         }));
-        setSelectedEstado('mantenimiento');
+        setSelectedEstado(estatusToSave);
         setIsFolioModalOpen(false);
         setFolioFormValue('');
         Swal.fire({
           icon: 'success',
-          title: 'Unidad en Mantenimiento',
-          text: `Número de incidencia: ${folioFormValue.trim()}`,
+          title: estatusToSave === 'percance' ? 'Unidad con Percance' : 'Unidad en Mantenimiento',
+          text: `Número de folio: ${folioFormValue.trim()}`,
           timer: 1500,
           showConfirmButton: false
         });
         // Invalidar query para refrescar todo
         queryClient.invalidateQueries(['unidadesList', tipoTransporte]);
       } else {
-        Swal.fire('Error', data.message || 'Error al asignar la incidencia', 'error');
+        Swal.fire('Error', data.message || 'Error al asignar el folio', 'error');
       }
     } catch (error) {
-      Swal.fire('Error', 'Error de red al asignar la incidencia', 'error');
+      Swal.fire('Error', 'Error de red al asignar el folio', 'error');
     } finally {
       setIsGuardandoFolio(false);
     }
@@ -141,7 +144,7 @@ export default function DetalleUnidadMantenimiento() {
       Swal.fire({
         icon: 'warning',
         title: 'Atención',
-        text: 'La falla reportada es obligatoria.',
+        text: statusDestinoModal === 'percance' ? 'La descripción del percance es obligatoria.' : 'La falla reportada es obligatoria.',
         customClass: { container: '!z-[100000]' }
       });
       return;
@@ -150,6 +153,9 @@ export default function DetalleUnidadMantenimiento() {
     setIsGuardandoIncidencia(true);
     try {
       const token = getToken();
+      const currentEstatus = String(statusDestinoModal || datosOperativos.estatus || 'mantenimiento').toLowerCase();
+      const estatusFinal = currentEstatus === 'percance' ? 'percance' : 'mantenimiento';
+
       const response = await fetch(`${API_BASE}/api/unidades/cambiar-estatus`, {
         method: 'POST',
         headers: { 
@@ -159,8 +165,8 @@ export default function DetalleUnidadMantenimiento() {
         body: JSON.stringify({
           numero_eco: selectedOption.replace(/\D/g, '').padStart(3, '0'),
           tipo: tipoTransporte,
-          estatus: 'mantenimiento',
-          motivo_estatus: 'MANTENIMIENTO',
+          estatus: estatusFinal,
+          motivo_estatus: estatusFinal.toUpperCase(),
           numero_incidencia: incidenciaFormValue.trim() || null,
           falla_reportada: fallaFormValue.trim() || null
         })
@@ -171,26 +177,27 @@ export default function DetalleUnidadMantenimiento() {
         
         setDatosOperativos(prev => ({
           ...prev,
-          estatus: 'mantenimiento',
-          motivo_estatus: 'MANTENIMIENTO',
+          estatus: estatusFinal,
+          motivo_estatus: estatusFinal.toUpperCase(),
           numero_incidencia: incidenciaFormValue.trim(),
           falla_reportada: fallaFormValue.trim()
         }));
-        setSelectedEstado('mantenimiento');
+        setSelectedEstado(estatusFinal);
         setIsIncidenceModalOpen(false);
         setIncidenciaFormValue('');
         setFallaFormValue('');
         
         await Swal.fire({
           icon: 'success',
-          title: 'Unidad en Mantenimiento',
+          title: estatusFinal === 'percance' ? 'Unidad con Percance' : 'Unidad en Mantenimiento',
           text: hasIncidencia 
             ? `Número de incidencia asignado con éxito.`
-            : 'La unidad se ha enviado a mantenimiento.',
+            : (estatusFinal === 'percance' ? 'La unidad se ha registrado con percance.' : 'La unidad se ha enviado a mantenimiento.'),
           timer: 1500,
           showConfirmButton: false
         });
         queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
+        queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, selectedOption.replace(/\D/g, '').padStart(3, '0')] });
 
         // Abre el wizard de creación del PDF Automáticamente solo si hay incidencia
@@ -198,7 +205,7 @@ export default function DetalleUnidadMantenimiento() {
           handleOpenMaintenanceWizard();
         }
       } else {
-        Swal.fire('Error', data.message || 'Error al enviar a mantenimiento', 'error');
+        Swal.fire('Error', data.message || (estatusFinal === 'percance' ? 'Error al registrar percance' : 'Error al enviar a mantenimiento'), 'error');
       }
     } catch (error) {
       Swal.fire('Error', 'Error de red al procesar la solicitud', 'error');
@@ -210,6 +217,7 @@ export default function DetalleUnidadMantenimiento() {
   const [wizardPrintOnly, setWizardPrintOnly] = useState(false);
 
   const handleOpenMaintenanceWizard = () => {
+    setStatusDestinoModal(String(datosOperativos.estatus || 'mantenimiento').toLowerCase());
     setWizardPrintOnly(false);
     setIsMaintenanceWizardOpen(true);
   };
@@ -369,7 +377,7 @@ export default function DetalleUnidadMantenimiento() {
 
 
 
-  const mostrarReemplazo = selectedOption && ['mantenimiento', 'reserva'].includes(selectedEstado);
+  const mostrarReemplazo = selectedOption && ['mantenimiento', 'reserva', 'percance'].includes(String(selectedEstado || '').toLowerCase());
 
   // ── Lista de unidades ──
   const fetchUnidades = async () => {
@@ -699,10 +707,11 @@ export default function DetalleUnidadMantenimiento() {
     }
     if (!selectedOption) return;
 
-    const esMismoEstatus = datosOperativos.estatus === nuevoEstatus;
+    const currentEstatus = String(datosOperativos.estatus || '').toLowerCase();
+    const esMismoEstatus = currentEstatus === nuevoEstatus;
 
-    // Si es el mismo estatus, SOLO permitimos si es 'mantenimiento' para actualizar el motivo o folio
-    if (esMismoEstatus && nuevoEstatus !== 'mantenimiento') {
+    // Si es el mismo estatus, SOLO permitimos si es 'mantenimiento' o 'percance' para actualizar el motivo o folio
+    if (esMismoEstatus && nuevoEstatus !== 'mantenimiento' && nuevoEstatus !== 'percance') {
       return;
     }
     let payloadUpdate = {
@@ -733,15 +742,16 @@ export default function DetalleUnidadMantenimiento() {
       }
     }
 
-    // Determinar si requiere motivo (reserva, mantenimiento o actualización de motivo en mantenimiento)
-    const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento' || esMismoEstatus;
+    // Determinar si requiere motivo (reserva, mantenimiento, percance o actualización de motivo)
+    const requiereMotivo = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento' || nuevoEstatus === 'percance' || esMismoEstatus;
 
     let motivoCapturado = null;
 
     if (requiereMotivo) {
       // Configurar el Swal para seleccionar motivo (el mismo código existente)
 
-      if (nuevoEstatus === 'mantenimiento') {
+      if (nuevoEstatus === 'mantenimiento' || nuevoEstatus === 'percance') {
+        setStatusDestinoModal(nuevoEstatus);
         setIsIncidenceModalOpen(true);
         return; // Salimos, el Incidence Modal se encargará de hacer la petición al guardar
       } else {
@@ -955,7 +965,7 @@ export default function DetalleUnidadMantenimiento() {
         });
 
         setDatosOperativos((prev) => {
-          const isClearFields = payloadUpdate.estatus === 'reserva' || payloadUpdate.estatus === 'mantenimiento';
+          const isClearFields = ['reserva', 'mantenimiento', 'percance'].includes(payloadUpdate.estatus);
           return {
             ...prev,
             estatus: payloadUpdate.estatus,
@@ -971,7 +981,7 @@ export default function DetalleUnidadMantenimiento() {
         // Actualizar cachés
         queryClient.setQueryData(['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio], (old) => {
           if (!old) return old;
-          const isClearFields = payloadUpdate.estatus === 'reserva' || payloadUpdate.estatus === 'mantenimiento';
+          const isClearFields = ['reserva', 'mantenimiento', 'percance'].includes(payloadUpdate.estatus);
           return {
             ...old,
             estatus: payloadUpdate.estatus,
@@ -986,7 +996,7 @@ export default function DetalleUnidadMantenimiento() {
         queryClient.setQueryData(['unidades-list-mantenimiento', tipoTransporte], (old = []) =>
           old.map((u) => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-              const isClearFields = payloadUpdate.estatus === 'reserva' || payloadUpdate.estatus === 'mantenimiento';
+              const isClearFields = ['reserva', 'mantenimiento', 'percance'].includes(payloadUpdate.estatus);
               return {
                 ...u,
                 estado: payloadUpdate.estatus,
@@ -1000,6 +1010,7 @@ export default function DetalleUnidadMantenimiento() {
           })
         );
 
+        queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
       } else {
@@ -1179,6 +1190,18 @@ export default function DetalleUnidadMantenimiento() {
               onSelectUnit={handleSelectUnit}
             />
             <UnitSelector
+              isOpen={openDropdown === 'percance'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'percance' : null)}
+              selectedOption={selectedOption}
+              selectedEstado={selectedEstado}
+              estado="percance"
+              titulo="Percance"
+              unidades={unidadesPorEstado('percance')}
+              cargandoUnidades={cargandoUnidades}
+              configActual={configActual}
+              onSelectUnit={handleSelectUnit}
+            />
+            <UnitSelector
               isOpen={openDropdown === 'reserva'}
               setIsOpen={(open) => setOpenDropdown(open ? 'reserva' : null)}
               selectedOption={selectedOption}
@@ -1209,7 +1232,7 @@ export default function DetalleUnidadMantenimiento() {
                     </div>
                   </div>
 
-                   {(datosOperativos.estatus === 'mantenimiento' || datosOperativos.estatus === 'MANTENIMIENTO') && (
+                   {['mantenimiento', 'percance'].includes(String(datosOperativos.estatus || '').toLowerCase()) && (
                     <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.95)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: '2px' }}>
                        <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', marginBottom: '4px' }}>
                          <div style={{ textAlign: 'right' }}>
@@ -1571,12 +1594,13 @@ export default function DetalleUnidadMantenimiento() {
                         <h3 className="info-card__title">Encierro Operativo</h3>
                       </div>
                       <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
                           {[
                             { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
                             { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' },
+                            { id: 'percance', label: 'PERCANCE', color: '#b91c1c', bgActive: '#fef2f2' },
                           ].map((st) => {
-                            const isActive = datosOperativos.estatus === st.id;
+                            const isActive = String(datosOperativos.estatus || '').toLowerCase() === st.id;
                             return (
                               <button
                                 key={st.id}
@@ -2208,10 +2232,12 @@ export default function DetalleUnidadMantenimiento() {
               const ecoLimpio = String(selectedOption ?? '').trim().toUpperCase().match(/\d+/)?.[0]?.padStart(3, '0') ?? selectedOption;
               const url = `${API_BASE}/api/unidades/cambiar-estatus`;
               
+              const currentEstatus = String(datosOperativos.estatus || 'mantenimiento').toLowerCase();
+              const estatusWizard = currentEstatus === 'percance' ? 'percance' : 'mantenimiento';
               const payload = {
                 numero_eco: ecoLimpio,
                 tipo: tipoTransporte,
-                estatus: 'mantenimiento',
+                estatus: estatusWizard,
                 motivo_estatus: data.motivo,
                 numero_incidencia: data.numero_incidencia || null,
                 folio_mantenimiento: data.folio_mantenimiento,
@@ -2249,7 +2275,7 @@ export default function DetalleUnidadMantenimiento() {
               // Refrescar estado local (incluyendo numero_incidencia para que se muestre en el panel)
               setDatosOperativos(prev => ({
                 ...prev,
-                estatus: 'mantenimiento',
+                estatus: estatusWizard,
                 motivo_estatus: data.motivo,
                 numero_incidencia: data.numero_incidencia || prev.numero_incidencia || null,
                 folio_mantenimiento: folioFinal,
@@ -2265,7 +2291,7 @@ export default function DetalleUnidadMantenimiento() {
                 mantenimiento_kilometraje: data.mantenimiento_kilometraje
               }));
 
-              setSelectedEstado('mantenimiento');
+              setSelectedEstado(estatusWizard);
 
               // Invalidar query
               queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
@@ -2351,7 +2377,9 @@ export default function DetalleUnidadMantenimiento() {
           onTouchMove={(e) => e.stopPropagation()}
         >
           <div className="bg-white rounded-xl w-full max-w-md p-8 shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-2xl font-bold text-slate-800 text-center mb-6">Asignar Número de Incidencia</h2>
+            <h2 className="text-2xl font-bold text-slate-800 text-center mb-6">
+              {statusDestinoModal === 'percance' ? 'Registrar Percance / Incidencia' : 'Asignar Número de Incidencia'}
+            </h2>
             
             <div className="flex flex-col gap-5">
               <div>
@@ -2372,11 +2400,11 @@ export default function DetalleUnidadMantenimiento() {
 
               <div>
                 <label htmlFor="fallaInput" className="block text-sm font-bold text-slate-700 mb-2">
-                  Falla Reportada:
+                  {statusDestinoModal === 'percance' ? 'Descripción del Percance:' : 'Falla Reportada:'}
                 </label>
                 <textarea
                   id="fallaInput"
-                  placeholder="Describa la falla brevemente..."
+                  placeholder={statusDestinoModal === 'percance' ? "Describa el percance brevemente..." : "Describa la falla brevemente..."}
                   value={fallaFormValue}
                   maxLength={50}
                   onChange={(e) => setFallaFormValue(e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s.,;()]/g, '').toUpperCase())}

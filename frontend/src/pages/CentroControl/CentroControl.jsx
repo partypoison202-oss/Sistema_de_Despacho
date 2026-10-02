@@ -20,6 +20,59 @@ const modelsConfig = [
 // Nombre del rol tal como está guardado en la tabla `roles`
 const ROL_TITAN = 'TITAN';
 
+const ROUTE_DESCRIPTIONS = {
+  'T01': { tipo: 'troncal', label: 'T-01', desc: 'T-01 Exprés (Téllez - Plaza Juárez)' },
+  'T02': { tipo: 'troncal', label: 'T-02', desc: 'T-02 Exprés (Téllez - Prepa 1)' },
+  'T04': { tipo: 'troncal', label: 'T-04', desc: 'T-04 Exprés (Téllez - Matilde - Centro)' },
+  'T05': { tipo: 'troncal', label: 'T-05', desc: 'T-05 Parador (Téllez - Centro)' },
+  '1': { tipo: 'alimentadora', label: '1', desc: '1 Alimentadora' },
+  '1A': { tipo: 'alimentadora', label: '1A', desc: '1A Matilde Ida' },
+  '1B': { tipo: 'alimentadora', label: '1B', desc: '1B Matilde Regreso' },
+  '2': { tipo: 'alimentadora', label: '2', desc: '2 Alimentadora' },
+  '2A': { tipo: 'alimentadora', label: '2A', desc: '2A San Alfonso - Matilde' },
+  '2B': { tipo: 'alimentadora', label: '2B', desc: '2B Fracc. Villa Fontana - Jagüey T.' },
+  '2D': { tipo: 'alimentadora', label: '2D', desc: '2D Priv. Portobello - Téllez' },
+  '2E': { tipo: 'alimentadora', label: '2E', desc: '2E Cetram Téllez - Amores de Don Juan' },
+  '3': { tipo: 'alimentadora', label: '3', desc: '3 Real de Toledo - Efrén Rebolledo' },
+  '4': { tipo: 'alimentadora', label: '4', desc: '4 Fracc. Lomas de Plata - T. Edad' },
+  '4A': { tipo: 'alimentadora', label: '4', desc: '4 Fracc. Lomas de Plata - T. Edad' },
+  '5': { tipo: 'alimentadora', label: '5', desc: '5 Parque Urbano - E. Mexicano' },
+  '6': { tipo: 'alimentadora', label: '6', desc: '6 Hogares Unión - E. Mexicano' },
+  '7': { tipo: 'alimentadora', label: '7', desc: '7 Rancho La Colonia - E. F. Ángeles' },
+  '8': { tipo: 'alimentadora', label: '8', desc: '8 Los Tuzos - E. Juan C. Doria' },
+  '9': { tipo: 'alimentadora', label: '9', desc: '9 Pitahayas - E. C. Justicia' },
+  '10': { tipo: 'alimentadora', label: '10', desc: '10 Paseo de Camelinas - E. C. Justicia' },
+  '11': { tipo: 'alimentadora', label: '11', desc: '11 El Huixmí - E. C. Justicia' },
+  '12': { tipo: 'alimentadora', label: '12', desc: '12 La Colonia - E. Juan C. Doria' },
+  '13': { tipo: 'alimentadora', label: '13', desc: '13 El Venado - E. Hospitales' },
+  '14': { tipo: 'alimentadora', label: '14', desc: '14 San Pedro Nopalcalco - E. Bicentenario' },
+  '15A': { tipo: 'alimentadora', label: '15A', desc: '15A La Loma - Central de Autobuses' },
+  '15B': { tipo: 'alimentadora', label: '15B', desc: '15B Abetos - E. C. de Autobuses' },
+  '15C': { tipo: 'alimentadora', label: '15C', desc: '15C Fracc. Colosio - E. C. de Autobuses' },
+  '16': { tipo: 'alimentadora', label: '16', desc: '16 San Carlos - E. Zona Plateada' },
+  '17': { tipo: 'alimentadora', label: '17', desc: '17 Tezontle - Av. Universidad' },
+  '19': { tipo: 'alimentadora', label: '19', desc: '19 Parque de Poblamiento 1 y 2' },
+  '20B': { tipo: 'alimentadora', label: '20B', desc: '20B Ruta Incluyente Poniente - Oriente' },
+  'T-SIN ASIGNAR': { tipo: 'troncal', label: 'T-SIN ASIGNAR', desc: 'Troncal Sin Asignar' },
+  'SIN ASIGNAR': { tipo: 'alimentadora', label: 'SIN ASIGNAR', desc: 'Alimentadora Sin Asignar' }
+};
+
+const normalizeRutaKey = (rawRuta, tipoUnidad) => {
+  if (!rawRuta || rawRuta.trim() === '' || rawRuta.toUpperCase().includes('SIN ASIGNAR')) {
+    const isTroncal = (tipoUnidad || '').toUpperCase().includes('URBANUS');
+    return isTroncal ? 'T-SIN ASIGNAR' : 'SIN ASIGNAR';
+  }
+  let clean = rawRuta.toUpperCase().trim();
+  const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)/i);
+  if (tMatch) return 'T' + tMatch[1].padStart(2, '0');
+
+  clean = clean.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
+  if (clean === '4A') clean = '4';
+  const m = clean.match(/^0*(\d+[A-Z]*)/i);
+  if (m) return m[1].toUpperCase();
+  return clean;
+};
+
 export default function CentroControl() {
   const navigate = useNavigate();
 
@@ -29,6 +82,10 @@ export default function CentroControl() {
   const [isGeneratingProgramacion, setIsGeneratingProgramacion] = useState(false);
 
   const [globalSearch, setGlobalSearch] = useState('');
+  const [vistaDesglose, setVistaDesglose] = useState('tipo'); // 'tipo' | 'rutas'
+  const [filtroRutaCategoria, setFiltroRutaCategoria] = useState('TODAS'); // 'TODAS' | 'TRONCAL' | 'ALIMENTADORA' | 'SIN_ASIGNAR'
+  const [filtroRutaTexto, setFiltroRutaTexto] = useState('');
+  const [expandedRoute, setExpandedRoute] = useState(null);
 
   const reporteRutasRef = useRef(null);
   const reporteUnidadesRef = useRef(null);
@@ -65,7 +122,7 @@ export default function CentroControl() {
         const isNoProgramada = est === 'no_programada' || est === 'no programada';
         return matchesModel && !isNoProgramada;
       });
-      const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
+      const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
 
       // Operación = las que YA salieron de despacho (tienen hora real de salida de patio)
       const unidadesOperacion = units.filter((d) => {
@@ -85,7 +142,7 @@ export default function CentroControl() {
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      const programadas = units.length;
+      const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
@@ -225,6 +282,13 @@ export default function CentroControl() {
     d.NUMERO_ECONOMICO ?? d.NO_ECONOMICO ?? d.NUM_ECONOMICO ?? d.ECONOMICO ?? d.UNIDAD ?? d.NO_UNIDAD ?? 'S/N';
   const getRuta = (d) =>
     d.RUTA ?? d.NOMBRE_RUTA ?? d.NO_RUTA ?? d.RUTA_ASIGNADA ?? 'Sin ruta asignada';
+  const getCorrida = (d) => {
+    const val = d.CORRIDAS ?? d.CORRIDA ?? d.corrida ?? d.corridas ?? d.MANTENIMIENTO_CORRIDA ?? d.mantenimiento_corrida;
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      return String(val).trim();
+    }
+    return '—';
+  };
   const getConductor = (d) =>
     d.CONDUCTOR ?? d.NOMBRE_CONDUCTOR ?? d.CHOFER ?? d.NOMBRE_CHOFER ?? d.OPERADOR ?? 'Sin persona conductora asignada';
   const getTarjeton = (d) =>
@@ -260,12 +324,134 @@ export default function CentroControl() {
     allUnitsFiltered = allUnits.filter((u) =>
       getNumeroEconomico(u).toString().toLowerCase().includes(term) ||
       getRuta(u).toLowerCase().includes(term) ||
+      getCorrida(u).toLowerCase().includes(term) ||
       getConductor(u).toLowerCase().includes(term) ||
       getTarjeton(u).toString().toLowerCase().includes(term) ||
       u.__statusLabel.toLowerCase().includes(term) ||
       u.__modelInfo.label.toLowerCase().includes(term)
     );
   }
+
+  // ---- Desglose por Rutas (Troncales y Alimentadoras) ----
+  const getUnitStatusInfo = (u) => {
+    const est = getEstatus(u);
+    const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').toString().trim();
+    const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
+    if (est.includes('OPERACI')) {
+      if (horaSalida !== '' && !isEncerrada) {
+        return { label: 'Circulando', color: 'operacion' };
+      }
+      return { label: 'En Patio', color: 'reserva' };
+    }
+    if (est.includes('MANTENIMIENTO')) return { label: 'Mantenimiento', color: 'mantenimiento' };
+    if (est.includes('PERCANCE')) return { label: 'Percance', color: 'percance' };
+    if (est.includes('RESERVA')) return { label: 'Reserva', color: 'reserva' };
+    return { label: est || 'Registrado', color: 'reserva' };
+  };
+
+  const routeData = React.useMemo(() => {
+    const list = Array.isArray(apiData) ? apiData : [];
+    const routesMap = {};
+
+    list.forEach((u) => {
+      const est = (u.ESTATUS || '').toLowerCase().trim();
+      if (est === 'no_programada' || est === 'no programada') return;
+
+      const rawRuta = (u.RUTA ?? u.NOMBRE_RUTA ?? u.NO_RUTA ?? u.RUTA_ASIGNADA ?? '').toString().trim();
+      const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || '').toString().trim();
+      const key = normalizeRutaKey(rawRuta, tipoUnidad);
+
+      if (!routesMap[key]) {
+        const isTroncal = key.startsWith('T');
+        const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
+        const info = ROUTE_DESCRIPTIONS[key] || {
+          tipo: isTroncal ? 'troncal' : 'alimentadora',
+          label: isTroncal ? key : cleanKey,
+          desc: `Ruta ${cleanKey}`
+        };
+        routesMap[key] = {
+          id: key,
+          key,
+          tipo: info.tipo,
+          label: info.label,
+          desc: info.desc,
+          units: [],
+        };
+      }
+      routesMap[key].units.push(u);
+    });
+
+    const result = Object.values(routesMap).map((r) => {
+      const units = r.units;
+      const unidadesOperacion = units.filter((d) => {
+        const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
+        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+        return horaSalida !== '' && !isEncerrada;
+      });
+      const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
+      const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
+      const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
+
+      const operacion = unidadesOperacion.length;
+      const reserva = unidadesReserva.length;
+      const mantenimiento = unidadesMantenimiento.length;
+      const percance = unidadesPercance.length;
+      const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length || units.length;
+      const eficiencia = programadas > 0 ? Math.min(100, Math.round((operacion / programadas) * 100)) : 0;
+
+      return {
+        ...r,
+        programadas,
+        operacion,
+        reserva,
+        mantenimiento,
+        percance,
+        eficiencia,
+        unidadesOperacion,
+        unidadesReserva,
+        unidadesMantenimiento,
+        unidadesPercance,
+      };
+    });
+
+    return result.sort((a, b) => {
+      const aSin = a.key.includes('SIN ASIGNAR');
+      const bSin = b.key.includes('SIN ASIGNAR');
+      if (aSin && !bSin) return 1;
+      if (!aSin && bSin) return -1;
+
+      if (a.tipo === 'troncal' && b.tipo !== 'troncal') return -1;
+      if (a.tipo !== 'troncal' && b.tipo === 'troncal') return 1;
+
+      return a.key.localeCompare(b.key, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [apiData]);
+
+  const troncalesCount = React.useMemo(() => routeData.filter(r => r.tipo === 'troncal' && !r.key.includes('SIN ASIGNAR')).length, [routeData]);
+  const alimentadorasCount = React.useMemo(() => routeData.filter(r => r.tipo === 'alimentadora' && !r.key.includes('SIN ASIGNAR')).length, [routeData]);
+  const sinAsignarCount = React.useMemo(() => routeData.filter(r => r.key.includes('SIN ASIGNAR')).length, [routeData]);
+
+  const rutasVisibles = React.useMemo(() => {
+    return routeData.filter(r => {
+      if (filtroRutaCategoria === 'TRONCAL' && (r.tipo !== 'troncal' || r.key.includes('SIN ASIGNAR'))) return false;
+      if (filtroRutaCategoria === 'ALIMENTADORA' && (r.tipo !== 'alimentadora' || r.key.includes('SIN ASIGNAR'))) return false;
+      if (filtroRutaCategoria === 'SIN_ASIGNAR' && !r.key.includes('SIN ASIGNAR')) return false;
+
+      if (filtroRutaTexto.trim() !== '') {
+        const query = filtroRutaTexto.toLowerCase().trim();
+        const matchLabel = r.label.toLowerCase().includes(query);
+        const matchDesc = r.desc.toLowerCase().includes(query);
+        const matchUnits = r.units.some(u => {
+          const eco = (u.NUMERO_ECONOMICO ?? u.ECONOMICO ?? '').toString().toLowerCase();
+          const cond = (u.CONDUCTOR ?? u.NOMBRE_CONDUCTOR ?? '').toLowerCase();
+          const cor = getCorrida(u).toLowerCase();
+          return eco.includes(query) || cond.includes(query) || cor.includes(query);
+        });
+        if (!matchLabel && !matchDesc && !matchUnits) return false;
+      }
+      return true;
+    });
+  }, [routeData, filtroRutaCategoria, filtroRutaTexto]);
 
   // Obtenemos la fecha actual formateada en español
   const fechaActual = new Date().toLocaleDateString('es-ES', {
@@ -450,9 +636,43 @@ export default function CentroControl() {
             </div>
           </section>
 
-          {/* ---------- Desglose por tipo de unidad ---------- */}
+          {/* ---------- Header de Desglose con Selector de Vistas ---------- */}
           <section className="centro-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <h2>Desglose por tipo de unidad</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <h2>{vistaDesglose === 'tipo' ? 'Desglose por tipo de unidad' : 'Desglose por rutas'}</h2>
+
+              {/* Segmented Control / Selector de Pestañas */}
+              <div className="centro-view-selector" role="tablist" aria-label="Modo de desglose">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={vistaDesglose === 'tipo'}
+                  className={`centro-view-tab ${vistaDesglose === 'tipo' ? 'active' : ''}`}
+                  onClick={() => setVistaDesglose('tipo')}
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M7 17h10M7 7h10M7 12h10" />
+                  </svg>
+                  <span>Por tipo de unidad</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={vistaDesglose === 'rutas'}
+                  className={`centro-view-tab ${vistaDesglose === 'rutas' ? 'active' : ''}`}
+                  onClick={() => setVistaDesglose('rutas')}
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="6" cy="19" r="3" />
+                    <path d="M9 19h8.5a4.5 4.5 0 0 0 0-9H5" />
+                    <path d="M18 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                  <span>Por rutas</span>
+                </button>
+              </div>
+            </div>
+
             <div className="centro-search-wrapper" style={{ position: 'relative', flex: '1', minWidth: '240px', maxWidth: '350px' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#9ca3af', pointerEvents: 'none' }}>
                 <circle cx="11" cy="11" r="8"></circle>
@@ -491,23 +711,25 @@ export default function CentroControl() {
             <section className="centro-global-results" style={{ backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 4px 16px rgba(96, 26, 42, 0.08)', overflow: 'hidden', marginBottom: '32px' }}>
               {allUnitsFiltered.length > 0 ? (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', background: '#f9fafb', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', background: '#f9fafb', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>
                     <span>Unidad</span>
                     <span>Modelo</span>
                     <span>Estatus</span>
                     <span>Ruta</span>
+                    <span>Corrida</span>
                     <span>Tarjetón</span>
                     <span>Conductor</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {allUnitsFiltered.map((u, i) => (
-                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
+                      <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
                         <span style={{ fontWeight: '700', color: '#601a2a' }}>{getNumeroEconomico(u)}</span>
                         <span style={{ fontWeight: '600' }}>{u.__modelInfo.label}</span>
                         <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6' }}>
                           {u.__statusLabel}
                         </span>
                         <span>{getRuta(u)}</span>
+                        <span style={{ fontWeight: '600', color: '#1e40af' }}>{getCorrida(u)}</span>
                         <span>{getTarjeton(u)}</span>
                         <span>{getConductor(u)}</span>
                       </div>
@@ -520,7 +742,7 @@ export default function CentroControl() {
                 </p>
               )}
             </section>
-          ) : (
+          ) : vistaDesglose === 'tipo' ? (
             <section className="centro-type-grid">
               {modelsConfig.map((mc) => {
                 const m = modelData.find((x) => x.id === mc.id) || {
@@ -606,6 +828,189 @@ export default function CentroControl() {
                 );
               })}
             </section>
+          ) : (
+            <>
+              {/* ---------- Barra de Subfiltros para Rutas ---------- */}
+              <div className="centro-route-toolbar">
+                <div className="centro-route-pills">
+                  <button
+                    type="button"
+                    className={`centro-route-pill ${filtroRutaCategoria === 'TODAS' ? 'active' : ''}`}
+                    onClick={() => setFiltroRutaCategoria('TODAS')}
+                  >
+                    <span>Todas las rutas</span>
+                    <span className="centro-route-pill__count">{routeData.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`centro-route-pill ${filtroRutaCategoria === 'TRONCAL' ? 'active' : ''}`}
+                    onClick={() => setFiltroRutaCategoria('TRONCAL')}
+                  >
+                    <span>Troncales</span>
+                    <span className="centro-route-pill__count">{troncalesCount}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`centro-route-pill ${filtroRutaCategoria === 'ALIMENTADORA' ? 'active' : ''}`}
+                    onClick={() => setFiltroRutaCategoria('ALIMENTADORA')}
+                  >
+                    <span>Alimentadoras</span>
+                    <span className="centro-route-pill__count">{alimentadorasCount}</span>
+                  </button>
+
+                  {sinAsignarCount > 0 && (
+                    <button
+                      type="button"
+                      className={`centro-route-pill ${filtroRutaCategoria === 'SIN_ASIGNAR' ? 'active' : ''}`}
+                      onClick={() => setFiltroRutaCategoria('SIN_ASIGNAR')}
+                    >
+                      <span>Sin Asignar</span>
+                      <span className="centro-route-pill__count">{sinAsignarCount}</span>
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="Filtrar ruta (ej. T01, 2A)..."
+                    value={filtroRutaTexto}
+                    onChange={(e) => setFiltroRutaTexto(e.target.value)}
+                    className="centro-route-filter-input"
+                  />
+                  {filtroRutaTexto && (
+                    <button
+                      type="button"
+                      onClick={() => setFiltroRutaTexto('')}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '14px', padding: 0 }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ---------- Grid de Tarjetas de Rutas ---------- */}
+              {rutasVisibles.length > 0 ? (
+                <section className="centro-route-grid">
+                  {rutasVisibles.map((r) => {
+                    const isExpanded = expandedRoute === r.key;
+                    const isTroncal = r.tipo === 'troncal';
+                    const isSinAsignar = r.key.includes('SIN ASIGNAR');
+                    const cardModifier = isTroncal ? 'troncal' : isSinAsignar ? 'sin-asignar' : 'alimentadora';
+
+                    return (
+                      <div
+                        key={r.key}
+                        className={`centro-route-card centro-route-card--${cardModifier} ${!cargando ? 'centro-route-card--clickable' : ''}`}
+                        style={cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}}
+                        onClick={() => !cargando && navigate(`/centro-control/detalle/ruta-${r.key}`, { state: { model: { ...r, isRoute: true } } })}
+                        role="button"
+                        tabIndex={cargando ? -1 : 0}
+                        onKeyDown={(e) => {
+                          if (!cargando && (e.key === 'Enter' || e.key === ' ')) {
+                            navigate(`/centro-control/detalle/ruta-${r.key}`, { state: { model: { ...r, isRoute: true } } });
+                          }
+                        }}
+                      >
+                        <div className="centro-route-card__header">
+                          <div className="centro-route-card__badges">
+                            <span className={`centro-route-badge centro-route-badge--${cardModifier}`}>
+                              {r.label}
+                            </span>
+                            <span className={`centro-route-type-tag centro-route-type-tag--${cardModifier}`}>
+                              {isTroncal ? 'TRONCAL' : isSinAsignar ? 'SIN ASIGNAR' : 'ALIMENTADORA'}
+                            </span>
+                          </div>
+                          <span className="centro-route-card__total">
+                            {cargando ? '—' : `${r.programadas} ${r.programadas === 1 ? 'unidad' : 'unidades'}`}
+                          </span>
+                        </div>
+
+                        <p className="centro-route-card__desc" title={r.desc}>
+                          {r.desc}
+                        </p>
+
+                        {/* Barra apilada */}
+                        <div className="centro-bar" role="img" aria-label={`Distribución ruta ${r.label}`}>
+                          <span
+                            className="centro-bar__seg centro-bar__seg--operacion"
+                            style={{ width: `${pct(r.operacion, r.programadas)}%` }}
+                            title={`Operación: ${r.operacion}`}
+                          />
+                          <span
+                            className="centro-bar__seg centro-bar__seg--reserva"
+                            style={{ width: `${pct(r.reserva, r.programadas)}%` }}
+                            title={`Reserva: ${r.reserva}`}
+                          />
+                          <span
+                            className="centro-bar__seg centro-bar__seg--mantenimiento"
+                            style={{ width: `${pct(r.mantenimiento + r.percance, r.programadas)}%` }}
+                            title={`Mantenimiento: ${r.mantenimiento + r.percance}`}
+                          />
+                        </div>
+
+                        {/* Lista de estatus */}
+                        <div className="centro-status-list">
+                          <div className="centro-status-row">
+                            <span className="centro-status-dot centro-status-dot--operacion" />
+                            <span className="centro-status-label">Operación</span>
+                            <span className="centro-status-percent centro-status-percent--operacion">
+                              {cargando ? '—' : `${Math.round(pct(r.operacion, r.programadas))}%`}
+                            </span>
+                            <span className="centro-status-value">{cargando ? '—' : r.operacion}</span>
+                          </div>
+                          <div className="centro-status-row">
+                            <span className="centro-status-dot centro-status-dot--reserva" />
+                            <span className="centro-status-label">Reserva</span>
+                            <span className="centro-status-percent centro-status-percent--reserva">
+                              {cargando ? '—' : `${Math.round(pct(r.reserva, r.programadas))}%`}
+                            </span>
+                            <span className="centro-status-value">{cargando ? '—' : r.reserva}</span>
+                          </div>
+                          <div className="centro-status-row">
+                            <span className="centro-status-dot centro-status-dot--mantenimiento" />
+                            <span className="centro-status-label">Mantenimiento</span>
+                            <span className="centro-status-percent centro-status-percent--mantenimiento">
+                              {cargando ? '—' : `${Math.round(pct(r.mantenimiento + r.percance, r.programadas))}%`}
+                            </span>
+                            <span className="centro-status-value">{cargando ? '—' : r.mantenimiento + r.percance}</span>
+                          </div>
+                          <div className="centro-status-row" style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #f3f4f6' }}>
+                            <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
+                            <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
+                            <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
+                              {cargando ? '—' : `${r.eficiencia}%`}
+                            </span>
+                            <span className="centro-status-value"></span>
+                          </div>
+                        </div>
+
+                        {/* Pie interactivo para navegar al detalle */}
+                        <div className="centro-route-card__footer">
+                          <span>Ver detalle de unidades ({r.units.length})</span>
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </section>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '48px 20px', background: '#ffffff', borderRadius: '16px', border: '1px dashed #e2e8f0', color: '#64748b', marginBottom: '32px' }}>
+                  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px', color: '#94a3b8' }}>
+                    <circle cx="6" cy="19" r="3" />
+                    <path d="M9 19h8.5a4.5 4.5 0 0 0 0-9H5" />
+                    <path d="M18 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  </svg>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>No se encontraron rutas con el filtro seleccionado.</p>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
+                </div>
+              )}
+            </>
           )}
 
           {/* ---------- Acciones ---------- */}

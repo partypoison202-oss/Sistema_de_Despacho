@@ -32,6 +32,44 @@
   flex-shrink: 0;
 }
 
+.detalle-hero__route-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+  width: 90px;
+  height: 85px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.detalle-hero__route-badge--troncal {
+  background: linear-gradient(135deg, #601a2a 0%, #45121e 100%);
+  color: #ffffff;
+}
+
+.detalle-hero__route-badge--alimentadora {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  border: 1.5px solid #f59e0b;
+}
+
+.detalle-hero__route-badge .route-code {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.detalle-hero__route-badge .route-type {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
 .detalle-hero__title {
   font-size: 1.5rem;
   font-weight: 700;
@@ -197,7 +235,7 @@
 .detalle-table__head,
 .detalle-table__row {
   display: grid;
-  grid-template-columns: 80px 130px 1fr 100px 1.2fr;
+  grid-template-columns: 80px 130px 1fr 90px 100px 1.2fr;
   gap: 12px;
   align-items: center;
   padding: 12px 20px;
@@ -206,7 +244,7 @@
 @media (max-width: 768px) {
   .detalle-table__head,
   .detalle-table__row {
-    grid-template-columns: 80px 110px 1fr 90px;
+    grid-template-columns: 80px 110px 1fr 70px 90px;
   }
   .detalle-table__head span:last-child,
   .detalle-table__row .detalle-table__cell:last-child {
@@ -250,6 +288,11 @@
 .detalle-table__cell--unidad {
   font-weight: 700;
   color: var(--brand-maroon-text);
+}
+
+.detalle-table__cell--corrida {
+  font-weight: 600;
+  color: #1e40af;
 }
 
 .detalle-table__status {

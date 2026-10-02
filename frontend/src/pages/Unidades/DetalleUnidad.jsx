@@ -1269,7 +1269,7 @@ export default function DetalleUnidad() {
       <main className="main-content">
         <div className="unit-control-panel">
           <LocalSearchBar 
-            unidades={unidadesDisponiblesBusqueda} 
+            unidades={unidadesList} 
             onSelectUnit={handleSelectUnit} 
             moduleName={configActual?.title || 'esta sección'} 
           />
