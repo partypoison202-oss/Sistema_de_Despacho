@@ -267,6 +267,7 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
     numeroCinchoAdblue: '',
   });
   const [guardando, setGuardando] = useState(false);
+  const tieneDatosCapturados = form.kilometrajeGasolina !== '' || form.litrosGasolina !== '' || form.kilometrajeAdblue !== '' || form.litrosAdblue !== '' || form.numeroCincho !== '' || form.numeroCinchoAdblue !== '';
   
   // ── Fetch del último registro ────────────────────────────────────────────
   const ecoLimpio = eco ? String(eco).replace(/\D/g, '').padStart(3, '0') : null;
@@ -646,8 +647,33 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '1rem' }}>
-        {registroAnterior && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '1rem', gap: '1rem' }}>
+        {isAdmin && (
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={handleResetKmOdometro}
+            className="interactive-input"
+            style={{
+              width: 'auto',
+              padding: '0 1rem',
+              height: '2.3rem',
+              background: 'transparent',
+              color: '#ef4444',
+              border: '1px solid #ef4444',
+              borderRadius: '0.5rem',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              opacity: guardando ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            RESETEAR A 0
+          </button>
+        )}
+
+        {registroAnterior && !tieneDatosCapturados ? (
           <button
             type="button"
             disabled={guardando}
@@ -684,75 +710,54 @@ export default function FuelInspection({ eco, tipoTransporte, token }) {
           >
             EDITAR ÚLTIMO REGISTRO
           </button>
-        )}
-        {isAdmin && (
+        ) : (
           <button
             type="button"
             disabled={guardando}
-            onClick={handleResetKmOdometro}
+            onClick={handleGuardar}
             className="interactive-input"
             style={{
               width: 'auto',
-              padding: '0 1rem',
+              padding: '0 1.5rem',
               height: '2.3rem',
-              background: 'transparent',
-              color: '#ef4444',
-              border: '1px solid #ef4444',
+              background: '#6b1d33',
+              color: 'white',
+              border: 'none',
               borderRadius: '0.5rem',
               fontWeight: 700,
-              fontSize: '0.8rem',
+              fontSize: '0.85rem',
               cursor: guardando ? 'not-allowed' : 'pointer',
               opacity: guardando ? 0.6 : 1,
-              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'opacity 0.2s',
             }}
           >
-            RESETEAR A 0
+            {guardando && (
+              <span
+                className="spinner"
+                style={{
+                  width: '14px',
+                  height: '14px',
+                  borderWidth: '2px',
+                  borderColor: 'rgba(255,255,255,0.3)',
+                  borderTopColor: '#ffffff',
+                  flexShrink: 0,
+                  aspectRatio: '1',
+                  boxSizing: 'border-box',
+                }}
+              />
+            )}
+            GUARDAR
           </button>
         )}
-        <button
-          type="button"
-          disabled={guardando}
-          onClick={handleGuardar}
-          className="interactive-input"
-          style={{
-            width: 'auto',
-            padding: '0 1.5rem',
-            height: '2.3rem',
-            background: '#6b1d33',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            cursor: guardando ? 'not-allowed' : 'pointer',
-            opacity: guardando ? 0.6 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'opacity 0.2s',
-          }}
-        >
-          {guardando && (
-            <span
-              className="spinner"
-              style={{
-                width: '14px',
-                height: '14px',
-                borderWidth: '2px',
-                borderColor: 'rgba(255,255,255,0.3)',
-                borderTopColor: '#ffffff',
-                flexShrink: 0,
-                aspectRatio: '1',
-                boxSizing: 'border-box',
-              }}
-            />
-          )}
-          GUARDAR
-        </button>
       </div>
     </div>
   );
 }
+
+
 
 
 
