@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
@@ -450,7 +450,7 @@ export default function HistorialCombustible() {
                         {d.id_historial ? (
                           editingRow === d.id_historial ? (
                             <div style={{display: 'flex', gap: '6px'}}>
-                              <button onClick={() => handleSaveEdit(d.id_historial)} disabled={isSavingEdit} style={{background: '#047857', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>✓ Guardar</button>
+                              <button onClick={() => handleSaveEdit(d.id_historial)} disabled={isSavingEdit} style={{background: '#047857', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>{isSavingEdit ? <span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#ffffff', flexShrink: 0, aspectRatio: '1', boxSizing: 'border-box' }} /> : '✓'} Guardar</button>
                               <button onClick={handleCancelEdit} style={{background: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)'}}>✕</button>
                             </div>
                           ) : (
@@ -586,3 +586,6 @@ export default function HistorialCombustible() {
     </div>
   );
 }
+
+
+
