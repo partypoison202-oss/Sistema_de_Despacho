@@ -34,13 +34,16 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Jesus Demetrio Peña Vargas', 'usuario' => 'Jesus_Pena', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'PVJ_A26'],
             ['nombre_completo' => 'Luis Ángel Vargas Gutiérrez', 'usuario' => 'Luis_Vargas', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'VGL_A26'],
             
+            // ── Dirección de Operación ──
+            ['nombre_completo' => 'José Alberto Montiel Balderrama', 'usuario' => 'Jose_Montiel', 'rol_codigo' => 'DIRECCION_OPERACION', 'modulos' => $TODOS, 'contrasena' => 'MBJ_L26'],
+
+            
             // ── Recursos Humanos ──
-            ['nombre_completo' => 'Danna Olivera Martínez', 'usuario' => 'Danna_Olivera', 'rol_codigo' => 'RECURSOS_HUMANOS', 'modulos' => ['asistencias_t6'], 'contrasena' => 'OMD_RH26'],
-            ['nombre_completo' => 'Marisol Mariano Ríos', 'usuario' => 'Marisol_Mariano', 'rol_codigo' => 'RECURSOS_HUMANOS', 'modulos' => ['asistencias_t6'], 'contrasena' => 'MRM_RH26'],
+            ['nombre_completo' => 'María Del Carmen Lima Villanueva', 'usuario' => 'Maria_Lima', 'rol_codigo' => 'RECURSOS_HUMANOS', 'modulos' => ['operadores', 'asistencias_t6'], 'contrasena' => 'LVM_RH26'],
+            ['nombre_completo' => 'Manuel Aguirre Téllez', 'usuario' => 'Manuel_Aguirre', 'rol_codigo' => 'RECURSOS_HUMANOS', 'modulos' => ['asistencias_t6'], 'contrasena' => 'ATM_RH26'],
 
             // ── Lectura ──
             ['nombre_completo' => 'Humberto Cabrera Román', 'usuario' => 'Humberto_Cabrera', 'rol_codigo' => 'LECTURA', 'modulos' => $TODOS, 'contrasena' => 'CRH_L26'],
-            ['nombre_completo' => 'José Alberto Montiel Balderrama', 'usuario' => 'Jose_Montiel', 'rol_codigo' => 'LECTURA', 'modulos' => $TODOS, 'contrasena' => 'MBJ_L26'],
             ['nombre_completo' => 'Miguel Ángel Monzalvo Muñoz', 'usuario' => 'Miguel_Monzalvo', 'rol_codigo' => 'LECTURA', 'modulos' => $TODOS, 'contrasena' => 'MMM_L26'],
 
             // ── Programación ──
@@ -50,7 +53,7 @@ class RbacMatrizSeeder extends Seeder
 
             // ── Gestor de Operadores ──
             ['nombre_completo' => 'Iván Martínez Acosta', 'usuario' => 'Ivan_Martinez', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => ['maniobristas', 'operadores'], 'contrasena' => 'MAI_DD26'],
-            ['nombre_completo' => 'Omar Avilés Lugo', 'usuario' => 'Omar_Aviles', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => ['maniobristas', 'operadores', 'despacho'], 'contrasena' => 'ALO_CD26'],
+            ['nombre_completo' => 'Omar Avilés Lugo', 'usuario' => 'Omar_Aviles', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => $TODOS, 'contrasena' => 'ALO_CD26'],
 
             // ── Despacho ──
             ['nombre_completo' => 'Bacilio Tapia Padilla', 'usuario' => 'Bacilio_Tapia', 'rol_codigo' => 'DESPACHO', 'modulos' => ['despacho'], 'contrasena' => 'TPB_DD26'],
@@ -64,10 +67,9 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Ángel David Pérez Rueda', 'usuario' => 'Angel_Perez', 'rol_codigo' => 'DESPACHO', 'modulos' => ['despacho'], 'contrasena' => 'RPA_DD26'],
 
             // ── Mantenimiento ──
+            ['nombre_completo' => 'Erick Herrera Chávez', 'usuario' => 'Erick_Herrera', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => $TODOS, 'contrasena' => 'HCE_ME26'],
             ['nombre_completo' => 'Adrián Isidro Lopéz', 'usuario' => 'Adrian_Isidro', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'ILA_ME26'],
-            ['nombre_completo' => 'César Arturo Badillo Martinez', 'usuario' => 'Cesar_Badillo', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'BMC_ME26'],
             ['nombre_completo' => 'Edgar Gomez García', 'usuario' => 'Edgar_Gomez', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'GGE_ME26'],
-            ['nombre_completo' => 'Erick Herrera Chávez', 'usuario' => 'Erick_Herrera', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'HCE_ME26'],
             ['nombre_completo' => 'Gabriel García Vázquez', 'usuario' => 'Gabriel_Garcia', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'GGV_ME26'],
             ['nombre_completo' => 'Jorge Nava Vinte', 'usuario' => 'Jorge_Nava', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'NVJ_ME26'],
             ['nombre_completo' => 'Karen Guadalupe Rodríguez Blanco', 'usuario' => 'Karen_Rodriguez', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'RBK_ME26'],
@@ -76,7 +78,7 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Raquel Aguilar Rodríguez', 'usuario' => 'Raquel_Aguilar', 'rol_codigo' => 'MANTENIMIENTO', 'modulos' => ['mantenimiento', 'encierro', 'carga_combustible'], 'contrasena' => 'ARR_ME26'],
 
             // ── Centro de Control ──
-            ['nombre_completo' => 'Bonifacio Alpizar López', 'usuario' => 'Bonifacio_Alpizar', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'ALB_ME26'],
+            ['nombre_completo' => 'Bonifacio Alpizar López', 'usuario' => 'Bonifacio_Alpizar', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => $TODOS, 'contrasena' => 'ALB_ME26'],
             ['nombre_completo' => 'Diana Karina Vázquez García', 'usuario' => 'Diana_Vazquez', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'VGD_ME26'],
             ['nombre_completo' => 'Emilio Corona Montufar', 'usuario' => 'Emilio_Corona', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'CME_ME26'],
             ['nombre_completo' => 'Adriana Diaz', 'usuario' => 'Adriana_Diaz', 'rol_codigo' => 'CENTRO_CONTROL', 'modulos' => ['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista'], 'contrasena' => 'DA_ME26'],
