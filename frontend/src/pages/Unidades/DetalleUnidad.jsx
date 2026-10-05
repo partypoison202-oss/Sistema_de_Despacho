@@ -204,7 +204,7 @@ export default function DetalleUnidad() {
     queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
     staleTime: 0,
-    refetchInterval: 30000,
+    refetchInterval: 5000,
   });
 
   const { data: dbConductores = [], isLoading: cargandoConductores, refetch: fetchConductores } = useQuery({
@@ -360,6 +360,29 @@ export default function DetalleUnidad() {
       handleSelectUnit(unidadEncontrada);
     }
   }, [searchParams, unidadesList]);
+
+  // Sincronización instantánea de estatus entre módulos y pestañas en tiempo real
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    let bc;
+    try {
+      bc = new BroadcastChannel('unidades_estatus_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.tipo === 'CAMBIO_ESTATUS' || event.data?.action === 'estatus_updated') {
+          queryClient.invalidateQueries({ queryKey: ['unidades-list'] });
+          queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+          if (selectedUnidad?.eco && event.data.eco && selectedUnidad.eco === event.data.eco) {
+            queryClient.invalidateQueries({ queryKey: ['unidad-detalle', tipoTransporte, event.data.eco] });
+          }
+        }
+      };
+    } catch (e) {
+      console.error('Error en listener de BroadcastChannel:', e);
+    }
+    return () => {
+      if (bc) bc.close();
+    };
+  }, [queryClient, tipoTransporte, selectedUnidad]);
 
   if (!configActual) {
     return (
@@ -1136,9 +1159,10 @@ export default function DetalleUnidad() {
         queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) => {
           return old.map(u => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
-              const isClearFields = nuevoEstatus === 'reserva' || nuevoEstatus === 'mantenimiento';
+              const isClearFields = ['reserva', 'mantenimiento', 'percance'].includes(nuevoEstatus);
               return {
                 ...u,
+                estado: nuevoEstatus,
                 estatus: nuevoEstatus,
                 nombre_conductor: isClearFields ? 'No reportado hoy' : (data.conductor_asignado || u.nombre_conductor),
                 ruta: isClearFields ? 'Sin ruta' : (data.ruta_asignada || u.ruta),
@@ -1151,10 +1175,21 @@ export default function DetalleUnidad() {
         });
 
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['conteo-unidades-global']);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
         // ✅ NUEVO: refrescar también el filtro por ruta si estaba activo
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
+
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: nuevoEstatus });
+            bc.close();
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
+        }
       } else {
         await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
@@ -1235,6 +1270,7 @@ export default function DetalleUnidad() {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
               return {
                 ...u,
+                estado: modalEstatusNuevo,
                 estatus: modalEstatusNuevo,
                 nombre_conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor),
                 ruta: modalEstatusRuta || data.ruta_asignada || u.ruta,
@@ -1246,9 +1282,20 @@ export default function DetalleUnidad() {
         });
 
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+        queryClient.invalidateQueries(['conteo-unidades-global']);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidadesDashboard', tipoTransporte]);
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
+
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: modalEstatusNuevo });
+            bc.close();
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
+        }
       } else {
         await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }

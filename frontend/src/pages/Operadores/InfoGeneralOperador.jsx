@@ -274,8 +274,6 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
                   {conductor.nombre}
                 </h2>
                 <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-600">
-                  <span><strong className="text-gray-700">ID / Empleado:</strong> {conductor.id}</span>
-                  <span className="text-gray-300">|</span>
                   <span><strong className="text-gray-700">Tarjetón:</strong> {conductor.tarjeton ? conductor.tarjeton.split('_BAJA_')[0] : '---'}</span>
                 </div>
               </div>
@@ -628,7 +626,7 @@ const PrintableTemplate = ({ conductor, sitmahOrangeUrl }) => {
           <div className="text-center flex-1 mx-4">
             <h3 className="text-sm font-bold text-white tracking-wide uppercase">HISTORIAL DETALLADO DE ASIGNACIONES E INCIDENCIAS</h3>
             <p className="text-[10.5px] text-gray-200 mt-0.5">
-              Operador: <strong className="text-white uppercase">{conductor.nombre}</strong> &bull; Tarjetón: <strong className="text-white">{conductor.tarjeton ? conductor.tarjeton.split('_BAJA_')[0] : 'N/A'}</strong> &bull; ID: <strong className="text-white">{conductor.id}</strong>
+              Operador: <strong className="text-white uppercase">{conductor.nombre}</strong> &bull; Tarjetón: <strong className="text-white">{conductor.tarjeton ? conductor.tarjeton.split('_BAJA_')[0] : 'N/A'}</strong>
             </p>
           </div>
 
@@ -796,8 +794,7 @@ export default function InfoGeneralOperador({ conductores }) {
     const lower = searchTerm.toLowerCase();
     return conductores.filter(c => 
       String(c.nombre || '').toLowerCase().includes(lower) ||
-      String(c.tarjeton || '').toLowerCase().includes(lower) ||
-      String(c.id || '').toLowerCase().includes(lower)
+      String(c.tarjeton || '').toLowerCase().includes(lower)
     );
   }, [conductores, searchTerm]);
 
@@ -909,7 +906,7 @@ export default function InfoGeneralOperador({ conductores }) {
               <input
                 type="text"
                 className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#65002D]/20 focus:border-[#65002D] text-sm transition-all"
-                placeholder="Buscar por Nombre, ID o Tarjetón..."
+                placeholder="Buscar por Nombre o Tarjetón..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -927,7 +924,7 @@ export default function InfoGeneralOperador({ conductores }) {
                         >
                           <div>
                             <p className="text-sm font-bold text-gray-900">{c.nombre}</p>
-                            <p className="text-xs text-gray-500">ID: {c.id} | Tarjetón: {c.tarjeton ? c.tarjeton.split('_BAJA_')[0] : ''}</p>
+                            <p className="text-xs text-gray-500">Tarjetón: {c.tarjeton ? c.tarjeton.split('_BAJA_')[0] : '---'}</p>
                           </div>
                           <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${c.estatus === 'activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                             {c.estatus === 'activo' ? 'Activo' : 'Baja'}
@@ -987,8 +984,6 @@ export default function InfoGeneralOperador({ conductores }) {
                   {displayConductor.nombre}
                 </h2>
                 <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 flex-wrap">
-                  <span><strong className="text-gray-700">ID / Empleado:</strong> {displayConductor.id}</span>
-                  <span className="text-gray-300">|</span>
                   <span><strong className="text-gray-700">Tarjetón:</strong> {displayConductor.tarjeton ? displayConductor.tarjeton.split('_BAJA_')[0] : '---'}</span>
                 </div>
               </div>

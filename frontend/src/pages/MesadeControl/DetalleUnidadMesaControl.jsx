@@ -198,6 +198,30 @@ export default function DetalleUnidadMesaControl() {
   const unidadesPorEstado = (estado) =>
     unidadesList.filter((u) => u.estado === estado);
 
+  // Sincronización instantánea de estatus entre módulos y pestañas en tiempo real
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    let bc;
+    try {
+      bc = new BroadcastChannel('unidades_estatus_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.tipo === 'CAMBIO_ESTATUS' || event.data?.action === 'estatus_updated') {
+          queryClient.invalidateQueries(['unidades-list-mesacontrol']);
+          queryClient.invalidateQueries(['unidad-detalle']);
+          queryClient.invalidateQueries(['unidadesDashboard']);
+          queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
+          queryClient.invalidateQueries(['conteo-unidades-global']);
+          queryClient.invalidateQueries(['unidades-list']);
+        }
+      };
+    } catch (e) {
+      console.error('Error con BroadcastChannel:', e);
+    }
+    return () => {
+      if (bc) bc.close();
+    };
+  }, [queryClient]);
+
   const { data: reservasAutorizadas } = useQuery({
     queryKey: ['reservas-autorizadas', 'HOY'],
     queryFn: async () => {
@@ -1070,6 +1094,25 @@ export default function DetalleUnidadMesaControl() {
         queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
         queryClient.invalidateQueries(['unidad-detalle']);
         queryClient.invalidateQueries(['unidadesDashboard']);
+        queryClient.invalidateQueries(['unidades-list']);
+        queryClient.invalidateQueries(['conteo-unidades-global']);
+
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({
+              tipo: 'CAMBIO_ESTATUS',
+              action: 'estatus_updated',
+              tipoTransporte,
+              eco: numeroLimpio,
+              estatus: modalEstatusNuevo,
+              timestamp: Date.now()
+            });
+            bc.close();
+          } catch (e) {
+            console.error('Error emitiendo por BroadcastChannel:', e);
+          }
+        }
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
