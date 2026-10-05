@@ -126,8 +126,30 @@ export default function DetalleUnidadMantenimiento() {
           timer: 1500,
           showConfirmButton: false
         });
-        // Invalidar query para refrescar todo
-        queryClient.invalidateQueries(['unidadesList', tipoTransporte]);
+        const numeroLimpio = selectedOption.replace(/\D/g, '').padStart(3, '0');
+        queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) =>
+          old.map((u) => {
+            if (String(u.eco).padStart(3, '0') === numeroLimpio) {
+              return {
+                ...u,
+                estado: estatusToSave,
+                estatus: estatusToSave,
+                folio_mantenimiento: folioFormValue.trim(),
+              };
+            }
+            return u;
+          })
+        );
+        queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
+        queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+        queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: estatusToSave });
+            bc.close();
+          } catch (e) {}
+        }
       } else {
         Swal.fire('Error', data.message || 'Error al asignar el folio', 'error');
       }
@@ -196,9 +218,35 @@ export default function DetalleUnidadMantenimiento() {
           timer: 1500,
           showConfirmButton: false
         });
-        queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
+        const numeroLimpio = selectedOption.replace(/\D/g, '').padStart(3, '0');
+        queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) =>
+          old.map((u) => {
+            if (String(u.eco).padStart(3, '0') === numeroLimpio) {
+              return {
+                ...u,
+                estado: estatusFinal,
+                estatus: estatusFinal,
+                motivo_estatus: estatusFinal.toUpperCase(),
+                numero_incidencia: incidenciaFormValue.trim(),
+                falla_reportada: fallaFormValue.trim(),
+                nombre_conductor: 'No reportado hoy',
+                ruta: 'Sin ruta',
+                tarjeton: '',
+              };
+            }
+            return u;
+          })
+        );
         queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
-        queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, selectedOption.replace(/\D/g, '').padStart(3, '0')] });
+        queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+        queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: estatusFinal });
+            bc.close();
+          } catch (e) {}
+        }
 
         // Abre el wizard de creación del PDF Automáticamente solo si hay incidencia
         if (hasIncidencia) {
@@ -411,9 +459,30 @@ export default function DetalleUnidadMantenimiento() {
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
     queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
-    staleTime: 60 * 1000,
-    refetchInterval: 30000,
+    staleTime: 2000,
+    refetchInterval: 4000,
   });
+
+  // Sincronización instantánea de estatus entre módulos y pestañas en tiempo real
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    let bc;
+    try {
+      bc = new BroadcastChannel('unidades_estatus_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.tipo === 'CAMBIO_ESTATUS') {
+          queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
+          queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+          if (event.data.eco && selectedOption && selectedOption.includes(event.data.eco)) {
+            queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, event.data.eco] });
+          }
+        }
+      };
+    } catch (e) {}
+    return () => {
+      if (bc) bc.close();
+    };
+  }, [queryClient, tipoTransporte, selectedOption]);
 
   // ── Prefetch de detalles ──
   useEffect(() => {
@@ -993,13 +1062,14 @@ export default function DetalleUnidadMantenimiento() {
           };
         });
 
-        queryClient.setQueryData(['unidades-list-mantenimiento', tipoTransporte], (old = []) =>
+        queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) =>
           old.map((u) => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
               const isClearFields = ['reserva', 'mantenimiento', 'percance'].includes(payloadUpdate.estatus);
               return {
                 ...u,
                 estado: payloadUpdate.estatus,
+                estatus: payloadUpdate.estatus,
                 motivo_estatus: payloadUpdate.motivo_estatus || null,
                 nombre_conductor: isClearFields ? 'No reportado hoy' : u.nombre_conductor,
                 ruta: isClearFields ? 'Sin ruta' : u.ruta,
@@ -1011,8 +1081,15 @@ export default function DetalleUnidadMantenimiento() {
         );
 
         queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
-        queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
+        queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: payloadUpdate.estatus });
+            bc.close();
+          } catch (e) {}
+        }
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'No se pudo cambiar el estatus', confirmButtonColor: '#601a2a' });
       }
@@ -1091,12 +1168,13 @@ export default function DetalleUnidadMantenimiento() {
           };
         });
 
-        queryClient.setQueryData(['unidades-list-mantenimiento', tipoTransporte], (old = []) =>
+        queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) =>
           old.map((u) => {
             if (String(u.eco).padStart(3, '0') === numeroLimpio) {
               return {
                 ...u,
                 estado: modalEstatusNuevo,
+                estatus: modalEstatusNuevo,
                 motivo_estatus: null,
                 nombre_conductor: foundConductor ? foundConductor.nombre : (data.conductor_asignado || u.nombre_conductor),
                 ruta: modalEstatusRuta || data.ruta_asignada || u.ruta,
@@ -1108,8 +1186,16 @@ export default function DetalleUnidadMantenimiento() {
           })
         );
 
-        queryClient.invalidateQueries({ queryKey: ['unidades-list-mantenimiento', tipoTransporte] });
+        queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
+        queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
         queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, numeroLimpio] });
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: modalEstatusNuevo });
+            bc.close();
+          } catch (e) {}
+        }
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
       }
@@ -2293,8 +2379,33 @@ export default function DetalleUnidadMantenimiento() {
 
               setSelectedEstado(estatusWizard);
 
-              // Invalidar query
-              queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
+              // Invalidar y actualizar query
+              queryClient.setQueryData(['unidades-list', tipoTransporte], (old = []) =>
+                old.map((u) => {
+                  if (String(u.eco).padStart(3, '0') === ecoLimpio) {
+                    return {
+                      ...u,
+                      estado: estatusWizard,
+                      estatus: estatusWizard,
+                      motivo_estatus: data.motivo,
+                      folio_mantenimiento: folioFinal,
+                      numero_incidencia: data.numero_incidencia || null,
+                    };
+                  }
+                  return u;
+                })
+              );
+              queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
+              queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+              queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, ecoLimpio] });
+
+              if (typeof BroadcastChannel !== 'undefined') {
+                try {
+                  const bc = new BroadcastChannel('unidades_estatus_channel');
+                  bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: ecoLimpio, estatus: estatusWizard });
+                  bc.close();
+                } catch (e) {}
+              }
 
               Swal.fire({
                 icon: 'success',

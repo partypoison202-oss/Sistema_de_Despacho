@@ -339,6 +339,34 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
         </div>
       </div>
 
+      {/* Controles de Paginación Superior */}
+      {!cargando && totalPaginas > 1 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl mb-3 shadow-2xs gap-3">
+          <div className="text-xs sm:text-sm text-slate-600">
+            Mostrando <span className="font-bold text-slate-800">{indiceInicio + 1}</span> a <span className="font-bold text-slate-800">{Math.min(indiceInicio + registrosPorPagina, filtrados.length)}</span> de <span className="font-bold text-slate-800">{filtrados.length}</span> conductores
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+              disabled={paginaActual === 1}
+              className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+            >
+              Anterior
+            </button>
+            <span className="text-xs sm:text-sm font-bold text-slate-700 px-1">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <button
+              onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+              disabled={paginaActual === totalPaginas}
+              className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="itinerario-grid-wrapper">
         {cargando ? (
           <div className="itinerario-loading">Cargando itinerario...</div>
@@ -400,34 +428,6 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
           </table>
         )}
       </div>
-
-      {/* Controles de Paginación */}
-      {!cargando && totalPaginas > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 mt-2 rounded-xl">
-          <div className="text-sm text-slate-500">
-            Mostrando <span className="font-medium">{indiceInicio + 1}</span> a <span className="font-medium">{Math.min(indiceInicio + registrosPorPagina, filtrados.length)}</span> de <span className="font-medium">{filtrados.length}</span> conductores
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
-              disabled={paginaActual === 1}
-              className="px-3 py-1 text-sm border border-slate-300 rounded-md bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Anterior
-            </button>
-            <span className="text-sm font-medium text-slate-700">
-              Página {paginaActual} de {totalPaginas}
-            </span>
-            <button
-              onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
-              disabled={paginaActual === totalPaginas}
-              className="px-3 py-1 text-sm border border-slate-300 rounded-md bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
-      )}
 
       <ModalAsignarFechas 
         isOpen={modalOpen} 

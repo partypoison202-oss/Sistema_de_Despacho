@@ -142,8 +142,29 @@ export default function Mantenimiento() {
   const { data: conteos = {}, isLoading: cargando } = useQuery({
     queryKey: ['conteo-unidades-global'],
     queryFn: fetchConteos,
-    refetchInterval: 30000,
+    staleTime: 2000,
+    refetchInterval: 5000,
   });
+
+  // Sincronización instantánea de estatus y conteos entre módulos y pestañas
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    let bc;
+    try {
+      bc = new BroadcastChannel('unidades_estatus_channel');
+      bc.onmessage = (event) => {
+        if (event.data?.tipo === 'CAMBIO_ESTATUS') {
+          queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+          queryClient.invalidateQueries({ queryKey: ['unidades-list'] });
+        }
+      };
+    } catch (e) {
+      // ignore
+    }
+    return () => {
+      if (bc) bc.close();
+    };
+  }, [queryClient]);
 
   const handleGenerarPDF = async () => {
     try {
