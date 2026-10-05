@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -20,6 +20,7 @@ export default function CargaExcel({ isPasteles = false }) {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
   const [previewData, setPreviewData] = useState([]);
+  const fileInputRef = useRef(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [verInicio, setVerInicio] = useState(false);
@@ -940,6 +941,92 @@ export default function CargaExcel({ isPasteles = false }) {
     XLSX.writeFile(workbook, `Despacho_Diario_${fecha}.xlsx`, { cellStyles: true });
   };
 
+  // ─── IMPORTAR EXCEL ───────────────────────────────────────────────────────────
+  const handleUploadExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const workbook = XLSX.read(bstr, { type: 'binary' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convertir la hoja a JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        
+        if (!jsonData || jsonData.length === 0) {
+          throw new Error('El archivo Excel está vacío.');
+        }
+
+        const newData = [...previewData]; // Copia de los datos actuales
+        
+        jsonData.forEach(row => {
+           // Normalizar keys (pasar a mayúsculas, quitar espacios extra)
+           const normalizedRow = {};
+           Object.keys(row).forEach(k => {
+             const cleanKey = k.trim().toUpperCase().replace(/\s+/g, '_');
+             normalizedRow[cleanKey] = String(row[k]).trim();
+           });
+
+           const eco = normalizedRow['ECONOMICO'] || '';
+           if (!eco) return; // Si no hay económico, ignorar fila
+
+           // Buscar si el económico ya existe en la cuadrícula de unidades de hoy
+           const existingIndex = newData.findIndex(d => String(d.ECONOMICO).trim() === eco);
+           
+           if (existingIndex !== -1) {
+              if (normalizedRow['TIPO_DE_UNIDAD']) newData[existingIndex].TIPO_DE_UNIDAD = normalizedRow['TIPO_DE_UNIDAD'];
+              if (normalizedRow['RUTA']) newData[existingIndex].RUTA = normalizedRow['RUTA'];
+              if (normalizedRow['CORRIDA']) newData[existingIndex].CORRIDAS = normalizedRow['CORRIDA'];
+              if (normalizedRow['TARJETON']) newData[existingIndex].TARJETON = normalizedRow['TARJETON'];
+              if (normalizedRow['NOMBRE_CONDUCTOR']) newData[existingIndex].NOMBRE_CONDUCTOR = normalizedRow['NOMBRE_CONDUCTOR'];
+              if (normalizedRow['HORA_DE_SALIDA_DE_PATIO']) newData[existingIndex].HORA_SALIDA_PATIO = normalizedRow['HORA_DE_SALIDA_DE_PATIO'];
+              if (normalizedRow['HORA_DE_ACOPLE']) newData[existingIndex].ACOPLE = normalizedRow['HORA_DE_ACOPLE'];
+              
+              const pn = String(normalizedRow['PATIO_NORTE'] || '').trim().toUpperCase();
+              if (pn === 'PN') newData[existingIndex].PATIO_NORTE = true;
+
+              // Asignar Estatus automáticamente
+              const tieneServicio = newData[existingIndex].RUTA || newData[existingIndex].TARJETON || newData[existingIndex].CORRIDAS;
+              if (tieneServicio) {
+                 newData[existingIndex].ESTATUS = 'operacion';
+              } else {
+                 newData[existingIndex].ESTATUS = 'no_programada';
+              }
+           }
+        });
+
+        setPreviewData(newData);
+        setHasChanges(true);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Excel importado',
+          text: 'Los datos han sido pre-cargados. Revisa la tabla y presiona "Guardar Todo" cuando estés listo.',
+          confirmButtonColor: '#c5a059'
+        });
+
+      } catch (err) {
+        console.error(err);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al procesar Excel',
+          text: err.message || 'El formato del Excel no es válido.',
+          confirmButtonColor: 'var(--color-maroon)'
+        });
+      }
+      
+      // Limpiar input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    
+    reader.readAsBinaryString(file);
+  };
+
+
   // ─── VER INICIO DEL DÍA ───────────────────────────────────────────────────────
   const handleVerInicio = async () => {
     if (verInicio) {
@@ -1131,6 +1218,28 @@ export default function CargaExcel({ isPasteles = false }) {
               </svg>
               Descargar Excel
             </button>
+            {!isPasteles && (
+              <>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  ref={fileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleUploadExcel}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  className="excel-btn-capsule excel-btn-capsule--verde"
+                  style={{ backgroundColor: '#2e7d32', color: 'white', borderColor: '#2e7d32' }}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Subir Excel
+                </button>
+              </>
+            )}
           </div>
         </div>
 
