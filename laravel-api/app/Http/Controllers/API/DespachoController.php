@@ -3986,15 +3986,21 @@ class DespachoController extends Controller
                 return (int)$a['numero_eco'] - (int)$b['numero_eco'];
             });
 
-            // 7. Obtener lista de conductores con estatus de inasistencia (falta, permuta, incapacidad, enfermedad, etc.)
-            $estadosFalta = ['falta', 'permuta', 'incapacidad', 'enfermedad', 'permiso', 'descanso', 'FALTA', 'PERMUTA', 'INCAPACIDAD', 'ENFERMEDAD', 'PERMISO', 'DESCANSO'];
-            $estadosExcluidos = ['disponible', 'en_servicio', 'maniobrista', 'DISPONIBLE', 'EN_SERVICIO', 'MANIOBRISTA'];
+            // 7. Obtener lista de conductores con estatus de inasistencia o falta registrada para hoy
+            $parseJsonDetalle = function ($raw) {
+                if (empty($raw)) return [];
+                if (is_array($raw)) return $raw;
+                if (is_string($raw)) {
+                    $decoded = json_decode($raw, true);
+                    return is_array($decoded) ? $decoded : [];
+                }
+                return [];
+            };
 
-            $conductoresFaltaRaw = DB::table('conductores')
-                ->whereNotNull('estado_servicio')
-                ->where(function ($q) use ($estadosFalta, $estadosExcluidos) {
-                    $q->whereIn('estado_servicio', $estadosFalta)
-                      ->orWhereNotIn('estado_servicio', $estadosExcluidos);
+            $todosConductores = DB::table('conductores')
+                ->where(function ($q) {
+                    $q->where('estatus', 'activo')
+                      ->orWhereNull('estatus');
                 })
                 ->select(
                     'id',
@@ -4007,25 +4013,166 @@ class DespachoController extends Controller
                     'observaciones',
                     'faltas',
                     'permutas',
+                    'faltas_detalle',
+                    'descansos_detalle',
+                    'vacaciones_detalle',
+                    'incapacidades_detalle',
+                    'permisos_detalle',
+                    'permutas_detalle',
                     'updated_at'
                 )
                 ->get();
 
-            $conductoresFalta = $conductoresFaltaRaw->map(function ($c) {
-                $nombreCompleto = trim(($c->apellidos ?? '') . ' ' . ($c->nombres ?? ''));
-                return [
-                    'id'              => $c->id,
-                    'tarjeton'        => $c->tarjeton ?: 'SIN TARJETÓN',
-                    'nombre_completo' => $nombreCompleto !== '' ? $nombreCompleto : 'Sin nombre registrado',
-                    'tipo_tarjeton'   => $c->tipo_tarjeton ?: 'N/A',
-                    'estado_servicio' => strtolower(trim((string)$c->estado_servicio)),
-                    'telefono'        => $c->telefono ?: 'Sin registro',
-                    'observaciones'   => $c->observaciones ?: null,
-                    'faltas'          => (int)($c->faltas ?? 0),
-                    'permutas'        => (int)($c->permutas ?? 0),
-                    'fecha_actualizacion' => $c->updated_at ? Carbon::parse($c->updated_at)->format('d/m/Y H:i') : null,
-                ];
-            })->values()->all();
+            // Movimientos de hoy en plataforma con motivo de inasistencia/falta
+            $movimientosInasistenciaHoy = DB::table('plataforma_movimientos')
+                ->whereDate('created_at', $hoy)
+                ->whereIn('tipo_movimiento', ['RETIRO_CONDUCTOR', 'DESINCORPORACION'])
+                ->get();
+
+            $tarjetonesInasistenciaPlataforma = [];
+            foreach ($movimientosInasistenciaHoy as $mov) {
+                $motivoUpper = strtoupper(trim((string)($mov->motivo ?? '')));
+                if (str_contains($motivoUpper, 'FALTA') || in_array($motivoUpper, ['PERMISO', 'ENFERMEDAD', 'INCAPACIDAD', 'PERMUTA', 'DESCANSO'])) {
+                    if (!empty($mov->conductor_asignado)) {
+                        $tarjetonesInasistenciaPlataforma[trim($mov->conductor_asignado)] = [
+                            'motivo' => $mov->motivo,
+                            'hora'   => Carbon::parse($mov->created_at)->format('H:i')
+                        ];
+                    }
+                }
+            }
+
+            $conductoresFaltaMap = [];
+
+            foreach ($todosConductores as $c) {
+                $tarjetonKey = trim((string)$c->tarjeton);
+                $tarjetonNum = (string)(int)preg_replace('/\D/', '', $tarjetonKey);
+                $estadoServicio = strtolower(trim((string)($c->estado_servicio ?? '')));
+
+                $tieneFaltaHoy = false;
+                $motivoDetectado = null;
+                $estadoFinal = null;
+                $fechaActualizacion = $c->updated_at ? Carbon::parse($c->updated_at)->format('d/m/Y H:i') : null;
+
+                // 1. Verificar faltas_detalle para hoy
+                $faltasDetalle = $parseJsonDetalle($c->faltas_detalle);
+                foreach ($faltasDetalle as $f) {
+                    if (isset($f['fecha']) && substr((string)$f['fecha'], 0, 10) === $hoy) {
+                        if (isset($f['estado']) && $f['estado'] === 'retardo') {
+                            continue; // Los retardos no cuentan como falta
+                        }
+                        $tieneFaltaHoy = true;
+                        $estadoFinal = 'falta';
+                        $motivoDetectado = $f['motivo'] ?? 'Falta registrada';
+                        break;
+                    }
+                }
+
+                // 2. Verificar incapacidades_detalle
+                if (!$tieneFaltaHoy) {
+                    $incapacidadesDetalle = $parseJsonDetalle($c->incapacidades_detalle);
+                    foreach ($incapacidadesDetalle as $inc) {
+                        if (isset($inc['fecha']) && substr((string)$inc['fecha'], 0, 10) === $hoy) {
+                            $tieneFaltaHoy = true;
+                            $estadoFinal = 'incapacidad';
+                            $motivoDetectado = $inc['motivo'] ?? 'Incapacidad médica';
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Verificar permisos_detalle
+                if (!$tieneFaltaHoy) {
+                    $permisosDetalle = $parseJsonDetalle($c->permisos_detalle);
+                    foreach ($permisosDetalle as $p) {
+                        if (isset($p['fecha']) && substr((string)$p['fecha'], 0, 10) === $hoy) {
+                            $tieneFaltaHoy = true;
+                            $estadoFinal = 'permiso';
+                            $motivoDetectado = $p['motivo'] ?? 'Permiso autorizado';
+                            break;
+                        }
+                    }
+                }
+
+                // 4. Verificar permutas_detalle
+                if (!$tieneFaltaHoy) {
+                    $permutasDetalle = $parseJsonDetalle($c->permutas_detalle);
+                    foreach ($permutasDetalle as $pm) {
+                        if (isset($pm['fecha']) && substr((string)$pm['fecha'], 0, 10) === $hoy) {
+                            $tipoPerm = is_array($pm) ? ($pm['tipo'] ?? 'DP') : 'DP';
+                            if ($tipoPerm === 'DP' || $tipoPerm !== 'AP') {
+                                $tieneFaltaHoy = true;
+                                $estadoFinal = 'permuta';
+                                $motivoDetectado = is_array($pm) ? ($pm['motivo'] ?? 'Permuta (Descanso)') : (is_string($pm) ? $pm : 'Permuta (Descanso)');
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 5. Verificar descansos_detalle
+                if (!$tieneFaltaHoy) {
+                    $descansosDetalle = $parseJsonDetalle($c->descansos_detalle);
+                    foreach ($descansosDetalle as $d) {
+                        if (isset($d['fecha']) && substr((string)$d['fecha'], 0, 10) === $hoy) {
+                            $tieneFaltaHoy = true;
+                            $estadoFinal = 'descanso';
+                            $motivoDetectado = $d['motivo'] ?? 'Descanso programado';
+                            break;
+                        }
+                    }
+                }
+
+                // 6. Verificar vacaciones_detalle
+                if (!$tieneFaltaHoy) {
+                    $vacacionesDetalle = $parseJsonDetalle($c->vacaciones_detalle);
+                    foreach ($vacacionesDetalle as $v) {
+                        if (isset($v['fecha']) && substr((string)$v['fecha'], 0, 10) === $hoy) {
+                            $tieneFaltaHoy = true;
+                            $estadoFinal = 'vacaciones';
+                            $motivoDetectado = $v['motivo'] ?? 'Periodo vacacional';
+                            break;
+                        }
+                    }
+                }
+
+                // 7. Verificar si en estado_servicio tiene un estado explícito de inasistencia
+                if (!$tieneFaltaHoy && !empty($estadoServicio) && !in_array($estadoServicio, ['disponible', 'en_servicio', 'maniobrista'])) {
+                    $tieneFaltaHoy = true;
+                    $estadoFinal = $estadoServicio;
+                    $motivoDetectado = $c->observaciones ?: ("Estado: " . strtoupper($estadoServicio));
+                }
+
+                // 8. Verificar si fue retirado hoy en plataforma con motivo de falta / inasistencia
+                if (!$tieneFaltaHoy) {
+                    $infoMov = $tarjetonesInasistenciaPlataforma[$tarjetonKey] 
+                        ?? ($tarjetonNum !== '0' ? ($tarjetonesInasistenciaPlataforma[$tarjetonNum] ?? null) : null);
+
+                    if ($infoMov) {
+                        $tieneFaltaHoy = true;
+                        $estadoFinal = str_contains(strtoupper($infoMov['motivo']), 'FALTA') ? 'falta' : strtolower($infoMov['motivo']);
+                        $motivoDetectado = "Retirado en Mesa de Control ({$infoMov['hora']}) - " . $infoMov['motivo'];
+                    }
+                }
+
+                if ($tieneFaltaHoy) {
+                    $nombreCompleto = trim(($c->apellidos ?? '') . ' ' . ($c->nombres ?? ''));
+                    $conductoresFaltaMap[$c->id] = [
+                        'id'                  => $c->id,
+                        'tarjeton'            => $c->tarjeton ?: 'SIN TARJETÓN',
+                        'nombre_completo'     => $nombreCompleto !== '' ? $nombreCompleto : 'Sin nombre registrado',
+                        'tipo_tarjeton'       => $c->tipo_tarjeton ?: 'N/A',
+                        'estado_servicio'     => $estadoFinal ?: 'falta',
+                        'telefono'            => $c->telefono ?: 'Sin registro',
+                        'observaciones'       => $motivoDetectado ?: ($c->observaciones ?: 'Sin observaciones'),
+                        'faltas'              => (int)($c->faltas ?? 0),
+                        'permutas'            => (int)($c->permutas ?? 0),
+                        'fecha_actualizacion' => $fechaActualizacion,
+                    ];
+                }
+            }
+
+            $conductoresFalta = array_values($conductoresFaltaMap);
 
             return response()->json([
                 'status' => 'success',
