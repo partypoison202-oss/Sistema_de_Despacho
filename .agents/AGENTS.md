@@ -14,3 +14,7 @@
 - **No Alterar Tablas Existentes Destructivamente**: Queda estrictamente prohibido alterar o eliminar columnas en las tablas existentes de la base de datos de producción (como `conductores`, `unidades`, `usuarios`) de manera que se rompa la compatibilidad con los datos activos. Cualquier cambio en las tablas debe ser aditivo o compatible con las estructuras existentes.
 - **Evitar Duplicidad en Migraciones**: Las migraciones locales deben estar unificadas e integradas de forma limpia en el esquema general. No se deben crear archivos de migración duplicados o redundantes que puedan generar errores de tipo `Duplicate table` o `relation already exists` al ejecutarse en producción.
 - **Prueba Previa Obligatoria**: Antes de subir cualquier cambio a producción que involucre base de datos, se debe validar en el entorno de desarrollo local que las migraciones corran limpiamente (`php artisan migrate:fresh --seed`) sin lanzar advertencias de tipos de datos o excepciones de claves foráneas.
+
+# Estándares de Datos
+
+- **Formato de Nombres de Usuario/Personas**: Siempre que se agreguen, procesen o modifiquen nombres de usuarios o personas en la base de datos (ya sea mediante seeders, migraciones o en el código fuente), estos deben convertirse a Tipo Título (primera letra en mayúscula, resto en minúsculas) para mantener la limpieza y estandarización.
