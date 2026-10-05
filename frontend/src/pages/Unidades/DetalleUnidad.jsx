@@ -376,7 +376,9 @@ export default function DetalleUnidad() {
           }
         }
       };
-    } catch (e) {}
+    } catch (e) {
+      console.error('Error en listener de BroadcastChannel:', e);
+    }
     return () => {
       if (bc) bc.close();
     };
@@ -1184,7 +1186,9 @@ export default function DetalleUnidad() {
             const bc = new BroadcastChannel('unidades_estatus_channel');
             bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: nuevoEstatus });
             bc.close();
-          } catch (e) {}
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
         }
       } else {
         await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
@@ -1288,7 +1292,9 @@ export default function DetalleUnidad() {
             const bc = new BroadcastChannel('unidades_estatus_channel');
             bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: modalEstatusNuevo });
             bc.close();
-          } catch (e) {}
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
         }
       } else {
         await Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');

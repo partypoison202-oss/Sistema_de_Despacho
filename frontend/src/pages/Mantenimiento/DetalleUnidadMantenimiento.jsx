@@ -148,7 +148,9 @@ export default function DetalleUnidadMantenimiento() {
             const bc = new BroadcastChannel('unidades_estatus_channel');
             bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: estatusToSave });
             bc.close();
-          } catch (e) {}
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
         }
       } else {
         Swal.fire('Error', data.message || 'Error al asignar el folio', 'error');
@@ -245,7 +247,9 @@ export default function DetalleUnidadMantenimiento() {
             const bc = new BroadcastChannel('unidades_estatus_channel');
             bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: estatusFinal });
             bc.close();
-          } catch (e) {}
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
         }
 
         // Abre el wizard de creación del PDF Automáticamente solo si hay incidencia
@@ -473,12 +477,14 @@ export default function DetalleUnidadMantenimiento() {
         if (event.data?.tipo === 'CAMBIO_ESTATUS') {
           queryClient.invalidateQueries({ queryKey: ['unidades-list', tipoTransporte] });
           queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
-          if (event.data.eco && selectedOption && selectedOption.includes(event.data.eco)) {
+          if (event.data.eco && selectedOption?.includes(event.data.eco)) {
             queryClient.invalidateQueries({ queryKey: ['unidad-detalle-mantenimiento', tipoTransporte, event.data.eco] });
           }
         }
       };
-    } catch (e) {}
+    } catch (e) {
+      console.error('Error en listener de BroadcastChannel:', e);
+    }
     return () => {
       if (bc) bc.close();
     };
@@ -1088,7 +1094,9 @@ export default function DetalleUnidadMantenimiento() {
             const bc = new BroadcastChannel('unidades_estatus_channel');
             bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: payloadUpdate.estatus });
             bc.close();
-          } catch (e) {}
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
         }
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'No se pudo cambiar el estatus', confirmButtonColor: '#601a2a' });
@@ -1194,7 +1202,9 @@ export default function DetalleUnidadMantenimiento() {
             const bc = new BroadcastChannel('unidades_estatus_channel');
             bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: numeroLimpio, estatus: modalEstatusNuevo });
             bc.close();
-          } catch (e) {}
+          } catch (e) {
+            console.error('Error al emitir por BroadcastChannel:', e);
+          }
         }
       } else {
         Swal.fire('Error', data.message || 'No se pudo cambiar el estatus', 'error');
@@ -2404,7 +2414,9 @@ export default function DetalleUnidadMantenimiento() {
                   const bc = new BroadcastChannel('unidades_estatus_channel');
                   bc.postMessage({ tipo: 'CAMBIO_ESTATUS', tipoTransporte, eco: ecoLimpio, estatus: estatusWizard });
                   bc.close();
-                } catch (e) {}
+                } catch (e) {
+                  console.error('Error al emitir por BroadcastChannel:', e);
+                }
               }
 
               Swal.fire({

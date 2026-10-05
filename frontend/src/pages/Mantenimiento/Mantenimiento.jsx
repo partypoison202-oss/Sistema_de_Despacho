@@ -159,7 +159,7 @@ export default function Mantenimiento() {
         }
       };
     } catch (e) {
-      // ignore
+      console.error('Error en listener de BroadcastChannel:', e);
     }
     return () => {
       if (bc) bc.close();
