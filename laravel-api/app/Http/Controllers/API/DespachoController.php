@@ -2076,6 +2076,7 @@ class DespachoController extends Controller
         $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
 
         $registros = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
@@ -3167,8 +3168,13 @@ class DespachoController extends Controller
     public function obtenerCatalogoUnidades()
     {
         $unidades = DB::table('unidades')
-            ->select('id', 'numero_eco', 'tipo')
-            ->orderBy('numero_eco')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->select(
+                'unidades.id', 
+                'unidades.numero_eco', 
+                DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo')
+            )
+            ->orderBy('unidades.numero_eco')
             ->get();
         return response()->json($unidades, 200);
     }

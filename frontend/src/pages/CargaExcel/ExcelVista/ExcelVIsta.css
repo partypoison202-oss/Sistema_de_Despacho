@@ -605,6 +605,70 @@
   color: var(--tw-color-white);
   box-shadow: 0 2px 6px rgba(107, 29, 51, 0.2);
 }
+/* Filtro de rutas */
+.ruta-filter-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ruta-filter-icon {
+  position: absolute;
+  left: 0.65rem;
+  width: 15px;
+  height: 15px;
+  color: #9ca3af;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.ruta-filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--tw-color-gray-50);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7280' stroke-width='2.5' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  border: 1.5px solid #e5e7eb;
+  color: var(--tw-color-gray-600);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0.4rem 2rem 0.4rem 2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ruta-filter-select:hover {
+  background-color: var(--tw-color-gray-100);
+  border-color: #d1d5db;
+  color: var(--tw-color-gray-800);
+}
+
+.ruta-filter-select:focus {
+  border-color: var(--brand-maroon-bg);
+  box-shadow: 0 0 0 3px rgba(107, 29, 51, 0.12);
+}
+
+.ruta-filter-select.active {
+  background-color: var(--brand-maroon-bg);
+  border-color: var(--brand-maroon-bg);
+  color: var(--tw-color-white);
+  box-shadow: 0 2px 6px rgba(107, 29, 51, 0.2);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='white' stroke-width='2.5' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+}
+
+.ruta-filter-container:has(.ruta-filter-select.active) .ruta-filter-icon {
+  color: #fff;
+}
+
+.ruta-filter-select option {
+  color: #1f2937;
+  background: #fff;
+}
 
 @media (max-width: 768px) {
   .excel-table-header {

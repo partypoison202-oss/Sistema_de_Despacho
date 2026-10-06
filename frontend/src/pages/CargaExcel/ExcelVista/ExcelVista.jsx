@@ -142,6 +142,7 @@ export default function ExcelPreview({
     || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTech, setSelectedTech] = useState('');
+  const [ordenarPorRuta, setOrdenarPorRuta] = useState(false);
   const [filterSinConductor, setFilterSinConductor] = useState(false);
   const [activeTimePickerRow, setActiveTimePickerRow] = useState(null);
   const [activeTimePickerField, setActiveTimePickerField] = useState(null);
@@ -185,6 +186,22 @@ export default function ExcelPreview({
   const sortedData = (data || []).map((fila, idx) => ({ ...fila, __originalIndex: idx })).sort((a, b) => {
     const typeA = String(a.TIPO_DE_UNIDAD || '').toUpperCase();
     const typeB = String(b.TIPO_DE_UNIDAD || '').toUpperCase();
+
+    if (ordenarPorRuta) {
+      const rutaA = String(a.RUTA ?? '').trim();
+      const rutaB = String(b.RUTA ?? '').trim();
+      if (rutaA !== rutaB) {
+        if (!rutaA) return 1;
+        if (!rutaB) return -1;
+        const prioridadRutas = ['T01', 'T02', 'T04', 'T05'];
+        let pA = prioridadRutas.indexOf(rutaA.toUpperCase());
+        let pB = prioridadRutas.indexOf(rutaB.toUpperCase());
+        if (pA === -1) pA = 999;
+        if (pB === -1) pB = 999;
+        if (pA !== pB) return pA - pB;
+        return rutaA.localeCompare(rutaB, undefined, { numeric: true, sensitivity: 'base' });
+      }
+    }
 
     let indexA = customSortOrder.indexOf(typeA);
     if (indexA === -1) indexA = 999;
@@ -389,6 +406,15 @@ export default function ExcelPreview({
             >
               SIN T6
             </button>
+            <button
+              type="button"
+              id="btn-ordenar-rutas"
+              onClick={() => setOrdenarPorRuta(!ordenarPorRuta)}
+              className={`tech-filter-btn ${ordenarPorRuta ? 'active' : ''}`}
+              title="Ordenar por ruta de menor a mayor"
+            >
+              RUTA
+            </button>
           </div>
           <div className="search-container">
             <svg className="search-icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -569,6 +595,9 @@ export default function ExcelPreview({
                       }
 
                       if (h === 'PATIO_NORTE') {
+                        const isUrbanuss = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
+                        if (!isUrbanuss) return <td key={h} className={`cell-${h.toLowerCase()}`}></td>;
+
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                             <input
@@ -1149,6 +1178,9 @@ export default function ExcelPreview({
                       }
 
                       if (h === 'PATIO_NORTE') {
+                        const isUrbanuss = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
+                        if (!isUrbanuss) return <td key={h} className={`cell-${h.toLowerCase()}`}></td>;
+
                         const isPatioNorte = fila[h] === true || fila[h] === 1 || fila[h] === '1' || fila[h] === 'true';
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
