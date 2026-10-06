@@ -1071,9 +1071,24 @@ export default function CargaExcel({ isPasteles = false }) {
              }
            }
 
+           const horaEntradaT6 = aHoraTexto(normalizedRow['RAW_HORA_ENTRADA_T6']) || '';
+
            actualizaciones.push({
              index: existingIndex,
-             ruta, corrida, tarjeton, nombreConductor, horaSalida, horaAcople, pn
+             ECONOMICO: eco,
+             SERVICIO: servicio,
+             TARJETON: tarjeton,
+             ruta,
+             corrida,
+             tarjeton,
+             nombreConductor,
+             horaSalida,
+             horaAcople,
+             horaEntrada: horaEntradaT6,
+             'HORA DE SALIDA DE PATIO': horaSalida,
+             'HORA DE ACOPLE': horaAcople,
+             'HORA ENTRADA T6': horaEntradaT6,
+             pn
            });
           });
         });

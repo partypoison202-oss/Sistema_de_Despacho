@@ -4061,9 +4061,9 @@ class DespachoController extends Controller
                 $motivoUpper = strtoupper(trim((string)($mov->motivo ?? '')));
                 if (str_contains($motivoUpper, 'FALTA') || in_array($motivoUpper, ['PERMISO', 'ENFERMEDAD', 'INCAPACIDAD', 'PERMUTA', 'DESCANSO'])) {
                     if (!empty($mov->conductor_asignado)) {
-                        $tarjetonesInasistenciaPlataforma[trim($mov->conductor_asignado)] = [
-                            'motivo' => $mov->motivo,
-                            'hora'   => Carbon::parse($mov->created_at)->format('H:i')
+                        $tarjetonesInasistenciaPlataforma[trim((string)$mov->conductor_asignado)] = [
+                            'motivo' => $mov->motivo ?? 'Inasistencia',
+                            'hora'   => $mov->created_at ? Carbon::parse($mov->created_at)->format('H:i') : ''
                         ];
                     }
                 }
@@ -4427,22 +4427,24 @@ class DespachoController extends Controller
             $entradasT6Data = [];
 
             // Obtener rutas y unidades
-            $rutas = DB::table('rutas')->pluck('ruta', 'ruta')->toArray(); // ['T05' => 'T05']
+            $rutas = DB::table('rutas')->pluck('ruta', 'ruta')->toArray();
             $unidades = DB::table('unidades')->pluck('id', 'numero_eco')->toArray();
 
             $unidadesProcesadas = [];
 
             foreach ($datos as $index => $fila) {
-                $filaNum = $index + 2; // Para mensaje de error (suponiendo que 1 es cabecera)
+                $filaNum = $index + 2;
 
-                $eco = trim($fila['ECONOMICO'] ?? '');
-                if (!$eco) continue; // Saltar filas vacías
+                $eco = trim((string)($fila['ECONOMICO'] ?? ($fila['eco'] ?? '')));
+                if ($eco === '') {
+                    continue;
+                }
                 
                 $ecoKey = ltrim($eco, '0');
                 
                 $unidadId = null;
                 foreach ($unidades as $uEco => $uId) {
-                    if (ltrim((string)$uEco, '0') === $ecoKey || (string)$uEco === (string)$eco) {
+                    if (ltrim((string)$uEco, '0') === $ecoKey || (string)$uEco === $eco) {
                         $unidadId = $uId;
                         break;
                     }
@@ -4456,49 +4458,53 @@ class DespachoController extends Controller
                 $unidadesProcesadas[] = $unidadId;
 
                 // SERVICIO (T05-06) -> Ruta y Corrida
-                $servicio = trim($fila['SERVICIO'] ?? '');
+                $servicio = trim((string)($fila['SERVICIO'] ?? ''));
                 $rutaStr = null;
                 $corridaNum = null;
                 if (str_contains($servicio, '-')) {
                     $partes = explode('-', $servicio);
-                    $rutaStr = trim($partes[0]);
-                    $corridaNum = (int)trim($partes[1]);
+                    $rutaStr = trim((string)($partes[0] ?? ''));
+                    $corridaNum = isset($partes[1]) && trim((string)$partes[1]) !== '' ? (int)trim((string)$partes[1]) : null;
                 } else {
-                    $rutaStr = $servicio;
+                    $rutaStr = $servicio !== '' ? $servicio : trim((string)($fila['ruta'] ?? ''));
+                    $corridaVal = trim((string)($fila['corrida'] ?? ''));
+                    $corridaNum = $corridaVal !== '' ? (int)$corridaVal : null;
                 }
 
-                if ($rutaStr && !isset($rutas[$rutaStr])) {
+                if ($rutaStr !== '' && !isset($rutas[$rutaStr])) {
                     $erroresFormato[] = "Fila {$filaNum}: La ruta {$rutaStr} no existe en el sistema.";
                 }
 
                 // Validar horas (Formato HH:MM)
-                $horaSalida = trim($fila['HORA DE SALIDA DE PATIO'] ?? '');
-                $horaAcople = trim($fila['HORA DE ACOPLE'] ?? '');
-                $horaEntrada = trim($fila['HORA ENTRADA T6'] ?? '');
+                $horaSalida = trim((string)($fila['HORA DE SALIDA DE PATIO'] ?? ($fila['horaSalida'] ?? '')));
+                $horaAcople = trim((string)($fila['HORA DE ACOPLE'] ?? ($fila['horaAcople'] ?? '')));
+                $horaEntrada = trim((string)($fila['HORA ENTRADA T6'] ?? ($fila['horaEntrada'] ?? '')));
 
                 $regexHora = '/^(?:2[0-3]|[01][0-9]):[0-5][0-9]$/';
 
-                if ($horaSalida && !preg_match($regexHora, $horaSalida)) {
+                if ($horaSalida !== '' && !preg_match($regexHora, $horaSalida)) {
                     $erroresFormato[] = "Fila {$filaNum}: Hora de salida de patio ({$horaSalida}) inválida.";
                 }
-                if ($horaAcople && !preg_match($regexHora, $horaAcople)) {
+                if ($horaAcople !== '' && !preg_match($regexHora, $horaAcople)) {
                     $erroresFormato[] = "Fila {$filaNum}: Hora de acople ({$horaAcople}) inválida.";
                 }
-                if ($horaEntrada && !preg_match($regexHora, $horaEntrada)) {
+                if ($horaEntrada !== '' && !preg_match($regexHora, $horaEntrada)) {
                     $erroresFormato[] = "Fila {$filaNum}: Hora de entrada T6 ({$horaEntrada}) inválida.";
                 }
 
+                $tarjetonStr = trim((string)($fila['TARJETON'] ?? ($fila['tarjeton'] ?? '')));
+
                 $insertData[] = [
                     'unidad_id' => $unidadId,
-                    'ruta' => $rutaStr,
+                    'ruta' => $rutaStr !== '' ? $rutaStr : null,
                     'corridas' => $corridaNum,
-                    'numero_tarjeton' => trim($fila['TARJETON'] ?? null),
-                    'hora_salida_patio' => $horaSalida ?: null,
-                    'acople' => $horaAcople ?: null,
+                    'numero_tarjeton' => $tarjetonStr !== '' ? $tarjetonStr : null,
+                    'hora_salida_patio' => $horaSalida !== '' ? $horaSalida : null,
+                    'acople' => $horaAcople !== '' ? $horaAcople : null,
                     'estatus' => 'operacion',
                 ];
 
-                if ($horaEntrada) {
+                if ($horaEntrada !== '') {
                     $entradasT6Data[] = [
                         'fecha' => $mananaFecha,
                         'unidad_id' => $unidadId,
@@ -4520,7 +4526,7 @@ class DespachoController extends Controller
             // Las unidades que no vinieron en el excel, se ponen en reserva
             $unidadesProcesadas = array_unique($unidadesProcesadas);
             foreach ($unidades as $uEco => $uId) {
-                if (!in_array($uId, $unidadesProcesadas)) {
+                if (!in_array($uId, $unidadesProcesadas, true)) {
                     $insertData[] = [
                         'unidad_id' => $uId,
                         'estatus' => 'reserva',
@@ -4546,7 +4552,7 @@ class DespachoController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error cargando Excel: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error cargando Excel: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Error al cargar programación',
                 'error' => $e->getMessage()
