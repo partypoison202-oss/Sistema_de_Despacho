@@ -1082,7 +1082,57 @@ export default function CargaExcel({ isPasteles = false }) {
           throw new Error('El archivo Excel no contiene unidades para cargar.');
         }
 
+        
+        if (tabActiva === 'MANANA') {
+            if (actualizaciones.length === 0) {
+                Swal.fire({ icon: 'warning', title: 'Excel vacío', text: 'No se encontraron datos para procesar.' });
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Procesando...',
+                text: 'Enviando programación del día siguiente',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+            
+            fetch(`${API_BASE}/api/despacho/cargar-programacion-excel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ datos: actualizaciones })
+            })
+            .then(res => res.json())
+            .then(resData => {
+                if (resData.errores && resData.errores.length > 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Datos con errores',
+                        html: '<div style="max-height: 200px; overflow-y: auto; text-align: left; font-size: 0.85em;">' + resData.errores.join('<br/>') + '</div>',
+                        confirmButtonColor: '#c5a059'
+                    });
+                } else if (resData.error) {
+                    throw new Error(resData.error || resData.message);
+                } else {
+                    Swal.fire({ icon: 'success', title: '¡Éxito!', text: 'Programación cargada correctamente.', timer: 2000, showConfirmButton: false });
+                    refetchData();
+                }
+            })
+            .catch(err => {
+                Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Error al enviar los datos al servidor.' });
+            })
+            .finally(() => {
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            });
+            
+            return;
+        }
+
         if (errores.length > 0) {
+
            Swal.fire({
              icon: 'error',
              title: 'Errores en el archivo',
