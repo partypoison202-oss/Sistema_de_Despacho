@@ -4600,11 +4600,14 @@ class DespachoController extends Controller
 
                 // Validar tecnologia (Eco vs Ruta)
                 if ($rutaStr !== '') {
-                    $esTroncalUnidad = str_contains($tipoUnidadDB, 'URBANUS');
+                    $ecoNum = (int) $ecoKey;
+                    $esTroncalUnidad = ($ecoNum >= 1 && $ecoNum <= 42) || str_contains($tipoUnidadDB, 'URBANUS');
+                    $tipoDisplay = $esTroncalUnidad ? 'troncal' : 'alimentadora';
+                    
                     if ($esTroncalUnidad && !str_starts_with($rutaStr, 'T')) {
-                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es troncal ({$tipoUnidadDB}), pero la ruta {$rutaStr} no lo es.";
+                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es troncal, pero la ruta {$rutaStr} no lo es.";
                     } elseif (!$esTroncalUnidad && str_starts_with($rutaStr, 'T')) {
-                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es alimentadora ({$tipoUnidadDB}), pero la ruta {$rutaStr} es troncal.";
+                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es alimentadora, pero la ruta {$rutaStr} es troncal.";
                     }
                 }
 
