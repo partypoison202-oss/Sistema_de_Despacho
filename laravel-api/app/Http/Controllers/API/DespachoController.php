@@ -4642,7 +4642,8 @@ class DespachoController extends Controller
                     $nombreConductor = mb_convert_case(mb_strtolower($conductores[$tarjetonStr], 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
                 }
                 
-                $patioNorteVal = filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $patioNorteBool = filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $patioNorteVal = $patioNorteBool ? 'true' : 'false';
 
                 $insertData[] = [
                     'unidad_id' => $unidadId,
