@@ -941,6 +941,58 @@ export default function CargaExcel({ isPasteles = false }) {
     XLSX.writeFile(workbook, `Despacho_Diario_${fecha}.xlsx`, { cellStyles: true });
   };
 
+  // ─── DESCARGAR PLANTILLA ────────────────────────────────────────────────────────
+  const handleDownloadTemplate = () => {
+    const encabezados = ['TIPO UNIDAD', 'SERVICIO', 'ECONOMICO', 'HORA ENTRADA T6', 'TARJETON', 'HORA DE SALIDA DE PATIO', 'HORA DE ACOPLE'];
+    const tiposHoja = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
+
+    const workbook = XLSX.utils.book_new();
+
+    // ─── HOJA 1: GUÍA DE LLENADO ───
+    const rutasDisponibles = [
+      ...(catalogRutasObj.troncales || []),
+      ...(catalogRutasObj.alimentadoras || [])
+    ].join(', ');
+
+    const guiaHoja = [
+      ['GUÍA RÁPIDA PARA LLENAR EL EXCEL'],
+      [],
+      ['COLUMNA', '¿QUÉ PONER?', 'EJEMPLOS'],
+      ['TIPO UNIDAD', 'El tipo de unidad, igual al nombre de la hoja, en MAYÚSCULAS.', 'URBANUSS, ZAFIRO, VAGONETA, ORION'],
+      ['SERVICIO', 'Ruta y corrida separadas por guion: RUTA-CORRIDA.', 'T05-06, T01-10'],
+      ['ECONOMICO', 'Número económico de la unidad.', '01, 02, 081'],
+      ['HORA ENTRADA T6', 'Hora en formato de 24 horas.', '05:07'],
+      ['TARJETON', 'Solo el número del tarjetón del conductor. Sin nombres ni letras.', '044, 165'],
+      ['HORA DE SALIDA DE PATIO', 'Hora en formato de 24 horas.', '05:00, 14:30'],
+      ['HORA DE ACOPLE', 'Hora en formato de 24 horas.', '05:15, 14:45'],
+      [],
+      ['Llena cada unidad en la hoja que corresponde a su tipo. Si una unidad no sale hoy, no la agregues.'],
+      [],
+      ['RUTAS VÁLIDAS EN EL SISTEMA (usa la parte antes del guion en SERVICIO):'],
+      [rutasDisponibles]
+    ];
+
+    const worksheetGuia = XLSX.utils.aoa_to_sheet(guiaHoja);
+    worksheetGuia['!cols'] = [{ wch: 26 }, { wch: 60 }, { wch: 32 }];
+    for (let col = 0; col < 3; col++) {
+      const ref = XLSX.utils.encode_cell({ r: 2, c: col });
+      if (worksheetGuia[ref]) {
+        worksheetGuia[ref].s = { fill: { fgColor: { rgb: '6B1D33' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } };
+      }
+    }
+    XLSX.utils.book_append_sheet(workbook, worksheetGuia, '1. GUÍA DE LLENADO');
+
+    // ─── UNA HOJA POR TIPO DE UNIDAD (solo encabezados, sin datos) ───
+    tiposHoja.forEach(tipo => {
+      const worksheet = XLSX.utils.aoa_to_sheet([encabezados]);
+      worksheet['!cols'] = encabezados.map((h, i) => ({ wch: i === 5 ? 26 : 20 }));
+      XLSX.utils.book_append_sheet(workbook, worksheet, tipo);
+    });
+
+    const fecha = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `Plantilla_Programacion_${fecha}.xlsx`, { cellStyles: true });
+  };
+
   // ─── IMPORTAR EXCEL ───────────────────────────────────────────────────────────
   const handleUploadExcel = (e) => {
     const file = e.target.files[0];
@@ -951,51 +1003,117 @@ export default function CargaExcel({ isPasteles = false }) {
       try {
         const bstr = evt.target.result;
         const workbook = XLSX.read(bstr, { type: 'binary' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
         
-        // Convertir la hoja a JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-        
-        if (!jsonData || jsonData.length === 0) {
-          throw new Error('El archivo Excel está vacío.');
-        }
+        const newData = [...previewData];
+        const errores = [];
+        const actualizaciones = [];
 
-        const newData = [...previewData]; // Copia de los datos actuales
-        
-        jsonData.forEach(row => {
-           // Normalizar keys (pasar a mayúsculas, quitar espacios extra)
+        workbook.SheetNames.forEach(sheetName => {
+          if (sheetName === '1. GUÍA DE LLENADO') return; // Saltarse la hoja de instrucciones
+
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+          
+          if (!jsonData || jsonData.length === 0) return;
+
+          const aHoraTexto = (v) => {
+            if (typeof v === 'number' && v >= 0 && v < 1) {
+              const totalMin = Math.round(v * 24 * 60) % (24 * 60);
+              return `${String(Math.floor(totalMin / 60)).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+            }
+            const s = String(v ?? '').trim();
+            const m = s.match(/^(\d{1,2}):(\d{2})/);
+            return m ? `${m[1].padStart(2, '0')}:${m[2]}` : s;
+          };
+
+          jsonData.forEach((row, index) => {
            const normalizedRow = {};
            Object.keys(row).forEach(k => {
-             const cleanKey = k.trim().toUpperCase().replace(/\s+/g, '_');
-             normalizedRow[cleanKey] = String(row[k]).trim();
+             // Removemos acentos para asegurar un match correcto con las columnas de la plantilla
+             const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
+             normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
+             if (cleanKey.startsWith('HORA')) normalizedRow[`RAW_${cleanKey}`] = row[k];
            });
 
            const eco = normalizedRow['ECONOMICO'] || '';
            if (!eco) return; // Si no hay económico, ignorar fila
 
-           // Buscar si el económico ya existe en la cuadrícula de unidades de hoy
-           const existingIndex = newData.findIndex(d => String(d.ECONOMICO).trim() === eco);
-           
-           if (existingIndex !== -1) {
-              if (normalizedRow['TIPO_DE_UNIDAD']) newData[existingIndex].TIPO_DE_UNIDAD = normalizedRow['TIPO_DE_UNIDAD'];
-              if (normalizedRow['RUTA']) newData[existingIndex].RUTA = normalizedRow['RUTA'];
-              if (normalizedRow['CORRIDA']) newData[existingIndex].CORRIDAS = normalizedRow['CORRIDA'];
-              if (normalizedRow['TARJETON']) newData[existingIndex].TARJETON = normalizedRow['TARJETON'];
-              if (normalizedRow['NOMBRE_CONDUCTOR']) newData[existingIndex].NOMBRE_CONDUCTOR = normalizedRow['NOMBRE_CONDUCTOR'];
-              if (normalizedRow['HORA_DE_SALIDA_DE_PATIO']) newData[existingIndex].HORA_SALIDA_PATIO = normalizedRow['HORA_DE_SALIDA_DE_PATIO'];
-              if (normalizedRow['HORA_DE_ACOPLE']) newData[existingIndex].ACOPLE = normalizedRow['HORA_DE_ACOPLE'];
-              
-              const pn = String(normalizedRow['PATIO_NORTE'] || '').trim().toUpperCase();
-              if (pn === 'PN') newData[existingIndex].PATIO_NORTE = true;
+           const tipoFila = normalizarTipoUnidad(normalizedRow['TIPO_UNIDAD'] || sheetName);
+           const ecoNum = parseInt(eco, 10);
+           const mismoEco = (d) => {
+             const dNum = parseInt(String(d.ECONOMICO).trim(), 10);
+             return (!isNaN(ecoNum) && !isNaN(dNum)) ? dNum === ecoNum : String(d.ECONOMICO).trim() === eco;
+           };
+           const existingIndex = newData.findIndex(d => mismoEco(d) && normalizarTipoUnidad(d.TIPO_DE_UNIDAD) === tipoFila);
+           if (existingIndex === -1) {
+              errores.push(`Hoja "${sheetName}", Fila ${index + 2}: El económico ${eco} (${tipoFila}) no se encuentra en la programación actual.`);
+              return;
+           }
 
-              // Asignar Estatus automáticamente
-              const tieneServicio = newData[existingIndex].RUTA || newData[existingIndex].TARJETON || newData[existingIndex].CORRIDAS;
-              if (tieneServicio) {
-                 newData[existingIndex].ESTATUS = 'operacion';
-              } else {
-                 newData[existingIndex].ESTATUS = 'no_programada';
-              }
+           // SERVICIO viene como RUTA-CORRIDA (ej. T05-06)
+           const servicio = normalizedRow['SERVICIO'] || '';
+           const partesServicio = servicio.split('-');
+           const ruta = (partesServicio[0] || '').trim();
+           const corridaRaw = (partesServicio[1] || '').trim();
+           const corrida = corridaRaw !== '' && !isNaN(parseInt(corridaRaw, 10)) ? String(parseInt(corridaRaw, 10)) : corridaRaw;
+           const tarjeton = normalizedRow['TARJETON'] || '';
+           const horaSalida = aHoraTexto(normalizedRow['RAW_HORA_DE_SALIDA_DE_PATIO']);
+           const horaAcople = aHoraTexto(normalizedRow['RAW_HORA_DE_ACOPLE']);
+           const pn = false;
+
+           let nombreConductor = '';
+           if (tarjeton) {
+             const conductorObj = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(tarjeton));
+             if (!conductorObj) {
+               errores.push(`Hoja "${sheetName}", Fila ${index + 2} (Eco ${eco}): El tarjetón ${tarjeton} no existe o no está activo.`);
+             } else {
+               nombreConductor = conductorObj.nombre;
+             }
+           }
+
+           actualizaciones.push({
+             index: existingIndex,
+             ruta, corrida, tarjeton, nombreConductor, horaSalida, horaAcople, pn
+           });
+          });
+        });
+
+        if (actualizaciones.length === 0 && errores.length === 0) {
+          throw new Error('El archivo Excel no contiene unidades para cargar.');
+        }
+
+        if (errores.length > 0) {
+           Swal.fire({
+             icon: 'error',
+             title: 'Errores en el archivo',
+             html: `<div style="text-align: left; max-height: 200px; overflow-y: auto; font-size: 0.9em;">
+                      <ul style="padding-left: 20px; margin: 0;">
+                        ${errores.map(err => `<li style="margin-bottom: 4px;">${err}</li>`).join('')}
+                      </ul>
+                    </div>
+                    <p style="margin-top: 10px; font-weight: bold; color: #dc2626;">No se ha cargado ninguna fila. Por favor corrige el archivo y vuelve a subirlo.</p>`,
+             confirmButtonColor: '#6b1d33',
+             width: '500px'
+           });
+           if (fileInputRef.current) fileInputRef.current.value = '';
+           return;
+        }
+
+        actualizaciones.forEach(act => {
+           newData[act.index].RUTA = act.ruta;
+           newData[act.index].CORRIDAS = act.corrida;
+           newData[act.index].TARJETON = act.tarjeton;
+           newData[act.index].NOMBRE_CONDUCTOR = act.nombreConductor;
+           newData[act.index].HORA_SALIDA_PATIO = act.horaSalida;
+           newData[act.index].ACOPLE = act.horaAcople;
+           newData[act.index].HORA_DE_ACOPLE = act.horaAcople;
+           if (act.pn) newData[act.index].PATIO_NORTE = true;
+
+           const tieneServicio = act.ruta || act.tarjeton || act.corrida;
+           if (tieneServicio) {
+              newData[act.index].ESTATUS = 'operacion';
+           } else {
+              newData[act.index].ESTATUS = 'no_programada';
            }
         });
 
@@ -1005,7 +1123,7 @@ export default function CargaExcel({ isPasteles = false }) {
         Swal.fire({
           icon: 'success',
           title: 'Excel importado',
-          text: 'Los datos han sido pre-cargados. Revisa la tabla y presiona "Guardar Todo" cuando estés listo.',
+          text: 'Los datos han sido cargados. Revisa la tabla y presiona "Guardar Todo" cuando estés listo.',
           confirmButtonColor: '#c5a059'
         });
 
@@ -1019,7 +1137,6 @@ export default function CargaExcel({ isPasteles = false }) {
         });
       }
       
-      // Limpiar input
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     
@@ -1220,6 +1337,16 @@ export default function CargaExcel({ isPasteles = false }) {
             </button>
             {!isPasteles && (
               <>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="excel-btn-capsule excel-btn-capsule--gold"
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Descargar Plantilla
+                </button>
                 <input
                   type="file"
                   accept=".xlsx, .xls, .csv"
