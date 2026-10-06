@@ -1026,7 +1026,7 @@ export default function CargaExcel({ isPasteles = false }) {
                         normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
                         if (cleanKey.startsWith('HORA')) {
                             const v = row[k];
-                            let horaTexto = '';
+                            let horaTexto;
                             if (typeof v === 'number' && v >= 0 && v < 1) {
                                 const totalMin = Math.round(v * 24 * 60) % (24 * 60);
                                 horaTexto = `${String(Math.floor(totalMin / 60)).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;

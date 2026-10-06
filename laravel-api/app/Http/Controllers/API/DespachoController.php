@@ -4000,7 +4000,7 @@ class DespachoController extends Controller
 
             // Ordenar por número económico
             usort($lista, function ($a, $b) {
-                return (int)$a['numero_eco'] - (int)$b['numero_eco'];
+                return (int)$a['numero_eco'] <=> (int)$b['numero_eco'];
             });
 
             // 7. Obtener lista de conductores con estatus de inasistencia o falta registrada para hoy
