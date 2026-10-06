@@ -1405,11 +1405,15 @@ class DespachoController extends Controller
                     }
 
                     // Prepare for programacion_inicial
-                    $inicialRow = $insertRow;
-                    $inicialRow['fecha'] = $fechaHoy;
-                    $inicialRow['created_at'] = now();
-                    $inicialRow['updated_at'] = now();
-                    $inicialInsert[] = $inicialRow;
+                    // Si el estatus es 'reserva', no lo guardamos en la tabla de programación inicial porque
+                    // queremos que solo quede "lo del excel" (las que realmente se programaron a ruta)
+                    if (($insertRow['estatus'] ?? '') !== 'reserva') {
+                        $inicialRow = $insertRow;
+                        $inicialRow['fecha'] = $fechaHoy;
+                        $inicialRow['created_at'] = now();
+                        $inicialRow['updated_at'] = now();
+                        $inicialInsert[] = $inicialRow;
+                    }
                     }
 
                     // Reiniciar campos de validación para el nuevo día
@@ -4399,7 +4403,7 @@ class DespachoController extends Controller
                 'message' => 'Error al cargar programación de apertura: ' . $e->getMessage()
             ], 500);
         }
-    }
+    
 
     public function cargarProgramacionExcel(IlluminateHttpRequest $request) // NOSONAR
     {
@@ -4423,9 +4427,11 @@ class DespachoController extends Controller
             $insertData = [];
             $entradasT6Data = [];
 
-            // Obtener rutas
+            // Obtener rutas y unidades
             $rutas = IlluminateSupportFacadesDB::table('rutas')->pluck('ruta', 'ruta')->toArray(); // ['T05' => 'T05']
             $unidades = IlluminateSupportFacadesDB::table('unidades')->pluck('id', 'numero_economico')->toArray();
+
+            $unidadesProcesadas = [];
 
             foreach ($datos as $index => $fila) {
                 $filaNum = $index + 2; // Para mensaje de error (suponiendo que 1 es cabecera)
@@ -4447,6 +4453,8 @@ class DespachoController extends Controller
                     $erroresFormato[] = "Fila {$filaNum}: Unidad economico {$eco} no encontrada en la base de datos.";
                     continue;
                 }
+
+                $unidadesProcesadas[] = $unidadId;
 
                 // SERVICIO (T05-06) -> Ruta y Corrida
                 $servicio = trim($fila['SERVICIO'] ?? '');
@@ -4508,6 +4516,17 @@ class DespachoController extends Controller
                     'message' => 'Errores de validación en el Excel',
                     'errores' => $erroresFormato
                 ], 422);
+            }
+
+            // Las unidades que no vinieron en el excel, se ponen en reserva
+            $unidadesProcesadas = array_unique($unidadesProcesadas);
+            foreach ($unidades as $uEco => $uId) {
+                if (!in_array($uId, $unidadesProcesadas)) {
+                    $insertData[] = [
+                        'unidad_id' => $uId,
+                        'estatus' => 'reserva',
+                    ];
+                }
             }
 
             // Insertar todo

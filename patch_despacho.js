@@ -2,6 +2,11 @@ const fs = require('fs');
 
 let content = fs.readFileSync('laravel-api/app/Http/Controllers/API/DespachoController.php', 'utf8');
 
+// Primero, quitemos el método cargarProgramacionExcel si ya existe para reescribirlo.
+content = content.replace(/public function cargarProgramacionExcel[\s\S]*?^}$/m, '');
+// Si hay múltiples llaves de cierre al final, podemos limpiarlo.
+content = content.replace(/}[\s\n]*$/s, '}');
+
 const injection = `
     public function cargarProgramacionExcel(\Illuminate\Http\Request $request) // NOSONAR
     {
@@ -25,9 +30,11 @@ const injection = `
             $insertData = [];
             $entradasT6Data = [];
 
-            // Obtener rutas
+            // Obtener rutas y unidades
             $rutas = \Illuminate\Support\Facades\DB::table('rutas')->pluck('ruta', 'ruta')->toArray(); // ['T05' => 'T05']
             $unidades = \Illuminate\Support\Facades\DB::table('unidades')->pluck('id', 'numero_economico')->toArray();
+
+            $unidadesProcesadas = [];
 
             foreach ($datos as $index => $fila) {
                 $filaNum = $index + 2; // Para mensaje de error (suponiendo que 1 es cabecera)
@@ -49,6 +56,8 @@ const injection = `
                     $erroresFormato[] = "Fila {$filaNum}: Unidad economico {$eco} no encontrada en la base de datos.";
                     continue;
                 }
+
+                $unidadesProcesadas[] = $unidadId;
 
                 // SERVICIO (T05-06) -> Ruta y Corrida
                 $servicio = trim($fila['SERVICIO'] ?? '');
@@ -112,6 +121,17 @@ const injection = `
                 ], 422);
             }
 
+            // Las unidades que no vinieron en el excel, se ponen en reserva
+            $unidadesProcesadas = array_unique($unidadesProcesadas);
+            foreach ($unidades as $uEco => $uId) {
+                if (!in_array($uId, $unidadesProcesadas)) {
+                    $insertData[] = [
+                        'unidad_id' => $uId,
+                        'estatus' => 'reserva',
+                    ];
+                }
+            }
+
             // Insertar todo
             foreach ($insertData as $data) {
                 \Illuminate\Support\Facades\DB::table('informacion_operativa_manana')->insert($data);
@@ -140,54 +160,26 @@ const injection = `
 }
 `;
 
-content = content.replace(/}[\s\n]*$/s, injection);
+// Injectar método al final
+content = content.replace(/}[\s\n]*$/s, '\n' + injection);
 
-// Modify ejecutarCambioDiaAutomatico to insert into programacion_inicial
-const copyLogic = `
-            if ($sourceTable) {
-                $nuevosRegistros = DB::table($sourceTable)->get();
-                DB::table('informacion_operativa')->delete();
+// Reemplazar la lógica de copia a programacion_inicial para que SOLO copie los de excel (o los que no son reserva automática)
+// Primero, buscamos el lugar donde se arma $inicialRow y lo metemos si no es reserva.
+// The previous patch added `// Prepare for programacion_inicial`. Let's find it.
 
-                $targetCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('informacion_operativa'));
-                $tarjetones = [];
-                $maniobristas = [];
-
-                // NEW LOGIC: Copy to programacion_inicial
-                $inicialInsert = [];
-
-                foreach ($nuevosRegistros as $row) {
-                    unset($row->id);
-                    $arrayRow = (array)$row;
-                    $insertRow = [];
-                    foreach ($arrayRow as $key => $val) {
-                        if (isset($targetCols[$key])) {
-                            if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
-                                $insertRow[$key] = $val ? 'true' : 'false';
-                            } else {
-                                $insertRow[$key] = $val;
-                            }
-                        }
-                    }
-
+const updatedCopyLogic = `
                     // Prepare for programacion_inicial
-                    $inicialRow = $insertRow;
-                    $inicialRow['fecha'] = $fechaHoy;
-                    $inicialRow['created_at'] = now();
-                    $inicialRow['updated_at'] = now();
-                    $inicialInsert[] = $inicialRow;
-`;
-content = content.replace(/if \(\$sourceTable\) \{[\s\S]*?foreach \(\$nuevosRegistros as \$row\) \{[\s\S]*?if \(in_array\(\$key, \['patio_norte', 'transporte_patio_norte'\]\)\) \{[\s\S]*?\$insertRow\[\$key\] = \$val;[\s\S]*?\}[\s\S]*?\}/m, copyLogic.trim());
-
-const commitLogic = `
-                if (!empty($inicialInsert)) {
-                    // Bulk insert in chunks to avoid issues
-                    foreach (array_chunk($inicialInsert, 50) as $chunk) {
-                        DB::table('programacion_inicial')->insert($chunk);
+                    // Si el estatus es 'reserva', no lo guardamos en la tabla de programación inicial porque
+                    // queremos que solo quede "lo del excel" (las que realmente se programaron a ruta)
+                    if (($insertRow['estatus'] ?? '') !== 'reserva') {
+                        $inicialRow = $insertRow;
+                        $inicialRow['fecha'] = $fechaHoy;
+                        $inicialRow['created_at'] = now();
+                        $inicialRow['updated_at'] = now();
+                        $inicialInsert[] = $inicialRow;
                     }
-                }
-
-                if ($deleteSourceAfter) {
 `;
-content = content.replace(/if \(\$deleteSourceAfter\) \{/g, commitLogic.trim());
+
+content = content.replace(/\/\/ Prepare for programacion_inicial[\s\S]*?\$inicialInsert\[\] = \$inicialRow;/m, updatedCopyLogic.trim());
 
 fs.writeFileSync('laravel-api/app/Http/Controllers/API/DespachoController.php', content, 'utf8');
