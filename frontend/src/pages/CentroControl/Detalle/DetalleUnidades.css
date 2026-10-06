@@ -86,12 +86,18 @@
 /* ---------- KPIs por estatus ---------- */
 .detalle-kpis {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 24px;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
+  .detalle-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
   .detalle-kpis {
     grid-template-columns: 1fr;
   }
@@ -126,6 +132,13 @@
 }
 .detalle-kpi--operacion .detalle-kpi__value {
   color: var(--status-green-text);
+}
+
+.detalle-kpi--circulando {
+  border-left-color: #059669;
+}
+.detalle-kpi--circulando .detalle-kpi__value {
+  color: #059669;
 }
 
 .detalle-kpi--reserva {
@@ -218,7 +231,8 @@
   color: var(--tw-color-white);
 }
 
-.detalle-tab--operacion.is-active { background: var(--status-green-text); border-color: var(--status-green-text); }
+.detalle-tab--operacion.is-active { background: #0284c7; border-color: #0284c7; }
+.detalle-tab--circulando.is-active { background: var(--status-green-text); border-color: var(--status-green-text); }
 .detalle-tab--reserva.is-active { background: var(--status-blue-text); border-color: var(--status-blue-text); }
 .detalle-tab--mantenimiento.is-active { background: var(--status-yellow-text); border-color: var(--status-yellow-text); }
 .detalle-tab--percance.is-active { background: #b91c1c; border-color: #b91c1c; }
@@ -304,6 +318,11 @@
 }
 
 .detalle-table__status--operacion {
+  color: #0369a1;
+  background: #e0f2fe;
+}
+
+.detalle-table__status--circulando {
   color: var(--status-green-text);
   background: var(--status-green-light);
 }

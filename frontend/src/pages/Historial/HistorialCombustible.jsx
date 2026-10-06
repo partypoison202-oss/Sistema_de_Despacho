@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
@@ -138,7 +138,7 @@ export default function HistorialCombustible() {
       }));
     } else {
       worksheetData = datosFiltrados.map(d => {
-        let resumen = {};
+        let resumen;
         try {
           resumen = typeof d.datos_resumen === 'string' ? JSON.parse(d.datos_resumen) : (d.datos_resumen || {});
         } catch (e) {
@@ -533,7 +533,7 @@ export default function HistorialCombustible() {
               <tbody>
                 {datosFiltrados.length > 0 ? (
                   datosFiltrados.map((r) => {
-                    let resumen = {};
+                    let resumen;
                     try {
                       resumen = typeof r.datos_resumen === 'string' ? JSON.parse(r.datos_resumen) : (r.datos_resumen || {});
                     } catch (e) {

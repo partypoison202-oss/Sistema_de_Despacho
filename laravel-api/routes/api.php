@@ -221,6 +221,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/despacho/actualizar-tarjeton', [DespachoController::class, 'actualizarTarjeton']);
     Route::post('/despacho/actualizar-tarjeton-maniobrista', [DespachoController::class, 'actualizarTarjetonManiobrista']);
     Route::post('/despacho/actualizar-horas', [DespachoController::class, 'actualizarHoras']);
+    Route::post('/despacho/cargar-programacion-excel', [DespachoController::class, 'cargarProgramacionExcel']);
     Route::post('/despacho/validar', [DespachoController::class, 'validarDespacho']);
     Route::get('/despacho/catalogo/unidades', [DespachoController::class, 'obtenerCatalogoUnidades']);
     Route::get('/despacho/pendientes-mantenimiento', [DespachoController::class, 'obtenerPendientesMantenimiento']);
@@ -237,6 +238,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gestión de Conductores
     Route::get('/conductores', [ConductorController::class, 'index']);
     Route::get('/conductores/resumen-inasistencias', [ConductorController::class, 'resumenInasistencias']);
+    Route::get('/conductores/{id}/historial-completo', [ConductorController::class, 'getHistorialCompleto']);
     Route::post('/conductores', [ConductorController::class, 'store']);
     Route::put('/conductores/{id}', [ConductorController::class, 'update']);
     Route::post('/conductores/{id}/foto', [ConductorController::class, 'uploadFoto']);

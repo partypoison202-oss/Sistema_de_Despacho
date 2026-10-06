@@ -67,7 +67,7 @@ const processResumenData = (inicio, cambios, fin) => {
     if (change.estatus_nuevo) item.estatuses.add(change.estatus_nuevo);
 
     if (change.detalles) {
-      const condMatch = change.detalles.match(/CONDUCTOR:\s*([^,\-\n\(\)]+)/i);
+      const condMatch = change.detalles.match(/CONDUCTOR:\s*([^,\-\n()]+)/i);
       if (condMatch && condMatch[1]) {
         const condName = condMatch[1].trim();
         if (condName && condName !== 'SIN ASIGNAR') {
@@ -76,7 +76,7 @@ const processResumenData = (inicio, cambios, fin) => {
         }
       }
 
-      const rutaMatch = change.detalles.match(/(?:RUTA|NUEVA):\s*([^,\-\n\(\)]+)/i);
+      const rutaMatch = change.detalles.match(/(?:RUTA|NUEVA):\s*([^,\-\n()]+)/i);
       if (rutaMatch && rutaMatch[1]) {
         const rName = rutaMatch[1].trim();
         if (rName && rName !== 'SIN RUTA' && !rName.includes('HORA') && !rName.includes('ESTATUS')) {
@@ -84,7 +84,7 @@ const processResumenData = (inicio, cambios, fin) => {
         }
       }
 
-      const motivoMatch = change.detalles.match(/(?:MOTIVO|FALLA):\s*([^,\-\n\(\)]+)/i);
+      const motivoMatch = change.detalles.match(/(?:MOTIVO|FALLA):\s*([^,\-\n()]+)/i);
       if (motivoMatch && motivoMatch[1]) {
         const motVal = motivoMatch[1].trim();
         if (motVal) item.motivos.add(motVal);

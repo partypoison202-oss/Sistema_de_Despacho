@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class ConductorController extends Controller
 {
@@ -1072,5 +1074,664 @@ class ConductorController extends Controller
             'dias_mes' => $daysInMonth,
             'conductores' => $resultado,
         ]);
+    }
+
+    private function normalizarTexto($str)
+    {
+        if (empty($str)) return '';
+        $str = mb_strtoupper(trim($str), 'UTF-8');
+        $unwantedArray = [
+            'Á'=>'A', 'É'=>'E', 'Í'=>'I', 'Ó'=>'O', 'Ú'=>'U', 'Ü'=>'U', 'Ñ'=>'N'
+        ];
+        $str = strtr($str, $unwantedArray);
+        return preg_replace('/\s+/', ' ', $str);
+    }
+
+    /**
+     * Obtiene el historial operativo y administrativo completo de un conductor en un rango de fechas.
+     */
+    public function getHistorialCompleto(Request $request, $id)
+    {
+        try {
+            $this->ensureColumnsExist();
+
+            // 1. Buscar conductor por ID o por Tarjetón
+            $conductor = Conductor::where('id', $id)
+                ->orWhere('tarjeton', $id)
+                ->first();
+
+            if (!$conductor) {
+                return response()->json(['error' => 'Persona conductora no encontrada'], 404);
+            }
+
+            // 2. Rango de fechas
+            $desdeParam = $request->query('desde');
+            $hastaParam = $request->query('hasta');
+
+            if ($desdeParam) {
+                $desde = Carbon::parse($desdeParam)->startOfDay();
+            } else {
+                $desde = Carbon::today()->subDays(30)->startOfDay();
+            }
+
+            if ($hastaParam) {
+                $hasta = Carbon::parse($hastaParam)->endOfDay();
+            } else {
+                $hasta = Carbon::today()->endOfDay();
+            }
+
+            if ($desde->gt($hasta)) {
+                $tmp = $desde;
+                $desde = $hasta;
+                $hasta = $tmp;
+            }
+
+            $desdeStr = $desde->toDateString();
+            $hastaStr = $hasta->toDateString();
+
+            $period = CarbonPeriod::create($desdeStr, $hastaStr);
+            $fechasPeriodo = [];
+            foreach ($period as $date) {
+                $fechasPeriodo[] = $date->format('Y-m-d');
+            }
+
+            $tarjetonRaw = trim((string)($conductor->tarjeton ?? ''));
+            $tarjetonNum = (string)(int)preg_replace('/\D/', '', $tarjetonRaw);
+            $nombreNorm = $this->normalizarTexto($conductor->nombres . ' ' . $conductor->apellidos);
+
+            $eventos = [];
+
+            // 3. Obtener Asistencias de Despacho (historial_operativo)
+            if (Schema::hasTable('historial_operativo')) {
+                try {
+                    $historialQuery = DB::table('historial_operativo')
+                        ->leftJoin('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                        ->whereBetween('historial_operativo.fecha_historial', [$desdeStr, $hastaStr])
+                        ->select(
+                            'historial_operativo.*',
+                            'unidades.numero_economico as unidad_economico',
+                            'unidades.tipo_transporte as unidad_tipo'
+                        );
+
+                    $registrosHistorial = $historialQuery->get();
+
+                    foreach ($registrosHistorial as $h) {
+                        $fechaH = $h->fecha_historial;
+                        $tTitular = trim((string)($h->numero_tarjeton ?? ''));
+                        $tTitularNum = (string)(int)preg_replace('/\D/', '', $tTitular);
+                        $nTitularNorm = $this->normalizarTexto($h->nombre_conductor ?? '');
+
+                        $tRelevo = trim((string)($h->relevo_tarjeton ?? ''));
+                        $tRelevoNum = (string)(int)preg_replace('/\D/', '', $tRelevo);
+                        $nRelevoNorm = $this->normalizarTexto($h->relevo_conductor ?? '');
+
+                        $esTitular = ($tarjetonRaw && $tTitular === $tarjetonRaw) ||
+                                     ($tarjetonNum !== '0' && $tTitularNum === $tarjetonNum) ||
+                                     ($nombreNorm && $nTitularNorm && str_contains($nTitularNorm, $nombreNorm));
+
+                        $esRelevo = ($tarjetonRaw && $tRelevo === $tarjetonRaw) ||
+                                    ($tarjetonNum !== '0' && $tRelevoNum === $tarjetonNum) ||
+                                    ($nombreNorm && $nRelevoNorm && str_contains($nRelevoNorm, $nombreNorm));
+
+                        if ($esTitular || $esRelevo) {
+                            $eco = $h->unidad_economico ?? 'S/N';
+                            $tipoTrans = $h->unidad_tipo ?? $h->tipo ?? 'Autobús';
+                            $ruta = $h->ruta ?: 'Ruta asignada';
+                            $horaSal = $h->hora_salida ?: ($h->hora_programada ?: 'En horario');
+                            $subtipo = $esRelevo ? 'RELEVO' : 'DESPACHO_REGULAR';
+                            $titulo = $esRelevo ? "Asistencia en Relevo (Unidad {$eco})" : "Asistencia en Despacho (Unidad {$eco})";
+                            $detalles = "Ruta: {$ruta} | Salida: {$horaSal}";
+                            if (!empty($h->momento)) $detalles .= " | Momento: {$h->momento}";
+                            if (!empty($h->observaciones)) $detalles .= " | Obs: {$h->observaciones}";
+
+                            $eventos[] = [
+                                'id' => 'despacho_' . $h->id,
+                                'fecha' => $fechaH,
+                                'created_at' => $h->fecha_registro ?? $h->created_at ?? ($fechaH . ' 06:00:00'),
+                                'tipo' => 'ASISTENCIA',
+                                'subtipo' => $subtipo,
+                                'titulo' => $titulo,
+                                'descripcion' => "Servicio de transporte despachado en Ruta {$ruta}",
+                                'detalles' => $detalles,
+                                'origen' => 'Despacho Operativo',
+                                'usuario' => 'Despacho',
+                                'badge_color' => '#15803d',
+                                'badge_bg' => '#dcfce7',
+                                'icono' => 'bus',
+                                'meta' => [
+                                    'unidad' => $eco,
+                                    'tipo_transporte' => $tipoTrans,
+                                    'ruta' => $ruta,
+                                    'hora_salida' => $h->hora_salida,
+                                    'hora_programada' => $h->hora_programada,
+                                    'es_relevo' => $esRelevo,
+                                    'observaciones' => $h->observaciones
+                                ]
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('Error consultando historial_operativo en historial conductor: ' . $e->getMessage());
+                }
+            }
+
+            // 4. Asistencia hoy en informacion_operativa
+            $hoyStr = Carbon::today()->toDateString();
+            if ($hoyStr >= $desdeStr && $hoyStr <= $hastaStr && Schema::hasTable('informacion_operativa')) {
+                try {
+                    $hoyOps = DB::table('informacion_operativa')
+                        ->leftJoin('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                        ->select(
+                            'informacion_operativa.*',
+                            'unidades.numero_economico as unidad_economico',
+                            'unidades.tipo_transporte as unidad_tipo'
+                        )
+                        ->get();
+
+                    foreach ($hoyOps as $op) {
+                        $tTitular = trim((string)($op->numero_tarjeton ?? ''));
+                        $tTitularNum = (string)(int)preg_replace('/\D/', '', $tTitular);
+                        $nTitularNorm = $this->normalizarTexto($op->nombre_conductor ?? '');
+
+                        $tRelevo = trim((string)($op->relevo_tarjeton ?? ''));
+                        $tRelevoNum = (string)(int)preg_replace('/\D/', '', $tRelevo);
+                        $nRelevoNorm = $this->normalizarTexto($op->relevo_conductor ?? '');
+
+                        $esTitular = ($tarjetonRaw && $tTitular === $tarjetonRaw) ||
+                                     ($tarjetonNum !== '0' && $tTitularNum === $tarjetonNum) ||
+                                     ($nombreNorm && $nTitularNorm && str_contains($nTitularNorm, $nombreNorm));
+
+                        $esRelevo = ($tarjetonRaw && $tRelevo === $tarjetonRaw) ||
+                                    ($tarjetonNum !== '0' && $tRelevoNum === $tarjetonNum) ||
+                                    ($nombreNorm && $nRelevoNorm && str_contains($nRelevoNorm, $nombreNorm));
+
+                        if ($esTitular || $esRelevo) {
+                            $eco = $op->unidad_economico ?? 'S/N';
+                            $tipoTrans = $op->unidad_tipo ?? 'Autobús';
+                            $ruta = $op->ruta ?: 'Ruta activa hoy';
+
+                            // Solo agregar si no fue agregado previamente
+                            $yaExiste = collect($eventos)->contains(fn($ev) => $ev['fecha'] === $hoyStr && $ev['tipo'] === 'ASISTENCIA' && ($ev['meta']['unidad'] ?? '') === $eco);
+
+                            if (!$yaExiste) {
+                                $eventos[] = [
+                                    'id' => 'hoy_despacho_' . $op->id,
+                                    'fecha' => $hoyStr,
+                                    'created_at' => Carbon::now()->toDateTimeString(),
+                                    'tipo' => 'ASISTENCIA',
+                                    'subtipo' => $esRelevo ? 'RELEVO_HOY' : 'DESPACHO_HOY',
+                                    'titulo' => $esRelevo ? "Asistencia en Relevo Hoy (Unidad {$eco})" : "Asistencia Activa Hoy (Unidad {$eco})",
+                                    'descripcion' => "Asignación activa en Despacho en Ruta {$ruta}",
+                                    'detalles' => "Ruta: {$ruta} | Estado: Activo en servicio",
+                                    'origen' => 'Despacho en Vivo',
+                                    'usuario' => 'Despacho',
+                                    'badge_color' => '#15803d',
+                                    'badge_bg' => '#dcfce7',
+                                    'icono' => 'bus',
+                                    'meta' => [
+                                        'unidad' => $eco,
+                                        'tipo_transporte' => $tipoTrans,
+                                        'ruta' => $ruta,
+                                        'es_relevo' => $esRelevo
+                                    ]
+                                ];
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('Error consultando informacion_operativa en historial conductor: ' . $e->getMessage());
+                }
+            }
+
+            // 5. Parsear JSONs del Conductor
+            $parseArray = function ($json) {
+                if (empty($json)) return [];
+                if (is_array($json)) return $json;
+                if (is_string($json)) {
+                    $d = json_decode($json, true);
+                    return is_array($d) ? $d : [];
+                }
+                return [];
+            };
+
+            $faltasDetalle = $parseArray($conductor->faltas_detalle);
+            $retardosDetalle = $parseArray($conductor->retardos_detalle);
+            $permutasDetalle = $parseArray($conductor->permutas_detalle);
+            $permisosDetalle = $parseArray($conductor->permisos_detalle);
+            $descansosDetalle = $parseArray($conductor->descansos_detalle);
+            $vacacionesDetalle = $parseArray($conductor->vacaciones_detalle);
+            $incapacidadesDetalle = $parseArray($conductor->incapacidades_detalle);
+            $amonestacionesDetalle = $parseArray($conductor->amonestaciones_detalle);
+            $accidentesDetalle = $parseArray($conductor->accidentes_siniestros_detalle);
+
+            // A. Faltas y Faltas Justificadas
+            foreach ($faltasDetalle as $idx => $f) {
+                $fFecha = $f['fecha'] ?? null;
+                if (!$fFecha || $fFecha === 'Fecha sin registrar') continue;
+                $fFechaStr = substr((string)$fFecha, 0, 10);
+                if ($fFechaStr < $desdeStr || $fFechaStr > $hastaStr) continue;
+
+                $esRetardo = (isset($f['estado']) && $f['estado'] === 'retardo');
+                $esJustificada = (isset($f['estado']) && $f['estado'] === 'justificada') || !empty($f['justificada']);
+
+                if ($esRetardo) {
+                    $eventos[] = [
+                        'id' => $f['id'] ?? ('ret_falta_' . $idx),
+                        'fecha' => $fFechaStr,
+                        'created_at' => $f['fecha_registro'] ?? ($fFechaStr . ' 08:00:00'),
+                        'tipo' => 'RETARDO',
+                        'subtipo' => 'RETARDO',
+                        'titulo' => 'Retardo Registrado',
+                        'descripcion' => $f['motivo'] ?? 'Llegada tarde a turno operativo',
+                        'detalles' => 'Incidencia de retardo registrada',
+                        'origen' => 'Control de Operadores',
+                        'usuario' => $f['usuario'] ?? 'Administrador',
+                        'badge_color' => '#a16207',
+                        'badge_bg' => '#fef9c3',
+                        'icono' => 'clock',
+                        'meta' => $f
+                    ];
+                } elseif ($esJustificada) {
+                    $motivoJust = $f['motivo_justificacion'] ?? ($f['justificante'] ?? 'Justificante presentado y autorizado');
+                    $eventos[] = [
+                        'id' => $f['id'] ?? ('falta_j_' . $idx),
+                        'fecha' => $fFechaStr,
+                        'created_at' => $f['fecha_justificacion'] ?? ($f['fecha_registro'] ?? ($fFechaStr . ' 08:00:00')),
+                        'tipo' => 'FALTA_JUSTIFICADA',
+                        'subtipo' => 'JUSTIFICADA',
+                        'titulo' => 'Falta Justificada',
+                        'descripcion' => $f['motivo'] ?? 'Inasistencia con justificación autorizada',
+                        'detalles' => "Justificante: {$motivoJust}" . (!empty($f['fecha_justificacion']) ? " (Fecha de justificación: {$f['fecha_justificacion']})" : ''),
+                        'origen' => 'Control de Operadores',
+                        'usuario' => $f['usuario_justifico'] ?? ($f['usuario'] ?? 'Administrador'),
+                        'badge_color' => '#047857',
+                        'badge_bg' => '#d1fae5',
+                        'icono' => 'check-circle',
+                        'meta' => $f
+                    ];
+                } else {
+                    $eventos[] = [
+                        'id' => $f['id'] ?? ('falta_' . $idx),
+                        'fecha' => $fFechaStr,
+                        'created_at' => $f['fecha_registro'] ?? ($fFechaStr . ' 08:00:00'),
+                        'tipo' => 'FALTA',
+                        'subtipo' => 'INJUSTIFICADA',
+                        'titulo' => 'Falta Injustificada',
+                        'descripcion' => $f['motivo'] ?? 'Inasistencia injustificada en turno',
+                        'detalles' => 'Falta no amparada por justificante médico ni permiso',
+                        'origen' => 'Control de Operadores',
+                        'usuario' => $f['usuario'] ?? 'Administrador',
+                        'badge_color' => '#b91c1c',
+                        'badge_bg' => '#fee2e2',
+                        'icono' => 'alert-triangle',
+                        'meta' => $f
+                    ];
+                }
+            }
+
+            // B. Retardos adicionales de retardos_detalle
+            foreach ($retardosDetalle as $idx => $r) {
+                $rFecha = $r['fecha'] ?? null;
+                if (!$rFecha || $rFecha === 'Fecha sin registrar') continue;
+                $rFechaStr = substr((string)$rFecha, 0, 10);
+                if ($rFechaStr < $desdeStr || $rFechaStr > $hastaStr) continue;
+
+                $rId = $r['id'] ?? null;
+                $yaExiste = collect($eventos)->contains(fn($ev) => $ev['tipo'] === 'RETARDO' && ($ev['id'] === $rId || $ev['fecha'] === $rFechaStr));
+
+                if (!$yaExiste) {
+                    $eventos[] = [
+                        'id' => $rId ?: ('retardo_' . $idx),
+                        'fecha' => $rFechaStr,
+                        'created_at' => $r['fecha_registro'] ?? ($rFechaStr . ' 08:00:00'),
+                        'tipo' => 'RETARDO',
+                        'subtipo' => 'RETARDO',
+                        'titulo' => 'Retardo Registrado',
+                        'descripcion' => $r['motivo'] ?? 'Retardo registrado en sistema',
+                        'detalles' => 'Incidencia de retardo en turno',
+                        'origen' => 'Control de Operadores',
+                        'usuario' => $r['usuario'] ?? 'Administrador',
+                        'badge_color' => '#a16207',
+                        'badge_bg' => '#fef9c3',
+                        'icono' => 'clock',
+                        'meta' => $r
+                    ];
+                }
+            }
+
+            // C. Permutas
+            foreach ($permutasDetalle as $idx => $p) {
+                $pFecha = $p['fecha'] ?? null;
+                if (!$pFecha) continue;
+                $pFechaStr = substr((string)$pFecha, 0, 10);
+                if ($pFechaStr < $desdeStr || $pFechaStr > $hastaStr) continue;
+
+                $tipoP = $p['tipo'] ?? 'PERMUTA';
+                $esAP = ($tipoP === 'AP');
+                $esDP = ($tipoP === 'DP');
+
+                $relNombre = $p['conductor_relacionado_nombre'] ?? '';
+                $relTarjeton = $p['conductor_relacionado_tarjeton'] ?? '';
+                $relTexto = ($relNombre || $relTarjeton) ? "Intercambio con [{$relTarjeton}] {$relNombre}" : '';
+
+                $eventos[] = [
+                    'id' => $p['id'] ?? ('permuta_' . $idx),
+                    'fecha' => $pFechaStr,
+                    'created_at' => $p['fecha_registro'] ?? ($pFechaStr . ' 08:00:00'),
+                    'tipo' => $esAP ? 'PERMUTA_AP' : ($esDP ? 'PERMUTA_DP' : 'PERMUTA'),
+                    'subtipo' => $tipoP,
+                    'titulo' => $esAP ? 'Permuta: Asistencia Cubierta (AP)' : ($esDP ? 'Permuta: Descanso Autorizado (DP)' : 'Permuta de Turno'),
+                    'descripcion' => $p['motivo'] ?? 'Permuta acordada entre conductores',
+                    'detalles' => $relTexto ? "{$relTexto} | Motivo: " . ($p['motivo'] ?? 'S/N') : ($p['motivo'] ?? 'Permuta registrada'),
+                    'origen' => 'Itinerario / Programación',
+                    'usuario' => $p['usuario'] ?? 'Administrador',
+                    'badge_color' => $esAP ? '#3730a3' : '#6d28d9',
+                    'badge_bg' => $esAP ? '#e0e7ff' : '#ede9fe',
+                    'icono' => 'repeat',
+                    'meta' => $p
+                ];
+            }
+
+            // D. Permisos
+            foreach ($permisosDetalle as $idx => $pm) {
+                $pmFecha = $pm['fecha'] ?? ($pm['desde'] ?? null);
+                if (!$pmFecha) continue;
+                $pmFechaStr = substr((string)$pmFecha, 0, 10);
+                if ($pmFechaStr < $desdeStr || $pmFechaStr > $hastaStr) continue;
+
+                $eventos[] = [
+                    'id' => $pm['id'] ?? ('permiso_' . $idx),
+                    'fecha' => $pmFechaStr,
+                    'created_at' => $pm['fecha_registro'] ?? ($pmFechaStr . ' 08:00:00'),
+                    'tipo' => 'PERMISO',
+                    'subtipo' => $pm['tipo'] ?? 'ECONOMICO',
+                    'titulo' => 'Permiso Autorizado',
+                    'descripcion' => $pm['motivo'] ?? 'Permiso laboral con goce/sin goce autorizado',
+                    'detalles' => (!empty($pm['dias']) ? "Duración: {$pm['dias']} día(s) | " : '') . "Motivo: " . ($pm['motivo'] ?? 'Permiso concedido'),
+                    'origen' => 'Control de Operadores',
+                    'usuario' => $pm['usuario'] ?? 'Administrador',
+                    'badge_color' => '#0284c7',
+                    'badge_bg' => '#e0f2fe',
+                    'icono' => 'calendar-check',
+                    'meta' => $pm
+                ];
+            }
+
+            // E. Descansos
+            foreach ($descansosDetalle as $idx => $d) {
+                $dFecha = $d['fecha'] ?? null;
+                if (!$dFecha) continue;
+                $dFechaStr = substr((string)$dFecha, 0, 10);
+                if ($dFechaStr < $desdeStr || $dFechaStr > $hastaStr) continue;
+
+                $eventos[] = [
+                    'id' => $d['id'] ?? ('descanso_' . $idx),
+                    'fecha' => $dFechaStr,
+                    'created_at' => $d['fecha_registro'] ?? ($dFechaStr . ' 08:00:00'),
+                    'tipo' => 'DESCANSO',
+                    'subtipo' => 'PROGRAMADO',
+                    'titulo' => 'Descanso Programado',
+                    'descripcion' => $d['motivo'] ?? 'Día de descanso semanal',
+                    'detalles' => 'Descanso establecido en itinerario/programación',
+                    'origen' => 'Itinerario / Programación',
+                    'usuario' => $d['usuario'] ?? 'Sistema',
+                    'badge_color' => '#9a3412',
+                    'badge_bg' => '#fed7aa',
+                    'icono' => 'coffee',
+                    'meta' => $d
+                ];
+            }
+
+            // F. Vacaciones
+            foreach ($vacacionesDetalle as $idx => $v) {
+                $vFecha = $v['fecha'] ?? null;
+                if (!$vFecha) continue;
+                $vFechaStr = substr((string)$vFecha, 0, 10);
+                if ($vFechaStr < $desdeStr || $vFechaStr > $hastaStr) continue;
+
+                $eventos[] = [
+                    'id' => $v['id'] ?? ('vacaciones_' . $idx),
+                    'fecha' => $vFechaStr,
+                    'created_at' => $v['fecha_registro'] ?? ($vFechaStr . ' 08:00:00'),
+                    'tipo' => 'VACACIONES',
+                    'subtipo' => 'VACACIONES',
+                    'titulo' => 'Periodo Vacacional',
+                    'descripcion' => $v['motivo'] ?? 'Día de vacaciones disfrutado',
+                    'detalles' => 'Vacaciones autorizadas y programadas',
+                    'origen' => 'Control de Operadores',
+                    'usuario' => $v['usuario'] ?? 'Recursos Humanos',
+                    'badge_color' => '#854d0e',
+                    'badge_bg' => '#fef08a',
+                    'icono' => 'sun',
+                    'meta' => $v
+                ];
+            }
+
+            // G. Incapacidades
+            foreach ($incapacidadesDetalle as $idx => $inc) {
+                $incFecha = $inc['fecha'] ?? null;
+                if (!$incFecha) continue;
+                $incFechaStr = substr((string)$incFecha, 0, 10);
+                if ($incFechaStr < $desdeStr || $incFechaStr > $hastaStr) continue;
+
+                $eventos[] = [
+                    'id' => $inc['id'] ?? ('incapacidad_' . $idx),
+                    'fecha' => $incFechaStr,
+                    'created_at' => $inc['fecha_registro'] ?? ($incFechaStr . ' 08:00:00'),
+                    'tipo' => 'INCAPACIDAD',
+                    'subtipo' => 'MEDICA',
+                    'titulo' => 'Incapacidad Médica',
+                    'descripcion' => $inc['motivo'] ?? 'Incapacidad médica expedida',
+                    'detalles' => 'Amparada por dictamen médico oficial',
+                    'origen' => 'Control de Operadores',
+                    'usuario' => $inc['usuario'] ?? 'Servicios Médicos',
+                    'badge_color' => '#1e40af',
+                    'badge_bg' => '#bfdbfe',
+                    'icono' => 'shield',
+                    'meta' => $inc
+                ];
+            }
+
+            // H. Amonestaciones y Sanciones
+            foreach ($amonestacionesDetalle as $idx => $am) {
+                $amFecha = $am['fecha'] ?? null;
+                if (!$amFecha) continue;
+                $amFechaStr = substr((string)$amFecha, 0, 10);
+                if ($amFechaStr < $desdeStr || $amFechaStr > $hastaStr) continue;
+
+                $eventos[] = [
+                    'id' => $am['id'] ?? ('amonestacion_' . $idx),
+                    'fecha' => $amFechaStr,
+                    'created_at' => $am['fecha_registro'] ?? ($amFechaStr . ' 08:00:00'),
+                    'tipo' => 'AMONESTACION',
+                    'subtipo' => 'SANCION',
+                    'titulo' => 'Amonestación Administrativa',
+                    'descripcion' => $am['motivo'] ?? ($am['observaciones'] ?? 'Amonestación asentada'),
+                    'detalles' => 'Acta o amonestación en expediente',
+                    'origen' => 'Control de Operadores',
+                    'usuario' => $am['usuario'] ?? 'Administrador',
+                    'badge_color' => '#b45309',
+                    'badge_bg' => '#fef3c7',
+                    'icono' => 'alert-circle',
+                    'meta' => $am
+                ];
+            }
+
+            // I. Auditoría / Bitácora de Conductor
+            if (Schema::hasTable('bitacora_conductores')) {
+                try {
+                    $bitacoras = DB::table('bitacora_conductores')
+                        ->where(function ($q) use ($conductor) {
+                            $q->where('conductor_id', $conductor->id)
+                              ->orWhere('tarjeton', $conductor->tarjeton);
+                        })
+                        ->whereBetween('fecha', [$desdeStr, $hastaStr])
+                        ->orderBy('created_at', 'desc')
+                        ->get();
+
+                    foreach ($bitacoras as $b) {
+                        if (in_array($b->tipo_accion, ['CREACION', 'EDICION', 'BAJA', 'REINGRESO', 'SUBIR_FOTO', 'SUBIR_QR'])) {
+                            $eventos[] = [
+                                'id' => 'bitacora_' . $b->id,
+                                'fecha' => $b->fecha,
+                                'created_at' => $b->created_at,
+                                'tipo' => 'BITACORA',
+                                'subtipo' => $b->tipo_accion,
+                                'titulo' => 'Auditoría: ' . $b->tipo_accion,
+                                'descripcion' => $b->detalles ?: "Acción de {$b->tipo_accion} en expediente",
+                                'detalles' => "Usuario auditor: " . ($b->usuario_nombre ?? 'Sistema'),
+                                'origen' => 'Auditoría Operativa',
+                                'usuario' => $b->usuario_nombre ?? 'Sistema',
+                                'badge_color' => '#475569',
+                                'badge_bg' => '#f1f5f9',
+                                'icono' => 'file-text',
+                                'meta' => (array)$b
+                            ];
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('Error consultando bitacora_conductores en historial: ' . $e->getMessage());
+                }
+            }
+
+            // Ordenar todos los eventos cronológicamente (más recientes primero)
+            usort($eventos, function ($a, $b) {
+                $cmp = strcmp($b['fecha'], $a['fecha']);
+                if ($cmp !== 0) return $cmp;
+                return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
+            });
+
+            // Resumen Estadístico
+            $totAsistencias = collect($eventos)->whereIn('tipo', ['ASISTENCIA', 'PERMUTA_AP'])->count();
+            $totFaltasInj = collect($eventos)->where('tipo', 'FALTA')->count();
+            $totFaltasJust = collect($eventos)->where('tipo', 'FALTA_JUSTIFICADA')->count();
+            $totDescansos = collect($eventos)->whereIn('tipo', ['DESCANSO', 'PERMUTA_DP'])->count();
+            $totPermutasAP = collect($eventos)->where('tipo', 'PERMUTA_AP')->count();
+            $totPermutasDP = collect($eventos)->where('tipo', 'PERMUTA_DP')->count();
+            $totPermisos = collect($eventos)->where('tipo', 'PERMISO')->count();
+            $totVacaciones = collect($eventos)->where('tipo', 'VACACIONES')->count();
+            $totIncapacidades = collect($eventos)->where('tipo', 'INCAPACIDAD')->count();
+            $totRetardos = collect($eventos)->where('tipo', 'RETARDO')->count();
+            $totAmonestaciones = collect($eventos)->where('tipo', 'AMONESTACION')->count();
+            $totDespachosRelevo = collect($eventos)->where('subtipo', 'RELEVO')->count();
+
+            $divisorLaboral = $totAsistencias + $totFaltasInj;
+            $tasaAsistencia = $divisorLaboral > 0 ? round(($totAsistencias / $divisorLaboral) * 100, 1) : 100.0;
+
+            // Matriz día a día en el rango
+            $matrizDias = [];
+            $eventosPorDia = [];
+            foreach ($eventos as $ev) {
+                $f = $ev['fecha'];
+                if (!isset($eventosPorDia[$f])) {
+                    $eventosPorDia[$f] = [];
+                }
+                $eventosPorDia[$f][] = $ev;
+            }
+
+            foreach ($fechasPeriodo as $fStr) {
+                $evsDelDia = $eventosPorDia[$fStr] ?? [];
+                $codigoPrincipal = '-';
+                $etiqueta = 'Sin registro';
+
+                if (!empty($evsDelDia)) {
+                    $tipos = array_column($evsDelDia, 'tipo');
+                    if (in_array('FALTA', $tipos)) {
+                        $codigoPrincipal = 'F';
+                        $etiqueta = 'Falta Injustificada';
+                    } elseif (in_array('FALTA_JUSTIFICADA', $tipos)) {
+                        $codigoPrincipal = 'FJ';
+                        $etiqueta = 'Falta Justificada';
+                    } elseif (in_array('INCAPACIDAD', $tipos)) {
+                        $codigoPrincipal = 'I';
+                        $etiqueta = 'Incapacidad';
+                    } elseif (in_array('VACACIONES', $tipos)) {
+                        $codigoPrincipal = 'V';
+                        $etiqueta = 'Vacaciones';
+                    } elseif (in_array('PERMUTA_AP', $tipos)) {
+                        $codigoPrincipal = 'AP';
+                        $etiqueta = 'Asistencia (Permuta)';
+                    } elseif (in_array('PERMUTA_DP', $tipos)) {
+                        $codigoPrincipal = 'DP';
+                        $etiqueta = 'Descanso (Permuta)';
+                    } elseif (in_array('DESCANSO', $tipos)) {
+                        $codigoPrincipal = 'D';
+                        $etiqueta = 'Descanso Programado';
+                    } elseif (in_array('PERMISO', $tipos)) {
+                        $codigoPrincipal = 'P';
+                        $etiqueta = 'Permiso Autorizado';
+                    } elseif (in_array('RETARDO', $tipos)) {
+                        $codigoPrincipal = 'R';
+                        $etiqueta = 'Retardo';
+                    } elseif (in_array('ASISTENCIA', $tipos)) {
+                        $codigoPrincipal = 'A';
+                        $etiqueta = 'Asistencia en Despacho';
+                    } else {
+                        $codigoPrincipal = 'MOV';
+                        $etiqueta = 'Movimiento en expediente';
+                    }
+                }
+
+                $matrizDias[] = [
+                    'fecha' => $fStr,
+                    'dia_semana' => Carbon::parse($fStr)->locale('es')->isoFormat('dddd'),
+                    'codigo' => $codigoPrincipal,
+                    'etiqueta' => $etiqueta,
+                    'eventos' => $evsDelDia
+                ];
+            }
+
+            return response()->json([
+                'conductor' => [
+                    'id' => $conductor->id,
+                    'tarjeton' => $conductor->tarjeton,
+                    'nombres' => $conductor->nombres,
+                    'apellidos' => $conductor->apellidos,
+                    'nombre_completo' => $conductor->nombre ?: ($conductor->nombres . ' ' . $conductor->apellidos),
+                    'foto' => $conductor->foto,
+                    'tipo_tarjeton' => $conductor->tipo_tarjeton,
+                    'estatus' => $conductor->estatus,
+                    'estado_servicio' => $conductor->estado_servicio,
+                    'puesto' => $conductor->puesto,
+                    'categoria' => $conductor->categoria,
+                    'turno' => $conductor->turno,
+                    'jornada' => $conductor->jornada,
+                    'telefono' => $conductor->telefono,
+                    'fecha_ingreso' => $conductor->fecha_ingreso,
+                    'inhabilitacion_info' => $conductor->evaluarInhabilitacionFaltas(),
+                ],
+                'rango' => [
+                    'desde' => $desdeStr,
+                    'hasta' => $hastaStr,
+                    'dias_totales' => count($fechasPeriodo),
+                ],
+                'resumen' => [
+                    'asistencias' => $totAsistencias,
+                    'faltas_injustificadas' => $totFaltasInj,
+                    'faltas_justificadas' => $totFaltasJust,
+                    'faltas_totales' => $totFaltasInj + $totFaltasJust,
+                    'descansos' => $totDescansos,
+                    'permutas_ap' => $totPermutasAP,
+                    'permutas_dp' => $totPermutasDP,
+                    'permutas_totales' => $totPermutasAP + $totPermutasDP,
+                    'permisos' => $totPermisos,
+                    'vacaciones' => $totVacaciones,
+                    'incapacidades' => $totIncapacidades,
+                    'retardos' => $totRetardos,
+                    'amonestaciones' => $totAmonestaciones,
+                    'despachos_relevo' => $totDespachosRelevo,
+                    'tasa_asistencia_pct' => $tasaAsistencia,
+                    'total_eventos' => count($eventos),
+                ],
+                'eventos' => $eventos,
+                'matriz_dias' => $matrizDias,
+            ]);
+
+        } catch (\Throwable $e) {
+            \Log::error('Error en getHistorialCompleto: ' . $e->getMessage() . ' ' . $e->getTraceAsString());
+            return response()->json([
+                'error' => 'Error al obtener el historial completo del conductor: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
