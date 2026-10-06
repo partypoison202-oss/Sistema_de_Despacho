@@ -4526,7 +4526,11 @@ class DespachoController extends Controller
             // Obtener rutas y unidades
             $rutas = DB::table('rutas')->pluck('ruta', 'ruta')->toArray();
             $unidadesData = DB::table('unidades')->get(['id', 'numero_eco', 'tipo']);
-            $conductores = DB::table('conductores')->pluck('nombre', 'tarjeton')->toArray();
+            $conductoresRaw = DB::table('conductores')->get(['tarjeton', 'nombres', 'apellidos']);
+            $conductores = [];
+            foreach ($conductoresRaw as $c) {
+                $conductores[$c->tarjeton] = trim(($c->nombres ?? '') . ' ' . ($c->apellidos ?? ''));
+            }
             
             $unidadesDict = [];
             foreach ($unidadesData as $u) {
