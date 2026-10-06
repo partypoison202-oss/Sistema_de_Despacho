@@ -1383,7 +1383,7 @@ class DespachoController extends Controller
                 $nuevosRegistros = DB::table($sourceTable)->get();
                 DB::table('informacion_operativa')->delete();
 
-                $targetCols = array_flip(IlluminateSupportFacadesSchema::getColumnListing('informacion_operativa'));
+                $targetCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('informacion_operativa'));
                 $tarjetones = [];
                 $maniobristas = [];
 
@@ -4405,7 +4405,7 @@ class DespachoController extends Controller
         }
     
 
-    public function cargarProgramacionExcel(IlluminateHttpRequest $request) // NOSONAR
+    public function cargarProgramacionExcel(Request $request)
     {
         $request->validate([
             'datos' => 'required|array',
@@ -4414,22 +4414,22 @@ class DespachoController extends Controller
         $datos = $request->datos;
 
         try {
-            IlluminateSupportFacadesDB::beginTransaction();
+            DB::beginTransaction();
 
             // Solo afecta 'manana'
-            IlluminateSupportFacadesDB::table('informacion_operativa_manana')->delete();
+            DB::table('informacion_operativa_manana')->delete();
             
             // También limpiar la tabla entradas_t6 para mañana
-            $mananaFecha = CarbonCarbon::tomorrow('America/Mexico_City')->toDateString();
-            IlluminateSupportFacadesDB::table('entradas_t6')->where('fecha', $mananaFecha)->delete();
+            $mananaFecha = Carbon::tomorrow('America/Mexico_City')->toDateString();
+            DB::table('entradas_t6')->where('fecha', $mananaFecha)->delete();
 
             $erroresFormato = [];
             $insertData = [];
             $entradasT6Data = [];
 
             // Obtener rutas y unidades
-            $rutas = IlluminateSupportFacadesDB::table('rutas')->pluck('ruta', 'ruta')->toArray(); // ['T05' => 'T05']
-            $unidades = IlluminateSupportFacadesDB::table('unidades')->pluck('id', 'numero_economico')->toArray();
+            $rutas = DB::table('rutas')->pluck('ruta', 'ruta')->toArray(); // ['T05' => 'T05']
+            $unidades = DB::table('unidades')->pluck('id', 'numero_eco')->toArray();
 
             $unidadesProcesadas = [];
 
@@ -4511,7 +4511,7 @@ class DespachoController extends Controller
             }
 
             if (!empty($erroresFormato)) {
-                IlluminateSupportFacadesDB::rollBack();
+                DB::rollBack();
                 return response()->json([
                     'message' => 'Errores de validación en el Excel',
                     'errores' => $erroresFormato
@@ -4531,23 +4531,23 @@ class DespachoController extends Controller
 
             // Insertar todo
             foreach ($insertData as $data) {
-                IlluminateSupportFacadesDB::table('informacion_operativa_manana')->insert($data);
+                DB::table('informacion_operativa_manana')->insert($data);
             }
 
             if (!empty($entradasT6Data)) {
-                IlluminateSupportFacadesDB::table('entradas_t6')->insert($entradasT6Data);
+                DB::table('entradas_t6')->insert($entradasT6Data);
             }
 
-            IlluminateSupportFacadesDB::commit();
+            DB::commit();
 
             return response()->json([
                 'message' => 'Programación del día siguiente cargada exitosamente.',
                 'total' => count($insertData)
             ], 200);
 
-        } catch (Exception $e) {
-            IlluminateSupportFacadesDB::rollBack();
-            Log::error('Error cargando Excel: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error cargando Excel: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Error al cargar programación',
                 'error' => $e->getMessage()

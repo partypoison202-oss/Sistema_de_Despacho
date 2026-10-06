@@ -1101,7 +1101,7 @@ export default function CargaExcel({ isPasteles = false }) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    ...getAuthHeaders(),
                 },
                 body: JSON.stringify({ datos: actualizaciones })
             })
