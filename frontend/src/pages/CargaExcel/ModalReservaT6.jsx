@@ -89,7 +89,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         const nomB = String(b.nombre || `${b.nombres || ''} ${b.apellidos || ''}`).trim();
         return nomA.localeCompare(nomB);
       });
-  }, [catalogConductores]);
+  }, [catalogConductores, isPasteles, autorizadosList]);
 
   // Contadores para los botones de filtro rápido
   const countDisponibles = useMemo(() => {
