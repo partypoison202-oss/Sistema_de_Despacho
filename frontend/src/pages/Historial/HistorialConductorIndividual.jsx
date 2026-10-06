@@ -1215,7 +1215,7 @@ export default function HistorialConductorIndividual() {
                 {diaSeleccionadoModal.eventos.map((ev, idx) => {
                   const badge = getBadgeStyle(ev.tipo);
                   return (
-                    <div key={idx} style={{
+                    <div key={`${ev.id || ev.asignacion_id || idx}-${ev.tipo}`} style={{
                       padding: '0.85rem',
                       background: '#f8fafc',
                       borderRadius: '0.5rem',
