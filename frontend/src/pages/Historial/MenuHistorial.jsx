@@ -82,8 +82,22 @@ const historialItems = [
         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </svg>
     ),
-    label: 'HISTORIAL DE CONDUCTORES',
+    label: 'HISTORIAL DE CONDUCTORES (BITÁCORA)',
     color: 'maroon',
+    allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES'],
+  },
+  {
+    id: 'historial-conductor-individual',
+    redirectTo: '/historial/conductor-individual',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+        <polyline points="16 11 18 13 22 9" />
+      </svg>
+    ),
+    label: 'HISTORIAL INDIVIDUAL POR CONDUCTOR',
+    color: 'emerald',
     allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'GESTOR_OPERADORES', 'GESTOR_DE_OPERADORES', 'GESTOR_OPERADOR', 'CONTROL_CONDUCTORES'],
   },
   {

@@ -65,6 +65,7 @@ const getTarjeton = (d) => {
 
 const STATUS_TABS = [
   { key: 'unidadesOperacion', label: 'Operación', color: 'operacion' },
+  { key: 'unidadesCirculando', label: 'Circulando', color: 'circulando' },
   { key: 'unidadesReserva', label: 'Reserva', color: 'reserva' },
   { key: 'unidadesMantenimiento', label: 'Mantenimiento', color: 'mantenimiento' },
   { key: 'unidadesPercance', label: 'Percance', color: 'percance' },
@@ -101,20 +102,19 @@ export default function DetalleUnidades() {
     units: model[tab.key] || [],
   }));
 
+  const totalCount = model.units ? model.units.length : (model.total || groups.reduce((acc, g) => g.key !== 'unidadesCirculando' ? acc + g.units.length : acc, 0));
+
   const getUnitStatusInfo = (u, group) => {
     const est = (u.ESTATUS || u.estatus || '').toUpperCase().trim();
     const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
     const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
 
-    if (group) {
-      const label = group.key === 'unidadesOperacion' && horaSalida && !isEncerrada 
-        ? 'Operación (Circulando)' 
-        : group.label;
-      return { color: group.color, label };
+    if (group && group.key === 'unidadesCirculando') {
+      return { color: 'circulando', label: 'Operación (Circulando)' };
     }
 
     if (est.includes('OPERACI')) {
-      if (horaSalida !== '' && !isEncerrada) return { color: 'operacion', label: 'Operación (Circulando)' };
+      if (horaSalida !== '' && !isEncerrada) return { color: 'circulando', label: 'Operación (Circulando)' };
       return { color: 'operacion', label: 'Operación' };
     }
     if (est.includes('MANTENIMIENTO')) return { color: 'mantenimiento', label: 'Mantenimiento' };
@@ -125,7 +125,7 @@ export default function DetalleUnidades() {
 
   let allUnits =
     activeTab === 'todas'
-      ? (model.units && model.units.length > 0 ? model.units : groups.flatMap((g) => g.units)).map((u) => {
+      ? (model.units && model.units.length > 0 ? model.units : groups.flatMap((g) => g.key !== 'unidadesCirculando' ? g.units : [])).map((u) => {
           const info = getUnitStatusInfo(u);
           return { ...u, __statusColor: info.color, __statusLabel: info.label };
         })
@@ -173,8 +173,8 @@ export default function DetalleUnidades() {
             </h1>
             <p className="detalle-hero__subtitle">
               {model.isRoute
-                ? `${model.tipo === 'troncal' ? 'Ruta Troncal' : 'Ruta Alimentadora'} · ${model.programadas} ${model.programadas === 1 ? 'unidad programada' : 'unidades programadas'} en total`
-                : `${model.programadas} unidades programadas en total`}
+                ? `${model.tipo === 'troncal' ? 'Ruta Troncal' : 'Ruta Alimentadora'} · ${totalCount} ${totalCount === 1 ? 'unidad en total' : 'unidades en total'} (${model.operacion ?? model.programadas ?? 0} en operación · ${model.circulando ?? 0} circulando)`
+                : `${totalCount} ${totalCount === 1 ? 'unidad en total' : 'unidades en total'} (${model.operacion ?? model.programadas ?? 0} en operación · ${model.circulando ?? 0} circulando)`}
             </p>
           </div>
         </div>
@@ -182,15 +182,19 @@ export default function DetalleUnidades() {
         {/* ---- KPIs por estatus ---- */}
         <section className="detalle-kpis">
           <div className="detalle-kpi detalle-kpi--operacion">
-            <span className="detalle-kpi__value">{model.operacion}</span>
+            <span className="detalle-kpi__value">{model.operacion ?? model.programadas ?? 0}</span>
             <span className="detalle-kpi__label">Operación</span>
           </div>
+          <div className="detalle-kpi detalle-kpi--circulando">
+            <span className="detalle-kpi__value">{model.circulando ?? 0}</span>
+            <span className="detalle-kpi__label">Circulando</span>
+          </div>
           <div className="detalle-kpi detalle-kpi--reserva">
-            <span className="detalle-kpi__value">{model.reserva}</span>
+            <span className="detalle-kpi__value">{model.reserva ?? 0}</span>
             <span className="detalle-kpi__label">Reserva</span>
           </div>
           <div className="detalle-kpi detalle-kpi--mantenimiento">
-            <span className="detalle-kpi__value">{model.mantenimiento}</span>
+            <span className="detalle-kpi__value">{model.mantenimiento ?? 0}</span>
             <span className="detalle-kpi__label">Mantenimiento</span>
           </div>
         </section>
@@ -202,7 +206,7 @@ export default function DetalleUnidades() {
               className={`detalle-tab ${activeTab === 'todas' ? 'is-active' : ''}`}
               onClick={() => setActiveTab('todas')}
             >
-              Todas ({model.programadas})
+              Todas ({totalCount})
             </button>
             {groups.map((g) => (
               <button

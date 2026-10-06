@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
@@ -6,6 +7,7 @@ import API_BASE from '../../config/api';
 import './Historial.css';
 
 export default function HistorialConductores() {
+  const navigate = useNavigate();
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [tipoAccionFiltro, setTipoAccionFiltro] = useState('TODAS');
@@ -148,7 +150,33 @@ export default function HistorialConductores() {
             </p>
           </div>
 
-          <div className="historial-filter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="historial-filter" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/historial/conductor-individual')}
+              style={{
+                backgroundColor: '#6b1d33',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                padding: '0.5rem 0.85rem',
+                fontSize: '0.85rem',
+                fontWeight: '800',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 2px 4px rgba(107, 29, 51, 0.2)'
+              }}
+              title="Abrir vista dedicada de Historial y Expediente por Conductor"
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Expediente por Conductor
+            </button>
+
             <button
               type="button"
               onClick={() => refetch()}

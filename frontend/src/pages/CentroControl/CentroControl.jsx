@@ -124,11 +124,14 @@ export default function CentroControl() {
       });
       const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
 
-      // Operación = las que YA salieron de despacho (tienen hora real de salida de patio)
-      const unidadesOperacion = units.filter((d) => {
+      // Operación = todas las unidades asignadas con estatus de operación
+      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+
+      // Circulando = las que YA salieron de despacho (tienen hora real de salida de patio y no están encerradas)
+      const unidadesCirculando = units.filter((d) => {
         const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        return horaSalida !== '' && !isEncerrada;
+        return getEstatus(d).includes('OPERACI') && horaSalida !== '' && !isEncerrada;
       });
       // Reserva = todas las que tienen estatus 'reserva' (programadas pero sin despachar)
       const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
@@ -136,13 +139,15 @@ export default function CentroControl() {
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
       const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
+      const total        = units.length;
       const operacion    = unidadesOperacion.length;
+      const circulando   = unidadesCirculando.length;
       const mantenimiento = unidadesMantenimiento.length;
       const reserva      = unidadesReserva.length;
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length;
+      const programadas = unidadesOperacion.length;
 
       const idsConEstatus = new Set([
         ...unidadesOperacion,
@@ -154,13 +159,16 @@ export default function CentroControl() {
 
       return {
         ...mc,
+        total,
         programadas,
         operacion,
+        circulando,
         reserva,
         mantenimiento,
         percance,
         otros,
         unidadesOperacion,
+        unidadesCirculando,
         unidadesReserva,
         unidadesMantenimiento,
         unidadesPercance,
@@ -172,15 +180,17 @@ export default function CentroControl() {
 
   const totales = modelData.reduce(
     (acc, m) => ({
+      total: (acc.total || 0) + (m.total || 0),
       programadas: acc.programadas + m.programadas,
       operacion: acc.operacion + m.operacion,
+      circulando: (acc.circulando || 0) + (m.circulando || 0),
       reserva: acc.reserva + m.reserva,
       mantenimiento: acc.mantenimiento + m.mantenimiento,
     }),
-    { programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0 }
+    { total: 0, programadas: 0, operacion: 0, circulando: 0, reserva: 0, mantenimiento: 0 }
   );
 
-  const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round((totales.operacion / totales.programadas) * 100)) : 0;
+  const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round((totales.circulando / totales.programadas) * 100)) : 0;
 
   const handleGenerarReporte = () => {
     descargarReportesGeneralesConAlerta(setIsGenerating);
@@ -383,31 +393,37 @@ export default function CentroControl() {
 
     const result = Object.values(routesMap).map((r) => {
       const units = r.units;
-      const unidadesOperacion = units.filter((d) => {
+      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      const unidadesCirculando = units.filter((d) => {
         const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        return horaSalida !== '' && !isEncerrada;
+        return getEstatus(d).includes('OPERACI') && horaSalida !== '' && !isEncerrada;
       });
       const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
       const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
+      const total = units.length;
       const operacion = unidadesOperacion.length;
+      const circulando = unidadesCirculando.length;
       const reserva = unidadesReserva.length;
       const mantenimiento = unidadesMantenimiento.length;
       const percance = unidadesPercance.length;
-      const programadas = units.filter((d) => getEstatus(d).includes('OPERACI')).length || units.length;
-      const eficiencia = programadas > 0 ? Math.min(100, Math.round((operacion / programadas) * 100)) : 0;
+      const programadas = unidadesOperacion.length || units.length;
+      const eficiencia = programadas > 0 ? Math.min(100, Math.round((circulando / programadas) * 100)) : 0;
 
       return {
         ...r,
+        total,
         programadas,
         operacion,
+        circulando,
         reserva,
         mantenimiento,
         percance,
         eficiencia,
         unidadesOperacion,
+        unidadesCirculando,
         unidadesReserva,
         unidadesMantenimiento,
         unidadesPercance,
@@ -770,7 +786,7 @@ export default function CentroControl() {
                       <div className="centro-type-card__heading">
                         <span className="centro-type-card__label">{mc.label}</span>
                         <span className="centro-type-card__total">
-                          {cargando ? '—' : m.programadas} unidades
+                          {cargando ? '—' : `${m.total ?? m.units?.length ?? m.programadas} unidades`}
                         </span>
                       </div>
                     </div>
@@ -778,15 +794,15 @@ export default function CentroControl() {
                     <div className="centro-bar" role="img" aria-label={`Distribución de estatus ${mc.label}`}>
                       <span
                         className="centro-bar__seg centro-bar__seg--operacion"
-                        style={{ width: `${pct(m.operacion, m.programadas)}%` }}
+                        style={{ width: `${pct(m.operacion, m.total || m.programadas)}%` }}
                       />
                       <span
                         className="centro-bar__seg centro-bar__seg--reserva"
-                        style={{ width: `${pct(m.reserva, m.programadas)}%` }}
+                        style={{ width: `${pct(m.reserva, m.total || m.programadas)}%` }}
                       />
                       <span
                         className="centro-bar__seg centro-bar__seg--mantenimiento"
-                        style={{ width: `${pct(m.mantenimiento, m.programadas)}%` }}
+                        style={{ width: `${pct(m.mantenimiento, m.total || m.programadas)}%` }}
                       />
                     </div>
 
@@ -795,7 +811,7 @@ export default function CentroControl() {
                         <span className="centro-status-dot centro-status-dot--operacion" />
                         <span className="centro-status-label">Operación</span>
                         <span className="centro-status-percent centro-status-percent--operacion">
-                          {cargando ? '—' : `${Math.round(pct(m.operacion, m.programadas))}%`}
+                          {cargando ? '—' : `${Math.round(pct(m.operacion, m.total || m.programadas))}%`}
                         </span>
                         <span className="centro-status-value">{cargando ? '—' : m.operacion}</span>
                       </div>
@@ -803,7 +819,7 @@ export default function CentroControl() {
                         <span className="centro-status-dot centro-status-dot--reserva" />
                         <span className="centro-status-label">Reserva</span>
                         <span className="centro-status-percent centro-status-percent--reserva">
-                          {cargando ? '—' : `${Math.round(pct(m.reserva, m.programadas))}%`}
+                          {cargando ? '—' : `${Math.round(pct(m.reserva, m.total || m.programadas))}%`}
                         </span>
                         <span className="centro-status-value">{cargando ? '—' : m.reserva}</span>
                       </div>
@@ -811,7 +827,7 @@ export default function CentroControl() {
                         <span className="centro-status-dot centro-status-dot--mantenimiento" />
                         <span className="centro-status-label">Mantenimiento</span>
                         <span className="centro-status-percent centro-status-percent--mantenimiento">
-                          {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.programadas))}%`}
+                          {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.total || m.programadas))}%`}
                         </span>
                         <span className="centro-status-value">{cargando ? '—' : m.mantenimiento}</span>
                       </div>
@@ -819,7 +835,7 @@ export default function CentroControl() {
                         <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
                         <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
                         <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
-                          {cargando ? '—' : `${Math.min(100, Math.round(pct(m.operacion, m.programadas)))}%`}
+                          {cargando ? '—' : `${Math.min(100, Math.round(pct(m.circulando, m.operacion || m.programadas)))}%`}
                         </span>
                         <span className="centro-status-value"></span>
                       </div>
@@ -925,7 +941,7 @@ export default function CentroControl() {
                             </span>
                           </div>
                           <span className="centro-route-card__total">
-                            {cargando ? '—' : `${r.programadas} ${r.programadas === 1 ? 'unidad' : 'unidades'}`}
+                            {cargando ? '—' : `${r.total ?? r.units?.length ?? r.programadas} ${(r.total ?? r.units?.length ?? r.programadas) === 1 ? 'unidad' : 'unidades'}`}
                           </span>
                         </div>
 
@@ -937,17 +953,17 @@ export default function CentroControl() {
                         <div className="centro-bar" role="img" aria-label={`Distribución ruta ${r.label}`}>
                           <span
                             className="centro-bar__seg centro-bar__seg--operacion"
-                            style={{ width: `${pct(r.operacion, r.programadas)}%` }}
+                            style={{ width: `${pct(r.operacion, r.total || r.programadas)}%` }}
                             title={`Operación: ${r.operacion}`}
                           />
                           <span
                             className="centro-bar__seg centro-bar__seg--reserva"
-                            style={{ width: `${pct(r.reserva, r.programadas)}%` }}
+                            style={{ width: `${pct(r.reserva, r.total || r.programadas)}%` }}
                             title={`Reserva: ${r.reserva}`}
                           />
                           <span
                             className="centro-bar__seg centro-bar__seg--mantenimiento"
-                            style={{ width: `${pct(r.mantenimiento + r.percance, r.programadas)}%` }}
+                            style={{ width: `${pct(r.mantenimiento + r.percance, r.total || r.programadas)}%` }}
                             title={`Mantenimiento: ${r.mantenimiento + r.percance}`}
                           />
                         </div>
@@ -958,7 +974,7 @@ export default function CentroControl() {
                             <span className="centro-status-dot centro-status-dot--operacion" />
                             <span className="centro-status-label">Operación</span>
                             <span className="centro-status-percent centro-status-percent--operacion">
-                              {cargando ? '—' : `${Math.round(pct(r.operacion, r.programadas))}%`}
+                              {cargando ? '—' : `${Math.round(pct(r.operacion, r.total || r.programadas))}%`}
                             </span>
                             <span className="centro-status-value">{cargando ? '—' : r.operacion}</span>
                           </div>
@@ -966,7 +982,7 @@ export default function CentroControl() {
                             <span className="centro-status-dot centro-status-dot--reserva" />
                             <span className="centro-status-label">Reserva</span>
                             <span className="centro-status-percent centro-status-percent--reserva">
-                              {cargando ? '—' : `${Math.round(pct(r.reserva, r.programadas))}%`}
+                              {cargando ? '—' : `${Math.round(pct(r.reserva, r.total || r.programadas))}%`}
                             </span>
                             <span className="centro-status-value">{cargando ? '—' : r.reserva}</span>
                           </div>
@@ -974,7 +990,7 @@ export default function CentroControl() {
                             <span className="centro-status-dot centro-status-dot--mantenimiento" />
                             <span className="centro-status-label">Mantenimiento</span>
                             <span className="centro-status-percent centro-status-percent--mantenimiento">
-                              {cargando ? '—' : `${Math.round(pct(r.mantenimiento + r.percance, r.programadas))}%`}
+                              {cargando ? '—' : `${Math.round(pct(r.mantenimiento + r.percance, r.total || r.programadas))}%`}
                             </span>
                             <span className="centro-status-value">{cargando ? '—' : r.mantenimiento + r.percance}</span>
                           </div>
