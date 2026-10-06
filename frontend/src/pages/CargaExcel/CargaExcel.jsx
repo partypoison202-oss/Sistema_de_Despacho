@@ -1040,13 +1040,15 @@ export default function CargaExcel({ isPasteles = false }) {
                     });
                     
                     if (normalizedRow['ECONOMICO']) {
+                        const isPatioNorte = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'TRUE' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === '1' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SÍ' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SI';
                         actualizaciones.push({
                             'ECONOMICO': normalizedRow['ECONOMICO'],
                             'SERVICIO': normalizedRow['SERVICIO'],
                             'TARJETON': normalizedRow['TARJETON'],
                             'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
                             'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
-                            'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6']
+                            'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
+                            'PATIO_NORTE': isPatioNorte
                         });
                     }
                 });
@@ -1408,7 +1410,7 @@ export default function CargaExcel({ isPasteles = false }) {
               </svg>
               Descargar Excel
             </button>
-            {!isPasteles && (
+            {!isPasteles && tabActiva !== 'HOY' && (
               <>
                 <button
                   type="button"

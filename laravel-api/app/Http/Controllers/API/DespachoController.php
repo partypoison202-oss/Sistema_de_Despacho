@@ -2141,7 +2141,7 @@ class DespachoController extends Controller
             ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
-                DB::raw('COALESCE(informacion_operativa_manana.tipo, unidades.tipo) as tipo'),
+                DB::raw("COALESCE(NULLIF(informacion_operativa_manana.tipo, ''), transportes.nombre) as tipo"),
                 'informacion_operativa_manana.ruta',
                 'informacion_operativa_manana.numero_tarjeton as tarjeton',
                 'informacion_operativa_manana.nombre_conductor',
@@ -2323,7 +2323,7 @@ class DespachoController extends Controller
             ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
-                DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre) as tipo'),
+                DB::raw("COALESCE(NULLIF(informacion_operativa_manana.tipo, ''), transportes.nombre) as tipo"),
                 'informacion_operativa_manana.ruta',
                 'informacion_operativa_manana.numero_tarjeton as tarjeton',
                 'informacion_operativa_manana.nombre_conductor',
@@ -4525,9 +4525,28 @@ class DespachoController extends Controller
 
             // Obtener rutas y unidades
             $rutas = DB::table('rutas')->pluck('ruta', 'ruta')->toArray();
-            $unidades = DB::table('unidades')->pluck('id', 'numero_eco')->toArray();
+            $unidadesData = DB::table('unidades')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->get([
+                    'unidades.id',
+                    'unidades.numero_eco',
+                    DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo')
+                ]);
+            $conductoresRaw = DB::table('conductores')->get(['tarjeton', 'nombres', 'apellidos']);
+            $conductores = [];
+            foreach ($conductoresRaw as $c) {
+                $conductores[$c->tarjeton] = trim(($c->nombres ?? '') . ' ' . ($c->apellidos ?? ''));
+            }
+            
+            $unidadesDict = [];
+            foreach ($unidadesData as $u) {
+                $unidadesDict[ltrim((string)$u->numero_eco, '0')] = $u;
+                $unidadesDict[(string)$u->numero_eco] = $u;
+            }
 
             $unidadesProcesadas = [];
+            $ecosEnExcel = [];
+            $tarjetonesEnExcel = [];
 
             foreach ($datos as $index => $fila) {
                 $filaNum = $index + 2;
@@ -4537,26 +4556,34 @@ class DespachoController extends Controller
                     continue;
                 }
 
+                if (isset($ecosEnExcel[$eco])) {
+                    $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} está duplicado en el archivo.";
+                }
+                $ecosEnExcel[$eco] = true;
+
                 $ecoKey = ltrim($eco, '0');
 
-                $unidadId = null;
-                foreach ($unidades as $uEco => $uId) {
-                    if (ltrim((string) $uEco, '0') === $ecoKey || (string) $uEco === $eco) {
-                        $unidadId = $uId;
-                        break;
-                    }
+                $unidadObj = null;
+                if (isset($unidadesDict[$ecoKey])) {
+                    $unidadObj = $unidadesDict[$ecoKey];
+                } elseif (isset($unidadesDict[$eco])) {
+                    $unidadObj = $unidadesDict[$eco];
                 }
 
-                if (! $unidadId) {
+                if (! $unidadObj) {
                     $erroresFormato[] = "Fila {$filaNum}: Unidad economico {$eco} no encontrada en la base de datos.";
-
                     continue;
                 }
+                
+                $unidadId = $unidadObj->id;
+                $tipoUnidadDB = strtoupper($unidadObj->tipo ?? '');
 
                 $unidadesProcesadas[] = $unidadId;
 
                 // SERVICIO (T05-06) -> Ruta y Corrida
                 $servicio = trim((string) ($fila['SERVICIO'] ?? ''));
+                $servicio = str_replace(':', '-', $servicio);
+
                 $rutaStr = null;
                 $corridaNum = null;
                 if (str_contains($servicio, '-')) {
@@ -4569,8 +4596,25 @@ class DespachoController extends Controller
                     $corridaNum = $corridaVal !== '' ? (int) $corridaVal : null;
                 }
 
+                if ($rutaStr !== '' && !str_starts_with($rutaStr, 'T')) {
+                    $rutaStr = ltrim($rutaStr, '0');
+                }
+
                 if ($rutaStr !== '' && ! isset($rutas[$rutaStr])) {
                     $erroresFormato[] = "Fila {$filaNum}: La ruta {$rutaStr} no existe en el sistema.";
+                }
+
+                // Validar tecnologia (Eco vs Ruta)
+                if ($rutaStr !== '') {
+                    $ecoNum = (int) $ecoKey;
+                    $esTroncalUnidad = ($ecoNum >= 1 && $ecoNum <= 42) || str_contains($tipoUnidadDB, 'URBANUS');
+                    $tipoDisplay = $esTroncalUnidad ? 'troncal' : 'alimentadora';
+                    
+                    if ($esTroncalUnidad && !str_starts_with($rutaStr, 'T')) {
+                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es troncal, pero la ruta {$rutaStr} no lo es.";
+                    } elseif (!$esTroncalUnidad && str_starts_with($rutaStr, 'T')) {
+                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es alimentadora, pero la ruta {$rutaStr} es troncal.";
+                    }
                 }
 
                 // Validar horas (Formato HH:MM)
@@ -4591,12 +4635,34 @@ class DespachoController extends Controller
                 }
 
                 $tarjetonStr = trim((string) ($fila['TARJETON'] ?? ($fila['tarjeton'] ?? '')));
+                if ($tarjetonStr !== '' && is_numeric($tarjetonStr)) {
+                    $tarjetonStr = str_pad($tarjetonStr, 4, '0', STR_PAD_LEFT);
+                }
+                
+                if ($tarjetonStr !== '') {
+                    if (isset($tarjetonesEnExcel[$tarjetonStr])) {
+                        $erroresFormato[] = "Fila {$filaNum}: El tarjetón {$tarjetonStr} está duplicado en el archivo.";
+                    }
+                    $tarjetonesEnExcel[$tarjetonStr] = true;
+                }
+
+                $nombreConductor = null;
+                if ($tarjetonStr !== '' && isset($conductores[$tarjetonStr])) {
+                    // Convertir a Tipo Titulo como piden las reglas
+                    $nombreConductor = mb_convert_case(mb_strtolower($conductores[$tarjetonStr], 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+                }
+                
+                $patioNorteBool = filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $patioNorteVal = $patioNorteBool ? 'true' : 'false';
 
                 $insertData[] = [
                     'unidad_id' => $unidadId,
                     'ruta' => $rutaStr !== '' ? $rutaStr : null,
                     'corridas' => $corridaNum,
                     'numero_tarjeton' => $tarjetonStr !== '' ? $tarjetonStr : null,
+                    'nombre_conductor' => $nombreConductor,
+                    'tipo' => $tipoUnidadDB,
+                    'patio_norte' => $patioNorteVal,
                     'hora_salida_patio' => $horaSalida !== '' ? $horaSalida : null,
                     'acople' => $horaAcople !== '' ? $horaAcople : null,
                     'estatus' => 'operacion',
@@ -4624,10 +4690,10 @@ class DespachoController extends Controller
 
             // Las unidades que no vinieron en el excel, se ponen en reserva
             $unidadesProcesadas = array_unique($unidadesProcesadas);
-            foreach ($unidades as $uEco => $uId) {
-                if (! in_array($uId, $unidadesProcesadas, true)) {
+            foreach ($unidadesData as $u) {
+                if (! in_array($u->id, $unidadesProcesadas, true)) {
                     $insertData[] = [
-                        'unidad_id' => $uId,
+                        'unidad_id' => $u->id,
                         'estatus' => 'reserva',
                     ];
                 }
