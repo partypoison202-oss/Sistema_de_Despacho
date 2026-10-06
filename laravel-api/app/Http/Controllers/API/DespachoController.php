@@ -4679,10 +4679,10 @@ class DespachoController extends Controller
 
             // Las unidades que no vinieron en el excel, se ponen en reserva
             $unidadesProcesadas = array_unique($unidadesProcesadas);
-            foreach ($unidades as $uEco => $uId) {
-                if (! in_array($uId, $unidadesProcesadas, true)) {
+            foreach ($unidadesData as $u) {
+                if (! in_array($u->id, $unidadesProcesadas, true)) {
                     $insertData[] = [
-                        'unidad_id' => $uId,
+                        'unidad_id' => $u->id,
                         'estatus' => 'reserva',
                     ];
                 }
