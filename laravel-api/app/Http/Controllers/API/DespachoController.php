@@ -1159,7 +1159,7 @@ class DespachoController extends Controller
 
     public function actualizarEspecifico(Request $request, $dia)
     {
-        if (!in_array($dia, ['sabado', 'domingo', 'lunes', 'festivo'])) {
+        if ($dia !== 'festivo') {
             return response()->json(['error' => 'Día no válido'], 400);
         }
         $tableName = 'informacion_operativa_' . $dia;
@@ -1363,20 +1363,10 @@ class DespachoController extends Controller
             $sourceTable = null;
             $deleteSourceAfter = false;
 
-            // 1. Prioridad: informacion_operativa_manana
+            // 1. Prioridad: informacion_operativa_manana (programada para el día siguiente)
             if (DB::table('informacion_operativa_manana')->count() > 0) {
                 $sourceTable = 'informacion_operativa_manana';
                 $deleteSourceAfter = true;
-            } else {
-                // 2. Si es sábado, domingo o lunes, revisar plantillas
-                $diaSemana = $now->dayOfWeekIso; // 1 = Lunes, 6 = Sábado, 7 = Domingo
-                if ($diaSemana == 6 && DB::table('informacion_operativa_sabado')->count() > 0) {
-                    $sourceTable = 'informacion_operativa_sabado';
-                } elseif ($diaSemana == 7 && DB::table('informacion_operativa_domingo')->count() > 0) {
-                    $sourceTable = 'informacion_operativa_domingo';
-                } elseif ($diaSemana == 1 && DB::table('informacion_operativa_lunes')->count() > 0) {
-                    $sourceTable = 'informacion_operativa_lunes';
-                }
             }
 
             if ($sourceTable) {
@@ -1554,7 +1544,7 @@ class DespachoController extends Controller
 
     public function aplicarCambioDiaEspecifico($dia)
     {
-        if (!in_array($dia, ['sabado', 'domingo', 'lunes', 'festivo'])) {
+        if ($dia !== 'festivo') {
             return response()->json(['error' => 'Día no válido'], 400);
         }
         $tableName = 'informacion_operativa_' . $dia;
@@ -2136,7 +2126,7 @@ class DespachoController extends Controller
 
     public function obtenerDatosEspecifico($dia)
     {
-        if (!in_array($dia, ['sabado', 'domingo', 'lunes', 'festivo'])) {
+        if ($dia !== 'festivo') {
             return response()->json(['error' => 'Día no válido'], 400);
         }
         $tableName = 'informacion_operativa_' . $dia;
@@ -2314,7 +2304,7 @@ class DespachoController extends Controller
 
     public function obtenerDatosEspecificoDuplicado($dia)
     {
-        if (!in_array($dia, ['sabado', 'domingo', 'lunes', 'festivo'])) {
+        if ($dia !== 'festivo') {
             return response()->json(['error' => 'Día no válido'], 400);
         }
         $tableName = 'informacion_operativa_' . $dia;
