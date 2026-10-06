@@ -123,7 +123,8 @@
     gap: 2rem;
   }
 
-  .btn-reporte {
+  .btn-reporte,
+  .btn-capsula {
     width: 100%;
     text-align: center;
   }
@@ -135,6 +136,141 @@
   gap: 1.25rem;
   flex-wrap: wrap;
   margin-top: 3rem; /* Espacio entre las tarjetas y el botón */
+}
+
+/* Botones Tipo Cápsula (Estilo Centro de Control) */
+.btn-capsula {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 26px;
+  background: transparent;
+  border: 1.5px solid;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  text-decoration: none;
+}
+
+.btn-capsula svg {
+  width: 20px;
+  height: 20px;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-capsula:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* 1. Reporte General (Vino / Marrón) */
+.btn-capsula--gral {
+  border-color: #65002D;
+  color: #65002D;
+}
+.btn-capsula--gral:not(:disabled):hover,
+.btn-capsula--gral:not(:disabled):focus-visible {
+  background: #65002D;
+  color: #ffffff;
+}
+
+/* 2. Resumen Despacho Excel (Verde) */
+.btn-capsula--excel {
+  border-color: #166534;
+  color: #166534;
+}
+.btn-capsula--excel:not(:disabled):hover,
+.btn-capsula--excel:not(:disabled):focus-visible {
+  background: #166534;
+  color: #ffffff;
+}
+
+/* 3. Programación Operativa (Azul) */
+.btn-capsula--programacion {
+  border-color: #2563EB;
+  color: #2563EB;
+}
+.btn-capsula--programacion:not(:disabled):hover,
+.btn-capsula--programacion:not(:disabled):focus-visible {
+  background: #2563EB;
+  color: #ffffff;
+}
+
+/* Spinner específico para botones cápsula */
+.btn-capsula .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(101, 0, 45, 0.3);
+  border-top-color: #65002D;
+  border-radius: 50%;
+  animation: centro-spin 0.7s linear infinite;
+  margin: 0;
+}
+.btn-capsula--gral .spinner {
+  border-color: rgba(101, 0, 45, 0.3);
+  border-top-color: #65002D;
+}
+.btn-capsula--gral:hover .spinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+}
+.btn-capsula--excel .spinner {
+  border-color: rgba(22, 101, 52, 0.3);
+  border-top-color: #166534;
+}
+.btn-capsula--excel:hover .spinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+}
+.btn-capsula--programacion .spinner {
+  border-color: rgba(37, 99, 235, 0.3);
+  border-top-color: #2563EB;
+}
+.btn-capsula--programacion:hover .spinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+}
+
+@keyframes centro-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Soporte modo oscuro para cápsulas */
+html.dark .btn-capsula--gral {
+  border-color: #f472b6;
+  color: #f472b6;
+}
+html.dark .btn-capsula--gral:not(:disabled):hover {
+  background: #65002D;
+  color: #ffffff;
+  border-color: #65002D;
+}
+html.dark .btn-capsula--excel {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+html.dark .btn-capsula--excel:not(:disabled):hover {
+  background: #166534;
+  color: #ffffff;
+  border-color: #166534;
+}
+html.dark .btn-capsula--programacion {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+html.dark .btn-capsula--programacion:not(:disabled):hover {
+  background: #2563EB;
+  color: #ffffff;
+  border-color: #2563EB;
 }
 
 .btn-reporte {
