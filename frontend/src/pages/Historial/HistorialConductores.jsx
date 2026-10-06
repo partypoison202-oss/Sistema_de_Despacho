@@ -203,7 +203,7 @@ export default function HistorialConductores() {
               {isFetching ? 'Actualizando...' : 'Actualizar'}
             </button>
 
-            <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
+            <span style={{ fontWeight: '700', color: '#334155' }}>Fecha:</span>
             <div className="custom-dropdown-container" ref={dropdownRef}>
               <button
                 type="button"

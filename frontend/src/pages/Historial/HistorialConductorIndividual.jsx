@@ -422,13 +422,15 @@ export default function HistorialConductorIndividual() {
           <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
             {/* Selector de Conductor */}
             <div style={{ flex: '1 1 320px', minWidth: '280px', position: 'relative' }} ref={conductorDropdownRef}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.03em' }}>
+              <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.03em' }}>
                 1. Seleccionar Conductor:
-              </label>
+              </span>
               
-              <div
+              <button
+                type="button"
                 onClick={() => setIsConductorSelectorOpen(!isConductorSelectorOpen)}
                 style={{
+                  width: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -438,7 +440,8 @@ export default function HistorialConductorIndividual() {
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
                   userSelect: 'none',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  textAlign: 'left'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
@@ -460,7 +463,7 @@ export default function HistorialConductorIndividual() {
                 <svg width="18" height="18" fill="none" stroke="#64748b" strokeWidth="2" viewBox="0 0 24 24" style={{ transform: isConductorSelectorOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-              </div>
+              </button>
 
               {/* Menú Desplegable con Buscador */}
               {isConductorSelectorOpen && (
@@ -482,7 +485,6 @@ export default function HistorialConductorIndividual() {
                   <div style={{ padding: '0.25rem 0.25rem 0.5rem 0.25rem' }}>
                     <input
                       type="text"
-                      autoFocus
                       placeholder="Buscar por nombre o número de tarjetón..."
                       value={busquedaConductor}
                       onChange={(e) => setBusquedaConductor(e.target.value)}
@@ -510,7 +512,8 @@ export default function HistorialConductorIndividual() {
                         const nom = c.nombre_completo || c.nombre || `${c.nombres || ''} ${c.apellidos || ''}`.trim();
                         const tarj = c.tarjeton || c.numero_tarjeton || 'S/N';
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={c.id}
                             onClick={() => {
                               setSelectedConductorId(String(c.id));
@@ -518,6 +521,7 @@ export default function HistorialConductorIndividual() {
                               setBusquedaConductor('');
                             }}
                             style={{
+                              width: '100%',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
@@ -525,8 +529,10 @@ export default function HistorialConductorIndividual() {
                               borderRadius: '0.375rem',
                               cursor: 'pointer',
                               backgroundColor: isSelected ? '#f1f5f9' : 'transparent',
+                              border: 'none',
                               borderLeft: isSelected ? '3px solid #6b1d33' : '3px solid transparent',
-                              transition: 'background 0.12s ease'
+                              transition: 'background 0.12s ease',
+                              textAlign: 'left'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isSelected ? '#e2e8f0' : '#f8fafc'}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isSelected ? '#f1f5f9' : 'transparent'}
@@ -555,7 +561,7 @@ export default function HistorialConductorIndividual() {
                             }}>
                               {c.estatus || 'Activo'}
                             </span>
-                          </div>
+                          </button>
                         );
                       })
                     )}
@@ -567,16 +573,16 @@ export default function HistorialConductorIndividual() {
             {/* Selectores de Fechas: Desde y Hasta */}
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.03em' }}>
+                <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.03em' }}>
                   Desde:
-                </label>
+                </span>
                 <AppleDatePicker value={desde} onChange={setDesde} disableFuture={false} />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.03em' }}>
+                <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: '#334155', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.03em' }}>
                   Hasta:
-                </label>
+                </span>
                 <AppleDatePicker value={hasta} onChange={setHasta} minDate={desde} disableFuture={false} />
               </div>
             </div>
@@ -1105,7 +1111,8 @@ export default function HistorialConductorIndividual() {
               {matrizDias.map(dia => {
                 const cellClass = getCellClass(dia.codigo);
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={dia.fecha}
                     onClick={() => {
                       if (dia.eventos && dia.eventos.length > 0) {
@@ -1113,6 +1120,9 @@ export default function HistorialConductorIndividual() {
                       }
                     }}
                     style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
                       border: '1px solid #e2e8f0',
                       borderRadius: '0.625rem',
                       padding: '0.75rem',
@@ -1147,7 +1157,7 @@ export default function HistorialConductorIndividual() {
                     <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.7rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {dia.etiqueta}
                     </p>
-                  </div>
+                  </button>
                 );
               })}
             </div>

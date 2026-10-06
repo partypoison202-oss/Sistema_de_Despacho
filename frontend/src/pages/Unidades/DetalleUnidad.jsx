@@ -881,7 +881,7 @@ export default function DetalleUnidad() {
       if (nuevoEstatus === 'mantenimiento') {
         swalOptions.html = `
           <div style="text-align: left; margin-top: 0.5rem;">
-            <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
+            <label for="swal-folio-input" style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
               Asignar folio de Mantenimiento:
             </label>
             <input type="text" id="swal-folio-input" class="swal2-input" placeholder="ESCRIBE EL FOLIO..." style="width: 100%; margin: 0; border-radius: 8px; font-size: 0.88rem; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
