@@ -1490,6 +1490,7 @@ export default function CargaExcel({ isPasteles = false }) {
         onClose={() => setShowReservaModal(false)}
         catalogConductores={catalogConductores}
         tabActiva={tabActiva}
+        isPasteles={isPasteles}
       />
 
       <ModalComparativaAlimentadoras

@@ -12,9 +12,10 @@ const getAuthHeaders = () => {
   };
 };
 
-export default function ModalReservaT6({ isOpen, onClose, catalogConductores, tabActiva }) {
+export default function ModalReservaT6({ isOpen, onClose, catalogConductores, tabActiva, isPasteles = false }) {
   const [busqueda, setBusqueda] = useState('');
   const [seleccionados, setSeleccionados] = useState(new Set());
+  const [autorizadosList, setAutorizadosList] = useState(new Set());
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [filtroVista, setFiltroVista] = useState('TODOS'); // 'TODOS' | 'DISPONIBLES' | 'SELECCIONADOS'
@@ -40,7 +41,16 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         const tarjetonesNormalizados = (Array.isArray(data) ? data : [])
           .map(t => String(t || '').trim().padStart(4, '0'))
           .filter(t => t !== '0000' && t !== '');
-        setSeleccionados(new Set(tarjetonesNormalizados));
+          
+        const setAutorizados = new Set(tarjetonesNormalizados);
+        setAutorizadosList(setAutorizados);
+        
+        if (isPasteles) {
+          setSeleccionados(new Set());
+          setFiltroVista('TODOS');
+        } else {
+          setSeleccionados(setAutorizados);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -63,14 +73,23 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
     return (catalogConductores || [])
       .filter(c => {
         const est = String(c.estatus || 'activo').toLowerCase();
-        return est === 'activo';
+        if (est !== 'activo') return false;
+        
+        if (isPasteles) {
+          const raw = String(c.tarjeton || '').trim();
+          const pad = raw.padStart(4, '0');
+          const clean = raw.replace(/^0+/, '');
+          return autorizadosList.has(raw) || autorizadosList.has(pad) || (clean !== '' && autorizadosList.has(clean));
+        }
+        
+        return true;
       })
       .sort((a, b) => {
         const nomA = String(a.nombre || `${a.nombres || ''} ${a.apellidos || ''}`).trim();
         const nomB = String(b.nombre || `${b.nombres || ''} ${b.apellidos || ''}`).trim();
         return nomA.localeCompare(nomB);
       });
-  }, [catalogConductores]);
+  }, [catalogConductores, isPasteles, autorizadosList]);
 
   // Contadores para los botones de filtro rápido
   const countDisponibles = useMemo(() => {
@@ -167,6 +186,73 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
 
   const limpiarSeleccion = () => {
     setSeleccionados(new Set());
+  };
+
+  const marcarInasistencias = async () => {
+    try {
+      if (seleccionados.size === 0) return;
+      
+      const confirm = await Swal.fire({
+        title: '¿Mandar a Falta?',
+        html: `¿Estás seguro de registrar inasistencia a los <b>${seleccionados.size}</b> operador(es) seleccionado(s)?<br/><br/>Esta acción afectará inmediatamente su kardex en Control de Personas Conductoras.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Sí, mandar a falta',
+        cancelButtonText: 'Cancelar'
+      });
+      
+      if (!confirm.isConfirmed) return;
+
+      setGuardando(true);
+      
+      // Determinar la fecha real para la falta
+      const today = new Date();
+      if (tabActiva === 'MANANA') today.setDate(today.getDate() + 1);
+      else if (tabActiva === 'SABADO') {
+        const diff = (6 - today.getDay() + 7) % 7;
+        today.setDate(today.getDate() + (diff === 0 ? 7 : diff));
+      } else if (tabActiva === 'DOMINGO') {
+        const diff = (7 - today.getDay() + 7) % 7;
+        today.setDate(today.getDate() + (diff === 0 ? 7 : diff));
+      } else if (tabActiva === 'LUNES') {
+        const diff = (1 - today.getDay() + 7) % 7;
+        today.setDate(today.getDate() + (diff === 0 ? 7 : diff));
+      } else if (tabActiva === 'FESTIVO') today.setDate(today.getDate() + 1);
+      
+      const offset = today.getTimezoneOffset() * 60000;
+      const fechaFalta = (new Date(today.getTime() - offset)).toISOString().split('T')[0];
+
+      const tarjetonesSelected = Array.from(seleccionados).map(t => String(t).trim().padStart(4, '0'));
+      const conductoresAMarcar = todosOperadores.filter(c => tarjetonesSelected.includes(String(c.tarjeton || '').padStart(4, '0')));
+
+      let successCount = 0;
+      for (const c of conductoresAMarcar) {
+        const res = await fetch(`${API_BASE}/api/conductores/${c.id}/agregar-falta`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            fecha_falta: fechaFalta,
+            motivo_falta: 'Inasistencia a reserva T6 (Mesa de Control)'
+          })
+        });
+        if (res.ok) successCount++;
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Faltas Registradas',
+        text: `Se registraron ${successCount} inasistencias en el kardex.`,
+        timer: 3000,
+        showConfirmButton: false
+      });
+      onClose();
+    } catch (e) {
+      Swal.fire('Error', 'Hubo un error al registrar las inasistencias.', 'error');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const guardarAutorizados = async () => {
@@ -298,45 +384,49 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         {/* Pestañas de Filtro Rápido */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              type="button"
-              onClick={() => setFiltroVista('TODOS')}
-              style={{
-                padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600',
-                border: filtroVista === 'TODOS' ? '1px solid #6b1d33' : '1px solid #e2e8f0',
-                backgroundColor: filtroVista === 'TODOS' ? '#6b1d33' : '#f8fafc',
-                color: filtroVista === 'TODOS' ? 'white' : '#475569',
-                cursor: 'pointer', transition: 'all 0.15s ease'
-              }}
-            >
-              Todos ({todosOperadores.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFiltroVista('DISPONIBLES')}
-              style={{
-                padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600',
-                border: filtroVista === 'DISPONIBLES' ? '1px solid #059669' : '1px solid #e2e8f0',
-                backgroundColor: filtroVista === 'DISPONIBLES' ? '#059669' : '#f8fafc',
-                color: filtroVista === 'DISPONIBLES' ? 'white' : '#475569',
-                cursor: 'pointer', transition: 'all 0.15s ease'
-              }}
-            >
-              Solo Disponibles ({countDisponibles})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFiltroVista('SELECCIONADOS')}
-              style={{
-                padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600',
-                border: filtroVista === 'SELECCIONADOS' ? '1px solid #d97706' : '1px solid #e2e8f0',
-                backgroundColor: filtroVista === 'SELECCIONADOS' ? '#d97706' : '#f8fafc',
-                color: filtroVista === 'SELECCIONADOS' ? 'white' : '#475569',
-                cursor: 'pointer', transition: 'all 0.15s ease'
-              }}
-            >
-              Seleccionados ({countSeleccionados})
-            </button>
+            {!isPasteles && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setFiltroVista('TODOS')}
+                  style={{
+                    padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600',
+                    border: filtroVista === 'TODOS' ? '1px solid #6b1d33' : '1px solid #e2e8f0',
+                    backgroundColor: filtroVista === 'TODOS' ? '#6b1d33' : '#f8fafc',
+                    color: filtroVista === 'TODOS' ? 'white' : '#475569',
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}
+                >
+                  Todos ({todosOperadores.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFiltroVista('DISPONIBLES')}
+                  style={{
+                    padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600',
+                    border: filtroVista === 'DISPONIBLES' ? '1px solid #059669' : '1px solid #e2e8f0',
+                    backgroundColor: filtroVista === 'DISPONIBLES' ? '#059669' : '#f8fafc',
+                    color: filtroVista === 'DISPONIBLES' ? 'white' : '#475569',
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}
+                >
+                  Solo Disponibles ({countDisponibles})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFiltroVista('SELECCIONADOS')}
+                  style={{
+                    padding: '0.35rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600',
+                    border: filtroVista === 'SELECCIONADOS' ? '1px solid #d97706' : '1px solid #e2e8f0',
+                    backgroundColor: filtroVista === 'SELECCIONADOS' ? '#d97706' : '#f8fafc',
+                    color: filtroVista === 'SELECCIONADOS' ? 'white' : '#475569',
+                    cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}
+                >
+                  Seleccionados ({countSeleccionados})
+                </button>
+              </>
+            )}
           </div>
 
           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
@@ -484,7 +574,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{ color: '#334155', fontSize: '0.92rem' }}>
-              <strong>{countSeleccionados}</strong> operador(es) autorizado(s) en reserva
+              <strong>{countSeleccionados}</strong> {isPasteles ? 'operador(es) seleccionado(s) para falta' : 'operador(es) autorizado(s) en reserva'}
             </div>
             {countSeleccionados > 0 && (
               <button
@@ -512,32 +602,55 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
             >
               Cancelar
             </button>
-            <button 
-              type="button"
-              onClick={guardarAutorizados}
-              disabled={guardando || cargando}
-              style={{
-                padding: '0.65rem 1.5rem', border: 'none',
-                background: '#6b1d33', color: 'white', borderRadius: '6px',
-                cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem',
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                opacity: (guardando || cargando) ? 0.7 : 1,
-                boxShadow: '0 2px 4px rgba(107, 29, 51, 0.25)'
-              }}
-            >
-              {guardando ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56">
-                    <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
-                  </path>
-                </svg>
-              ) : (
+            {isPasteles && (
+              <button 
+                type="button"
+                onClick={marcarInasistencias}
+                disabled={guardando || cargando || seleccionados.size === 0}
+                title="Mandar a falta en el Kardex a los seleccionados"
+                style={{
+                  padding: '0.65rem 1.25rem', border: 'none',
+                  background: '#dc2626', color: 'white', borderRadius: '6px',
+                  cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem',
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  opacity: (guardando || cargando || seleccionados.size === 0) ? 0.7 : 1,
+                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.25)'
+                }}
+              >
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-              )}
-              {guardando ? 'Guardando...' : 'Guardar Reservas'}
-            </button>
+                Mandar a Falta
+              </button>
+            )}
+            {!isPasteles && (
+              <button 
+                type="button"
+                onClick={guardarAutorizados}
+                disabled={guardando || cargando}
+                style={{
+                  padding: '0.65rem 1.5rem', border: 'none',
+                  background: '#6b1d33', color: 'white', borderRadius: '6px',
+                  cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem',
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  opacity: (guardando || cargando) ? 0.7 : 1,
+                  boxShadow: '0 2px 4px rgba(107, 29, 51, 0.25)'
+                }}
+              >
+                {guardando ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56">
+                      <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
+                    </path>
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                {guardando ? 'Guardando...' : 'Guardar Reservas'}
+              </button>
+            )}
           </div>
         </div>
       </div>
