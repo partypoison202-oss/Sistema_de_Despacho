@@ -1414,7 +1414,6 @@ class DespachoController extends Controller
                         $inicialRow['updated_at'] = now();
                         $inicialInsert[] = $inicialRow;
                     }
-                    }
 
                     // Reiniciar campos de validación para el nuevo día
                     if (array_key_exists('hora_real_salida_patio', $insertRow)) $insertRow['hora_real_salida_patio'] = null;
@@ -4403,7 +4402,7 @@ class DespachoController extends Controller
                 'message' => 'Error al cargar programación de apertura: ' . $e->getMessage()
             ], 500);
         }
-    
+    }
 
     public function cargarProgramacionExcel(Request $request)
     {
