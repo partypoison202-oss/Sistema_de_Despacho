@@ -2141,7 +2141,7 @@ class DespachoController extends Controller
             ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
-                DB::raw('COALESCE(informacion_operativa_manana.tipo, unidades.tipo) as tipo'),
+                DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre) as tipo'),
                 'informacion_operativa_manana.ruta',
                 'informacion_operativa_manana.numero_tarjeton as tarjeton',
                 'informacion_operativa_manana.nombre_conductor',
@@ -4629,6 +4629,10 @@ class DespachoController extends Controller
                 }
 
                 $tarjetonStr = trim((string) ($fila['TARJETON'] ?? ($fila['tarjeton'] ?? '')));
+                if ($tarjetonStr !== '' && is_numeric($tarjetonStr)) {
+                    $tarjetonStr = str_pad($tarjetonStr, 4, '0', STR_PAD_LEFT);
+                }
+                
                 if ($tarjetonStr !== '') {
                     if (isset($tarjetonesEnExcel[$tarjetonStr])) {
                         $erroresFormato[] = "Fila {$filaNum}: El tarjetón {$tarjetonStr} está duplicado en el archivo.";

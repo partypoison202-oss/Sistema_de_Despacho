@@ -1410,7 +1410,7 @@ export default function CargaExcel({ isPasteles = false }) {
               </svg>
               Descargar Excel
             </button>
-            {!isPasteles && (
+            {!isPasteles && tabActiva !== 'HOY' && (
               <>
                 <button
                   type="button"
