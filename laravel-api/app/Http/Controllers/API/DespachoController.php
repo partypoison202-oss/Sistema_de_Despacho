@@ -2141,7 +2141,7 @@ class DespachoController extends Controller
             ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
-                DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre) as tipo'),
+                DB::raw("COALESCE(NULLIF(informacion_operativa_manana.tipo, ''), transportes.nombre) as tipo"),
                 'informacion_operativa_manana.ruta',
                 'informacion_operativa_manana.numero_tarjeton as tarjeton',
                 'informacion_operativa_manana.nombre_conductor',
@@ -2323,7 +2323,7 @@ class DespachoController extends Controller
             ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
                 'unidades.numero_eco',
-                DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre) as tipo'),
+                DB::raw("COALESCE(NULLIF(informacion_operativa_manana.tipo, ''), transportes.nombre) as tipo"),
                 'informacion_operativa_manana.ruta',
                 'informacion_operativa_manana.numero_tarjeton as tarjeton',
                 'informacion_operativa_manana.nombre_conductor',
@@ -4525,7 +4525,13 @@ class DespachoController extends Controller
 
             // Obtener rutas y unidades
             $rutas = DB::table('rutas')->pluck('ruta', 'ruta')->toArray();
-            $unidadesData = DB::table('unidades')->get(['id', 'numero_eco', 'tipo']);
+            $unidadesData = DB::table('unidades')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->get([
+                    'unidades.id',
+                    'unidades.numero_eco',
+                    DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo')
+                ]);
             $conductoresRaw = DB::table('conductores')->get(['tarjeton', 'nombres', 'apellidos']);
             $conductores = [];
             foreach ($conductoresRaw as $c) {
