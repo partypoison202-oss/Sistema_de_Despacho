@@ -297,9 +297,6 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
     const tabs = {
       'HOY': 'Día Operativo (Actual)',
       'MANANA': 'Día Siguiente',
-      'SABADO': 'Sábado',
-      'DOMINGO': 'Domingo',
-      'LUNES': 'Lunes',
       'FESTIVO': 'Días Festivos'
     };
     return tabs[tabActiva] || 'el día seleccionado';

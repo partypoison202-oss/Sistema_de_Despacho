@@ -371,11 +371,10 @@ export default function DetalleUnidad() {
         if (event.data?.tipo === 'CAMBIO_ESTATUS' || event.data?.action === 'estatus_updated') {
           queryClient.invalidateQueries({ queryKey: ['unidades-list'] });
           queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
-          if (selectedOption) {
-            const numeroLimpio = selectedOption.match(/\\d+/)?.[0];
-            if (numeroLimpio && event.data.eco && numeroLimpio === String(event.data.eco)) {
-              queryClient.invalidateQueries({ queryKey: ['unidad-detalle', tipoTransporte, numeroLimpio] });
-            }
+          const ecoAct = selectedOption ? String(selectedOption).replace(/\D/g, '') : null;
+          const ecoEvt = event.data?.eco ? String(event.data.eco).replace(/\D/g, '') : null;
+          if (ecoAct && ecoEvt && ecoAct === ecoEvt) {
+            queryClient.invalidateQueries({ queryKey: ['unidad-detalle', tipoTransporte, event.data.eco] });
           }
         }
       };
@@ -882,7 +881,7 @@ export default function DetalleUnidad() {
       if (nuevoEstatus === 'mantenimiento') {
         swalOptions.html = `
           <div style="text-align: left; margin-top: 0.5rem;">
-            <label style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
+            <label for="swal-folio-input" style="display: block; font-weight: 600; font-size: 0.88rem; color: #374151; margin-bottom: 0.5rem;">
               Asignar folio de Mantenimiento:
             </label>
             <input type="text" id="swal-folio-input" class="swal2-input" placeholder="ESCRIBE EL FOLIO..." style="width: 100%; margin: 0; border-radius: 8px; font-size: 0.88rem; border: 1.5px solid #e5e7eb; padding: 0.6rem 0.8rem; text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
