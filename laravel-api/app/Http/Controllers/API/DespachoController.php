@@ -4557,6 +4557,8 @@ class DespachoController extends Controller
 
                 // SERVICIO (T05-06) -> Ruta y Corrida
                 $servicio = trim((string) ($fila['SERVICIO'] ?? ''));
+                $servicio = str_replace(':', '-', $servicio);
+
                 $rutaStr = null;
                 $corridaNum = null;
                 if (str_contains($servicio, '-')) {
@@ -4567,6 +4569,10 @@ class DespachoController extends Controller
                     $rutaStr = $servicio !== '' ? $servicio : trim((string) ($fila['ruta'] ?? ''));
                     $corridaVal = trim((string) ($fila['corrida'] ?? ''));
                     $corridaNum = $corridaVal !== '' ? (int) $corridaVal : null;
+                }
+
+                if ($rutaStr !== '' && !str_starts_with($rutaStr, 'T')) {
+                    $rutaStr = ltrim($rutaStr, '0');
                 }
 
                 if ($rutaStr !== '' && ! isset($rutas[$rutaStr])) {
