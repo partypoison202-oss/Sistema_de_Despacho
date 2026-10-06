@@ -1016,7 +1016,45 @@ export default function CargaExcel({ isPasteles = false }) {
           
           if (!jsonData || jsonData.length === 0) return;
 
-          const aHoraTexto = (v) => {
+          
+            if (tabActiva === 'MANANA') {
+                // Para MANANA, acumulamos todo directo para mandar al backend
+                jsonData.forEach(row => {
+                    const normalizedRow = {};
+                    Object.keys(row).forEach(k => {
+                        const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
+                        normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
+                        if (cleanKey.startsWith('HORA')) {
+                            const v = row[k];
+                            let horaTexto = '';
+                            if (typeof v === 'number' && v >= 0 && v < 1) {
+                                const totalMin = Math.round(v * 24 * 60) % (24 * 60);
+                                horaTexto = `${String(Math.floor(totalMin / 60)).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+                            } else {
+                                const s = String(v ?? '').trim();
+                                const m = s.match(/^(\d{1,2}):(\d{2})/);
+                                horaTexto = m ? `${m[1].padStart(2, '0')}:${m[2]}` : s;
+                            }
+                            normalizedRow[cleanKey] = horaTexto;
+                        }
+                    });
+                    
+                    if (normalizedRow['ECONOMICO']) {
+                        actualizaciones.push({
+                            'ECONOMICO': normalizedRow['ECONOMICO'],
+                            'SERVICIO': normalizedRow['SERVICIO'],
+                            'TARJETON': normalizedRow['TARJETON'],
+                            'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
+                            'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
+                            'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6']
+                        });
+                    }
+                });
+                return;
+            }
+
+            const aHoraTexto = (v) => {
+
             if (typeof v === 'number' && v >= 0 && v < 1) {
               const totalMin = Math.round(v * 24 * 60) % (24 * 60);
               return `${String(Math.floor(totalMin / 60)).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
