@@ -4525,9 +4525,18 @@ class DespachoController extends Controller
 
             // Obtener rutas y unidades
             $rutas = DB::table('rutas')->pluck('ruta', 'ruta')->toArray();
-            $unidades = DB::table('unidades')->pluck('id', 'numero_eco')->toArray();
+            $unidadesData = DB::table('unidades')->get(['id', 'numero_eco', 'tipo']);
+            $conductores = DB::table('conductores')->pluck('nombre', 'tarjeton')->toArray();
+            
+            $unidadesDict = [];
+            foreach ($unidadesData as $u) {
+                $unidadesDict[ltrim((string)$u->numero_eco, '0')] = $u;
+                $unidadesDict[(string)$u->numero_eco] = $u;
+            }
 
             $unidadesProcesadas = [];
+            $ecosEnExcel = [];
+            $tarjetonesEnExcel = [];
 
             foreach ($datos as $index => $fila) {
                 $filaNum = $index + 2;
@@ -4537,21 +4546,27 @@ class DespachoController extends Controller
                     continue;
                 }
 
+                if (isset($ecosEnExcel[$eco])) {
+                    $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} está duplicado en el archivo.";
+                }
+                $ecosEnExcel[$eco] = true;
+
                 $ecoKey = ltrim($eco, '0');
 
-                $unidadId = null;
-                foreach ($unidades as $uEco => $uId) {
-                    if (ltrim((string) $uEco, '0') === $ecoKey || (string) $uEco === $eco) {
-                        $unidadId = $uId;
-                        break;
-                    }
+                $unidadObj = null;
+                if (isset($unidadesDict[$ecoKey])) {
+                    $unidadObj = $unidadesDict[$ecoKey];
+                } elseif (isset($unidadesDict[$eco])) {
+                    $unidadObj = $unidadesDict[$eco];
                 }
 
-                if (! $unidadId) {
+                if (! $unidadObj) {
                     $erroresFormato[] = "Fila {$filaNum}: Unidad economico {$eco} no encontrada en la base de datos.";
-
                     continue;
                 }
+                
+                $unidadId = $unidadObj->id;
+                $tipoUnidadDB = strtoupper($unidadObj->tipo ?? '');
 
                 $unidadesProcesadas[] = $unidadId;
 
@@ -4579,6 +4594,16 @@ class DespachoController extends Controller
                     $erroresFormato[] = "Fila {$filaNum}: La ruta {$rutaStr} no existe en el sistema.";
                 }
 
+                // Validar tecnologia (Eco vs Ruta)
+                if ($rutaStr !== '') {
+                    $esTroncalUnidad = str_contains($tipoUnidadDB, 'URBANUS');
+                    if ($esTroncalUnidad && !str_starts_with($rutaStr, 'T')) {
+                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es troncal ({$tipoUnidadDB}), pero la ruta {$rutaStr} no lo es.";
+                    } elseif (!$esTroncalUnidad && str_starts_with($rutaStr, 'T')) {
+                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es alimentadora ({$tipoUnidadDB}), pero la ruta {$rutaStr} es troncal.";
+                    }
+                }
+
                 // Validar horas (Formato HH:MM)
                 $horaSalida = trim((string) ($fila['HORA DE SALIDA DE PATIO'] ?? ($fila['horaSalida'] ?? '')));
                 $horaAcople = trim((string) ($fila['HORA DE ACOPLE'] ?? ($fila['horaAcople'] ?? '')));
@@ -4597,12 +4622,29 @@ class DespachoController extends Controller
                 }
 
                 $tarjetonStr = trim((string) ($fila['TARJETON'] ?? ($fila['tarjeton'] ?? '')));
+                if ($tarjetonStr !== '') {
+                    if (isset($tarjetonesEnExcel[$tarjetonStr])) {
+                        $erroresFormato[] = "Fila {$filaNum}: El tarjetón {$tarjetonStr} está duplicado en el archivo.";
+                    }
+                    $tarjetonesEnExcel[$tarjetonStr] = true;
+                }
+
+                $nombreConductor = null;
+                if ($tarjetonStr !== '' && isset($conductores[$tarjetonStr])) {
+                    // Convertir a Tipo Titulo como piden las reglas
+                    $nombreConductor = mb_convert_case(mb_strtolower($conductores[$tarjetonStr], 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+                }
+                
+                $patioNorteVal = filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
                 $insertData[] = [
                     'unidad_id' => $unidadId,
                     'ruta' => $rutaStr !== '' ? $rutaStr : null,
                     'corridas' => $corridaNum,
                     'numero_tarjeton' => $tarjetonStr !== '' ? $tarjetonStr : null,
+                    'nombre_conductor' => $nombreConductor,
+                    'tipo' => $tipoUnidadDB,
+                    'patio_norte' => $patioNorteVal,
                     'hora_salida_patio' => $horaSalida !== '' ? $horaSalida : null,
                     'acople' => $horaAcople !== '' ? $horaAcople : null,
                     'estatus' => 'operacion',
