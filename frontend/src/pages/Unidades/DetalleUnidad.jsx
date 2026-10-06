@@ -371,8 +371,11 @@ export default function DetalleUnidad() {
         if (event.data?.tipo === 'CAMBIO_ESTATUS' || event.data?.action === 'estatus_updated') {
           queryClient.invalidateQueries({ queryKey: ['unidades-list'] });
           queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
-          if (selectedUnidad?.eco && event.data.eco && selectedUnidad.eco === event.data.eco) {
-            queryClient.invalidateQueries({ queryKey: ['unidad-detalle', tipoTransporte, event.data.eco] });
+          if (selectedOption) {
+            const numeroLimpio = selectedOption.match(/\\d+/)?.[0];
+            if (numeroLimpio && event.data.eco && numeroLimpio === String(event.data.eco)) {
+              queryClient.invalidateQueries({ queryKey: ['unidad-detalle', tipoTransporte, numeroLimpio] });
+            }
           }
         }
       };
@@ -382,7 +385,7 @@ export default function DetalleUnidad() {
     return () => {
       if (bc) bc.close();
     };
-  }, [queryClient, tipoTransporte, selectedUnidad]);
+  }, [queryClient, tipoTransporte, selectedOption]);
 
   if (!configActual) {
     return (
