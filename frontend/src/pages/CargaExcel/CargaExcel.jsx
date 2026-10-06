@@ -93,7 +93,7 @@ export default function CargaExcel({ isPasteles = false }) {
     const headers = getAuthHeaders();
     let url = `${API_BASE}/api/despacho/hoy`;
     if (tab === 'MANANA') url = `${API_BASE}/api/despacho/manana`;
-    else if (['SABADO', 'DOMINGO', 'LUNES', 'FESTIVO'].includes(tab)) url = `${API_BASE}/api/despacho/especifico/${tab.toLowerCase()}`;
+    else if (tab === 'FESTIVO') url = `${API_BASE}/api/despacho/especifico/festivo`;
 
     const response = await fetch(url, {
       headers
@@ -752,7 +752,7 @@ export default function CargaExcel({ isPasteles = false }) {
     try {
       let url = `${API_BASE}/api/despacho/actualizar`;
       if (tabActiva === 'MANANA') url = `${API_BASE}/api/despacho/actualizar-manana`;
-      else if (['SABADO', 'DOMINGO', 'LUNES', 'FESTIVO'].includes(tabActiva)) url = `${API_BASE}/api/despacho/actualizar-especifico/${tabActiva.toLowerCase()}`;
+      else if (tabActiva === 'FESTIVO') url = `${API_BASE}/api/despacho/actualizar-especifico/festivo`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -1229,36 +1229,6 @@ export default function CargaExcel({ isPasteles = false }) {
                 Día Siguiente
               </button>
               <button
-                className={`excel-tab-btn ${tabActiva === 'SABADO' ? 'active' : ''}`}
-                onClick={() => {
-                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                  setHasChanges(false);
-                  setTabActiva('SABADO');
-                }}
-              >
-                Sábado
-              </button>
-              <button
-                className={`excel-tab-btn ${tabActiva === 'DOMINGO' ? 'active' : ''}`}
-                onClick={() => {
-                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                  setHasChanges(false);
-                  setTabActiva('DOMINGO');
-                }}
-              >
-                Domingo
-              </button>
-              <button
-                className={`excel-tab-btn ${tabActiva === 'LUNES' ? 'active' : ''}`}
-                onClick={() => {
-                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                  setHasChanges(false);
-                  setTabActiva('LUNES');
-                }}
-              >
-                Lunes
-              </button>
-              <button
                 className={`excel-tab-btn ${tabActiva === 'FESTIVO' ? 'active' : ''}`}
                 onClick={() => {
                   if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
@@ -1271,7 +1241,7 @@ export default function CargaExcel({ isPasteles = false }) {
             </div>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem 0.75rem', flexWrap: 'wrap', width: '100%' }}>
 
             <button
               type="button"

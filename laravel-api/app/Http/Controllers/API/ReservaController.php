@@ -17,15 +17,6 @@ class ReservaController extends Controller
             case 'MANANA':
                 $fecha->addDay();
                 break;
-            case 'SABADO':
-                $fecha->next(Carbon::SATURDAY);
-                break;
-            case 'DOMINGO':
-                $fecha->next(Carbon::SUNDAY);
-                break;
-            case 'LUNES':
-                $fecha->next(Carbon::MONDAY);
-                break;
             case 'FESTIVO':
             case 'HOY':
             default:
