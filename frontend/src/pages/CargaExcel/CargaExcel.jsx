@@ -1312,13 +1312,19 @@ export default function CargaExcel({ isPasteles = false }) {
     }
   };
 
+  const fechaHoyStr = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const dManana = new Date();
+  dManana.setDate(dManana.getDate() + 1);
+  const fechaMananaStr = dManana.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
   // ─── JSX ──────────────────────────────────────────────────────────────────────
   return (
     <div className="excel-layout">
       <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
       <main className="excel-main-content">
-        <div className="excel-top-bar">
-          <div className="page-header-container" style={{ margin: '0 auto 20px auto' }}>
+        <div className="excel-top-bar" style={{ flexDirection: 'column' }}>
+          <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1.5rem', marginBottom: '20px' }}>
+            <div className="page-header-container" style={{ margin: '0', flex: '1', textAlign: 'center', minWidth: '0' }}>
             <p className="page-eyebrow">
               {isRelevos ? 'GESTIÓN DE OPERACIONES' : 'SISTEMA DE'}
             </p>
@@ -1326,16 +1332,42 @@ export default function CargaExcel({ isPasteles = false }) {
               {isRelevos ? 'RELEVOS DE T6' : isPasteles ? 'PROGRAMACIÓN Y LOGÍSTICA (PASTELES)' : 'PROGRAMACIÓN Y LOGÍSTICA'}
             </h1>
             <p className="excel-subtitle">
-              {isRelevos 
-                ? 'Gestiona, asiste y concilia los relevos operativos de los T6'
-                : isPasteles
-                ? 'Organiza la programación operativa y gestiona el cambio de unidades por unidades en reserva'
-                : 'Organiza, edita y concilia la programación operativa directamente en el sistema'}
+              {isRelevos ? (
+                'Gestiona, asiste y concilia los relevos operativos de los T6'
+              ) : isPasteles ? (
+                <>Organiza la programación operativa para el día de mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
+              ) : tabActiva === 'HOY' ? (
+                <>Vista del reporte correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
+              ) : tabActiva === 'MANANA' ? (
+                <>Edición de la programación correspondiente a mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
+              ) : (
+                'Organiza, edita y concilia la programación operativa directamente en el sistema'
+              )}
             </p>
+            <div style={{ 
+              marginTop: '12px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              backgroundColor: '#fffbeb', 
+              color: '#92400e', 
+              border: '1px solid #fcd34d', 
+              padding: '8px 14px', 
+              borderRadius: '6px', 
+              fontSize: '0.85rem', 
+              fontWeight: '500',
+              visibility: (!isRelevos && (tabActiva === 'MANANA' || isPasteles)) ? 'visible' : 'hidden',
+              pointerEvents: (!isRelevos && (tabActiva === 'MANANA' || isPasteles)) ? 'auto' : 'none'
+            }}>
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span><strong>Nota importante:</strong> La programación operativa de esta pantalla se transferirá automáticamente al día en curso a las 12:00 AM (medianoche).</span>
+            </div>
           </div>
 
           {!isPasteles && (
-            <div className="excel-tabs-container">
+            <div className="excel-tabs-container" style={{ margin: '0', flexShrink: 0 }}>
               <button
                 className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
                 onClick={() => {
@@ -1368,6 +1400,7 @@ export default function CargaExcel({ isPasteles = false }) {
               </button>
             </div>
           )}
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem 0.75rem', flexWrap: 'wrap', width: '100%' }}>
 
