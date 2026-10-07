@@ -615,7 +615,7 @@ export default function CentroControl() {
                   <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
               </div>
-              <span className="centro-kpi__value">{cargando ? '—' : totales.operacion}</span>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.circulando}</span>
               <span className="centro-kpi__label">En operación</span>
             </div>
 
