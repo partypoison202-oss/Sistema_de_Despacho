@@ -4549,7 +4549,9 @@ class DespachoController extends Controller
             $tarjetonesEnExcel = [];
 
             foreach ($datos as $index => $fila) {
-                $filaNum = $index + 2;
+                $hojaStr = trim((string) ($fila['HOJA'] ?? ''));
+                $filaNum = isset($fila['FILA']) ? (int)$fila['FILA'] : ($index + 2);
+                $prefixErr = $hojaStr !== '' ? "Hoja \"{$hojaStr}\", Fila {$filaNum}:" : "Fila {$filaNum}:";
 
                 $eco = trim((string) ($fila['ECONOMICO'] ?? ($fila['eco'] ?? '')));
                 if ($eco === '') {
@@ -4557,7 +4559,7 @@ class DespachoController extends Controller
                 }
 
                 if (isset($ecosEnExcel[$eco])) {
-                    $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} está duplicado en el archivo.";
+                    $erroresFormato[] = "{$prefixErr} El económico {$eco} está duplicado en el archivo.";
                 }
                 $ecosEnExcel[$eco] = true;
 
@@ -4571,7 +4573,7 @@ class DespachoController extends Controller
                 }
 
                 if (! $unidadObj) {
-                    $erroresFormato[] = "Fila {$filaNum}: Unidad economico {$eco} no encontrada en la base de datos.";
+                    $erroresFormato[] = "{$prefixErr} Unidad económico {$eco} no encontrada en la base de datos.";
                     continue;
                 }
                 
@@ -4586,14 +4588,22 @@ class DespachoController extends Controller
 
                 $rutaStr = null;
                 $corridaNum = null;
+                $corridaVal = null;
                 if (str_contains($servicio, '-')) {
                     $partes = explode('-', $servicio);
                     $rutaStr = trim((string) ($partes[0] ?? ''));
-                    $corridaNum = isset($partes[1]) && trim((string) $partes[1]) !== '' ? (int) trim((string) $partes[1]) : null;
+                    $corridaVal = isset($partes[1]) ? trim((string) $partes[1]) : '';
                 } else {
                     $rutaStr = $servicio !== '' ? $servicio : trim((string) ($fila['ruta'] ?? ''));
                     $corridaVal = trim((string) ($fila['corrida'] ?? ''));
-                    $corridaNum = $corridaVal !== '' ? (int) $corridaVal : null;
+                }
+
+                if ($corridaVal !== '') {
+                    if (!is_numeric($corridaVal)) {
+                        $erroresFormato[] = "{$prefixErr} La corrida debe ser un número (recibido: {$corridaVal}).";
+                    } else {
+                        $corridaNum = (int) $corridaVal;
+                    }
                 }
 
                 if ($rutaStr !== '' && !str_starts_with($rutaStr, 'T')) {
@@ -4601,19 +4611,18 @@ class DespachoController extends Controller
                 }
 
                 if ($rutaStr !== '' && ! isset($rutas[$rutaStr])) {
-                    $erroresFormato[] = "Fila {$filaNum}: La ruta {$rutaStr} no existe en el sistema.";
+                    $erroresFormato[] = "{$prefixErr} La ruta {$rutaStr} no existe en el sistema.";
                 }
 
                 // Validar tecnologia (Eco vs Ruta)
                 if ($rutaStr !== '') {
-                    $ecoNum = (int) $ecoKey;
-                    $esTroncalUnidad = ($ecoNum >= 1 && $ecoNum <= 42) || str_contains($tipoUnidadDB, 'URBANUS');
-                    $tipoDisplay = $esTroncalUnidad ? 'troncal' : 'alimentadora';
+                    $ecoNumVal = (int) $ecoKey;
+                    $esTroncalUnidad = ($ecoNumVal >= 1 && $ecoNumVal <= 42) || str_contains($tipoUnidadDB, 'URBANUS');
                     
                     if ($esTroncalUnidad && !str_starts_with($rutaStr, 'T')) {
-                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es troncal, pero la ruta {$rutaStr} no lo es.";
+                        $erroresFormato[] = "{$prefixErr} El económico {$eco} es troncal, pero la ruta {$rutaStr} no lo es.";
                     } elseif (!$esTroncalUnidad && str_starts_with($rutaStr, 'T')) {
-                        $erroresFormato[] = "Fila {$filaNum}: El económico {$eco} es alimentadora, pero la ruta {$rutaStr} es troncal.";
+                        $erroresFormato[] = "{$prefixErr} El económico {$eco} es alimentadora, pero la ruta {$rutaStr} es troncal.";
                     }
                 }
 
@@ -4625,57 +4634,86 @@ class DespachoController extends Controller
                 $regexHora = '/^(?:2[0-3]|[01][0-9]):[0-5][0-9]$/';
 
                 if ($horaSalida !== '' && ! preg_match($regexHora, $horaSalida)) {
-                    $erroresFormato[] = "Fila {$filaNum}: Hora de salida de patio ({$horaSalida}) inválida.";
+                    $erroresFormato[] = "{$prefixErr} Hora de salida de patio ({$horaSalida}) inválida. Formato esperado HH:MM.";
                 }
                 if ($horaAcople !== '' && ! preg_match($regexHora, $horaAcople)) {
-                    $erroresFormato[] = "Fila {$filaNum}: Hora de acople ({$horaAcople}) inválida.";
+                    $erroresFormato[] = "{$prefixErr} Hora de acople ({$horaAcople}) inválida. Formato esperado HH:MM.";
                 }
                 if ($horaEntrada !== '' && ! preg_match($regexHora, $horaEntrada)) {
-                    $erroresFormato[] = "Fila {$filaNum}: Hora de entrada T6 ({$horaEntrada}) inválida.";
+                    $erroresFormato[] = "{$prefixErr} Hora de entrada T6 ({$horaEntrada}) inválida. Formato esperado HH:MM.";
                 }
 
                 $tarjetonStr = trim((string) ($fila['TARJETON'] ?? ($fila['tarjeton'] ?? '')));
-                if ($tarjetonStr !== '' && is_numeric($tarjetonStr)) {
-                    $tarjetonStr = str_pad($tarjetonStr, 4, '0', STR_PAD_LEFT);
-                }
-                
                 if ($tarjetonStr !== '') {
-                    if (isset($tarjetonesEnExcel[$tarjetonStr])) {
-                        $erroresFormato[] = "Fila {$filaNum}: El tarjetón {$tarjetonStr} está duplicado en el archivo.";
+                    if (!is_numeric($tarjetonStr)) {
+                        $erroresFormato[] = "{$prefixErr} El tarjetón debe contener solo números (recibido: {$tarjetonStr}).";
+                    } else {
+                        $tarjetonStr = str_pad($tarjetonStr, 4, '0', STR_PAD_LEFT);
+                        if (isset($tarjetonesEnExcel[$tarjetonStr])) {
+                            $erroresFormato[] = "{$prefixErr} El tarjetón {$tarjetonStr} está duplicado en el archivo.";
+                        }
+                        $tarjetonesEnExcel[$tarjetonStr] = true;
                     }
-                    $tarjetonesEnExcel[$tarjetonStr] = true;
                 }
 
                 $nombreConductor = null;
-                if ($tarjetonStr !== '' && isset($conductores[$tarjetonStr])) {
-                    // Convertir a Tipo Titulo como piden las reglas
-                    $nombreConductor = mb_convert_case(mb_strtolower($conductores[$tarjetonStr], 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+                if ($tarjetonStr !== '') {
+                    if (!isset($conductores[$tarjetonStr])) {
+                        $erroresFormato[] = "{$prefixErr} El conductor con tarjetón {$tarjetonStr} no existe en la base de datos.";
+                    } else {
+                        $nombreConductor = mb_convert_case(mb_strtolower($conductores[$tarjetonStr], 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+                    }
                 }
                 
                 $patioNorteBool = filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 $patioNorteVal = $patioNorteBool ? 'true' : 'false';
 
-                $insertData[] = [
-                    'unidad_id' => $unidadId,
-                    'ruta' => $rutaStr !== '' ? $rutaStr : null,
-                    'corridas' => $corridaNum,
-                    'numero_tarjeton' => $tarjetonStr !== '' ? $tarjetonStr : null,
-                    'nombre_conductor' => $nombreConductor,
-                    'tipo' => $tipoUnidadDB,
-                    'patio_norte' => $patioNorteVal,
-                    'hora_salida_patio' => $horaSalida !== '' ? $horaSalida : null,
-                    'acople' => $horaAcople !== '' ? $horaAcople : null,
-                    'estatus' => 'operacion',
-                ];
-
-                if ($horaEntrada !== '') {
-                    $entradasT6Data[] = [
-                        'fecha' => $mananaFecha,
+                // Lógica de "reserva" o "operación"
+                // Si Ruta, Tarjetón, Hora Salida, Hora Acople y Corrida están vacíos, es una reserva explícita.
+                $estaVacia = ($rutaStr === '' && $corridaVal === '' && $tarjetonStr === '' && $horaSalida === '' && $horaAcople === '');
+                
+                if ($estaVacia) {
+                    $insertData[] = [
                         'unidad_id' => $unidadId,
-                        'hora_entrada_t6' => $horaEntrada,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'estatus' => 'reserva',
+                        'patio_norte' => $patioNorteVal,
                     ];
+                } else {
+                    // Si no está vacía, DEBE tener todo lleno para ser operación
+                    $faltantes = [];
+                    if ($rutaStr === '') $faltantes[] = 'Ruta';
+                    if ($corridaVal === '') $faltantes[] = 'Corrida';
+                    if ($tarjetonStr === '') $faltantes[] = 'Tarjetón';
+                    if ($horaSalida === '') $faltantes[] = 'Hora de Salida';
+                    if ($horaAcople === '') $faltantes[] = 'Hora de Acople';
+
+                    if (count($faltantes) > 0) {
+                        $faltantesStr = implode(', ', $faltantes);
+                        $erroresFormato[] = "{$prefixErr} Faltan campos obligatorios para asignar la unidad en operación: {$faltantesStr}. Si desea enviarla a reserva, deje todas esas celdas vacías.";
+                    } else {
+                        $insertData[] = [
+                            'unidad_id' => $unidadId,
+                            'ruta' => $rutaStr,
+                            'corridas' => $corridaNum,
+                            'numero_tarjeton' => $tarjetonStr,
+                            'nombre_conductor' => $nombreConductor,
+                            'tipo' => !empty($tipoUnidadDB) ? $tipoUnidadDB : null,
+                            'patio_norte' => $patioNorteVal,
+                            'hora_salida_patio' => $horaSalida,
+                            'acople' => $horaAcople,
+                            'estatus' => 'operacion',
+                        ];
+
+                        if ($horaEntrada !== '') {
+                            $entradasT6Data[] = [
+                                'fecha' => $mananaFecha,
+                                'unidad_id' => $unidadId,
+                                'hora_entrada_t6' => $horaEntrada,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ];
+                        }
+                    }
                 }
             }
 
