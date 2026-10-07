@@ -741,17 +741,27 @@
 .excel-preview-table th.col-economico,
 .excel-preview-table td.cell-economico {
   border-right: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-  transform: translateZ(0); /* Hardware acceleration to prevent sub-pixel rendering gaps */
+  border-left: none !important;
+  transform: none !important;
+  will-change: auto !important;
 }
 
-/* Maintain bottom border for header */
+/* Ensure bottom border is kept */
 .excel-preview-table th.col-economico {
   border-bottom: 2px solid #551728 !important;
+  /* Add a shadow to the left and right that perfectly matches the maroon background to hide subpixel gaps */
+  box-shadow: -1px 0 0 0 var(--brand-maroon-bg), 1px 0 0 0 var(--brand-maroon-bg), 0 1px 0 0 rgba(0,0,0,0.1) !important;
 }
 
-/* Maintain bottom border for cells */
 .excel-preview-table td.cell-economico {
   border-bottom: 1px solid #f3f4f6 !important;
+  box-shadow: -1px 0 0 0 var(--tw-color-white), 1px 0 0 0 var(--tw-color-white) !important;
+}
+
+.excel-preview-table tbody tr:nth-child(even) td.cell-economico {
+  box-shadow: -1px 0 0 0 var(--tw-color-gray-50), 1px 0 0 0 var(--tw-color-gray-50) !important;
+}
+
+.excel-preview-table tbody tr:hover td.cell-economico {
+  box-shadow: -1px 0 0 0 var(--tw-color-gray-50), 1px 0 0 0 var(--tw-color-gray-50) !important;
 }
