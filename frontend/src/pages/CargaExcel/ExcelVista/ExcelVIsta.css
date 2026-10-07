@@ -735,3 +735,23 @@
 .excel-preview-table tbody tr:nth-child(even) td.cell-economico {
   background-color: var(--tw-color-gray-50);
 }
+
+
+/* Fix sticky rendering artifacts */
+.excel-preview-table th.col-economico,
+.excel-preview-table td.cell-economico {
+  border-right: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: translateZ(0); /* Hardware acceleration to prevent sub-pixel rendering gaps */
+}
+
+/* Maintain bottom border for header */
+.excel-preview-table th.col-economico {
+  border-bottom: 2px solid #551728 !important;
+}
+
+/* Maintain bottom border for cells */
+.excel-preview-table td.cell-economico {
+  border-bottom: 1px solid #f3f4f6 !important;
+}
