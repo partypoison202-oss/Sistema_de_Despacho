@@ -200,6 +200,17 @@ export default function ExcelPreview({
         if (pB === -1) pB = 999;
         if (pA !== pB) return pA - pB;
         return rutaA.localeCompare(rutaB, undefined, { numeric: true, sensitivity: 'base' });
+      } else if (rutaA && rutaB) {
+        // Ambas son la misma ruta (y no están vacías), ordenar por corrida
+        const cA = a.CORRIDAS != null && String(a.CORRIDAS).trim() !== '' ? parseInt(a.CORRIDAS, 10) : NaN;
+        const cB = b.CORRIDAS != null && String(b.CORRIDAS).trim() !== '' ? parseInt(b.CORRIDAS, 10) : NaN;
+        
+        const isNumA = !isNaN(cA);
+        const isNumB = !isNaN(cB);
+        
+        if (isNumA && isNumB && cA !== cB) return cA - cB;
+        if (isNumA && !isNumB) return -1;
+        if (!isNumA && isNumB) return 1;
       }
     }
 

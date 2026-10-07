@@ -33,7 +33,7 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Jeanet García Chávez', 'usuario' => 'Jeanet_Garcia', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'GCJ_A26'],
             ['nombre_completo' => 'Jesus Demetrio Peña Vargas', 'usuario' => 'Jesus_Pena', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'PVJ_A26'],
             ['nombre_completo' => 'Luis Ángel Vargas Gutiérrez', 'usuario' => 'Luis_Vargas', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'VGL_A26'],
-            
+            ['nombre_completo' => 'José Miguel Trejo Casablanca', 'usuario' => 'Jose_Trejo', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'TCJ_A26'],
             // ── Dirección de Operación ──
             ['nombre_completo' => 'José Alberto Montiel Balderrama', 'usuario' => 'Jose_Montiel', 'rol_codigo' => 'DIRECCION_OPERACION', 'modulos' => $TODOS, 'contrasena' => 'MBJ_L26'],
 
@@ -50,6 +50,7 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Daniel Luna Cortez', 'usuario' => 'Daniel_Luna', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista'], 'contrasena' => 'LCD_PY26'],
             ['nombre_completo' => 'Jorge Leal Ramírez', 'usuario' => 'Jorge_Leal', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista', 'relevos'], 'contrasena' => 'LRJ_PY26'],
             ['nombre_completo' => 'Mario Alejandro Lazcano Aguilar', 'usuario' => 'Mario_Lazcano', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista', 'relevos'], 'contrasena' => 'LAM_PY26'],
+            ['nombre_completo' => 'Aracely Sánchez Sánchez', 'usuario' => 'Aracely_Sanchez', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista', 'relevos'], 'contrasena' => 'SSA_PY26'],
 
             // ── Gestor de Operadores ──
             ['nombre_completo' => 'Iván Martínez Acosta', 'usuario' => 'Ivan_Martinez', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => ['maniobristas', 'operadores'], 'contrasena' => 'MAI_DD26'],
