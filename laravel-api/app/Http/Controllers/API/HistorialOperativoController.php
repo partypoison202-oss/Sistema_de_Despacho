@@ -609,11 +609,21 @@ class HistorialOperativoController extends Controller
 
     /**
      * Obtiene las rutas alimentadoras del día anterior para el módulo de PASTELES
+     * Prioriza el snapshot de cierre 'FIN' y utiliza 'INICIO' como fallback.
      */
     public function getHistorialAlimentadorasAyer()
     {
-        $fechaAyer = \Carbon\Carbon::yesterday()->toDateString();
-        
+        $hoy = \Carbon\Carbon::now('America/Mexico_City')->toDateString();
+
+        // Obtener dinámicamente la última fecha operativa anterior registrada en el historial
+        $fechaAyer = DB::table('historial_operativo')
+            ->where('fecha_historial', '<', $hoy)
+            ->max('fecha_historial');
+
+        if (!$fechaAyer) {
+            $fechaAyer = \Carbon\Carbon::yesterday()->toDateString();
+        }
+
         $queryBase = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
             ->where('fecha_historial', $fechaAyer)
@@ -623,6 +633,7 @@ class HistorialOperativoController extends Controller
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
+                'unidades.tipo as tipo_unidad',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor'
@@ -630,12 +641,14 @@ class HistorialOperativoController extends Controller
             ->orderBy('historial_operativo.ruta')
             ->orderBy('unidades.numero_eco');
 
-        // Intentar primero con INICIO
-        $registros = (clone $queryBase)->where('momento', 'INICIO')->get();
+        // 1. Prioridad: 'FIN' (estado de cierre operativo de la jornada anterior)
+        $momentoUsado = 'FIN';
+        $registros = (clone $queryBase)->where('momento', 'FIN')->get();
 
-        // Fallback a FIN si INICIO está vacío (por si no hubo cierre manual pero sí cierre final)
+        // 2. Fallback: 'INICIO' (si no se generó snapshot de cierre FIN)
         if ($registros->isEmpty()) {
-            $registros = (clone $queryBase)->where('momento', 'FIN')->get();
+            $momentoUsado = 'INICIO';
+            $registros = (clone $queryBase)->where('momento', 'INICIO')->get();
         }
 
         $rutas = [];
@@ -649,6 +662,7 @@ class HistorialOperativoController extends Controller
             }
             $rutas[$ruta][] = [
                 'economico' => $row->economico,
+                'tipo_unidad' => $row->tipo_unidad,
                 'tarjeton' => $row->numero_tarjeton,
                 'conductor' => $row->nombre_conductor
             ];
@@ -656,6 +670,7 @@ class HistorialOperativoController extends Controller
 
         return response()->json([
             'fecha' => $fechaAyer,
+            'momento' => $momentoUsado,
             'rutas' => $rutas
         ]);
     }
