@@ -50,7 +50,7 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Daniel Luna Cortez', 'usuario' => 'Daniel_Luna', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista'], 'contrasena' => 'LCD_PY26'],
             ['nombre_completo' => 'Jorge Leal Ramírez', 'usuario' => 'Jorge_Leal', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista', 'relevos'], 'contrasena' => 'LRJ_PY26'],
             ['nombre_completo' => 'Mario Alejandro Lazcano Aguilar', 'usuario' => 'Mario_Lazcano', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista', 'relevos'], 'contrasena' => 'LAM_PY26'],
-            ['nombre_completo' => 'Aracely Sánchez Sánchez', 'usuario' => 'Aracely_Sanchez', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista', 'relevos'], 'contrasena' => 'SSA_PY26'],
+            ['nombre_completo' => 'Aracely Sánchez Sánchez', 'usuario' => 'Aracely_Sanchez', 'rol_codigo' => 'PROGRAMACION', 'modulos' => ['capturista', 'relevos'], 'contrasena' => 'SSA_A26'],
 
             // ── Gestor de Operadores ──
             ['nombre_completo' => 'Iván Martínez Acosta', 'usuario' => 'Ivan_Martinez', 'rol_codigo' => 'GESTOR_OPERADORES', 'modulos' => ['maniobristas', 'operadores'], 'contrasena' => 'MAI_DD26'],
