@@ -799,9 +799,31 @@ class HistorialOperativoController extends Controller
             }
         }
 
+        // Obtener la bitácora de cambios y movimientos registrados para esta fecha
+        $cambios = DB::table('bitacora_cambios_unidades')
+            ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+            ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
+            ->where('bitacora_cambios_unidades.fecha', $fecha)
+            ->select(
+                'bitacora_cambios_unidades.id',
+                'unidades.numero_eco as economico',
+                'unidades.tipo as tipo_unidad',
+                'usuarios.nombre_completo as usuario_nombre',
+                'roles.nombre as usuario_rol',
+                'bitacora_cambios_unidades.tipo_accion',
+                'bitacora_cambios_unidades.estatus_anterior',
+                'bitacora_cambios_unidades.estatus_nuevo',
+                'bitacora_cambios_unidades.detalles',
+                'bitacora_cambios_unidades.created_at as hora'
+            )
+            ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+            ->get();
+
         return response()->json([
             'fecha' => $fecha,
             'programacion' => $programacion,
+            'cambios' => $cambios,
             'resumen' => [
                 'total_programadas' => $totalProgramadas,
                 'operacion' => $operacionCount,
@@ -810,8 +832,170 @@ class HistorialOperativoController extends Controller
                 'percance' => $percanceCount,
                 'con_conductor' => $conConductorCount,
                 'sin_conductor' => $sinConductorCount,
+                'total_cambios' => $cambios->count(),
                 'por_tipo' => array_values($porTipoMap),
                 'por_ruta' => array_values($porRutaMap)
+            ]
+        ]);
+    }
+
+    /**
+     * Obtiene el historial de Mesa de Control para una fecha específica.
+     */
+    public function getHistorialMesaControl($fecha)
+    {
+        $hasRelevoHist = Schema::hasColumn('historial_operativo', 'relevo_tarjeton');
+        $hasRelevoInfo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
+        $hasSalidaPatioHist = Schema::hasColumn('historial_operativo', 'hora_salida_patio');
+        $hasSalidaPatioInfo = Schema::hasColumn('informacion_operativa', 'hora_salida_patio');
+        $hasAcopleHist = Schema::hasColumn('historial_operativo', 'acople');
+        $hasAcopleInfo = Schema::hasColumn('informacion_operativa', 'acople');
+
+        // 1. Inicio
+        $inicio = DB::table('historial_operativo')
+            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->where('fecha_historial', $fecha)
+            ->where('momento', 'INICIO')
+            ->select(
+                'unidades.numero_eco as economico',
+                'unidades.tipo as tipo_unidad',
+                'historial_operativo.tipo',
+                'historial_operativo.ruta',
+                'historial_operativo.numero_tarjeton',
+                'historial_operativo.nombre_conductor',
+                'historial_operativo.estatus',
+                $hasSalidaPatioHist ? 'historial_operativo.hora_salida_patio as hora_salida' : DB::raw('NULL as hora_salida'),
+                $hasAcopleHist ? 'historial_operativo.acople' : DB::raw('NULL as acople'),
+                'historial_operativo.corridas',
+                'historial_operativo.ciclo',
+                'historial_operativo.motivo',
+                'historial_operativo.falla',
+                'historial_operativo.motivo_estatus',
+                $hasRelevoHist ? 'historial_operativo.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevoHist ? 'historial_operativo.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                $hasRelevoHist ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora')
+            )
+            ->orderBy('unidades.tipo')
+            ->orderBy('unidades.numero_eco')
+            ->get();
+
+        if ($inicio->isEmpty()) {
+            $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
+            $inicio = DB::table('historial_operativo')
+                ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->where('fecha_historial', $prevDate)
+                ->where('momento', 'FIN')
+                ->select(
+                    'unidades.numero_eco as economico',
+                    'unidades.tipo as tipo_unidad',
+                    'historial_operativo.tipo',
+                    'historial_operativo.ruta',
+                    'historial_operativo.numero_tarjeton',
+                    'historial_operativo.nombre_conductor',
+                    'historial_operativo.estatus',
+                    $hasSalidaPatioHist ? 'historial_operativo.hora_salida_patio as hora_salida' : DB::raw('NULL as hora_salida'),
+                    $hasAcopleHist ? 'historial_operativo.acople' : DB::raw('NULL as acople'),
+                    'historial_operativo.corridas',
+                    'historial_operativo.ciclo',
+                    'historial_operativo.motivo',
+                    'historial_operativo.falla',
+                    'historial_operativo.motivo_estatus',
+                    $hasRelevoHist ? 'historial_operativo.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                    $hasRelevoHist ? 'historial_operativo.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                    $hasRelevoHist ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora')
+                )
+                ->orderBy('unidades.tipo')
+                ->orderBy('unidades.numero_eco')
+                ->get();
+        }
+
+        // 2. Cambios (Bitácora de movimientos)
+        $cambios = DB::table('bitacora_cambios_unidades')
+            ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+            ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
+            ->where('bitacora_cambios_unidades.fecha', $fecha)
+            ->select(
+                'bitacora_cambios_unidades.id',
+                'unidades.numero_eco as economico',
+                'unidades.tipo as tipo_unidad',
+                'usuarios.nombre_completo as usuario_nombre',
+                'roles.nombre as usuario_rol',
+                'bitacora_cambios_unidades.tipo_accion',
+                'bitacora_cambios_unidades.estatus_anterior',
+                'bitacora_cambios_unidades.estatus_nuevo',
+                'bitacora_cambios_unidades.detalles',
+                'bitacora_cambios_unidades.created_at as hora'
+            )
+            ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+            ->get();
+
+        // 3. Fin / Estado Actual
+        $fin = DB::table('historial_operativo')
+            ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->where('fecha_historial', $fecha)
+            ->where('momento', 'FIN')
+            ->select(
+                'unidades.numero_eco as economico',
+                'unidades.tipo as tipo_unidad',
+                'historial_operativo.tipo',
+                'historial_operativo.ruta',
+                'historial_operativo.numero_tarjeton',
+                'historial_operativo.nombre_conductor',
+                'historial_operativo.estatus',
+                $hasSalidaPatioHist ? 'historial_operativo.hora_salida_patio as hora_salida' : DB::raw('NULL as hora_salida'),
+                $hasAcopleHist ? 'historial_operativo.acople' : DB::raw('NULL as acople'),
+                'historial_operativo.corridas',
+                'historial_operativo.ciclo',
+                'historial_operativo.motivo',
+                'historial_operativo.falla',
+                'historial_operativo.motivo_estatus',
+                $hasRelevoHist ? 'historial_operativo.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                $hasRelevoHist ? 'historial_operativo.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                $hasRelevoHist ? 'historial_operativo.relevo_hora' : DB::raw('NULL as relevo_hora')
+            )
+            ->orderBy('unidades.tipo')
+            ->orderBy('unidades.numero_eco')
+            ->get();
+
+        if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
+            $fin = DB::table('informacion_operativa')
+                ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->select(
+                    'unidades.numero_eco as economico',
+                    'unidades.tipo as tipo_unidad',
+                    'informacion_operativa.tipo',
+                    'informacion_operativa.ruta',
+                    'informacion_operativa.numero_tarjeton',
+                    'informacion_operativa.nombre_conductor',
+                    'informacion_operativa.estatus',
+                    $hasSalidaPatioInfo ? 'informacion_operativa.hora_salida_patio as hora_salida' : DB::raw('NULL as hora_salida'),
+                    $hasAcopleInfo ? 'informacion_operativa.acople' : DB::raw('NULL as acople'),
+                    'informacion_operativa.corridas',
+                    'informacion_operativa.ciclo',
+                    'informacion_operativa.motivo',
+                    'informacion_operativa.falla',
+                    'informacion_operativa.motivo_estatus',
+                    $hasRelevoInfo ? 'informacion_operativa.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
+                    $hasRelevoInfo ? 'informacion_operativa.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                    $hasRelevoInfo ? 'informacion_operativa.relevo_hora' : DB::raw('NULL as relevo_hora')
+                )
+                ->orderBy('informacion_operativa.tipo')
+                ->orderBy('unidades.numero_eco')
+                ->get();
+        }
+
+        return response()->json([
+            'fecha' => $fecha,
+            'inicio' => $inicio,
+            'cambios' => $cambios,
+            'fin' => $fin,
+            'resumen' => [
+                'total_cambios' => $cambios->count(),
+                'total_operacion' => $fin->filter(fn($u) => str_contains(strtolower($u->estatus ?? ''), 'operaci'))->count(),
+                'total_reserva' => $fin->filter(fn($u) => str_contains(strtolower($u->estatus ?? ''), 'reserva'))->count(),
+                'total_mantenimiento' => $fin->filter(fn($u) => str_contains(strtolower($u->estatus ?? ''), 'mantenimiento'))->count(),
+                'total_percance' => $fin->filter(fn($u) => str_contains(strtolower($u->estatus ?? ''), 'percance'))->count(),
             ]
         ]);
     }

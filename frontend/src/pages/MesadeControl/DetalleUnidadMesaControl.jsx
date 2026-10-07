@@ -26,7 +26,7 @@ export default function DetalleUnidadMesaControl() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { canEditModulo } = useContext(AuthContext);
-  const isLectura = !canEditModulo('mesacontrol');
+  const isLectura = !canEditModulo('mesa_control') && !canEditModulo('mesacontrol');
 
   // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
