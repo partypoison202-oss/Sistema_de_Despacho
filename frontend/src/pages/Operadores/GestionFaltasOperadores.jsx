@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
+import { AuthContext } from '../../context/AuthContext';
 
 const getFaltasArray = (conductor) => {
   if (!conductor) return [];
@@ -79,6 +80,9 @@ const calcularEstadoPlazoFalta = (fechaStr) => {
 };
 
 export default function GestionFaltasOperadores({ conductores = [], onRefresh, getAuthHeaders, readOnly = false, initialBusqueda = '' }) {
+  const { user } = useContext(AuthContext) || {};
+  const isAdmin = user?.role?.codigo === 'ADMINISTRADOR' || String(user?.role?.nombre || '').toLowerCase() === 'administrador' || user?.rol === 'admin';
+
   const [busqueda, setBusqueda] = useState(initialBusqueda);
   const [filtroEstatus, setFiltroEstatus] = useState('TODOS'); // TODOS, PENDIENTES, JUSTIFICADAS
   const [conductorSeleccionado, setConductorSeleccionado] = useState(null);
@@ -361,6 +365,72 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       Swal.fire({
         icon: 'error',
         title: 'Error',
+        text: err.message,
+        confirmButtonColor: '#6b1d33'
+      });
+    }
+  };
+
+  // Handler para eliminar/anular una falta (Solo Administradores)
+  const handleEliminarFalta = async (faltaInfo) => {
+    if (!conductorActualData) return;
+
+    const { value: motivo } = await Swal.fire({
+      title: '¿Eliminar Falta?',
+      html: `
+        <div style="text-align: left; font-size: 13px; color: #475569; line-height: 1.5;">
+          <p>Estás a punto de <strong>eliminar esta falta</strong> del expediente de <strong>${conductorActualData.nombre || conductorActualData.nombres}</strong> (Tarjetón: ${conductorActualData.tarjeton}).</p>
+          <p style="color: #dc2626; font-weight: bold; margin-top: 8px;">⚠️ Se descontará del conteo activo y se recalculará el estatus del operador.</p>
+        </div>
+      `,
+      input: 'text',
+      inputLabel: 'Motivo de la anulación / retiro (opcional):',
+      inputPlaceholder: 'Ej. Condonación administrativa, error de captura, etc.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, eliminar falta',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (motivo === undefined) return; // Cancelado por usuario
+
+    try {
+      const headers = getAuthHeaders ? getAuthHeaders() : { 'Content-Type': 'application/json' };
+      headers['Content-Type'] = 'application/json';
+
+      const bodyData = {
+        motivo_anulacion: motivo || 'Eliminada por Administrador'
+      };
+      if (faltaInfo.id) bodyData.falta_id = faltaInfo.id;
+      if (faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
+      if (faltaInfo.fecha) bodyData.fecha_falta = faltaInfo.fecha;
+
+      const res = await fetch(`${API_BASE}/api/conductores/${conductorActualData.id}/eliminar-falta`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(bodyData)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Error al eliminar falta');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Falta Eliminada',
+        text: 'La falta ha sido removida del expediente y se actualizaron los estatus correspondientes.',
+        confirmButtonColor: '#10b981',
+        timer: 2000
+      });
+
+      if (typeof onRefresh === 'function') {
+        onRefresh();
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al Eliminar',
         text: err.message,
         confirmButtonColor: '#6b1d33'
       });
@@ -792,71 +862,135 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                         </div>
 
                         {/* Botones de acción por falta */}
-                        <div className="flex items-center gap-2">
-                          {esJustificada ? (() => {
-                            const rawUrl = falta.justificante_url || '';
-                            let finalUrl = '#';
-                            if (rawUrl) {
-                              if (rawUrl.includes('/justificantes/')) {
-                                const filename = rawUrl.split('/justificantes/').pop();
-                                finalUrl = `${API_BASE}/api/justificantes/${filename}`;
-                              } else if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-                                finalUrl = rawUrl;
-                              } else {
-                                finalUrl = `${API_BASE}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
-                              }
-                            }
-                            return (
-                              <a
-                                href={finalUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                                </svg>
-                                Ver Comprobante
-                              </a>
-                            );
-                          })() : estadoPlazo?.vencida ? (
-                            <button
-                              type="button"
-                              disabled
-                              title="Esta falta no se puede justificar porque superó el plazo máximo de 3 días naturales."
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 text-slate-400 font-bold text-xs rounded-lg cursor-not-allowed border border-slate-300 shadow-none"
-                            >
-                              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
-                              Plazo Expirado
-                            </button>
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          {esJustificada ? (
+                            <>
+                              {(() => {
+                                const rawUrl = falta.justificante_url || '';
+                                let finalUrl = '#';
+                                if (rawUrl) {
+                                  if (rawUrl.includes('/justificantes/')) {
+                                    const filename = rawUrl.split('/justificantes/').pop();
+                                    finalUrl = `${API_BASE}/api/justificantes/${filename}`;
+                                  } else if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+                                    finalUrl = rawUrl;
+                                  } else {
+                                    finalUrl = `${API_BASE}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+                                  }
+                                }
+                                return (
+                                  <a
+                                    href={finalUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                    </svg>
+                                    Ver Comprobante
+                                  </a>
+                                );
+                              })()}
+                              {isAdmin && !readOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleEliminarFalta({ ...falta, index: idx })}
+                                  title="Eliminar falta del expediente"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs rounded-lg transition-colors shadow-sm"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                  </svg>
+                                  Eliminar
+                                </button>
+                              )}
+                            </>
                           ) : (
                             !readOnly && (
                               <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleMarcarRetardo({ ...falta, index: idx })}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  Retardo
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setFaltaAJustificar({ ...falta, index: idx });
-                                    setModalSubidaOpen(true);
-                                  }}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                                  </svg>
-                                  Subir Justificante
-                                </button>
+                                {estadoPlazo?.vencida ? (
+                                  isAdmin ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setFaltaAJustificar({ ...falta, index: idx });
+                                          setModalSubidaOpen(true);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                                        title="Justificar falta extemporánea (Autorización Administrador)"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                        </svg>
+                                        Justificar (Admin)
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEliminarFalta({ ...falta, index: idx })}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-800 hover:bg-red-900 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                                        title="Eliminar falta del expediente"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                        </svg>
+                                        Eliminar Falta
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled
+                                      title="Esta falta no se puede justificar porque superó el plazo máximo de 3 días naturales."
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 text-slate-400 font-bold text-xs rounded-lg cursor-not-allowed border border-slate-300 shadow-none"
+                                    >
+                                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                      </svg>
+                                      Plazo Expirado
+                                    </button>
+                                  )
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMarcarRetardo({ ...falta, index: idx })}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                      Retardo
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setFaltaAJustificar({ ...falta, index: idx });
+                                        setModalSubidaOpen(true);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                      </svg>
+                                      Subir Justificante
+                                    </button>
+                                    {isAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEliminarFalta({ ...falta, index: idx })}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-100 hover:bg-red-200 text-red-800 font-bold text-xs rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                                        title="Eliminar falta del expediente"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                        </svg>
+                                        Eliminar
+                                      </button>
+                                    )}
+                                  </>
+                                )}
                               </>
                             )
                           )}
