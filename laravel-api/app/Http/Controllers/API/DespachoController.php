@@ -1934,6 +1934,22 @@ class DespachoController extends Controller
                     }
                 }
 
+                if ($request->has('ruta') && ! empty($request->ruta)) {
+                    $updateData['ruta'] = $request->ruta;
+                }
+                if ($request->has('tarjeton') && ! empty($request->tarjeton)) {
+                    $updateData['numero_tarjeton'] = $request->tarjeton;
+                }
+                if ($request->has('conductor') && ! empty($request->conductor)) {
+                    $updateData['nombre_conductor'] = $request->conductor;
+                }
+                if ($request->has('corridas') && $request->corridas !== null) {
+                    $updateData['corridas'] = $request->corridas;
+                }
+                if ($request->has('corrida') && $request->corrida !== null) {
+                    $updateData['corridas'] = $request->corrida;
+                }
+
                 if ($request->has('observaciones')) {
                     $updateData['observaciones'] = $request->observaciones;
                 }
@@ -2065,14 +2081,24 @@ class DespachoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        $formateados = $registros->map(function ($reg) use ($idsEncerradasHoy) {
-            $isEncerrada = in_array((int) $reg->unidad_id, $idsEncerradasHoy, true);
-            $estatusNorm = strtolower(trim($reg->estatus ?? ''));
-            // Solo ocultamos datos de unidades en mantenimiento/percance o ya encerradas.
-            // Las unidades en 'reserva' SÍ deben enviar su hora_real_salida_patio para
-            // que el frontend pueda calcular dinámicamente cuántas han salido y cuántas siguen en reserva.
-            $isDesincorporada = $isEncerrada || in_array($estatusNorm, ['mantenimiento', 'percance'], true);
+        $formateados = $registros->map(function ($reg) use ($idsEncerradasHoy, $horaActual) {
+            $estatusNorm = strtolower(trim($reg->estatus ?? 'reserva'));
+            $isOperacion = ($estatusNorm === 'operacion');
+
+            // Una unidad solo está encerrada si NO está en operación y figura en historial de encierro
+            $isEncerrada = ! $isOperacion && in_array((int) $reg->unidad_id, $idsEncerradasHoy, true);
+
+            // Solo desincorporamos datos de servicio si está en mantenimiento o percance
+            $isDesincorporada = in_array($estatusNorm, ['mantenimiento', 'percance'], true);
             $horaSalidaEfectiva = $isDesincorporada ? null : $reg->hora_real_salida_patio;
+
+            // Relevo dinámico si ya entró en vigor por horario
+            $conductorEfectivo = $reg->nombre_conductor;
+            $tarjetonEfectivo = $reg->tarjeton;
+            if (! empty($reg->relevo_hora) && ! empty($reg->relevo_conductor) && $horaActual >= $reg->relevo_hora) {
+                $conductorEfectivo = $reg->relevo_conductor;
+                $tarjetonEfectivo = $reg->relevo_tarjeton;
+            }
 
             return [
                 'UNIDAD_ID' => $reg->unidad_id,
@@ -2080,8 +2106,10 @@ class DespachoController extends Controller
                 'TIPO_DE_UNIDAD' => strtoupper((string) ($reg->tipo ?? '')),
                 'RUTA' => $isDesincorporada ? null : $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
-                'TARJETON' => $isDesincorporada ? null : $reg->tarjeton,
-                'NOMBRE_CONDUCTOR' => $isDesincorporada ? null : $reg->nombre_conductor,
+                'TARJETON' => $isDesincorporada ? null : ($tarjetonEfectivo ?: $reg->tarjeton),
+                'NOMBRE_CONDUCTOR' => $isDesincorporada ? null : ($conductorEfectivo ?: $reg->nombre_conductor),
+                'TARJETON_TITULAR' => $reg->tarjeton,
+                'CONDUCTOR_TITULAR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $isDesincorporada ? null : $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $isDesincorporada ? null : $reg->nombre_maniobrista,
                 'RELEVO_TARJETON' => $isDesincorporada ? null : ($reg->relevo_tarjeton ?? ''),
@@ -2594,6 +2622,9 @@ class DespachoController extends Controller
                 }
                 if ($request->has('conductor')) {
                     $updateData['nombre_conductor'] = $request->conductor;
+                }
+                if ($request->has('corridas') || $request->has('corrida')) {
+                    $updateData['corridas'] = $request->corridas ?? $request->corrida;
                 }
                 if ($request->has('hora_salida_patio')) {
                     $updateData['hora_salida_patio'] = $request->hora_salida_patio;
