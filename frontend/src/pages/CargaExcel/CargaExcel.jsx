@@ -1016,10 +1016,29 @@ export default function CargaExcel({ isPasteles = false }) {
           
           if (!jsonData || jsonData.length === 0) return;
 
+          // Validar columnas requeridas globalmente en la hoja
+          const firstRowKeys = Object.keys(jsonData[0] || {}).map(k => k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_'));
+          const requiredCols = {
+              'ECONOMICO': 'ECONOMICO',
+              'SERVICIO': 'SERVICIO',
+              'TARJETON': 'TARJETON',
+              'HORA_DE_SALIDA_DE_PATIO': 'HORA DE SALIDA DE PATIO',
+              'HORA_DE_ACOPLE': 'HORA DE ACOPLE'
+          };
           
-            if (tabActiva === 'MANANA') {
-                // Para MANANA, acumulamos todo directo para mandar al backend
-                jsonData.forEach((row, index) => {
+          let faltanColumnas = false;
+          Object.keys(requiredCols).forEach(reqKey => {
+              if (!firstRowKeys.includes(reqKey)) {
+                  errores.push(`Hoja "${sheetName}": Falta la columna obligatoria "${requiredCols[reqKey]}". Por favor usa la plantilla correcta.`);
+                  faltanColumnas = true;
+              }
+          });
+          
+          if (faltanColumnas) return; // Si faltan columnas, saltarse el procesamiento de filas de esta hoja
+          
+          if (tabActiva === 'MANANA') {
+              // Para MANANA, acumulamos todo directo para mandar al backend
+              jsonData.forEach((row, index) => {
                     const normalizedRow = {};
                     Object.keys(row).forEach(k => {
                         const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
