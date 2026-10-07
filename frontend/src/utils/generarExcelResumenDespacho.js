@@ -271,7 +271,9 @@ export async function descargarResumenDespachoExcel(setLoading) {
                 ws.addImage(imgId, { tl: { col: bus.col + offsetCol, row: 6 + offsetRow }, ext: { width: bus.w, height: bus.h } });
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        // Ignorar fallo al cargar imagenes decorativas
+    }
 
     const r8 = ws.getRow(8); r8.height = 40;
     ws.getCell('A8').value = 'Eficiencia';
