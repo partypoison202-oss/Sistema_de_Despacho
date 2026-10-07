@@ -701,22 +701,11 @@
 }
 
 
-/* STICKY COLUMNS: Tipo de Unidad & Económico */
-.excel-preview-table th.col-tipo_de_unidad,
-.excel-preview-table td.cell-tipo_de_unidad {
-  position: sticky;
-  left: 0;
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
-  z-index: 15;
-  background-color: var(--tw-color-white);
-}
-
+/* STICKY COLUMNS: Económico only */
 .excel-preview-table th.col-economico,
 .excel-preview-table td.cell-economico {
   position: sticky;
-  left: 140px;
+  left: 0;
   width: 110px;
   min-width: 110px;
   max-width: 110px;
@@ -726,7 +715,6 @@
 }
 
 /* Ensure the sticky headers stay above everything including sticky table cells */
-.excel-preview-table th.col-tipo_de_unidad,
 .excel-preview-table th.col-economico {
   z-index: 30;
   background-color: var(--brand-maroon-bg);
@@ -740,12 +728,10 @@
 }
 
 /* Match hover and even row background colors for sticky cells to avoid weird transparency */
-.excel-preview-table tbody tr:hover td.cell-tipo_de_unidad,
 .excel-preview-table tbody tr:hover td.cell-economico {
   background-color: var(--tw-color-gray-50) !important;
 }
 
-.excel-preview-table tbody tr:nth-child(even) td.cell-tipo_de_unidad,
 .excel-preview-table tbody tr:nth-child(even) td.cell-economico {
   background-color: var(--tw-color-gray-50);
 }
