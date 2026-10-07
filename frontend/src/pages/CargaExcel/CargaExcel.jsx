@@ -1019,7 +1019,7 @@ export default function CargaExcel({ isPasteles = false }) {
           
             if (tabActiva === 'MANANA') {
                 // Para MANANA, acumulamos todo directo para mandar al backend
-                jsonData.forEach(row => {
+                jsonData.forEach((row, index) => {
                     const normalizedRow = {};
                     Object.keys(row).forEach(k => {
                         const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
@@ -1042,6 +1042,8 @@ export default function CargaExcel({ isPasteles = false }) {
                     if (normalizedRow['ECONOMICO']) {
                         const isPatioNorte = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'TRUE' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === '1' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SÍ' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SI';
                         actualizaciones.push({
+                            'HOJA': sheetName,
+                            'FILA': index + 2,
                             'ECONOMICO': normalizedRow['ECONOMICO'],
                             'SERVICIO': normalizedRow['SERVICIO'],
                             'TARJETON': normalizedRow['TARJETON'],
