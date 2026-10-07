@@ -2123,6 +2123,7 @@ class DespachoController extends Controller
         if (DB::table('informacion_operativa_manana')->count() === 0) {
             $hoy = DB::table('informacion_operativa')->get();
             $targetCols = array_flip(Schema::getColumnListing('informacion_operativa_manana'));
+            $bulkInserts = [];
             foreach ($hoy as $row) {
                 unset($row->id);
                 $arrayRow = (array) $row;
@@ -2145,7 +2146,10 @@ class DespachoController extends Controller
                     $insertRow['firma_base64'] = null;
                 }
 
-                DB::table('informacion_operativa_manana')->insert($insertRow);
+                $bulkInserts[] = $insertRow;
+            }
+            foreach (array_chunk($bulkInserts, 100) as $chunk) {
+                DB::table('informacion_operativa_manana')->insert($chunk);
             }
         }
 
@@ -2221,6 +2225,7 @@ class DespachoController extends Controller
         if (DB::table($tableName)->count() === 0) {
             $hoy = DB::table('informacion_operativa')->get();
             $targetCols = array_flip(Schema::getColumnListing($tableName));
+            $bulkInserts = [];
             foreach ($hoy as $row) {
                 unset($row->id);
                 $arrayRow = (array) $row;
@@ -2234,7 +2239,10 @@ class DespachoController extends Controller
                         }
                     }
                 }
-                DB::table($tableName)->insert($insertRow);
+                $bulkInserts[] = $insertRow;
+            }
+            foreach (array_chunk($bulkInserts, 100) as $chunk) {
+                DB::table($tableName)->insert($chunk);
             }
         }
 
@@ -2305,6 +2313,7 @@ class DespachoController extends Controller
         if (DB::table('informacion_operativa_manana')->count() === 0) {
             $hoy = DB::table('informacion_operativa')->get();
             $targetCols = array_flip(Schema::getColumnListing('informacion_operativa_manana'));
+            $bulkInserts = [];
             foreach ($hoy as $row) {
                 unset($row->id);
                 $arrayRow = (array) $row;
@@ -2327,7 +2336,10 @@ class DespachoController extends Controller
                     $insertRow['firma_base64'] = null;
                 }
 
-                DB::table('informacion_operativa_manana')->insert($insertRow);
+                $bulkInserts[] = $insertRow;
+            }
+            foreach (array_chunk($bulkInserts, 100) as $chunk) {
+                DB::table('informacion_operativa_manana')->insert($chunk);
             }
         }
 
