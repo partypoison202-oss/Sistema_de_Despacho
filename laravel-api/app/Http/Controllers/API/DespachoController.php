@@ -767,7 +767,10 @@ class DespachoController extends Controller
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
 
-        $unidadesRaw = DB::table('unidades')->select('id', 'numero_eco')->get();
+        $unidadesRaw = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->select('unidades.id', 'unidades.numero_eco', DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_display'))
+            ->get();
         $unidadesMap = collect();
         foreach ($unidadesRaw as $u) {
             $eco = trim((string) $u->numero_eco);
@@ -890,7 +893,7 @@ class DespachoController extends Controller
                 'corridas' => $corridasVal === '' ? null : (int) $corridasVal,
                 'hora_salida_patio' => $horaProgVal === '' ? null : $horaProgVal,
                 'acople' => $acopleVal === '' ? null : $acopleVal,
-                'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
+                'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? '')) ?: ($unidad->tipo_display ?? 'Desconocido'),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte' => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
@@ -981,7 +984,10 @@ class DespachoController extends Controller
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
 
-        $unidadesRaw = DB::table('unidades')->select('id', 'numero_eco')->get();
+        $unidadesRaw = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->select('unidades.id', 'unidades.numero_eco', DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_display'))
+            ->get();
         $unidadesMap = collect();
         foreach ($unidadesRaw as $u) {
             $eco = trim((string) $u->numero_eco);
@@ -1094,7 +1100,7 @@ class DespachoController extends Controller
                 'corridas' => $corridasVal === '' ? null : (int) $corridasVal,
                 'hora_salida_patio' => $horaProgVal === '' ? null : $horaProgVal,
                 'acople' => $acopleVal === '' ? null : $acopleVal,
-                'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
+                'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? '')) ?: ($unidad->tipo_display ?? 'Desconocido'),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte' => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
@@ -1175,7 +1181,10 @@ class DespachoController extends Controller
         $request->validate(['unidades' => 'required|array']);
         $unidadesReq = $request->input('unidades');
 
-        $unidadesRaw = DB::table('unidades')->select('id', 'numero_eco')->get();
+        $unidadesRaw = DB::table('unidades')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->select('unidades.id', 'unidades.numero_eco', DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_display'))
+            ->get();
         $unidadesMap = collect();
         foreach ($unidadesRaw as $u) {
             $eco = trim((string) $u->numero_eco);
@@ -1288,7 +1297,7 @@ class DespachoController extends Controller
                 'corridas' => $corridasVal === '' ? null : (int) $corridasVal,
                 'hora_salida_patio' => $horaProgVal === '' ? null : $horaProgVal,
                 'acople' => $acopleVal === '' ? null : $acopleVal,
-                'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? 'Desconocido')),
+                'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? '')) ?: ($unidad->tipo_display ?? 'Desconocido'),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte' => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
