@@ -726,6 +726,10 @@ export default function DetalleUnidad() {
         numero_eco: numeroLimpio,
         hora_salida_patio: horaSalidaPatio,
         acople: acople,
+        ...(datosOperativos.ruta && { ruta: datosOperativos.ruta }),
+        ...(datosOperativos.tarjeton && { tarjeton: datosOperativos.tarjeton }),
+        ...(datosOperativos.conductor && { conductor: datosOperativos.conductor }),
+        ...(datosOperativos.corrida && { corridas: datosOperativos.corrida }),
       };
       
       if (horaRealSalidaPatio !== null) {
@@ -750,10 +754,22 @@ export default function DetalleUnidad() {
           ...(horaRealSalidaPatio !== null && { horaRealSalidaPatio: horaRealSalidaPatio })
         }));
 
-        // Invalidar queries para que la unidad desaparezca de la lista al instante
+        // Invalidar queries para que la unidad y el monitoreo se actualicen al instante
         queryClient.invalidateQueries(['unidades-list', tipoTransporte]);
         queryClient.invalidateQueries(['unidad-detalle', tipoTransporte, numeroLimpio]);
         queryClient.invalidateQueries(['unidades-por-ruta', tipoTransporte]);
+        queryClient.invalidateQueries(['despacho-hoy']);
+        queryClient.invalidateQueries(['conteo-unidades-global']);
+
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', action: 'estatus_updated', eco: numeroLimpio });
+            bc.close();
+          }
+        } catch (errBc) {
+          console.error(errBc);
+        }
 
         // Auto-avanzar si es una validación de salida (agilidad)
         if (horaRealSalidaPatio !== null) {
