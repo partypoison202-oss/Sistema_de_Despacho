@@ -1383,6 +1383,7 @@ class DespachoController extends Controller
                 DB::table('informacion_operativa')->delete();
 
                 $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+                $inicialCols = array_flip(Schema::getColumnListing('programacion_inicial'));
                 $tarjetones = [];
                 $maniobristas = [];
 
@@ -1407,11 +1408,16 @@ class DespachoController extends Controller
                     // Si el estatus es 'reserva', no lo guardamos en la tabla de programación inicial porque
                     // queremos que solo quede "lo del excel" (las que realmente se programaron a ruta)
                     if (($insertRow['estatus'] ?? '') !== 'reserva') {
-                        $inicialRow = $insertRow;
-                        $inicialRow['fecha'] = $fechaHoy;
-                        $inicialRow['created_at'] = now();
-                        $inicialRow['updated_at'] = now();
-                        $inicialInsert[] = $inicialRow;
+                        $inicialRowFiltered = [];
+                        foreach ($insertRow as $k => $v) {
+                            if (isset($inicialCols[$k])) {
+                                $inicialRowFiltered[$k] = $v;
+                            }
+                        }
+                        $inicialRowFiltered['fecha'] = $fechaHoy;
+                        $inicialRowFiltered['created_at'] = now();
+                        $inicialRowFiltered['updated_at'] = now();
+                        $inicialInsert[] = $inicialRowFiltered;
                     }
 
                     // Reiniciar campos de validación para el nuevo día
