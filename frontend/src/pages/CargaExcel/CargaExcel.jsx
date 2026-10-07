@@ -1446,9 +1446,11 @@ export default function CargaExcel({ isPasteles = false }) {
                 <input
                   type="file"
                   accept=".xlsx, .xls, .csv"
+                  multiple={false}
                   ref={fileInputRef}
                   style={{ display: 'none' }}
                   onChange={handleUploadExcel}
+                  onClick={(e) => { e.target.value = null; }}
                 />
                 <button
                   type="button"
