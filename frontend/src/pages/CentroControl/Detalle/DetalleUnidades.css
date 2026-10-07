@@ -86,14 +86,14 @@
 /* ---------- KPIs por estatus ---------- */
 .detalle-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 14px;
   margin-bottom: 24px;
 }
 
 @media (max-width: 900px) {
   .detalle-kpis {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -153,6 +153,13 @@
 }
 .detalle-kpi--mantenimiento .detalle-kpi__value {
   color: var(--status-yellow-text);
+}
+
+.detalle-kpi--percance {
+  border-left-color: #e11d48;
+}
+.detalle-kpi--percance .detalle-kpi__value {
+  color: #e11d48;
 }
 
 /* ---------- Filtros y Buscador ---------- */

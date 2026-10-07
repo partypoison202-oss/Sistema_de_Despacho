@@ -197,6 +197,10 @@ export default function DetalleUnidades() {
             <span className="detalle-kpi__value">{model.mantenimiento ?? 0}</span>
             <span className="detalle-kpi__label">Mantenimiento</span>
           </div>
+          <div className="detalle-kpi detalle-kpi--percance">
+            <span className="detalle-kpi__value">{model.percance ?? 0}</span>
+            <span className="detalle-kpi__label">Percance</span>
+          </div>
         </section>
 
         {/* ---- Tabs de filtro por estatus y Buscador ---- */}

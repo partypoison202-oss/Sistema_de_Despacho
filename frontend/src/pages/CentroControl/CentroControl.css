@@ -82,12 +82,18 @@
 /* ---------- KPIs globales ---------- */
 .centro-kpis {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
   margin-bottom: 36px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
+  .centro-kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
   .centro-kpis {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -187,6 +193,17 @@
 }
 .centro-kpi--mantenimiento .centro-kpi__value {
   color: var(--cc-mantenimiento);
+}
+
+.centro-kpi--percance {
+  border-left-color: #dc2626;
+}
+.centro-kpi--percance .centro-kpi__icon {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.centro-kpi--percance .centro-kpi__value {
+  color: #dc2626;
 }
 
 /* ---------- Encabezado de sección ---------- */
@@ -296,6 +313,9 @@
 .centro-bar__seg--mantenimiento {
   background: var(--cc-mantenimiento);
 }
+.centro-bar__seg--percance {
+  background: #dc2626;
+}
 
 /* Lista de estatus */
 .centro-status-list {
@@ -328,6 +348,9 @@
 .centro-status-dot--mantenimiento {
   background: var(--cc-mantenimiento);
 }
+.centro-status-dot--percance {
+  background: #dc2626;
+}
 .centro-status-dot--otros {
   background: var(--cc-otros);
 }
@@ -355,6 +378,10 @@
 .centro-status-percent--mantenimiento {
   color: var(--cc-mantenimiento);
   background: var(--cc-mantenimiento-bg);
+}
+.centro-status-percent--percance {
+  color: #dc2626;
+  background: #fef2f2;
 }
 .centro-status-value {
   font-size: 0.95rem;
