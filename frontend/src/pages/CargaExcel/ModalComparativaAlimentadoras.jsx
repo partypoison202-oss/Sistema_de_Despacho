@@ -21,13 +21,13 @@ const fetchHistorialAlimentadoras = async () => {
 
 const normalizeTarjeton = (t) => {
   const n = parseInt(String(t || '').trim(), 10);
-  return isNaN(n) ? String(t || '').trim() : String(n);
+  return Number.isNaN(n) ? String(t || '').trim() : String(n);
 };
 
 const displayTarjeton = (t) => {
   const raw = String(t || '').trim();
   const n = parseInt(raw, 10);
-  if (isNaN(n)) return raw;
+  if (Number.isNaN(n)) return raw;
   return String(n).padStart(4, '0');
 };
 
@@ -48,15 +48,17 @@ const ModalComparativaAlimentadoras = ({
   // Tarjetones que ya están asignados en la tabla actual de hoy
   const tarjetonesEnUso = useMemo(() => {
     return new Set(
-      (previewData || []).flatMap((f) => [
-        f['TARJETON'],
-        f['RELEVO_TARJETON'],
-        f['TARJETON_MANIOBRISTA'],
-      ]).filter((t) => t != null && String(t).trim() !== '').map(normalizeTarjeton)
+      (previewData || [])
+        .flatMap((f) =>
+          f ? [f['TARJETON'], f['RELEVO_TARJETON'], f['TARJETON_MANIOBRISTA']] : []
+        )
+        .filter((t) => t != null && String(t).trim() !== '')
+        .map(normalizeTarjeton)
     );
   }, [previewData]);
 
   const getEstadoEfectivo = (conductor) => {
+    if (!conductor) return 'disponible';
     if (conductor.estatus === 'inhabilitado') return 'inhabilitado';
     const tarjNorm = normalizeTarjeton(conductor.tarjeton);
     if (tarjetonesEnUso.has(tarjNorm)) return 'en_servicio';
@@ -87,27 +89,30 @@ const ModalComparativaAlimentadoras = ({
 
   // Catálogo exclusivo de rutas alimentadoras para el selector en modo edición ordenadas de 1A a 20B
   const availableRoutesAll = useMemo(() => {
-    const list = catalogRutasObj.alimentadoras || [];
+    const list = catalogRutasObj?.alimentadoras || [];
     return Array.from(new Set(list.filter(Boolean))).sort(compareRutas);
   }, [catalogRutasObj]);
 
   // Lista filtrada de conductores para el dropdown custom
   const filteredConductores = useMemo(() => {
-    if (!dropdownSearch) return catalogConductores;
+    if (!dropdownSearch) return catalogConductores || [];
     const s = dropdownSearch.toLowerCase().trim();
-    return (catalogConductores || []).filter((c) => {
-      const tarj = String(c.tarjeton || '').toLowerCase();
-      const nom = String(c.nombre || '').toLowerCase();
-      return tarj.includes(s) || nom.includes(s);
-    }).sort((a, b) => {
-      const tA = String(a.tarjeton || '').toLowerCase();
-      const tB = String(b.tarjeton || '').toLowerCase();
-      if (tA === s && tB !== s) return -1;
-      if (tB === s && tA !== s) return 1;
-      if (tA.startsWith(s) && !tB.startsWith(s)) return -1;
-      if (tB.startsWith(s) && !tA.startsWith(s)) return 1;
-      return 0;
-    });
+    return (catalogConductores || [])
+      .filter((c) => {
+        const tarj = String(c.tarjeton || '').toLowerCase();
+        const nom = String(c.nombre || '').toLowerCase();
+        return tarj.includes(s) || nom.includes(s);
+      })
+      .sort((a, b) => {
+        const tA = String(a.tarjeton || '').toLowerCase();
+        const tB = String(b.tarjeton || '').toLowerCase();
+        const scoreA = tA === s ? 2 : tA.startsWith(s) ? 1 : 0;
+        const scoreB = tB === s ? 2 : tB.startsWith(s) ? 1 : 0;
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA;
+        }
+        return tA.localeCompare(tB, undefined, { numeric: true });
+      });
   }, [catalogConductores, dropdownSearch]);
 
   // Lista filtrada de rutas para el dropdown custom ordenadas de menor a mayor

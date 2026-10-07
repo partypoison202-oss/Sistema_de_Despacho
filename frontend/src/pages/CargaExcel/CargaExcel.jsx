@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -130,13 +130,6 @@ export default function CargaExcel({ isPasteles = false }) {
   const normalizeTarjeton = (t) => {
     const n = parseInt(String(t || '').trim(), 10);
     return isNaN(n) ? String(t || '').trim() : String(n);
-  };
-
-  const displayTarjeton = (t) => {
-    const raw = String(t || '').trim();
-    const n = parseInt(raw, 10);
-    if (isNaN(n)) return raw;
-    return String(n).padStart(4, '0');
   };
 
   const normalizarTipoUnidad = (tipo) => {
