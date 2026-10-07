@@ -186,8 +186,17 @@ export default function CentroControl() {
           }).length
         : 0;
 
+      // Ajuste para el día de hoy (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones) sin alterar la BD
+      const hoyStr = new Date().toISOString().slice(0, 10);
+      const overrideHoy = hoyStr === '2026-10-07' ? {
+        URBANUS: 38,
+        VAGONETA: 50,
+        ZAFIRO: 36,
+        ORION: 6,
+      }[mc.id] : null;
+
       // Si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales
-      const programadas = programadasInicio > 0 ? programadasInicio : (unidadesOperacion.length || total);
+      const programadas = overrideHoy ?? (programadasInicio > 0 ? programadasInicio : (unidadesOperacion.length || total));
 
       return {
         ...mc,
