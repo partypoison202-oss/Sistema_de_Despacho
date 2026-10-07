@@ -65,7 +65,8 @@ export default function DetalleUnidad() {
   const unidadesProgramadas = unidades.filter((u) => esOperacion(u.estatus));
   const programadas = unidadesProgramadas.length;
   const operando = unidadesProgramadas.filter((u) => u.horaRealSalidaPatio && String(u.horaRealSalidaPatio).trim() !== '').length;
-  const faltantes = programadas - operando;
+  const faltantes = Math.max(0, programadas - operando);
+  const cumplioProgramado = programadas > 0 && faltantes === 0;
 
   return (
     <div className="detalle">
@@ -76,7 +77,9 @@ export default function DetalleUnidad() {
           <span className="detalle__banner-titulo">
             {(modulo?.title || 'UNIDAD').toUpperCase()}, ¿CUMPLIÓ LO PROGRAMADO?
           </span>
-          <span className="detalle__banner-respuesta">SI</span>
+          <span className="detalle__banner-respuesta">
+            {cumplioProgramado ? 'SI' : 'NO'}
+          </span>
         </div>
 
         {cargando && <p className="detalle__estado">Cargando información...</p>}

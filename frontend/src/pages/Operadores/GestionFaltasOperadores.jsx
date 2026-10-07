@@ -236,7 +236,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       try {
         data = await res.json();
       } catch (e) {
-        throw new Error('El servidor devolvió una respuesta inesperada (Probablemente el archivo excede el límite del servidor Nginx/PHP). Intenta subir un archivo más ligero.');
+        throw new Error('El servidor devolvió una respuesta inesperada (Probablemente el archivo excede el límite del servidor Nginx/PHP). Intenta subir un archivo más ligero.', { cause: e });
       }
 
       if (!res.ok) throw new Error(data?.message || 'Error al guardar justificante');
