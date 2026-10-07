@@ -332,6 +332,10 @@ export default function Operadores() {
   const [mostrarBajasKardex, setMostrarBajasKardex] = useState(true);
   const navigate = useNavigate();
 
+  // Paginación para Kardex
+  const [paginaKardex, setPaginaKardex] = useState(1);
+  const kardexPorPagina = 50;
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -1013,6 +1017,15 @@ export default function Operadores() {
     return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
   });
 
+  // Paginación Kardex
+  useEffect(() => {
+    setPaginaKardex(1);
+  }, [searchTerm, filterTipo, filterEstadoServicio, mostrarBajasKardex, activeTab]);
+
+  const totalPaginasKardex = Math.ceil(filteredConductores.length / kardexPorPagina) || 1;
+  const indiceInicioKardex = (paginaKardex - 1) * kardexPorPagina;
+  const conductoresPaginadosKardex = filteredConductores.slice(indiceInicioKardex, indiceInicioKardex + kardexPorPagina);
+
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
   const canEdit = user?.modulos?.includes('operadores') || isAdmin || user?.role?.codigo === 'GESTOR_OPERADORES';
 
@@ -1331,185 +1344,255 @@ export default function Operadores() {
             </div>
           </div>
         ) : activeTab === 'kardex' ? (
-          <div className="operadores-table-card">
-            <div className="table-responsive" style={{ overflowX: 'auto' }}>
-              <table className="operadores-table kardex-table" style={{ minWidth: '3500px', tableLayout: 'fixed' }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '110px' }}>Tarjetón</th>
-                    <th style={{ width: '140px' }}>Tipo Tarjetón</th>
-                    <th style={{ width: '280px' }}>Nombre completo</th>
-                    <th style={{ width: '90px', textAlign: 'center' }}>Edad</th>
-                    <th style={{ width: '130px' }}>Estatus</th>
-                    <th style={{ width: '210px' }}>Última capacitación</th>
-                    <th style={{ width: '210px' }}>Próxima capacitación</th>
-                    <th style={{ width: '200px', textAlign: 'center' }}>Accidentes y Siniestros</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Faltas</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Retardos</th>
-                    <th style={{ width: '170px', textAlign: 'center' }}>Amonestaciones</th>
-                    <th style={{ width: '170px', textAlign: 'center' }}>Reconocimientos</th>
-                    <th style={{ width: '280px' }}>Condicionamientos médicos</th>
-                    <th style={{ minWidth: '190px' }}>Condicionamientos Jurídicos</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Permutas</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Evaluación</th>
-                    <th style={{ width: '350px' }}>Observaciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredConductores.length === 0 ? (
+          <div>
+            {/* Controles de Paginación Superior Kardex */}
+            {filteredConductores.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl mb-3 shadow-2xs gap-3">
+                <div className="text-xs sm:text-sm text-slate-600">
+                  Mostrando <span className="font-bold text-slate-800">{indiceInicioKardex + 1}</span> a <span className="font-bold text-slate-800">{Math.min(indiceInicioKardex + kardexPorPagina, filteredConductores.length)}</span> de <span className="font-bold text-slate-800">{filteredConductores.length}</span> conductores
+                </div>
+                {totalPaginasKardex > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaginaKardex(p => Math.max(1, p - 1))}
+                      disabled={paginaKardex === 1}
+                      className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                    >
+                      Anterior
+                    </button>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700 px-1">
+                      Página {paginaKardex} de {totalPaginasKardex}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPaginaKardex(p => Math.min(totalPaginasKardex, p + 1))}
+                      disabled={paginaKardex === totalPaginasKardex}
+                      className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="operadores-table-card">
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                <table className="operadores-table kardex-table" style={{ minWidth: '3500px', tableLayout: 'fixed' }}>
+                  <thead>
                     <tr>
-                      <td colSpan="17" className="empty-table-cell">
-                        No se encontraron T6 registrados.
-                      </td>
+                      <th style={{ width: '110px' }}>Tarjetón</th>
+                      <th style={{ width: '140px' }}>Tipo Tarjetón</th>
+                      <th style={{ width: '280px' }}>Nombre completo</th>
+                      <th style={{ width: '90px', textAlign: 'center' }}>Edad</th>
+                      <th style={{ width: '130px' }}>Estatus</th>
+                      <th style={{ width: '210px' }}>Última capacitación</th>
+                      <th style={{ width: '210px' }}>Próxima capacitación</th>
+                      <th style={{ width: '200px', textAlign: 'center' }}>Accidentes y Siniestros</th>
+                      <th style={{ width: '150px', textAlign: 'center' }}>Faltas</th>
+                      <th style={{ width: '150px', textAlign: 'center' }}>Retardos</th>
+                      <th style={{ width: '170px', textAlign: 'center' }}>Amonestaciones</th>
+                      <th style={{ width: '170px', textAlign: 'center' }}>Reconocimientos</th>
+                      <th style={{ width: '280px' }}>Condicionamientos médicos</th>
+                      <th style={{ minWidth: '190px' }}>Condicionamientos Jurídicos</th>
+                      <th style={{ width: '150px', textAlign: 'center' }}>Permutas</th>
+                      <th style={{ width: '150px', textAlign: 'center' }}>Evaluación</th>
+                      <th style={{ width: '350px' }}>Observaciones</th>
                     </tr>
-                  ) : (
-                    filteredConductores.map((c) => (
-                      <tr key={c.id}>
-                        <td>
-                          <span className="tarjeton-badge">{c.tarjeton ? String(c.tarjeton.split('_BAJA_')[0]).padStart(4, '0') : ''}</span>
-                        </td>
-                        <td className="text-center">
-                          <span className="tipo-badge">TIPO {c.tipo_tarjeton || 'B'}</span>
-                        </td>
-                        <td className="conductor-nombre">{c.nombre}</td>
-                        <td className="text-center" style={{ fontWeight: 600, color: '#555' }}>{c.fecha_nacimiento ? Math.floor((new Date() - new Date(c.fecha_nacimiento)) / 31557600000) : 'N/A'}</td>
-                        <td>
-                          <span className={`estatus-badge ${c.estatus === 'baja' ? 'baja' : 'activo'}`} style={{
-                            display: 'inline-block',
-                            padding: '0.25rem 0.6rem',
-                            borderRadius: '9999px',
-                            fontSize: '0.75rem',
-                            fontWeight: '700',
-                            backgroundColor: c.estatus === 'baja' ? '#fee2e2' : '#dcfce7',
-                            color: c.estatus === 'baja' ? '#b91c1c' : '#15803d',
-                            textTransform: 'uppercase'
-                          }}>
-                            {c.estatus === 'baja' ? 'Baja' : 'Activo'}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ width: '100%', minWidth: '160px' }}>
-                            <AppleDatePicker
-                              value={c.ultima_capacitacion || ''}
-                              disableFuture={true}
-                              onChange={(val) => {
-                                autoSaveField(c.id, 'ultima_capacitacion', val);
-                              }}
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{ width: '100%', minWidth: '160px' }}>
-                            <AppleDatePicker
-                              value={c.proxima_capacitacion || ''}
-                              disableFuture={false}
-                              disablePast={true}
-                              onChange={(val) => {
-                                autoSaveField(c.id, 'proxima_capacitacion', val);
-                              }}
-                            />
-                          </div>
-                        </td>
-                        <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn-details-badge"
-                            onClick={() => openDetailsModal(c, 'accidentes_siniestros')}
-                          >
-                            <span className="badge-number">{c.accidentes_siniestros ?? 0}</span>
-                            <span className="badge-text">Detalles</span>
-                          </button>
-                        </td>
-                        <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn-details-badge"
-                            onClick={() => openDetailsModal(c, 'faltas')}
-                          >
-                            <span className="badge-number">{c.faltas ?? 0}</span>
-                            <span className="badge-text">Detalles</span>
-                          </button>
-                        </td>
-                        <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn-details-badge"
-                            onClick={() => openDetailsModal(c, 'retardos')}
-                          >
-                            <span className="badge-number" style={{ backgroundColor: '#ea580c' }}>
-                              {Math.max(Number(c.retardos) || 0, getDetailArray(c, 'retardos').length)}
-                            </span>
-                            <span className="badge-text">Detalles</span>
-                          </button>
-                        </td>
-                        <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn-details-badge"
-                            onClick={() => openDetailsModal(c, 'amonestaciones')}
-                          >
-                            <span className="badge-number">{c.amonestaciones ?? 0}</span>
-                            <span className="badge-text">Detalles</span>
-                          </button>
-                        </td>
-                        <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn-details-badge"
-                            onClick={() => openDetailsModal(c, 'reconocimientos')}
-                          >
-                            <span className="badge-number">{c.reconocimientos ?? 0}</span>
-                            <span className="badge-text">Detalles</span>
-                          </button>
-                        </td>
-                        <td>
-                          <EditableCell
-                            type="text"
-                            value={c.condicionamientos_medicos}
-                            placeholder="Sin especificar"
-                            onChange={(val) => autoSaveField(c.id, 'condicionamientos_medicos', val)}
-                          />
-                        </td>
-                        <td>
-                          <EditableCell
-                            type="text"
-                            value={c.condicionamientos_juridicos}
-                            placeholder="Sin especificar"
-                            onChange={(val) => autoSaveField(c.id, 'condicionamientos_juridicos', val)}
-                          />
-                        </td>
-                        <td className="text-center">
-                          <button
-                            type="button"
-                            className="btn-details-badge"
-                            onClick={() => openDetailsModal(c, 'permutas')}
-                          >
-                            <span className="badge-number">{c.permutas ?? 0}</span>
-                            <span className="badge-text">Detalles</span>
-                          </button>
-                        </td>
-                        <td>
-                          <EditableCell
-                            type="text"
-                            value={c.evaluacion}
-                            placeholder="N/A"
-                            onChange={(val) => autoSaveField(c.id, 'evaluacion', val)}
-                          />
-                        </td>
-                        <td>
-                          <EditableCell
-                            type="text"
-                            value={c.observaciones}
-                            placeholder="Añadir nota..."
-                            onChange={(val) => autoSaveField(c.id, 'observaciones', val)}
-                          />
+                  </thead>
+                  <tbody>
+                    {conductoresPaginadosKardex.length === 0 ? (
+                      <tr>
+                        <td colSpan="17" className="empty-table-cell">
+                          No se encontraron T6 registrados.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      conductoresPaginadosKardex.map((c) => (
+                        <tr key={c.id}>
+                          <td>
+                            <span className="tarjeton-badge">{c.tarjeton ? String(c.tarjeton.split('_BAJA_')[0]).padStart(4, '0') : ''}</span>
+                          </td>
+                          <td className="text-center">
+                            <span className="tipo-badge">TIPO {c.tipo_tarjeton || 'B'}</span>
+                          </td>
+                          <td className="conductor-nombre">{c.nombre}</td>
+                          <td className="text-center" style={{ fontWeight: 600, color: '#555' }}>{c.fecha_nacimiento ? Math.floor((new Date() - new Date(c.fecha_nacimiento)) / 31557600000) : 'N/A'}</td>
+                          <td>
+                            <span className={`estatus-badge ${c.estatus === 'baja' ? 'baja' : 'activo'}`} style={{
+                              display: 'inline-block',
+                              padding: '0.25rem 0.6rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              backgroundColor: c.estatus === 'baja' ? '#fee2e2' : '#dcfce7',
+                              color: c.estatus === 'baja' ? '#b91c1c' : '#15803d',
+                              textTransform: 'uppercase'
+                            }}>
+                              {c.estatus === 'baja' ? 'Baja' : 'Activo'}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ width: '100%', minWidth: '160px' }}>
+                              <AppleDatePicker
+                                value={c.ultima_capacitacion || ''}
+                                disableFuture={true}
+                                onChange={(val) => {
+                                  autoSaveField(c.id, 'ultima_capacitacion', val);
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ width: '100%', minWidth: '160px' }}>
+                              <AppleDatePicker
+                                value={c.proxima_capacitacion || ''}
+                                disableFuture={false}
+                                disablePast={true}
+                                onChange={(val) => {
+                                  autoSaveField(c.id, 'proxima_capacitacion', val);
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="btn-details-badge"
+                              onClick={() => openDetailsModal(c, 'accidentes_siniestros')}
+                            >
+                              <span className="badge-number">{c.accidentes_siniestros ?? 0}</span>
+                              <span className="badge-text">Detalles</span>
+                            </button>
+                          </td>
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="btn-details-badge"
+                              onClick={() => openDetailsModal(c, 'faltas')}
+                            >
+                              <span className="badge-number">{c.faltas ?? 0}</span>
+                              <span className="badge-text">Detalles</span>
+                            </button>
+                          </td>
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="btn-details-badge"
+                              onClick={() => openDetailsModal(c, 'retardos')}
+                            >
+                              <span className="badge-number" style={{ backgroundColor: '#ea580c' }}>
+                                {Math.max(Number(c.retardos) || 0, getDetailArray(c, 'retardos').length)}
+                              </span>
+                              <span className="badge-text">Detalles</span>
+                            </button>
+                          </td>
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="btn-details-badge"
+                              onClick={() => openDetailsModal(c, 'amonestaciones')}
+                            >
+                              <span className="badge-number">{c.amonestaciones ?? 0}</span>
+                              <span className="badge-text">Detalles</span>
+                            </button>
+                          </td>
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="btn-details-badge"
+                              onClick={() => openDetailsModal(c, 'reconocimientos')}
+                            >
+                              <span className="badge-number">{c.reconocimientos ?? 0}</span>
+                              <span className="badge-text">Detalles</span>
+                            </button>
+                          </td>
+                          <td>
+                            <EditableCell
+                              type="text"
+                              value={c.condicionamientos_medicos}
+                              placeholder="Sin especificar"
+                              onChange={(val) => autoSaveField(c.id, 'condicionamientos_medicos', val)}
+                            />
+                          </td>
+                          <td>
+                            <EditableCell
+                              type="text"
+                              value={c.condicionamientos_juridicos}
+                              placeholder="Sin especificar"
+                              onChange={(val) => autoSaveField(c.id, 'condicionamientos_juridicos', val)}
+                            />
+                          </td>
+                          <td className="text-center">
+                            <button
+                              type="button"
+                              className="btn-details-badge"
+                              onClick={() => openDetailsModal(c, 'permutas')}
+                            >
+                              <span className="badge-number">{c.permutas ?? 0}</span>
+                              <span className="badge-text">Detalles</span>
+                            </button>
+                          </td>
+                          <td>
+                            <EditableCell
+                              type="text"
+                              value={c.evaluacion}
+                              placeholder="N/A"
+                              onChange={(val) => autoSaveField(c.id, 'evaluacion', val)}
+                            />
+                          </td>
+                          <td>
+                            <EditableCell
+                              type="text"
+                              value={c.observaciones}
+                              placeholder="Añadir nota..."
+                              onChange={(val) => autoSaveField(c.id, 'observaciones', val)}
+                            />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
+
+            {/* Controles de Paginación Inferior Kardex */}
+            {totalPaginasKardex > 1 && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl mt-3 shadow-2xs gap-3">
+                <div className="text-xs sm:text-sm text-slate-600">
+                  Mostrando <span className="font-bold text-slate-800">{indiceInicioKardex + 1}</span> a <span className="font-bold text-slate-800">{Math.min(indiceInicioKardex + kardexPorPagina, filteredConductores.length)}</span> de <span className="font-bold text-slate-800">{filteredConductores.length}</span> conductores
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaginaKardex(p => Math.max(1, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={paginaKardex === 1}
+                    className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-xs sm:text-sm font-bold text-slate-700 px-1">
+                    Página {paginaKardex} de {totalPaginasKardex}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPaginaKardex(p => Math.min(totalPaginasKardex, p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={paginaKardex === totalPaginasKardex}
+                    className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : activeTab === 'gestion_faltas' ? (
           <GestionFaltasOperadores conductores={conductores} onRefresh={fetchConductores} getAuthHeaders={getAuthHeaders} initialBusqueda={busquedaFaltas} />

@@ -134,15 +134,23 @@ export default function CentroControl() {
     refetchOnWindowFocus: false,
   });
 
+  const normStr = (str) =>
+    (str || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+
   const modelData = React.useMemo(() => {
     return modelsConfig.map((mc) => {
       const units = (Array.isArray(apiData) ? apiData : []).filter((d) => {
-        const matchesModel = d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id);
-        const est = (d.ESTATUS || '').toLowerCase().trim();
-        const isNoProgramada = est === 'no_programada' || est === 'no programada';
+        const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+        const est = normStr(d.ESTATUS || d.estatus);
+        const isNoProgramada = est === 'NO_PROGRAMADA' || est === 'NO PROGRAMADA';
         return matchesModel && !isNoProgramada;
       });
-      const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+      const getEstatus = (d) => normStr(d.ESTATUS || d.estatus);
 
       // Operación = todas las unidades asignadas con estatus de operación en tiempo real
       const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
@@ -170,7 +178,12 @@ export default function CentroControl() {
       
       // Total Programadas fijo: Unidades en operación programadas al inicio del día (snapshot de cambio de día)
       const programadasInicio = Array.isArray(inicioData)
-        ? inicioData.filter(d => d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id) && (d.ESTATUS || '').toLowerCase().trim() === 'operacion').length
+        ? inicioData.filter(d => {
+            const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+            const estatusNorm = normStr(d.ESTATUS || d.estatus);
+            const isOperacion = estatusNorm.includes('OPERACI');
+            return matchesModel && isOperacion;
+          }).length
         : 0;
 
       // Si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales
