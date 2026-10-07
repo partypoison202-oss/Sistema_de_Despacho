@@ -33,6 +33,7 @@ class RbacMatrizSeeder extends Seeder
             ['nombre_completo' => 'Jeanet García Chávez', 'usuario' => 'Jeanet_Garcia', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'GCJ_A26'],
             ['nombre_completo' => 'Jesus Demetrio Peña Vargas', 'usuario' => 'Jesus_Pena', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'PVJ_A26'],
             ['nombre_completo' => 'Luis Ángel Vargas Gutiérrez', 'usuario' => 'Luis_Vargas', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'VGL_A26'],
+            ['nombre_completo' => 'José Miguel Trejo Casablanca', 'usuario' => 'Jose_Trejo', 'rol_codigo' => 'ADMINISTRADOR', 'modulos' => $TODOS, 'contrasena' => 'TCJ_A26'],
             
             // ── Dirección de Operación ──
             ['nombre_completo' => 'José Alberto Montiel Balderrama', 'usuario' => 'Jose_Montiel', 'rol_codigo' => 'DIRECCION_OPERACION', 'modulos' => $TODOS, 'contrasena' => 'MBJ_L26'],
