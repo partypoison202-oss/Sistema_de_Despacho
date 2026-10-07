@@ -711,7 +711,7 @@
   max-width: 110px;
   z-index: 15;
   background-color: var(--tw-color-white);
-  border-right: 3px solid #e5e7eb;
+  
 }
 
 /* Ensure the sticky headers stay above everything including sticky table cells */
