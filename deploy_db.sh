@@ -78,16 +78,26 @@ case $opcion in
         fi
         ;;
     4)
-        echo -e "\n${BLUE}🔄 Extrayendo datos de la base de datos...${NC}"
-        echo -e "${YELLOW}Se guardarán en la carpeta laravel-api/ como 'export_usuarios.json' y 'export_conductores.json'${NC}"
+        echo -e "\n${BLUE}🔄 Extrayendo datos de usuarios con contraseñas en texto claro...${NC}"
         
-        "$PHP_BIN" artisan tinker --execute="file_put_contents('export_usuarios.json', App\Models\User::all()->toJson(JSON_PRETTY_PRINT));"
-        "$PHP_BIN" artisan tinker --execute="try { file_put_contents('export_conductores.json', App\Models\Conductor::all()->toJson(JSON_PRETTY_PRINT)); } catch(\Exception \$e) {}"
+        "$PHP_BIN" -r "
+        \$content = file_get_contents('database/seeders/RbacMatrizSeeder.php');
+        preg_match_all('/\[\'nombre_completo\' => \'(.*?)\', \'usuario\' => \'(.*?)\', \'rol_codigo\' => \'(.*?)\', \'modulos\' => (.*?), \'contrasena\' => \'(.*?)\'\]/', \$content, \$matches, PREG_SET_ORDER);
         
-        echo -e "${GREEN}✔ Datos extraídos con éxito.${NC}"
-        echo -e "Archivos creados:"
-        echo -e " - laravel-api/export_usuarios.json"
-        echo -e " - laravel-api/export_conductores.json"
+        \$out = fopen('export_usuarios_completo.csv', 'w');
+        fputcsv(\$out, ['Nombre Completo', 'Usuario', 'Rol', 'Contrasena', 'Modulos']);
+        foreach (\$matches as \$m) {
+            \$mod = trim(\$m[4]);
+            if (\$mod == '\$TODOS') \$mod = 'ACCESO TOTAL';
+            fputcsv(\$out, [\$m[1], \$m[2], \$m[3], \$m[5], \$mod]);
+        }
+        fclose(\$out);
+        "
+        
+        echo -e "${GREEN}✔ Datos de usuarios extraídos con éxito.${NC}"
+        echo -e "Archivo creado:"
+        echo -e " - laravel-api/export_usuarios_completo.csv"
+        echo -e "${YELLOW}(Nota: Puedes abrir este archivo CSV directamente en Excel)${NC}"
         ;;
     0)
         echo -e "${GREEN}Saliendo sin hacer cambios...${NC}"
