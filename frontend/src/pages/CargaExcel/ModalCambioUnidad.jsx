@@ -21,6 +21,8 @@ export default function ModalCambioUnidad({
       const eco = String(u.ECONOMICO || '').trim();
       if (!eco) return false;
       if (unidadSaliente && String(unidadSaliente.ECONOMICO).trim() === eco) return false;
+      const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase().trim();
+      if (tipo.includes('urbanus')) return false;
       return true;
     });
 

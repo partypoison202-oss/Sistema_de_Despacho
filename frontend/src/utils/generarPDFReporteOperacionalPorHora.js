@@ -103,7 +103,9 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
             ctx.drawImage(logoImg, 0, 0);
             pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 5, 2, 45, 18);
         }
-    } catch(e) {}
+    } catch(e) {
+        // Ignorar fallo al cargar logo principal
+    }
     
     // Logo Hidalgo (Derecha)
     try {
@@ -115,7 +117,9 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
             ctx.drawImage(hgoImg, 0, 0);
             pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pw - 25, 2, 20, 20);
         }
-    } catch(e) {}
+    } catch(e) {
+        // Ignorar fallo al cargar logo secundario
+    }
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(14);

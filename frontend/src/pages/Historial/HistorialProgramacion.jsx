@@ -14,7 +14,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
 
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('tabla'); // 'tabla', 'flota', 'rutas'
+  const [activeTab, setActiveTab] = useState('cambios'); // 'cambios', 'tabla', 'flota', 'rutas'
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
   const [filtroEstatus, setFiltroEstatus] = useState('');
@@ -55,7 +55,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
   }, []);
 
   // 2. Obtener datos de programación del día seleccionado
-  const { data: serverData = { programacion: [], resumen: {} }, isLoading: isLoadingDatos } = useQuery({
+  const { data: serverData = { programacion: [], cambios: [], resumen: {} }, isLoading: isLoadingDatos } = useQuery({
     queryKey: ['historial-programacion', selectedFecha],
     queryFn: async () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -74,11 +74,22 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
 
   const cargando = isLoadingFechas || (isLoadingDatos && !!selectedFecha);
   const rawProgramacion = serverData.programacion || [];
+  const rawCambios = serverData.cambios || [];
   const serverResumen = serverData.resumen || {};
 
   const handleFechaChange = (f) => {
     setSelectedFecha(f);
     setIsDropdownOpen(false);
+  };
+
+  const formatearHora = (fechaStr) => {
+    if (!fechaStr) return '—';
+    try {
+      const f = new Date(fechaStr);
+      return f.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return fechaStr;
+    }
   };
 
   // Helper para identificar si un tipo es Urbanuss (Troncal)
@@ -97,6 +108,21 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
       return isTroncal(tipo);
     }
     return true; // TODOS incluye URBANUSS y todas las demás unidades
+  });
+
+  // Filtrado de cambios / movimientos
+  const cambiosFiltrados = rawCambios.filter(c => {
+    const q = busqueda.toLowerCase().trim();
+    const matchesSearch = !q || (
+      (c.economico && String(c.economico).toLowerCase().includes(q)) ||
+      (c.tipo_unidad && c.tipo_unidad.toLowerCase().includes(q)) ||
+      (c.tipo_accion && c.tipo_accion.toLowerCase().includes(q)) ||
+      (c.detalles && c.detalles.toLowerCase().includes(q)) ||
+      (c.usuario_nombre && c.usuario_nombre.toLowerCase().includes(q))
+    );
+
+    const matchesTipo = !filtroTipo || String(c.tipo_unidad || '').toUpperCase() === filtroTipo.toUpperCase();
+    return matchesSearch && matchesTipo;
   });
 
   // Cálculo de estadísticas dinámicas según el modo seleccionado
@@ -154,10 +180,11 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
       percance,
       con_conductor,
       sin_conductor,
+      total_cambios: rawCambios.length,
       por_tipo: Object.values(tiposMap),
       por_ruta: Object.values(rutasMap)
     };
-  }, [baseProgramacion, filtroModo, isPastelesOnly, serverResumen]);
+  }, [baseProgramacion, filtroModo, serverResumen, rawCambios.length]);
 
   // Filtrado fino para la tabla (búsqueda, tipo específico, estatus)
   const programacionFiltrada = baseProgramacion.filter(item => {
@@ -178,36 +205,61 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
   });
 
   const exportToExcel = () => {
-    if (!programacionFiltrada || programacionFiltrada.length === 0) return;
+    if (activeTab === 'cambios') {
+      if (cambiosFiltrados.length === 0) return;
+      const worksheetData = cambiosFiltrados.map(d => ({
+        'HORA': formatearHora(d.hora),
+        'ECO': d.economico || '',
+        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
+        'ACCIÓN / MOVIMIENTO': d.tipo_accion || '',
+        'ESTATUS ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
+        'ESTATUS NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
+        'DETALLES': d.detalles || '',
+        'USUARIO': d.usuario_nombre || 'SISTEMA',
+        'ROL': d.usuario_rol || ''
+      }));
 
-    const worksheetData = programacionFiltrada.map(d => ({
-      'ECO': d.economico || '',
-      'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-      'RUTA': d.ruta || 'SIN RUTA',
-      'TARJETÓN TITULAR': d.numero_tarjeton || '',
-      'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
-      'ESTATUS INICIAL': d.estatus ? String(d.estatus).toUpperCase() : '',
-      'HORA SALIDA PATIO': d.hora_salida || '—',
-      'HORA ACOPLE': d.acople || '—',
-      'TARJETÓN RELEVO': d.relevo_tarjeton || '',
-      'CONDUCTOR RELEVO': d.relevo_conductor || '',
-      'MOTIVO / OBS': d.motivo || d.motivo_estatus || d.falla || ''
-    }));
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
+        wch: Math.max(key.length, ...worksheetData.map(row => String(row[key] || '').length)) + 2
+      }));
+      worksheet['!cols'] = colWidths;
 
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-    const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
-      wch: Math.max(key.length, ...worksheetData.map(row => String(row[key] || '').length)) + 2
-    }));
-    worksheet['!cols'] = colWidths;
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Cambios_Programacion');
+      XLSX.writeFile(workbook, `Cambios_Programacion_${selectedFecha}.xlsx`);
+    } else {
+      if (!programacionFiltrada || programacionFiltrada.length === 0) return;
 
-    const workbook = XLSX.utils.book_new();
-    const sheetName = isPastelesOnly || filtroModo === 'PASTELES' ? 'Prog_Pasteles' : 'Prog_Logistica';
-    const fileName = isPastelesOnly || filtroModo === 'PASTELES'
-      ? `Programacion_Pasteles_${selectedFecha}.xlsx`
-      : `Programacion_Logistica_${selectedFecha}.xlsx`;
+      const worksheetData = programacionFiltrada.map(d => ({
+        'ECO': d.economico || '',
+        'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
+        'RUTA': d.ruta || 'SIN RUTA',
+        'TARJETÓN TITULAR': d.numero_tarjeton || '',
+        'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
+        'ESTATUS INICIAL': d.estatus ? String(d.estatus).toUpperCase() : '',
+        'HORA SALIDA PATIO': d.hora_salida || '—',
+        'HORA ACOPLE': d.acople || '—',
+        'TARJETÓN RELEVO': d.relevo_tarjeton || '',
+        'CONDUCTOR RELEVO': d.relevo_conductor || '',
+        'MOTIVO / OBS': d.motivo || d.motivo_estatus || d.falla || ''
+      }));
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-    XLSX.writeFile(workbook, fileName);
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
+        wch: Math.max(key.length, ...worksheetData.map(row => String(row[key] || '').length)) + 2
+      }));
+      worksheet['!cols'] = colWidths;
+
+      const workbook = XLSX.utils.book_new();
+      const sheetName = isPastelesOnly || filtroModo === 'PASTELES' ? 'Prog_Pasteles' : 'Prog_Logistica';
+      const fileName = isPastelesOnly || filtroModo === 'PASTELES'
+        ? `Programacion_Pasteles_${selectedFecha}.xlsx`
+        : `Programacion_Logistica_${selectedFecha}.xlsx`;
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+      XLSX.writeFile(workbook, fileName);
+    }
   };
 
   const getEstatusBadgeStyle = (estatus) => {
@@ -343,10 +395,21 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
         <div className="historial-tabs">
           <button
             type="button"
+            className={`historial-tab-btn ${activeTab === 'cambios' ? 'active' : ''}`}
+            onClick={() => setActiveTab('cambios')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            Bitácora de Cambios y Movimientos ({rawCambios.length})
+          </button>
+          <button
+            type="button"
             className={`historial-tab-btn ${activeTab === 'tabla' ? 'active' : ''}`}
             onClick={() => setActiveTab('tabla')}
           >
-            Programación {isPastelesOnly || filtroModo === 'PASTELES' ? 'Pasteles' : 'General'}
+            Programación {isPastelesOnly || filtroModo === 'PASTELES' ? 'Pasteles' : 'Completa'}
           </button>
           <button
             type="button"
@@ -369,6 +432,77 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
             <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
             <h3 style={{ color: '#4b5563', margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>Cargando programación...</h3>
             <p style={{ color: '#9ca3af', marginTop: '0.5rem', fontSize: '0.85rem' }}>Buscando información logística en la base de datos</p>
+          </div>
+        ) : activeTab === 'cambios' ? (
+          <div>
+            {/* Barra de Filtros de Cambios */}
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem', background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              <div style={{ flex: 1, minWidth: '220px' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar por unidad, acción, detalles o usuario..."
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                  style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem' }}
+                />
+              </div>
+
+              <select
+                value={filtroTipo}
+                onChange={e => setFiltroTipo(e.target.value)}
+                style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem', background: '#fff', fontWeight: '600' }}
+              >
+                <option value="">TODOS LOS TIPOS</option>
+                <option value="URBANUSS">URBANUSS</option>
+                <option value="ZAFIRO">ZAFIRO</option>
+                <option value="VAGONETA">VAGONETA</option>
+                <option value="ORION">ORION</option>
+              </select>
+            </div>
+
+            {cambiosFiltrados.length > 0 ? (
+              <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ minWidth: '85px' }}>HORA</th>
+                      <th style={{ minWidth: '85px' }}>UNIDAD</th>
+                      <th style={{ minWidth: '110px' }}>TIPO</th>
+                      <th style={{ minWidth: '160px' }}>ACCIÓN / MOVIMIENTO</th>
+                      <th style={{ minWidth: '120px' }}>ANTERIOR</th>
+                      <th style={{ minWidth: '120px' }}>NUEVO</th>
+                      <th style={{ minWidth: '220px' }}>DETALLES DEL CAMBIO</th>
+                      <th style={{ minWidth: '140px' }}>RESPONSABLE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cambiosFiltrados.map((c, i) => (
+                      <tr key={c.id || i}>
+                        <td style={{ fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>{formatearHora(c.hora)}</td>
+                        <td style={{ fontWeight: '800', color: '#601a2a' }}>{c.economico ? `ECO${String(c.economico).padStart(3, '0')}` : '—'}</td>
+                        <td style={{ fontWeight: '600', color: '#334155' }}>{c.tipo_unidad ? String(c.tipo_unidad).toUpperCase() : '—'}</td>
+                        <td>
+                          <span className="estatus-badge" style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: '800' }}>
+                            {c.tipo_accion ? String(c.tipo_accion).replace(/_/g, ' ') : 'MODIFICACIÓN'}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>{c.estatus_anterior ? String(c.estatus_anterior).toUpperCase() : '—'}</td>
+                        <td style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: '700' }}>{c.estatus_nuevo ? String(c.estatus_nuevo).toUpperCase() : '—'}</td>
+                        <td style={{ fontSize: '0.85rem', color: '#334155' }}>{c.detalles || 'Sin observaciones'}</td>
+                        <td style={{ fontSize: '0.8rem' }}>
+                          <span style={{ fontWeight: '700', color: '#1e293b', display: 'block' }}>{c.usuario_nombre || 'Sistema'}</span>
+                          {c.usuario_rol && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{c.usuario_rol}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>No se registraron cambios o movimientos en la programación para esta fecha.</p>
+              </div>
+            )}
           </div>
         ) : activeTab === 'tabla' ? (
           <div>

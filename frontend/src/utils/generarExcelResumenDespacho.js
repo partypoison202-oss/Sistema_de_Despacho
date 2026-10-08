@@ -63,13 +63,30 @@ function procesarModelos(listaUnidades) {
     { id: 'VAGONETA', label: 'Vagoneta', alt: [] },
     { id: 'ORION', label: 'Orión', alt: ['ORIÓN'] }
   ];
+  const now = new Date();
+  const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  
+  const getOverrideHoy = (id) => {
+    const u = (id || '').toUpperCase();
+    if (u.includes('URBANU')) return 38;
+    if (u.includes('VAGONETA')) return 50;
+    if (u.includes('ZAFIRO')) return 36;
+    if (u.includes('ORION')) return 6;
+    return null;
+  };
+
   const modelStats = MODELOS.map(m => {
     const matchPattern = [m.id, ...m.alt];
     const units = listaUnidades.filter(u => {
       const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase().trim();
       return matchPattern.some(p => tipo.includes(p));
     });
-    const prog = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
+    const progCalculada = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
+    
+    // Parche para hoy (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
+    const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(m.id) : null;
+    const prog = overrideHoy ?? progCalculada;
+
     const oper = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       const isOper = status.includes('OPERACI');
@@ -271,7 +288,9 @@ export async function descargarResumenDespachoExcel(setLoading) {
                 ws.addImage(imgId, { tl: { col: bus.col + offsetCol, row: 6 + offsetRow }, ext: { width: bus.w, height: bus.h } });
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        // Ignorar fallo al cargar imagenes decorativas
+    }
 
     const r8 = ws.getRow(8); r8.height = 40;
     ws.getCell('A8').value = 'Eficiencia';

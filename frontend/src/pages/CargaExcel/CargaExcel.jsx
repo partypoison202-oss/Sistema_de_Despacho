@@ -109,6 +109,7 @@ export default function CargaExcel({ isPasteles = false }) {
     refetchInterval: hasChanges ? false : 8000,
   });
 
+
   useEffect(() => {
     if (serverData && !hasChanges) {
       let dataToSet = serverData;
@@ -138,6 +139,7 @@ export default function CargaExcel({ isPasteles = false }) {
   };
 
   const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));
+
 
   const solicitarFaltaSiAplica = async (originalTarjeton, originalName, ecoUnidad, rol = 'conductor') => {
     if (!originalTarjeton) return;
@@ -1554,6 +1556,18 @@ export default function CargaExcel({ isPasteles = false }) {
       <ModalComparativaAlimentadoras
         isOpen={showComparativaModal}
         onClose={() => setShowComparativaModal(false)}
+        previewData={previewData}
+        catalogConductores={catalogConductores}
+        catalogRutasObj={catalogRutasObj}
+        onUpdateRecord={handleUpdateRecord}
+        onOpenCambioUnidad={(fila, originalIndex) => {
+          setModalCambioData({
+            isOpen: true,
+            unidadSaliente: { ...fila },
+            outgoingIndex: originalIndex,
+            nuevoEstatus: 'reserva',
+          });
+        }}
       />
 
       {/* Modal para sustitución de unidad en modo Pasteles */}
@@ -1562,7 +1576,12 @@ export default function CargaExcel({ isPasteles = false }) {
         onClose={() => setModalCambioData(prev => ({ ...prev, isOpen: false }))}
         unidadSaliente={modalCambioData.unidadSaliente}
         nuevoEstatus={modalCambioData.nuevoEstatus}
-        unidadesDisponibles={previewData.filter(u => String(u.ESTATUS || '').toLowerCase().trim() === 'reserva')}
+        unidadesDisponibles={previewData.filter(u => {
+          const estatus = String(u.ESTATUS || '').toLowerCase().trim();
+          const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase().trim();
+          const isTroncal = tipo.includes('urbanus');
+          return estatus === 'reserva' && !isTroncal;
+        })}
         onConfirmarCambio={(unidadReserva, nuevoEstatus) => {
           const updatedData = [...previewData];
           const outIdx = modalCambioData.outgoingIndex;

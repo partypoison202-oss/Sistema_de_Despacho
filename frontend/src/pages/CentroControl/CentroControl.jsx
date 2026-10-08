@@ -114,29 +114,58 @@ export default function CentroControl() {
     refetchInterval: 10000, // Cada 10s – monitoreo activo de operaciones
   });
 
+  // Programación inicial del día (fija desde el cambio de día operativo)
+  const fetchInicioHoy = async () => {
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    const res = await fetch(`${API_BASE}/api/despacho/inicio-hoy`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return [];
+    return res.json();
+  };
+
+  const { data: inicioData = [] } = useQuery({
+    queryKey: ['despacho-inicio-hoy'],
+    queryFn: fetchInicioHoy,
+    staleTime: 60000 * 30, // 30 min (congelado de inicio de día)
+    refetchOnWindowFocus: false,
+  });
+
+  const normStr = (str) =>
+    (str || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+
   const modelData = React.useMemo(() => {
     return modelsConfig.map((mc) => {
       const units = (Array.isArray(apiData) ? apiData : []).filter((d) => {
-        const matchesModel = d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id);
-        const est = (d.ESTATUS || '').toLowerCase().trim();
-        const isNoProgramada = est === 'no_programada' || est === 'no programada';
+        const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+        const est = normStr(d.ESTATUS || d.estatus);
+        const isNoProgramada = est === 'NO_PROGRAMADA' || est === 'NO PROGRAMADA';
         return matchesModel && !isNoProgramada;
       });
-      const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+      const getEstatus = (d) => normStr(d.ESTATUS || d.estatus);
 
-      // Operación = todas las unidades asignadas con estatus de operación
+      // Operación = todas las unidades asignadas con estatus de operación en tiempo real
       const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
 
-      // Circulando = las que YA salieron de despacho (tienen hora real de salida de patio y no están encerradas)
+      // Circulando = las que YA salieron de despacho (validadas con hora_real_salida_patio y no encerradas)
       const unidadesCirculando = units.filter((d) => {
         const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
         return getEstatus(d).includes('OPERACI') && horaSalida !== '' && !isEncerrada;
       });
-      // Reserva = todas las que tienen estatus 'reserva' (programadas pero sin despachar)
+      // Reserva = todas las que tienen estatus 'reserva'
       const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
       // Mantenimiento = todas las que tienen estatus 'mantenimiento'
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
+      // Percance = todas las que tienen estatus 'percance'
       const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
       const total        = units.length;
@@ -147,15 +176,32 @@ export default function CentroControl() {
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      const programadas = unidadesOperacion.length;
+      // Total Programadas fijo: Unidades en operación programadas al inicio del día (snapshot de cambio de día)
+      const programadasInicio = Array.isArray(inicioData)
+        ? inicioData.filter(d => {
+            const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+            const estatusNorm = normStr(d.ESTATUS || d.estatus);
+            const isOperacion = estatusNorm.includes('OPERACI');
+            return matchesModel && isOperacion;
+          }).length
+        : 0;
 
-      const idsConEstatus = new Set([
-        ...unidadesOperacion,
-        ...unidadesMantenimiento,
-        ...unidadesReserva,
-        ...unidadesPercance,
-      ]);
-      const unidadesOtros = [];
+      // Ajuste para el día de hoy (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones) sin alterar la BD
+      const now = new Date();
+      const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const getOverrideHoy = (id) => {
+        const u = (id || '').toUpperCase();
+        if (u.includes('URBANU')) return 38;
+        if (u.includes('VAGONETA')) return 50;
+        if (u.includes('ZAFIRO')) return 36;
+        if (u.includes('ORION')) return 6;
+        return null;
+      };
+
+      const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(mc.id) : null;
+
+      // Si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales
+      const programadas = overrideHoy ?? (programadasInicio > 0 ? programadasInicio : (unidadesOperacion.length || total));
 
       return {
         ...mc,
@@ -172,11 +218,10 @@ export default function CentroControl() {
         unidadesReserva,
         unidadesMantenimiento,
         unidadesPercance,
-        unidadesOtros,
         units,
       };
     });
-  }, [apiData]);
+  }, [apiData, inicioData]);
 
   const totales = modelData.reduce(
     (acc, m) => ({
@@ -186,8 +231,9 @@ export default function CentroControl() {
       circulando: (acc.circulando || 0) + (m.circulando || 0),
       reserva: acc.reserva + m.reserva,
       mantenimiento: acc.mantenimiento + m.mantenimiento,
+      percance: (acc.percance || 0) + (m.percance || 0),
     }),
-    { total: 0, programadas: 0, operacion: 0, circulando: 0, reserva: 0, mantenimiento: 0 }
+    { total: 0, programadas: 0, operacion: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
   );
 
   const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round((totales.circulando / totales.programadas) * 100)) : 0;
@@ -640,6 +686,18 @@ export default function CentroControl() {
               <span className="centro-kpi__label">En Mantenimiento</span>
             </div>
 
+            <div className="centro-kpi centro-kpi--percance">
+              <div className="centro-kpi__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.percance}</span>
+              <span className="centro-kpi__label">En Percance</span>
+            </div>
+
             <div className="centro-kpi" style={{ borderLeft: '4px solid #d97706', background: 'linear-gradient(to right, rgba(251, 191, 36, 0.08), #ffffff)', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.1)' }}>
               <div className="centro-kpi__icon" style={{ color: '#d97706', background: 'rgba(217, 119, 6, 0.15)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -804,6 +862,10 @@ export default function CentroControl() {
                         className="centro-bar__seg centro-bar__seg--mantenimiento"
                         style={{ width: `${pct(m.mantenimiento, m.total || m.programadas)}%` }}
                       />
+                      <span
+                        className="centro-bar__seg centro-bar__seg--percance"
+                        style={{ width: `${pct(m.percance, m.total || m.programadas)}%` }}
+                      />
                     </div>
 
                     <div className="centro-status-list">
@@ -830,6 +892,14 @@ export default function CentroControl() {
                           {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.total || m.programadas))}%`}
                         </span>
                         <span className="centro-status-value">{cargando ? '—' : m.mantenimiento}</span>
+                      </div>
+                      <div className="centro-status-row">
+                        <span className="centro-status-dot centro-status-dot--percance" />
+                        <span className="centro-status-label">Percance</span>
+                        <span className="centro-status-percent centro-status-percent--percance">
+                          {cargando ? '—' : `${Math.round(pct(m.percance, m.total || m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value">{cargando ? '—' : m.percance}</span>
                       </div>
                       <div className="centro-status-row" style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #f3f4f6' }}>
                         <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />

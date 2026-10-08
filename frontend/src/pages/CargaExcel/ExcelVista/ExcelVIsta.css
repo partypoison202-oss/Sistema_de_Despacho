@@ -699,3 +699,69 @@
     width: 100%;
   }
 }
+
+
+/* STICKY COLUMNS: Económico only */
+.excel-preview-table th.col-economico,
+.excel-preview-table td.cell-economico {
+  position: sticky;
+  left: 0;
+  width: 110px;
+  min-width: 110px;
+  max-width: 110px;
+  z-index: 15;
+  background-color: var(--tw-color-white);
+  
+}
+
+/* Ensure the sticky headers stay above everything including sticky table cells */
+.excel-preview-table th.col-economico {
+  z-index: 30;
+  background-color: var(--brand-maroon-bg);
+}
+
+/* Ensure other headers are above normal cells */
+.excel-preview-table th {
+  position: sticky;
+  top: 0;
+  z-index: 20; 
+}
+
+/* Match hover and even row background colors for sticky cells to avoid weird transparency */
+.excel-preview-table tbody tr:hover td.cell-economico {
+  background-color: var(--tw-color-gray-50) !important;
+}
+
+.excel-preview-table tbody tr:nth-child(even) td.cell-economico {
+  background-color: var(--tw-color-gray-50);
+}
+
+
+/* Fix sticky rendering artifacts */
+.excel-preview-table th.col-economico,
+.excel-preview-table td.cell-economico {
+  border-right: none !important;
+  border-left: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* Ensure bottom border is kept */
+.excel-preview-table th.col-economico {
+  border-bottom: 2px solid #551728 !important;
+  /* Add a shadow to the left and right that perfectly matches the maroon background to hide subpixel gaps */
+  box-shadow: -1px 0 0 0 var(--brand-maroon-bg), 1px 0 0 0 var(--brand-maroon-bg), 0 1px 0 0 rgba(0,0,0,0.1) !important;
+}
+
+.excel-preview-table td.cell-economico {
+  border-bottom: 1px solid #f3f4f6 !important;
+  box-shadow: -1px 0 0 0 var(--tw-color-white), 1px 0 0 0 var(--tw-color-white) !important;
+}
+
+.excel-preview-table tbody tr:nth-child(even) td.cell-economico {
+  box-shadow: -1px 0 0 0 var(--tw-color-gray-50), 1px 0 0 0 var(--tw-color-gray-50) !important;
+}
+
+.excel-preview-table tbody tr:hover td.cell-economico {
+  box-shadow: -1px 0 0 0 var(--tw-color-gray-50), 1px 0 0 0 var(--tw-color-gray-50) !important;
+}

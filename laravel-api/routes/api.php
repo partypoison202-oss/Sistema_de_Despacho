@@ -247,6 +247,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conductores/{id}/justificar-falta', [ConductorController::class, 'justificarFalta']);
     Route::post('/conductores/{id}/marcar-retardo', [ConductorController::class, 'marcarRetardo']);
     Route::post('/conductores/{id}/agregar-falta', [ConductorController::class, 'agregarFalta']);
+    Route::post('/conductores/{id}/eliminar-falta', [ConductorController::class, 'eliminarFalta']);
 
     // Itinerario de Asistencias
     Route::get('/operadores/itinerario', [\App\Http\Controllers\API\ItinerarioController::class, 'getItinerario']);
@@ -286,6 +287,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/encierro/{fecha}', [HistorialOperativoController::class, 'getHistorialEncierro']);
     Route::get('/historial-operativo/mantenimiento/{fecha}', [HistorialOperativoController::class, 'getHistorialMantenimiento']);
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
+    Route::get('/historial-operativo/mesa-control/{fecha}', [HistorialOperativoController::class, 'getHistorialMesaControl']);
     Route::get('/historial-operativo/programacion/{fecha}', [HistorialOperativoController::class, 'getHistorialProgramacion']);
     Route::get('/historial-operativo/relevos/{fecha}', [HistorialOperativoController::class, 'getHistorialRelevos']);
     Route::get('/historial-operativo/combustible/{fecha}', [HistorialOperativoController::class, 'getHistorialCombustible']);

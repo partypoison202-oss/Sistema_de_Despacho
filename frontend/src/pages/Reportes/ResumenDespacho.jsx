@@ -39,25 +39,70 @@ export default function ResumenDespacho() {
     const fetchData = async () => {
       try {
         const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-        const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          }
-        });
-        const apiData = await res.json();
+        const [resHoy, resInicio] = await Promise.all([
+          fetch(`${API_BASE}/api/despacho/hoy`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            }
+          }),
+          fetch(`${API_BASE}/api/despacho/inicio-hoy`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            }
+          }).catch(() => null)
+        ]);
+        const apiData = await resHoy.json();
+        const inicioData = resInicio && resInicio.ok ? await resInicio.json() : [];
+
+        const normStr = (str) =>
+          (str || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase()
+            .trim();
+
+        const now = new Date();
+        const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         
+        const getOverrideHoy = (id) => {
+          const u = (id || '').toUpperCase();
+          if (u.includes('URBANU')) return 38;
+          if (u.includes('VAGONETA')) return 50;
+          if (u.includes('ZAFIRO')) return 36;
+          if (u.includes('ORION')) return 6;
+          return null;
+        };
+
         const aggregated = modelsConfig.map(mc => {
-          const units = apiData.filter(d => d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id));
-          const prog = units.filter(d => (d.ESTATUS || '').toUpperCase().trim().includes('OPERACI')).length;
+          const units = (Array.isArray(apiData) ? apiData : []).filter(d => normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id)));
+          
+          // Regla de inicio operativo (snapshot de cambio de día a las 00:00)
+          const progInicio = Array.isArray(inicioData)
+            ? inicioData.filter(d => {
+                const match = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+                const est = normStr(d.ESTATUS || d.estatus);
+                return match && est.includes('OPERACI');
+              }).length
+            : 0;
+
+          const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI')).length;
+          let progCalculada = progInicio > 0 ? progInicio : (progActual || units.length);
+
+          // Ajuste solo para hoy (fijo 130 totales: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
+          const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(mc.id) : null;
+          const prog = overrideHoy ?? progCalculada;
+
           const oper = units.filter(d => {
-            const status = (d.ESTATUS || '').toUpperCase().trim();
+            const status = normStr(d.ESTATUS || d.estatus);
             const isOper = status.includes('OPERACI');
             const isValidadaOMesa = !!(d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA) || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
             return isOper && isValidadaOMesa;
           }).length;
           const mantUnits = units.filter(d => {
-            const status = (d.ESTATUS || '').toUpperCase().trim();
+            const status = normStr(d.ESTATUS || d.estatus);
             return status.includes('MANTENIMIENTO');
           });
           const mant = mantUnits.length;

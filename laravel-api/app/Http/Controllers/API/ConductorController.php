@@ -481,7 +481,16 @@ class ConductorController extends Controller
 
         $conductor = Conductor::findOrFail($id);
 
-        // Validar plazo de 3 días naturales para poder justificar
+        // Validar plazo de 3 días naturales para poder justificar (omitido para Administradores)
+        $user = $request->user() ?: auth('sanctum')->user();
+        $isAdmin = false;
+        if ($user) {
+            $roleCode = strtoupper(trim($user->role->codigo ?? $user->rol ?? ''));
+            if ($roleCode === 'ADMINISTRADOR') {
+                $isAdmin = true;
+            }
+        }
+
         $rawDetalle = $conductor->faltas_detalle;
         $detalleCheck = [];
         if (is_array($rawDetalle)) {
@@ -506,7 +515,7 @@ class ConductorController extends Controller
             $targetFecha = $request->input('fecha_falta') ?: ($conductor->updated_at ? ($conductor->updated_at instanceof \DateTimeInterface ? $conductor->updated_at->format('Y-m-d') : (is_string($conductor->updated_at) ? substr($conductor->updated_at, 0, 10) : date('Y-m-d'))) : date('Y-m-d'));
         }
 
-        if ($targetFecha && $targetFecha !== 'Fecha sin registrar') {
+        if (!$isAdmin && $targetFecha && $targetFecha !== 'Fecha sin registrar') {
             $faltaTs = strtotime(substr($targetFecha, 0, 10));
             $todayTs = strtotime(date('Y-m-d'));
             if ($faltaTs !== false) {
@@ -745,6 +754,14 @@ class ConductorController extends Controller
     {
         $this->ensureColumnsExist();
 
+        // Normalizar nombres de campos: soportar tanto 'fecha' como 'fecha_falta', y 'motivo' como 'motivo_falta'
+        if (!$request->has('fecha') && $request->has('fecha_falta')) {
+            $request->merge(['fecha' => $request->input('fecha_falta')]);
+        }
+        if (!$request->has('motivo') && $request->has('motivo_falta')) {
+            $request->merge(['motivo' => $request->input('motivo_falta')]);
+        }
+
         $request->validate([
             'fecha' => 'required|date',
             'motivo' => 'nullable|string|max:255',
@@ -776,18 +793,57 @@ class ConductorController extends Controller
         // Evaluar regla de 4 faltas en 30 días
         $eval = $conductor->evaluarInhabilitacionFaltas();
         $fueInhabilitado = false;
+
+        $tarjetonPad = str_pad(trim((string)$conductor->tarjeton), 4, '0', STR_PAD_LEFT);
+        $tarjetonRaw = trim((string)$conductor->tarjeton);
+        $tarjetonClean = ltrim($tarjetonRaw, '0');
+        $tarjetonesBusqueda = array_values(array_unique(array_filter([$tarjetonRaw, $tarjetonPad, $tarjetonClean])));
+
         if ($eval['inhabilitado']) {
             $conductor->estatus = 'inhabilitado';
             $conductor->estado_servicio = null;
             $fueInhabilitado = true;
 
             // Desvincular automáticamente de cualquier unidad asignada
-            DB::table('informacion_operativa')
-                ->where('numero_tarjeton', $conductor->tarjeton)
-                ->update([
-                    'numero_tarjeton' => null,
-                    'nombre_conductor' => null
-                ]);
+            if (Schema::hasTable('informacion_operativa')) {
+                DB::table('informacion_operativa')
+                    ->whereIn('numero_tarjeton', $tarjetonesBusqueda)
+                    ->update([
+                        'numero_tarjeton' => null,
+                        'nombre_conductor' => null
+                    ]);
+                DB::table('informacion_operativa')
+                    ->whereIn('relevo_tarjeton', $tarjetonesBusqueda)
+                    ->update([
+                        'relevo_tarjeton' => null,
+                        'relevo_conductor' => null,
+                        'relevo_hora' => null
+                    ]);
+            }
+        } else {
+            // Actualizar estado_servicio a 'falta' si es para la fecha operativa de hoy o si se solicita
+            $fechaFalta = $request->input('fecha');
+            $hoy = Carbon::today('America/Mexico_City')->toDateString();
+            if ($fechaFalta === $hoy || $fechaFalta === date('Y-m-d') || $request->input('estado_servicio') === 'falta') {
+                $conductor->estado_servicio = 'falta';
+
+                // Desvincular de unidades en información operativa si estaba asignado
+                if (Schema::hasTable('informacion_operativa')) {
+                    DB::table('informacion_operativa')
+                        ->whereIn('numero_tarjeton', $tarjetonesBusqueda)
+                        ->update([
+                            'numero_tarjeton' => null,
+                            'nombre_conductor' => null
+                        ]);
+                    DB::table('informacion_operativa')
+                        ->whereIn('relevo_tarjeton', $tarjetonesBusqueda)
+                        ->update([
+                            'relevo_tarjeton' => null,
+                            'relevo_conductor' => null,
+                            'relevo_hora' => null
+                        ]);
+                }
+            }
         }
 
         $conductor->save();
@@ -810,6 +866,89 @@ class ConductorController extends Controller
             'message' => $mensaje,
             'conductor' => $conductor,
             'inhabilitado' => $fueInhabilitado
+        ], 200);
+    }
+
+    /**
+     * Elimina / anula una falta del expediente del conductor (exclusivo Administradores).
+     */
+    public function eliminarFalta(Request $request, $id)
+    {
+        $this->ensureColumnsExist();
+
+        $request->validate([
+            'falta_id' => 'nullable|string',
+            'falta_index' => 'nullable|integer',
+            'fecha_falta' => 'nullable|string',
+            'motivo_anulacion' => 'nullable|string|max:500',
+        ]);
+
+        $conductor = Conductor::findOrFail($id);
+
+        $rawDetalle = $conductor->faltas_detalle;
+        $detalle = [];
+        if (is_array($rawDetalle)) {
+            $detalle = $rawDetalle;
+        } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+            $parsed = json_decode($rawDetalle, true);
+            if (is_array($parsed)) $detalle = $parsed;
+        }
+
+        $faltaIndex = $request->input('falta_index');
+        $faltaId = $request->input('falta_id');
+        $eliminada = null;
+        $nuevoDetalle = [];
+
+        foreach ($detalle as $idx => $item) {
+            $match = ($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) ||
+                     ($faltaIndex !== null && (int)$idx === (int)$faltaIndex);
+            if ($match && $eliminada === null) {
+                $eliminada = $item;
+            } else {
+                $nuevoDetalle[] = $item;
+            }
+        }
+
+        // Si la falta no estaba explícita en el array (ej. generada como conteo)
+        if ($eliminada === null && $conductor->faltas > 0) {
+            $eliminada = [
+                'fecha' => $request->input('fecha_falta') ?: date('Y-m-d'),
+                'motivo' => 'Falta eliminada por ajuste manual'
+            ];
+        }
+
+        $conductor->faltas_detalle = array_values($nuevoDetalle);
+
+        $eraJustificada = isset($eliminada['estado']) && ($eliminada['estado'] === 'justificada' || !empty($eliminada['justificada']));
+        if (!$eraJustificada && $conductor->faltas > 0) {
+            $conductor->faltas = max(0, (int)$conductor->faltas - 1);
+        }
+
+        // Reevaluar inhabilitación
+        $eval = $conductor->evaluarInhabilitacionFaltas();
+        if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
+            $conductor->estatus = 'activo';
+            $conductor->estado_servicio = 'disponible';
+        }
+
+        $conductor->save();
+
+        $fechaFalta = $eliminada['fecha'] ?? ($request->input('fecha_falta') ?: 'Fecha no especificada');
+        $motivoAnulacion = $request->input('motivo_anulacion') ?: 'Eliminación autorizada por Administrador';
+
+        BitacoraConductorHelper::registrarAccion(
+            $conductor->id,
+            $conductor->tarjeton,
+            $conductor->nombres . ' ' . $conductor->apellidos,
+            'FALTA_ELIMINADA',
+            "Falta del día {$fechaFalta} eliminada del expediente por Administrador. Motivo: {$motivoAnulacion}",
+            $request
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Falta eliminada correctamente del expediente del operador.',
+            'conductor' => $conductor
         ], 200);
     }
 
