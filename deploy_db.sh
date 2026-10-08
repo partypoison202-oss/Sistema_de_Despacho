@@ -39,10 +39,11 @@ echo -e "¿Qué información deseas actualizar/inyectar en la base de datos?"
 echo -e "  ${BLUE}[1]${NC} Matriz de Usuarios y Permisos (Seguro: Actualiza y agrega roles sin borrar)"
 echo -e "  ${BLUE}[2]${NC} Conductores desde Plantilla JSON (${RED}PELIGRO:${NC} Borra toda la tabla de conductores e historial)"
 echo -e "  ${BLUE}[3]${NC} Ambos"
+echo -e "  ${BLUE}[4]${NC} Extraer/Exportar Usuarios y Conductores (a formato JSON local)"
 echo -e "  ${BLUE}[0]${NC} Cancelar y salir"
 echo ""
 
-read -p "Elige una opción [0-3]: " opcion
+read -p "Elige una opción [0-4]: " opcion
 
 cd laravel-api
 
@@ -75,6 +76,18 @@ case $opcion in
         else
             echo -e "${YELLOW}Operación cancelada.${NC}"
         fi
+        ;;
+    4)
+        echo -e "\n${BLUE}🔄 Extrayendo datos de la base de datos...${NC}"
+        echo -e "${YELLOW}Se guardarán en la carpeta laravel-api/ como 'export_usuarios.json' y 'export_conductores.json'${NC}"
+        
+        "$PHP_BIN" artisan tinker --execute="file_put_contents('export_usuarios.json', App\Models\User::all()->toJson(JSON_PRETTY_PRINT));"
+        "$PHP_BIN" artisan tinker --execute="try { file_put_contents('export_conductores.json', App\Models\Conductor::all()->toJson(JSON_PRETTY_PRINT)); } catch(\Exception \$e) {}"
+        
+        echo -e "${GREEN}✔ Datos extraídos con éxito.${NC}"
+        echo -e "Archivos creados:"
+        echo -e " - laravel-api/export_usuarios.json"
+        echo -e " - laravel-api/export_conductores.json"
         ;;
     0)
         echo -e "${GREEN}Saliendo sin hacer cambios...${NC}"
