@@ -73,7 +73,14 @@ export default function HistorialMantenimiento() {
 
   const getActiveData = () => {
     if (activeTab === 'inicio') return datos.inicio || [];
-    if (activeTab === 'cambios') return datos.cambios || [];
+    if (activeTab === 'cambios') {
+      return [...(datos.cambios || [])].sort((a, b) => {
+        const timeA = new Date(a.hora || 0).getTime();
+        const timeB = new Date(b.hora || 0).getTime();
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.id || 0) - (a.id || 0);
+      });
+    }
     if (activeTab === 'fin') return datos.fin || [];
     return datos.checklists || [];
   };

@@ -52,15 +52,12 @@ const ROUTE_DESCRIPTIONS = {
   '16': { tipo: 'alimentadora', label: '16', desc: '16 San Carlos - E. Zona Plateada' },
   '17': { tipo: 'alimentadora', label: '17', desc: '17 Tezontle - Av. Universidad' },
   '19': { tipo: 'alimentadora', label: '19', desc: '19 Parque de Poblamiento 1 y 2' },
-  '20B': { tipo: 'alimentadora', label: '20B', desc: '20B Ruta Incluyente Poniente - Oriente' },
-  'T-SIN ASIGNAR': { tipo: 'troncal', label: 'T-SIN ASIGNAR', desc: 'Troncal Sin Asignar' },
-  'SIN ASIGNAR': { tipo: 'alimentadora', label: 'SIN ASIGNAR', desc: 'Alimentadora Sin Asignar' }
+  '20B': { tipo: 'alimentadora', label: '20B', desc: '20B Ruta Incluyente Poniente - Oriente' }
 };
 
 const normalizeRutaKey = (rawRuta, tipoUnidad) => {
   if (!rawRuta || rawRuta.trim() === '' || rawRuta.toUpperCase().includes('SIN ASIGNAR')) {
-    const isTroncal = (tipoUnidad || '').toUpperCase().includes('URBANUS');
-    return isTroncal ? 'T-SIN ASIGNAR' : 'SIN ASIGNAR';
+    return null;
   }
   let clean = rawRuta.toUpperCase().trim();
   const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)/i);
@@ -83,7 +80,7 @@ export default function CentroControl() {
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [vistaDesglose, setVistaDesglose] = useState('tipo'); // 'tipo' | 'rutas'
-  const [filtroRutaCategoria, setFiltroRutaCategoria] = useState('TODAS'); // 'TODAS' | 'TRONCAL' | 'ALIMENTADORA' | 'SIN_ASIGNAR'
+  const [filtroRutaCategoria, setFiltroRutaCategoria] = useState('TODAS'); // 'TODAS' | 'TRONCAL' | 'ALIMENTADORA'
   const [filtroRutaTexto, setFiltroRutaTexto] = useState('');
   const [expandedRoute, setExpandedRoute] = useState(null);
 
@@ -416,6 +413,7 @@ export default function CentroControl() {
       const rawRuta = (u.RUTA ?? u.NOMBRE_RUTA ?? u.NO_RUTA ?? u.RUTA_ASIGNADA ?? '').toString().trim();
       const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || '').toString().trim();
       const key = normalizeRutaKey(rawRuta, tipoUnidad);
+      if (!key) return;
 
       if (!routesMap[key]) {
         const isTroncal = key.startsWith('T');
@@ -477,11 +475,6 @@ export default function CentroControl() {
     });
 
     return result.sort((a, b) => {
-      const aSin = a.key.includes('SIN ASIGNAR');
-      const bSin = b.key.includes('SIN ASIGNAR');
-      if (aSin && !bSin) return 1;
-      if (!aSin && bSin) return -1;
-
       if (a.tipo === 'troncal' && b.tipo !== 'troncal') return -1;
       if (a.tipo !== 'troncal' && b.tipo === 'troncal') return 1;
 
@@ -489,15 +482,13 @@ export default function CentroControl() {
     });
   }, [apiData]);
 
-  const troncalesCount = React.useMemo(() => routeData.filter(r => r.tipo === 'troncal' && !r.key.includes('SIN ASIGNAR')).length, [routeData]);
-  const alimentadorasCount = React.useMemo(() => routeData.filter(r => r.tipo === 'alimentadora' && !r.key.includes('SIN ASIGNAR')).length, [routeData]);
-  const sinAsignarCount = React.useMemo(() => routeData.filter(r => r.key.includes('SIN ASIGNAR')).length, [routeData]);
+  const troncalesCount = React.useMemo(() => routeData.filter(r => r.tipo === 'troncal').length, [routeData]);
+  const alimentadorasCount = React.useMemo(() => routeData.filter(r => r.tipo === 'alimentadora').length, [routeData]);
 
   const rutasVisibles = React.useMemo(() => {
     return routeData.filter(r => {
-      if (filtroRutaCategoria === 'TRONCAL' && (r.tipo !== 'troncal' || r.key.includes('SIN ASIGNAR'))) return false;
-      if (filtroRutaCategoria === 'ALIMENTADORA' && (r.tipo !== 'alimentadora' || r.key.includes('SIN ASIGNAR'))) return false;
-      if (filtroRutaCategoria === 'SIN_ASIGNAR' && !r.key.includes('SIN ASIGNAR')) return false;
+      if (filtroRutaCategoria === 'TRONCAL' && r.tipo !== 'troncal') return false;
+      if (filtroRutaCategoria === 'ALIMENTADORA' && r.tipo !== 'alimentadora') return false;
 
       if (filtroRutaTexto.trim() !== '') {
         const query = filtroRutaTexto.toLowerCase().trim();
@@ -945,17 +936,6 @@ export default function CentroControl() {
                     <span>Alimentadoras</span>
                     <span className="centro-route-pill__count">{alimentadorasCount}</span>
                   </button>
-
-                  {sinAsignarCount > 0 && (
-                    <button
-                      type="button"
-                      className={`centro-route-pill ${filtroRutaCategoria === 'SIN_ASIGNAR' ? 'active' : ''}`}
-                      onClick={() => setFiltroRutaCategoria('SIN_ASIGNAR')}
-                    >
-                      <span>Sin Asignar</span>
-                      <span className="centro-route-pill__count">{sinAsignarCount}</span>
-                    </button>
-                  )}
                 </div>
 
                 <div style={{ position: 'relative' }}>
@@ -984,8 +964,7 @@ export default function CentroControl() {
                   {rutasVisibles.map((r) => {
                     const isExpanded = expandedRoute === r.key;
                     const isTroncal = r.tipo === 'troncal';
-                    const isSinAsignar = r.key.includes('SIN ASIGNAR');
-                    const cardModifier = isTroncal ? 'troncal' : isSinAsignar ? 'sin-asignar' : 'alimentadora';
+                    const cardModifier = isTroncal ? 'troncal' : 'alimentadora';
 
                     return (
                       <div
@@ -1007,7 +986,7 @@ export default function CentroControl() {
                               {r.label}
                             </span>
                             <span className={`centro-route-type-tag centro-route-type-tag--${cardModifier}`}>
-                              {isTroncal ? 'TRONCAL' : isSinAsignar ? 'SIN ASIGNAR' : 'ALIMENTADORA'}
+                              {isTroncal ? 'TRONCAL' : 'ALIMENTADORA'}
                             </span>
                           </div>
                           <span className="centro-route-card__total">
