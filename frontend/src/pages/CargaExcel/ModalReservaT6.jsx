@@ -97,7 +97,9 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
           const raw = String(c.tarjeton || '').trim();
           const pad = raw.padStart(4, '0');
           const clean = raw.replace(/^0+/, '');
-          return autorizadosList.has(raw) || autorizadosList.has(pad) || (clean !== '' && autorizadosList.has(clean));
+          const isAuth = autorizadosList.has(raw) || autorizadosList.has(pad) || (clean !== '' && autorizadosList.has(clean));
+          const estado = getEstadoOperador(c);
+          return isAuth || estado === 'falta' || c.estado_servicio === 'falta';
         }
         
         return true;
@@ -107,7 +109,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         const nomB = String(b.nombre || `${b.nombres || ''} ${b.apellidos || ''}`).trim();
         return nomA.localeCompare(nomB);
       });
-  }, [catalogConductores, isPasteles, autorizadosList]);
+  }, [catalogConductores, isPasteles, autorizadosList, estadosLocales]);
 
   // Contadores para los botones de filtro rápido
   const countDisponibles = useMemo(() => {
@@ -250,10 +252,12 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
       let successCount = 0;
       let ultimoError = null;
       const nuevosEstados = { ...estadosLocales };
+      const nuevosAutorizados = new Set(autorizadosList);
 
       for (const c of conductoresAMarcar) {
         try {
-          const res = await fetch(`${API_BASE}/api/conductores/${c.id}/agregar-falta`, {
+          const conductorId = c.id || c.tarjeton;
+          const res = await fetch(`${API_BASE}/api/conductores/${conductorId}/agregar-falta`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
@@ -270,9 +274,16 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
             c.estado_servicio = 'falta';
             c.faltas = (c.faltas || 0) + 1;
             const padT = String(c.tarjeton || '').trim().padStart(4, '0');
-            nuevosEstados[padT] = 'falta';
             const rawT = String(c.tarjeton || '').trim();
+            const cleanT = rawT.replace(/^0+/, '');
+
+            nuevosEstados[padT] = 'falta';
             nuevosEstados[rawT] = 'falta';
+            if (cleanT) nuevosEstados[cleanT] = 'falta';
+
+            nuevosAutorizados.delete(padT);
+            nuevosAutorizados.delete(rawT);
+            if (cleanT) nuevosAutorizados.delete(cleanT);
           } else {
             const errData = await res.json().catch(() => ({}));
             ultimoError = errData.message || 'Error del servidor al registrar falta';
@@ -283,15 +294,30 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
       }
 
       setEstadosLocales(nuevosEstados);
+      setAutorizadosList(nuevosAutorizados);
 
       if (successCount > 0) {
         setSeleccionados(new Set());
         try {
           queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
+          queryClient.invalidateQueries({ queryKey: ['conductores-list'] });
+          queryClient.invalidateQueries({ queryKey: ['reservas-autorizadas'] });
           queryClient.invalidateQueries({ queryKey: ['despacho-datos'] });
           queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
+          queryClient.invalidateQueries({ queryKey: ['unidades-list-mesacontrol'] });
+          queryClient.invalidateQueries({ queryKey: ['conductores'] });
         } catch (queryErr) {
           console.error(queryErr);
+        }
+
+        if (typeof BroadcastChannel !== 'undefined') {
+          try {
+            const bc = new BroadcastChannel('unidades_estatus_channel');
+            bc.postMessage({ tipo: 'CAMBIO_ESTATUS', action: 'estatus_updated' });
+            bc.close();
+          } catch (e) {
+            console.error(e);
+          }
         }
 
         Swal.fire({
