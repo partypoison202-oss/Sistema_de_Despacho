@@ -468,6 +468,34 @@ export default function Usuarios() {
     }
   };
 
+  const downloadAdminUsersCSV = () => {
+    // Solo exportar estos 3 usuarios con sus datos precisos solicitados
+    const adminUsers = [
+      ['Enrique Hernandez Hernandez', 'Enrique_Hernandez', 'ADMINISTRADOR', 'HHE_A26', 'ACCESO TOTAL'],
+      ['Israel Moreno Gómez', 'Israel_Moreno', 'ADMINISTRADOR', 'MGI_A26', 'ACCESO TOTAL'],
+      ['Jeanet García Chávez', 'Jeanet_Garcia', 'ADMINISTRADOR', 'GCJ_A26', 'ACCESO TOTAL']
+    ];
+
+    let csvContent = '\uFEFF'; // BOM for Excel UTF-8 support
+    csvContent += 'Nombre Completo,Usuario,Rol,Contraseña,Modulos que puede acceder\n';
+    
+    adminUsers.forEach(row => {
+      // Escape comillas y agregar comillas a cada celda para evitar problemas con comas internas
+      const formattedRow = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+      csvContent += formattedRow + '\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'Usuarios_Admin.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Cambiar estado activo/inactivo
   const handleToggleActive = async (user) => {
     if (user.role?.nombre?.toLowerCase() === 'administrador') {
@@ -634,7 +662,16 @@ export default function Usuarios() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="usuarios-actions">
+          </div>
+          <div className="usuarios-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              className="btn-primary"
+              onClick={downloadAdminUsersCSV}
+              style={{ backgroundColor: '#10b981', color: '#fff' }}
+            >
+              <svg style={{ width: '1rem', height: '1rem', marginRight: '0.4rem', display: 'inline' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Descargar Usuarios
+            </button>
             <button
               className="btn-primary"
               onClick={() => handleOpenModal()}
