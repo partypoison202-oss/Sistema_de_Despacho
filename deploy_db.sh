@@ -39,10 +39,11 @@ echo -e "¿Qué información deseas actualizar/inyectar en la base de datos?"
 echo -e "  ${BLUE}[1]${NC} Matriz de Usuarios y Permisos (Seguro: Actualiza y agrega roles sin borrar)"
 echo -e "  ${BLUE}[2]${NC} Conductores desde Plantilla JSON (${RED}PELIGRO:${NC} Borra toda la tabla de conductores e historial)"
 echo -e "  ${BLUE}[3]${NC} Ambos"
+echo -e "  ${BLUE}[4]${NC} Extraer/Exportar Contraseñas y Usuarios (a formato CSV para Excel)"
 echo -e "  ${BLUE}[0]${NC} Cancelar y salir"
 echo ""
 
-read -p "Elige una opción [0-3]: " opcion
+read -p "Elige una opción [0-4]: " opcion
 
 cd laravel-api
 
@@ -75,6 +76,28 @@ case $opcion in
         else
             echo -e "${YELLOW}Operación cancelada.${NC}"
         fi
+        ;;
+    4)
+        echo -e "\n${BLUE}🔄 Extrayendo datos de usuarios con contraseñas en texto claro...${NC}"
+        
+        "$PHP_BIN" -r "
+        \$content = file_get_contents('database/seeders/RbacMatrizSeeder.php');
+        preg_match_all('/\[\'nombre_completo\' => \'(.*?)\', \'usuario\' => \'(.*?)\', \'rol_codigo\' => \'(.*?)\', \'modulos\' => (.*?), \'contrasena\' => \'(.*?)\'\]/', \$content, \$matches, PREG_SET_ORDER);
+        
+        \$out = fopen('export_usuarios_completo.csv', 'w');
+        fputcsv(\$out, ['Nombre Completo', 'Usuario', 'Rol', 'Contrasena', 'Modulos']);
+        foreach (\$matches as \$m) {
+            \$mod = trim(\$m[4]);
+            if (\$mod == '\$TODOS') \$mod = 'ACCESO TOTAL';
+            fputcsv(\$out, [\$m[1], \$m[2], \$m[3], \$m[5], \$mod]);
+        }
+        fclose(\$out);
+        "
+        
+        echo -e "${GREEN}✔ Datos de usuarios extraídos con éxito.${NC}"
+        echo -e "Archivo creado:"
+        echo -e " - laravel-api/export_usuarios_completo.csv"
+        echo -e "${YELLOW}(Nota: Puedes abrir este archivo CSV directamente en Excel)${NC}"
         ;;
     0)
         echo -e "${GREEN}Saliendo sin hacer cambios...${NC}"

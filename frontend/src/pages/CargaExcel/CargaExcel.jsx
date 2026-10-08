@@ -1317,8 +1317,8 @@ export default function CargaExcel({ isPasteles = false }) {
       <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
       <main className="excel-main-content">
         <div className="excel-top-bar" style={{ flexDirection: 'column' }}>
-          <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '1.5rem', marginBottom: '20px' }}>
-            <div className="page-header-container" style={{ margin: '0', flex: '1', textAlign: 'center', minWidth: '0' }}>
+          <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem', marginBottom: '20px' }}>
+            <div className="page-header-container" style={{ margin: '0', flex: '1 1 400px', textAlign: 'center', minWidth: '300px' }}>
             <p className="page-eyebrow">
               {isRelevos ? 'GESTIÓN DE OPERACIONES' : 'SISTEMA DE'}
             </p>
