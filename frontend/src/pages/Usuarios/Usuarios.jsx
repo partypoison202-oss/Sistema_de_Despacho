@@ -5,6 +5,7 @@ import Header from '../../components/Header/Header';
 import UserAvatar from '../../components/UserAvatar/UserAvatar';
 import './Usuarios.css';
 import API_BASE from '../../config/api';
+import * as XLSX from 'xlsx-js-style';
 
 export default function Usuarios() {
   const { token, user: currentUser, setUser } = useContext(AuthContext);
@@ -529,10 +530,7 @@ export default function Usuarios() {
       ['Miguel Ángel Pérez Rodríguez', 'Miguel_Perez', 'PASTELES', 'RPM_PL26', "['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro']"]
     ];
 
-    let csvContent = '\uFEFF'; // BOM for Excel UTF-8 support
-    csvContent += 'Nombre Completo,Usuario,Rol,Contraseña,Modulos que puede acceder\n';
-    
-    adminUsers.forEach(row => {
+    const processedData = adminUsers.map(row => {
       let modulosStr = row[4];
       if (modulosStr === 'ACCESO TOTAL') {
         if (row[2] === 'LECTURA') {
@@ -547,21 +545,63 @@ export default function Usuarios() {
           }).join(', ');
         } catch(e) {}
       }
-
-      const newRow = [row[0], row[1], row[2], row[3], modulosStr];
-      const formattedRow = newRow.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
-      csvContent += formattedRow + '\n';
+      return [row[0], row[1], row[2], row[3], modulosStr];
     });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'Usuarios_Admin.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Añadir headers
+    const wsData = [
+      ['Nombre Completo', 'Usuario', 'Rol', 'Contraseña', 'Modulos que puede acceder'],
+      ...processedData
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Ajustar anchos de columnas
+    ws['!cols'] = [
+      { wch: 35 }, // Nombre
+      { wch: 20 }, // Usuario
+      { wch: 25 }, // Rol
+      { wch: 15 }, // Contraseña
+      { wch: 70 }  // Módulos
+    ];
+
+    // Estilos generales (bordes) y de encabezado (verde + negrita)
+    const borderStyle = {
+      top: { style: 'thin', color: { rgb: '000000' } },
+      bottom: { style: 'thin', color: { rgb: '000000' } },
+      left: { style: 'thin', color: { rgb: '000000' } },
+      right: { style: 'thin', color: { rgb: '000000' } }
+    };
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_address = { c: C, r: R };
+        const cell_ref = XLSX.utils.encode_cell(cell_address);
+        
+        if (!ws[cell_ref]) continue;
+
+        // Si es la fila 0 (Header)
+        if (R === 0) {
+          ws[cell_ref].s = {
+            font: { bold: true, color: { rgb: "000000" } },
+            fill: { fgColor: { rgb: "c6e0b4" } },
+            border: borderStyle,
+            alignment: { vertical: "center", horizontal: "left" }
+          };
+        } else {
+          // Filas normales
+          ws[cell_ref].s = {
+            border: borderStyle,
+            alignment: { vertical: "center", horizontal: "left" }
+          };
+        }
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
+    XLSX.writeFile(wb, "Usuarios_Admin.xlsx");
   };
 
   // Cambiar estado activo/inactivo
