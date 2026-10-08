@@ -39,7 +39,7 @@ echo -e "¿Qué información deseas actualizar/inyectar en la base de datos?"
 echo -e "  ${BLUE}[1]${NC} Matriz de Usuarios y Permisos (Seguro: Actualiza y agrega roles sin borrar)"
 echo -e "  ${BLUE}[2]${NC} Conductores desde Plantilla JSON (${RED}PELIGRO:${NC} Borra toda la tabla de conductores e historial)"
 echo -e "  ${BLUE}[3]${NC} Ambos"
-echo -e "  ${BLUE}[4]${NC} Extraer/Exportar Usuarios y Conductores (a formato JSON local)"
+echo -e "  ${BLUE}[4]${NC} Extraer/Exportar Contraseñas y Usuarios (a formato CSV para Excel)"
 echo -e "  ${BLUE}[0]${NC} Cancelar y salir"
 echo ""
 
