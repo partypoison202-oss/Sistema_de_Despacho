@@ -30,7 +30,17 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       .toUpperCase()
       .trim();
 
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const getOverrideHoy = (id) => {
+    const u = (id || '').toUpperCase();
+    if (u.includes('URBANU')) return 38;
+    if (u.includes('VAGONETA')) return 50;
+    if (u.includes('ZAFIRO')) return 36;
+    if (u.includes('ORION')) return 6;
+    return null;
+  };
 
   const tipos = MODELOS_CONFIG.map(({ id }) => {
     const unidades = list.filter((u) => {
@@ -63,15 +73,8 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       }
     }
 
-    // Parche para hoy 2026-10-07 (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
-    const overrideHoy = hoyStr === '2026-10-07' ? {
-      URBANUS: 38,
-      VAGONETA: 50,
-      ZARO: 36,
-      ZAFIRO: 36,
-      ORION: 6,
-    }[id] : null;
-
+    // Parche para hoy (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
+    const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(id) : null;
     const programadas = overrideHoy ?? programadasCalculadas;
 
     return { tipo: id, programadas, en_servicio: enServicio, imagen: 'default.png' };
