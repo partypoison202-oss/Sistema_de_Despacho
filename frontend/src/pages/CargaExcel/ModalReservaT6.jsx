@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Swal from 'sweetalert2';
+import { useQueryClient } from '@tanstack/react-query';
 
 // URL de la API
 import API_BASE from '../../config/api';
@@ -13,9 +14,11 @@ const getAuthHeaders = () => {
 };
 
 export default function ModalReservaT6({ isOpen, onClose, catalogConductores, tabActiva, isPasteles = false }) {
+  const queryClient = useQueryClient();
   const [busqueda, setBusqueda] = useState('');
   const [seleccionados, setSeleccionados] = useState(new Set());
   const [autorizadosList, setAutorizadosList] = useState(new Set());
+  const [estadosLocales, setEstadosLocales] = useState({});
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [filtroVista, setFiltroVista] = useState('TODOS'); // 'TODOS' | 'DISPONIBLES' | 'SELECCIONADOS'
@@ -23,10 +26,16 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
   useEffect(() => {
     if (isOpen) {
       cargarAutorizados();
+      try {
+        queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
+      } catch (e) {
+        console.error(e);
+      }
     } else {
       setBusqueda('');
       setSeleccionados(new Set());
       setFiltroVista('TODOS');
+      setEstadosLocales({});
     }
   }, [isOpen, tabActiva]);
 
@@ -68,6 +77,15 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
     return seleccionados.has(raw) || seleccionados.has(pad) || (clean !== '' && seleccionados.has(clean));
   };
 
+  // Helper para obtener el estado actual del operador (incluyendo cambios locales inmediatos)
+  const getEstadoOperador = (c) => {
+    const tarjPad = String(c?.tarjeton || '').trim().padStart(4, '0');
+    if (estadosLocales[tarjPad]) return estadosLocales[tarjPad];
+    const tarjRaw = String(c?.tarjeton || '').trim();
+    if (estadosLocales[tarjRaw]) return estadosLocales[tarjRaw];
+    return String(c?.estado_servicio || 'disponible').toLowerCase();
+  };
+
   // 1. Catálogo completo de operadores activos (no bajas ni inhabilitados)
   const todosOperadores = useMemo(() => {
     return (catalogConductores || [])
@@ -93,8 +111,8 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
 
   // Contadores para los botones de filtro rápido
   const countDisponibles = useMemo(() => {
-    return todosOperadores.filter(c => String(c.estado_servicio || '').toLowerCase() === 'disponible').length;
-  }, [todosOperadores]);
+    return todosOperadores.filter(c => getEstadoOperador(c) === 'disponible').length;
+  }, [todosOperadores, estadosLocales]);
 
   const countSeleccionados = useMemo(() => {
     return todosOperadores.filter(c => isTarjetonSelected(c.tarjeton)).length;
@@ -103,15 +121,16 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
   // 2. Filtrado por vista ('TODOS', 'DISPONIBLES', 'SELECCIONADOS')
   const operadoresPorVista = useMemo(() => {
     return todosOperadores.filter(c => {
+      const estado = getEstadoOperador(c);
       if (filtroVista === 'DISPONIBLES') {
-        return String(c.estado_servicio || '').toLowerCase() === 'disponible';
+        return estado === 'disponible';
       }
       if (filtroVista === 'SELECCIONADOS') {
         return isTarjetonSelected(c.tarjeton);
       }
       return true;
     });
-  }, [todosOperadores, filtroVista, seleccionados]);
+  }, [todosOperadores, filtroVista, seleccionados, estadosLocales]);
 
   // 3. Filtrado por término de búsqueda (Nombre o Tarjetón)
   const filtrados = useMemo(() => {
@@ -194,7 +213,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
       
       const confirm = await Swal.fire({
         title: '¿Mandar a Falta?',
-        html: `¿Estás seguro de registrar inasistencia a los <b>${seleccionados.size}</b> operador(es) seleccionado(s)?<br/><br/>Esta acción afectará inmediatamente su kardex en Control de Personas Conductoras.`,
+        html: `¿Estás seguro de registrar inasistencia a los <b>${seleccionados.size}</b> operador(es) seleccionado(s)?<br/><br/>Esta acción afectará inmediatamente su kardex en Control de Personas Conductoras y su estado cambiará a FALTA.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc2626',
@@ -207,7 +226,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
 
       setGuardando(true);
       
-      // Determinar la fecha real para la falta
+      // Determinar la fecha real para la falta en formato local YYYY-MM-DD
       const today = new Date();
       if (tabActiva === 'MANANA') today.setDate(today.getDate() + 1);
       else if (tabActiva === 'SABADO') {
@@ -221,33 +240,76 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
         today.setDate(today.getDate() + (diff === 0 ? 7 : diff));
       } else if (tabActiva === 'FESTIVO') today.setDate(today.getDate() + 1);
       
-      const offset = today.getTimezoneOffset() * 60000;
-      const fechaFalta = (new Date(today.getTime() - offset)).toISOString().split('T')[0];
+      const ano = today.getFullYear();
+      const mes = String(today.getMonth() + 1).padStart(2, '0');
+      const dia = String(today.getDate()).padStart(2, '0');
+      const fechaFalta = `${ano}-${mes}-${dia}`;
 
-      const tarjetonesSelected = Array.from(seleccionados).map(t => String(t).trim().padStart(4, '0'));
-      const conductoresAMarcar = todosOperadores.filter(c => tarjetonesSelected.includes(String(c.tarjeton || '').padStart(4, '0')));
+      const conductoresAMarcar = todosOperadores.filter(c => isTarjetonSelected(c.tarjeton));
 
       let successCount = 0;
+      let ultimoError = null;
+      const nuevosEstados = { ...estadosLocales };
+
       for (const c of conductoresAMarcar) {
-        const res = await fetch(`${API_BASE}/api/conductores/${c.id}/agregar-falta`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({
-            fecha_falta: fechaFalta,
-            motivo_falta: 'Inasistencia a reserva T6 (Mesa de Control)'
-          })
-        });
-        if (res.ok) successCount++;
+        try {
+          const res = await fetch(`${API_BASE}/api/conductores/${c.id}/agregar-falta`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+              fecha: fechaFalta,
+              fecha_falta: fechaFalta,
+              motivo: 'Inasistencia a reserva T6 (Mesa de Control)',
+              motivo_falta: 'Inasistencia a reserva T6 (Mesa de Control)',
+              estado_servicio: 'falta'
+            })
+          });
+
+          if (res.ok) {
+            successCount++;
+            c.estado_servicio = 'falta';
+            c.faltas = (c.faltas || 0) + 1;
+            const padT = String(c.tarjeton || '').trim().padStart(4, '0');
+            nuevosEstados[padT] = 'falta';
+            const rawT = String(c.tarjeton || '').trim();
+            nuevosEstados[rawT] = 'falta';
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            ultimoError = errData.message || 'Error del servidor al registrar falta';
+          }
+        } catch (fetchErr) {
+          console.error('Error al registrar falta de operador:', fetchErr);
+        }
       }
 
-      Swal.fire({
-        icon: 'success',
-        title: 'Faltas Registradas',
-        text: `Se registraron ${successCount} inasistencias en el kardex.`,
-        timer: 3000,
-        showConfirmButton: false
-      });
-      onClose();
+      setEstadosLocales(nuevosEstados);
+
+      if (successCount > 0) {
+        setSeleccionados(new Set());
+        try {
+          queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
+          queryClient.invalidateQueries({ queryKey: ['despacho-datos'] });
+          queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
+        } catch (queryErr) {
+          console.error(queryErr);
+        }
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Faltas Registradas',
+          text: `Se registraron ${successCount} inasistencia(s) en el kardex y su estatus cambió a FALTA.`,
+          timer: 2500,
+          showConfirmButton: false
+        });
+        onClose();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al registrar faltas',
+          text: ultimoError || 'No se pudieron registrar las inasistencias en el servidor.',
+          confirmButtonColor: '#dc2626'
+        });
+      }
     } catch (e) {
       Swal.fire('Error', 'Hubo un error al registrar las inasistencias.', 'error');
     } finally {
@@ -473,7 +535,7 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
               filtrados.map((c, idx) => {
                 const isSelected = isTarjetonSelected(c.tarjeton);
                 const nombreOperador = String(c.nombre || `${c.nombres || ''} ${c.apellidos || ''}`).trim() || 'SIN NOMBRE';
-                const estado = String(c.estado_servicio || 'disponible').toLowerCase();
+                const estado = getEstadoOperador(c);
                 const tipoTarj = String(c.tipo_tarjeton || '').toUpperCase();
 
                 // Colores para el badge de estado
@@ -493,6 +555,10 @@ export default function ModalReservaT6({ isOpen, onClose, catalogConductores, ta
                   estadoBg = '#faf5ff';
                   estadoColor = '#6b21a8';
                   estadoText = 'MANIOBRISTA';
+                } else if (estado === 'falta') {
+                  estadoBg = '#fef2f2';
+                  estadoColor = '#991b1b';
+                  estadoText = 'FALTA';
                 } else if (estado) {
                   estadoBg = '#fff7ed';
                   estadoColor = '#9a3412';

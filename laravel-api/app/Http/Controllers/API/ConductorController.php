@@ -754,6 +754,14 @@ class ConductorController extends Controller
     {
         $this->ensureColumnsExist();
 
+        // Normalizar nombres de campos: soportar tanto 'fecha' como 'fecha_falta', y 'motivo' como 'motivo_falta'
+        if (!$request->has('fecha') && $request->has('fecha_falta')) {
+            $request->merge(['fecha' => $request->input('fecha_falta')]);
+        }
+        if (!$request->has('motivo') && $request->has('motivo_falta')) {
+            $request->merge(['motivo' => $request->input('motivo_falta')]);
+        }
+
         $request->validate([
             'fecha' => 'required|date',
             'motivo' => 'nullable|string|max:255',
@@ -785,18 +793,57 @@ class ConductorController extends Controller
         // Evaluar regla de 4 faltas en 30 días
         $eval = $conductor->evaluarInhabilitacionFaltas();
         $fueInhabilitado = false;
+
+        $tarjetonPad = str_pad(trim((string)$conductor->tarjeton), 4, '0', STR_PAD_LEFT);
+        $tarjetonRaw = trim((string)$conductor->tarjeton);
+        $tarjetonClean = ltrim($tarjetonRaw, '0');
+        $tarjetonesBusqueda = array_values(array_unique(array_filter([$tarjetonRaw, $tarjetonPad, $tarjetonClean])));
+
         if ($eval['inhabilitado']) {
             $conductor->estatus = 'inhabilitado';
             $conductor->estado_servicio = null;
             $fueInhabilitado = true;
 
             // Desvincular automáticamente de cualquier unidad asignada
-            DB::table('informacion_operativa')
-                ->where('numero_tarjeton', $conductor->tarjeton)
-                ->update([
-                    'numero_tarjeton' => null,
-                    'nombre_conductor' => null
-                ]);
+            if (Schema::hasTable('informacion_operativa')) {
+                DB::table('informacion_operativa')
+                    ->whereIn('numero_tarjeton', $tarjetonesBusqueda)
+                    ->update([
+                        'numero_tarjeton' => null,
+                        'nombre_conductor' => null
+                    ]);
+                DB::table('informacion_operativa')
+                    ->whereIn('relevo_tarjeton', $tarjetonesBusqueda)
+                    ->update([
+                        'relevo_tarjeton' => null,
+                        'relevo_conductor' => null,
+                        'relevo_hora' => null
+                    ]);
+            }
+        } else {
+            // Actualizar estado_servicio a 'falta' si es para la fecha operativa de hoy o si se solicita
+            $fechaFalta = $request->input('fecha');
+            $hoy = Carbon::today('America/Mexico_City')->toDateString();
+            if ($fechaFalta === $hoy || $fechaFalta === date('Y-m-d') || $request->input('estado_servicio') === 'falta') {
+                $conductor->estado_servicio = 'falta';
+
+                // Desvincular de unidades en información operativa si estaba asignado
+                if (Schema::hasTable('informacion_operativa')) {
+                    DB::table('informacion_operativa')
+                        ->whereIn('numero_tarjeton', $tarjetonesBusqueda)
+                        ->update([
+                            'numero_tarjeton' => null,
+                            'nombre_conductor' => null
+                        ]);
+                    DB::table('informacion_operativa')
+                        ->whereIn('relevo_tarjeton', $tarjetonesBusqueda)
+                        ->update([
+                            'relevo_tarjeton' => null,
+                            'relevo_conductor' => null,
+                            'relevo_hora' => null
+                        ]);
+                }
+            }
         }
 
         $conductor->save();
