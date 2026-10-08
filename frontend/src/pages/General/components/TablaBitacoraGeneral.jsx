@@ -25,14 +25,14 @@ const TablaBitacoraGeneral = ({ data = [] }) => {
         <tbody>
           {data.map((item, index) => (
             <tr key={index}>
-              <td>{item.corrida || '-'}</td>
-              <td>{item.ruta && item.unidad ? `${item.ruta} - ${item.unidad}` : (item.unidad || '-')}</td>
-              <td>{item.cambio_1 || '-'}</td>
-              <td>{item.cambio_2 || '-'}</td>
-              <td>{item.cambio_3 || '-'}</td>
-              <td>{item.cambio_4 || '-'}</td>
-              <td>{item.id_matutino || '-'}</td>
-              <td>{item.id_vespertino || '-'}</td>
+              <td data-th="Corr.">{item.corrida || '-'}</td>
+              <td data-th="Ruta / Unidad">{item.ruta && item.unidad ? `${item.ruta} - ${item.unidad}` : (item.unidad || '-')}</td>
+              <td data-th="Cambio 1">{item.cambio_1 || '-'}</td>
+              <td data-th="Cambio 2">{item.cambio_2 || '-'}</td>
+              <td data-th="Cambio 3">{item.cambio_3 || '-'}</td>
+              <td data-th="Cambio 4">{item.cambio_4 || '-'}</td>
+              <td data-th="ID MAT">{item.id_matutino || '-'}</td>
+              <td data-th="ID VESP">{item.id_vespertino || '-'}</td>
             </tr>
           ))}
         </tbody>

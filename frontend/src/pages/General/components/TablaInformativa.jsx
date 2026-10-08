@@ -84,7 +84,7 @@ export default function TablaInformativa({
               const tieneFalta = Number(fila.fuera) > 0;
               const celdas = (
                 <>
-                  <td>
+                  <td data-th="Unidades fuera de servicio">
                     <span
                       className={`tabla-informativa__fuera ${
                         tieneFalta ? 'tabla-informativa__fuera--alerta' : ''
@@ -95,13 +95,13 @@ export default function TablaInformativa({
                   </td>
                   {ordenColumnas === 'motivo-corrida' ? (
                     <>
-                      <td className="tabla-informativa__motivo">{fila.motivo || ''}</td>
-                      <td>{fila.corrida ?? ''}</td>
+                      <td data-th="Motivo" className="tabla-informativa__motivo">{fila.motivo || ''}</td>
+                      <td data-th="Corrida">{fila.corrida ?? ''}</td>
                     </>
                   ) : (
                     <>
-                      <td>{fila.corrida ?? ''}</td>
-                      <td className="tabla-informativa__motivo">{fila.motivo || ''}</td>
+                      <td data-th="Corrida">{fila.corrida ?? ''}</td>
+                      <td data-th="Motivo" className="tabla-informativa__motivo">{fila.motivo || ''}</td>
                     </>
                   )}
                 </>
@@ -121,8 +121,8 @@ export default function TablaInformativa({
                   role={fila.esTotal ? undefined : 'button'}
                   tabIndex={fila.esTotal ? undefined : 0}
                 >
-                  <td className="tabla-informativa__servicio">{fila.servicio}</td>
-                  <td>{fila.operando}</td>
+                  <td data-th={columnaServicio} className="tabla-informativa__servicio">{fila.servicio}</td>
+                  <td data-th="Unidades operando">{fila.operando}</td>
                   {celdas}
                 </tr>
               );
