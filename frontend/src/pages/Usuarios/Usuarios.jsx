@@ -662,7 +662,6 @@ export default function Usuarios() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          </div>
           <div className="usuarios-actions" style={{ display: 'flex', gap: '0.75rem' }}>
             <button
               className="btn-primary"
