@@ -64,9 +64,6 @@ export default function ResumenDespacho() {
             .toUpperCase()
             .trim();
 
-        const now = new Date();
-        const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        
         const aggregated = modelsConfig.map(mc => {
           const units = (Array.isArray(apiData) ? apiData : []).filter(d => normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id)));
           
