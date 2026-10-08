@@ -629,21 +629,22 @@ const ModalComparativaAlimentadoras = ({
                 flexDirection: 'column',
                 height: '100%',
                 minHeight: 0,
-                background: '#f8fafc',
+                background: 'linear-gradient(180deg, #fffcf6 0%, #faf5ea 100%)',
                 borderRadius: '12px',
-                border: '1px solid #e2e8f0',
+                border: '1.5px solid #f0debe',
+                boxShadow: '0 2px 10px rgba(197, 160, 89, 0.08)',
                 overflow: 'hidden',
               }}
             >
               {/* Encabezado de Columna Hoy */}
               <div
                 style={{
-                  background: '#ffffff',
+                  background: '#fdf9f2',
                   padding: '0.75rem 1rem',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  borderBottom: '1.5px solid #e2e8f0',
+                  borderBottom: '1.5px solid #ebd9b8',
                   flexShrink: 0,
                 }}
               >
@@ -662,16 +663,17 @@ const ModalComparativaAlimentadoras = ({
                     HOY
                   </span>
                   <strong style={{ fontSize: '0.92rem', color: '#1e293b' }}>Programación Activa</strong>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>(En curso)</span>
+                  <span style={{ fontSize: '0.74rem', color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', padding: '0.08rem 0.45rem', borderRadius: '4px', fontWeight: '600' }}>Editable</span>
                 </div>
                 <span
                   style={{
-                    background: '#f1f5f9',
-                    color: '#475569',
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
                     padding: '0.2rem 0.6rem',
                     borderRadius: '20px',
                     fontSize: '0.78rem',
-                    fontWeight: '600',
+                    fontWeight: '700',
                   }}
                 >
                   {totalUnidadesHoy} unidades
@@ -699,11 +701,12 @@ const ModalComparativaAlimentadoras = ({
                     <div
                       key={`hoy-card-ruta-${ruta}`}
                       style={{
-                        border: '1px solid #e2e8f0',
+                        border: '1px solid #ebd9b8',
+                        borderLeft: '5px solid #c5a059',
                         borderRadius: '10px',
                         overflow: 'hidden',
                         background: '#ffffff',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                        boxShadow: '0 2px 6px rgba(197, 160, 89, 0.08)',
                         flexShrink: 0,
                       }}
                     >
@@ -733,7 +736,7 @@ const ModalComparativaAlimentadoras = ({
                       </div>
 
                       {/* Lista de Unidades en la tarjeta de Hoy */}
-                      <div style={{ padding: '0.2rem 0.4rem' }}>
+                      <div style={{ padding: '0.2rem 0.4rem', background: '#fffefb' }}>
                         {unidades.map((item, idx) => {
                           const isEditing = editingRowEco === item.ECONOMICO;
                           const originalIndex = item.__originalIndex;
@@ -743,11 +746,12 @@ const ModalComparativaAlimentadoras = ({
                               key={`hoy-u-${ruta}-${item.ECONOMICO}-${originalIndex}`}
                               style={{
                                 padding: '0.6rem 0.65rem',
-                                borderBottom: idx < unidades.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                borderBottom: idx < unidades.length - 1 ? '1px solid #f7eedb' : 'none',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '0.3rem',
-                                background: isEditing ? '#fffdf7' : '#ffffff',
+                                background: isEditing ? '#fef3c7' : 'transparent',
+                                borderRadius: isEditing ? '6px' : '0px',
                                 transition: 'background-color 0.15s ease',
                               }}
                             >

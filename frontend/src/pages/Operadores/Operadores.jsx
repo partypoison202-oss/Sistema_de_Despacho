@@ -1055,133 +1055,58 @@ export default function Operadores() {
           )}
         </div>
 
-        <div className="operadores-tabs" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'catalogo' ? 'active' : ''}`}
-            onClick={() => setActiveTab('catalogo')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              color: activeTab === 'catalogo' ? '#6b1d33' : '#64748b',
-              borderBottom: activeTab === 'catalogo' ? '3px solid #6b1d33' : '3px solid transparent',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Gestión de T6
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'kardex' ? 'active' : ''}`}
-            onClick={() => setActiveTab('kardex')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              color: activeTab === 'kardex' ? '#6b1d33' : '#64748b',
-              borderBottom: activeTab === 'kardex' ? '3px solid #6b1d33' : '3px solid transparent',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Kardex de T6
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'estadisticas' ? 'active' : ''}`}
-            onClick={() => setActiveTab('estadisticas')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              color: activeTab === 'estadisticas' ? '#6b1d33' : '#64748b',
-              borderBottom: activeTab === 'estadisticas' ? '3px solid #6b1d33' : '3px solid transparent',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Estadísticas de Operadores
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'gestion_faltas' ? 'active' : ''}`}
-            onClick={() => setActiveTab('gestion_faltas')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              color: activeTab === 'gestion_faltas' ? '#6b1d33' : '#64748b',
-              borderBottom: activeTab === 'gestion_faltas' ? '3px solid #6b1d33' : '3px solid transparent',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Gestión de Faltas
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'info_general' ? 'active' : ''}`}
-            onClick={() => setActiveTab('info_general')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              color: activeTab === 'info_general' ? '#6b1d33' : '#64748b',
-              borderBottom: activeTab === 'info_general' ? '3px solid #6b1d33' : '3px solid transparent',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Información General de T6
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'generacion_gafete' ? 'active' : ''}`}
-            onClick={() => setActiveTab('generacion_gafete')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              color: activeTab === 'generacion_gafete' ? '#6b1d33' : '#64748b',
-              borderBottom: activeTab === 'generacion_gafete' ? '3px solid #6b1d33' : '3px solid transparent',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Generación de Gafete
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'itinerario' ? 'active' : ''}`}
-            onClick={() => setActiveTab('itinerario')}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              fontWeight: '700',
-              cursor: 'pointer',
-              color: activeTab === 'itinerario' ? '#6b1d33' : '#64748b',
-              borderBottom: activeTab === 'itinerario' ? '3px solid #6b1d33' : '3px solid transparent',
-              fontSize: '0.95rem',
-              transition: 'all 0.2s'
-            }}
-          >
-            Itinerario de Asistencias
-          </button>
+        <div className="operadores-tabs-container">
+          <div className="operadores-tabs">
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'catalogo' ? 'active' : ''}`}
+              onClick={() => setActiveTab('catalogo')}
+            >
+              Gestión de T6
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'kardex' ? 'active' : ''}`}
+              onClick={() => setActiveTab('kardex')}
+            >
+              Kardex de T6
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'estadisticas' ? 'active' : ''}`}
+              onClick={() => setActiveTab('estadisticas')}
+            >
+              Estadísticas de Operadores
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'gestion_faltas' ? 'active' : ''}`}
+              onClick={() => setActiveTab('gestion_faltas')}
+            >
+              Gestión de Faltas
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'info_general' ? 'active' : ''}`}
+              onClick={() => setActiveTab('info_general')}
+            >
+              Información General de T6
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'generacion_gafete' ? 'active' : ''}`}
+              onClick={() => setActiveTab('generacion_gafete')}
+            >
+              Generación de Gafete
+            </button>
+            <button
+              type="button"
+              className={`tab-btn ${activeTab === 'itinerario' ? 'active' : ''}`}
+              onClick={() => setActiveTab('itinerario')}
+            >
+              Itinerario de Asistencias
+            </button>
+          </div>
         </div>
 
         {activeTab === 'estadisticas' && (

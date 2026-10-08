@@ -2,11 +2,14 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1.25rem;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  height: calc(100vh - 150px); /* Ajustar según tu header general */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 480px;
 }
 
 .itinerario-header {
@@ -19,9 +22,10 @@
 
 .itinerario-filters {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
   align-items: flex-end;
+  flex: 1;
 }
 
 .filter-group {
@@ -46,6 +50,7 @@
   outline: none;
   transition: all 0.2s;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .itinerario-search:focus {
@@ -66,6 +71,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(107, 29, 51, 0.2);
+  white-space: nowrap;
 }
 
 .btn-asignar-fechas:hover {
@@ -100,14 +106,19 @@
   font-size: 0.75rem;
 }
 
-/* Grid Wrapper for Sticky Columns */
+/* Grid Wrapper for Sticky Columns and Smooth Responsive Scroll */
 .itinerario-grid-wrapper {
-  flex: 1;
+  width: 100%;
+  min-height: 440px;
+  height: 58vh;
+  max-height: 72vh;
   overflow: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   position: relative;
-  background-color: #f9fafb;
+  background-color: #ffffff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+  -webkit-overflow-scrolling: touch;
 }
 
 .itinerario-table {
@@ -148,31 +159,31 @@
 }
 
 .itinerario-table thead .sticky-col {
-  z-index: 30 !important; /* Th needs higher z-index to stay above body sticky cells */
+  z-index: 30 !important;
   background-color: #f3f4f6;
   color: #374151;
 }
 
-.first-col { left: 0; width: 90px; min-width: 90px; }
-.second-col { left: 90px; width: 220px; min-width: 220px; text-align: left !important; }
-.sum-col { width: 45px; min-width: 45px; }
+.first-col {
+  left: 0;
+  width: 85px;
+  min-width: 85px;
+  background-color: #ffffff;
+}
 
-/* Totales en Nth positions */
-.sum-col:nth-child(3) { left: 310px; }
-.sum-col:nth-child(4) { left: 355px; }
-.sum-col:nth-child(5) { left: 400px; }
-.sum-col:nth-child(6) { left: 445px; }
-.sum-col:nth-child(7) { left: 490px; }
-.sum-col:nth-child(8) { left: 535px; }
-.sum-col:nth-child(9) { left: 580px; }
-.sum-col:nth-child(10) { left: 625px; border-right: 2px solid #d1d5db !important; }
+.second-col {
+  left: 85px;
+  width: 210px;
+  min-width: 210px;
+  text-align: left !important;
+  background-color: #ffffff;
+  border-right: 2px solid #cbd5e1 !important;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.03);
+}
 
-@media (max-width: 1024px) {
-  .sum-col {
-    position: relative !important;
-    left: auto !important;
-    z-index: 1 !important;
-  }
+.sum-col {
+  width: 44px;
+  min-width: 44px;
 }
 
 .conductor-nombre {
@@ -244,9 +255,9 @@
 }
 
 /* NUEVOS COLORES PERMUTAS Y RETARDOS */
-.cell-ap { background-color: #ede9fe; color: #6d28d9; } /* Morado */
-.cell-dp { background-color: #e0e7ff; color: #4338ca; } /* Indigo */
-.cell-r { background-color: #ffedd5; color: #ea580c; } /* Naranja */
+.cell-ap { background-color: #ede9fe; color: #6d28d9; }
+.cell-dp { background-color: #e0e7ff; color: #4338ca; }
+.cell-r { background-color: #ffedd5; color: #ea580c; }
 
 .header-ap { color: #6d28d9 !important; background-color: #f5f3ff !important; }
 .header-dp { color: #4338ca !important; background-color: #eef2ff !important; }
@@ -256,9 +267,55 @@
 .sum-val-dp { font-weight: bold; color: #4338ca; background-color: #eef2ff !important; }
 .sum-val-r { font-weight: bold; color: #ea580c; background-color: #fff7ed !important; }
 
-/* 
-   OPTIMIZACIÓN DE RENDIMIENTO:
-   Se eliminaron las reglas de .status-bubble[data-tooltip] para evitar 
-   renderizar decenas de miles de pseudo-elementos innecesarios.
-   Ahora se usa el atributo HTML nativo 'title'.
-*/
+/* Responsive adjustments for Tablet and Mobile */
+@media (max-width: 900px) {
+  .itinerario-container {
+    padding: 0.85rem;
+    gap: 0.75rem;
+  }
+
+  .itinerario-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .itinerario-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .itinerario-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .btn-asignar-fechas {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .itinerario-grid-wrapper {
+    min-height: 380px;
+    height: 52vh;
+    max-height: 65vh;
+  }
+
+  .first-col {
+    width: 72px;
+    min-width: 72px;
+    font-size: 0.78rem;
+  }
+
+  .second-col {
+    left: 72px !important;
+    width: 145px;
+    min-width: 145px;
+  }
+
+  .conductor-nombre {
+    font-size: 0.78rem;
+  }
+}
