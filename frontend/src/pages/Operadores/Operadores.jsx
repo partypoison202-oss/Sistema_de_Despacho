@@ -1055,7 +1055,7 @@ export default function Operadores() {
           )}
         </div>
 
-        <div className="operadores-tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
+        <div className="operadores-tabs" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
           <button
             type="button"
             className={`tab-btn ${activeTab === 'catalogo' ? 'active' : ''}`}
