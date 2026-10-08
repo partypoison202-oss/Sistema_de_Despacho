@@ -30,9 +30,6 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       .toUpperCase()
       .trim();
 
-  const now = new Date();
-  const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
   const tipos = MODELOS_CONFIG.map(({ id }) => {
     const unidades = list.filter((u) => {
       const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));

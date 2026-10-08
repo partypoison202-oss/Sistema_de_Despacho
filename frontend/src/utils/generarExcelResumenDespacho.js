@@ -63,17 +63,6 @@ function procesarModelos(listaUnidades) {
     { id: 'VAGONETA', label: 'Vagoneta', alt: [] },
     { id: 'ORION', label: 'Orión', alt: ['ORIÓN'] }
   ];
-  const now = new Date();
-  const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  
-  const getOverrideHoy = (id) => {
-    const u = (id || '').toUpperCase();
-    if (u.includes('URBANU')) return 38;
-    if (u.includes('VAGONETA')) return 50;
-    if (u.includes('ZAFIRO')) return 36;
-    if (u.includes('ORION')) return 6;
-    return null;
-  };
 
   const modelStats = MODELOS.map(m => {
     const matchPattern = [m.id, ...m.alt];
@@ -81,11 +70,7 @@ function procesarModelos(listaUnidades) {
       const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase().trim();
       return matchPattern.some(p => tipo.includes(p));
     });
-    const progCalculada = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
-    
-    // Parche para hoy (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
-    const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(m.id) : null;
-    const prog = overrideHoy ?? progCalculada;
+    const prog = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
 
     const oper = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
