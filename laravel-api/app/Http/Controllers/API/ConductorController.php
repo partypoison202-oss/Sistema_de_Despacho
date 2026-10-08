@@ -115,6 +115,9 @@ class ConductorController extends Controller
                 } elseif ($c->estado_servicio === 'maniobrista') {
                     // Respetar siempre el estado maniobrista, aunque esté asignado
                     $c->estado_servicio = 'maniobrista';
+                } elseif ($c->estado_servicio === 'falta' || $c->estado_servicio === 'incapacidad' || $c->estado_servicio === 'permiso' || $c->estado_servicio === 'descanso') {
+                    // Respetar estados no disponibles
+                    $c->estado_servicio = $c->estado_servicio;
                 } else {
                     $c->estado_servicio = $estaAsignado ? 'en_servicio' : ($c->estado_servicio ?? 'disponible');
                 }
@@ -767,7 +770,13 @@ class ConductorController extends Controller
             'motivo' => 'nullable|string|max:255',
         ]);
 
-        $conductor = Conductor::findOrFail($id);
+        $conductor = is_numeric($id) ? Conductor::find($id) : null;
+        if (!$conductor) {
+            $conductor = Conductor::where('tarjeton', $id)
+                ->orWhere('tarjeton', str_pad((string)$id, 4, '0', STR_PAD_LEFT))
+                ->orWhere('tarjeton', ltrim((string)$id, '0'))
+                ->firstOrFail();
+        }
 
         $rawDetalle = $conductor->faltas_detalle;
         $detalle = [];
@@ -824,7 +833,7 @@ class ConductorController extends Controller
             // Actualizar estado_servicio a 'falta' si es para la fecha operativa de hoy o si se solicita
             $fechaFalta = $request->input('fecha');
             $hoy = Carbon::today('America/Mexico_City')->toDateString();
-            if ($fechaFalta === $hoy || $fechaFalta === date('Y-m-d') || $request->input('estado_servicio') === 'falta') {
+            if ($fechaFalta === $hoy || $fechaFalta === date('Y-m-d') || $request->input('estado_servicio') === 'falta' || empty($conductor->estado_servicio) || $conductor->estado_servicio === 'disponible') {
                 $conductor->estado_servicio = 'falta';
 
                 // Desvincular de unidades en información operativa si estaba asignado
@@ -843,6 +852,17 @@ class ConductorController extends Controller
                             'relevo_hora' => null
                         ]);
                 }
+            }
+
+            // Desvincular de reservas_autorizadas para esa fecha operativa y para hoy
+            if (Schema::hasTable('reservas_autorizadas')) {
+                DB::table('reservas_autorizadas')
+                    ->whereIn('tarjeton', $tarjetonesBusqueda)
+                    ->where(function ($q) use ($fechaFalta, $hoy) {
+                        $q->where('fecha_operativa', $fechaFalta)
+                          ->orWhere('fecha_operativa', $hoy);
+                    })
+                    ->delete();
             }
         }
 

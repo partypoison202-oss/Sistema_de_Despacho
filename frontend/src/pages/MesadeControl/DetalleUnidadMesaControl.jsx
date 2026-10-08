@@ -212,6 +212,8 @@ export default function DetalleUnidadMesaControl() {
           queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
           queryClient.invalidateQueries(['conteo-unidades-global']);
           queryClient.invalidateQueries(['unidades-list']);
+          queryClient.invalidateQueries(['conductores-list']);
+          queryClient.invalidateQueries(['reservas-autorizadas']);
         }
       };
     } catch (e) {
@@ -248,7 +250,11 @@ export default function DetalleUnidadMesaControl() {
     
     // Validar autorización de reserva, manejando types mismatch y loading state
     const authArray = Array.isArray(reservasAutorizadas) ? reservasAutorizadas : [];
-    const isAuthorized = authArray.some(t => String(t) === String(c.tarjeton));
+    const isAuthorized = authArray.some(t => {
+      const padT = String(t || '').trim().padStart(4, '0');
+      const padC = String(c.tarjeton || '').trim().padStart(4, '0');
+      return padT === padC || String(t).trim() === String(c.tarjeton).trim();
+    });
     
     // Si la API aún no carga (undefined), o si no está autorizado, filtramos.
     if (!isAuthorized && reservasAutorizadas !== undefined) {

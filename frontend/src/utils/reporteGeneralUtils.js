@@ -85,50 +85,118 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     en_servicio: acc.en_servicio + t.en_servicio,
   }), { programadas: 0, en_servicio: 0 });
 
-  const rutasContadores = {};
-  Object.keys(MAPA_RUTAS).forEach((r) => { rutasContadores[r] = { en_operacion: 0, en_mantenimiento: 0 }; });
-  rutasContadores['T-SIN ASIGNAR'] = { en_operacion: 0, en_mantenimiento: 0 };
-  rutasContadores['RA-SIN ASIGNAR'] = { en_operacion: 0, en_mantenimiento: 0 };
+  // Función normalizadora de rutas basada en Monitoreo Operativo
+  const normalizarRutaReporte = (rawRuta, tipoUnidad) => {
+    const tipoNorm = normStr(tipoUnidad);
+    const isTroncal = tipoNorm.includes('URBANU');
+    const rutaStr = (rawRuta || '').toString().trim();
+
+    if (!rutaStr || normStr(rutaStr).includes('SIN ASIGNAR')) {
+      return isTroncal ? 'T-SIN ASIGNAR' : 'RA-SIN ASIGNAR';
+    }
+
+    let clean = rutaStr.toUpperCase().trim();
+
+    // Troncal explícita: T01, T-01, T 01, T1
+    const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)/i);
+    if (tMatch) {
+      return 'T-' + tMatch[1].padStart(2, '0');
+    }
+
+    // Troncal por tipo de unidad si sólo viene el número
+    if (isTroncal) {
+      const numMatch = clean.match(/^0*(\d+)/);
+      if (numMatch) {
+        return 'T-' + numMatch[1].padStart(2, '0');
+      }
+      return 'T-SIN ASIGNAR';
+    }
+
+    // Alimentadoras
+    clean = clean.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '').trim();
+    if (clean === '4A') clean = '4';
+    if (clean === '20B') clean = '2B';
+
+    const m = clean.match(/^0*(\d+[A-Z]*)/i);
+    const rutaKey = m ? 'RA ' + m[1].toUpperCase() : 'RA ' + clean;
+
+    const RUTAS_OFICIALES = [
+      'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
+      'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B'
+    ];
+
+    if (RUTAS_OFICIALES.includes(rutaKey)) {
+      return rutaKey;
+    }
+    return 'RA-SIN ASIGNAR';
+  };
+
+  const RUTAS_TRONCAL_DEFAULT = ['T-01', 'T-02', 'T-04', 'T-05'];
+  const RUTAS_ALIMENTADORA_DEFAULT = [
+    'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
+    'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B',
+    'RA-SIN ASIGNAR'
+  ];
+
+  const contadoresRutas = {};
+  [...RUTAS_TRONCAL_DEFAULT, ...RUTAS_ALIMENTADORA_DEFAULT].forEach((r) => {
+    contadoresRutas[r] = { en_operacion: 0, en_mantenimiento: 0 };
+  });
+
+  let troncalMantenimientoTotal = 0;
+  let alimMantenimientoTotal = 0;
 
   list.forEach((reg) => {
-    const estatus = (reg.ESTATUS || reg.estatus || '').toUpperCase().trim();
-    const tipo = (reg.TIPO_DE_UNIDAD || reg.tipo || '').toUpperCase().trim();
-    const isEncerrada = Boolean(reg.YA_ENCERRADA || reg.ya_encerrada || reg.yaEncerrada);
-    const isDesincorporada = isEncerrada || estatus.includes('RESERVA') || estatus.includes('MANTENIMIENTO') || estatus.includes('PERCANCE');
-    const horaSalida = (reg.HORA_REAL_SALIDA_PATIO || reg.hora_real_salida_patio || reg.HORA_SALIDA || reg.hora_salida || '').toString().trim();
-    const isOper = estatus.includes('OPERACI') 
-      && !isDesincorporada
-      && horaSalida !== '';
+    const estatus = normStr(reg.ESTATUS || reg.estatus);
+    const tipo = normStr(reg.TIPO_DE_UNIDAD || reg.tipo);
+    const isTroncal = tipo.includes('URBANU');
+
+    if (estatus === 'NO_PROGRAMADA' || estatus === 'NO PROGRAMADA') return;
+
+    const isOper = estatus.includes('OPERACI');
     const isManto = estatus.includes('MANTENIMIENTO');
-    if (!isOper && !isManto) return;
 
-    const ruta = (reg.MANTENIMIENTO_RUTA || reg.RUTA || '').toUpperCase().trim();
-    const matchKey = Object.keys(MAPA_RUTAS).find((nr) => ruta.includes(MAPA_RUTAS[nr]) || ruta.includes(nr));
+    if (isManto) {
+      if (isTroncal) troncalMantenimientoTotal++;
+      else alimMantenimientoTotal++;
+    }
 
-    if (matchKey) {
-      if (isOper) rutasContadores[matchKey].en_operacion++;
-      else rutasContadores[matchKey].en_mantenimiento++;
-    } else {
-      const sinAsignar = (tipo === 'URBANUS' || tipo === 'URBANUSS') ? 'T-SIN ASIGNAR' : 'RA-SIN ASIGNAR';
-      if (isOper) rutasContadores[sinAsignar].en_operacion++;
-      else rutasContadores[sinAsignar].en_mantenimiento++;
+    if (isOper) {
+      const rutaRaw = reg.RUTA ?? reg.ruta ?? reg.NOMBRE_RUTA ?? reg.no_ruta ?? '';
+      const rutaKey = normalizarRutaReporte(rutaRaw, tipo);
+
+      if (contadoresRutas[rutaKey]) {
+        contadoresRutas[rutaKey].en_operacion++;
+      } else {
+        const fallback = isTroncal ? 'T-01' : 'RA-SIN ASIGNAR';
+        if (contadoresRutas[fallback]) {
+          contadoresRutas[fallback].en_operacion++;
+        }
+      }
     }
   });
 
-  if (rutasContadores['20B'] && rutasContadores['RA 2B']) {
-    rutasContadores['RA 2B'].en_operacion += rutasContadores['20B'].en_operacion;
-    rutasContadores['RA 2B'].en_mantenimiento += rutasContadores['20B'].en_mantenimiento;
-    delete rutasContadores['20B'];
-  }
+  const dataRutas = [
+    ...RUTAS_TRONCAL_DEFAULT.map((r, i) => ({
+      ruta: r,
+      tipo: 'troncal',
+      en_operacion: contadoresRutas[r]?.en_operacion || 0,
+      en_mantenimiento: i === 0 ? troncalMantenimientoTotal : 0,
+    })),
+    ...RUTAS_ALIMENTADORA_DEFAULT.map((r, i) => ({
+      ruta: r,
+      tipo: 'alimentadora',
+      en_operacion: contadoresRutas[r]?.en_operacion || 0,
+      en_mantenimiento: i === 0 ? alimMantenimientoTotal : 0,
+    })),
+  ];
 
-  const dataRutas = Object.keys(rutasContadores).map((ruta) => ({
-    ruta,
-    en_operacion: rutasContadores[ruta].en_operacion,
-    en_mantenimiento: rutasContadores[ruta].en_mantenimiento,
-    total: rutasContadores[ruta].en_operacion + rutasContadores[ruta].en_mantenimiento,
-  }));
+  const totalsRutas = {
+    troncalMantenimiento: troncalMantenimientoTotal,
+    alimentadoraMantenimiento: alimMantenimientoTotal,
+  };
 
-  return { dataUnidades: { tipos, totales }, dataRutas };
+  return { dataUnidades: { tipos, totales }, dataRutas, totalsRutas };
 };
 
 export const descargarReportesGeneralesConAlerta = async (setLoading, queryClient = null) => {
@@ -165,8 +233,8 @@ export const descargarReportesGeneralesConAlerta = async (setLoading, queryClien
       }
     }
 
-    const { dataUnidades, dataRutas } = procesarDatosReportesGenerales(data, inicioData);
-    await generarPDFReporteGeneral(dataRutas);
+    const { dataUnidades, dataRutas, totalsRutas } = procesarDatosReportesGenerales(data, inicioData);
+    await generarPDFReporteGeneral(dataRutas, totalsRutas);
     await generarPDFReporteUnidades(dataUnidades);
     Swal.fire({
       icon: 'success',
