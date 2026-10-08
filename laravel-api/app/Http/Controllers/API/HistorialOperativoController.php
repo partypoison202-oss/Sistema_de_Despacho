@@ -231,7 +231,7 @@ class HistorialOperativoController extends Controller
                 'bitacora_cambios_unidades.detalles',
                 'bitacora_cambios_unidades.created_at as hora'
             )
-            ->orderBy('bitacora_cambios_unidades.created_at', 'asc')
+            ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
             ->get();
 
         // 3. Fin
