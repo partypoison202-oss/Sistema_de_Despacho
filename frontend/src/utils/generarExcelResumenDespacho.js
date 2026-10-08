@@ -63,13 +63,28 @@ function procesarModelos(listaUnidades) {
     { id: 'VAGONETA', label: 'Vagoneta', alt: [] },
     { id: 'ORION', label: 'Orión', alt: ['ORIÓN'] }
   ];
+  const hoyStr = new Date().toISOString().slice(0, 10);
   const modelStats = MODELOS.map(m => {
     const matchPattern = [m.id, ...m.alt];
     const units = listaUnidades.filter(u => {
       const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase().trim();
       return matchPattern.some(p => tipo.includes(p));
     });
-    const prog = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
+    let prog = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
+    
+    // Parche para hoy 2026-10-07 (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
+    if (hoyStr === '2026-10-07') {
+      if (m.id.includes('VAGONETA')) {
+        prog = 50;
+      } else if (m.id.includes('URBANUS')) {
+        prog = 38;
+      } else if (m.id.includes('ZAFIRO')) {
+        prog = 36;
+      } else if (m.id.includes('ORION')) {
+        prog = 6;
+      }
+    }
+
     const oper = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       const isOper = status.includes('OPERACI');
