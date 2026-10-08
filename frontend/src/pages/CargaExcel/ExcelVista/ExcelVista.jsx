@@ -170,16 +170,14 @@ export default function ExcelPreview({
   const estatusTranslations = {
     operacion: 'Operación',
     mantenimiento: 'Mantenimiento',
-    reserva: 'Reserva',
-    no_programada: 'No programada'
+    reserva: 'Reserva'
   };
 
   // Colores asociados a cada estatus para badges y listados
   const estatusColors = {
     operacion: { bg: 'rgba(16, 185, 129, 0.08)', text: '#10b981', border: 'rgba(16, 185, 129, 0.2)' },       // Verde
     mantenimiento: { bg: 'rgba(239, 68, 68, 0.08)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' },   // Rojo
-    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' },        // Azul
-    no_programada: { bg: 'rgba(107, 114, 128, 0.08)', text: '#6b7280', border: 'rgba(107, 114, 128, 0.25)' } // Gris neutro
+    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' }        // Azul
   };
 
   // 1. Ordenar los datos por tipo de unidad (según el orden de la lista) y luego por ECO numérico
@@ -275,8 +273,6 @@ export default function ExcelPreview({
 
       const noEsOperacion =
         statusNorm.includes('reserva') ||
-        statusNorm.includes('no_programada') ||
-        statusNorm.includes('no programada') ||
         statusNorm.includes('mantenimiento') ||
         statusNorm.includes('inhabilitad') ||
         statusNorm.includes('percance') ||
@@ -470,7 +466,7 @@ export default function ExcelPreview({
               filteredData.map((fila, index) => {
                 const originalIndex = fila.__originalIndex ?? data.indexOf(fila);
                 const rawRowStatus = String(fila.ESTATUS || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const isRowDisabled = rawRowStatus.includes('mantenimiento') || rawRowStatus.includes('reserva') || rawRowStatus.includes('no_programada') || rawRowStatus.includes('no programada');
+                const isRowDisabled = rawRowStatus.includes('mantenimiento') || rawRowStatus.includes('reserva');
                 const isBottomRow = filteredData.length > 1 && (filteredData.length - index <= 2);
 
                 return (
@@ -480,7 +476,7 @@ export default function ExcelPreview({
                         let displayValue = fila[h] ?? '';
                         if (h === 'ESTATUS') {
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                          const curSt = (rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'no_programada' : rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+                          const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : (rawSt.includes('reserva') || rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt] || fila[h];
                           const color = estatusColors[curSt] || estatusColors.operacion;
                           return (
@@ -525,7 +521,7 @@ export default function ExcelPreview({
                         let displayValue = fila[h] ?? '';
                         if (h === 'ESTATUS') {
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                          const curSt = (rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'no_programada' : rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+                          const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : (rawSt.includes('reserva') || rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt] || fila[h];
                         } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA') {
                           displayValue = fila[h] || '00:00';
@@ -1112,7 +1108,7 @@ export default function ExcelPreview({
                       if (h === 'ESTATUS') {
                         const isEstatusOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'ESTATUS';
                         const rawStatus = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        const currentStatus = (rawStatus.includes('no_programada') || rawStatus.includes('no programada')) ? 'no_programada' : rawStatus.includes('mantenimiento') ? 'mantenimiento' : rawStatus.includes('reserva') ? 'reserva' : 'operacion';
+                        const currentStatus = rawStatus.includes('mantenimiento') ? 'mantenimiento' : (rawStatus.includes('reserva') || rawStatus.includes('no_programada') || rawStatus.includes('no programada')) ? 'reserva' : 'operacion';
                         const statusStyle = estatusColors[currentStatus] || estatusColors.operacion;
 
                         return (

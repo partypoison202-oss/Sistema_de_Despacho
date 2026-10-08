@@ -376,14 +376,14 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               <tr>
                 <th className="sticky-col first-col">TARJETÓN</th>
                 <th className="sticky-col second-col">OPERADOR</th>
-                <th className="sticky-col sum-col header-a" title="Total Asistencias">A</th>
-                <th className="sticky-col sum-col header-d" title="Total Descansos">D</th>
-                <th className="sticky-col sum-col header-v" title="Total Vacaciones">V</th>
-                <th className="sticky-col sum-col header-i" title="Total Incapacidades">I</th>
-                <th className="sticky-col sum-col header-f" title="Total Faltas">F</th>
-                <th className="sticky-col sum-col header-ap" title="Total Asistencias Permuta">AP</th>
-                <th className="sticky-col sum-col header-dp" title="Total Descansos Permuta">DP</th>
-                <th className="sticky-col sum-col header-r" title="Total Retardos">R</th>
+                <th className="sum-col header-a" title="Total Asistencias">A</th>
+                <th className="sum-col header-d" title="Total Descansos">D</th>
+                <th className="sum-col header-v" title="Total Vacaciones">V</th>
+                <th className="sum-col header-i" title="Total Incapacidades">I</th>
+                <th className="sum-col header-f" title="Total Faltas">F</th>
+                <th className="sum-col header-ap" title="Total Asistencias Permuta">AP</th>
+                <th className="sum-col header-dp" title="Total Descansos Permuta">DP</th>
+                <th className="sum-col header-r" title="Total Retardos">R</th>
                 {data.fechas.map(f => {
                   const [y, m, d] = f.split('-');
                   return <th key={f} className="day-col" title={f}>{d}</th>
@@ -395,14 +395,14 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
                 <tr key={c.id}>
                   <td className="sticky-col first-col font-mono">{c.tarjeton}</td>
                   <td className="sticky-col second-col conductor-nombre">{c.nombre}</td>
-                  <td className="sticky-col sum-col sum-val-a">{c.totales?.A || 0}</td>
-                  <td className="sticky-col sum-col sum-val-d">{c.totales?.D || 0}</td>
-                  <td className="sticky-col sum-col sum-val-v">{c.totales?.V || 0}</td>
-                  <td className="sticky-col sum-col sum-val-i">{c.totales?.I || 0}</td>
-                  <td className="sticky-col sum-col sum-val-f">{c.totales?.F || 0}</td>
-                  <td className="sticky-col sum-col sum-val-ap">{c.totales?.AP || 0}</td>
-                  <td className="sticky-col sum-col sum-val-dp">{c.totales?.DP || 0}</td>
-                  <td className="sticky-col sum-col sum-val-r">{c.totales?.R || 0}</td>
+                  <td className="sum-col sum-val-a">{c.totales?.A || 0}</td>
+                  <td className="sum-col sum-val-d">{c.totales?.D || 0}</td>
+                  <td className="sum-col sum-val-v">{c.totales?.V || 0}</td>
+                  <td className="sum-col sum-val-i">{c.totales?.I || 0}</td>
+                  <td className="sum-col sum-val-f">{c.totales?.F || 0}</td>
+                  <td className="sum-col sum-val-ap">{c.totales?.AP || 0}</td>
+                  <td className="sum-col sum-val-dp">{c.totales?.DP || 0}</td>
+                  <td className="sum-col sum-val-r">{c.totales?.R || 0}</td>
                   
                   {data.fechas.map(f => {
                     const estado = c.dias[f];

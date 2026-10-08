@@ -112,18 +112,15 @@ export default function CargaExcel({ isPasteles = false }) {
 
   useEffect(() => {
     if (serverData && !hasChanges) {
-      let dataToSet = serverData;
-      if (isPasteles) {
-        dataToSet = serverData.map(item => {
-          if (item.ESTATUS === 'no_programada') {
-            return { ...item, ESTATUS: 'reserva' };
-          }
-          return item;
-        });
-      }
+      const dataToSet = serverData.map(item => {
+        if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
+          return { ...item, ESTATUS: 'reserva' };
+        }
+        return item;
+      });
       setPreviewData(dataToSet);
     }
-  }, [serverData, hasChanges, isPasteles]);
+  }, [serverData, hasChanges]);
 
   const trimString = (str) => String(str ?? '').trim();
 
@@ -220,7 +217,7 @@ export default function CargaExcel({ isPasteles = false }) {
     const valStr = String(value ?? '').trim();
 
     if (field === 'ESTATUS') {
-      if (valStr === 'mantenimiento' || valStr === 'reserva' || valStr === 'no_programada') {
+      if (valStr === 'mantenimiento' || valStr === 'reserva') {
         if (isPasteles && (valStr === 'mantenimiento' || valStr === 'reserva')) {
           const currentEco = updatedData[index]?.ECONOMICO;
           const hasService = Boolean(
@@ -1241,7 +1238,7 @@ export default function CargaExcel({ isPasteles = false }) {
            if (tieneServicio) {
               newData[act.index].ESTATUS = 'operacion';
            } else {
-              newData[act.index].ESTATUS = 'no_programada';
+              newData[act.index].ESTATUS = 'reserva';
            }
         });
 
@@ -1287,15 +1284,12 @@ export default function CargaExcel({ isPasteles = false }) {
       if (!response.ok) throw new Error('Error al obtener datos de inicio');
       const data = await response.json();
       
-      let finalData = data;
-      if (isPasteles) {
-        finalData = data.map(item => {
-          if (item.ESTATUS === 'no_programada') {
-            return { ...item, ESTATUS: 'reserva' };
-          }
-          return item;
-        });
-      }
+      const finalData = data.map(item => {
+        if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
+          return { ...item, ESTATUS: 'reserva' };
+        }
+        return item;
+      });
 
       setInicioData(finalData);
       setVerInicio(true);
