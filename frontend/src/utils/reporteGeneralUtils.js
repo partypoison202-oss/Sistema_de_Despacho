@@ -33,21 +33,25 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
   const now = new Date();
   const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-  const getOverrideHoy = (id) => {
-    const u = (id || '').toUpperCase();
-    if (u.includes('URBANU')) return 38;
-    if (u.includes('VAGONETA')) return 50;
-    if (u.includes('ZAFIRO')) return 36;
-    if (u.includes('ORION')) return 6;
-    return null;
-  };
-
   const tipos = MODELOS_CONFIG.map(({ id }) => {
     const unidades = list.filter((u) => {
       const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
       const est = normStr(u.ESTATUS || u.estatus);
       return match && est.includes('OPERACI');
     });
+
+    // Regla de inicio operativo (snapshot de cambio de día a las 00:00) o conteo de operación
+    let programadasCalculadas = unidades.length;
+    if (listInicio && listInicio.length > 0) {
+      const progInicio = listInicio.filter((u) => {
+        const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
+        const est = normStr(u.ESTATUS || u.estatus);
+        return match && est.includes('OPERACI');
+      }).length;
+      if (progInicio > 0) {
+        programadasCalculadas = progInicio;
+      }
+    }
 
     const enServicio = unidades.filter((u) => {
       const est = normStr(u.ESTATUS || u.estatus);
@@ -60,24 +64,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       return isOperacion;
     }).length;
 
-    // Regla de inicio operativo (snapshot de cambio de día a las 00:00)
-    let programadasCalculadas = unidades.length;
-    if (listInicio) {
-      const progInicio = listInicio.filter((u) => {
-        const match = normStr(u.TIPO_DE_UNIDAD || u.tipo).includes(normStr(id));
-        const est = normStr(u.ESTATUS || u.estatus);
-        return match && est.includes('OPERACI');
-      }).length;
-      if (progInicio > 0) {
-        programadasCalculadas = progInicio;
-      }
-    }
-
-    // Parche para hoy (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
-    const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(id) : null;
-    const programadas = overrideHoy ?? programadasCalculadas;
-
-    return { tipo: id, programadas, en_servicio: enServicio, imagen: 'default.png' };
+    return { tipo: id, programadas: programadasCalculadas, en_servicio: enServicio, imagen: 'default.png' };
   });
 
   const totales = tipos.reduce((acc, t) => ({
