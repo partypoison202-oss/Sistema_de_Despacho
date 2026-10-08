@@ -533,8 +533,23 @@ export default function Usuarios() {
     csvContent += 'Nombre Completo,Usuario,Rol,Contraseña,Modulos que puede acceder\n';
     
     adminUsers.forEach(row => {
-      // Escape comillas y agregar comillas a cada celda para evitar problemas con comas internas
-      const formattedRow = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+      let modulosStr = row[4];
+      if (modulosStr === 'ACCESO TOTAL') {
+        if (row[2] === 'LECTURA') {
+          modulosStr = 'ACCESO TOTAL (VISTA)';
+        }
+      } else if (modulosStr.startsWith('[')) {
+        try {
+          const codigos = JSON.parse(modulosStr.replace(/'/g, '"'));
+          modulosStr = codigos.map(c => {
+            const found = TODOS_LOS_MODULOS.find(m => m.codigo === c);
+            return found ? found.label : c;
+          }).join(', ');
+        } catch(e) {}
+      }
+
+      const newRow = [row[0], row[1], row[2], row[3], modulosStr];
+      const formattedRow = newRow.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
       csvContent += formattedRow + '\n';
     });
 
