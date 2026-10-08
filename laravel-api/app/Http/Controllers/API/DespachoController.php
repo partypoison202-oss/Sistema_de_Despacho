@@ -807,7 +807,8 @@ class DespachoController extends Controller
             }
         }
 
-        $infoOperativaIds = DB::table('informacion_operativa')->pluck('id', 'unidad_id')->all();
+        $infoOperativaRegistros = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
+        $infoOperativaIds = $infoOperativaRegistros->map(fn ($r) => $r->id)->all();
 
         $unidadesProcesadasIds = [];
         $tarjetonesEnServicio = [];
@@ -924,6 +925,40 @@ class DespachoController extends Controller
 
             if ($registroId) {
                 try {
+                    $prev = $infoOperativaRegistros->get($unidad->id);
+                    if ($prev) {
+                        $cambiosDetalles = [];
+                        $oldEstatus = strtolower(trim((string) ($prev->estatus ?? '')));
+                        $newEstatus = strtolower(trim((string) ($data['estatus'] ?? '')));
+                        if ($oldEstatus !== $newEstatus) {
+                            $cambiosDetalles[] = 'ESTATUS: '.strtoupper($prev->estatus ?: 'SIN ASIGNAR').' -> '.strtoupper($data['estatus'] ?: 'SIN ASIGNAR');
+                        }
+                        $oldRuta = trim((string) ($prev->ruta ?? ''));
+                        $newRuta = trim((string) ($data['ruta'] ?? ''));
+                        if ($oldRuta !== $newRuta) {
+                            $cambiosDetalles[] = 'RUTA: '.($oldRuta ?: 'SIN RUTA').' -> '.($newRuta ?: 'SIN RUTA');
+                        }
+                        $oldTarjeton = trim((string) ($prev->numero_tarjeton ?? ''));
+                        $newTarjeton = trim((string) ($data['numero_tarjeton'] ?? ''));
+                        if ($oldTarjeton !== $newTarjeton) {
+                            $cambiosDetalles[] = 'CONDUCTOR: '.($prev->nombre_conductor ?: 'SIN ASIGNAR').' ('.($oldTarjeton ?: 'S/T').') -> '.($data['nombre_conductor'] ?: 'SIN ASIGNAR').' ('.($newTarjeton ?: 'S/T').')';
+                        }
+
+                        if (! empty($cambiosDetalles)) {
+                            try {
+                                BitacoraHelper::registrarCambio(
+                                    $unidad->id,
+                                    'PROGRAMACION_LOGISTICA',
+                                    'MODIFICACIÓN EN PROGRAMACIÓN (PASTELES) - '.implode(' | ', $cambiosDetalles),
+                                    $prev->estatus ?? null,
+                                    $data['estatus'] ?? null
+                                );
+                            } catch (\Throwable $th) {
+                                \Log::warning('Error registrando bitácora en actualizar: '.$th->getMessage());
+                            }
+                        }
+                    }
+
                     DB::table('informacion_operativa')
                         ->where('id', $registroId)
                         ->update($data);
@@ -940,6 +975,18 @@ class DespachoController extends Controller
 
                     DB::table('informacion_operativa')->insert($data);
                     $creados++;
+
+                    try {
+                        BitacoraHelper::registrarCambio(
+                            $unidad->id,
+                            'PROGRAMACION_LOGISTICA',
+                            'ALTA DE PROGRAMACIÓN (PASTELES) - ESTATUS: '.strtoupper($data['estatus']).' | RUTA: '.($data['ruta'] ?: 'SIN RUTA').' | CONDUCTOR: '.($data['nombre_conductor'] ?: 'SIN ASIGNAR'),
+                            null,
+                            $data['estatus']
+                        );
+                    } catch (\Throwable $th) {
+                        \Log::warning('Error registrando bitácora creación en actualizar: '.$th->getMessage());
+                    }
                 } catch (\Exception $e) {
                     \Log::error("Fallo individual de creación para ECO {$numeroEcoClean}: ".$e->getMessage());
                     $errores[] = "Error al crear ECO {$numeroEcoClean}: ".$e->getMessage();
@@ -960,6 +1007,22 @@ class DespachoController extends Controller
         }
 
         try {
+            $unidadesEliminadas = DB::table('informacion_operativa')
+                ->whereNotIn('unidad_id', $unidadesProcesadasIds)
+                ->get();
+            foreach ($unidadesEliminadas as $uElim) {
+                try {
+                    BitacoraHelper::registrarCambio(
+                        $uElim->unidad_id,
+                        'PROGRAMACION_LOGISTICA',
+                        'UNIDAD RETIRADA DE LA PROGRAMACIÓN DEL DÍA (PASTELES)',
+                        $uElim->estatus,
+                        'no_programada'
+                    );
+                } catch (\Throwable $th) {
+                    \Log::warning('Error registrando bitácora eliminación en actualizar: '.$th->getMessage());
+                }
+            }
             $eliminados = DB::table('informacion_operativa')
                 ->whereNotIn('unidad_id', $unidadesProcesadasIds)
                 ->delete();
