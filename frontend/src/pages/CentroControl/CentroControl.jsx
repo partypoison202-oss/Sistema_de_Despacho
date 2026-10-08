@@ -187,13 +187,18 @@ export default function CentroControl() {
         : 0;
 
       // Ajuste para el día de hoy (fijo 130: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones) sin alterar la BD
-      const hoyStr = new Date().toISOString().slice(0, 10);
-      const overrideHoy = hoyStr === '2026-10-07' ? {
-        URBANUS: 38,
-        VAGONETA: 50,
-        ZAFIRO: 36,
-        ORION: 6,
-      }[mc.id] : null;
+      const now = new Date();
+      const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const getOverrideHoy = (id) => {
+        const u = (id || '').toUpperCase();
+        if (u.includes('URBANU')) return 38;
+        if (u.includes('VAGONETA')) return 50;
+        if (u.includes('ZAFIRO')) return 36;
+        if (u.includes('ORION')) return 6;
+        return null;
+      };
+
+      const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(mc.id) : null;
 
       // Si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales
       const programadas = overrideHoy ?? (programadasInicio > 0 ? programadasInicio : (unidadesOperacion.length || total));

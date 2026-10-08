@@ -64,8 +64,18 @@ export default function ResumenDespacho() {
             .toUpperCase()
             .trim();
 
-        const hoyStr = new Date().toISOString().slice(0, 10);
+        const now = new Date();
+        const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         
+        const getOverrideHoy = (id) => {
+          const u = (id || '').toUpperCase();
+          if (u.includes('URBANU')) return 38;
+          if (u.includes('VAGONETA')) return 50;
+          if (u.includes('ZAFIRO')) return 36;
+          if (u.includes('ORION')) return 6;
+          return null;
+        };
+
         const aggregated = modelsConfig.map(mc => {
           const units = (Array.isArray(apiData) ? apiData : []).filter(d => normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id)));
           
@@ -81,19 +91,9 @@ export default function ResumenDespacho() {
           const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI')).length;
           let progCalculada = progInicio > 0 ? progInicio : (progActual || units.length);
 
-          // Ajuste solo para hoy 2026-10-07 (fijo 130 totales: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
-          let prog = progCalculada;
-          if (hoyStr === '2026-10-07') {
-            if (mc.id.includes('VAGONETA')) {
-              prog = 50;
-            } else if (mc.id.includes('URBANUS')) {
-              prog = 38;
-            } else if (mc.id.includes('ZAFIRO')) {
-              prog = 36;
-            } else if (mc.id.includes('ORION')) {
-              prog = 6;
-            }
-          }
+          // Ajuste solo para hoy (fijo 130 totales: 38 Urbanuss, 50 Vagonetas, 36 Zafiros, 6 Oriones)
+          const overrideHoy = (localDateStr === '2026-10-07' || localDateStr === '2026-10-08') ? getOverrideHoy(mc.id) : null;
+          const prog = overrideHoy ?? progCalculada;
 
           const oper = units.filter(d => {
             const status = normStr(d.ESTATUS || d.estatus);
