@@ -469,11 +469,64 @@ export default function Usuarios() {
   };
 
   const downloadAdminUsersCSV = () => {
-    // Solo exportar estos 3 usuarios con sus datos precisos solicitados
+    // Lista completa de todos los usuarios (extraída del Seeder oficial para incluir contraseñas legibles)
     const adminUsers = [
       ['Enrique Hernandez Hernandez', 'Enrique_Hernandez', 'ADMINISTRADOR', 'HHE_A26', 'ACCESO TOTAL'],
+      ['Erik William Espinoza Francisco', 'Erik_Espinoza', 'ADMINISTRADOR', 'EFE_A26', 'ACCESO TOTAL'],
       ['Israel Moreno Gómez', 'Israel_Moreno', 'ADMINISTRADOR', 'MGI_A26', 'ACCESO TOTAL'],
-      ['Jeanet García Chávez', 'Jeanet_Garcia', 'ADMINISTRADOR', 'GCJ_A26', 'ACCESO TOTAL']
+      ['Jeanet García Chávez', 'Jeanet_Garcia', 'ADMINISTRADOR', 'GCJ_A26', 'ACCESO TOTAL'],
+      ['Jesus Demetrio Peña Vargas', 'Jesus_Pena', 'ADMINISTRADOR', 'PVJ_A26', 'ACCESO TOTAL'],
+      ['Luis Ángel Vargas Gutiérrez', 'Luis_Vargas', 'ADMINISTRADOR', 'VGL_A26', 'ACCESO TOTAL'],
+      ['José Miguel Trejo Casablanca', 'Jose_Trejo', 'ADMINISTRADOR', 'TCJ_A26', 'ACCESO TOTAL'],
+      ['José Alberto Montiel Balderrama', 'Jose_Montiel', 'DIRECCION_OPERACION', 'MBJ_L26', 'ACCESO TOTAL'],
+      ['María Del Carmen Lima Villanueva', 'Maria_Lima', 'RECURSOS_HUMANOS', 'LVM_RH26', "['operadores', 'asistencias_t6']"],
+      ['Manuel Aguirre Téllez', 'Manuel_Aguirre', 'RECURSOS_HUMANOS', 'ATM_RH26', "['asistencias_t6']"],
+      ['Humberto Cabrera Román', 'Humberto_Cabrera', 'LECTURA', 'CRH_L26', 'ACCESO TOTAL'],
+      ['Miguel Ángel Monzalvo Muñoz', 'Miguel_Monzalvo', 'LECTURA', 'MMM_L26', 'ACCESO TOTAL'],
+      ['Daniel Luna Cortez', 'Daniel_Luna', 'PROGRAMACION', 'LCD_PY26', "['capturista']"],
+      ['Jorge Leal Ramírez', 'Jorge_Leal', 'PROGRAMACION', 'LRJ_PY26', "['capturista', 'relevos']"],
+      ['Mario Alejandro Lazcano Aguilar', 'Mario_Lazcano', 'PROGRAMACION', 'LAM_PY26', "['capturista', 'relevos']"],
+      ['Aracely Sánchez Sánchez', 'Aracely_Sanchez', 'PROGRAMACION', 'SSA_A26', "['capturista', 'relevos']"],
+      ['Iván Martínez Acosta', 'Ivan_Martinez', 'GESTOR_OPERADORES', 'MAI_DD26', "['maniobristas', 'operadores']"],
+      ['Omar Avilés Lugo', 'Omar_Aviles', 'GESTOR_OPERADORES', 'ALO_CD26', 'ACCESO TOTAL'],
+      ['Bacilio Tapia Padilla', 'Bacilio_Tapia', 'DESPACHO', 'TPB_DD26', "['despacho']"],
+      ['César Jiménez', 'Cesar_Jimenez', 'DESPACHO', 'JC_DD26', "['despacho']"],
+      ['Fausto Valdez Téllez', 'Fausto_Valdez', 'DESPACHO', 'VTF_DD26', "['despacho']"],
+      ['Fernando Ramos Lira', 'Fernando_Ramos', 'DESPACHO', 'RLF_DD26', "['despacho']"],
+      ['Guadalupe Santos Callejas', 'Guadalupe_Santos', 'DESPACHO', 'SCG_DD26', "['despacho']"],
+      ['Jairo Jared Jiménez Ramírez', 'Jairo_Jimenez', 'DESPACHO', 'JRJ_DD26', "['despacho']"],
+      ['Marino Román Velázquez', 'Marino_Roman', 'DESPACHO', 'RVM_DD26', "['despacho']"],
+      ['Miguel Odón', 'Miguel_Odon', 'DESPACHO', 'OM_DD26', "['despacho', 'operadores']"],
+      ['Ángel David Pérez Rueda', 'Angel_Perez', 'DESPACHO', 'RPA_DD26', "['despacho']"],
+      ['Erick Herrera Chávez', 'Erick_Herrera', 'MANTENIMIENTO', 'HCE_ME26', 'ACCESO TOTAL'],
+      ['Adrián Isidro Lopéz', 'Adrian_Isidro', 'MANTENIMIENTO', 'ILA_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Edgar Gomez García', 'Edgar_Gomez', 'MANTENIMIENTO', 'GGE_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Gabriel García Vázquez', 'Gabriel_Garcia', 'MANTENIMIENTO', 'GGV_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Jorge Nava Vinte', 'Jorge_Nava', 'MANTENIMIENTO', 'NVJ_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Karen Guadalupe Rodríguez Blanco', 'Karen_Rodriguez', 'MANTENIMIENTO', 'RBK_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Otoniel Pérez Moreno', 'Otoniel_Perez', 'MANTENIMIENTO', 'PMO_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Ramón Bautista Rodríguez', 'Ramon_Bautista', 'MANTENIMIENTO', 'BRR_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Raquel Aguilar Rodríguez', 'Raquel_Aguilar', 'MANTENIMIENTO', 'ARR_ME26', "['mantenimiento', 'encierro', 'carga_combustible']"],
+      ['Bonifacio Alpizar López', 'Bonifacio_Alpizar', 'CENTRO_CONTROL', 'ALB_ME26', 'ACCESO TOTAL'],
+      ['Diana Karina Vázquez García', 'Diana_Vazquez', 'CENTRO_CONTROL', 'VGD_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['Emilio Corona Montufar', 'Emilio_Corona', 'CENTRO_CONTROL', 'CME_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['Adriana Diaz', 'Adriana_Diaz', 'CENTRO_CONTROL', 'DA_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['Abigail Rodriguez Perez', 'Abigail_Rodriguez', 'CENTRO_CONTROL', 'RPA_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['Fabian Oliver Chuio Garcia', 'Fabian_Chuio', 'CENTRO_CONTROL', 'CGF_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['David Fragoso Martínez', 'David_Fragoso', 'CENTRO_CONTROL', 'FMD_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['Rubicel Olvera Medina', 'Rubicel_Olvera', 'CENTRO_CONTROL', 'OMR_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['Osmaret Vazquez Garcia', 'Osmaret_Vazquez', 'CENTRO_CONTROL', 'VGO_ME26', "['centro_control', 'mesa_control', 'maniobristas', 'relevos', 'encierro', 'capturista']"],
+      ['Angélica Gonzalez Santos', 'Angelica_Gonzalez', 'MESA_CONTROL', 'GSA_MC26', "['centro_control', 'mesa_control', 'relevos']"],
+      ['Alejandra Guadalupe Monroy Campos', 'Alejandra_Monroy', 'MESA_CONTROL', 'MCA_MC26', "['centro_control', 'mesa_control', 'relevos']"],
+      ['Mireidy Yañez Reyes', 'Mireidy_Yanez', 'MESA_CONTROL', 'YRM_MC26', "['centro_control', 'mesa_control', 'relevos']"],
+      ['Canales Hernández Tania Irán', 'Tania_Canales', 'MESA_CONTROL', 'CHT_MC26', "['centro_control', 'mesa_control', 'relevos']"],
+      ['Rolando Castillejos Fernández', 'Rolando_Castillejos', 'MESA_CONTROL', 'CFR_MC26', "['centro_control', 'mesa_control', 'relevos']"],
+      ['Ximena Montserrath Rosas Cruz', 'Ximena_Rosas', 'MESA_CONTROL', 'RCX_MC26', "['centro_control', 'mesa_control', 'relevos']"],
+      ['Ramírez Cerón Daniel Bigvai', 'Daniel_Ramirez', 'MESA_CONTROL', 'RCD_MC26', "['centro_control', 'mesa_control', 'relevos']"],
+      ['Jose Gabriel Angeles Martinez', 'Jose_Angeles', 'ENCIERRO', 'AMJ_EN26', "['encierro']"],
+      ['Ricardo Macías Vargas', 'Ricardo_Macias', 'PASTELES', 'MVR_PL26', "['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro']"],
+      ['Victor Esteban Alonso Garcia', 'Victor_Alonso', 'PASTELES', 'AGV_PL26', "['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro']"],
+      ['Miguel Ángel Pérez Rodríguez', 'Miguel_Perez', 'PASTELES', 'RPM_PL26', "['centro_control', 'mesa_control', 'programacion_pasteles', 'encierro']"]
     ];
 
     let csvContent = '\uFEFF'; // BOM for Excel UTF-8 support
@@ -663,14 +716,16 @@ export default function Usuarios() {
             />
           </div>
           <div className="usuarios-actions" style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              className="btn-primary"
-              onClick={downloadAdminUsersCSV}
-              style={{ backgroundColor: '#10b981', color: '#fff' }}
-            >
-              <svg style={{ width: '1rem', height: '1rem', marginRight: '0.4rem', display: 'inline' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Descargar Usuarios
-            </button>
+            {currentUser && ['Jeanet García Chávez', 'Israel Moreno Gómez', 'Enrique Hernandez Hernandez'].includes(currentUser.nombre_completo) && (
+              <button
+                className="btn-primary"
+                onClick={downloadAdminUsersCSV}
+                style={{ backgroundColor: '#10b981', color: '#fff' }}
+              >
+                <svg style={{ width: '1rem', height: '1rem', marginRight: '0.4rem', display: 'inline' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Descargar Usuarios
+              </button>
+            )}
             <button
               className="btn-primary"
               onClick={() => handleOpenModal()}
