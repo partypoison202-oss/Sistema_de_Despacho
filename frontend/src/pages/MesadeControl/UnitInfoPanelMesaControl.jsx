@@ -622,13 +622,15 @@ export default function UnitInfoPanel({
       if (!response.ok) {
         throw new Error(result.error || result.message || errorMessage);
       }
-      queryClient.invalidateQueries(['unidades-list-mesacontrol']);
-      queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
-      queryClient.invalidateQueries(['unidad-detalle']);
-      queryClient.invalidateQueries(['despacho-hoy']);
-      queryClient.invalidateQueries(['conteo-unidades-global']);
-      queryClient.invalidateQueries(['conductores-list']);
-      queryClient.invalidateQueries(['monitoreo-conductores-dia']);
+      queryClient.invalidateQueries({ queryKey: ['unidades-list-mesacontrol'] });
+      queryClient.invalidateQueries({ queryKey: ['unidades-reserva-reemplazo'] });
+      queryClient.invalidateQueries({ queryKey: ['unidad-detalle'] });
+      queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+      queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+      queryClient.invalidateQueries({ queryKey: ['conductores-list'] });
+      queryClient.invalidateQueries({ queryKey: ['programacion-apertura-dia'] });
+      queryClient.invalidateQueries({ queryKey: ['programacion-apertura-resumen'] });
+      queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
       if (typeof onUpdate === 'function') onUpdate(ecoNum, reemplazoActivo ? unidadReemplazoSeleccionada?.eco : null);
       setModalPlataformaVisible(null);
       const Swal = (await import('sweetalert2')).default;
@@ -985,6 +987,21 @@ export default function UnitInfoPanel({
                 </span>
               </div>
             </div>)}
+
+            {/* Hora de desincorporación por itinerario (solo si se le asignó dato) */}
+            {!isReservaOrMantenimiento && !!datosOperativos.horaDesincorporacion && String(datosOperativos.horaDesincorporacion).trim() !== '' && String(datosOperativos.horaDesincorporacion).trim() !== '--:--' && (
+              <div className="info-card__item">
+                <span className="info-card__label">Hora de desincorporación por itinerario</span>
+                <div className="badge-display badge-display--gold" style={{ padding: '0.5rem 1rem', opacity: 1, background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e' }}>
+                  <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: '#b45309' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', color: '#92400e' }}>
+                    <span>{datosOperativos.horaDesincorporacion}</span>
+                  </span>
+                </div>
+              </div>
+            )}
 
 
 

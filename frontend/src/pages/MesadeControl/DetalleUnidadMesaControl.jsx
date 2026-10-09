@@ -435,6 +435,8 @@ export default function DetalleUnidadMesaControl() {
           horaSalidaPatio: activeUnitData.hora_salida_patio || '',
           acople: activeUnitData.acople || '',
           relevo_hora: activeUnitData.relevo_hora || '',
+          itinerario: activeUnitData.itinerario || false,
+          horaDesincorporacion: activeUnitData.hora_desincorporacion || '',
         });
         setFallaTexto(activeUnitData.falla || '');
         setSelectedEstado(activeUnitData.estatus || 'operacion');
@@ -455,6 +457,8 @@ export default function DetalleUnidadMesaControl() {
           relevo_conductor: '',
           relevo_tarjeton: '',
           relevo_hora: '',
+          itinerario: false,
+          horaDesincorporacion: '',
         });
         setFallaTexto('');
       }
@@ -539,18 +543,21 @@ export default function DetalleUnidadMesaControl() {
   };
 
   const handleUpdateAfterMovement = async (ecoActualizado, ecoReemplazo) => {
-    queryClient.invalidateQueries(['unidades-list-mesacontrol']);
-    queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
-    queryClient.invalidateQueries(['conductores-list']);
-    queryClient.invalidateQueries(['despacho-hoy']);
-    queryClient.invalidateQueries(['conteo-unidades-global']);
+    queryClient.invalidateQueries({ queryKey: ['unidades-list-mesacontrol'] });
+    queryClient.invalidateQueries({ queryKey: ['unidades-reserva-reemplazo'] });
+    queryClient.invalidateQueries({ queryKey: ['conductores-list'] });
+    queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+    queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+    queryClient.invalidateQueries({ queryKey: ['programacion-apertura-dia'] });
+    queryClient.invalidateQueries({ queryKey: ['programacion-apertura-resumen'] });
+    queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
     fetchConductores();
     refetchActiveUnit();
     if (ecoActualizado) {
-      queryClient.invalidateQueries(['unidad-detalle']);
+      queryClient.invalidateQueries({ queryKey: ['unidad-detalle'] });
     }
     if (ecoReemplazo) {
-      queryClient.invalidateQueries(['unidad-detalle']);
+      queryClient.invalidateQueries({ queryKey: ['unidad-detalle'] });
     }
   };
 
@@ -1096,12 +1103,16 @@ export default function DetalleUnidadMesaControl() {
           });
         });
 
-        queryClient.invalidateQueries(['unidades-list-mesacontrol']);
-        queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
-        queryClient.invalidateQueries(['unidad-detalle']);
-        queryClient.invalidateQueries(['unidadesDashboard']);
-        queryClient.invalidateQueries(['unidades-list']);
-        queryClient.invalidateQueries(['conteo-unidades-global']);
+        queryClient.invalidateQueries({ queryKey: ['unidades-list-mesacontrol'] });
+        queryClient.invalidateQueries({ queryKey: ['unidades-reserva-reemplazo'] });
+        queryClient.invalidateQueries({ queryKey: ['unidad-detalle'] });
+        queryClient.invalidateQueries({ queryKey: ['unidadesDashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['unidades-list'] });
+        queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+        queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+        queryClient.invalidateQueries({ queryKey: ['programacion-apertura-dia'] });
+        queryClient.invalidateQueries({ queryKey: ['programacion-apertura-resumen'] });
+        queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
 
         if (typeof BroadcastChannel !== 'undefined') {
           try {
