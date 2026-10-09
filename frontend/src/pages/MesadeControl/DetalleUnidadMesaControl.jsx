@@ -1898,7 +1898,7 @@ export default function DetalleUnidadMesaControl() {
               </label>
             )}
 
-            {!cambioUnidadActivo ? (
+            {!cambioUnidadActivo && modalEstatusNuevo === 'operacion' ? (
               <>
                 <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
                   <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
@@ -2005,7 +2005,7 @@ export default function DetalleUnidadMesaControl() {
                   <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
                 </div>
               </>
-            ) : (
+            ) : cambioUnidadActivo ? (
               <div style={{ display: 'grid', gap: '1.25rem', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc', marginBottom: '1.5rem' }}>
 
                 {/* Número de ECO - Dropdown */}
@@ -2221,7 +2221,7 @@ export default function DetalleUnidadMesaControl() {
                 </div>
 
               </div>
-            )}
+            ) : null}
 
             <div className="custom-modal-actions">
               <button
