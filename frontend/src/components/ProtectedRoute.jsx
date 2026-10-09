@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { AuthContext, getDefaultRoute } from '../context/AuthContext';
 
@@ -25,12 +25,38 @@ export const ROLE_DEFAULT_MODULES = {
 export default function ProtectedRoute({ children, allowedRoles, allowedModules }) {
   const { user, token, loading } = useContext(AuthContext);
   const location = useLocation();
+  const [showSlowWarning, setShowSlowWarning] = useState(false);
+
+  useEffect(() => {
+    let timer;
+    if (loading) {
+      timer = setTimeout(() => {
+        setShowSlowWarning(true);
+      }, 5000); // 5 segundos
+    } else {
+      setShowSlowWarning(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   if (loading) {
     return (
       <div className="page-loader-container">
         <div className="page-loader-spinner"></div>
         <div className="page-loader-text">Cargando...</div>
+        {showSlowWarning && (
+          <div style={{
+            marginTop: '1.5rem',
+            fontSize: '0.85rem',
+            color: '#9ca3af',
+            textAlign: 'center',
+            maxWidth: '280px',
+            lineHeight: '1.4',
+            animation: 'fadeInUp 0.5s ease'
+          }}>
+            La conexión está lenta.<br/>Se está intentando procesar, por favor espera...
+          </div>
+        )}
       </div>
     );
   }
