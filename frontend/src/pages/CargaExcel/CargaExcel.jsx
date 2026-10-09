@@ -875,12 +875,27 @@ export default function CargaExcel({ isPasteles = false }) {
       return;
     }
 
-    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS'];
-    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida'];
+    let columnas;
+    let encabezados;
+
+    if (isRelevos) {
+      columnas = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA', 'ESTATUS', 'PATIO_NORTE'];
+      encabezados = ['Tipo Unidad', 'Económico', 'Ruta', 'Corrida', 'Tarjetón Relevo', 'Conductor Relevo', 'Hora Relevo', 'Estatus', 'Patio Norte'];
+    } else {
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida'];
+    }
 
     const datosHoja = [
       encabezados,
-      ...previewData.map(fila => columnas.map(col => fila[col] ?? ''))
+      ...previewData.map(fila => columnas.map(col => {
+        let value = fila[col] ?? '';
+        if (isRelevos && col === 'PATIO_NORTE') {
+          if (value === true || value === 1 || value === '1' || value === 'true') value = 'SÍ';
+          else value = 'NO';
+        }
+        return value;
+      }))
     ];
 
     const worksheet = XLSX.utils.aoa_to_sheet(datosHoja);
@@ -1460,7 +1475,7 @@ export default function CargaExcel({ isPasteles = false }) {
               </svg>
               Descargar Excel
             </button>
-            {!isPasteles && tabActiva !== 'HOY' && (
+            {!isPasteles && !isRelevos && tabActiva !== 'HOY' && (
               <>
                 <button
                   type="button"
