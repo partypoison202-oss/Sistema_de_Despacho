@@ -589,19 +589,19 @@ export default function HistorialCheckList() {
                     {cargando ? (
                         <div className="p-10 text-center text-gray-500">Cargando registros...</div>
                     ) : totalChecklists > 0 ? (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
+                        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <table className="w-full text-left text-sm border-collapse">
                                 <thead>
-                                    <tr className="border-b border-gray-100 bg-gray-50/80 sticky top-0 z-10 shadow-sm">
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">#</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Fecha / Hora</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Inspector</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Tipo Unidad</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Conductor</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">Servicio / Ruta</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">Bien</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">Mal</th>
-                                        <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">Acciones</th>
+                                    <tr className="border-b-2 border-[#521526] bg-[#701c33] sticky top-0 z-10 text-white">
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white first:rounded-tl-xl">#</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Fecha / Hora</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Inspector</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Tipo Unidad</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Conductor</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Servicio / Ruta</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white text-center">Bien</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white text-center">Mal</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white text-center last:rounded-tr-xl">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
