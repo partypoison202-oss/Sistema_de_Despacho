@@ -11,8 +11,9 @@ const ReporteOperacionalPorHoraPDF = React.forwardRef(({ data }, ref) => {
   if (!data || !data.length) return null;
 
   // Clasificar datos
-  const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
-  const getTipo = (d) => (d.TIPO_DE_UNIDAD || '').toUpperCase().trim();
+  const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+  const getTipo = (d) => (d.TIPO_DE_UNIDAD || d.tipo_de_unidad || d.tipo || '').toUpperCase().trim();
+  const getHoraSalida = (d) => (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
 
   const techNames = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
   const unidadesPorTecnologia = {
@@ -33,15 +34,24 @@ const ReporteOperacionalPorHoraPDF = React.forwardRef(({ data }, ref) => {
       else if (tipo.includes('ORION') || tipo.includes('ORIÓN')) techKey = 'ORION';
 
       if (techKey) {
+          const estatus = getEstatus(unit);
+          const isNoProgramada = estatus === 'NO_PROGRAMADA' || estatus === 'NO PROGRAMADA' || estatus.includes('ENCIERRO OPERATIVO') || estatus.includes('INTERMEDIA');
+          if (isNoProgramada) return;
+
           unidadesPorTecnologia[techKey].flota++;
           totalFlota++;
 
-          const estatus = getEstatus(unit);
-          if (estatus.includes('MANTENIMIENTO')) {
+          const horaSalida = getHoraSalida(unit);
+          const isMantenimiento = estatus.includes('MANTENIMIENTO');
+          const isItinerario = estatus.includes('ITINERARIO') || estatus.includes('DESINCORPORADA') || estatus.includes('PERCANCE');
+          const isOperacionNoDespachada = estatus.includes('OPERACI') && !horaSalida;
+          const isReserva = (estatus.includes('RESERVA') && !estatus.includes('INTERMEDIA')) || isOperacionNoDespachada;
+
+          if (isMantenimiento) {
               unidadesPorTecnologia[techKey].taller.push(unit);
-          } else if (estatus.includes('RESERVA')) {
+          } else if (isReserva) {
               unidadesPorTecnologia[techKey].reserva.push(unit);
-          } else if (estatus.includes('DESINCORPORADA')) {
+          } else if (isItinerario) {
               unidadesPorTecnologia[techKey].desincorporada.push(unit);
           }
       }
