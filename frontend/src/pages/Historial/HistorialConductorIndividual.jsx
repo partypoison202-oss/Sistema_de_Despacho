@@ -802,93 +802,98 @@ export default function HistorialConductorIndividual() {
         )}
 
         {/* TARJETAS KPI DE RESUMEN DEL RANGO */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #15803d', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#15803d', textTransform: 'uppercase' }}>Asistencias</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#14532d' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+          gap: '0.65rem',
+          marginBottom: '1.25rem'
+        }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #15803d', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Asistencias</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#14532d' }}>
               {resumenIndividual?.asistencias || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
-              Despachos y permutas cubiertas
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
+              Despachos y permutas
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #dc2626', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase' }}>Faltas Injustificadas</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#991b1b' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #dc2626', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Faltas Injust.</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#991b1b' }}>
               {resumenIndividual?.faltas_injustificadas || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
-              Inasistencias sin justificar
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
+              Sin justificar
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #059669', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#059669', textTransform: 'uppercase' }}>Faltas Justificadas</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#065f46' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #059669', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Justificadas</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#065f46' }}>
               {resumenIndividual?.faltas_justificadas || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
-              Con comprobante / autorización
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
+              Con comprobante
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #ea580c', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#ea580c', textTransform: 'uppercase' }}>Descansos</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#9a3412' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #ea580c', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Descansos</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#9a3412' }}>
               {resumenIndividual?.descansos || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
-              Rol semanal y permutas DP
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
+              Rol semanal y DP
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #7c3aed', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#7c3aed', textTransform: 'uppercase' }}>Permutas</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#5b21b6' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #7c3aed', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Permutas</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#5b21b6' }}>
               {resumenIndividual?.permutas_totales || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
               AP: {resumenIndividual?.permutas_ap || 0} | DP: {resumenIndividual?.permutas_dp || 0}
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #0284c7', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase' }}>Permisos</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#075985' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #0284c7', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Permisos</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#075985' }}>
               {resumenIndividual?.permisos || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
-              Económicos y oficiales
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
+              Económicos / ofic.
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #ca8a04', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#ca8a04', textTransform: 'uppercase' }}>Vacaciones</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#854d0e' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #ca8a04', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#ca8a04', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Vacaciones</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#854d0e' }}>
               {resumenIndividual?.vacaciones || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
-              Días programados
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
+              Días prog.
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #2563eb', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#2563eb', textTransform: 'uppercase' }}>Incapacidades</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#1e40af' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #2563eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Incapacidades</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#1e40af' }}>
               {resumenIndividual?.incapacidades || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
               Días médicos
             </p>
           </div>
 
-          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #d97706', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#d97706', textTransform: 'uppercase' }}>Retardos</span>
-            <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '1.6rem', fontWeight: '900', color: '#92400e' }}>
+          <div style={{ background: '#ffffff', padding: '0.75rem 0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0', borderLeft: '4px solid #d97706', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: '800', color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Retardos</span>
+            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.4rem', fontWeight: '900', color: '#92400e' }}>
               {resumenIndividual?.retardos || 0}
             </h3>
-            <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.7rem', color: '#64748b' }}>
+            <p style={{ margin: '0.1rem 0 0 0', fontSize: '0.65rem', color: '#64748b' }}>
               Llegadas tarde
             </p>
           </div>
@@ -896,28 +901,90 @@ export default function HistorialConductorIndividual() {
 
         {/* Barra de Filtros y Modo de Vista */}
         <div style={{
+          background: '#ffffff',
+          borderRadius: '0.75rem',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          padding: '0.85rem 1rem',
+          marginBottom: '1.25rem',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '1.25rem'
+          flexDirection: 'column',
+          gap: '0.75rem'
         }}>
-          <div className="search-box-container" style={{ flex: '1 1 260px', maxWidth: '400px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input
-              type="text"
-              className="historial-search-input"
-              placeholder="Buscar en eventos (ruta, unidad, motivo, etc.)..."
-              value={busquedaEvento}
-              onChange={(e) => setBusquedaEvento(e.target.value)}
-            />
+          {/* Fila Superior: Buscador + Switcher de Vistas */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div className="search-box-container" style={{ flex: '1 1 280px', maxWidth: '420px', minWidth: '220px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                className="historial-search-input"
+                placeholder="Buscar en eventos (ruta, unidad, motivo, etc.)..."
+                value={busquedaEvento}
+                onChange={(e) => setBusquedaEvento(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', background: '#f1f5f9', padding: '0.25rem', borderRadius: '0.5rem', gap: '0.25rem' }}>
+              <button
+                type="button"
+                onClick={() => setModoVisualizacion('LISTA')}
+                style={{
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.78rem',
+                  fontWeight: '800',
+                  border: 'none',
+                  backgroundColor: modoVisualizacion === 'LISTA' ? '#ffffff' : 'transparent',
+                  color: modoVisualizacion === 'LISTA' ? '#0f172a' : '#64748b',
+                  boxShadow: modoVisualizacion === 'LISTA' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Vista Detallada
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoVisualizacion('CALENDARIO')}
+                style={{
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.78rem',
+                  fontWeight: '800',
+                  border: 'none',
+                  backgroundColor: modoVisualizacion === 'CALENDARIO' ? '#ffffff' : 'transparent',
+                  color: modoVisualizacion === 'CALENDARIO' ? '#0f172a' : '#64748b',
+                  boxShadow: modoVisualizacion === 'CALENDARIO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Vista Calendario
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+          {/* Fila Inferior: Filtros de Categorías / Pills */}
+          <div style={{
+            display: 'flex',
+            gap: '0.4rem',
+            overflowX: 'auto',
+            paddingBottom: '2px',
+            alignItems: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginRight: '0.25rem', whiteSpace: 'nowrap' }}>
+              Filtrar por:
+            </span>
             {[
               { id: 'TODOS', label: 'Todos' },
               { id: 'ASISTENCIA', label: 'Asistencias' },
@@ -929,62 +996,43 @@ export default function HistorialConductorIndividual() {
               { id: 'VACACIONES', label: 'Vacaciones' },
               { id: 'INCAPACIDAD', label: 'Incapacidades' },
               { id: 'RETARDO', label: 'Retardos' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFiltroTipoEvento(tab.id)}
-                style={{
-                  padding: '0.35rem 0.65rem',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.78rem',
-                  fontWeight: '700',
-                  border: '1px solid',
-                  borderColor: filtroTipoEvento === tab.id ? '#6b1d33' : '#e2e8f0',
-                  backgroundColor: filtroTipoEvento === tab.id ? '#6b1d33' : '#ffffff',
-                  color: filtroTipoEvento === tab.id ? '#ffffff' : '#475569',
-                  cursor: 'pointer',
-                  transition: 'all 0.12s ease'
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', background: '#e2e8f0', padding: '0.2rem', borderRadius: '0.5rem', gap: '0.2rem' }}>
-            <button
-              type="button"
-              onClick={() => setModoVisualizacion('LISTA')}
-              style={{
-                padding: '0.35rem 0.65rem',
-                borderRadius: '0.375rem',
-                fontSize: '0.75rem',
-                fontWeight: '800',
-                border: 'none',
-                backgroundColor: modoVisualizacion === 'LISTA' ? '#ffffff' : 'transparent',
-                color: modoVisualizacion === 'LISTA' ? '#0f172a' : '#64748b',
-                cursor: 'pointer'
-              }}
-            >
-              Vista Detallada
-            </button>
-            <button
-              type="button"
-              onClick={() => setModoVisualizacion('CALENDARIO')}
-              style={{
-                padding: '0.35rem 0.65rem',
-                borderRadius: '0.375rem',
-                fontSize: '0.75rem',
-                fontWeight: '800',
-                border: 'none',
-                backgroundColor: modoVisualizacion === 'CALENDARIO' ? '#ffffff' : 'transparent',
-                color: modoVisualizacion === 'CALENDARIO' ? '#0f172a' : '#64748b',
-                cursor: 'pointer'
-              }}
-            >
-              Vista Calendario
-            </button>
+            ].map(tab => {
+              const active = filtroTipoEvento === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setFiltroTipoEvento(tab.id)}
+                  style={{
+                    padding: '0.32rem 0.75rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.78rem',
+                    fontWeight: '700',
+                    border: '1px solid',
+                    borderColor: active ? '#701c33' : '#e2e8f0',
+                    backgroundColor: active ? '#701c33' : '#ffffff',
+                    color: active ? '#ffffff' : '#475569',
+                    cursor: 'pointer',
+                    transition: 'all 0.12s ease',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                    }
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

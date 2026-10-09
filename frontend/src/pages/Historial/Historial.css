@@ -57,29 +57,34 @@
   box-shadow: 0 0 0 2px rgba(107, 29, 51, 0.2);
 }
 
-.table-responsive {
+.table-responsive,
+.historial-table-container {
   background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
   overflow-x: auto;
   margin-bottom: 2rem;
 }
 
 /* Custom Scrollbar para la tabla en PC/Windows */
-.table-responsive::-webkit-scrollbar {
+.table-responsive::-webkit-scrollbar,
+.historial-table-container::-webkit-scrollbar {
   height: 8px;
   width: 8px;
 }
-.table-responsive::-webkit-scrollbar-track {
+.table-responsive::-webkit-scrollbar-track,
+.historial-table-container::-webkit-scrollbar-track {
   background: #f8fafc;
   border-radius: 0 0 10px 10px;
 }
-.table-responsive::-webkit-scrollbar-thumb {
+.table-responsive::-webkit-scrollbar-thumb,
+.historial-table-container::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
 }
-.table-responsive::-webkit-scrollbar-thumb:hover {
+.table-responsive::-webkit-scrollbar-thumb:hover,
+.historial-table-container::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
@@ -88,33 +93,52 @@
   min-width: 800px;
   max-width: none; /* override global max-width: 100% to allow scroll */
   border-collapse: collapse;
+  text-align: left;
 }
 
-.historial-table th,
+.historial-table th {
+  background-color: var(--color-maroon, #701c33);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.9rem 1rem;
+  border-bottom: 2px solid #521526;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  vertical-align: middle;
+}
+
+.historial-table th:first-child {
+  border-top-left-radius: 0.75rem;
+}
+
+.historial-table th:last-child {
+  border-top-right-radius: 0.75rem;
+}
+
 .historial-table td {
-  padding: 1rem 1.25rem;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+  color: #334155;
   vertical-align: middle;
   white-space: normal;
   word-wrap: break-word;
 }
 
 .historial-table tbody tr {
-  transition: background-color 0.2s;
+  transition: background-color 0.15s ease;
 }
 
 .historial-table tbody tr:hover {
-  background-color: #f9fafb;
+  background-color: #f8fafc;
 }
 
-.historial-table th {
-  background-color: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.historial-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .text-center {
