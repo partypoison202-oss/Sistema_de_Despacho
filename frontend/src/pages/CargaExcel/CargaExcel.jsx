@@ -877,10 +877,36 @@ export default function CargaExcel({ isPasteles = false }) {
 
     let columnas;
     let encabezados;
+    let dataToExport = previewData;
 
     if (isRelevos) {
       columnas = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA', 'ESTATUS', 'PATIO_NORTE'];
       encabezados = ['Tipo Unidad', 'Económico', 'Ruta', 'Corrida', 'Tarjetón Relevo', 'Conductor Relevo', 'Hora Relevo', 'Estatus', 'Patio Norte'];
+      
+      // Filtrar solo los de operacion y ordenar por numero de economico
+      dataToExport = dataToExport.filter(fila => {
+        const statusNorm = String(fila.ESTATUS || 'operacion')
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+
+        const noEsOperacion =
+          statusNorm.includes('reserva') ||
+          statusNorm.includes('mantenimiento') ||
+          statusNorm.includes('inhabilitad') ||
+          statusNorm.includes('percance') ||
+          statusNorm.includes('encierro') ||
+          statusNorm.includes('baja') ||
+          statusNorm.includes('taller');
+
+        return !noEsOperacion;
+      }).sort((a, b) => {
+        const ecoA = parseInt(a.ECONOMICO || '0', 10);
+        const ecoB = parseInt(b.ECONOMICO || '0', 10);
+        return ecoA - ecoB;
+      });
+
     } else {
       columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS'];
       encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida'];
@@ -888,7 +914,7 @@ export default function CargaExcel({ isPasteles = false }) {
 
     const datosHoja = [
       encabezados,
-      ...previewData.map(fila => columnas.map(col => {
+      ...dataToExport.map(fila => columnas.map(col => {
         let value = fila[col] ?? '';
         if (isRelevos && col === 'PATIO_NORTE') {
           if (value === true || value === 1 || value === '1' || value === 'true') value = 'SÍ';
@@ -901,7 +927,7 @@ export default function CargaExcel({ isPasteles = false }) {
     const worksheet = XLSX.utils.aoa_to_sheet(datosHoja);
 
     worksheet['!cols'] = encabezados.map((h, i) => ({
-      wch: Math.max(h.length, ...previewData.map(fila => String(fila[columnas[i]] ?? '').length)) + 3
+      wch: Math.max(h.length, ...dataToExport.map(fila => String(fila[columnas[i]] ?? '').length)) + 3
     }));
 
     const colorPorEstatus = {
