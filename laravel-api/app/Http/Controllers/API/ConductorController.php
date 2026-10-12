@@ -38,6 +38,11 @@ class ConductorController extends Controller
                         $table->text('faltas_detalle')->nullable();
                     });
                 }
+                if (!Schema::hasColumn('conductores', 'asistencias_detalle')) {
+                    Schema::table('conductores', function (Blueprint $table) {
+                        $table->json('asistencias_detalle')->nullable();
+                    });
+                }
             }
         } catch (\Throwable $e) {
             // Manejo silencioso si las columnas ya existen o si el driver de DB rechaza DDL durante GET

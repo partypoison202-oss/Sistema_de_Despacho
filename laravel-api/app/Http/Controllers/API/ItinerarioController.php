@@ -203,6 +203,7 @@ class ItinerarioController extends Controller
             $vacaciones = $this->parseJsonDetalleConMotivo($conductor->vacaciones_detalle);
             $incapacidades = $this->parseJsonDetalleConMotivo($conductor->incapacidades_detalle);
             $permutas = $this->parseJsonDetalleConMotivo($conductor->permutas_detalle ?? []);
+            $asistenciasManuales = $this->parseJsonDetalleConMotivo($conductor->asistencias_detalle ?? []);
 
             // Si el estado de servicio es falta y hoy cae en el rango
             if ($conductor->estado_servicio === 'falta' && !isset($faltas[$hoy])) {
@@ -217,10 +218,14 @@ class ItinerarioController extends Controller
                     (isset($historialMap[$tarjetonRaw][$fechaStr])) ||
                     ($tarjetonNum !== '0' && isset($historialMap[$tarjetonNum][$fechaStr])) ||
                     ($nombreCondNorm && isset($nombreMap[$nombreCondNorm][$fechaStr])) ||
+                    (isset($asistenciasManuales[$fechaStr])) ||
                     ($fechaStr === $hoy && $conductor->estado_servicio === 'en_servicio');
 
-                // Prioridad: F > I > V > D > AP > DP > R > A > (-) día futuro > (vacío)
-                if (isset($faltas[$fechaStr])) {
+                // Prioridad: Asistencia Manual > F > I > V > D > AP > DP > R > A (Despacho) > (-) día futuro > (vacío)
+                if (isset($asistenciasManuales[$fechaStr])) {
+                    $estadoDia = 'A';
+                    $motivo = $asistenciasManuales[$fechaStr] ?: 'Asistencia asignada manualmente';
+                } elseif (isset($faltas[$fechaStr])) {
                     $estadoDia = 'F';
                     $motivo = $faltas[$fechaStr];
                 } elseif (isset($incapacidades[$fechaStr])) {
@@ -300,7 +305,7 @@ class ItinerarioController extends Controller
     {
         $request->validate([
             'conductor_id' => 'required|exists:conductores,id',
-            'estado' => 'required|in:falta,descanso,vacaciones,incapacidad,permuta,retardo',
+            'estado' => 'required|in:asistencia,falta,descanso,vacaciones,incapacidad,permuta,retardo',
             'desde' => 'required|date',
             'hasta' => 'required|date|after_or_equal:desde',
             'motivo' => 'nullable|string',
@@ -313,6 +318,17 @@ class ItinerarioController extends Controller
         $desde = Carbon::parse($request->input('desde'));
         $hasta = Carbon::parse($request->input('hasta'));
         $period = CarbonPeriod::create($desde, $hasta);
+
+        // Si es vacaciones, incapacidad o descanso, validar que el rango no supere 5 días
+        if (in_array($estado, ['vacaciones', 'incapacidad', 'descanso'])) {
+            $totalDias = $desde->diffInDays($hasta) + 1;
+            if ($totalDias > 5) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "El periodo máximo permitido para {$estado} es de 5 días (has seleccionado {$totalDias} días)."
+                ], 422);
+            }
+        }
 
         // Lógica especial para PERMUTA (Involucra a 2 conductores: 1 descansa [DP], 2 asiste [AP])
         if ($estado === 'permuta') {
@@ -397,6 +413,94 @@ class ItinerarioController extends Controller
             ]);
         }
 
+        // Lógica especial para ASISTENCIA MANUAL
+        if ($estado === 'asistencia') {
+            $rawAsist = $conductor->asistencias_detalle;
+            $detalle = is_string($rawAsist) ? (json_decode($rawAsist, true) ?: []) : (is_array($rawAsist) ? $rawAsist : []);
+
+            $fechasPeriodo = [];
+            foreach ($period as $date) {
+                $fechasPeriodo[] = $date->format('Y-m-d');
+            }
+
+            // Limpiar de faltas para evitar contradicciones
+            $rawF = $conductor->faltas_detalle;
+            $arrF = is_string($rawF) ? (json_decode($rawF, true) ?: []) : (is_array($rawF) ? $rawF : []);
+            $nuevasF = [];
+            $remF = 0;
+            foreach ($arrF as $item) {
+                $fFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                if (in_array($fFecha, $fechasPeriodo)) {
+                    $remF++;
+                } else {
+                    $nuevasF[] = $item;
+                }
+            }
+            if ($remF > 0) {
+                $conductor->faltas_detalle = $nuevasF;
+                $conductor->faltas = max(0, ((int)($conductor->faltas ?? 0)) - $remF);
+            }
+
+            // Limpiar de retardos
+            $rawR = $conductor->retardos_detalle;
+            $arrR = is_string($rawR) ? (json_decode($rawR, true) ?: []) : (is_array($rawR) ? $rawR : []);
+            $nuevosR = [];
+            $remR = 0;
+            foreach ($arrR as $item) {
+                $rFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                if (in_array($rFecha, $fechasPeriodo)) {
+                    $remR++;
+                } else {
+                    $nuevosR[] = $item;
+                }
+            }
+            if ($remR > 0) {
+                $conductor->retardos_detalle = $nuevosR;
+                $conductor->retardos = max(0, ((int)($conductor->retardos ?? 0)) - $remR);
+            }
+
+            // Limpiar de descansos
+            $rawD = $conductor->descansos_detalle;
+            $arrD = is_string($rawD) ? (json_decode($rawD, true) ?: []) : (is_array($rawD) ? $rawD : []);
+            $conductor->descansos_detalle = array_values(array_filter($arrD, fn($item) => !in_array($item['fecha'] ?? '', $fechasPeriodo)));
+
+            $origen = $request->input('origen') ?: 'Itinerario de Asistencias';
+            $motivo = $request->input('motivo') ?: "Asistencia registrada desde {$origen}";
+
+            $diasAgregados = 0;
+            foreach ($fechasPeriodo as $fStr) {
+                $actualizado = false;
+                foreach ($detalle as &$item) {
+                    if (($item['fecha'] ?? '') === $fStr) {
+                        $item['motivo'] = $motivo;
+                        $item['estado'] = 'asistencia';
+                        $actualizado = true;
+                        $diasAgregados++;
+                        break;
+                    }
+                }
+                unset($item);
+
+                if (!$actualizado) {
+                    $detalle[] = [
+                        'id' => 'asistencia_' . time() . '_' . random_int(1000, 9999),
+                        'fecha' => $fStr,
+                        'motivo' => $motivo,
+                        'estado' => 'asistencia'
+                    ];
+                    $diasAgregados++;
+                }
+            }
+
+            $conductor->asistencias_detalle = $detalle;
+            $conductor->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Asistencia registrada correctamente.'
+            ]);
+        }
+
         $campoMap = [
             'falta' => 'faltas_detalle',
             'descanso' => 'descansos_detalle',
@@ -420,6 +524,61 @@ class ItinerarioController extends Controller
             $fechasCruzadas = array_column($detalleOtro, 'fecha');
         }
 
+        // Limpiar de asistencias_detalle si se asigna falta, retardo, descanso, vacaciones o incapacidad
+        $rawAsist = $conductor->asistencias_detalle;
+        if (!empty($rawAsist)) {
+            $arrAsist = is_string($rawAsist) ? (json_decode($rawAsist, true) ?: []) : (is_array($rawAsist) ? $rawAsist : []);
+            $fechasPeriodo = [];
+            foreach ($period as $date) {
+                $fechasPeriodo[] = $date->format('Y-m-d');
+            }
+            $conductor->asistencias_detalle = array_values(array_filter($arrAsist, fn($item) => !in_array($item['fecha'] ?? '', $fechasPeriodo)));
+        }
+
+        // Si es vacaciones, incapacidad o descanso, limpiar faltas o retardos previos en esas fechas para evitar empalmes
+        if ($estado === 'vacaciones' || $estado === 'incapacidad' || $estado === 'descanso') {
+            $fechasPeriodo = [];
+            foreach ($period as $date) {
+                $fechasPeriodo[] = $date->format('Y-m-d');
+            }
+
+            // Limpiar faltas
+            $rawF = $conductor->faltas_detalle;
+            $arrF = is_string($rawF) ? (json_decode($rawF, true) ?: []) : (is_array($rawF) ? $rawF : []);
+            $nuevasF = [];
+            $remF = 0;
+            foreach ($arrF as $item) {
+                $fFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                if (in_array($fFecha, $fechasPeriodo)) {
+                    $remF++;
+                } else {
+                    $nuevasF[] = $item;
+                }
+            }
+            if ($remF > 0) {
+                $conductor->faltas_detalle = $nuevasF;
+                $conductor->faltas = max(0, ((int)($conductor->faltas ?? 0)) - $remF);
+            }
+
+            // Limpiar retardos
+            $rawR = $conductor->retardos_detalle;
+            $arrR = is_string($rawR) ? (json_decode($rawR, true) ?: []) : (is_array($rawR) ? $rawR : []);
+            $nuevosR = [];
+            $remR = 0;
+            foreach ($arrR as $item) {
+                $rFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                if (in_array($rFecha, $fechasPeriodo)) {
+                    $remR++;
+                } else {
+                    $nuevosR[] = $item;
+                }
+            }
+            if ($remR > 0) {
+                $conductor->retardos_detalle = $nuevosR;
+                $conductor->retardos = max(0, ((int)($conductor->retardos ?? 0)) - $remR);
+            }
+        }
+
         $origen = $request->input('origen') ?: 'Itinerario de Asistencias';
         $defaultMotivos = [
             'falta' => "Falta registrada desde {$origen}",
@@ -434,7 +593,17 @@ class ItinerarioController extends Controller
 
         foreach ($period as $date) {
             $fechaStr = $date->format('Y-m-d');
-            if (!in_array($fechaStr, $fechasExistentes) && !in_array($fechaStr, $fechasCruzadas)) {
+            if (in_array($fechaStr, $fechasExistentes)) {
+                // Si la fecha ya existía en este estado, actualizar motivo
+                foreach ($detalle as &$item) {
+                    if (($item['fecha'] ?? '') === $fechaStr) {
+                        $item['motivo'] = $motivo;
+                        $diasAgregados++;
+                        break;
+                    }
+                }
+                unset($item);
+            } elseif (!in_array($fechaStr, $fechasCruzadas)) {
                 $detalle[] = [
                     'id' => $estado . '_' . time() . '_' . random_int(1000, 9999),
                     'fecha' => $fechaStr,

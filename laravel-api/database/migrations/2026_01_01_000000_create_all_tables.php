@@ -199,6 +199,7 @@ return new class extends Migration
                 $table->json('permisos_detalle')->nullable();
                 $table->json('permutas_detalle')->nullable();
                 $table->json('accidentes_siniestros_detalle')->nullable();
+                $table->json('asistencias_detalle')->nullable();
 
                 $table->timestamps();
             });
@@ -266,6 +267,7 @@ return new class extends Migration
                 'permisos_detalle'     => fn($t) => $t->json('permisos_detalle')->nullable(),
                 'permutas_detalle'     => fn($t) => $t->json('permutas_detalle')->nullable(),
                 'accidentes_siniestros_detalle'=> fn($t) => $t->json('accidentes_siniestros_detalle')->nullable(),
+                'asistencias_detalle'  => fn($t) => $t->json('asistencias_detalle')->nullable(),
             ] as $col => $def) {
                 if (!Schema::hasColumn('conductores', $col)) {
                     Schema::table('conductores', $def);

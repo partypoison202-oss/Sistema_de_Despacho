@@ -48,7 +48,8 @@ class Conductor extends Model
         'condicionamientos_medicos',
         'accidentes_siniestros_detalle',
         'faltas_detalle',
-        'retardos_detalle'
+        'retardos_detalle',
+        'asistencias_detalle'
     ];
 
     protected $casts = [
@@ -59,6 +60,7 @@ class Conductor extends Model
         'accidentes_siniestros_detalle' => 'array',
         'faltas_detalle' => 'array',
         'retardos_detalle' => 'array',
+        'asistencias_detalle' => 'array',
     ];
 
     public function setTarjetonAttribute($value)
