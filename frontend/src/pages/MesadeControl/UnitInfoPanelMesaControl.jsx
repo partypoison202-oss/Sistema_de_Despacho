@@ -988,6 +988,21 @@ export default function UnitInfoPanel({
               </div>
             </div>)}
 
+            {/* Hora de incorporación por itinerario (solo si se le asignó dato) */}
+            {!isReservaOrMantenimiento && !!datosOperativos.horaIncorporacion && String(datosOperativos.horaIncorporacion).trim() !== '' && String(datosOperativos.horaIncorporacion).trim() !== '--:--' && (
+              <div className="info-card__item">
+                <span className="info-card__label">Hora de incorporación por itinerario</span>
+                <div className="badge-display badge-display--green" style={{ padding: '0.5rem 1rem', opacity: 1, background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46' }}>
+                  <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: '#059669' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', color: '#065f46' }}>
+                    <span>{datosOperativos.horaIncorporacion}</span>
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Hora de desincorporación por itinerario (solo si se le asignó dato) */}
             {!isReservaOrMantenimiento && !!datosOperativos.horaDesincorporacion && String(datosOperativos.horaDesincorporacion).trim() !== '' && String(datosOperativos.horaDesincorporacion).trim() !== '--:--' && (
               <div className="info-card__item">
