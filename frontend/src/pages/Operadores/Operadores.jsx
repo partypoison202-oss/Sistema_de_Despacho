@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useContext, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -1027,38 +1027,54 @@ export default function Operadores() {
     return match ? parseInt(match[0], 10) : 0;
   };
 
-  const filteredConductores = conductores.filter(c => {
-    if (activeTab === 'catalogo' && c.estatus === 'baja') {
-      return false;
-    }
-    if (activeTab === 'kardex' && !mostrarBajasKardex && c.estatus === 'baja') {
-      return false;
-    }
+  // Paginación Catálogo (Gestión de T6)
+  const [paginaCatalogo, setPaginaCatalogo] = useState(1);
+  const catalogoPorPagina = 50;
 
-    // Filtros por Tipo y Estado
-    if (filterTipo && c.tipo_tarjeton !== filterTipo) return false;
-    if (filterEstadoServicio && c.estado_servicio !== filterEstadoServicio) return false;
+  const filteredConductores = useMemo(() => {
+    return conductores.filter(c => {
+      if (activeTab === 'catalogo' && c.estatus === 'baja') {
+        return false;
+      }
+      if (activeTab === 'kardex' && !mostrarBajasKardex && c.estatus === 'baja') {
+        return false;
+      }
 
-    const term = searchTerm.toLowerCase();
-    if (!term) return true;
+      // Filtros por Tipo y Estado
+      if (filterTipo && c.tipo_tarjeton !== filterTipo) return false;
+      if (filterEstadoServicio && c.estado_servicio !== filterEstadoServicio) return false;
 
-    return (
-      (c.nombre && c.nombre.toLowerCase().includes(term)) ||
-      (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
-      (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
-    );
-  }).sort((a, b) => {
-    return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
-  });
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
 
-  // Paginación Kardex
+      return (
+        (c.nombre && c.nombre.toLowerCase().includes(term)) ||
+        (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
+        (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
+      );
+    }).sort((a, b) => {
+      return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
+    });
+  }, [conductores, activeTab, mostrarBajasKardex, filterTipo, filterEstadoServicio, searchTerm]);
+
+  // Reset de página al cambiar filtros
   useEffect(() => {
+    setPaginaCatalogo(1);
     setPaginaKardex(1);
   }, [searchTerm, filterTipo, filterEstadoServicio, mostrarBajasKardex, activeTab]);
 
+  const totalPaginasCatalogo = Math.ceil(filteredConductores.length / catalogoPorPagina) || 1;
+  const indiceInicioCatalogo = (paginaCatalogo - 1) * catalogoPorPagina;
+  const conductoresPaginadosCatalogo = useMemo(() => {
+    return filteredConductores.slice(indiceInicioCatalogo, indiceInicioCatalogo + catalogoPorPagina);
+  }, [filteredConductores, indiceInicioCatalogo, catalogoPorPagina]);
+
+  // Paginación Kardex
   const totalPaginasKardex = Math.ceil(filteredConductores.length / kardexPorPagina) || 1;
   const indiceInicioKardex = (paginaKardex - 1) * kardexPorPagina;
-  const conductoresPaginadosKardex = filteredConductores.slice(indiceInicioKardex, indiceInicioKardex + kardexPorPagina);
+  const conductoresPaginadosKardex = useMemo(() => {
+    return filteredConductores.slice(indiceInicioKardex, indiceInicioKardex + kardexPorPagina);
+  }, [filteredConductores, indiceInicioKardex, kardexPorPagina]);
 
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
   const canEdit = user?.modulos?.includes('operadores') || isAdmin || user?.role?.codigo === 'GESTOR_OPERADORES';
@@ -1226,27 +1242,60 @@ export default function Operadores() {
             <p>Cargando lista de T6...</p>
           </div>
         ) : activeTab === 'catalogo' ? (
-          <div className="operadores-table-card">
-            <div className="table-responsive">
-              <table className="operadores-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '130px' }}># Tarjetón</th>
-                    <th>Nombre Completo del Operador</th>
-                    <th style={{ width: '140px' }}>Tipo Tarjetón</th>
-                    <th style={{ width: '160px' }}>Estado Servicio</th>
-                    <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredConductores.length === 0 ? (
+          <div>
+            {/* Controles de Paginación Superior Catálogo */}
+            {filteredConductores.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl mb-3 shadow-2xs gap-3">
+                <div className="text-xs sm:text-sm text-slate-600">
+                  Mostrando <span className="font-bold text-slate-800">{indiceInicioCatalogo + 1}</span> a <span className="font-bold text-slate-800">{Math.min(indiceInicioCatalogo + catalogoPorPagina, filteredConductores.length)}</span> de <span className="font-bold text-slate-800">{filteredConductores.length}</span> conductores
+                </div>
+                {totalPaginasCatalogo > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaginaCatalogo(p => Math.max(1, p - 1))}
+                      disabled={paginaCatalogo === 1}
+                      className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                    >
+                      Anterior
+                    </button>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700 px-1">
+                      Página {paginaCatalogo} de {totalPaginasCatalogo}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPaginaCatalogo(p => Math.min(totalPaginasCatalogo, p + 1))}
+                      disabled={paginaCatalogo === totalPaginasCatalogo}
+                      className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="operadores-table-card">
+              <div className="table-responsive">
+                <table className="operadores-table">
+                  <thead>
                     <tr>
-                      <td colSpan="5" className="empty-table-cell">
-                        No se encontraron T6 registrados.
-                      </td>
+                      <th style={{ width: '130px' }}># Tarjetón</th>
+                      <th>Nombre Completo del Operador</th>
+                      <th style={{ width: '140px' }}>Tipo Tarjetón</th>
+                      <th style={{ width: '160px' }}>Estado Servicio</th>
+                      <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
                     </tr>
-                  ) : (
-                    filteredConductores.map((c) => (
+                  </thead>
+                  <tbody>
+                    {conductoresPaginadosCatalogo.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="empty-table-cell">
+                          No se encontraron T6 registrados.
+                        </td>
+                      </tr>
+                    ) : (
+                      conductoresPaginadosCatalogo.map((c) => (
                       <tr key={c.id}>
                         <td>
                           <span className="tarjeton-badge">{c.tarjeton ? String(c.tarjeton.split('_BAJA_')[0]).padStart(4, '0') : ''}</span>
@@ -1302,7 +1351,8 @@ export default function Operadores() {
               </table>
             </div>
           </div>
-        ) : activeTab === 'kardex' ? (
+        </div>
+      ) : activeTab === 'kardex' ? (
           <div>
             {/* Controles de Paginación Superior Kardex */}
             {filteredConductores.length > 0 && (
@@ -1516,42 +1566,6 @@ export default function Operadores() {
                 </table>
               </div>
             </div>
-
-            {/* Controles de Paginación Inferior Kardex */}
-            {totalPaginasKardex > 1 && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl mt-3 shadow-2xs gap-3">
-                <div className="text-xs sm:text-sm text-slate-600">
-                  Mostrando <span className="font-bold text-slate-800">{indiceInicioKardex + 1}</span> a <span className="font-bold text-slate-800">{Math.min(indiceInicioKardex + kardexPorPagina, filteredConductores.length)}</span> de <span className="font-bold text-slate-800">{filteredConductores.length}</span> conductores
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaginaKardex(p => Math.max(1, p - 1));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    disabled={paginaKardex === 1}
-                    className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
-                  >
-                    Anterior
-                  </button>
-                  <span className="text-xs sm:text-sm font-bold text-slate-700 px-1">
-                    Página {paginaKardex} de {totalPaginasKardex}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaginaKardex(p => Math.min(totalPaginasKardex, p + 1));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    disabled={paginaKardex === totalPaginasKardex}
-                    className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
-                  >
-                    Siguiente
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         ) : activeTab === 'gestion_faltas' ? (
           <GestionFaltasOperadores conductores={conductores} onRefresh={fetchConductores} getAuthHeaders={getAuthHeaders} initialBusqueda={busquedaFaltas} />

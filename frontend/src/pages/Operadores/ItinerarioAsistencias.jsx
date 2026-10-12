@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import './ItinerarioAsistencias.css';
@@ -58,15 +58,19 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
     fetchItinerario();
   }, [desde, hasta]);
 
-  const filtrados = data.matriz.filter(c => {
+  const filtrados = React.useMemo(() => {
     const term = busqueda.toLowerCase().trim();
-    if (!term) return true;
-    return c.nombre.toLowerCase().includes(term) || c.tarjeton.toLowerCase().includes(term);
-  });
+    if (!term) return data.matriz;
+    return data.matriz.filter(c => {
+      return (c.nombre && c.nombre.toLowerCase().includes(term)) || (c.tarjeton && c.tarjeton.toLowerCase().includes(term));
+    });
+  }, [data.matriz, busqueda]);
 
-  const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
+  const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina) || 1;
   const indiceInicio = (paginaActual - 1) * registrosPorPagina;
-  const registrosPaginados = filtrados.slice(indiceInicio, indiceInicio + registrosPorPagina);
+  const registrosPaginados = React.useMemo(() => {
+    return filtrados.slice(indiceInicio, indiceInicio + registrosPorPagina);
+  }, [filtrados, indiceInicio, registrosPorPagina]);
 
   // Reiniciar a la página 1 cuando cambia la búsqueda
   useEffect(() => {
@@ -114,11 +118,14 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
         }
       });
 
-      const response = await fetch(`${API_BASE}/api/conductores`, {
-        headers: getAuthHeaders()
-      });
-      if (!response.ok) throw new Error("Error fetching data");
-      const data = await response.json();
+      let dataList = conductores;
+      if (!dataList || dataList.length === 0) {
+        const response = await fetch(`${API_BASE}/api/conductores`, {
+          headers: getAuthHeaders()
+        });
+        if (!response.ok) throw new Error("Error fetching data");
+        dataList = await response.json();
+      }
       
       const hoy = new Date();
       const hoyStr = new Date(hoy.getTime() - (hoy.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
