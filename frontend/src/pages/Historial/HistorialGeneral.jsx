@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 const processResumenData = (inicio, cambios, fin) => {
@@ -161,6 +162,7 @@ export default function HistorialGeneral() {
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inicio'); // 'inicio', 'cambios', 'fin'
+  const [busqueda, setBusqueda] = useState('');
   const dropdownRef = useRef(null);
 
   // 1. Obtener listado de fechas únicas (Cacheado por 5 minutos)
@@ -228,13 +230,64 @@ export default function HistorialGeneral() {
     return datos.fin || [];
   };
 
+  const activeData = getActiveData();
+
+  // Filtrado reactivo según el término de búsqueda y la pestaña activa
+  const filteredData = useMemo(() => {
+    if (!busqueda || !busqueda.trim()) return activeData;
+    const q = busqueda.toLowerCase().trim();
+
+    if (activeTab === 'cambios') {
+      return activeData.filter(d => {
+        const eco = String(d.economico || '').toLowerCase();
+        const tipo = String(d.tipo_unidad || '').toLowerCase();
+        const accion = formatAccion(d.tipo_accion).toLowerCase();
+        const ant = String(d.estatus_anterior || '').toLowerCase();
+        const nvo = String(d.estatus_nuevo || '').toLowerCase();
+        const det = String(d.detalles || '').toLowerCase();
+        const usr = String(d.usuario_nombre || '').toLowerCase();
+        return eco.includes(q) || tipo.includes(q) || accion.includes(q) || ant.includes(q) || nvo.includes(q) || det.includes(q) || usr.includes(q);
+      });
+    }
+
+    if (activeTab === 'resumen') {
+      return activeData.filter(d => {
+        const eco = String(d.economico || '').toLowerCase();
+        const tipo = String(d.tipo || '').toLowerCase();
+        const rutas = String(d.rutas || '').toLowerCase();
+        const cond = String(d.conductores || '').toLowerCase();
+        const est = String(d.estatuses || '').toLowerCase();
+        const aco = String(d.acoples || '').toLowerCase();
+        const cor = String(d.corridas || '').toLowerCase();
+        const mot = String(d.motivos || '').toLowerCase();
+        return eco.includes(q) || tipo.includes(q) || rutas.includes(q) || cond.includes(q) || est.includes(q) || aco.includes(q) || cor.includes(q) || mot.includes(q);
+      });
+    }
+
+    // inicio o fin
+    return activeData.filter(d => {
+      const eco = String(d.economico || '').toLowerCase();
+      const tipo = String(d.tipo || '').toLowerCase();
+      const ruta = String(d.ruta || '').toLowerCase();
+      const tarj = String(d.numero_tarjeton || '').toLowerCase();
+      const cond = String(d.nombre_conductor || '').toLowerCase();
+      const relTarj = String(d.relevo_tarjeton || '').toLowerCase();
+      const relCond = String(d.relevo_conductor || '').toLowerCase();
+      const est = String(d.estatus || '').toLowerCase();
+      const aco = String(d.hora_acople || '').toLowerCase();
+      const cor = String(d.corridas || '').toLowerCase();
+      const mot = String(d.motivo || d.motivo_estatus || d.falla || '').toLowerCase();
+      return eco.includes(q) || tipo.includes(q) || ruta.includes(q) || tarj.includes(q) || cond.includes(q) || relTarj.includes(q) || relCond.includes(q) || est.includes(q) || aco.includes(q) || cor.includes(q) || mot.includes(q);
+    });
+  }, [activeData, busqueda, activeTab]);
+
   const exportToExcel = () => {
-    const activeData = getActiveData();
-    if (!activeData || activeData.length === 0) return;
+    const dataToExport = busqueda.trim() ? filteredData : activeData;
+    if (!dataToExport || dataToExport.length === 0) return;
 
     let worksheetData;
     if (activeTab === 'cambios') {
-      worksheetData = activeData.map(d => ({
+      worksheetData = dataToExport.map(d => ({
         'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
         'ECO': d.economico || '',
         'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
@@ -245,7 +298,7 @@ export default function HistorialGeneral() {
         'USUARIO': d.usuario_nombre || 'SISTEMA'
       }));
     } else if (activeTab === 'resumen') {
-      worksheetData = activeData.map(d => ({
+      worksheetData = dataToExport.map(d => ({
         'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
         'ECO': d.economico || '',
         'RUTAS': d.rutas || '',
@@ -256,7 +309,7 @@ export default function HistorialGeneral() {
         'OBSERVACIONES / MOTIVOS': d.motivos || ''
       }));
     } else {
-      worksheetData = activeData.map(d => ({
+      worksheetData = dataToExport.map(d => ({
         'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
         'ECO': d.economico || '',
         'RUTA': d.ruta || '',
@@ -292,8 +345,6 @@ export default function HistorialGeneral() {
       return '';
     }
   };
-
-  const activeData = getActiveData();
 
   return (
     <div className="historial-page">
@@ -385,6 +436,21 @@ export default function HistorialGeneral() {
           </button>
         </div>
 
+        {/* Buscador Contextual Unificado */}
+        <HistorialSearchBar
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder={
+            activeTab === 'cambios'
+              ? 'Buscar por económico, tipo, modificación, estatus, detalles o usuario...'
+              : activeTab === 'resumen'
+              ? 'Buscar por económico, tipo, rutas, conductores, estatus u observaciones...'
+              : 'Buscar por económico, tipo, ruta, conductor titular/relevo, tarjetón o estatus...'
+          }
+          totalCount={activeData.length}
+          filteredCount={filteredData.length}
+        />
+
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
             <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
@@ -407,7 +473,7 @@ export default function HistorialGeneral() {
                 </tr>
               </thead>
               <tbody>
-                {activeData.map((d, i) => (
+                {filteredData.map((d, i) => (
                   <tr key={d.id || i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
                     <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
@@ -423,9 +489,13 @@ export default function HistorialGeneral() {
                     <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                   </tr>
                 ))}
-                {activeData.length === 0 && (
+                {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay modificaciones registradas en el transcurso de este día.</td>
+                    <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                      {activeData.length === 0 
+                        ? 'No hay modificaciones registradas en el transcurso de este día.' 
+                        : `No se encontraron registros que coincidan con "${busqueda}".`}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -447,7 +517,7 @@ export default function HistorialGeneral() {
                 </tr>
               </thead>
               <tbody>
-                {activeData.map((d, i) => (
+                {filteredData.map((d, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td style={{ fontWeight: '700' }}>{d.economico}</td>
@@ -459,9 +529,13 @@ export default function HistorialGeneral() {
                     <td>{d.motivos}</td>
                   </tr>
                 ))}
-                {activeData.length === 0 && (
+                {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay datos suficientes para generar el resumen de hoy.</td>
+                    <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                      {activeData.length === 0
+                        ? 'No hay datos suficientes para generar el resumen de hoy.'
+                        : `No se encontraron registros que coincidan con "${busqueda}".`}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -484,7 +558,7 @@ export default function HistorialGeneral() {
                 </tr>
               </thead>
               <tbody>
-                {activeData.map((d, i) => (
+                {filteredData.map((d, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td style={{ fontWeight: '700' }}>{d.economico}</td>
@@ -515,9 +589,13 @@ export default function HistorialGeneral() {
                     <td>{d.motivo || d.motivo_estatus || d.falla || '-'}</td>
                   </tr>
                 ))}
-                {activeData.length === 0 && (
+                {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan="9" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay registros de unidades para este estado de la fecha seleccionada.</td>
+                    <td colSpan="9" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                      {activeData.length === 0
+                        ? 'No hay registros de unidades para este estado de la fecha seleccionada.'
+                        : `No se encontraron registros que coincidan con "${busqueda}".`}
+                    </td>
                   </tr>
                 )}
               </tbody>

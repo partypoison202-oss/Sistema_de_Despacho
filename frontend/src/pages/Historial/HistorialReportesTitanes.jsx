@@ -4,6 +4,7 @@ import { AuthContext } from '../../context/AuthContext';
 import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import API_BASE from '../../config/api';
+import HistorialSearchBar from './HistorialSearchBar';
 import '../Menu/Menu.css';
 import './HistorialReportesTitanes.css';
 
@@ -50,6 +51,7 @@ export default function HistorialReportesTitanes() {
   const [loadingReportes, setLoadingReportes] = useState(false);
   const [error, setError] = useState(null);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+  const [busquedaTexto, setBusquedaTexto] = useState('');
 
   const [filtros, setFiltros] = useState(FILTROS_INICIALES);
 
@@ -146,7 +148,16 @@ export default function HistorialReportesTitanes() {
     }));
   };
 
-  const limpiarTodo = () => setFiltros(FILTROS_INICIALES);
+  const limpiarTodo = () => {
+    setFiltros(FILTROS_INICIALES);
+    setBusquedaTexto('');
+  };
+
+  const titanPorId = useMemo(() => {
+    const map = {};
+    titanes.forEach((t) => { map[t.id] = t; });
+    return map;
+  }, [titanes]);
 
   const reportesFiltrados = useMemo(() => {
     return reportes.filter((r) => {
@@ -158,9 +169,28 @@ export default function HistorialReportesTitanes() {
       ) {
         return false;
       }
+      if (busquedaTexto && busquedaTexto.trim()) {
+        const q = busquedaTexto.toLowerCase().trim();
+        const eco = String(r.numero_economico || '').toLowerCase();
+        const titan = String(titanPorId[r.__usuario_id]?.nombre_completo || '').toLowerCase();
+        const ruta = String(r.ruta || '').toLowerCase();
+        const tarj = String(r.numero_tarjeton || '').toLowerCase();
+        const evento = String(ETIQUETA_EVENTO[r.tipo_evento] || r.tipo_evento || '').toLowerCase();
+        const desc = String(r.descripcion || r.detalles || r.motivo || r.observaciones || '').toLowerCase();
+        if (
+          !eco.includes(q) &&
+          !titan.includes(q) &&
+          !ruta.includes(q) &&
+          !tarj.includes(q) &&
+          !evento.includes(q) &&
+          !desc.includes(q)
+        ) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [reportes, filtros]);
+  }, [reportes, filtros, busquedaTexto, titanPorId]);
 
   const resumen = useMemo(() => {
     return {
@@ -170,15 +200,9 @@ export default function HistorialReportesTitanes() {
     };
   }, [reportesFiltrados]);
 
-  const titanPorId = useMemo(() => {
-    const map = {};
-    titanes.forEach((t) => { map[t.id] = t; });
-    return map;
-  }, [titanes]);
-
   const hayFiltrosActivos =
-    filtros.titanId || filtros.fecha || filtros.tipoEvento || filtros.numeroEconomico;
-  const hayFiltrosSecundarios = filtros.fecha || filtros.tipoEvento || filtros.numeroEconomico;
+    filtros.titanId || filtros.fecha || filtros.tipoEvento || filtros.numeroEconomico || busquedaTexto;
+  const hayFiltrosSecundarios = filtros.fecha || filtros.tipoEvento || filtros.numeroEconomico || busquedaTexto;
 
   return (
     <div className="dashboard-container">
@@ -273,6 +297,17 @@ export default function HistorialReportesTitanes() {
             <span className="hrt-resumen-numero">{resumen.accidentes}</span>
             <span className="hrt-resumen-label">Accidentes</span>
           </div>
+        </div>
+
+        {/* Buscador Contextual Unificado */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <HistorialSearchBar
+            value={busquedaTexto}
+            onChange={setBusquedaTexto}
+            placeholder="Buscar por número económico, titán, evento, ruta, tarjetón o detalles..."
+            totalCount={reportes.length}
+            filteredCount={reportesFiltrados.length}
+          />
         </div>
 
         {/* Resultados */}

@@ -4,6 +4,7 @@ import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialMantenimiento() {
@@ -233,18 +234,6 @@ export default function HistorialMantenimiento() {
               </div>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label>Buscar:</label>
-              <input 
-                type="text" 
-                placeholder="Ej. ECO, tipo o texto..."
-                value={filtroBusqueda}
-                onChange={e => setFiltroBusqueda(e.target.value)}
-                style={{ padding: '0.5rem 0.8rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', outline: 'none', fontSize: '0.9rem', width: '200px' }}
-                disabled={cargando}
-              />
-            </div>
-            
             <button 
               className="export-excel-btn" 
               onClick={exportToExcel}
@@ -292,6 +281,21 @@ export default function HistorialMantenimiento() {
             Hojas de Mantenimiento (Chequeos)
           </button>
         </div>
+
+        {/* Buscador Contextual Unificado */}
+        <HistorialSearchBar
+          value={filtroBusqueda}
+          onChange={setFiltroBusqueda}
+          placeholder={
+            activeTab === 'cambios'
+              ? 'Buscar por económico, tipo de unidad, detalles o usuario...'
+              : activeTab === 'checklists'
+              ? 'Buscar por económico, tipo de unidad o número de cincho...'
+              : 'Buscar por económico, tipo, motivo de estatus o falla reportada...'
+          }
+          totalCount={activeData.length}
+          filteredCount={datosFiltrados.length}
+        />
 
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>

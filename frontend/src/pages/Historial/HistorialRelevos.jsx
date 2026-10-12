@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialRelevos() {
@@ -79,18 +80,31 @@ export default function HistorialRelevos() {
   };
 
   // Filtrado de relevos
-  const relevosFiltrados = relevos.filter(r => {
+  const relevosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
-    if (!q) return true;
-    return (
+    if (!q) return relevos;
+    return relevos.filter(r => (
       (r.economico && String(r.economico).toLowerCase().includes(q)) ||
       (r.titular_conductor && r.titular_conductor.toLowerCase().includes(q)) ||
       (r.titular_tarjeton && String(r.titular_tarjeton).toLowerCase().includes(q)) ||
       (r.relevo_conductor && r.relevo_conductor.toLowerCase().includes(q)) ||
       (r.relevo_tarjeton && String(r.relevo_tarjeton).toLowerCase().includes(q)) ||
       (r.ruta && r.ruta.toLowerCase().includes(q))
-    );
-  });
+    ));
+  }, [relevos, busqueda]);
+
+  // Filtrado de bitácora
+  const bitacoraFiltrada = useMemo(() => {
+    const q = busqueda.toLowerCase().trim();
+    if (!q) return bitacora;
+    return bitacora.filter(b => {
+      const eco = String(b.economico || '').toLowerCase();
+      const usr = String(b.usuario_nombre || '').toLowerCase();
+      const accion = formatAccion(b.tipo_accion).toLowerCase();
+      const det = String(b.detalles || '').toLowerCase();
+      return eco.includes(q) || usr.includes(q) || accion.includes(q) || det.includes(q);
+    });
+  }, [bitacora, busqueda]);
 
   const exportToExcel = () => {
     if (!relevosFiltrados || relevosFiltrados.length === 0) return;
@@ -119,14 +133,17 @@ export default function HistorialRelevos() {
   };
 
   // Agrupar relevos por ruta
-  const relevosPorRuta = {};
-  relevosFiltrados.forEach(r => {
-    const rutaKey = r.ruta || 'SIN RUTA';
-    if (!relevosPorRuta[rutaKey]) {
-      relevosPorRuta[rutaKey] = [];
-    }
-    relevosPorRuta[rutaKey].push(r);
-  });
+  const relevosPorRuta = useMemo(() => {
+    const map = {};
+    relevosFiltrados.forEach(r => {
+      const rutaKey = r.ruta || 'SIN RUTA';
+      if (!map[rutaKey]) {
+        map[rutaKey] = [];
+      }
+      map[rutaKey].push(r);
+    });
+    return map;
+  }, [relevosFiltrados]);
 
   return (
     <div className="historial-page">
@@ -259,6 +276,19 @@ export default function HistorialRelevos() {
           </button>
         </div>
 
+        {/* Buscador Contextual Unificado */}
+        <HistorialSearchBar
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder={
+            activeTab === 'bitacora'
+              ? 'Buscar en bitácora por económico, usuario, acción o detalles...'
+              : 'Buscar por económico, conductor titular, relevo, tarjetón o ruta...'
+          }
+          totalCount={activeTab === 'bitacora' ? bitacora.length : relevos.length}
+          filteredCount={activeTab === 'bitacora' ? bitacoraFiltrada.length : relevosFiltrados.length}
+        />
+
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
             <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
@@ -267,17 +297,6 @@ export default function HistorialRelevos() {
           </div>
         ) : activeTab === 'tabla' ? (
           <div>
-            {/* Buscador */}
-            <div style={{ marginBottom: '1rem', background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <input
-                type="text"
-                placeholder="Buscar por ECO, Conductor Titular, Relevo, Tarjetón o Ruta..."
-                value={busqueda}
-                onChange={e => setBusqueda(e.target.value)}
-                style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem' }}
-              />
-            </div>
-
             <div className="table-responsive" style={{ overflowX: 'auto' }}>
               <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
                 <thead>
@@ -315,7 +334,11 @@ export default function HistorialRelevos() {
                   ))}
                   {relevosFiltrados.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No se encontraron registros de relevos para la fecha seleccionada.</td>
+                      <td colSpan="7" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                        {relevos.length === 0
+                          ? 'No se encontraron registros de relevos para la fecha seleccionada.'
+                          : `No se encontraron registros que coincidan con "${busqueda}".`}
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -335,7 +358,7 @@ export default function HistorialRelevos() {
                 </tr>
               </thead>
               <tbody>
-                {bitacora.map((b) => (
+                {bitacoraFiltrada.map((b) => (
                   <tr key={b.id}>
                     <td style={{ fontWeight: '700', color: '#475569' }}>
                       {b.hora ? new Date(b.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
@@ -350,9 +373,13 @@ export default function HistorialRelevos() {
                     <td style={{ color: '#334155', fontSize: '0.9rem' }}>{b.detalles || '—'}</td>
                   </tr>
                 ))}
-                {bitacora.length === 0 && (
+                {bitacoraFiltrada.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No se registraron cambios en la bitácora de relevos para esta fecha.</td>
+                    <td colSpan="5" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                      {bitacora.length === 0
+                        ? 'No se registraron cambios en la bitácora de relevos para esta fecha.'
+                        : `No se encontraron movimientos que coincidan con "${busqueda}".`}
+                    </td>
                   </tr>
                 )}
               </tbody>

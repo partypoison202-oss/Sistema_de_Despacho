@@ -4,6 +4,7 @@ import Header from '../../components/Header/Header';
 import { AuthContext } from '../../context/AuthContext';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialProgramacion({ isPastelesOnly = false }) {
@@ -398,10 +399,6 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
             className={`historial-tab-btn ${activeTab === 'cambios' ? 'active' : ''}`}
             onClick={() => setActiveTab('cambios')}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
             Bitácora de Cambios y Movimientos ({rawCambios.length})
           </button>
           <button
@@ -436,29 +433,36 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
         ) : activeTab === 'cambios' ? (
           <div>
             {/* Barra de Filtros de Cambios */}
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem', background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ flex: 1, minWidth: '220px' }}>
-                <input
-                  type="text"
-                  placeholder="Buscar por unidad, acción, detalles o usuario..."
-                  value={busqueda}
-                  onChange={e => setBusqueda(e.target.value)}
-                  style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem' }}
-                />
-              </div>
-
-              <select
-                value={filtroTipo}
-                onChange={e => setFiltroTipo(e.target.value)}
-                style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem', background: '#fff', fontWeight: '600' }}
-              >
-                <option value="">TODOS LOS TIPOS</option>
-                <option value="URBANUSS">URBANUSS</option>
-                <option value="ZAFIRO">ZAFIRO</option>
-                <option value="VAGONETA">VAGONETA</option>
-                <option value="ORION">ORION</option>
-              </select>
-            </div>
+            <HistorialSearchBar
+              value={busqueda}
+              onChange={setBusqueda}
+              placeholder="Buscar por unidad, acción, detalles o usuario..."
+              totalCount={rawCambios.length}
+              filteredCount={cambiosFiltrados.length}
+              extraFilters={
+                <select
+                  value={filtroTipo}
+                  onChange={e => setFiltroTipo(e.target.value)}
+                  style={{
+                    padding: '0.55rem 0.9rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    outline: 'none',
+                    fontSize: '0.85rem',
+                    background: '#fff',
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">TODOS LOS TIPOS</option>
+                  <option value="URBANUSS">URBANUSS</option>
+                  <option value="ZAFIRO">ZAFIRO</option>
+                  <option value="VAGONETA">VAGONETA</option>
+                  <option value="ORION">ORION</option>
+                </select>
+              }
+            />
 
             {cambiosFiltrados.length > 0 ? (
               <div className="table-responsive" style={{ overflowX: 'auto' }}>
@@ -500,58 +504,61 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>No se registraron cambios o movimientos en la programación para esta fecha.</p>
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>
+                  {busqueda.trim() || filtroTipo
+                    ? 'No se encontraron cambios o movimientos que coincidan con la búsqueda.'
+                    : 'No se registraron cambios o movimientos en la programación para esta fecha.'}
+                </p>
               </div>
             )}
           </div>
         ) : activeTab === 'tabla' ? (
           <div>
             {/* Barra de Filtros */}
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem', background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ flex: 1, minWidth: '220px' }}>
-                <input
-                  type="text"
-                  placeholder="Buscar por ECO, Conductor, Tarjetón o Ruta..."
-                  value={busqueda}
-                  onChange={e => setBusqueda(e.target.value)}
-                  style={{ width: '100%', padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem' }}
-                />
-              </div>
+            <HistorialSearchBar
+              value={busqueda}
+              onChange={setBusqueda}
+              placeholder="Buscar por ECO, Conductor, Tarjetón o Ruta..."
+              totalCount={rawProgramacion.length}
+              filteredCount={programacionFiltrada.length}
+              extraFilters={
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select
+                    value={filtroModo}
+                    onChange={e => setFiltroModo(e.target.value)}
+                    style={{ padding: '0.55rem 0.9rem', borderRadius: '8px', border: '1px solid #0d9488', outline: 'none', fontSize: '0.85rem', background: '#f0fdfa', color: '#0f766e', fontWeight: '800', cursor: 'pointer' }}
+                  >
+                    <option value="TODOS">TODAS LAS FLOTAS</option>
+                    <option value="ALIMENTADORAS">SOLO ALIMENTADORAS</option>
+                    <option value="TRONCALES">SOLO TRONCALES (URBANUSS)</option>
+                  </select>
 
-              <select
-                value={filtroModo}
-                onChange={e => setFiltroModo(e.target.value)}
-                style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #0d9488', outline: 'none', fontSize: '0.9rem', background: '#f0fdfa', color: '#0f766e', fontWeight: '800' }}
-              >
-                <option value="TODOS">TODAS LAS FLOTAS (URBANUSS + ALIMENTADORAS)</option>
-                <option value="ALIMENTADORAS">SOLO ALIMENTADORAS (ZAFIRO, VAGONETA, ORION)</option>
-                <option value="TRONCALES">SOLO TRONCALES (URBANUSS)</option>
-              </select>
+                  <select
+                    value={filtroTipo}
+                    onChange={e => setFiltroTipo(e.target.value)}
+                    style={{ padding: '0.55rem 0.9rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem', background: '#fff', fontWeight: '600', color: '#1e293b', cursor: 'pointer' }}
+                  >
+                    <option value="">TODOS LOS TIPOS</option>
+                    <option value="URBANUSS">URBANUSS</option>
+                    <option value="ZAFIRO">ZAFIRO</option>
+                    <option value="VAGONETA">VAGONETA</option>
+                    <option value="ORION">ORION</option>
+                  </select>
 
-              <select
-                value={filtroTipo}
-                onChange={e => setFiltroTipo(e.target.value)}
-                style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem', background: '#fff', fontWeight: '600' }}
-              >
-                <option value="">TODOS LOS TIPOS</option>
-                <option value="URBANUSS">URBANUSS</option>
-                <option value="ZAFIRO">ZAFIRO</option>
-                <option value="VAGONETA">VAGONETA</option>
-                <option value="ORION">ORION</option>
-              </select>
-
-              <select
-                value={filtroEstatus}
-                onChange={e => setFiltroEstatus(e.target.value)}
-                style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem', background: '#fff', fontWeight: '600' }}
-              >
-                <option value="">TODOS LOS ESTATUS</option>
-                <option value="operacion">OPERACIÓN</option>
-                <option value="reserva">RESERVA</option>
-                <option value="mantenimiento">MANTENIMIENTO</option>
-                <option value="percance">PERCANCE</option>
-              </select>
-            </div>
+                  <select
+                    value={filtroEstatus}
+                    onChange={e => setFiltroEstatus(e.target.value)}
+                    style={{ padding: '0.55rem 0.9rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem', background: '#fff', fontWeight: '600', color: '#1e293b', cursor: 'pointer' }}
+                  >
+                    <option value="">TODOS LOS ESTATUS</option>
+                    <option value="operacion">OPERACIÓN</option>
+                    <option value="reserva">RESERVA</option>
+                    <option value="mantenimiento">MANTENIMIENTO</option>
+                    <option value="percance">PERCANCE</option>
+                  </select>
+                </div>
+              }
+            />
 
             <div className="table-responsive" style={{ overflowX: 'auto' }}>
               <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
