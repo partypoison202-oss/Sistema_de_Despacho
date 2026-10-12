@@ -18,6 +18,7 @@
   border-radius: 1.25rem;
   width: 100%;
   max-width: 1360px;
+  height: 92vh;
   max-height: 92vh;
   display: flex;
   flex-direction: column;
@@ -127,12 +128,13 @@
 
 /* Body */
 .apertura-body {
-  padding: 1.25rem 1.75rem;
-  overflow-y: auto;
+  padding: 1rem 1.5rem;
+  overflow: hidden;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
+  gap: 0.85rem;
 }
 
 /* KPIs */
@@ -324,12 +326,14 @@
 
 /* Table */
 .apertura-table-wrap {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
+  max-height: none;
   border: 1px solid #e2e8f0;
   border-radius: 0.75rem;
   overflow: auto;
-  max-height: 520px;
   background: #ffffff;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ap-table {
@@ -529,4 +533,229 @@
   height: 3.5rem;
   color: #cbd5e1;
   margin-bottom: 0.75rem;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN PARA TABLETS Y DISPOSITIVOS MÓVILES (HORIZONTAL Y VERTICAL)
+   ========================================================================== */
+
+/* Tablets en Orientación Horizontal y Pantallas con Altura Reducida */
+@media (max-height: 850px) {
+  .apertura-container {
+    height: 96vh;
+    max-height: 96vh;
+  }
+
+  .apertura-header {
+    padding: 0.65rem 1.25rem;
+  }
+
+  .apertura-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .apertura-title {
+    font-size: 1.05rem;
+  }
+
+  .apertura-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .apertura-corte-badge {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.68rem;
+  }
+
+  .apertura-body {
+    padding: 0.75rem 1.25rem;
+    gap: 0.65rem;
+  }
+
+  /* KPIs en una fila compacta */
+  .apertura-kpis {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 0.6rem;
+    padding-bottom: 3px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .ap-kpi-card {
+    flex: 1 0 160px;
+    min-width: 150px;
+    padding: 0.5rem 0.8rem;
+  }
+
+  .ap-kpi-label {
+    font-size: 0.65rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .ap-kpi-value {
+    font-size: 1.3rem;
+  }
+
+  .ap-kpi-icon {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .apertura-toolbar {
+    padding: 0.45rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .ap-filter-chips {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .ap-chip {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .ap-search-input, .ap-route-select {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .ap-table th, .ap-table td {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Tablets en Orientación Vertical y Dispositivos Medianos (<= 1024px) */
+@media (max-width: 1024px) {
+  .apertura-overlay {
+    padding: 0.5rem;
+  }
+
+  .apertura-container {
+    height: 96vh;
+    max-height: 96vh;
+    border-radius: 1rem;
+  }
+
+  .apertura-header {
+    padding: 0.85rem 1.25rem;
+  }
+
+  .apertura-body {
+    padding: 0.85rem 1.25rem;
+    gap: 0.75rem;
+  }
+
+  .apertura-kpis {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 0.65rem;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .ap-kpi-card {
+    flex: 0 0 165px;
+    min-width: 165px;
+    padding: 0.65rem 0.85rem;
+  }
+
+  .apertura-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .ap-filter-chips {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 3px;
+  }
+
+  .ap-chip {
+    flex-shrink: 0;
+  }
+
+  .ap-toolbar-controls {
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .ap-search-input-box {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ap-table {
+    min-width: 680px;
+  }
+}
+
+/* Teléfonos y Pantallas Pequeñas (<= 640px) */
+@media (max-width: 640px) {
+  .apertura-overlay {
+    padding: 0.25rem;
+  }
+
+  .apertura-container {
+    height: 98vh;
+    max-height: 98vh;
+    border-radius: 0.75rem;
+  }
+
+  .apertura-header {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .apertura-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .apertura-title {
+    font-size: 0.95rem;
+  }
+
+  .apertura-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .apertura-body {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .ap-kpi-card {
+    flex: 0 0 140px;
+    min-width: 140px;
+    padding: 0.5rem 0.65rem;
+  }
+
+  .ap-kpi-value {
+    font-size: 1.25rem;
+  }
+
+  .ap-kpi-label {
+    font-size: 0.62rem;
+  }
+
+  .ap-toolbar-controls {
+    flex-direction: column;
+  }
+
+  .ap-route-select, .ap-search-input-box {
+    width: 100%;
+  }
 }

@@ -31,6 +31,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
   const registrosPorPagina = 50;
   
   const [modalOpen, setModalOpen] = useState(false);
+  const [mostrarSimbologia, setMostrarSimbologia] = useState(false);
 
   const fetchItinerario = async () => {
     if (!desde || !hasta) return;
@@ -230,117 +231,113 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
       </div>
 
       {/* CUADRO DE SIMBOLOGÍA INSTITUCIONAL */}
-      <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-4">
-        <div>
-          <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider mb-2 flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-            Simbología / Leyenda de Estatus
-          </h4>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-            {/* ASISTENCIA */}
-            <div 
-              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => verAsignacionesFuturas('asistencias_detalle', 'ASISTENCIAS', '#059669')}
-              title="Ver Asistencias Programadas"
+      <div className="pt-2.5 pb-2 border-t border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setMostrarSimbologia(!mostrarSimbologia)}
+              className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5 cursor-pointer hover:text-[#6b1d33] transition-colors p-1 rounded-md"
             >
-              <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                A
+              <svg className="w-3.5 h-3.5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+              Simbología
+              <span className="text-[10px] font-bold text-[#6b1d33] bg-[#6b1d33]/10 px-1.5 py-0.5 rounded-full ml-1">
+                {mostrarSimbologia ? '▲ Ocultar' : '▼ Ver todo'}
               </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
-                ASISTENCIA
-              </span>
-            </div>
+            </button>
 
-            {/* DESCANSO */}
-            <div 
-              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => verAsignacionesFuturas('descansos_detalle', 'DESCANSOS', '#9a3412')}
-              title="Ver Descansos Futuros"
-            >
-              <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                D
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
-                DESCANSO
-              </span>
-            </div>
+            {/* Fila compacta de badges si está colapsado */}
+            {!mostrarSimbologia && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#a7f3d0] text-[#065f46]" title="A: Asistencia">A</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#fed7aa] text-[#9a3412]" title="D: Descanso">D</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#fef08a] text-[#854d0e]" title="V: Vacaciones">V</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#bfdbfe] text-[#1e40af]" title="I: Incapacidad">I</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#c51d23] text-white" title="F: Falta">F</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#ede9fe] text-[#6d28d9]" title="DP: Descanso (Permuta)">DP</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#e0e7ff] text-[#3730a3]" title="AP: Asistencia (Permuta)">AP</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#ffedd5] text-[#ea580c]" title="R: Retardo">R</span>
+              </div>
+            )}
+          </div>
 
-            {/* VACACIONES */}
-            <div 
-              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => verAsignacionesFuturas('vacaciones_detalle', 'VACACIONES', '#854d0e')}
-              title="Ver Vacaciones Futuras"
-            >
-              <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                V
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
-                VACACIONES
-              </span>
-            </div>
-
-            {/* INCAPACIDAD */}
-            <div 
-              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => verAsignacionesFuturas('incapacidades_detalle', 'INCAPACIDADES', '#1e40af')}
-              title="Ver Incapacidades Futuras"
-            >
-              <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                I
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
-                INCAPACIDAD
-              </span>
-            </div>
-
-            {/* FALTA */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
-              <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">
-                F
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
-                FALTA
-              </span>
-            </div>
-
-            {/* DESCANSO PERMUTA */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Descanso por Permuta">
-              <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                DP
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
-                DESCANSO (PERMUTA)
-              </span>
-            </div>
-
-            {/* ASISTENCIA PERMUTA */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Asistencia por Permuta">
-              <span className="w-8 h-8 bg-[#e0e7ff] text-[#3730a3] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                AP
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
-                ASISTENCIA (PERMUTA)
-              </span>
-            </div>
-
-            {/* RETARDO */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
-              <span className="w-8 h-8 bg-[#ffedd5] text-[#ea580c] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                R
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
-                RETARDO
-              </span>
-            </div>
+          <div className="text-[10px] text-slate-400 italic">
+            💡 Faltas y asistencias sincronizadas automáticamente
           </div>
         </div>
 
-        <div className="text-[11px] text-slate-500 italic font-medium bg-slate-50 p-3 rounded-xl border border-slate-200 max-w-xs">
-          💡 Nota: Las faltas y asistencias son actualizadas automáticamente desde los módulos de Programación, Control de Conductores y Despacho.
-        </div>
+        {/* Detalle expandido */}
+        {mostrarSimbologia && (
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 w-full">
+              {/* ASISTENCIA */}
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => verAsignacionesFuturas('asistencias_detalle', 'ASISTENCIAS', '#059669')}
+                title="Ver Asistencias Programadas"
+              >
+                <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">A</span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3">ASISTENCIA</span>
+              </div>
+
+              {/* DESCANSO */}
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => verAsignacionesFuturas('descansos_detalle', 'DESCANSOS', '#9a3412')}
+                title="Ver Descansos Futuros"
+              >
+                <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300">D</span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3">DESCANSO</span>
+              </div>
+
+              {/* VACACIONES */}
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => verAsignacionesFuturas('vacaciones_detalle', 'VACACIONES', '#854d0e')}
+                title="Ver Vacaciones Futuras"
+              >
+                <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300">V</span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3">VACACIONES</span>
+              </div>
+
+              {/* INCAPACIDAD */}
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => verAsignacionesFuturas('incapacidades_detalle', 'INCAPACIDADES', '#1e40af')}
+                title="Ver Incapacidades Futuras"
+              >
+                <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300">I</span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3">INCAPACIDAD</span>
+              </div>
+
+              {/* FALTA */}
+              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+                <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">F</span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">FALTA</span>
+              </div>
+
+              {/* DESCANSO PERMUTA */}
+              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Descanso por Permuta">
+                <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300">DP</span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">DESCANSO (PERMUTA)</span>
+              </div>
+
+              {/* ASISTENCIA PERMUTA */}
+              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Asistencia por Permuta">
+                <span className="w-8 h-8 bg-[#e0e7ff] text-[#3730a3] font-black text-xs flex items-center justify-center border-r border-slate-300">AP</span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">ASISTENCIA (PERMUTA)</span>
+              </div>
+
+              {/* RETARDO */}
+              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+                <span className="w-8 h-8 bg-[#ffedd5] text-[#ea580c] font-black text-xs flex items-center justify-center border-r border-slate-300">R</span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">RETARDO</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Controles de Paginación Superior */}
