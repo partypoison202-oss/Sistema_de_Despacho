@@ -5,6 +5,7 @@ import API_BASE from '../../config/api';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 
 const colorStyles = {
+  asistencia: { dot: '#16a34a', text: 'Asistencia (A)' },
   vacaciones: { dot: '#eab308', text: 'Vacaciones (V)' },
   incapacidad: { dot: '#3b82f6', text: 'Incapacidad (I)' },
   descanso: { dot: '#f97316', text: 'Descanso (D)' },
@@ -27,7 +28,7 @@ function CustomColorSelect({ value, onChange }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentStyle = colorStyles[value] || colorStyles.vacaciones;
+  const currentStyle = colorStyles[value] || colorStyles.asistencia || colorStyles.vacaciones;
 
   return (
     <div ref={dropdownRef} className="relative w-full">
@@ -178,14 +179,15 @@ export default function ModalAsignarFechas({
   getAuthHeaders, 
   onSuccess, 
   initialConductorId = '', 
-  initialEstado = 'vacaciones', 
+  initialEstado = 'asistencia', 
   lockEstado = false,
   origen = 'Itinerario de Asistencias'
 }) {
   const [conductorId, setConductorId] = useState('');
   const [conductorRelacionadoId, setConductorRelacionadoId] = useState('');
-  const [estado, setEstado] = useState('vacaciones');
-  const [fecha, setFecha] = useState(() => new Date().toISOString().split('T')[0]);
+  const [estado, setEstado] = useState('asistencia');
+  const [fechaDesde, setFechaDesde] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fechaHasta, setFechaHasta] = useState(() => new Date().toISOString().split('T')[0]);
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
 
@@ -194,16 +196,69 @@ export default function ModalAsignarFechas({
       setConductorId(initialConductorId);
       setConductorRelacionadoId('');
       setEstado(initialEstado);
-      setFecha(new Date().toISOString().split('T')[0]);
+      const hoy = new Date().toISOString().split('T')[0];
+      setFechaDesde(hoy);
+      setFechaHasta(hoy);
       setMotivo('');
     }
   }, [isOpen, initialConductorId, initialEstado]);
 
   if (!isOpen) return null;
 
+  const esRangoPermitido = estado === 'vacaciones' || estado === 'incapacidad' || estado === 'descanso';
+
+  const calcularDias = (f1, f2) => {
+    if (!f1 || !f2) return 0;
+    const d1 = new Date(f1 + 'T00:00:00');
+    const d2 = new Date(f2 + 'T00:00:00');
+    const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 0;
+  };
+
+  const calcularMaxHasta = (f1) => {
+    if (!f1) return undefined;
+    const d = new Date(f1 + 'T00:00:00');
+    d.setDate(d.getDate() + 4); // Permite hasta 5 días en total (desde inclusive)
+    return d.toISOString().split('T')[0];
+  };
+
+  const maxHasta = calcularMaxHasta(fechaDesde);
+  const diasSeleccionados = esRangoPermitido ? calcularDias(fechaDesde, fechaHasta) : 1;
+
+  const handleFechaDesdeChange = (nuevaDesde) => {
+    setFechaDesde(nuevaDesde);
+    const d1 = new Date(nuevaDesde + 'T00:00:00');
+    const d2 = new Date(fechaHasta + 'T00:00:00');
+    const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+    if (diff < 1 || diff > 5) {
+      setFechaHasta(nuevaDesde);
+    }
+  };
+
+  const handleFechaHastaChange = (nuevaHasta) => {
+    const d1 = new Date(fechaDesde + 'T00:00:00');
+    const d2 = new Date(nuevaHasta + 'T00:00:00');
+    const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+    if (diff > 5) {
+      setFechaHasta(calcularMaxHasta(fechaDesde));
+    } else if (diff < 1) {
+      setFechaHasta(fechaDesde);
+    } else {
+      setFechaHasta(nuevaHasta);
+    }
+  };
+
   // Lógica de validación en vivo
   let errorMessage = '';
   const selectedConductorData = conductores.find(c => String(c.id) === String(conductorId));
+
+  if (esRangoPermitido) {
+    if (diasSeleccionados > 5) {
+      errorMessage = `El periodo máximo permitido para ${estado} es de 5 días (has seleccionado ${diasSeleccionados} días).`;
+    } else if (diasSeleccionados < 1) {
+      errorMessage = 'La fecha final (hasta) no puede ser anterior a la fecha inicial (desde).';
+    }
+  }
 
   if (selectedConductorData && (estado === 'falta' || estado === 'retardo')) {
     const parseJson = (val) => {
@@ -217,10 +272,10 @@ export default function ModalAsignarFechas({
     const faltas = parseJson(selectedConductorData.faltas_detalle);
     const retardos = parseJson(selectedConductorData.retardos_detalle);
     
-    const yaTieneFaltaORetardo = faltas.some(f => f.fecha === fecha) || retardos.some(r => r.fecha === fecha);
+    const yaTieneFaltaORetardo = faltas.some(f => f.fecha === fechaDesde) || retardos.some(r => r.fecha === fechaDesde);
 
     if (yaTieneFaltaORetardo) {
-      errorMessage = `Ya existe una falta o retardo para el ${fecha}.`;
+      errorMessage = `Ya existe una falta o retardo para el ${fechaDesde}.`;
     }
   }
 
@@ -230,7 +285,17 @@ export default function ModalAsignarFechas({
     e.preventDefault();
     
     if (!conductorId) {
-      return Swal.fire('Atención', 'Por favor selecciona el conductor que descansa (DP)', 'warning');
+      return Swal.fire('Atención', 'Por favor selecciona la persona conductora', 'warning');
+    }
+
+    if (esRangoPermitido) {
+      const dias = calcularDias(fechaDesde, fechaHasta);
+      if (dias < 1) {
+        return Swal.fire('Atención', 'La fecha final no puede ser anterior a la fecha inicial.', 'warning');
+      }
+      if (dias > 5) {
+        return Swal.fire('Atención', `El periodo máximo permitido para ${estado} es de 5 días (has seleccionado ${dias} días).`, 'warning');
+      }
     }
 
     if (estado === 'permuta') {
@@ -243,6 +308,7 @@ export default function ModalAsignarFechas({
     }
 
     const defaultMotivos = {
+      asistencia: `Asistencia registrada desde ${origen}`,
       falta: `Falta registrada desde ${origen}`,
       retardo: `Retardo registrado desde ${origen}`,
       descanso: `Descanso registrado desde ${origen}`,
@@ -257,8 +323,8 @@ export default function ModalAsignarFechas({
       const payload = {
         conductor_id: conductorId,
         estado,
-        desde: fecha,
-        hasta: fecha,
+        desde: fechaDesde,
+        hasta: esRangoPermitido ? fechaHasta : fechaDesde,
         motivo: motivoFinal,
         origen,
         conductor_relacionado_id: estado === 'permuta' ? conductorRelacionadoId : null
@@ -297,7 +363,7 @@ export default function ModalAsignarFechas({
         <div className="bg-[#6b1d33] px-5 py-4 text-white flex items-center justify-between shrink-0 shadow-sm">
           <div>
             <h2 className="text-base sm:text-lg font-extrabold m-0">Asignar Fechas al Itinerario</h2>
-            <p className="text-slate-200 text-xs mt-0.5 m-0 font-medium">Agendar vacaciones, descansos, permutas, faltas o retardo.</p>
+            <p className="text-slate-200 text-xs mt-0.5 m-0 font-medium">Agendar asistencia, vacaciones, descansos, permutas, faltas o retardo.</p>
           </div>
           <button 
             type="button"
@@ -354,11 +420,55 @@ export default function ModalAsignarFechas({
             </div>
           )}
 
-          {/* Fecha */}
-          <div className="space-y-1 relative z-[40]">
-            <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">FECHA</label>
-            <AppleDatePicker value={fecha} onChange={setFecha} disableFuture={false} />
-          </div>
+          {/* Selector de Fechas (Rango de hasta 5 días para Vacaciones, Incapacidades o Descansos, o Fecha única) */}
+          {esRangoPermitido ? (
+            <div className="space-y-2.5 bg-slate-50/90 p-3.5 rounded-2xl border border-slate-200 relative z-[40]">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">
+                  PERIODO DE {estado.toUpperCase()}
+                </label>
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-[#6b1d33]/10 text-[#6b1d33] border border-[#6b1d33]/20">
+                  {diasSeleccionados} {diasSeleccionados === 1 ? 'DÍA' : 'DÍAS'} (MÁX. 5)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 block tracking-wide">
+                    DE QUÉ DÍA (INICIO):
+                  </label>
+                  <AppleDatePicker 
+                    value={fechaDesde} 
+                    onChange={handleFechaDesdeChange} 
+                    disableFuture={false} 
+                    showIcon={false}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-700 block tracking-wide">
+                    A QUÉ DÍA (FIN):
+                  </label>
+                  <AppleDatePicker 
+                    value={fechaHasta} 
+                    onChange={handleFechaHastaChange} 
+                    minDate={fechaDesde} 
+                    maxDate={maxHasta} 
+                    disableFuture={false} 
+                    showIcon={false}
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 m-0 font-medium">
+                Periodo seleccionado: del <span className="font-bold text-slate-800">{fechaDesde}</span> al <span className="font-bold text-slate-800">{fechaHasta}</span> ({diasSeleccionados} {diasSeleccionados === 1 ? 'día' : 'días'}).
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1 relative z-[40]">
+              <label className="text-xs font-bold text-[#6b1d33] tracking-wide uppercase">FECHA</label>
+              <AppleDatePicker value={fechaDesde} onChange={setFechaDesde} disableFuture={false} showIcon={false} />
+            </div>
+          )}
 
           {/* Motivo (Opcional) */}
           <div className="space-y-1">
@@ -368,7 +478,7 @@ export default function ModalAsignarFechas({
               className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6b1d33] focus:border-transparent transition-all shadow-2xs" 
               value={motivo} 
               onChange={e => setMotivo(e.target.value.toUpperCase())}
-              placeholder={`EJ. ${estado === 'retardo' ? 'RETARDO REGISTRADO DESDE ' + origen.toUpperCase() : estado === 'falta' ? 'FALTA REGISTRADA DESDE ' + origen.toUpperCase() : 'VACACIONES / ACUERDO ENTRE OPERADORES'}`}
+              placeholder={`EJ. ${estado === 'asistencia' ? 'ASISTENCIA REGISTRADA DESDE ' + origen.toUpperCase() : estado === 'retardo' ? 'RETARDO REGISTRADO DESDE ' + origen.toUpperCase() : estado === 'falta' ? 'FALTA REGISTRADA DESDE ' + origen.toUpperCase() : 'VACACIONES / ACUERDO ENTRE OPERADORES'}`}
             />
           </div>
 

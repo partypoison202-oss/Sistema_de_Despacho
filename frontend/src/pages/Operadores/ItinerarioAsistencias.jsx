@@ -224,7 +224,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
           </button>
           <button className="btn-asignar-fechas" onClick={() => setModalOpen(true)}>
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            Asignar Fechas (V, I, D, F)
+            Asignar Fechas (A, V, I, D, F)
           </button>
         </div>
       </div>
@@ -241,7 +241,11 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
             {/* ASISTENCIA */}
-            <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+            <div 
+              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => verAsignacionesFuturas('asistencias_detalle', 'ASISTENCIAS', '#059669')}
+              title="Ver Asistencias Programadas"
+            >
               <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">
                 A
               </span>
