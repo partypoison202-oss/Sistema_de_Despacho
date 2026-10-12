@@ -267,38 +267,90 @@
 .sum-val-dp { font-weight: bold; color: #4338ca; background-color: #eef2ff !important; }
 .sum-val-r { font-weight: bold; color: #ea580c; background-color: #fff7ed !important; }
 
-/* Responsive adjustments for Tablet and Mobile */
+/* ==========================================================================
+   RESPONSIVE DESIGN PARA TABLETS Y DISPOSITIVOS MÓVILES (HORIZONTAL Y VERTICAL)
+   ========================================================================== */
+
+/* Tablets en Orientación Horizontal y Pantallas Medianas (<= 1400px) */
+@media (max-width: 1400px) {
+  .itinerario-container {
+    padding: 0.85rem 1rem;
+    gap: 0.75rem;
+    min-height: auto;
+  }
+
+  .itinerario-header {
+    gap: 0.75rem;
+  }
+
+  .itinerario-grid-wrapper {
+    min-height: 350px;
+    height: 58vh;
+    max-height: calc(100vh - 220px);
+  }
+}
+
+/* Tablets en Orientación Horizontal / Paisaje con Altura Reducida (<= 850px) */
+@media (max-height: 850px) {
+  .itinerario-container {
+    padding: 0.65rem 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .itinerario-grid-wrapper {
+    min-height: 280px;
+    height: 56vh;
+    max-height: calc(100vh - 190px);
+  }
+
+  .itinerario-table th, 
+  .itinerario-table td {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.78rem;
+  }
+
+  .status-bubble {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+}
+
+/* Tablets en Orientación Vertical y Dispositivos Medianos (<= 900px) */
 @media (max-width: 900px) {
   .itinerario-container {
-    padding: 0.85rem;
-    gap: 0.75rem;
+    padding: 0.75rem;
+    gap: 0.65rem;
   }
 
   .itinerario-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.75rem;
+    gap: 0.65rem;
   }
 
   .itinerario-filters {
     flex-direction: column;
     align-items: stretch;
-    gap: 0.75rem;
+    gap: 0.65rem;
   }
 
   .itinerario-actions {
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
     width: 100%;
     gap: 0.5rem;
   }
 
   .btn-asignar-fechas {
-    width: 100%;
+    flex: 1;
     justify-content: center;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
   }
 
   .itinerario-grid-wrapper {
-    min-height: 380px;
+    min-height: 320px;
     height: 52vh;
     max-height: 65vh;
   }
@@ -319,3 +371,11 @@
     font-size: 0.78rem;
   }
 }
+
+/* Teléfonos Móviles (<= 640px) */
+@media (max-width: 640px) {
+  .itinerario-actions {
+    flex-direction: column;
+  }
+}
+
