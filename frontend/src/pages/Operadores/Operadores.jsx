@@ -15,6 +15,47 @@ import ItinerarioAsistencias from './ItinerarioAsistencias';
 import ModalAsignarFechas from './ModalAsignarFechas';
 
 
+// Helper para comprimir imágenes antes de enviarlas al servidor (evita errores 413 de Nginx y optimiza memoria)
+const compressImage = async (file, maxWidth = 800, maxHeight = 800, quality = 0.82) => {
+  if (!file || !file.type || !file.type.startsWith('image/')) return file;
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return resolve(file);
+          const compressed = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressed);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+};
+
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -707,13 +748,9 @@ export default function Operadores() {
 
       // Subir la foto si se seleccionó una
       if (foto && data.conductor?.id) {
-        if (foto.size > 5 * 1024 * 1024) {
-          throw new Error('La fotografía excede el tamaño máximo permitido de 5MB. Por favor, elige una imagen más ligera.');
-        }
-
+        const fotoComprimida = await compressImage(foto);
         const formData = new FormData();
-        formData.append('foto', foto);
-
+        formData.append('foto', fotoComprimida);
 
         const photoRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/foto`, {
           method: 'POST',
@@ -724,17 +761,16 @@ export default function Operadores() {
         });
 
         if (!photoRes.ok) {
-          console.error("Error al subir foto durante la creación del operador");
+          const errData = await photoRes.json().catch(() => ({}));
+          console.error("Error al subir foto durante la creación del operador:", errData);
         }
       }
 
       // Subir QR si se seleccionó uno
       if (qrFile && data.conductor?.id) {
-        if (qrFile.size > 5 * 1024 * 1024) {
-          throw new Error('El código QR excede el tamaño máximo permitido de 5MB.');
-        }
+        const qrComprimido = await compressImage(qrFile, 1000, 1000, 0.9);
         const formDataQr = new FormData();
-        formDataQr.append('qr', qrFile);
+        formDataQr.append('qr', qrComprimido);
 
         const qrRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/qr`, {
           method: 'POST',
@@ -744,7 +780,8 @@ export default function Operadores() {
           body: formDataQr
         });
         if (!qrRes.ok) {
-          console.error("Error al subir código QR durante la creación del operador");
+          const errData = await qrRes.json().catch(() => ({}));
+          console.error("Error al subir código QR durante la creación del operador:", errData);
         }
       }
 
@@ -851,12 +888,9 @@ export default function Operadores() {
 
       // Subir la foto si se seleccionó una
       if (foto) {
-        if (foto.size > 5 * 1024 * 1024) {
-          throw new Error('La fotografía excede el tamaño máximo permitido de 5MB. Por favor, elige una imagen más ligera.');
-        }
-
+        const fotoComprimida = await compressImage(foto);
         const formData = new FormData();
-        formData.append('foto', foto);
+        formData.append('foto', fotoComprimida);
 
         const photoRes = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}/foto`, {
           method: 'POST',
@@ -867,19 +901,17 @@ export default function Operadores() {
         });
 
         if (!photoRes.ok) {
-          console.error("Error al subir foto");
-          // Podríamos lanzar error, pero preferimos que el conductor se haya guardado
+          const errData = await photoRes.json().catch(() => ({}));
+          console.error("Error al subir foto:", errData);
+          throw new Error(errData.message || 'Error al procesar la fotografía del operador');
         }
       }
 
       // Subir el QR si se seleccionó uno
       if (qrFile) {
-        if (qrFile.size > 5 * 1024 * 1024) {
-          throw new Error('El código QR excede el tamaño máximo permitido de 5MB.');
-        }
-
+        const qrComprimido = await compressImage(qrFile, 1000, 1000, 0.9);
         const formDataQr = new FormData();
-        formDataQr.append('qr', qrFile);
+        formDataQr.append('qr', qrComprimido);
 
         const qrRes = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}/qr`, {
           method: 'POST',
@@ -890,7 +922,9 @@ export default function Operadores() {
         });
 
         if (!qrRes.ok) {
-          console.error("Error al subir código QR");
+          const errData = await qrRes.json().catch(() => ({}));
+          console.error("Error al subir código QR:", errData);
+          throw new Error(errData.message || 'Error al procesar el código QR');
         }
       }
 

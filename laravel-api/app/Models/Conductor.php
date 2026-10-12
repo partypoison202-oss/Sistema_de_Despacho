@@ -11,8 +11,6 @@ class Conductor extends Model
 
     protected $table = 'conductores';
 
-    protected $hidden = ['foto', 'qr_documento'];
-
     protected $appends = ['nombre', 'info_ventana_faltas'];
 
     protected $fillable = [
