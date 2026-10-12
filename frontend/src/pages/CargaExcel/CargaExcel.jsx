@@ -252,6 +252,9 @@ export default function CargaExcel({ isPasteles = false }) {
         updatedData[index]['HORA_REAL_SALIDA_PATIO'] = '';
         updatedData[index]['CORRIDAS'] = null;
         updatedData[index]['PATIO_NORTE'] = false;
+        updatedData[index]['ITINERARIO'] = false;
+        updatedData[index]['HORA_INCORPORACION'] = '';
+        updatedData[index]['HORA_DESINCORPORACION'] = '';
         updatedData[index]['TARJETON_MANIOBRISTA'] = '';
         updatedData[index]['NOMBRE_MANIOBRISTA'] = '';
         updatedData[index]['FALLA'] = '';
@@ -888,8 +891,8 @@ export default function CargaExcel({ isPasteles = false }) {
         const statusNorm = String(fila.ESTATUS || 'operacion')
           .trim()
           .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
 
         const noEsOperacion =
           statusNorm.includes('reserva') ||
@@ -908,15 +911,15 @@ export default function CargaExcel({ isPasteles = false }) {
       });
 
     } else {
-      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS'];
-      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida'];
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_INCORPORACION', 'HORA_DESINCORPORACION'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de incorporación', 'Hora de desincorporación'];
     }
 
     const datosHoja = [
       encabezados,
       ...dataToExport.map(fila => columnas.map(col => {
         let value = fila[col] ?? '';
-        if (isRelevos && col === 'PATIO_NORTE') {
+        if (col === 'PATIO_NORTE' || col === 'ITINERARIO') {
           if (value === true || value === 1 || value === '1' || value === 'true') value = 'SÍ';
           else value = 'NO';
         }

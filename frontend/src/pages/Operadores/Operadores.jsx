@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useContext, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -14,6 +14,47 @@ import GestionFaltasOperadores from './GestionFaltasOperadores';
 import ItinerarioAsistencias from './ItinerarioAsistencias';
 import ModalAsignarFechas from './ModalAsignarFechas';
 
+
+// Helper para comprimir imágenes antes de enviarlas al servidor (evita errores 413 de Nginx y optimiza memoria)
+const compressImage = async (file, maxWidth = 800, maxHeight = 800, quality = 0.82) => {
+  if (!file || !file.type || !file.type.startsWith('image/')) return file;
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return resolve(file);
+          const compressed = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressed);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+};
 
 // Componente de Select Personalizado igual a la ventana de cambio de estatus de despacho
 function CustomSelect({ value, onChange, options }) {
@@ -707,13 +748,9 @@ export default function Operadores() {
 
       // Subir la foto si se seleccionó una
       if (foto && data.conductor?.id) {
-        if (foto.size > 5 * 1024 * 1024) {
-          throw new Error('La fotografía excede el tamaño máximo permitido de 5MB. Por favor, elige una imagen más ligera.');
-        }
-
+        const fotoComprimida = await compressImage(foto);
         const formData = new FormData();
-        formData.append('foto', foto);
-
+        formData.append('foto', fotoComprimida);
 
         const photoRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/foto`, {
           method: 'POST',
@@ -724,17 +761,16 @@ export default function Operadores() {
         });
 
         if (!photoRes.ok) {
-          console.error("Error al subir foto durante la creación del operador");
+          const errData = await photoRes.json().catch(() => ({}));
+          console.error("Error al subir foto durante la creación del operador:", errData);
         }
       }
 
       // Subir QR si se seleccionó uno
       if (qrFile && data.conductor?.id) {
-        if (qrFile.size > 5 * 1024 * 1024) {
-          throw new Error('El código QR excede el tamaño máximo permitido de 5MB.');
-        }
+        const qrComprimido = await compressImage(qrFile, 1000, 1000, 0.9);
         const formDataQr = new FormData();
-        formDataQr.append('qr', qrFile);
+        formDataQr.append('qr', qrComprimido);
 
         const qrRes = await fetch(`${API_BASE}/api/conductores/${data.conductor.id}/qr`, {
           method: 'POST',
@@ -744,7 +780,8 @@ export default function Operadores() {
           body: formDataQr
         });
         if (!qrRes.ok) {
-          console.error("Error al subir código QR durante la creación del operador");
+          const errData = await qrRes.json().catch(() => ({}));
+          console.error("Error al subir código QR durante la creación del operador:", errData);
         }
       }
 
@@ -851,12 +888,9 @@ export default function Operadores() {
 
       // Subir la foto si se seleccionó una
       if (foto) {
-        if (foto.size > 5 * 1024 * 1024) {
-          throw new Error('La fotografía excede el tamaño máximo permitido de 5MB. Por favor, elige una imagen más ligera.');
-        }
-
+        const fotoComprimida = await compressImage(foto);
         const formData = new FormData();
-        formData.append('foto', foto);
+        formData.append('foto', fotoComprimida);
 
         const photoRes = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}/foto`, {
           method: 'POST',
@@ -867,19 +901,17 @@ export default function Operadores() {
         });
 
         if (!photoRes.ok) {
-          console.error("Error al subir foto");
-          // Podríamos lanzar error, pero preferimos que el conductor se haya guardado
+          const errData = await photoRes.json().catch(() => ({}));
+          console.error("Error al subir foto:", errData);
+          throw new Error(errData.message || 'Error al procesar la fotografía del operador');
         }
       }
 
       // Subir el QR si se seleccionó uno
       if (qrFile) {
-        if (qrFile.size > 5 * 1024 * 1024) {
-          throw new Error('El código QR excede el tamaño máximo permitido de 5MB.');
-        }
-
+        const qrComprimido = await compressImage(qrFile, 1000, 1000, 0.9);
         const formDataQr = new FormData();
-        formDataQr.append('qr', qrFile);
+        formDataQr.append('qr', qrComprimido);
 
         const qrRes = await fetch(`${API_BASE}/api/conductores/${selectedConductor.id}/qr`, {
           method: 'POST',
@@ -890,7 +922,9 @@ export default function Operadores() {
         });
 
         if (!qrRes.ok) {
-          console.error("Error al subir código QR");
+          const errData = await qrRes.json().catch(() => ({}));
+          console.error("Error al subir código QR:", errData);
+          throw new Error(errData.message || 'Error al procesar el código QR');
         }
       }
 
@@ -993,38 +1027,54 @@ export default function Operadores() {
     return match ? parseInt(match[0], 10) : 0;
   };
 
-  const filteredConductores = conductores.filter(c => {
-    if (activeTab === 'catalogo' && c.estatus === 'baja') {
-      return false;
-    }
-    if (activeTab === 'kardex' && !mostrarBajasKardex && c.estatus === 'baja') {
-      return false;
-    }
+  // Paginación Catálogo (Gestión de T6)
+  const [paginaCatalogo, setPaginaCatalogo] = useState(1);
+  const catalogoPorPagina = 50;
 
-    // Filtros por Tipo y Estado
-    if (filterTipo && c.tipo_tarjeton !== filterTipo) return false;
-    if (filterEstadoServicio && c.estado_servicio !== filterEstadoServicio) return false;
+  const filteredConductores = useMemo(() => {
+    return conductores.filter(c => {
+      if (activeTab === 'catalogo' && c.estatus === 'baja') {
+        return false;
+      }
+      if (activeTab === 'kardex' && !mostrarBajasKardex && c.estatus === 'baja') {
+        return false;
+      }
 
-    const term = searchTerm.toLowerCase();
-    if (!term) return true;
+      // Filtros por Tipo y Estado
+      if (filterTipo && c.tipo_tarjeton !== filterTipo) return false;
+      if (filterEstadoServicio && c.estado_servicio !== filterEstadoServicio) return false;
 
-    return (
-      (c.nombre && c.nombre.toLowerCase().includes(term)) ||
-      (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
-      (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
-    );
-  }).sort((a, b) => {
-    return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
-  });
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
 
-  // Paginación Kardex
+      return (
+        (c.nombre && c.nombre.toLowerCase().includes(term)) ||
+        (c.tarjeton && c.tarjeton.toLowerCase().includes(term)) ||
+        (c.tipo_tarjeton && c.tipo_tarjeton.toLowerCase().includes(term))
+      );
+    }).sort((a, b) => {
+      return getTarjetonNumber(a.tarjeton) - getTarjetonNumber(b.tarjeton);
+    });
+  }, [conductores, activeTab, mostrarBajasKardex, filterTipo, filterEstadoServicio, searchTerm]);
+
+  // Reset de página al cambiar filtros
   useEffect(() => {
+    setPaginaCatalogo(1);
     setPaginaKardex(1);
   }, [searchTerm, filterTipo, filterEstadoServicio, mostrarBajasKardex, activeTab]);
 
+  const totalPaginasCatalogo = Math.ceil(filteredConductores.length / catalogoPorPagina) || 1;
+  const indiceInicioCatalogo = (paginaCatalogo - 1) * catalogoPorPagina;
+  const conductoresPaginadosCatalogo = useMemo(() => {
+    return filteredConductores.slice(indiceInicioCatalogo, indiceInicioCatalogo + catalogoPorPagina);
+  }, [filteredConductores, indiceInicioCatalogo, catalogoPorPagina]);
+
+  // Paginación Kardex
   const totalPaginasKardex = Math.ceil(filteredConductores.length / kardexPorPagina) || 1;
   const indiceInicioKardex = (paginaKardex - 1) * kardexPorPagina;
-  const conductoresPaginadosKardex = filteredConductores.slice(indiceInicioKardex, indiceInicioKardex + kardexPorPagina);
+  const conductoresPaginadosKardex = useMemo(() => {
+    return filteredConductores.slice(indiceInicioKardex, indiceInicioKardex + kardexPorPagina);
+  }, [filteredConductores, indiceInicioKardex, kardexPorPagina]);
 
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
   const canEdit = user?.modulos?.includes('operadores') || isAdmin || user?.role?.codigo === 'GESTOR_OPERADORES';
@@ -1192,27 +1242,60 @@ export default function Operadores() {
             <p>Cargando lista de T6...</p>
           </div>
         ) : activeTab === 'catalogo' ? (
-          <div className="operadores-table-card">
-            <div className="table-responsive">
-              <table className="operadores-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '130px' }}># Tarjetón</th>
-                    <th>Nombre Completo del Operador</th>
-                    <th style={{ width: '140px' }}>Tipo Tarjetón</th>
-                    <th style={{ width: '160px' }}>Estado Servicio</th>
-                    <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredConductores.length === 0 ? (
+          <div>
+            {/* Controles de Paginación Superior Catálogo */}
+            {filteredConductores.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl mb-3 shadow-2xs gap-3">
+                <div className="text-xs sm:text-sm text-slate-600">
+                  Mostrando <span className="font-bold text-slate-800">{indiceInicioCatalogo + 1}</span> a <span className="font-bold text-slate-800">{Math.min(indiceInicioCatalogo + catalogoPorPagina, filteredConductores.length)}</span> de <span className="font-bold text-slate-800">{filteredConductores.length}</span> conductores
+                </div>
+                {totalPaginasCatalogo > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaginaCatalogo(p => Math.max(1, p - 1))}
+                      disabled={paginaCatalogo === 1}
+                      className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                    >
+                      Anterior
+                    </button>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700 px-1">
+                      Página {paginaCatalogo} de {totalPaginasCatalogo}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPaginaCatalogo(p => Math.min(totalPaginasCatalogo, p + 1))}
+                      disabled={paginaCatalogo === totalPaginasCatalogo}
+                      className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="operadores-table-card">
+              <div className="table-responsive">
+                <table className="operadores-table">
+                  <thead>
                     <tr>
-                      <td colSpan="5" className="empty-table-cell">
-                        No se encontraron T6 registrados.
-                      </td>
+                      <th style={{ width: '130px' }}># Tarjetón</th>
+                      <th>Nombre Completo del Operador</th>
+                      <th style={{ width: '140px' }}>Tipo Tarjetón</th>
+                      <th style={{ width: '160px' }}>Estado Servicio</th>
+                      <th style={{ textAlign: 'center', width: '220px' }}>Acciones</th>
                     </tr>
-                  ) : (
-                    filteredConductores.map((c) => (
+                  </thead>
+                  <tbody>
+                    {conductoresPaginadosCatalogo.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="empty-table-cell">
+                          No se encontraron T6 registrados.
+                        </td>
+                      </tr>
+                    ) : (
+                      conductoresPaginadosCatalogo.map((c) => (
                       <tr key={c.id}>
                         <td>
                           <span className="tarjeton-badge">{c.tarjeton ? String(c.tarjeton.split('_BAJA_')[0]).padStart(4, '0') : ''}</span>
@@ -1268,7 +1351,8 @@ export default function Operadores() {
               </table>
             </div>
           </div>
-        ) : activeTab === 'kardex' ? (
+        </div>
+      ) : activeTab === 'kardex' ? (
           <div>
             {/* Controles de Paginación Superior Kardex */}
             {filteredConductores.length > 0 && (
@@ -1482,42 +1566,6 @@ export default function Operadores() {
                 </table>
               </div>
             </div>
-
-            {/* Controles de Paginación Inferior Kardex */}
-            {totalPaginasKardex > 1 && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl mt-3 shadow-2xs gap-3">
-                <div className="text-xs sm:text-sm text-slate-600">
-                  Mostrando <span className="font-bold text-slate-800">{indiceInicioKardex + 1}</span> a <span className="font-bold text-slate-800">{Math.min(indiceInicioKardex + kardexPorPagina, filteredConductores.length)}</span> de <span className="font-bold text-slate-800">{filteredConductores.length}</span> conductores
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaginaKardex(p => Math.max(1, p - 1));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    disabled={paginaKardex === 1}
-                    className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
-                  >
-                    Anterior
-                  </button>
-                  <span className="text-xs sm:text-sm font-bold text-slate-700 px-1">
-                    Página {paginaKardex} de {totalPaginasKardex}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaginaKardex(p => Math.min(totalPaginasKardex, p + 1));
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    disabled={paginaKardex === totalPaginasKardex}
-                    className="px-3 py-1.5 text-xs sm:text-sm font-semibold border border-slate-300 rounded-lg bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
-                  >
-                    Siguiente
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         ) : activeTab === 'gestion_faltas' ? (
           <GestionFaltasOperadores conductores={conductores} onRefresh={fetchConductores} getAuthHeaders={getAuthHeaders} initialBusqueda={busquedaFaltas} />

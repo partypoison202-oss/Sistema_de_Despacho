@@ -133,21 +133,26 @@
   transform: translateY(0);
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .operadores-tabs-container {
     width: 100%;
     justify-content: flex-start;
-    padding: 0.35rem;
+    padding: 0.35rem 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
   }
 
   .operadores-tabs {
     justify-content: flex-start;
     overflow-x: auto;
     padding-bottom: 0.25rem;
+    width: max-content;
+    min-width: 100%;
+    -webkit-overflow-scrolling: touch;
   }
 
   .tab-btn {
-    padding: 0.5rem 0.85rem;
+    padding: 0.45rem 0.85rem;
     font-size: 0.82rem;
     flex-shrink: 0;
   }

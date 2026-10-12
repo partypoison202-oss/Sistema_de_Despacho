@@ -152,6 +152,12 @@
 .excel-preview-table th.col-tarjeton,
 .excel-preview-table th.col-corridas,
 .excel-preview-table th.col-hora_salida_patio,
+.excel-preview-table th.col-hora_de_acople,
+.excel-preview-table th.col-acople,
+.excel-preview-table th.col-patio_norte,
+.excel-preview-table th.col-itinerario,
+.excel-preview-table th.col-hora_incorporacion,
+.excel-preview-table th.col-hora_desincorporacion,
 .excel-preview-table th.col-ruta {
   text-align: center;
 }
@@ -562,6 +568,24 @@
 .excel-preview-table th.col-estatus,
 .excel-preview-table td.cell-estatus {
   min-width: 180px;
+}
+
+.excel-preview-table th.col-patio_norte,
+.excel-preview-table td.cell-patio_norte,
+.excel-preview-table th.col-itinerario,
+.excel-preview-table td.cell-itinerario {
+  width: 95px;
+  min-width: 95px;
+  text-align: center;
+}
+
+.excel-preview-table th.col-hora_incorporacion,
+.excel-preview-table td.cell-hora_incorporacion,
+.excel-preview-table th.col-hora_desincorporacion,
+.excel-preview-table td.cell-hora_desincorporacion {
+  width: 140px;
+  min-width: 140px;
+  text-align: center;
 }
 
 /* Open upwards dropdown */

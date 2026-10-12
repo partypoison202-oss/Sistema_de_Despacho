@@ -14,14 +14,12 @@ use Carbon\CarbonPeriod;
 
 class ConductorController extends Controller
 {
-    private static $columnsEnsured = false;
+    private static $columnsChecked = false;
 
     private function ensureColumnsExist()
     {
-        if (self::$columnsEnsured) {
-            return;
-        }
-        self::$columnsEnsured = true;
+        if (self::$columnsChecked) return;
+        self::$columnsChecked = true;
 
         if (\Illuminate\Support\Facades\Cache::has('conductores_cols_verified')) {
             return;
@@ -67,24 +65,7 @@ class ConductorController extends Controller
         try {
             $this->ensureColumnsExist();
 
-            // Excluir foto y qr_documento para evitar transferir megabytes de datos base64 en la lista
-            $query = Conductor::query()->select([
-                'id', 'nombres', 'apellidos', 'tarjeton', 'tipo_tarjeton', 'estado_servicio', 'estatus',
-                'curp', 'nss', 'rfc', 'fecha_nacimiento', 'lugar_nacimiento', 'estado_civil',
-                'domicilio', 'colonia', 'cp', 'municipio', 'telefono', 'contacto_emergencia', 'escolaridad',
-                'enfermedades', 'alergias', 'tipo_sangre', 'fecha_ingreso', 'fecha_baja', 'motivo_baja',
-                'numero_convenio', 'jornada', 'turno', 'puesto', 'categoria', 'numero_empleado',
-                'licencia_tipo', 'licencia_vencimiento', 'observaciones', 'dias_vacaciones', 'dias_permiso',
-                'detalle_permisos', 'detalle_permutas', 'num_accidentes', 'detalle_accidentes', 'faltas',
-                'ultima_capacitacion', 'proxima_capacitacion', 'accidentes_siniestros', 'retardos',
-                'amonestaciones', 'reconocimientos', 'condicionamientos_juridicos', 'permutas', 'permisos',
-                'evaluacion', 'vigencia_licencia', 'sexo', 'referencia_1', 'referencia_2',
-                'condicionamientos_medicos', 'amonestaciones_detalle', 'reconocimientos_detalle',
-                'permisos_detalle', 'permutas_detalle', 'accidentes_siniestros_detalle',
-                'faltas_detalle', 'retardos_detalle', 'asistencias_detalle',
-                'descansos_detalle', 'vacaciones_detalle', 'incapacidades_detalle',
-                'created_at', 'updated_at'
-            ]);
+            $query = Conductor::query();
 
             // Filtrar sólo operadores activos (no dados de baja ni inhabilitados) por defecto
             if (!$request->has('incluir_bajas') || $request->incluir_bajas !== 'true') {
@@ -94,21 +75,15 @@ class ConductorController extends Controller
                 });
             }
 
-            // Obtener todos los tarjetones asignados en tiempo real en despacho
+            // Obtener todos los tarjetones asignados en tiempo real en despacho con lookup O(1)
             $asignacionesMap = [];
             try {
-                if (Schema::hasTable('informacion_operativa')) {
-                    $asignaciones = DB::table('informacion_operativa')
-                        ->whereNotNull('numero_tarjeton')
-                        ->where('numero_tarjeton', '!=', '')
-                        ->pluck('numero_tarjeton')
-                        ->toArray();
-                    foreach ($asignaciones as $asig) {
-                        $tClean = trim((string)$asig);
-                        if ($tClean !== '') {
-                            $asignacionesMap[$tClean] = true;
-                        }
-                    }
+                $asignaciones = DB::table('informacion_operativa')
+                    ->whereNotNull('numero_tarjeton')
+                    ->where('numero_tarjeton', '!=', '')
+                    ->pluck('numero_tarjeton');
+                foreach ($asignaciones as $t) {
+                    $asignacionesMap[trim((string)$t)] = true;
                 }
             } catch (\Throwable $e) {
                 $asignacionesMap = [];
@@ -126,14 +101,12 @@ class ConductorController extends Controller
                                 'estatus' => 'inhabilitado',
                                 'estado_servicio' => null
                             ]);
-                            if (Schema::hasTable('informacion_operativa')) {
-                                DB::table('informacion_operativa')
-                                    ->where('numero_tarjeton', $c->tarjeton)
-                                    ->update([
-                                        'numero_tarjeton' => null,
-                                        'nombre_conductor' => null
-                                    ]);
-                            }
+                            DB::table('informacion_operativa')
+                                ->where('numero_tarjeton', $c->tarjeton)
+                                ->update([
+                                    'numero_tarjeton' => null,
+                                    'nombre_conductor' => null
+                                ]);
                         } catch (\Throwable $e) {
                             // Ignorar errores de actualización en lectura
                         }
@@ -142,7 +115,7 @@ class ConductorController extends Controller
                     // Ignorar error individual por registro
                 }
 
-                $tarjetonClean = trim($c->tarjeton ?? '');
+                $tarjetonClean = trim((string)($c->tarjeton ?? ''));
                 $estaAsignado = isset($asignacionesMap[$tarjetonClean]);
                 if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                     $c->estado_servicio = null;

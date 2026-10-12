@@ -68,45 +68,43 @@ class ItinerarioController extends Controller
         $nombreMap = [];    // [nombreNormalizado][YYYY-MM-DD] = true
 
         try {
-            if (Schema::hasTable('historial_operativo')) {
-                $registrosHistorial = DB::table('historial_operativo')
-                    ->select('fecha_historial', 'numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor')
-                    ->whereBetween('fecha_historial', [$desde->toDateString(), $hasta->toDateString()])
-                    ->get();
+            $registrosHistorial = DB::table('historial_operativo')
+                ->whereBetween('fecha_historial', [$desde->toDateString(), $hasta->toDateString()])
+                ->select(['fecha_historial', 'numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor'])
+                ->get();
 
-                foreach ($registrosHistorial as $h) {
-                    $fecha = $h->fecha_historial;
+            foreach ($registrosHistorial as $h) {
+                $fecha = $h->fecha_historial;
 
-                    if (!empty($h->numero_tarjeton)) {
-                        $tRaw = trim((string)$h->numero_tarjeton);
-                        $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
-                        $historialMap[$tRaw][$fecha] = true;
-                        if ($tNum !== '0') {
-                            $historialMap[$tNum][$fecha] = true;
-                        }
+                if (!empty($h->numero_tarjeton)) {
+                    $tRaw = trim((string)$h->numero_tarjeton);
+                    $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
+                    $historialMap[$tRaw][$fecha] = true;
+                    if ($tNum !== '0') {
+                        $historialMap[$tNum][$fecha] = true;
                     }
+                }
 
-                    if (!empty($h->nombre_conductor)) {
-                        $nNorm = $this->normalizarNombre($h->nombre_conductor);
-                        if ($nNorm) {
-                            $nombreMap[$nNorm][$fecha] = true;
-                        }
+                if (!empty($h->nombre_conductor)) {
+                    $nNorm = $this->normalizarNombre($h->nombre_conductor);
+                    if ($nNorm) {
+                        $nombreMap[$nNorm][$fecha] = true;
                     }
+                }
 
-                    if (!empty($h->relevo_tarjeton)) {
-                        $tRawRel = trim((string)$h->relevo_tarjeton);
-                        $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
-                        $historialMap[$tRawRel][$fecha] = true;
-                        if ($tNumRel !== '0') {
-                            $historialMap[$tNumRel][$fecha] = true;
-                        }
+                if (!empty($h->relevo_tarjeton)) {
+                    $tRawRel = trim((string)$h->relevo_tarjeton);
+                    $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
+                    $historialMap[$tRawRel][$fecha] = true;
+                    if ($tNumRel !== '0') {
+                        $historialMap[$tNumRel][$fecha] = true;
                     }
+                }
 
-                    if (!empty($h->relevo_conductor)) {
-                        $nNormRel = $this->normalizarNombre($h->relevo_conductor);
-                        if ($nNormRel) {
-                            $nombreMap[$nNormRel][$fecha] = true;
-                        }
+                if (!empty($h->relevo_conductor)) {
+                    $nNormRel = $this->normalizarNombre($h->relevo_conductor);
+                    if ($nNormRel) {
+                        $nombreMap[$nNormRel][$fecha] = true;
                     }
                 }
             }
@@ -119,42 +117,40 @@ class ItinerarioController extends Controller
         // Si hoy cae en el rango, incluir informacion_operativa para asistencias en tiempo real
         if ($hoy >= $desde->toDateString() && $hoy <= $hasta->toDateString()) {
             try {
-                if (Schema::hasTable('informacion_operativa')) {
-                    $hoyOps = DB::table('informacion_operativa')
-                        ->select('numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor')
-                        ->get();
+                $hoyOps = DB::table('informacion_operativa')
+                    ->select(['numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor'])
+                    ->get();
 
-                    foreach ($hoyOps as $op) {
-                        if (!empty($op->numero_tarjeton)) {
-                            $tRaw = trim((string)$op->numero_tarjeton);
-                            $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
-                            $historialMap[$tRaw][$hoy] = true;
-                            if ($tNum !== '0') {
-                                $historialMap[$tNum][$hoy] = true;
-                            }
+                foreach ($hoyOps as $op) {
+                    if (!empty($op->numero_tarjeton)) {
+                        $tRaw = trim((string)$op->numero_tarjeton);
+                        $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
+                        $historialMap[$tRaw][$hoy] = true;
+                        if ($tNum !== '0') {
+                            $historialMap[$tNum][$hoy] = true;
                         }
+                    }
 
-                        if (!empty($op->nombre_conductor)) {
-                            $nNorm = $this->normalizarNombre($op->nombre_conductor);
-                            if ($nNorm) {
-                                $nombreMap[$nNorm][$hoy] = true;
-                            }
+                    if (!empty($op->nombre_conductor)) {
+                        $nNorm = $this->normalizarNombre($op->nombre_conductor);
+                        if ($nNorm) {
+                            $nombreMap[$nNorm][$hoy] = true;
                         }
+                    }
 
-                        if (!empty($op->relevo_tarjeton)) {
-                            $tRawRel = trim((string)$op->relevo_tarjeton);
-                            $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
-                            $historialMap[$tRawRel][$hoy] = true;
-                            if ($tNumRel !== '0') {
-                                $historialMap[$tNumRel][$hoy] = true;
-                            }
+                    if (!empty($op->relevo_tarjeton)) {
+                        $tRawRel = trim((string)$op->relevo_tarjeton);
+                        $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
+                        $historialMap[$tRawRel][$hoy] = true;
+                        if ($tNumRel !== '0') {
+                            $historialMap[$tNumRel][$hoy] = true;
                         }
+                    }
 
-                        if (!empty($op->relevo_conductor)) {
-                            $nNormRel = $this->normalizarNombre($op->relevo_conductor);
-                            if ($nNormRel) {
-                                $nombreMap[$nNormRel][$hoy] = true;
-                            }
+                    if (!empty($op->relevo_conductor)) {
+                        $nNormRel = $this->normalizarNombre($op->relevo_conductor);
+                        if ($nNormRel) {
+                            $nombreMap[$nNormRel][$hoy] = true;
                         }
                     }
                 }
@@ -163,18 +159,16 @@ class ItinerarioController extends Controller
             }
         }
 
-        // Obtener todos los conductores activos con solo las columnas necesarias para el cálculo
-        $conductores = Conductor::query()
+        // Obtener todos los conductores activos con solo las columnas necesarias
+        $conductores = DB::table('conductores')
+            ->where(function($q) {
+                $q->where('estatus', 'activo')->orWhereNull('estatus');
+            })
             ->select([
                 'id', 'tarjeton', 'nombres', 'apellidos', 'estado_servicio',
-                'retardos_detalle', 'faltas_detalle', 'descansos_detalle',
-                'vacaciones_detalle', 'incapacidades_detalle', 'permutas_detalle',
-                'asistencias_detalle'
+                'faltas_detalle', 'retardos_detalle', 'descansos_detalle',
+                'vacaciones_detalle', 'incapacidades_detalle', 'permutas_detalle', 'asistencias_detalle'
             ])
-            ->where(function ($q) {
-                $q->where('estatus', 'activo')
-                  ->orWhereNull('estatus');
-            })
             ->orderBy('tarjeton')
             ->get();
 

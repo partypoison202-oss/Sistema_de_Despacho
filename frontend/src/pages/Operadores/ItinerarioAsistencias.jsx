@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import './ItinerarioAsistencias.css';
@@ -32,6 +32,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
   const registrosPorPagina = 50;
   
   const [modalOpen, setModalOpen] = useState(false);
+  const [mostrarSimbologia, setMostrarSimbologia] = useState(false);
 
   const fetchItinerario = async () => {
     if (!desde || !hasta) return;
@@ -58,15 +59,19 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
     fetchItinerario();
   }, [desde, hasta]);
 
-  const filtrados = data.matriz.filter(c => {
+  const filtrados = React.useMemo(() => {
     const term = busqueda.toLowerCase().trim();
-    if (!term) return true;
-    return c.nombre.toLowerCase().includes(term) || c.tarjeton.toLowerCase().includes(term);
-  });
+    if (!term) return data.matriz;
+    return data.matriz.filter(c => {
+      return (c.nombre && c.nombre.toLowerCase().includes(term)) || (c.tarjeton && c.tarjeton.toLowerCase().includes(term));
+    });
+  }, [data.matriz, busqueda]);
 
-  const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
+  const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina) || 1;
   const indiceInicio = (paginaActual - 1) * registrosPorPagina;
-  const registrosPaginados = filtrados.slice(indiceInicio, indiceInicio + registrosPorPagina);
+  const registrosPaginados = React.useMemo(() => {
+    return filtrados.slice(indiceInicio, indiceInicio + registrosPorPagina);
+  }, [filtrados, indiceInicio, registrosPorPagina]);
 
   // Reiniciar a la página 1 cuando cambia la búsqueda o el filtro de estatus
   useEffect(() => {
@@ -455,133 +460,159 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
         </div>
       </div>
 
-      {/* CUADRO DE SIMBOLOGÍA INSTITUCIONAL Y FILTROS RÁPIDOS */}
-      <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider m-0 flex items-center gap-1.5">
-              <svg className="w-4 h-4 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+      {/* CUADRO DE SIMBOLOGÍA INSTITUCIONAL */}
+      <div className="pt-2.5 pb-2 border-t border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setMostrarSimbologia(!mostrarSimbologia)}
+              className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5 cursor-pointer hover:text-[#6b1d33] transition-colors p-1 rounded-md"
+            >
+              <svg className="w-3.5 h-3.5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
-              Simbología / Filtros de Estatus
-            </h4>
+              Simbología
+              <span className="text-[10px] font-bold text-[#6b1d33] bg-[#6b1d33]/10 px-1.5 py-0.5 rounded-full ml-1">
+                {mostrarSimbologia ? '▲ Ocultar' : '▼ Ver todo'}
+              </span>
+            </button>
+
+            {/* Fila compacta de badges si está colapsado */}
+            {!mostrarSimbologia && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#a7f3d0] text-[#065f46]" title="A: Asistencia">A</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#fed7aa] text-[#9a3412]" title="D: Descanso">D</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#fef08a] text-[#854d0e]" title="V: Vacaciones">V</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#bfdbfe] text-[#1e40af]" title="I: Incapacidad">I</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#c51d23] text-white" title="F: Falta">F</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#ede9fe] text-[#6d28d9]" title="DP: Descanso (Permuta)">DP</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#e0e7ff] text-[#3730a3]" title="AP: Asistencia (Permuta)">AP</span>
+                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#ffedd5] text-[#ea580c]" title="R: Retardo">R</span>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-            {/* ASISTENCIA */}
-            <div 
-              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
-              title="Se registra automáticamente"
-            >
-              <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                A
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3">
-                ASISTENCIA
-              </span>
-            </div>
-
-            {/* DESCANSO */}
-            <div 
-              className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#9a3412]/40 hover:-translate-y-0.5 transition-all"
-              onClick={() => verAsignacionesFuturas('descansos_detalle', 'DESCANSOS', '#9a3412', 'D')}
-              title="Ver Descansos Programados a Futuro (Día/Mes/Año)"
-            >
-              <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#fdba74] transition-colors">
-                D
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#9a3412] transition-colors">
-                DESCANSO
-              </span>
-            </div>
-
-            {/* VACACIONES */}
-            <div 
-              className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#854d0e]/40 hover:-translate-y-0.5 transition-all"
-              onClick={() => verAsignacionesFuturas('vacaciones_detalle', 'VACACIONES', '#854d0e', 'V')}
-              title="Ver Vacaciones Programadas a Futuro (Día/Mes/Año)"
-            >
-              <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#fde047] transition-colors">
-                V
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#854d0e] transition-colors">
-                VACACIONES
-              </span>
-            </div>
-
-            {/* INCAPACIDAD */}
-            <div 
-              className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#1e40af]/40 hover:-translate-y-0.5 transition-all"
-              onClick={() => verAsignacionesFuturas('incapacidades_detalle', 'INCAPACIDADES', '#1e40af', 'I')}
-              title="Ver Incapacidades Programadas a Futuro (Día/Mes/Año)"
-            >
-              <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#93c5fd] transition-colors">
-                I
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#1e40af] transition-colors">
-                INCAPACIDAD
-              </span>
-            </div>
-
-            {/* FALTA */}
-            <div 
-              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
-              title="Se registra automáticamente"
-            >
-              <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">
-                F
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
-                FALTA
-              </span>
-            </div>
-
-            {/* DESCANSO PERMUTA */}
-            <div 
-              className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#6d28d9]/40 hover:-translate-y-0.5 transition-all"
-              onClick={() => verAsignacionesFuturas('permutas_detalle', 'DESCANSOS (PERMUTA)', '#6d28d9', 'DP')}
-              title="Ver Descansos por Permuta Programados a Futuro (Día/Mes/Año)"
-            >
-              <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#ddd6fe] transition-colors">
-                DP
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2 group-hover:text-[#6d28d9] transition-colors">
-                DESCANSO (PERMUTA)
-              </span>
-            </div>
-
-            {/* ASISTENCIA PERMUTA */}
-            <div 
-              className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#3730a3]/40 hover:-translate-y-0.5 transition-all"
-              onClick={() => verAsignacionesFuturas('permutas_detalle', 'ASISTENCIAS (PERMUTA)', '#3730a3', 'AP')}
-              title="Ver Asistencias por Permuta Programadas a Futuro (Día/Mes/Año)"
-            >
-              <span className="w-8 h-8 bg-[#e0e7ff] text-[#3730a3] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#c7d2fe] transition-colors">
-                AP
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2 group-hover:text-[#3730a3] transition-colors">
-                ASISTENCIA (PERMUTA)
-              </span>
-            </div>
-
-            {/* RETARDO */}
-            <div 
-              className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
-              title="Se registra automáticamente"
-            >
-              <span className="w-8 h-8 bg-[#ffedd5] text-[#ea580c] font-black text-xs flex items-center justify-center border-r border-slate-300">
-                R
-              </span>
-              <span className="text-[10px] font-extrabold text-slate-700 pr-2">
-                RETARDO
-              </span>
-            </div>
+          <div className="text-[11px] text-slate-500 italic font-medium bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+            💡 Nota: Las faltas y asistencias son actualizadas automáticamente desde los módulos de Programación, Control de Conductores y Despacho.
           </div>
         </div>
 
-        <div className="text-[11px] text-slate-500 italic font-medium bg-slate-50 p-3 rounded-xl border border-slate-200 max-w-xs shadow-2xs">
-          💡 Nota: Las faltas y asistencias son actualizadas automáticamente desde los módulos de Programación, Control de Conductores y Despacho.
-        </div>
+        {/* Detalle expandido */}
+        {mostrarSimbologia && (
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 w-full">
+              {/* ASISTENCIA */}
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
+                title="Se registra automáticamente"
+              >
+                <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                  A
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+                  ASISTENCIA
+                </span>
+              </div>
+
+              {/* DESCANSO */}
+              <div 
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#9a3412]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('descansos_detalle', 'DESCANSOS', '#9a3412', 'D')}
+                title="Ver Descansos Programados a Futuro (Día/Mes/Año)"
+              >
+                <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#fdba74] transition-colors">
+                  D
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#9a3412] transition-colors">
+                  DESCANSO
+                </span>
+              </div>
+
+              {/* VACACIONES */}
+              <div 
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#854d0e]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('vacaciones_detalle', 'VACACIONES', '#854d0e', 'V')}
+                title="Ver Vacaciones Programadas a Futuro (Día/Mes/Año)"
+              >
+                <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#fde047] transition-colors">
+                  V
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#854d0e] transition-colors">
+                  VACACIONES
+                </span>
+              </div>
+
+              {/* INCAPACIDAD */}
+              <div 
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#1e40af]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('incapacidades_detalle', 'INCAPACIDADES', '#1e40af', 'I')}
+                title="Ver Incapacidades Programadas a Futuro (Día/Mes/Año)"
+              >
+                <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#93c5fd] transition-colors">
+                  I
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#1e40af] transition-colors">
+                  INCAPACIDAD
+                </span>
+              </div>
+
+              {/* FALTA */}
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
+                title="Se registra automáticamente"
+              >
+                <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">
+                  F
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">
+                  FALTA
+                </span>
+              </div>
+
+              {/* DESCANSO PERMUTA */}
+              <div 
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#6d28d9]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('permutas_detalle', 'DESCANSOS (PERMUTA)', '#6d28d9', 'DP')}
+                title="Ver Descansos por Permuta Programados a Futuro (Día/Mes/Año)"
+              >
+                <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#ddd6fe] transition-colors">
+                  DP
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2 group-hover:text-[#6d28d9] transition-colors">
+                  DESCANSO (PERMUTA)
+                </span>
+              </div>
+
+              {/* ASISTENCIA PERMUTA */}
+              <div 
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#3730a3]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('permutas_detalle', 'ASISTENCIAS (PERMUTA)', '#3730a3', 'AP')}
+                title="Ver Asistencias por Permuta Programadas a Futuro (Día/Mes/Año)"
+              >
+                <span className="w-8 h-8 bg-[#e0e7ff] text-[#3730a3] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#c7d2fe] transition-colors">
+                  AP
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2 group-hover:text-[#3730a3] transition-colors">
+                  ASISTENCIA (PERMUTA)
+                </span>
+              </div>
+
+              {/* RETARDO */}
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
+                title="Se registra automáticamente"
+              >
+                <span className="w-8 h-8 bg-[#ffedd5] text-[#ea580c] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                  R
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">
+                  RETARDO
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Controles de Paginación Superior */}

@@ -131,6 +131,9 @@ export default function ModalProgramacionApertura({
       'RELEVO_HORA',
       'HORA_SALIDA_PATIO',
       'HORA_ACOPLE',
+      'ITINERARIO',
+      'HORA_INCORPORACION',
+      'HORA_DESINCORPORACION',
       'MOTIVO_FALLA'
     ];
 
@@ -147,6 +150,9 @@ export default function ModalProgramacionApertura({
       `"${u.relevo_hora || ''}"`,
       `"${u.hora_salida_patio || ''}"`,
       `"${u.acople || ''}"`,
+      `"${u.itinerario ? 'SI' : 'NO'}"`,
+      `"${u.hora_incorporacion || ''}"`,
+      `"${u.hora_desincorporacion || ''}"`,
       `"${u.motivo_estatus || u.motivo || u.falla || ''}"`
     ]);
 
@@ -431,6 +437,9 @@ export default function ModalProgramacionApertura({
                     <th>Conductor de Apertura</th>
                     <th>Conductor de Relevo</th>
                     <th style={{ width: '140px' }}>Horario Programado</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Itinerario</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Hora Incorp.</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Hora Desinc.</th>
                     <th>Motivo / Falla Apertura</th>
                     <th style={{ width: '110px', textAlign: 'center' }}>Acción</th>
                   </tr>
@@ -551,6 +560,67 @@ export default function ModalProgramacionApertura({
                               <span style={{ color: '#94a3b8' }}>-</span>
                             )}
                           </div>
+                        </td>
+
+                        {/* Itinerario */}
+                        <td style={{ textAlign: 'center' }}>
+                          {u.itinerario ? (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              border: '1px solid #a7f3d0'
+                            }} title="Itinerario activo">
+                              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span style={{ color: '#cbd5e1' }}>-</span>
+                          )}
+                        </td>
+
+                        {/* Hora Incorporación */}
+                        <td style={{ textAlign: 'center' }}>
+                          {u.hora_incorporacion ? (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: '#ecfdf5',
+                              color: '#065f46',
+                              fontSize: '0.8rem',
+                              fontWeight: 700
+                            }}>
+                              {u.hora_incorporacion}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#cbd5e1' }}>-</span>
+                          )}
+                        </td>
+
+                        {/* Hora Desincorporación */}
+                        <td style={{ textAlign: 'center' }}>
+                          {u.hora_desincorporacion ? (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: '#fef3c7',
+                              color: '#92400e',
+                              fontSize: '0.8rem',
+                              fontWeight: 700
+                            }}>
+                              {u.hora_desincorporacion}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#cbd5e1' }}>-</span>
+                          )}
                         </td>
 
                         {/* Motivo / Falla */}

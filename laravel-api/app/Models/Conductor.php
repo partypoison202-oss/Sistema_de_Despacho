@@ -11,8 +11,6 @@ class Conductor extends Model
 
     protected $table = 'conductores';
 
-    protected $hidden = ['foto', 'qr_documento'];
-
     protected $appends = ['nombre', 'info_ventana_faltas'];
 
     protected $fillable = [
@@ -79,8 +77,14 @@ class Conductor extends Model
         return trim("{$this->apellidos} {$this->nombres}");
     }
 
+    protected $memoizedVentanaFaltas = null;
+
     public function evaluarInhabilitacionFaltas()
     {
+        if ($this->memoizedVentanaFaltas !== null) {
+            return $this->memoizedVentanaFaltas;
+        }
+
         try {
             $rawDetalle = $this->faltas_detalle;
             $detalle = [];
@@ -185,7 +189,7 @@ class Conductor extends Model
                 $diasRestantes = $ventanaFin ? max(0, (int)ceil((strtotime($ventanaFin) - $todayTimestamp) / 86400)) : 0;
             }
 
-            return [
+            return $this->memoizedVentanaFaltas = [
                 'inhabilitado' => $inhabilitado,
                 'faltas_ventana_activa' => $faltasVentanaCount,
                 'ventana_inicio' => $ventanaInicio,
@@ -193,7 +197,7 @@ class Conductor extends Model
                 'dias_restantes_ventana' => $diasRestantes,
             ];
         } catch (\Throwable $th) {
-            return [
+            return $this->memoizedVentanaFaltas = [
                 'inhabilitado' => false,
                 'faltas_ventana_activa' => 0,
                 'ventana_inicio' => null,

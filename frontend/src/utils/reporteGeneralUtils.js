@@ -45,9 +45,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
         const est = normStr(u.ESTATUS || u.estatus);
         return match && est.includes('OPERACI');
       }).length;
-      if (progInicio > 0) {
-        programadasCalculadas = progInicio;
-      }
+      programadasCalculadas = progInicio;
     }
 
     const enServicio = unidades.filter((u) => {
