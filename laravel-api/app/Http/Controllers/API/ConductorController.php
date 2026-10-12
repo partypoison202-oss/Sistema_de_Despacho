@@ -21,6 +21,10 @@ class ConductorController extends Controller
         if (self::$columnsChecked) return;
         self::$columnsChecked = true;
 
+        if (\Illuminate\Support\Facades\Cache::has('conductores_cols_verified')) {
+            return;
+        }
+
         try {
             if (Schema::hasTable('conductores')) {
                 if (!Schema::hasColumn('conductores', 'estatus')) {
@@ -49,6 +53,7 @@ class ConductorController extends Controller
                     });
                 }
             }
+            \Illuminate\Support\Facades\Cache::put('conductores_cols_verified', true, 86400);
         } catch (\Throwable $e) {
             // Manejo silencioso si las columnas ya existen o si el driver de DB rechaza DDL durante GET
         }
@@ -58,6 +63,8 @@ class ConductorController extends Controller
     {
         @ini_set('memory_limit', '512M');
         try {
+            $this->ensureColumnsExist();
+
             $query = Conductor::query();
 
             // Filtrar sólo operadores activos (no dados de baja ni inhabilitados) por defecto
@@ -110,7 +117,6 @@ class ConductorController extends Controller
 
                 $tarjetonClean = trim((string)($c->tarjeton ?? ''));
                 $estaAsignado = isset($asignacionesMap[$tarjetonClean]);
-
                 if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                     $c->estado_servicio = null;
                 } elseif ($c->estado_servicio === 'maniobrista') {

@@ -143,6 +143,11 @@ body:has(
   overflow: hidden !important;
 }
 
+/* SweetAlert2 siempre al frente de todos los modales y portales */
+.swal2-container {
+  z-index: 1000000 !important;
+}
+
 #root {
   min-height: 100svh;
 }

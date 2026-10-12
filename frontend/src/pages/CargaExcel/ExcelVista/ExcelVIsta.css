@@ -551,8 +551,11 @@
 }
 
 .excel-preview-table th.col-nombre_conductor,
-.excel-preview-table td.cell-nombre_conductor {
+.excel-preview-table td.cell-nombre_conductor,
+.excel-preview-table th.col-relevo_conductor,
+.excel-preview-table td.cell-relevo_conductor {
   min-width: 250px;
+  text-transform: uppercase;
 }
 
 .excel-preview-table th.col-tarjeton,

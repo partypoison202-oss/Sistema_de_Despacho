@@ -25,6 +25,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
   const [data, setData] = useState({ fechas: [], matriz: [] });
   const [cargando, setCargando] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const [filtroEstatus, setFiltroEstatus] = useState(null);
   
   // Paginación para mejor rendimiento
   const [paginaActual, setPaginaActual] = useState(1);
@@ -72,10 +73,10 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
     return filtrados.slice(indiceInicio, indiceInicio + registrosPorPagina);
   }, [filtrados, indiceInicio, registrosPorPagina]);
 
-  // Reiniciar a la página 1 cuando cambia la búsqueda
+  // Reiniciar a la página 1 cuando cambia la búsqueda o el filtro de estatus
   useEffect(() => {
     setPaginaActual(1);
-  }, [busqueda]);
+  }, [busqueda, filtroEstatus]);
 
   const getCellClass = (estado) => {
     switch(estado) {
@@ -107,93 +108,291 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
     }
   };
 
-  const verAsignacionesFuturas = async (tipo, titulo, color) => {
-    try {
-      Swal.fire({
-        title: 'Cargando...',
-        text: `Buscando ${titulo.toLowerCase()} futuras...`,
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
+  const toTitleCase = (str) => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .split(' ')
+      .filter(Boolean)
+      .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+      .join(' ');
+  };
 
-      let dataList = conductores;
-      if (!dataList || dataList.length === 0) {
+  const parseDateToTimestamp = (str) => {
+    if (!str) return 0;
+    const mYmd = String(str).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (mYmd) {
+      const [, y, m, d] = mYmd;
+      return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10)).getTime();
+    }
+    const mDmy = String(str).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (mDmy) {
+      const [, d, m, y] = mDmy;
+      return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10)).getTime();
+    }
+    const t = new Date(str).getTime();
+    return isNaN(t) ? 0 : t;
+  };
+
+  const getDiaSemana = (str) => {
+    const ts = parseDateToTimestamp(str);
+    if (!ts) return '';
+    const dt = new Date(ts);
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    return dias[dt.getDay()] || '';
+  };
+
+  const formatFechaDMY = (str) => {
+    if (!str) return '-';
+    const mYmd = String(str).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (mYmd) {
+      const [, y, m, d] = mYmd;
+      return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    }
+    const mDmy = String(str).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (mDmy) {
+      const [, d, m, y] = mDmy;
+      return `${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+    }
+    const dt = new Date(str);
+    if (!isNaN(dt.getTime())) {
+      const d = String(dt.getDate()).padStart(2, '0');
+      const m = String(dt.getMonth() + 1).padStart(2, '0');
+      const y = dt.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+    return str;
+  };
+
+  const verAsignacionesFuturas = async (tipo, titulo, color, subtipo = null) => {
+    try {
+      let dataConductores = Array.isArray(conductores) && conductores.length > 0 ? conductores : [];
+      
+      if (dataConductores.length === 0) {
+        Swal.fire({
+          title: 'Cargando...',
+          text: `Buscando ${titulo.toLowerCase()} programadas...`,
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
         const response = await fetch(`${API_BASE}/api/conductores`, {
           headers: getAuthHeaders()
         });
         if (!response.ok) throw new Error("Error fetching data");
-        dataList = await response.json();
+        dataConductores = await response.json();
       }
-      
+
       const hoy = new Date();
-      const hoyStr = new Date(hoy.getTime() - (hoy.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      
+      hoy.setHours(0, 0, 0, 0);
+      const hoyTimestamp = hoy.getTime();
+
+      const parseArray = (val) => {
+        if (!val) return [];
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') {
+          try {
+            const parsed = JSON.parse(val);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
+        }
+        return [];
+      };
+
       const futuros = [];
-      data.forEach(c => {
-        if (c[tipo]) {
-          const detalles = typeof c[tipo] === 'string' ? JSON.parse(c[tipo]) : c[tipo];
-          if (Array.isArray(detalles)) {
-            detalles.forEach(item => {
-              if (item.fecha && item.fecha >= hoyStr) {
-                futuros.push({ 
-                  nombre: c.nombre || c.nombres || 'Operador', 
-                  tarjeton: c.numero_tarjeton || c.tarjeton || 'S/T', 
-                  fecha: item.fecha, 
-                  motivo: (item.motivo === 'Asignación manual' || !item.motivo) ? '' : item.motivo 
-                });
+
+      dataConductores.forEach(c => {
+        let items = [];
+
+        if (tipo === 'faltas_detalle') {
+          // Solo faltas reales (excluir retardos si vienen registrados en faltas)
+          const arr = parseArray(c.faltas_detalle);
+          items = arr.filter(item => item && item.estado !== 'retardo');
+        } else if (tipo === 'retardos_detalle') {
+          // Incluir de retardos_detalle y de faltas_detalle con estado=retardo
+          const arr1 = parseArray(c.retardos_detalle);
+          const arr2 = parseArray(c.faltas_detalle).filter(item => item && item.estado === 'retardo');
+          items = [...arr1, ...arr2];
+        } else if (tipo === 'permutas_detalle') {
+          const arr = parseArray(c.permutas_detalle);
+          if (subtipo) {
+            items = arr.filter(item => item && item.tipo === subtipo);
+          } else {
+            items = arr;
+          }
+        } else {
+          items = parseArray(c[tipo]);
+        }
+
+        items.forEach(item => {
+          if (!item) return;
+          const rawFecha = typeof item === 'string' ? item : item.fecha;
+          if (!rawFecha) return;
+
+          const ts = parseDateToTimestamp(rawFecha);
+          if (ts >= hoyTimestamp) {
+            const rawTarjeton = c.tarjeton || c.numero_tarjeton || '';
+            const tarjetonLimpio = rawTarjeton ? String(rawTarjeton.split('_BAJA_')[0]).padStart(4, '0') : 'S/T';
+            const rawNombre = c.nombre || `${c.nombres || ''} ${c.apellidos || ''}`.trim() || 'Operador';
+            const nombreLimpio = toTitleCase(rawNombre);
+            const motivoTexto = typeof item === 'object' && item.motivo && item.motivo !== 'Asignación manual' ? item.motivo : '';
+            
+            futuros.push({
+              id: c.id,
+              tarjeton: tarjetonLimpio,
+              nombre: nombreLimpio,
+              fecha: rawFecha,
+              timestamp: ts,
+              fechaDMY: formatFechaDMY(rawFecha),
+              diaSemana: getDiaSemana(rawFecha),
+              motivo: motivoTexto
+            });
+          }
+        });
+      });
+
+      // Ordenar estrictamente cronológico día/mes/año (timestamp ascendente), y en empate por número de tarjetón
+      futuros.sort((a, b) => {
+        if (a.timestamp !== b.timestamp) {
+          return a.timestamp - b.timestamp;
+        }
+        return a.tarjeton.localeCompare(b.tarjeton);
+      });
+
+      if (futuros.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Sin Asignaciones',
+          text: `No hay ${titulo.toLowerCase()} programadas a futuro (a partir de hoy).`,
+          confirmButtonColor: '#6b1d33',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+      const tableHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: left;">
+          <!-- Barra superior de búsqueda y conteo del modal -->
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; padding: 4px 2px;">
+            <div style="position: relative; flex: 1; min-width: 240px;">
+              <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #94a3b8; pointer-events: none;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input 
+                id="swal-futuros-search" 
+                type="text" 
+                placeholder="Filtrar por tarjetón, operador o fecha (dd/mm/aaaa)..." 
+                style="width: 100%; box-sizing: border-box; padding: 7px 12px 7px 32px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 12px; outline: none; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#6b1d33'"
+                onblur="this.style.borderColor='#cbd5e1'"
+              />
+            </div>
+            <span id="swal-futuros-count" style="background: ${color}15; color: ${color}; font-size: 11px; font-weight: 800; padding: 6px 14px; border-radius: 9999px; border: 1px solid ${color}35; white-space: nowrap;">
+              ${futuros.length} ${futuros.length === 1 ? 'registro' : 'registros'}
+            </span>
+          </div>
+
+          <!-- Contenedor con scroll y tabla -->
+          <div style="max-height: 440px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px;">
+              <thead style="position: sticky; top: 0; z-index: 10; background: #f8fafc;">
+                <tr>
+                  <th style="padding: 8px 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; color: #475569; border-bottom: 2px solid ${color}; width: 100px; text-align: left;">
+                    Fecha
+                  </th>
+                  <th style="padding: 8px 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; color: #475569; border-bottom: 2px solid ${color}; text-align: left;">
+                    Operador
+                  </th>
+                  <th style="padding: 8px 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; color: #475569; border-bottom: 2px solid ${color}; text-align: left;">
+                    Motivo
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="swal-futuros-tbody">
+                ${futuros.map((f, idx) => `
+                  <tr class="swal-futuros-row" data-search="${f.tarjeton.toLowerCase()} ${f.nombre.toLowerCase()} ${f.fechaDMY.toLowerCase()} ${f.motivo.toLowerCase()}" style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'}; transition: background 0.15s;">
+                    <td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; white-space: nowrap;">
+                      <span style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; font-weight: 700; color: #1e293b;">
+                        ${f.fechaDMY}
+                      </span>
+                    </td>
+                    <td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9;">
+                      <div style="display: flex; align-items: center; gap: 7px;">
+                        <span style="font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 800; font-size: 11px; background: rgba(107, 29, 51, 0.08); color: #6b1d33; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(107, 29, 51, 0.2); flex-shrink: 0;">
+                          ${f.tarjeton}
+                        </span>
+                        <span style="font-weight: 700; color: #1e293b; font-size: 12px;">
+                          ${f.nombre}
+                        </span>
+                      </div>
+                    </td>
+                    <td style="padding: 7px 12px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 11px; line-height: 1.35;">
+                      ${f.motivo || '<span style="color: #94a3b8; font-style: italic;">Sin motivo registrado</span>'}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <div id="swal-futuros-empty" style="display: none; padding: 30px; text-align: center; color: #64748b; font-size: 12px; font-weight: 600;">
+              No se encontraron coincidencias para la búsqueda.
+            </div>
+          </div>
+        </div>
+      `;
+
+      Swal.fire({
+        title: `<div style="display:flex; align-items:center; justify-content:center; gap:8px; font-weight:900; font-size:19px; color:#1e293b;">
+          <span>Próximas</span> 
+          <span style="color:${color}; text-transform:uppercase; border-bottom: 2px solid ${color}60; padding-bottom: 1px;">${titulo}</span>
+        </div>`,
+        html: tableHtml,
+        width: '720px',
+        confirmButtonColor: '#6b1d33',
+        confirmButtonText: 'Cerrar',
+        customClass: {
+          popup: 'rounded-2xl shadow-2xl border border-slate-100',
+          confirmButton: 'rounded-xl font-bold px-7 py-2.5 shadow-sm cursor-pointer'
+        },
+        didOpen: () => {
+          const searchInput = document.getElementById('swal-futuros-search');
+          const rows = document.querySelectorAll('.swal-futuros-row');
+          const countBadge = document.getElementById('swal-futuros-count');
+          const emptyMsg = document.getElementById('swal-futuros-empty');
+
+          if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+              const term = e.target.value.toLowerCase().trim();
+              let visibleCount = 0;
+              rows.forEach(row => {
+                const text = row.getAttribute('data-search') || '';
+                if (!term || text.includes(term)) {
+                  row.style.display = '';
+                  visibleCount++;
+                } else {
+                  row.style.display = 'none';
+                }
+              });
+              if (countBadge) {
+                countBadge.textContent = `${visibleCount} ${visibleCount === 1 ? 'registro' : 'registros'}`;
+              }
+              if (emptyMsg) {
+                emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
               }
             });
           }
         }
       });
 
-      futuros.sort((a, b) => a.fecha.localeCompare(b.fecha));
-
-      if (futuros.length === 0) {
-        Swal.fire({
-          icon: 'info',
-          title: 'Sin Asignaciones',
-          text: `No hay ${titulo.toLowerCase()} programadas a futuro.`
-        });
-        return;
-      }
-
-      let tableHtml = `
-        <div style="max-height: 400px; overflow-y: auto; text-align: left; font-size: 0.9rem;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead style="position: sticky; top: 0; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              <tr>
-                <th style="padding: 8px; border-bottom: 2px solid ${color}; color: ${color};">Fecha</th>
-                <th style="padding: 8px; border-bottom: 2px solid ${color}; color: ${color};">Operador</th>
-                <th style="padding: 8px; border-bottom: 2px solid ${color}; color: ${color};">Motivo</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${futuros.map(f => `
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                  <td style="padding: 8px; font-weight: bold;">${f.fecha}</td>
-                  <td style="padding: 8px;">[${f.tarjeton}] ${f.nombre}</td>
-                  <td style="padding: 8px; color: #64748b;">${f.motivo || '-'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      Swal.fire({
-        title: `Próximas ${titulo}`,
-        html: tableHtml,
-        width: '600px',
-        confirmButtonColor: color,
-        confirmButtonText: 'Cerrar'
-      });
-
     } catch (error) {
       console.error(error);
-      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar las asignaciones.' });
+      Swal.fire({ 
+        icon: 'error', 
+        title: 'Error', 
+        text: 'No se pudieron cargar las asignaciones.',
+        confirmButtonColor: '#6b1d33'
+      });
     }
   };
 
@@ -202,36 +401,60 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
       <div className="itinerario-header">
         <div className="itinerario-filters">
           <div className="filter-group">
-            <label>Desde:</label>
+            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <span>Desde:</span>
+            </label>
             <AppleDatePicker value={desde} onChange={setDesde} disableFuture={true} />
           </div>
           <div className="filter-group">
-            <label>Hasta:</label>
+            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              <span>Hasta:</span>
+            </label>
             <AppleDatePicker value={hasta} onChange={setHasta} disableFuture={true} minDate={desde} />
           </div>
-          <div className="filter-group" style={{ flex: 1, minWidth: '250px' }}>
-            <label>Buscar Conductor:</label>
-            <input 
-              type="text" 
-              className="itinerario-search" 
-              placeholder="Buscar por nombre o tarjetón..." 
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-            />
+          <div className="filter-group" style={{ flex: 1, minWidth: '260px' }}>
+            <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"></path></svg>
+              <span>Buscar Conductor:</span>
+            </label>
+            <div className="relative flex items-center w-full">
+              <input 
+                type="text" 
+                className="itinerario-search !pl-9 !pr-8" 
+                placeholder="Buscar por nombre o número de tarjetón..." 
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+              />
+              <svg className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {busqueda && (
+                <button 
+                  type="button" 
+                  onClick={() => setBusqueda('')} 
+                  className="absolute right-2.5 text-slate-400 hover:text-slate-600 text-sm font-bold p-1 leading-none rounded-full hover:bg-slate-100"
+                  title="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
-        <div className="itinerario-actions" style={{ display: 'flex', gap: '1rem' }}>
+        <div className="itinerario-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button 
             className="btn-asignar-fechas" 
             onClick={() => generarPDFItinerario(data, desde, hasta)}
             disabled={cargando || !data.fechas || data.fechas.length === 0}
             style={{ backgroundColor: '#1e293b', opacity: (cargando || !data.fechas || data.fechas.length === 0) ? 0.5 : 1 }}
           >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
             Imprimir PDF
           </button>
           <button className="btn-asignar-fechas" onClick={() => setModalOpen(true)}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             Asignar Fechas (A, V, I, D, F)
           </button>
         </div>
@@ -270,8 +493,8 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
             )}
           </div>
 
-          <div className="text-[10px] text-slate-400 italic">
-            💡 Faltas y asistencias sincronizadas automáticamente
+          <div className="text-[11px] text-slate-500 italic font-medium bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+            💡 Nota: Las faltas y asistencias son actualizadas automáticamente desde los módulos de Programación, Control de Conductores y Despacho.
           </div>
         </div>
 
@@ -281,66 +504,111 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 w-full">
               {/* ASISTENCIA */}
               <div 
-                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => verAsignacionesFuturas('asistencias_detalle', 'ASISTENCIAS', '#059669')}
-                title="Ver Asistencias Programadas"
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
+                title="Se registra automáticamente"
               >
-                <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">A</span>
-                <span className="text-[11px] font-extrabold text-slate-700 pr-3">ASISTENCIA</span>
+                <span className="w-8 h-8 bg-[#a7f3d0] text-[#065f46] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                  A
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3">
+                  ASISTENCIA
+                </span>
               </div>
 
               {/* DESCANSO */}
               <div 
-                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => verAsignacionesFuturas('descansos_detalle', 'DESCANSOS', '#9a3412')}
-                title="Ver Descansos Futuros"
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#9a3412]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('descansos_detalle', 'DESCANSOS', '#9a3412', 'D')}
+                title="Ver Descansos Programados a Futuro (Día/Mes/Año)"
               >
-                <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300">D</span>
-                <span className="text-[11px] font-extrabold text-slate-700 pr-3">DESCANSO</span>
+                <span className="w-8 h-8 bg-[#fed7aa] text-[#9a3412] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#fdba74] transition-colors">
+                  D
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#9a3412] transition-colors">
+                  DESCANSO
+                </span>
               </div>
 
               {/* VACACIONES */}
               <div 
-                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => verAsignacionesFuturas('vacaciones_detalle', 'VACACIONES', '#854d0e')}
-                title="Ver Vacaciones Futuras"
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#854d0e]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('vacaciones_detalle', 'VACACIONES', '#854d0e', 'V')}
+                title="Ver Vacaciones Programadas a Futuro (Día/Mes/Año)"
               >
-                <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300">V</span>
-                <span className="text-[11px] font-extrabold text-slate-700 pr-3">VACACIONES</span>
+                <span className="w-8 h-8 bg-[#fef08a] text-[#854d0e] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#fde047] transition-colors">
+                  V
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#854d0e] transition-colors">
+                  VACACIONES
+                </span>
               </div>
 
               {/* INCAPACIDAD */}
               <div 
-                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => verAsignacionesFuturas('incapacidades_detalle', 'INCAPACIDADES', '#1e40af')}
-                title="Ver Incapacidades Futuras"
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#1e40af]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('incapacidades_detalle', 'INCAPACIDADES', '#1e40af', 'I')}
+                title="Ver Incapacidades Programadas a Futuro (Día/Mes/Año)"
               >
-                <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300">I</span>
-                <span className="text-[11px] font-extrabold text-slate-700 pr-3">INCAPACIDAD</span>
+                <span className="w-8 h-8 bg-[#bfdbfe] text-[#1e40af] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#93c5fd] transition-colors">
+                  I
+                </span>
+                <span className="text-[11px] font-extrabold text-slate-700 pr-3 group-hover:text-[#1e40af] transition-colors">
+                  INCAPACIDAD
+                </span>
               </div>
 
               {/* FALTA */}
-              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
-                <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">F</span>
-                <span className="text-[10px] font-extrabold text-slate-700 pr-2">FALTA</span>
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
+                title="Se registra automáticamente"
+              >
+                <span className="w-8 h-8 bg-[#c51d23] text-white font-black text-xs flex items-center justify-center border-r border-slate-300">
+                  F
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">
+                  FALTA
+                </span>
               </div>
 
               {/* DESCANSO PERMUTA */}
-              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Descanso por Permuta">
-                <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300">DP</span>
-                <span className="text-[10px] font-extrabold text-slate-700 pr-2">DESCANSO (PERMUTA)</span>
+              <div 
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#6d28d9]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('permutas_detalle', 'DESCANSOS (PERMUTA)', '#6d28d9', 'DP')}
+                title="Ver Descansos por Permuta Programados a Futuro (Día/Mes/Año)"
+              >
+                <span className="w-8 h-8 bg-[#ede9fe] text-[#6d28d9] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#ddd6fe] transition-colors">
+                  DP
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2 group-hover:text-[#6d28d9] transition-colors">
+                  DESCANSO (PERMUTA)
+                </span>
               </div>
 
               {/* ASISTENCIA PERMUTA */}
-              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs" title="Asistencia por Permuta">
-                <span className="w-8 h-8 bg-[#e0e7ff] text-[#3730a3] font-black text-xs flex items-center justify-center border-r border-slate-300">AP</span>
-                <span className="text-[10px] font-extrabold text-slate-700 pr-2">ASISTENCIA (PERMUTA)</span>
+              <div 
+                className="group flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs cursor-pointer hover:shadow-md hover:border-[#3730a3]/40 hover:-translate-y-0.5 transition-all"
+                onClick={() => verAsignacionesFuturas('permutas_detalle', 'ASISTENCIAS (PERMUTA)', '#3730a3', 'AP')}
+                title="Ver Asistencias por Permuta Programadas a Futuro (Día/Mes/Año)"
+              >
+                <span className="w-8 h-8 bg-[#e0e7ff] text-[#3730a3] font-black text-xs flex items-center justify-center border-r border-slate-300 group-hover:bg-[#c7d2fe] transition-colors">
+                  AP
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2 group-hover:text-[#3730a3] transition-colors">
+                  ASISTENCIA (PERMUTA)
+                </span>
               </div>
 
               {/* RETARDO */}
-              <div className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
-                <span className="w-8 h-8 bg-[#ffedd5] text-[#ea580c] font-black text-xs flex items-center justify-center border-r border-slate-300">R</span>
-                <span className="text-[10px] font-extrabold text-slate-700 pr-2">RETARDO</span>
+              <div 
+                className="flex items-center gap-2 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs"
+                title="Se registra automáticamente"
+              >
+                <span className="w-8 h-8 bg-[#ffedd5] text-[#ea580c] font-black text-xs flex items-center justify-center border-r border-slate-300">
+                  R
+                </span>
+                <span className="text-[10px] font-extrabold text-slate-700 pr-2">
+                  RETARDO
+                </span>
               </div>
             </div>
           </div>
@@ -384,17 +652,37 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               <tr>
                 <th className="sticky-col first-col">TARJETÓN</th>
                 <th className="sticky-col second-col">OPERADOR</th>
-                <th className="sum-col header-a" title="Total Asistencias">A</th>
-                <th className="sum-col header-d" title="Total Descansos">D</th>
-                <th className="sum-col header-v" title="Total Vacaciones">V</th>
-                <th className="sum-col header-i" title="Total Incapacidades">I</th>
-                <th className="sum-col header-f" title="Total Faltas">F</th>
-                <th className="sum-col header-ap" title="Total Asistencias Permuta">AP</th>
-                <th className="sum-col header-dp" title="Total Descansos Permuta">DP</th>
-                <th className="sum-col header-r" title="Total Retardos">R</th>
+                {[
+                  ['A', 'header-a', 'Asistencias'],
+                  ['D', 'header-d', 'Descansos'],
+                  ['V', 'header-v', 'Vacaciones'],
+                  ['I', 'header-i', 'Incapacidades'],
+                  ['F', 'header-f', 'Faltas'],
+                  ['AP', 'header-ap', 'Asistencias Permuta'],
+                  ['DP', 'header-dp', 'Descansos Permuta'],
+                  ['R', 'header-r', 'Retardos']
+                ].filter(([letra]) => !filtroEstatus || filtroEstatus === letra).map(([letra, clase, nombre]) => (
+                  <th
+                    key={letra}
+                    className={`sum-col ${clase}`}
+                    title={filtroEstatus === letra ? `Filtro activo de ${nombre}. Clic para quitar y ver todas` : `Mostrar solo la columna de ${nombre}`}
+                    onClick={() => setFiltroEstatus(prev => (prev === letra ? null : letra))}
+                    style={{
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      boxShadow: filtroEstatus === letra ? 'inset 0 -3px 0 currentColor' : undefined
+                    }}
+                  >
+                    {filtroEstatus === letra ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        {letra} <span style={{ fontSize: '9px', opacity: 0.8 }}>✕</span>
+                      </span>
+                    ) : letra}
+                  </th>
+                ))}
                 {data.fechas.map(f => {
                   const [y, m, d] = f.split('-');
-                  return <th key={f} className="day-col" title={f}>{d}</th>
+                  return <th key={f} className="day-col" title={`Fecha: ${formatFechaDMY(f)}`}>{d}</th>
                 })}
               </tr>
             </thead>
@@ -403,23 +691,33 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
                 <tr key={c.id}>
                   <td className="sticky-col first-col font-mono">{c.tarjeton}</td>
                   <td className="sticky-col second-col conductor-nombre">{c.nombre}</td>
-                  <td className="sum-col sum-val-a">{c.totales?.A || 0}</td>
-                  <td className="sum-col sum-val-d">{c.totales?.D || 0}</td>
-                  <td className="sum-col sum-val-v">{c.totales?.V || 0}</td>
-                  <td className="sum-col sum-val-i">{c.totales?.I || 0}</td>
-                  <td className="sum-col sum-val-f">{c.totales?.F || 0}</td>
-                  <td className="sum-col sum-val-ap">{c.totales?.AP || 0}</td>
-                  <td className="sum-col sum-val-dp">{c.totales?.DP || 0}</td>
-                  <td className="sum-col sum-val-r">{c.totales?.R || 0}</td>
+                  {[
+                    ['A', 'sum-val-a'],
+                    ['D', 'sum-val-d'],
+                    ['V', 'sum-val-v'],
+                    ['I', 'sum-val-i'],
+                    ['F', 'sum-val-f'],
+                    ['AP', 'sum-val-ap'],
+                    ['DP', 'sum-val-dp'],
+                    ['R', 'sum-val-r']
+                  ].filter(([letra]) => !filtroEstatus || filtroEstatus === letra).map(([letra, clase]) => (
+                    <td key={letra} className={`sum-col ${clase}`}>{c.totales?.[letra] || 0}</td>
+                  ))}
                   
                   {data.fechas.map(f => {
-                    const estado = c.dias[f];
-                    const motivo = c.motivos && c.motivos[f] ? ` | Motivo: ${c.motivos[f]}` : '';
+                    const estadoReal = c.dias[f];
+                    const coincide = !filtroEstatus || estadoReal === filtroEstatus;
+                    const estado = coincide ? estadoReal : '';
+                    const motivo = coincide && c.motivos && c.motivos[f] ? ` | Motivo: ${c.motivos[f]}` : '';
                     return (
                       <td key={f} className="day-cell">
-                        <div className={`status-bubble ${getCellClass(estado)}`} title={`${f} - ${getCellLabel(estado)}${motivo}`}>
-                          {estado}
-                        </div>
+                        {coincide && estado ? (
+                          <div className={`status-bubble ${getCellClass(estado)}`} title={`${formatFechaDMY(f)} - ${getCellLabel(estado)}${motivo}`}>
+                            {estado}
+                          </div>
+                        ) : (
+                          <div className="status-bubble" style={{ opacity: 0 }} />
+                        )}
                       </td>
                     );
                   })}
@@ -427,7 +725,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
               ))}
               {filtrados.length === 0 && (
                 <tr>
-                  <td colSpan={10 + data.fechas.length} className="no-results">
+                  <td colSpan={(filtroEstatus ? 3 : 10) + data.fechas.length} className="no-results">
                     No se encontraron conductores.
                   </td>
                 </tr>

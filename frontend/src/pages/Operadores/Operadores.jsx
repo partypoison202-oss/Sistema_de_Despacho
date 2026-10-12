@@ -1236,7 +1236,7 @@ export default function Operadores() {
           </div>
         )}
 
-        {loading ? (
+        {(loading && conductores.length === 0 && activeTab !== 'itinerario') ? (
           <div className="operadores-loading">
             <span className="spinner"></span>
             <p>Cargando lista de T6...</p>

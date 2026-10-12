@@ -535,7 +535,9 @@ export default function ExcelPreview({
                       // Si el campo es de solo lectura, mostrar texto plano (o insignias para Estatus)
                       if (isFieldReadOnly) {
                         let displayValue = fila[h] ?? '';
-                        if (h === 'ESTATUS') {
+                        if (h === 'NOMBRE_CONDUCTOR' || h === 'RELEVO_CONDUCTOR') {
+                          displayValue = String(displayValue).toUpperCase();
+                        } else if (h === 'ESTATUS') {
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                           const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : (rawSt.includes('reserva') || rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt] || fila[h];
