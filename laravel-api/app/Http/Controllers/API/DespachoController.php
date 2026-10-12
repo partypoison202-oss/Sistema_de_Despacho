@@ -840,10 +840,10 @@ class DespachoController extends Controller
             if ($tarjetonVal !== '') {
                 $conductorCatalog = $conductoresMap->get($tarjetonVal) ?? $conductoresMap->get(ltrim($tarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($tarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($conductorCatalog) {
-                    $conductorNombre = $conductorCatalog->nombre;
+                    $conductorNombre = mb_strtoupper(trim($conductorCatalog->nombre), 'UTF-8');
                     $tarjetonesEnServicio[] = $conductorCatalog->tarjeton;
                 } else {
-                    $conductorNombre = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
+                    $conductorNombre = mb_strtoupper(trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? '')), 'UTF-8');
                 }
             }
 
@@ -866,13 +866,13 @@ class DespachoController extends Controller
             if ($relevoTarjetonVal !== '') {
                 $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($relevoCatalog) {
-                    $relevoConductorNombre = $relevoCatalog->nombre;
+                    $relevoConductorNombre = mb_strtoupper(trim($relevoCatalog->nombre), 'UTF-8');
                     $tarjetonesEnServicio[] = $relevoCatalog->tarjeton;
                 } else {
-                    $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                    $relevoConductorNombre = mb_strtoupper(trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')), 'UTF-8');
                 }
             } else {
-                $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                $relevoConductorNombre = mb_strtoupper(trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')), 'UTF-8');
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
@@ -1113,9 +1113,9 @@ class DespachoController extends Controller
             if ($tarjetonVal !== '') {
                 $conductorCatalog = $conductoresMap->get($tarjetonVal) ?? $conductoresMap->get(ltrim($tarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($tarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($conductorCatalog) {
-                    $conductorNombre = $conductorCatalog->nombre;
+                    $conductorNombre = mb_strtoupper(trim($conductorCatalog->nombre), 'UTF-8');
                 } else {
-                    $conductorNombre = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
+                    $conductorNombre = mb_strtoupper(trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? '')), 'UTF-8');
                 }
             }
 
@@ -1136,12 +1136,12 @@ class DespachoController extends Controller
             if ($relevoTarjetonVal !== '') {
                 $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($relevoCatalog) {
-                    $relevoConductorNombre = $relevoCatalog->nombre;
+                    $relevoConductorNombre = mb_strtoupper(trim($relevoCatalog->nombre), 'UTF-8');
                 } else {
-                    $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                    $relevoConductorNombre = mb_strtoupper(trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')), 'UTF-8');
                 }
             } else {
-                $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                $relevoConductorNombre = mb_strtoupper(trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')), 'UTF-8');
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
@@ -1310,9 +1310,9 @@ class DespachoController extends Controller
             if ($tarjetonVal !== '') {
                 $conductorCatalog = $conductoresMap->get($tarjetonVal) ?? $conductoresMap->get(ltrim($tarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($tarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($conductorCatalog) {
-                    $conductorNombre = $conductorCatalog->nombre;
+                    $conductorNombre = mb_strtoupper(trim($conductorCatalog->nombre), 'UTF-8');
                 } else {
-                    $conductorNombre = trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? ''));
+                    $conductorNombre = mb_strtoupper(trim((string) ($fila['NOMBRE_CONDUCTOR'] ?? '')), 'UTF-8');
                 }
             }
 
@@ -1333,12 +1333,12 @@ class DespachoController extends Controller
             if ($relevoTarjetonVal !== '') {
                 $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($relevoCatalog) {
-                    $relevoConductorNombre = $relevoCatalog->nombre;
+                    $relevoConductorNombre = mb_strtoupper(trim($relevoCatalog->nombre), 'UTF-8');
                 } else {
-                    $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                    $relevoConductorNombre = mb_strtoupper(trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')), 'UTF-8');
                 }
             } else {
-                $relevoConductorNombre = trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''));
+                $relevoConductorNombre = mb_strtoupper(trim((string) ($fila['RELEVO_CONDUCTOR'] ?? '')), 'UTF-8');
             }
 
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
@@ -4656,7 +4656,13 @@ class DespachoController extends Controller
             $conductoresRaw = DB::table('conductores')->get(['tarjeton', 'nombres', 'apellidos']);
             $conductores = [];
             foreach ($conductoresRaw as $c) {
-                $conductores[$c->tarjeton] = trim(($c->nombres ?? '') . ' ' . ($c->apellidos ?? ''));
+                $nom = mb_strtoupper(trim(($c->nombres ?? '') . ' ' . ($c->apellidos ?? '')), 'UTF-8');
+                $t = trim((string) $c->tarjeton);
+                if ($t !== '') {
+                    $conductores[$t] = $nom;
+                    $conductores[ltrim($t, '0')] = $nom;
+                    $conductores[str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT)] = $nom;
+                }
             }
             
             $unidadesDict = [];
@@ -4782,8 +4788,10 @@ class DespachoController extends Controller
                     if (!isset($conductores[$tarjetonStr])) {
                         $erroresFormato[] = "{$prefixErr} El conductor con tarjetón {$tarjetonStr} no existe en la base de datos.";
                     } else {
-                        $nombreConductor = mb_convert_case(mb_strtolower($conductores[$tarjetonStr], 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+                        $nombreConductor = mb_strtoupper(trim($conductores[$tarjetonStr]), 'UTF-8');
                     }
+                } elseif (!empty($fila['CONDUCTOR']) || !empty($fila['NOMBRE_CONDUCTOR'])) {
+                    $nombreConductor = mb_strtoupper(trim((string) ($fila['CONDUCTOR'] ?? $fila['NOMBRE_CONDUCTOR'])), 'UTF-8');
                 }
                 
                 $patioNorteBool = filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN);
