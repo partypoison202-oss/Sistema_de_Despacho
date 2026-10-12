@@ -68,7 +68,8 @@ export default function ResumenDespacho() {
           const units = (Array.isArray(apiData) ? apiData : []).filter(d => normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id)));
           
           // Regla de inicio operativo (snapshot de cambio de día a las 00:00)
-          const progInicio = Array.isArray(inicioData)
+          const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
+          const progInicio = hasSnapshot
             ? inicioData.filter(d => {
                 const match = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
                 const est = normStr(d.ESTATUS || d.estatus);
@@ -77,7 +78,7 @@ export default function ResumenDespacho() {
             : 0;
 
           const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI')).length;
-          const prog = progInicio > 0 ? progInicio : (progActual || units.length);
+          const prog = hasSnapshot ? progInicio : (progActual || units.length);
 
           const oper = units.filter(d => {
             const status = normStr(d.ESTATUS || d.estatus);

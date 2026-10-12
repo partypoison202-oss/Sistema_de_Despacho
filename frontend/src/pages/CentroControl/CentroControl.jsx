@@ -174,7 +174,8 @@ export default function CentroControl() {
       const otros        = 0;
       
       // Total Programadas fijo: Unidades en operación programadas al inicio del día (snapshot de cambio de día)
-      const programadasInicio = Array.isArray(inicioData)
+      const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
+      const programadasInicio = hasSnapshot
         ? inicioData.filter(d => {
             const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
             const estatusNorm = normStr(d.ESTATUS || d.estatus);
@@ -183,8 +184,9 @@ export default function CentroControl() {
           }).length
         : 0;
 
-      // Si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales
-      const programadas = programadasInicio > 0 ? programadasInicio : (unidadesOperacion.length || total);
+      // Si el snapshot está disponible, se respeta el congelado de inicio de día para cada modelo.
+      // Solo si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales.
+      const programadas = hasSnapshot ? programadasInicio : (unidadesOperacion.length || total);
 
       return {
         ...mc,

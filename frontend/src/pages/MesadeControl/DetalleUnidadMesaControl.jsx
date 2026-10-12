@@ -436,6 +436,7 @@ export default function DetalleUnidadMesaControl() {
           acople: activeUnitData.acople || '',
           relevo_hora: activeUnitData.relevo_hora || '',
           itinerario: activeUnitData.itinerario || false,
+          horaIncorporacion: activeUnitData.hora_incorporacion || '',
           horaDesincorporacion: activeUnitData.hora_desincorporacion || '',
         });
         setFallaTexto(activeUnitData.falla || '');
@@ -458,6 +459,7 @@ export default function DetalleUnidadMesaControl() {
           relevo_tarjeton: '',
           relevo_hora: '',
           itinerario: false,
+          horaIncorporacion: '',
           horaDesincorporacion: '',
         });
         setFallaTexto('');

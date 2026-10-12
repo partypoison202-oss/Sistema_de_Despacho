@@ -14,8 +14,17 @@ use Carbon\CarbonPeriod;
 
 class ConductorController extends Controller
 {
+    private static $columnsChecked = false;
+
     private function ensureColumnsExist()
     {
+        if (self::$columnsChecked) return;
+        self::$columnsChecked = true;
+
+        if (\Illuminate\Support\Facades\Cache::has('conductores_cols_verified')) {
+            return;
+        }
+
         try {
             if (Schema::hasTable('conductores')) {
                 if (!Schema::hasColumn('conductores', 'estatus')) {
@@ -44,6 +53,7 @@ class ConductorController extends Controller
                     });
                 }
             }
+            \Illuminate\Support\Facades\Cache::put('conductores_cols_verified', true, 86400);
         } catch (\Throwable $e) {
             // Manejo silencioso si las columnas ya existen o si el driver de DB rechaza DDL durante GET
         }
@@ -65,21 +75,21 @@ class ConductorController extends Controller
                 });
             }
 
-            // Obtener todos los tarjetones asignados en tiempo real en despacho
-            $asignaciones = [];
+            // Obtener todos los tarjetones asignados en tiempo real en despacho con lookup O(1)
+            $asignacionesMap = [];
             try {
-                if (Schema::hasTable('informacion_operativa')) {
-                    $asignaciones = DB::table('informacion_operativa')
-                        ->whereNotNull('numero_tarjeton')
-                        ->where('numero_tarjeton', '!=', '')
-                        ->pluck('numero_tarjeton')
-                        ->toArray();
+                $asignaciones = DB::table('informacion_operativa')
+                    ->whereNotNull('numero_tarjeton')
+                    ->where('numero_tarjeton', '!=', '')
+                    ->pluck('numero_tarjeton');
+                foreach ($asignaciones as $t) {
+                    $asignacionesMap[trim((string)$t)] = true;
                 }
             } catch (\Throwable $e) {
-                $asignaciones = [];
+                $asignacionesMap = [];
             }
 
-            $conductores = $query->get()->map(function ($c) use ($asignaciones) {
+            $conductores = $query->get()->map(function ($c) use ($asignacionesMap) {
                 try {
                     // Evaluar regla de 4 faltas en 30 días
                     $eval = $c->evaluarInhabilitacionFaltas();
@@ -91,14 +101,12 @@ class ConductorController extends Controller
                                 'estatus' => 'inhabilitado',
                                 'estado_servicio' => null
                             ]);
-                            if (Schema::hasTable('informacion_operativa')) {
-                                DB::table('informacion_operativa')
-                                    ->where('numero_tarjeton', $c->tarjeton)
-                                    ->update([
-                                        'numero_tarjeton' => null,
-                                        'nombre_conductor' => null
-                                    ]);
-                            }
+                            DB::table('informacion_operativa')
+                                ->where('numero_tarjeton', $c->tarjeton)
+                                ->update([
+                                    'numero_tarjeton' => null,
+                                    'nombre_conductor' => null
+                                ]);
                         } catch (\Throwable $e) {
                             // Ignorar errores de actualización en lectura
                         }
@@ -107,14 +115,8 @@ class ConductorController extends Controller
                     // Ignorar error individual por registro
                 }
 
-                $tarjetonClean = trim($c->tarjeton ?? '');
-                $estaAsignado = false;
-                foreach ($asignaciones as $t) {
-                    if (trim($t) === $tarjetonClean) {
-                        $estaAsignado = true;
-                        break;
-                    }
-                }
+                $tarjetonClean = trim((string)($c->tarjeton ?? ''));
+                $estaAsignado = isset($asignacionesMap[$tarjetonClean]);
                 if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                     $c->estado_servicio = null;
                 } elseif ($c->estado_servicio === 'maniobrista') {

@@ -68,44 +68,43 @@ class ItinerarioController extends Controller
         $nombreMap = [];    // [nombreNormalizado][YYYY-MM-DD] = true
 
         try {
-            if (Schema::hasTable('historial_operativo')) {
-                $registrosHistorial = DB::table('historial_operativo')
-                    ->whereBetween('fecha_historial', [$desde->toDateString(), $hasta->toDateString()])
-                    ->get();
+            $registrosHistorial = DB::table('historial_operativo')
+                ->whereBetween('fecha_historial', [$desde->toDateString(), $hasta->toDateString()])
+                ->select(['fecha_historial', 'numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor'])
+                ->get();
 
-                foreach ($registrosHistorial as $h) {
-                    $fecha = $h->fecha_historial;
+            foreach ($registrosHistorial as $h) {
+                $fecha = $h->fecha_historial;
 
-                    if (!empty($h->numero_tarjeton)) {
-                        $tRaw = trim((string)$h->numero_tarjeton);
-                        $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
-                        $historialMap[$tRaw][$fecha] = true;
-                        if ($tNum !== '0') {
-                            $historialMap[$tNum][$fecha] = true;
-                        }
+                if (!empty($h->numero_tarjeton)) {
+                    $tRaw = trim((string)$h->numero_tarjeton);
+                    $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
+                    $historialMap[$tRaw][$fecha] = true;
+                    if ($tNum !== '0') {
+                        $historialMap[$tNum][$fecha] = true;
                     }
+                }
 
-                    if (!empty($h->nombre_conductor)) {
-                        $nNorm = $this->normalizarNombre($h->nombre_conductor);
-                        if ($nNorm) {
-                            $nombreMap[$nNorm][$fecha] = true;
-                        }
+                if (!empty($h->nombre_conductor)) {
+                    $nNorm = $this->normalizarNombre($h->nombre_conductor);
+                    if ($nNorm) {
+                        $nombreMap[$nNorm][$fecha] = true;
                     }
+                }
 
-                    if (!empty($h->relevo_tarjeton)) {
-                        $tRawRel = trim((string)$h->relevo_tarjeton);
-                        $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
-                        $historialMap[$tRawRel][$fecha] = true;
-                        if ($tNumRel !== '0') {
-                            $historialMap[$tNumRel][$fecha] = true;
-                        }
+                if (!empty($h->relevo_tarjeton)) {
+                    $tRawRel = trim((string)$h->relevo_tarjeton);
+                    $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
+                    $historialMap[$tRawRel][$fecha] = true;
+                    if ($tNumRel !== '0') {
+                        $historialMap[$tNumRel][$fecha] = true;
                     }
+                }
 
-                    if (!empty($h->relevo_conductor)) {
-                        $nNormRel = $this->normalizarNombre($h->relevo_conductor);
-                        if ($nNormRel) {
-                            $nombreMap[$nNormRel][$fecha] = true;
-                        }
+                if (!empty($h->relevo_conductor)) {
+                    $nNormRel = $this->normalizarNombre($h->relevo_conductor);
+                    if ($nNormRel) {
+                        $nombreMap[$nNormRel][$fecha] = true;
                     }
                 }
             }
@@ -118,40 +117,40 @@ class ItinerarioController extends Controller
         // Si hoy cae en el rango, incluir informacion_operativa para asistencias en tiempo real
         if ($hoy >= $desde->toDateString() && $hoy <= $hasta->toDateString()) {
             try {
-                if (Schema::hasTable('informacion_operativa')) {
-                    $hoyOps = DB::table('informacion_operativa')->get();
+                $hoyOps = DB::table('informacion_operativa')
+                    ->select(['numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor'])
+                    ->get();
 
-                    foreach ($hoyOps as $op) {
-                        if (!empty($op->numero_tarjeton)) {
-                            $tRaw = trim((string)$op->numero_tarjeton);
-                            $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
-                            $historialMap[$tRaw][$hoy] = true;
-                            if ($tNum !== '0') {
-                                $historialMap[$tNum][$hoy] = true;
-                            }
+                foreach ($hoyOps as $op) {
+                    if (!empty($op->numero_tarjeton)) {
+                        $tRaw = trim((string)$op->numero_tarjeton);
+                        $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
+                        $historialMap[$tRaw][$hoy] = true;
+                        if ($tNum !== '0') {
+                            $historialMap[$tNum][$hoy] = true;
                         }
+                    }
 
-                        if (!empty($op->nombre_conductor)) {
-                            $nNorm = $this->normalizarNombre($op->nombre_conductor);
-                            if ($nNorm) {
-                                $nombreMap[$nNorm][$hoy] = true;
-                            }
+                    if (!empty($op->nombre_conductor)) {
+                        $nNorm = $this->normalizarNombre($op->nombre_conductor);
+                        if ($nNorm) {
+                            $nombreMap[$nNorm][$hoy] = true;
                         }
+                    }
 
-                        if (!empty($op->relevo_tarjeton)) {
-                            $tRawRel = trim((string)$op->relevo_tarjeton);
-                            $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
-                            $historialMap[$tRawRel][$hoy] = true;
-                            if ($tNumRel !== '0') {
-                                $historialMap[$tNumRel][$hoy] = true;
-                            }
+                    if (!empty($op->relevo_tarjeton)) {
+                        $tRawRel = trim((string)$op->relevo_tarjeton);
+                        $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
+                        $historialMap[$tRawRel][$hoy] = true;
+                        if ($tNumRel !== '0') {
+                            $historialMap[$tNumRel][$hoy] = true;
                         }
+                    }
 
-                        if (!empty($op->relevo_conductor)) {
-                            $nNormRel = $this->normalizarNombre($op->relevo_conductor);
-                            if ($nNormRel) {
-                                $nombreMap[$nNormRel][$hoy] = true;
-                            }
+                    if (!empty($op->relevo_conductor)) {
+                        $nNormRel = $this->normalizarNombre($op->relevo_conductor);
+                        if ($nNormRel) {
+                            $nombreMap[$nNormRel][$hoy] = true;
                         }
                     }
                 }
@@ -160,11 +159,18 @@ class ItinerarioController extends Controller
             }
         }
 
-        // Obtener todos los conductores activos
-        $conductores = Conductor::where('estatus', 'activo')
-                                ->orWhereNull('estatus')
-                                ->orderBy('tarjeton')
-                                ->get();
+        // Obtener todos los conductores activos con solo las columnas necesarias
+        $conductores = DB::table('conductores')
+            ->where(function($q) {
+                $q->where('estatus', 'activo')->orWhereNull('estatus');
+            })
+            ->select([
+                'id', 'tarjeton', 'nombres', 'apellidos', 'estado_servicio',
+                'faltas_detalle', 'retardos_detalle', 'descansos_detalle',
+                'vacaciones_detalle', 'incapacidades_detalle', 'permutas_detalle', 'asistencias_detalle'
+            ])
+            ->orderBy('tarjeton')
+            ->get();
 
         $matriz = [];
 
@@ -304,7 +310,9 @@ class ItinerarioController extends Controller
     public function asignarBloque(Request $request)
     {
         $request->validate([
-            'conductor_id' => 'required|exists:conductores,id',
+            'conductor_id' => 'nullable|exists:conductores,id',
+            'conductor_ids' => 'nullable|array',
+            'conductor_ids.*' => 'exists:conductores,id',
             'estado' => 'required|in:asistencia,falta,descanso,vacaciones,incapacidad,permuta,retardo',
             'desde' => 'required|date',
             'hasta' => 'required|date|after_or_equal:desde',
@@ -312,7 +320,20 @@ class ItinerarioController extends Controller
             'conductor_relacionado_id' => 'nullable|exists:conductores,id'
         ]);
 
-        $conductor = Conductor::findOrFail($request->input('conductor_id'));
+        $conductorIds = [];
+        if ($request->has('conductor_ids') && is_array($request->input('conductor_ids')) && !empty($request->input('conductor_ids'))) {
+            $conductorIds = array_values(array_unique(array_filter($request->input('conductor_ids'))));
+        } elseif ($request->filled('conductor_id')) {
+            $conductorIds = [$request->input('conductor_id')];
+        }
+
+        if (empty($conductorIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Por favor selecciona al menos una persona conductora.'
+            ], 422);
+        }
+
         $estado = $request->input('estado');
         
         $desde = Carbon::parse($request->input('desde'));
@@ -332,6 +353,7 @@ class ItinerarioController extends Controller
 
         // Lógica especial para PERMUTA (Involucra a 2 conductores: 1 descansa [DP], 2 asiste [AP])
         if ($estado === 'permuta') {
+            $conductor = Conductor::findOrFail($conductorIds[0]);
             $relacionadoId = $request->input('conductor_relacionado_id');
             if (!$relacionadoId || (string)$relacionadoId === (string)$conductor->id) {
                 return response()->json([
@@ -413,228 +435,251 @@ class ItinerarioController extends Controller
             ]);
         }
 
-        // Lógica especial para ASISTENCIA MANUAL
-        if ($estado === 'asistencia') {
-            $rawAsist = $conductor->asistencias_detalle;
-            $detalle = is_string($rawAsist) ? (json_decode($rawAsist, true) ?: []) : (is_array($rawAsist) ? $rawAsist : []);
-
-            $fechasPeriodo = [];
-            foreach ($period as $date) {
-                $fechasPeriodo[] = $date->format('Y-m-d');
-            }
-
-            // Limpiar de faltas para evitar contradicciones
-            $rawF = $conductor->faltas_detalle;
-            $arrF = is_string($rawF) ? (json_decode($rawF, true) ?: []) : (is_array($rawF) ? $rawF : []);
-            $nuevasF = [];
-            $remF = 0;
-            foreach ($arrF as $item) {
-                $fFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
-                if (in_array($fFecha, $fechasPeriodo)) {
-                    $remF++;
-                } else {
-                    $nuevasF[] = $item;
-                }
-            }
-            if ($remF > 0) {
-                $conductor->faltas_detalle = $nuevasF;
-                $conductor->faltas = max(0, ((int)($conductor->faltas ?? 0)) - $remF);
-            }
-
-            // Limpiar de retardos
-            $rawR = $conductor->retardos_detalle;
-            $arrR = is_string($rawR) ? (json_decode($rawR, true) ?: []) : (is_array($rawR) ? $rawR : []);
-            $nuevosR = [];
-            $remR = 0;
-            foreach ($arrR as $item) {
-                $rFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
-                if (in_array($rFecha, $fechasPeriodo)) {
-                    $remR++;
-                } else {
-                    $nuevosR[] = $item;
-                }
-            }
-            if ($remR > 0) {
-                $conductor->retardos_detalle = $nuevosR;
-                $conductor->retardos = max(0, ((int)($conductor->retardos ?? 0)) - $remR);
-            }
-
-            // Limpiar de descansos
-            $rawD = $conductor->descansos_detalle;
-            $arrD = is_string($rawD) ? (json_decode($rawD, true) ?: []) : (is_array($rawD) ? $rawD : []);
-            $conductor->descansos_detalle = array_values(array_filter($arrD, fn($item) => !in_array($item['fecha'] ?? '', $fechasPeriodo)));
-
-            $origen = $request->input('origen') ?: 'Itinerario de Asistencias';
-            $motivo = $request->input('motivo') ?: "Asistencia registrada desde {$origen}";
-
-            $diasAgregados = 0;
-            foreach ($fechasPeriodo as $fStr) {
-                $actualizado = false;
-                foreach ($detalle as &$item) {
-                    if (($item['fecha'] ?? '') === $fStr) {
-                        $item['motivo'] = $motivo;
-                        $item['estado'] = 'asistencia';
-                        $actualizado = true;
-                        $diasAgregados++;
-                        break;
-                    }
-                }
-                unset($item);
-
-                if (!$actualizado) {
-                    $detalle[] = [
-                        'id' => 'asistencia_' . time() . '_' . random_int(1000, 9999),
-                        'fecha' => $fStr,
-                        'motivo' => $motivo,
-                        'estado' => 'asistencia'
-                    ];
-                    $diasAgregados++;
-                }
-            }
-
-            $conductor->asistencias_detalle = $detalle;
-            $conductor->save();
-
+        // Lógica para asignación individual o por TANDA (Múltiples conductores)
+        $conductores = Conductor::whereIn('id', $conductorIds)->get();
+        if ($conductores->isEmpty()) {
             return response()->json([
-                'success' => true,
-                'message' => 'Asistencia registrada correctamente.'
-            ]);
-        }
-
-        $campoMap = [
-            'falta' => 'faltas_detalle',
-            'descanso' => 'descansos_detalle',
-            'vacaciones' => 'vacaciones_detalle',
-            'incapacidad' => 'incapacidades_detalle',
-            'retardo' => 'retardos_detalle'
-        ];
-        
-        $campo = $campoMap[$estado];
-
-        $rawDetalle = $conductor->$campo;
-        $detalle = is_string($rawDetalle) ? (json_decode($rawDetalle, true) ?: []) : (is_array($rawDetalle) ? $rawDetalle : []);
-        $fechasExistentes = array_column($detalle, 'fecha');
-
-        // Si es falta o retardo, cruzamos con el otro campo para evitar empalmes
-        $fechasCruzadas = [];
-        if ($estado === 'falta' || $estado === 'retardo') {
-            $otroCampo = $estado === 'falta' ? 'retardos_detalle' : 'faltas_detalle';
-            $rawOtro = $conductor->$otroCampo;
-            $detalleOtro = is_string($rawOtro) ? (json_decode($rawOtro, true) ?: []) : (is_array($rawOtro) ? $rawOtro : []);
-            $fechasCruzadas = array_column($detalleOtro, 'fecha');
-        }
-
-        // Limpiar de asistencias_detalle si se asigna falta, retardo, descanso, vacaciones o incapacidad
-        $rawAsist = $conductor->asistencias_detalle;
-        if (!empty($rawAsist)) {
-            $arrAsist = is_string($rawAsist) ? (json_decode($rawAsist, true) ?: []) : (is_array($rawAsist) ? $rawAsist : []);
-            $fechasPeriodo = [];
-            foreach ($period as $date) {
-                $fechasPeriodo[] = $date->format('Y-m-d');
-            }
-            $conductor->asistencias_detalle = array_values(array_filter($arrAsist, fn($item) => !in_array($item['fecha'] ?? '', $fechasPeriodo)));
-        }
-
-        // Si es vacaciones, incapacidad o descanso, limpiar faltas o retardos previos en esas fechas para evitar empalmes
-        if ($estado === 'vacaciones' || $estado === 'incapacidad' || $estado === 'descanso') {
-            $fechasPeriodo = [];
-            foreach ($period as $date) {
-                $fechasPeriodo[] = $date->format('Y-m-d');
-            }
-
-            // Limpiar faltas
-            $rawF = $conductor->faltas_detalle;
-            $arrF = is_string($rawF) ? (json_decode($rawF, true) ?: []) : (is_array($rawF) ? $rawF : []);
-            $nuevasF = [];
-            $remF = 0;
-            foreach ($arrF as $item) {
-                $fFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
-                if (in_array($fFecha, $fechasPeriodo)) {
-                    $remF++;
-                } else {
-                    $nuevasF[] = $item;
-                }
-            }
-            if ($remF > 0) {
-                $conductor->faltas_detalle = $nuevasF;
-                $conductor->faltas = max(0, ((int)($conductor->faltas ?? 0)) - $remF);
-            }
-
-            // Limpiar retardos
-            $rawR = $conductor->retardos_detalle;
-            $arrR = is_string($rawR) ? (json_decode($rawR, true) ?: []) : (is_array($rawR) ? $rawR : []);
-            $nuevosR = [];
-            $remR = 0;
-            foreach ($arrR as $item) {
-                $rFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
-                if (in_array($rFecha, $fechasPeriodo)) {
-                    $remR++;
-                } else {
-                    $nuevosR[] = $item;
-                }
-            }
-            if ($remR > 0) {
-                $conductor->retardos_detalle = $nuevosR;
-                $conductor->retardos = max(0, ((int)($conductor->retardos ?? 0)) - $remR);
-            }
+                'success' => false,
+                'message' => 'No se encontraron las personas conductoras seleccionadas.'
+            ], 404);
         }
 
         $origen = $request->input('origen') ?: 'Itinerario de Asistencias';
-        $defaultMotivos = [
-            'falta' => "Falta registrada desde {$origen}",
-            'retardo' => "Retardo registrado desde {$origen}",
-            'descanso' => "Descanso registrado desde {$origen}",
-            'vacaciones' => "Vacaciones registradas desde {$origen}",
-            'incapacidad' => "Incapacidad registrada desde {$origen}",
-            'permuta' => "Permuta registrada desde {$origen}"
-        ];
-        $motivo = $request->input('motivo') ?: ($defaultMotivos[$estado] ?? "Registrado desde {$origen}");
-        $diasAgregados = 0;
+        $totalProcesados = 0;
 
-        foreach ($period as $date) {
-            $fechaStr = $date->format('Y-m-d');
-            if (in_array($fechaStr, $fechasExistentes)) {
-                // Si la fecha ya existía en este estado, actualizar motivo
-                foreach ($detalle as &$item) {
-                    if (($item['fecha'] ?? '') === $fechaStr) {
-                        $item['motivo'] = $motivo;
-                        $diasAgregados++;
-                        break;
+        DB::beginTransaction();
+        try {
+            foreach ($conductores as $conductor) {
+                // Caso ASISTENCIA MANUAL
+                if ($estado === 'asistencia') {
+                    $rawAsist = $conductor->asistencias_detalle;
+                    $detalle = is_string($rawAsist) ? (json_decode($rawAsist, true) ?: []) : (is_array($rawAsist) ? $rawAsist : []);
+
+                    $fechasPeriodo = [];
+                    foreach ($period as $date) {
+                        $fechasPeriodo[] = $date->format('Y-m-d');
+                    }
+
+                    // Limpiar de faltas para evitar contradicciones
+                    $rawF = $conductor->faltas_detalle;
+                    $arrF = is_string($rawF) ? (json_decode($rawF, true) ?: []) : (is_array($rawF) ? $rawF : []);
+                    $nuevasF = [];
+                    $remF = 0;
+                    foreach ($arrF as $item) {
+                        $fFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                        if (in_array($fFecha, $fechasPeriodo)) {
+                            $remF++;
+                        } else {
+                            $nuevasF[] = $item;
+                        }
+                    }
+                    if ($remF > 0) {
+                        $conductor->faltas_detalle = $nuevasF;
+                        $conductor->faltas = max(0, ((int)($conductor->faltas ?? 0)) - $remF);
+                    }
+
+                    // Limpiar de retardos
+                    $rawR = $conductor->retardos_detalle;
+                    $arrR = is_string($rawR) ? (json_decode($rawR, true) ?: []) : (is_array($rawR) ? $rawR : []);
+                    $nuevosR = [];
+                    $remR = 0;
+                    foreach ($arrR as $item) {
+                        $rFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                        if (in_array($rFecha, $fechasPeriodo)) {
+                            $remR++;
+                        } else {
+                            $nuevosR[] = $item;
+                        }
+                    }
+                    if ($remR > 0) {
+                        $conductor->retardos_detalle = $nuevosR;
+                        $conductor->retardos = max(0, ((int)($conductor->retardos ?? 0)) - $remR);
+                    }
+
+                    // Limpiar de descansos
+                    $rawD = $conductor->descansos_detalle;
+                    $arrD = is_string($rawD) ? (json_decode($rawD, true) ?: []) : (is_array($rawD) ? $rawD : []);
+                    $conductor->descansos_detalle = array_values(array_filter($arrD, fn($item) => !in_array($item['fecha'] ?? '', $fechasPeriodo)));
+
+                    $motivo = $request->input('motivo') ?: "Asistencia registrada desde {$origen}";
+
+                    foreach ($fechasPeriodo as $fStr) {
+                        $actualizado = false;
+                        foreach ($detalle as &$item) {
+                            if (($item['fecha'] ?? '') === $fStr) {
+                                $item['motivo'] = $motivo;
+                                $item['estado'] = 'asistencia';
+                                $actualizado = true;
+                                break;
+                            }
+                        }
+                        unset($item);
+
+                        if (!$actualizado) {
+                            $detalle[] = [
+                                'id' => 'asistencia_' . time() . '_' . random_int(1000, 9999),
+                                'fecha' => $fStr,
+                                'motivo' => $motivo,
+                                'estado' => 'asistencia'
+                            ];
+                        }
+                    }
+
+                    $conductor->asistencias_detalle = $detalle;
+                    $conductor->save();
+                    $totalProcesados++;
+                    continue;
+                }
+
+                // Caso FALTA, DESCANSO, VACACIONES, INCAPACIDAD, RETARDO
+                $campoMap = [
+                    'falta' => 'faltas_detalle',
+                    'descanso' => 'descansos_detalle',
+                    'vacaciones' => 'vacaciones_detalle',
+                    'incapacidad' => 'incapacidades_detalle',
+                    'retardo' => 'retardos_detalle'
+                ];
+                $campo = $campoMap[$estado];
+
+                $rawDetalle = $conductor->$campo;
+                $detalle = is_string($rawDetalle) ? (json_decode($rawDetalle, true) ?: []) : (is_array($rawDetalle) ? $rawDetalle : []);
+                $fechasExistentes = array_column($detalle, 'fecha');
+
+                // Si es falta o retardo, cruzamos con el otro campo para evitar empalmes
+                $fechasCruzadas = [];
+                if ($estado === 'falta' || $estado === 'retardo') {
+                    $otroCampo = $estado === 'falta' ? 'retardos_detalle' : 'faltas_detalle';
+                    $rawOtro = $conductor->$otroCampo;
+                    $detalleOtro = is_string($rawOtro) ? (json_decode($rawOtro, true) ?: []) : (is_array($rawOtro) ? $rawOtro : []);
+                    $fechasCruzadas = array_column($detalleOtro, 'fecha');
+                }
+
+                // Limpiar de asistencias_detalle si se asigna falta, retardo, descanso, vacaciones o incapacidad
+                $rawAsist = $conductor->asistencias_detalle;
+                if (!empty($rawAsist)) {
+                    $arrAsist = is_string($rawAsist) ? (json_decode($rawAsist, true) ?: []) : (is_array($rawAsist) ? $rawAsist : []);
+                    $fechasPeriodo = [];
+                    foreach ($period as $date) {
+                        $fechasPeriodo[] = $date->format('Y-m-d');
+                    }
+                    $conductor->asistencias_detalle = array_values(array_filter($arrAsist, fn($item) => !in_array($item['fecha'] ?? '', $fechasPeriodo)));
+                }
+
+                // Si es vacaciones, incapacidad o descanso, limpiar faltas o retardos previos en esas fechas
+                if ($estado === 'vacaciones' || $estado === 'incapacidad' || $estado === 'descanso') {
+                    $fechasPeriodo = [];
+                    foreach ($period as $date) {
+                        $fechasPeriodo[] = $date->format('Y-m-d');
+                    }
+
+                    // Limpiar faltas
+                    $rawF = $conductor->faltas_detalle;
+                    $arrF = is_string($rawF) ? (json_decode($rawF, true) ?: []) : (is_array($rawF) ? $rawF : []);
+                    $nuevasF = [];
+                    $remF = 0;
+                    foreach ($arrF as $item) {
+                        $fFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                        if (in_array($fFecha, $fechasPeriodo)) {
+                            $remF++;
+                        } else {
+                            $nuevasF[] = $item;
+                        }
+                    }
+                    if ($remF > 0) {
+                        $conductor->faltas_detalle = $nuevasF;
+                        $conductor->faltas = max(0, ((int)($conductor->faltas ?? 0)) - $remF);
+                    }
+
+                    // Limpiar retardos
+                    $rawR = $conductor->retardos_detalle;
+                    $arrR = is_string($rawR) ? (json_decode($rawR, true) ?: []) : (is_array($rawR) ? $rawR : []);
+                    $nuevosR = [];
+                    $remR = 0;
+                    foreach ($arrR as $item) {
+                        $rFecha = is_array($item) ? ($item['fecha'] ?? null) : null;
+                        if (in_array($rFecha, $fechasPeriodo)) {
+                            $remR++;
+                        } else {
+                            $nuevosR[] = $item;
+                        }
+                    }
+                    if ($remR > 0) {
+                        $conductor->retardos_detalle = $nuevosR;
+                        $conductor->retardos = max(0, ((int)($conductor->retardos ?? 0)) - $remR);
                     }
                 }
-                unset($item);
-            } elseif (!in_array($fechaStr, $fechasCruzadas)) {
-                $detalle[] = [
-                    'id' => $estado . '_' . time() . '_' . random_int(1000, 9999),
-                    'fecha' => $fechaStr,
-                    'motivo' => $motivo,
-                    'estado' => $estado === 'retardo' ? 'retardo' : 'pendiente',
-                    'justificada' => false
-                ];
-                $diasAgregados++;
-            }
-        }
 
-        if ($diasAgregados === 0) {
+                $defaultMotivos = [
+                    'falta' => "Falta registrada desde {$origen}",
+                    'retardo' => "Retardo registrado desde {$origen}",
+                    'descanso' => "Descanso registrado desde {$origen}",
+                    'vacaciones' => "Vacaciones registradas desde {$origen}",
+                    'incapacidad' => "Incapacidad registrada desde {$origen}",
+                    'permuta' => "Permuta registrada desde {$origen}"
+                ];
+                $motivo = $request->input('motivo') ?: ($defaultMotivos[$estado] ?? "Registrado desde {$origen}");
+                $diasAgregados = 0;
+
+                foreach ($period as $date) {
+                    $fechaStr = $date->format('Y-m-d');
+                    if (in_array($fechaStr, $fechasExistentes)) {
+                        // Si la fecha ya existía en este estado, actualizar motivo
+                        foreach ($detalle as &$item) {
+                            if (($item['fecha'] ?? '') === $fechaStr) {
+                                $item['motivo'] = $motivo;
+                                $diasAgregados++;
+                                break;
+                            }
+                        }
+                        unset($item);
+                    } elseif (!in_array($fechaStr, $fechasCruzadas)) {
+                        $detalle[] = [
+                            'id' => $estado . '_' . time() . '_' . random_int(1000, 9999),
+                            'fecha' => $fechaStr,
+                            'motivo' => $motivo,
+                            'estado' => $estado === 'retardo' ? 'retardo' : 'pendiente',
+                            'justificada' => false
+                        ];
+                        $diasAgregados++;
+                    }
+                }
+
+                if ($diasAgregados > 0) {
+                    $conductor->$campo = $detalle;
+                    if ($estado === 'falta') {
+                        $conductor->faltas = ((int)($conductor->faltas ?? 0)) + $diasAgregados;
+                    } elseif ($estado === 'retardo') {
+                        $conductor->retardos = ((int)($conductor->retardos ?? 0)) + $diasAgregados;
+                    }
+                    $conductor->save();
+                    $totalProcesados++;
+                }
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('Error asignando bloque: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo asignar. Es posible que el operador ya tenga un registro de este tipo (o un conflicto de falta/retardo) en las fechas seleccionadas.'
+                'message' => 'Ocurrió un error al procesar la asignación: ' . $e->getMessage()
+            ], 500);
+        }
+
+        if ($totalProcesados === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo asignar. Es posible que el operador o los operadores ya tengan un registro previo en esas fechas.'
             ], 400);
         }
 
-        $conductor->$campo = $detalle;
-        
-        if ($estado === 'falta') {
-            $conductor->faltas = ((int)($conductor->faltas ?? 0)) + $diasAgregados;
-        } elseif ($estado === 'retardo') {
-            $conductor->retardos = ((int)($conductor->retardos ?? 0)) + $diasAgregados;
-        }
-
-        $conductor->save();
+        $mensajeFinal = count($conductorIds) > 1 
+            ? "Bloque asignado correctamente a {$totalProcesados} conductores." 
+            : "Bloque asignado correctamente.";
 
         return response()->json([
             'success' => true,
-            'message' => 'Bloque asignado correctamente.'
+            'message' => $mensajeFinal
         ]);
     }
 

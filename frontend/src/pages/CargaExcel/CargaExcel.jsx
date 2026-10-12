@@ -252,6 +252,9 @@ export default function CargaExcel({ isPasteles = false }) {
         updatedData[index]['HORA_REAL_SALIDA_PATIO'] = '';
         updatedData[index]['CORRIDAS'] = null;
         updatedData[index]['PATIO_NORTE'] = false;
+        updatedData[index]['ITINERARIO'] = false;
+        updatedData[index]['HORA_INCORPORACION'] = '';
+        updatedData[index]['HORA_DESINCORPORACION'] = '';
         updatedData[index]['TARJETON_MANIOBRISTA'] = '';
         updatedData[index]['NOMBRE_MANIOBRISTA'] = '';
         updatedData[index]['FALLA'] = '';
@@ -277,7 +280,7 @@ export default function CargaExcel({ isPasteles = false }) {
 
       const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.RELEVO_TARJETON) === normalizeTarjeton(valStr));
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
-      const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
+      const newDriverName = newDriverConductor ? (newDriverConductor.nombre || '').toUpperCase() : '';
 
       if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
         Swal.fire({
@@ -354,7 +357,7 @@ export default function CargaExcel({ isPasteles = false }) {
 
       const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.TARJETON) === normalizeTarjeton(valStr));
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
-      const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
+      const newDriverName = newDriverConductor ? (newDriverConductor.nombre || '').toUpperCase() : '';
 
       if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
         Swal.fire({
@@ -888,8 +891,8 @@ export default function CargaExcel({ isPasteles = false }) {
         const statusNorm = String(fila.ESTATUS || 'operacion')
           .trim()
           .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
 
         const noEsOperacion =
           statusNorm.includes('reserva') ||
@@ -908,15 +911,15 @@ export default function CargaExcel({ isPasteles = false }) {
       });
 
     } else {
-      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS'];
-      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida'];
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_INCORPORACION', 'HORA_DESINCORPORACION'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de incorporación', 'Hora de desincorporación'];
     }
 
     const datosHoja = [
       encabezados,
       ...dataToExport.map(fila => columnas.map(col => {
         let value = fila[col] ?? '';
-        if (isRelevos && col === 'PATIO_NORTE') {
+        if (col === 'PATIO_NORTE' || col === 'ITINERARIO') {
           if (value === true || value === 1 || value === '1' || value === 'true') value = 'SÍ';
           else value = 'NO';
         }
@@ -1106,6 +1109,8 @@ export default function CargaExcel({ isPasteles = false }) {
                             'ECONOMICO': normalizedRow['ECONOMICO'],
                             'SERVICIO': normalizedRow['SERVICIO'],
                             'TARJETON': normalizedRow['TARJETON'],
+                            'CONDUCTOR': (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
+                            'NOMBRE_CONDUCTOR': (normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
                             'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
                             'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
                             'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
@@ -1168,8 +1173,10 @@ export default function CargaExcel({ isPasteles = false }) {
              if (!conductorObj) {
                errores.push(`Hoja "${sheetName}", Fila ${index + 2} (Eco ${eco}): El tarjetón ${tarjeton} no existe o no está activo.`);
              } else {
-               nombreConductor = conductorObj.nombre;
+               nombreConductor = (conductorObj.nombre || '').toUpperCase();
              }
+           } else if (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']) {
+             nombreConductor = String(normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']).trim().toUpperCase();
            }
 
            const horaEntradaT6 = aHoraTexto(normalizedRow['RAW_HORA_ENTRADA_T6']) || '';
@@ -1182,7 +1189,7 @@ export default function CargaExcel({ isPasteles = false }) {
              ruta,
              corrida,
              tarjeton,
-             nombreConductor,
+             nombreConductor: (nombreConductor || '').toUpperCase(),
              horaSalida,
              horaAcople,
              horaEntrada: horaEntradaT6,
@@ -1269,7 +1276,7 @@ export default function CargaExcel({ isPasteles = false }) {
            newData[act.index].RUTA = act.ruta;
            newData[act.index].CORRIDAS = act.corrida;
            newData[act.index].TARJETON = act.tarjeton;
-           newData[act.index].NOMBRE_CONDUCTOR = act.nombreConductor;
+           newData[act.index].NOMBRE_CONDUCTOR = (act.nombreConductor || '').toUpperCase();
            newData[act.index].HORA_SALIDA_PATIO = act.horaSalida;
            newData[act.index].ACOPLE = act.horaAcople;
            newData[act.index].HORA_DE_ACOPLE = act.horaAcople;

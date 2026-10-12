@@ -120,6 +120,39 @@ Route::get('/fix-add-patio-norte', function() {
     return empty($added) ? 'La columna patio_norte ya existe en todas las tablas.' : 'Columna agregada a: ' . implode(', ', $added);
 });
 
+Route::get('/fix-add-itinerario-and-hora-desincorporacion', function() {
+    $tables = [
+        'informacion_operativa',
+        'informacion_operativa_manana',
+        'informacion_operativa_sabado',
+        'informacion_operativa_domingo',
+        'informacion_operativa_lunes',
+        'informacion_operativa_festivo',
+        'programacion_inicial',
+        'historial_operativo',
+    ];
+    $added = [];
+    foreach ($tables as $t) {
+        if (Schema::hasTable($t)) {
+            Schema::table($t, function (Blueprint $table) use ($t, &$added) {
+                if (!Schema::hasColumn($t, 'itinerario')) {
+                    $table->boolean('itinerario')->default(false);
+                    $added[] = "{$t}.itinerario";
+                }
+                if (!Schema::hasColumn($t, 'hora_incorporacion')) {
+                    $table->string('hora_incorporacion', 20)->nullable();
+                    $added[] = "{$t}.hora_incorporacion";
+                }
+                if (!Schema::hasColumn($t, 'hora_desincorporacion')) {
+                    $table->string('hora_desincorporacion', 20)->nullable();
+                    $added[] = "{$t}.hora_desincorporacion";
+                }
+            });
+        }
+    }
+    return empty($added) ? 'Las columnas itinerario, hora_incorporacion y hora_desincorporacion ya existen en todas las tablas.' : 'Columnas agregadas a: ' . implode(', ', $added);
+});
+
 Route::get('/api/fix-data', function() {
     try {
         $dsn = "pgsql:host=ep-small-cloud-ay6nitqn-pooler.c-5.us-east-2.aws.neon.tech;port=5432;dbname=neondb;sslmode=require";
