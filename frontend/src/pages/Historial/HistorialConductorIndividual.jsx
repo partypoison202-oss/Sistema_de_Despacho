@@ -7,6 +7,7 @@ import API_BASE from '../../config/api';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import { getProfileImageUrl } from '../../utils/imageUrl';
 import { generarPDFHistorialConductor } from '../../utils/generarPDFHistorialConductor';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialConductorIndividual() {
@@ -900,39 +901,13 @@ export default function HistorialConductorIndividual() {
         </div>
 
         {/* Barra de Filtros y Modo de Vista */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '0.75rem',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          padding: '0.85rem 1rem',
-          marginBottom: '1.25rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem'
-        }}>
-          {/* Fila Superior: Buscador + Switcher de Vistas */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
-          }}>
-            <div className="search-box-container" style={{ flex: '1 1 280px', maxWidth: '420px', minWidth: '220px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input
-                type="text"
-                className="historial-search-input"
-                placeholder="Buscar en eventos (ruta, unidad, motivo, etc.)..."
-                value={busquedaEvento}
-                onChange={(e) => setBusquedaEvento(e.target.value)}
-              />
-            </div>
-
+        <HistorialSearchBar
+          value={busquedaEvento}
+          onChange={setBusquedaEvento}
+          placeholder="Buscar en eventos (ruta, unidad, motivo, auditor, etc.)..."
+          totalCount={historialIndividualData?.eventos?.length || 0}
+          filteredCount={eventosFiltrados.length}
+          extraFilters={
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '0.25rem', borderRadius: '0.5rem', gap: '0.25rem' }}>
               <button
                 type="button"
@@ -971,69 +946,74 @@ export default function HistorialConductorIndividual() {
                 Vista Calendario
               </button>
             </div>
-          </div>
+          }
+        />
 
-          {/* Fila Inferior: Filtros de Categorías / Pills */}
-          <div style={{
-            display: 'flex',
-            gap: '0.4rem',
-            overflowX: 'auto',
-            paddingBottom: '2px',
-            alignItems: 'center',
-            flexWrap: 'wrap'
-          }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginRight: '0.25rem', whiteSpace: 'nowrap' }}>
-              Filtrar por:
-            </span>
-            {[
-              { id: 'TODOS', label: 'Todos' },
-              { id: 'ASISTENCIA', label: 'Asistencias' },
-              { id: 'FALTA', label: 'Faltas' },
-              { id: 'FALTA_JUSTIFICADA', label: 'Justificadas' },
-              { id: 'DESCANSO', label: 'Descansos' },
-              { id: 'PERMUTA', label: 'Permutas' },
-              { id: 'PERMISO', label: 'Permisos' },
-              { id: 'VACACIONES', label: 'Vacaciones' },
-              { id: 'INCAPACIDAD', label: 'Incapacidades' },
-              { id: 'RETARDO', label: 'Retardos' }
-            ].map(tab => {
-              const active = filtroTipoEvento === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setFiltroTipoEvento(tab.id)}
-                  style={{
-                    padding: '0.32rem 0.75rem',
-                    borderRadius: '9999px',
-                    fontSize: '0.78rem',
-                    fontWeight: '700',
-                    border: '1px solid',
-                    borderColor: active ? '#701c33' : '#e2e8f0',
-                    backgroundColor: active ? '#701c33' : '#ffffff',
-                    color: active ? '#ffffff' : '#475569',
-                    cursor: 'pointer',
-                    transition: 'all 0.12s ease',
-                    whiteSpace: 'nowrap'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = '#e2e8f0';
-                    }
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Fila de Filtros de Categorías / Pills */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '0.75rem',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          padding: '0.65rem 1rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          gap: '0.4rem',
+          overflowX: 'auto',
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', marginRight: '0.25rem', whiteSpace: 'nowrap' }}>
+            Filtrar por:
+          </span>
+          {[
+            { id: 'TODOS', label: 'Todos' },
+            { id: 'ASISTENCIA', label: 'Asistencias' },
+            { id: 'FALTA', label: 'Faltas' },
+            { id: 'FALTA_JUSTIFICADA', label: 'Justificadas' },
+            { id: 'DESCANSO', label: 'Descansos' },
+            { id: 'PERMUTA', label: 'Permutas' },
+            { id: 'PERMISO', label: 'Permisos' },
+            { id: 'VACACIONES', label: 'Vacaciones' },
+            { id: 'INCAPACIDAD', label: 'Incapacidades' },
+            { id: 'RETARDO', label: 'Retardos' }
+          ].map(tab => {
+            const active = filtroTipoEvento === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFiltroTipoEvento(tab.id)}
+                style={{
+                  padding: '0.32rem 0.75rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.78rem',
+                  fontWeight: '700',
+                  border: '1px solid',
+                  borderColor: active ? '#701c33' : '#e2e8f0',
+                  backgroundColor: active ? '#701c33' : '#ffffff',
+                  color: active ? '#ffffff' : '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tabla Detallada vs Calendario */}
@@ -1062,7 +1042,9 @@ export default function HistorialConductorIndividual() {
                         Sin eventos en el periodo seleccionado
                       </p>
                       <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem' }}>
-                        No se encontraron registros de asistencias, faltas, retardos, descansos o permutas para este conductor en el rango del {desde} al {hasta}.
+                        {busquedaEvento.trim() || filtroTipoEvento !== 'TODOS'
+                          ? 'No se encontraron registros que coincidan con la búsqueda o el filtro seleccionado en el periodo.'
+                          : `No se encontraron registros de asistencias, faltas, retardos, descansos o permutas para este conductor en el rango del ${desde} al ${hasta}.`}
                       </p>
                     </td>
                   </tr>

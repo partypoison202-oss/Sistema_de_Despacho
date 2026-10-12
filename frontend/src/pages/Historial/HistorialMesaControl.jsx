@@ -4,6 +4,7 @@ import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialMesaControl() {
@@ -324,60 +325,39 @@ export default function HistorialMesaControl() {
         </div>
 
         {/* Barra de Búsqueda y Filtro de Tipo */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: '#94a3b8' }}
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input
-              type="text"
-              placeholder={activeTab === 'cambios' ? 'Buscar por unidad, acción, detalles o usuario...' : 'Buscar por unidad, ruta, conductor o tarjetón...'}
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.6rem 1rem 0.6rem 2.4rem',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.85rem',
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Tipo:</label>
-            <select
-              value={filtroTipo}
-              onChange={(e) => setFiltroTipo(e.target.value)}
-              style={{
-                padding: '0.6rem 1rem',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.85rem',
-                backgroundColor: '#ffffff',
-                color: '#1e293b',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="">Todos los Tipos</option>
-              <option value="URBANUSS">URBANUSS</option>
-              <option value="ZAFIRO">ZAFIRO</option>
-              <option value="VAGONETA">VAGONETA</option>
-              <option value="ORION">ORIÓN</option>
-            </select>
-          </div>
-        </div>
+        <HistorialSearchBar
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder={activeTab === 'cambios' ? 'Buscar por unidad, acción, detalles o usuario...' : 'Buscar por unidad, ruta, conductor o tarjetón...'}
+          totalCount={activeTab === 'cambios' ? cambios.length : flota.length}
+          filteredCount={activeTab === 'cambios' ? cambiosFiltrados.length : flotaFiltrada.length}
+          extraFilters={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Tipo:</label>
+              <select
+                value={filtroTipo}
+                onChange={(e) => setFiltroTipo(e.target.value)}
+                style={{
+                  padding: '0.55rem 0.9rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.85rem',
+                  backgroundColor: '#ffffff',
+                  color: '#1e293b',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                }}
+              >
+                <option value="">Todos los Tipos</option>
+                <option value="URBANUSS">URBANUSS</option>
+                <option value="ZAFIRO">ZAFIRO</option>
+                <option value="VAGONETA">VAGONETA</option>
+                <option value="ORION">ORIÓN</option>
+              </select>
+            </div>
+          }
+        />
 
         {/* CONTENIDO SEGÚN PESTAÑA */}
         {cargando ? (
@@ -464,7 +444,9 @@ export default function HistorialMesaControl() {
           ) : (
             <div style={{ textAlign: 'center', padding: '3rem 0', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <p style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>
-                No se registraron movimientos en Mesa de Control para esta fecha.
+                {busqueda.trim() || filtroTipo
+                  ? 'No se encontraron resultados que coincidan con los filtros de búsqueda.'
+                  : 'No se registraron movimientos en Mesa de Control para esta fecha.'}
               </p>
             </div>
           )
@@ -526,7 +508,9 @@ export default function HistorialMesaControl() {
         ) : (
           <div style={{ textAlign: 'center', padding: '3rem 0', color: '#64748b', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
             <p style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>
-              No se encontraron datos de flota para esta fecha.
+              {busqueda.trim() || filtroTipo
+                ? 'No se encontraron unidades que coincidan con los filtros de búsqueda.'
+                : 'No se encontraron datos de flota para esta fecha.'}
             </p>
           </div>
         )}

@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialEncierro() {
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('inicio'); // 'inicio', 'cambios', 'fin', 'encierros'
+  const [busqueda, setBusqueda] = useState('');
   const dropdownRef = useRef(null);
 
   // 1. Obtener listado de fechas únicas (Cacheado por 5 minutos)
@@ -77,13 +79,60 @@ export default function HistorialEncierro() {
     return datos.fin || [];
   };
 
+  const activeData = getActiveData();
+
+  // Filtrado reactivo según búsqueda y pestaña de encierro
+  const filteredData = useMemo(() => {
+    if (!busqueda || !busqueda.trim()) return activeData;
+    const q = busqueda.toLowerCase().trim();
+
+    if (activeTab === 'cambios') {
+      return activeData.filter(d => {
+        const eco = String(d.economico || '').toLowerCase();
+        const tipo = String(d.tipo_unidad || '').toLowerCase();
+        const accion = formatAccion(d.tipo_accion).toLowerCase();
+        const ant = String(d.estatus_anterior || '').toLowerCase();
+        const nvo = String(d.estatus_nuevo || '').toLowerCase();
+        const det = String(d.detalles || '').toLowerCase();
+        const usr = String(d.usuario_nombre || '').toLowerCase();
+        return eco.includes(q) || tipo.includes(q) || accion.includes(q) || ant.includes(q) || nvo.includes(q) || det.includes(q) || usr.includes(q);
+      });
+    }
+
+    if (activeTab === 'encierros') {
+      return activeData.filter(d => {
+        const hora = String(d.hora_encierro || '').toLowerCase();
+        const eco = String(d.economico || '').toLowerCase();
+        const tipo = String(d.tipo || '').toLowerCase();
+        const est = String(d.estatus || '').toLowerCase();
+        const mot = String(d.motivo_estatus || '').toLowerCase();
+        const ruta = String(d.ruta || '').toLowerCase();
+        const tarj = String(d.tarjeton || '').toLowerCase();
+        const cond = String(d.nombre_conductor || '').toLowerCase();
+        const relTarj = String(d.relevo_tarjeton || '').toLowerCase();
+        const relCond = String(d.relevo_conductor || '').toLowerCase();
+        return hora.includes(q) || eco.includes(q) || tipo.includes(q) || est.includes(q) || mot.includes(q) || ruta.includes(q) || tarj.includes(q) || cond.includes(q) || relTarj.includes(q) || relCond.includes(q);
+      });
+    }
+
+    // inicio o fin
+    return activeData.filter(d => {
+      const eco = String(d.economico || '').toLowerCase();
+      const tipo = String(d.tipo || '').toLowerCase();
+      const est = String(d.estatus || '').toLowerCase();
+      const mot = String(d.motivo_estatus || '').toLowerCase();
+      const falla = String(d.falla || '').toLowerCase();
+      return eco.includes(q) || tipo.includes(q) || est.includes(q) || mot.includes(q) || falla.includes(q);
+    });
+  }, [activeData, busqueda, activeTab]);
+
   const exportToExcel = () => {
-    const activeData = getActiveData();
-    if (!activeData || activeData.length === 0) return;
+    const dataToExport = busqueda.trim() ? filteredData : activeData;
+    if (!dataToExport || dataToExport.length === 0) return;
 
     let worksheetData;
     if (activeTab === 'cambios') {
-      worksheetData = activeData.map(d => ({
+      worksheetData = dataToExport.map(d => ({
         'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
         'ECO': d.economico || '',
         'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
@@ -94,7 +143,7 @@ export default function HistorialEncierro() {
         'USUARIO': d.usuario_nombre || 'SISTEMA'
       }));
     } else if (activeTab === 'encierros') {
-      worksheetData = activeData.map(d => ({
+      worksheetData = dataToExport.map(d => ({
         'HORA ENCIERRO': d.hora_encierro || '',
         'ECO': d.economico || '',
         'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
@@ -108,7 +157,7 @@ export default function HistorialEncierro() {
         'HORA RELEVO': d.relevo_hora || ''
       }));
     } else {
-      worksheetData = activeData.map(d => ({
+      worksheetData = dataToExport.map(d => ({
         'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
         'ECO': d.economico || '',
         'ESTATUS': d.estatus || '',
@@ -137,8 +186,6 @@ export default function HistorialEncierro() {
       return '';
     }
   };
-
-  const activeData = getActiveData();
 
   return (
     <div className="historial-page">
@@ -230,6 +277,21 @@ export default function HistorialEncierro() {
           </button>
         </div>
 
+        {/* Buscador Contextual Unificado */}
+        <HistorialSearchBar
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder={
+            activeTab === 'cambios'
+              ? 'Buscar por económico, tipo, modificación, estatus, detalles o usuario...'
+              : activeTab === 'encierros'
+              ? 'Buscar por hora, económico, tipo, estatus, motivo, ruta o conductor...'
+              : 'Buscar por económico, tipo de unidad, estatus, motivo de baja o falla...'
+          }
+          totalCount={activeData.length}
+          filteredCount={filteredData.length}
+        />
+
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
             <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
@@ -252,7 +314,7 @@ export default function HistorialEncierro() {
                 </tr>
               </thead>
               <tbody>
-                {activeData.map((d, i) => (
+                {filteredData.map((d, i) => (
                   <tr key={d.id || i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
                     <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
@@ -268,9 +330,13 @@ export default function HistorialEncierro() {
                     <td style={{ fontWeight: '600' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                   </tr>
                 ))}
-                {activeData.length === 0 && (
+                {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay modificaciones registradas por Encierro en este día.</td>
+                    <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                      {activeData.length === 0 
+                        ? 'No hay modificaciones registradas por Encierro en este día.' 
+                        : `No se encontraron registros que coincidan con "${busqueda}".`}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -292,7 +358,7 @@ export default function HistorialEncierro() {
                 </tr>
               </thead>
               <tbody>
-                {activeData.map((d, i) => (
+                {filteredData.map((d, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{d.hora_encierro || '-'}</td>
                     <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
@@ -322,9 +388,13 @@ export default function HistorialEncierro() {
                     </td>
                   </tr>
                 ))}
-                {activeData.length === 0 && (
+                {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay encierros registrados en este día.</td>
+                    <td colSpan="8" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                      {activeData.length === 0 
+                        ? 'No hay encierros registrados en este día.' 
+                        : `No se encontraron registros que coincidan con "${busqueda}".`}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -343,7 +413,7 @@ export default function HistorialEncierro() {
                 </tr>
               </thead>
               <tbody>
-                {activeData.map((d, i) => (
+                {filteredData.map((d, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
                     <td style={{ fontWeight: '700' }}>{d.economico}</td>
@@ -356,9 +426,13 @@ export default function HistorialEncierro() {
                     <td>{d.falla || '-'}</td>
                   </tr>
                 ))}
-                {activeData.length === 0 && (
+                {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="text-center" style={{ padding: '2rem', color: '#9ca3af' }}>No hay registros de encierro para este estado de la fecha seleccionada.</td>
+                    <td colSpan="5" className="text-center" style={{ padding: '2.5rem', color: '#6b7280' }}>
+                      {activeData.length === 0 
+                        ? 'No hay registros de encierro para este estado de la fecha seleccionada.' 
+                        : `No se encontraron registros que coincidan con "${busqueda}".`}
+                    </td>
                   </tr>
                 )}
               </tbody>

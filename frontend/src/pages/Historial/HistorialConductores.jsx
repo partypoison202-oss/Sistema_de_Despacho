@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialConductores() {
@@ -277,53 +278,46 @@ export default function HistorialConductores() {
         )}
 
         {/* Buscador y Filtros */}
-        <div className="historial-toolbar" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <div className="search-box-container" style={{ flex: '1', minWidth: '260px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input
-              type="text"
-              className="historial-search-input"
-              placeholder="Buscar por tarjetón, operador, usuario o detalle..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-            {[
-              { id: 'TODAS', label: 'Todas las acciones' },
-              { id: 'CREACION', label: 'Creación' },
-              { id: 'EDICION', label: 'Edición' },
-              { id: 'BAJA', label: 'Bajas' },
-              { id: 'FALTA_REGISTRADA', label: 'Faltas' },
-              { id: 'FALTA_JUSTIFICADA', label: 'Justificadas' },
-              { id: 'RETARDO', label: 'Retardos' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setTipoAccionFiltro(tab.id)}
-                style={{
-                  padding: '0.4rem 0.75rem',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.8rem',
-                  fontWeight: '700',
-                  border: '1px solid',
-                  borderColor: tipoAccionFiltro === tab.id ? '#6b1d33' : '#e2e8f0',
-                  backgroundColor: tipoAccionFiltro === tab.id ? '#6b1d33' : '#ffffff',
-                  color: tipoAccionFiltro === tab.id ? '#ffffff' : '#475569',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <HistorialSearchBar
+          value={busqueda}
+          onChange={setBusqueda}
+          placeholder="Buscar por tarjetón, operador, usuario o detalle..."
+          totalCount={acciones.length}
+          filteredCount={accionesFiltradas.length}
+          extraFilters={
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {[
+                { id: 'TODAS', label: 'Todas las acciones' },
+                { id: 'CREACION', label: 'Creación' },
+                { id: 'EDICION', label: 'Edición' },
+                { id: 'BAJA', label: 'Bajas' },
+                { id: 'FALTA_REGISTRADA', label: 'Faltas' },
+                { id: 'FALTA_JUSTIFICADA', label: 'Justificadas' },
+                { id: 'RETARDO', label: 'Retardos' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setTipoAccionFiltro(tab.id)}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.8rem',
+                    fontWeight: '700',
+                    border: '1px solid',
+                    borderColor: tipoAccionFiltro === tab.id ? '#6b1d33' : '#e2e8f0',
+                    backgroundColor: tipoAccionFiltro === tab.id ? '#6b1d33' : '#ffffff',
+                    color: tipoAccionFiltro === tab.id ? '#ffffff' : '#475569',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          }
+        />
 
         {/* Contenido de la Tabla */}
         {isLoading ? (
@@ -349,7 +343,11 @@ export default function HistorialConductores() {
                   <tr>
                     <td colSpan="6" style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
                       <p style={{ margin: 0, fontWeight: '700', fontSize: '1rem' }}>No se encontraron registros</p>
-                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem' }}>No hay acciones registradas en el control de conductores para la fecha seleccionada.</p>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem' }}>
+                        {busqueda.trim() || tipoAccionFiltro !== 'TODAS'
+                          ? 'No hay acciones que coincidan con la búsqueda o el filtro seleccionado.'
+                          : 'No hay acciones registradas en el control de conductores para la fecha seleccionada.'}
+                      </p>
                     </td>
                   </tr>
                 ) : (

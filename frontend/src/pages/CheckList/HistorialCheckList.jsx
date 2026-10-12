@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import Swal from 'sweetalert2';
 import '../Unidades/DetalleUnidad.css';
+import '../Historial/Historial.css';
 import Header from '../../components/Header/Header';
 import CONDUCTORES from '../../data/conductores';
 import API_BASE from '../../config/api';
 import { generarPDFChecklist } from '../../utils/generarPDFChecklist';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import HistorialSearchBar from '../Historial/HistorialSearchBar';
 
 
 // ── Íconos ────────────────────────────────────────────────────────────────────
@@ -322,6 +324,7 @@ export default function HistorialCheckList() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [filterOrigen, setFilterOrigen] = useState('todos');
+    const [busqueda, setBusqueda] = useState('');
 
     const fetchChecklists = async () => {
         setCargando(true);
@@ -373,6 +376,24 @@ export default function HistorialCheckList() {
         if (filterOrigen === 'mantenimiento') return c.origen === 'mantenimiento' || c.origen === 'encierro';
         return c.origen === filterOrigen;
     });
+
+    const checklistsFiltrados = useMemo(() => {
+        if (!busqueda || !busqueda.trim()) return displayedChecklists;
+        const q = busqueda.toLowerCase().trim();
+        return displayedChecklists.filter(c => {
+            const idStr = String(c.id || '').toLowerCase();
+            const inspectorStr = String(c.user_name || '').toLowerCase();
+            const tipoStr = String(c.tipo_unidad || '').toLowerCase();
+            const servStr = String(c.servicio || c.ruta || '').toLowerCase();
+            const ecoStr = String(c.economico || '').toLowerCase();
+            
+            const cond = CONDUCTORES.find(cd => cd.id === Number(c.conductor_id));
+            const condNombre = cond ? cond.nombre.toLowerCase() : String(c.conductor_nombre || '').toLowerCase();
+            const condTarjeton = cond ? String(cond.tarjeton || '').toLowerCase() : '';
+
+            return idStr.includes(q) || inspectorStr.includes(q) || tipoStr.includes(q) || servStr.includes(q) || ecoStr.includes(q) || condNombre.includes(q) || condTarjeton.includes(q);
+        });
+    }, [displayedChecklists, busqueda]);
 
     const handleDateChange = (e) => {
         setSelectedDate(e.target.value);
@@ -563,12 +584,12 @@ export default function HistorialCheckList() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 px-5 py-4 gap-4">
                         <div>
                             <h3 className="text-sm font-bold text-gray-800">Checklists del periodo</h3>
-                            <p className="text-xs text-gray-400 mt-0.5">{displayedChecklists.length} registro{displayedChecklists.length !== 1 ? 's' : ''} mostrado{displayedChecklists.length !== 1 ? 's' : ''}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{checklistsFiltrados.length} registro{checklistsFiltrados.length !== 1 ? 's' : ''} mostrado{checklistsFiltrados.length !== 1 ? 's' : ''}</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handlePrintTable}
-                                disabled={displayedChecklists.length === 0 || isGeneratingPdf}
+                                disabled={checklistsFiltrados.length === 0 || isGeneratingPdf}
                                 className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-600 shadow-sm transition hover:bg-gray-50 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 {isGeneratingPdf ? (
@@ -584,6 +605,17 @@ export default function HistorialCheckList() {
                                 )}
                             </button>
                         </div>
+                    </div>
+
+                    {/* Buscador Contextual Unificado */}
+                    <div className="p-4 bg-white border-b border-gray-100">
+                        <HistorialSearchBar
+                            value={busqueda}
+                            onChange={setBusqueda}
+                            placeholder="Buscar por #ID, económico, inspector, tipo de unidad, conductor o ruta..."
+                            totalCount={displayedChecklists.length}
+                            filteredCount={checklistsFiltrados.length}
+                        />
                     </div>
 
                     {cargando ? (
@@ -605,7 +637,7 @@ export default function HistorialCheckList() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {displayedChecklists.map((c, i) => {
+                                    {checklistsFiltrados.map((c, i) => {
                                         const fecha = new Date(c.fecha_hora);
                                         const fmtFecha = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
                                         const fmtHora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -706,6 +738,13 @@ export default function HistorialCheckList() {
                                             </React.Fragment>
                                         );
                                     })}
+                                    {checklistsFiltrados.length === 0 && (
+                                        <tr>
+                                            <td colSpan="9" className="px-5 py-8 text-center text-sm text-gray-500">
+                                                No se encontraron checklists que coincidan con "{busqueda}".
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
