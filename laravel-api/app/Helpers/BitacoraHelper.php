@@ -89,7 +89,7 @@ class BitacoraHelper
                         }
 
                         if ($hasItinerario) {
-                            $item['itinerario'] = $registro->itinerario ?? false;
+                            $item['itinerario'] = filter_var($registro->itinerario ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
                         }
 
                         if ($hasHoraIncorp) {
