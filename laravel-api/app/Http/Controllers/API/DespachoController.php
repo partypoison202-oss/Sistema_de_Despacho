@@ -1628,13 +1628,9 @@ class DespachoController extends Controller
                     DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristas))->update(['estado_servicio' => 'en_servicio']);
                 }
 
-                DB::commit();
+                BitacoraHelper::ensureInicioSnapshot();
 
-                try {
-                    BitacoraHelper::ensureInicioSnapshot();
-                } catch (\Throwable $th) {
-                    \Log::warning("Error no crítico en ensureInicioSnapshot tras cambio de día automático: " . $th->getMessage());
-                }
+                DB::commit();
 
                 Cache::forever('cambio_dia_operativo_ejecutado_'.$fechaHoy, true);
 
@@ -1700,32 +1696,11 @@ class DespachoController extends Controller
         }
     }
 
-    public function aplicarCambioDia(Request $request)
+    public function aplicarCambioDia()
     {
-        $user = $request->user();
-        $rolCodigo = strtoupper(trim($user?->role?->codigo ?? ''));
-        $rolNombre = strtoupper(trim($user?->role?->nombre ?? ''));
-        $esAdmin = in_array($rolCodigo, ['ADMIN', 'ADMINISTRADOR']) || in_array($rolNombre, ['ADMIN', 'ADMINISTRADOR']);
-
-        if (!$esAdmin) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Acceso denegado. Solo los administradores pueden ejecutar el cambio de día manual.',
-            ], 403);
-        }
-
         $resAuto = self::ejecutarCambioDiaAutomatico();
 
-        if (($resAuto['status'] ?? '') === 'error') {
-            return response()->json($resAuto, 500);
-        }
-
-        \Log::info("Cambio de día operativo manual ejecutado exitosamente por usuario: " . ($user->usuario ?? 'admin'));
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Cambio de día manual aplicado exitosamente. La programación ha pasado al día operativo actual.',
-        ], 200);
+        return response()->json($resAuto, ($resAuto['status'] ?? '') === 'error' ? 500 : 200);
     }
 
     public function aplicarCambioDiaEspecifico($dia)
