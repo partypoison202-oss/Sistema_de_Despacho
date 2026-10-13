@@ -477,6 +477,9 @@ export default function ExcelPreview({
                     {headers.map(h => {
                       if (readOnly) {
                         let displayValue = fila[h] ?? '';
+                        if (h === 'NOMBRE_CONDUCTOR' || h === 'RELEVO_CONDUCTOR') {
+                          displayValue = String(displayValue).toUpperCase();
+                        }
                         if (h === 'ESTATUS') {
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                           const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : (rawSt.includes('reserva') || rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'reserva' : 'operacion';
