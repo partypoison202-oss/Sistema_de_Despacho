@@ -39,12 +39,9 @@ export default function CargaExcel({ isPasteles = false }) {
 
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
-  const isAdmin = _roleCodigo === 'ADMIN' || _roleCodigo === 'ADMINISTRADOR'
-    || _roleNombre === 'ADMIN' || _roleNombre === 'ADMINISTRADOR';
   const isRelevos = _roleCodigo === 'RELEVOS' || _roleCodigo === 'REVELOS'
     || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
     || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
-  const [isApplyingCambioDia, setIsApplyingCambioDia] = useState(false);
 
   const getAuthHeaders = () => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -1357,86 +1354,6 @@ export default function CargaExcel({ isPasteles = false }) {
     }
   };
 
-  const handleCambioDiaManual = async () => {
-    if (!isAdmin) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Acceso Denegado',
-        text: 'Solo los administradores tienen permiso para ejecutar el cambio de día manual.',
-        confirmButtonColor: 'var(--color-maroon)'
-      });
-      return;
-    }
-
-    const result = await Swal.fire({
-      title: '¿Forzar Cambio de Día?',
-      html: `
-        <div style="text-align: left; font-size: 0.95rem; line-height: 1.5; color: #374151;">
-          <p><strong>⚠️ Acción de Emergencia</strong></p>
-          <p>Esta acción trasladará la programación registrada en <strong>Día Siguiente</strong> al <strong>Día Operativo (Hoy)</strong>.</p>
-          <ul style="margin: 8px 0; padding-left: 1.2rem; font-size: 0.88rem; color: #4b5563;">
-            <li>Cerrará la jornada actual de las unidades en operación.</li>
-            <li>Preservará intactas las unidades en <em>Mantenimiento</em> o <em>Percance</em>.</li>
-            <li>Establecerá la nueva programación inicial y actualizará el estado de los operadores.</li>
-          </ul>
-          <p style="color: #b91c1c; font-weight: 600; margin-top: 10px;">¿Deseas continuar con el cambio forzado?</p>
-        </div>
-      `,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Sí, ejecutar cambio de día',
-      cancelButtonText: 'Cancelar',
-      focusCancel: true
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      setIsApplyingCambioDia(true);
-
-      const response = await fetch(`${API_BASE}/api/despacho/aplicar-cambio-dia`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.status === 'error') {
-        throw new Error(data.message || 'Error al ejecutar el cambio de día.');
-      }
-
-      await Swal.fire({
-        icon: 'success',
-        title: 'Cambio de Día Aplicado',
-        text: data.message || 'El día operativo se ha actualizado correctamente con la programación del día siguiente.',
-        confirmButtonColor: 'var(--color-maroon)'
-      });
-
-      // Recargar consultas y situar la pestaña en HOY
-      setHasChanges(false);
-      setVerInicio(false);
-      setTabActiva('HOY');
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['despacho-datos'] }),
-        queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] }),
-      ]);
-      await refetchData();
-
-    } catch (error) {
-      console.error('Error al aplicar cambio de día manual:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'Ocurrió un error al intentar aplicar el cambio de día.',
-        confirmButtonColor: 'var(--color-maroon)'
-      });
-    } finally {
-      setIsApplyingCambioDia(false);
-    }
-  };
-
   const fechaHoyStr = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const dManana = new Date();
   dManana.setDate(dManana.getDate() + 1);
@@ -1624,26 +1541,6 @@ export default function CargaExcel({ isPasteles = false }) {
                   Subir Excel
                 </button>
               </>
-            )}
-
-            {/* Botón de Emergencia: Forzar Cambio de Día (Solo Administradores y solo en Día Operativo) */}
-            {isAdmin && !isRelevos && tabActiva === 'HOY' && (
-              <button
-                type="button"
-                onClick={handleCambioDiaManual}
-                disabled={isApplyingCambioDia}
-                className="excel-btn-capsule excel-btn-capsule--rojo"
-                title="Botón de emergencia: Fuerza el traspaso de la programación de Día Siguiente a Día Actual"
-              >
-                {isApplyingCambioDia ? (
-                  <span className="spinner-mini" style={{ borderColor: 'rgba(220, 38, 38, 0.3)', borderTopColor: '#dc2626' }}></span>
-                ) : (
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                )}
-                {isApplyingCambioDia ? 'Aplicando...' : 'Cambio de Día (Emergencia)'}
-              </button>
             )}
           </div>
         </div>
