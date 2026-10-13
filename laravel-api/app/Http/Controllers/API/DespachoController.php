@@ -917,6 +917,17 @@ class DespachoController extends Controller
                 'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
             ];
 
+            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
+            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']));
+
+            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+                $data['estatus'] = 'operacion';
+            } elseif (! $tieneServicioAsignado && $estatusReq === 'operacion') {
+                $data['estatus'] = 'reserva';
+            } else {
+                $data['estatus'] = $estatusReq ?: ($tieneServicioAsignado ? 'operacion' : 'reserva');
+            }
+
             if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
@@ -1243,15 +1254,11 @@ class DespachoController extends Controller
             }
         }
 
-        try {
-            $eliminados = DB::table('informacion_operativa_manana')
-                ->whereNotIn('unidad_id', $unidadesProcesadasIds)
-                ->delete();
-        } catch (\Exception $e) {
-            \Log::error('Fallo al eliminar registros no enviados (MANANA): '.$e->getMessage());
-            $errores[] = 'Error al eliminar registros obsoletos: '.$e->getMessage();
-            $eliminados = 0;
-        }
+        // NOTA: No eliminamos registros que no vinieron en el payload.
+        // actualizarManana solo hace upsert de las unidades enviadas.
+        // La limpieza total la hace cargarProgramacionExcel (al subir Excel completo).
+        $eliminados = 0;
+
 
         return response()->json([
             'status' => 'success',
@@ -1481,38 +1488,6 @@ class DespachoController extends Controller
                 ->get()
                 ->keyBy('unidad_id');
 
-            // 2. Encierro automático nocturno únicamente para unidades en 'operacion'
-            $unidadesEnOperacion = DB::table('informacion_operativa')
-                ->whereRaw("LOWER(estatus) = 'operacion'")
-                ->get();
-
-            foreach ($unidadesEnOperacion as $op) {
-                $yaEncerrada = DB::table('historial_operativo')
-                    ->where('unidad_id', $op->unidad_id)
-                    ->where('momento', 'ENCIERRO')
-                    ->where('fecha_historial', $fechaAyer)
-                    ->exists();
-
-                if (! $yaEncerrada) {
-                    DB::table('historial_operativo')->insert([
-                        'unidad_id'        => $op->unidad_id,
-                        'ruta'             => $op->ruta,
-                        'numero_tarjeton'  => $op->numero_tarjeton,
-                        'nombre_conductor' => $op->nombre_conductor,
-                        'corridas'         => $op->corridas,
-                        'tipo'             => $op->tipo,
-                        'estatus'          => 'reserva',
-                        'motivo_estatus'   => 'Encierro automático fin de jornada (Cambio de día 00:00)',
-                        'momento'          => 'ENCIERRO',
-                        'hora_encierro'    => $horaEncierroNocturno,
-                        'fecha_historial'  => $fechaAyer,
-                        'fecha_registro'   => now(),
-                        'created_at'       => now(),
-                        'updated_at'       => now(),
-                    ]);
-                }
-            }
-
             $sourceTable = null;
             $deleteSourceAfter = false;
 
@@ -1666,49 +1641,40 @@ class DespachoController extends Controller
                 \Log::info("Cambio de día operativo automático completado con éxito desde {$sourceTable}. Unidades en mantenimiento/percance preservadas.");
 
                 return [
-                    'status' => 'success',
+                    'status'  => 'success',
                     'message' => "Cambio de día aplicado exitosamente desde tabla {$sourceTable}.",
                 ];
             } else {
-                // Si no hay tabla con programación nueva:
-                // Solo las unidades en 'operacion' se envían a 'reserva'
-                DB::table('informacion_operativa')
-                    ->whereRaw("LOWER(estatus) = 'operacion'")
-                    ->update([
-                        'estatus'                => 'reserva',
-                        'motivo_estatus'         => 'Encierro automático fin de jornada (Cambio de día 00:00)',
-                        'motivo'                 => null,
-                        'nombre_conductor'       => null,
-                        'numero_tarjeton'        => null,
-                        'ruta'                   => null,
-                        'corridas'               => null,
-                        'ciclo'                  => null,
-                        'falla'                  => null,
-                        'hora_salida_patio'      => null,
-                        'acople'                 => null,
-                        'hora_real_salida_patio' => null,
-                        'relevo_tarjeton'        => null,
-                        'relevo_conductor'       => null,
-                        'relevo_hora'            => null,
-                        'tarjeton_maniobrista'   => null,
-                        'nombre_maniobrista'     => null,
-                        'patio_norte'            => 'false',
-                        'transporte_patio_norte' => 'false',
-                        'firma_base64'           => null,
-                        'fecha_registro'         => $fechaHoy,
-                    ]);
-
-                // Las unidades en mantenimiento, percance y reserva se mantienen, solo reiniciando campos de validación del día
-                DB::table('informacion_operativa')
-                    ->whereRaw("LOWER(estatus) != 'operacion'")
-                    ->update([
-                        'hora_real_salida_patio' => null,
-                        'firma_base64'           => null,
-                        'fecha_registro'         => $fechaHoy,
-                    ]);
+                // Si no hay tabla con programación nueva para mañana:
+                // La programación operativa actual (rutas, conductores, horarios) SE MANTIENE para el nuevo día.
+                // Solo se reinician los campos de control de validación diaria.
+                DB::table('informacion_operativa')->update([
+                    'hora_real_salida_patio' => null,
+                    'firma_base64'           => null,
+                    'fecha_registro'         => $fechaHoy,
+                ]);
 
                 DB::table('conductores')->update(['estado_servicio' => 'disponible']);
                 DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
+
+                // Re-marcar como en_servicio a los conductores que siguen asignados hoy
+                $conductoresAsignados = DB::table('informacion_operativa')
+                    ->whereNotNull('numero_tarjeton')
+                    ->whereRaw("TRIM(CAST(numero_tarjeton AS VARCHAR)) != ''")
+                    ->pluck('numero_tarjeton')
+                    ->toArray();
+                if (! empty($conductoresAsignados)) {
+                    DB::table('conductores')->whereIn('tarjeton', array_unique($conductoresAsignados))->update(['estado_servicio' => 'en_servicio']);
+                }
+
+                $maniobristasAsignados = DB::table('informacion_operativa')
+                    ->whereNotNull('tarjeton_maniobrista')
+                    ->whereRaw("TRIM(CAST(tarjeton_maniobrista AS VARCHAR)) != ''")
+                    ->pluck('tarjeton_maniobrista')
+                    ->toArray();
+                if (! empty($maniobristasAsignados)) {
+                    DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristasAsignados))->update(['estado_servicio' => 'en_servicio']);
+                }
 
                 BitacoraHelper::ensureInicioSnapshot();
 
@@ -1716,11 +1682,11 @@ class DespachoController extends Controller
 
                 Cache::forever('cambio_dia_operativo_ejecutado_'.$fechaHoy, true);
 
-                \Log::info('Cambio de día operativo automático: unidades en operación pasadas a reserva; mantenimiento/percance preservadas.');
+                \Log::info('Cambio de día operativo automático completado preservando la programación activa de la flota (sin tabla mañana).');
 
                 return [
-                    'status' => 'success',
-                    'message' => 'Cambio de día aplicado reiniciando validaciones operativas de la flota.',
+                    'status'  => 'success',
+                    'message' => 'Cambio de día aplicado preservando la programación operativa de la flota.',
                 ];
             }
         } catch (\Exception $e) {
@@ -1748,219 +1714,18 @@ class DespachoController extends Controller
             ], 403);
         }
 
-        $now = Carbon::now('America/Mexico_City');
-        $fechaHoy = $now->toDateString();
-        $fechaAyer = $now->copy()->subDay()->toDateString();
-        $horaEncierroNocturno = '23:59:59';
+        $resAuto = self::ejecutarCambioDiaAutomatico();
 
-        try {
-            DB::beginTransaction();
-
-            $cantidadManana = DB::table('informacion_operativa_manana')->count();
-            if ($cantidadManana === 0) {
-                DB::rollBack();
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No hay programación registrada en "Día Siguiente". Por seguridad, no se puede aplicar el cambio de día con la tabla vacía.',
-                ], 400);
-            }
-
-            // 1. Identificar unidades bloqueadas en Mantenimiento o Percance (deben permanecer excluidas del reseteo)
-            $unidadesBloqueadas = DB::table('informacion_operativa')
-                ->whereIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
-                ->get()
-                ->keyBy('unidad_id');
-
-            // 2. Encierro automático para unidades en Operación
-            $unidadesEnOperacion = DB::table('informacion_operativa')
-                ->whereRaw("LOWER(estatus) = 'operacion'")
-                ->get();
-
-            foreach ($unidadesEnOperacion as $op) {
-                $yaEncerrada = DB::table('historial_operativo')
-                    ->where('unidad_id', $op->unidad_id)
-                    ->where('momento', 'ENCIERRO')
-                    ->where('fecha_historial', $fechaAyer)
-                    ->exists();
-
-                if (! $yaEncerrada) {
-                    DB::table('historial_operativo')->insert([
-                        'unidad_id'        => $op->unidad_id,
-                        'ruta'             => $op->ruta,
-                        'numero_tarjeton'  => $op->numero_tarjeton,
-                        'nombre_conductor' => $op->nombre_conductor,
-                        'corridas'         => $op->corridas,
-                        'tipo'             => $op->tipo,
-                        'estatus'          => 'reserva',
-                        'motivo_estatus'   => 'Encierro automático fin de jornada (Cambio de día manual)',
-                        'momento'          => 'ENCIERRO',
-                        'hora_encierro'    => $horaEncierroNocturno,
-                        'fecha_historial'  => $fechaAyer,
-                        'fecha_registro'   => now(),
-                        'created_at'       => now(),
-                        'updated_at'       => now(),
-                    ]);
-                }
-            }
-
-            $nuevosRegistros = DB::table('informacion_operativa_manana')->get();
-            DB::table('informacion_operativa')->delete();
-
-            $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
-            $inicialCols = array_flip(Schema::getColumnListing('programacion_inicial'));
-            $tarjetones = [];
-            $maniobristas = [];
-            $inicialInsert = [];
-
-            foreach ($nuevosRegistros as $row) {
-                unset($row->id);
-                $arrayRow = (array) $row;
-                $unidadId = $row->unidad_id ?? null;
-
-                // Si la unidad estaba en Mantenimiento o Percance, se excluye del reseteo y se preserva íntegra
-                if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
-                    $bloqueada = (array) $unidadesBloqueadas->get($unidadId);
-                    unset($bloqueada['id']);
-
-                    $insertRow = [];
-                    foreach ($bloqueada as $key => $val) {
-                        if (isset($targetCols[$key])) {
-                            if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
-                                $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
-                            } else {
-                                $insertRow[$key] = $val;
-                            }
-                        }
-                    }
-
-                    $insertRow['hora_real_salida_patio'] = null;
-                    $insertRow['firma_base64'] = null;
-                    $insertRow['fecha_registro'] = $fechaHoy;
-
-                    DB::table('informacion_operativa')->insert($insertRow);
-                    continue;
-                }
-
-                $insertRow = [];
-                foreach ($arrayRow as $key => $val) {
-                    if (isset($targetCols[$key])) {
-                        if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
-                            $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
-                        } else {
-                            $insertRow[$key] = $val;
-                        }
-                    }
-                }
-
-                // Preparar para programacion_inicial (unidades asignadas a ruta)
-                if (($insertRow['estatus'] ?? '') !== 'reserva') {
-                    $inicialRowFiltered = [];
-                    foreach ($insertRow as $k => $v) {
-                        if (isset($inicialCols[$k])) {
-                            $inicialRowFiltered[$k] = $v;
-                        }
-                    }
-                    $inicialRowFiltered['fecha'] = $fechaHoy;
-                    $inicialRowFiltered['created_at'] = now();
-                    $inicialRowFiltered['updated_at'] = now();
-                    $inicialInsert[] = $inicialRowFiltered;
-                }
-
-                // Reiniciar campos de validación diaria
-                if (array_key_exists('hora_real_salida_patio', $insertRow)) {
-                    $insertRow['hora_real_salida_patio'] = null;
-                }
-                if (array_key_exists('hora_salida', $insertRow)) {
-                    $insertRow['hora_salida'] = null;
-                }
-                if (array_key_exists('firma_base64', $insertRow)) {
-                    $insertRow['firma_base64'] = null;
-                }
-                $insertRow['fecha_registro'] = $fechaHoy;
-
-                DB::table('informacion_operativa')->insert($insertRow);
-
-                if (! empty($row->numero_tarjeton)) {
-                    $tarjetones[] = $row->numero_tarjeton;
-                }
-                if (! empty($row->tarjeton_maniobrista)) {
-                    $maniobristas[] = $row->tarjeton_maniobrista;
-                }
-            }
-
-            // Asegurar que ninguna unidad bloqueada se quede fuera si no venía en informacion_operativa_manana
-            $unidadesInsertadas = DB::table('informacion_operativa')->pluck('unidad_id')->toArray();
-            foreach ($unidadesBloqueadas as $uId => $bloqueadaObj) {
-                if (! in_array($uId, $unidadesInsertadas, true)) {
-                    $bloqueada = (array) $bloqueadaObj;
-                    unset($bloqueada['id']);
-                    $insertRow = [];
-                    foreach ($bloqueada as $key => $val) {
-                        if (isset($targetCols[$key])) {
-                            if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
-                                $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
-                            } else {
-                                $insertRow[$key] = $val;
-                            }
-                        }
-                    }
-                    $insertRow['hora_real_salida_patio'] = null;
-                    $insertRow['firma_base64'] = null;
-                    $insertRow['fecha_registro'] = $fechaHoy;
-                    DB::table('informacion_operativa')->insert($insertRow);
-                }
-            }
-
-            // Guardar en programacion_inicial
-            if (! empty($inicialInsert)) {
-                // Eliminar programacion_inicial previa de hoy para no duplicar si se fuerza
-                DB::table('programacion_inicial')->where('fecha', $fechaHoy)->delete();
-                foreach (array_chunk($inicialInsert, 50) as $chunk) {
-                    DB::table('programacion_inicial')->insert($chunk);
-                }
-            }
-
-            // Limpiar la programación de mañana una vez transferida
-            DB::table('informacion_operativa_manana')->delete();
-
-            // Actualizar estados de operadores y maniobristas
-            DB::table('conductores')->update(['estado_servicio' => 'disponible']);
-            DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
-
-            if (! empty($tarjetones)) {
-                DB::table('conductores')->whereIn('tarjeton', array_unique($tarjetones))->update(['estado_servicio' => 'en_servicio']);
-            }
-            if (! empty($maniobristas)) {
-                DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristas))->update(['estado_servicio' => 'en_servicio']);
-            }
-
-            DB::commit();
-
-            // Asegurar snapshot de inicio en bitácora forzándolo para el nuevo estado (fuera de la transacción)
-            try {
-                BitacoraHelper::ensureInicioSnapshot(true);
-            } catch (\Throwable $th) {
-                \Log::warning("Error no crítico en ensureInicioSnapshot tras cambio de día manual: " . $th->getMessage());
-            }
-
-            Cache::forever('cambio_dia_operativo_ejecutado_'.$fechaHoy, true);
-
-            \Log::info("Cambio de día operativo manual ejecutado exitosamente por usuario: " . ($user->usuario ?? 'admin'));
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Cambio de día manual aplicado exitosamente. La programación ha pasado al día operativo actual.',
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al aplicar el cambio de dia manual: '.$e->getMessage());
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Error al hacer el cambio de día: '.$e->getMessage(),
-            ], 500);
+        if (($resAuto['status'] ?? '') === 'error') {
+            return response()->json($resAuto, 500);
         }
+
+        \Log::info("Cambio de día operativo manual ejecutado exitosamente por usuario: " . ($user->usuario ?? 'admin'));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cambio de día manual aplicado exitosamente. La programación ha pasado al día operativo actual.',
+        ], 200);
     }
 
     public function aplicarCambioDiaEspecifico($dia)
@@ -2375,11 +2140,15 @@ class DespachoController extends Controller
         $hoy = $nowMexico->toDateString();
         $horaActual = $nowMexico->format('H:i');
 
-        $primerRegistro = DB::table('informacion_operativa')->first();
-        $esDiaAnterior = $primerRegistro && isset($primerRegistro->fecha_registro) && $primerRegistro->fecha_registro < $hoy;
+        if (! Cache::has('cambio_dia_operativo_ejecutado_'.$hoy)) {
+            $esDiaAnterior = DB::table('informacion_operativa')
+                ->whereNotNull('fecha_registro')
+                ->whereDate('fecha_registro', '<', $hoy)
+                ->exists();
 
-        if ($esDiaAnterior && ! Cache::has('cambio_dia_operativo_ejecutado_'.$hoy)) {
-            self::ejecutarCambioDiaAutomatico();
+            if ($esDiaAnterior) {
+                self::ejecutarCambioDiaAutomatico();
+            }
         }
 
         $hasRelevo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
