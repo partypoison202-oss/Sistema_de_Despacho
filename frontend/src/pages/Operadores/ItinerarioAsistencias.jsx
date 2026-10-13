@@ -32,7 +32,7 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
   const registrosPorPagina = 50;
   
   const [modalOpen, setModalOpen] = useState(false);
-  const [mostrarSimbologia, setMostrarSimbologia] = useState(false);
+  const mostrarSimbologia = true; // La simbología siempre permanece visible
 
   const fetchItinerario = async () => {
     if (!desde || !hasta) return;
@@ -464,33 +464,14 @@ export default function ItinerarioAsistencias({ getAuthHeaders, conductores }) {
       <div className="pt-2.5 pb-2 border-t border-slate-200">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setMostrarSimbologia(!mostrarSimbologia)}
-              className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5 cursor-pointer hover:text-[#6b1d33] transition-colors p-1 rounded-md"
+            <div
+              className="text-xs font-black uppercase text-slate-700 tracking-wider flex items-center gap-1.5 p-1"
             >
               <svg className="w-3.5 h-3.5 text-[#6b1d33]" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
               Simbología
-              <span className="text-[10px] font-bold text-[#6b1d33] bg-[#6b1d33]/10 px-1.5 py-0.5 rounded-full ml-1">
-                {mostrarSimbologia ? '▲ Ocultar' : '▼ Ver todo'}
-              </span>
-            </button>
-
-            {/* Fila compacta de badges si está colapsado */}
-            {!mostrarSimbologia && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#a7f3d0] text-[#065f46]" title="A: Asistencia">A</span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#fed7aa] text-[#9a3412]" title="D: Descanso">D</span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#fef08a] text-[#854d0e]" title="V: Vacaciones">V</span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#bfdbfe] text-[#1e40af]" title="I: Incapacidad">I</span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#c51d23] text-white" title="F: Falta">F</span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#ede9fe] text-[#6d28d9]" title="DP: Descanso (Permuta)">DP</span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#e0e7ff] text-[#3730a3]" title="AP: Asistencia (Permuta)">AP</span>
-                <span className="px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#ffedd5] text-[#ea580c]" title="R: Retardo">R</span>
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="text-[11px] text-slate-500 italic font-medium bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
