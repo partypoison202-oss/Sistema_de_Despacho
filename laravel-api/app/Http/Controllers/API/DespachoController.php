@@ -2457,8 +2457,8 @@ class DespachoController extends Controller
                 $insertRow = [];
                 foreach ($arrayRow as $key => $val) {
                     if (isset($targetCols[$key])) {
-                        if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
-                            $insertRow[$key] = $val ? 'true' : 'false';
+                        if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                            $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
                         } else {
                             $insertRow[$key] = $val;
                         }
@@ -2564,8 +2564,8 @@ class DespachoController extends Controller
                 $insertRow = [];
                 foreach ($arrayRow as $key => $val) {
                     if (isset($targetCols[$key])) {
-                        if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
-                            $insertRow[$key] = $val ? 'true' : 'false';
+                        if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                            $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
                         } else {
                             $insertRow[$key] = $val;
                         }
@@ -2658,8 +2658,8 @@ class DespachoController extends Controller
                 $insertRow = [];
                 foreach ($arrayRow as $key => $val) {
                     if (isset($targetCols[$key])) {
-                        if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
-                            $insertRow[$key] = $val ? 'true' : 'false';
+                        if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                            $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
                         } else {
                             $insertRow[$key] = $val;
                         }
