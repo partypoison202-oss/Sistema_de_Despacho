@@ -311,9 +311,9 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         <input
           type="text"
           value={incidencia}
-          onChange={(e) => setIncidencia(e.target.value.replace(/\D/g, ''))}
+          onChange={(e) => setIncidencia(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-4"
-          placeholder="Ej. 1234"
+          placeholder=""
           autoFocus
           disabled={isLectura}
         />

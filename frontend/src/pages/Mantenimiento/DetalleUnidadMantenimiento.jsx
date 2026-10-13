@@ -2458,12 +2458,12 @@ export default function DetalleUnidadMantenimiento() {
                     type="text"
                     placeholder=""
                     value={folioFormValue}
-                    onChange={(e) => setFolioFormValue(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => setFolioFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
                     autoFocus
                   />
                 </div>
-                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número del folio.</span>
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe el folio (solo letras y números).</span>
               </div>
 
               <div className="flex gap-2 mt-4">
@@ -2512,9 +2512,9 @@ export default function DetalleUnidadMantenimiento() {
                 <input
                   id="incidenciaInput"
                   type="text"
-                  placeholder="Ej. 1234"
+                  placeholder=""
                   value={incidenciaFormValue}
-                  onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-0 text-slate-700 font-medium transition-colors"
                   autoFocus
                   disabled={isLectura}
