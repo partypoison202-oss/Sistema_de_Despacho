@@ -134,6 +134,10 @@ export default function DetalleUnidadMesaControl() {
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: formatearEco(u.numero_eco),
       estado: u.estatus || 'operacion',
+      desincorporada_itinerario: Boolean(u.desincorporada_itinerario),
+      hora_desincorporacion: u.hora_desincorporacion || '',
+      hora_incorporacion: u.hora_incorporacion || '',
+      itinerario: Boolean(u.itinerario),
     }));
   };
 
@@ -195,8 +199,15 @@ export default function DetalleUnidadMesaControl() {
     refetchInterval: 5000,
   });
 
-  const unidadesPorEstado = (estado) =>
-    unidadesList.filter((u) => u.estado === estado);
+  const unidadesPorEstado = (estado) => {
+    if (estado === 'operacion') {
+      return unidadesList.filter((u) => (u.estado || '').toLowerCase() === 'operacion' && !u.desincorporada_itinerario);
+    }
+    if (estado === 'desinc_itinerario') {
+      return unidadesList.filter((u) => u.desincorporada_itinerario);
+    }
+    return unidadesList.filter((u) => (u.estado || '').toLowerCase() === estado.toLowerCase() && !u.desincorporada_itinerario);
+  };
 
   // Sincronización instantánea de estatus entre módulos y pestañas en tiempo real
   useEffect(() => {
@@ -438,6 +449,7 @@ export default function DetalleUnidadMesaControl() {
           itinerario: activeUnitData.itinerario || false,
           horaIncorporacion: activeUnitData.hora_incorporacion || '',
           horaDesincorporacion: activeUnitData.hora_desincorporacion || '',
+          desincorporada_itinerario: Boolean(activeUnitData.desincorporada_itinerario),
         });
         setFallaTexto(activeUnitData.falla || '');
         setSelectedEstado(activeUnitData.estatus || 'operacion');
@@ -1316,6 +1328,18 @@ export default function DetalleUnidadMesaControl() {
               estado="percance"
               titulo="Percance"
               unidades={unidadesPorEstado('percance')}
+              cargandoUnidades={cargandoUnidades}
+              configActual={configActual}
+              onSelectUnit={handleSelectUnit}
+            />
+            <UnitSelector
+              isOpen={openDropdown === 'desinc_itinerario'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'desinc_itinerario' : null)}
+              selectedOption={selectedOption}
+              selectedEstado={selectedEstado}
+              estado="desinc_itinerario"
+              titulo="Desinc. Itinerario"
+              unidades={unidadesPorEstado('desinc_itinerario')}
               cargandoUnidades={cargandoUnidades}
               configActual={configActual}
               onSelectUnit={handleSelectUnit}

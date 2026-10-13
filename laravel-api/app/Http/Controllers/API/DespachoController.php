@@ -178,27 +178,78 @@ class DespachoController extends Controller
     }
 
     /**
+     * Determina si una unidad en estatus de operación se encuentra temporalmente
+     * desincorporada por itinerario según la hora actual en México.
+     */
+    public static function esDesincorporadaPorItinerario($estatus, $itinerario, $horaDesinc, $horaIncorp, $horaActual = null): bool
+    {
+        $estatusNorm = strtolower(trim((string) $estatus));
+        if ($estatusNorm !== 'operacion') {
+            return false;
+        }
+
+        $hDesinc = trim((string) $horaDesinc);
+        $hIncorp = trim((string) $horaIncorp);
+
+        if ($hDesinc === '' || $hIncorp === '' || $hDesinc === '--:--' || $hIncorp === '--:--') {
+            return false;
+        }
+
+        $hDesinc = substr($hDesinc, 0, 5);
+        $hIncorp = substr($hIncorp, 0, 5);
+
+        if (!preg_match('/^\d{2}:\d{2}$/', $hDesinc) || !preg_match('/^\d{2}:\d{2}$/', $hIncorp)) {
+            return false;
+        }
+
+        if ($horaActual === null) {
+            $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
+        } else {
+            $horaActual = substr(trim((string) $horaActual), 0, 5);
+        }
+
+        if ($hDesinc < $hIncorp) {
+            return ($horaActual >= $hDesinc && $horaActual < $hIncorp);
+        }
+
+        if ($hDesinc > $hIncorp) {
+            return ($horaActual >= $hDesinc || $horaActual < $hIncorp);
+        }
+
+        return false;
+    }
+
+    /**
      * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
      */
     public function conteoUnidadesPorTipo(Request $request)
     {
-        $conteos = DB::table('informacion_operativa')
-            ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
+        $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
+
+        $registros = DB::table('informacion_operativa')
+            ->select('tipo', 'unidad_id', 'itinerario', 'hora_desincorporacion', 'hora_incorporacion')
             ->whereRaw("LOWER(COALESCE(estatus, '')) = 'operacion'")
-            ->groupBy('tipo')
             ->get();
 
         $resultado = [];
-        foreach ($conteos as $item) {
-            if (! empty($item->tipo)) {
-                $tipo = strtolower(trim($item->tipo));
+        $agrupados = [];
 
-                if (isset($resultado[$tipo])) {
-                    $resultado[$tipo] += (int) $item->total;
-                } else {
-                    $resultado[$tipo] = (int) $item->total;
-                }
+        foreach ($registros as $item) {
+            if (empty($item->tipo)) {
+                continue;
             }
+
+            // Si está desincorporada por itinerario actualmente, no se cuenta en operación activa
+            if (self::esDesincorporadaPorItinerario('operacion', $item->itinerario, $item->hora_desincorporacion, $item->hora_incorporacion, $horaActual)) {
+                continue;
+            }
+
+            $tipo = strtolower(trim($item->tipo));
+            $agrupados[$tipo][$item->unidad_id] = true;
+        }
+
+        foreach ($agrupados as $tipo => $unidades) {
+            $resultado[$tipo] = count($unidades);
         }
 
         return response()->json($resultado, 200);
@@ -278,6 +329,7 @@ class DespachoController extends Controller
                 'informacion_operativa.relevo_tarjeton',
                 'informacion_operativa.relevo_hora',
                 'informacion_operativa.itinerario',
+                'informacion_operativa.hora_incorporacion',
                 'informacion_operativa.hora_desincorporacion'
             )
             ->distinct()
@@ -287,6 +339,7 @@ class DespachoController extends Controller
         // ─── Pre-cargar movimientos manuales de HOY para evitar N+1 ─────────────
         $unidadIds = $unidades->pluck('unidad_id')->toArray();
         $fechaHoy = Carbon::now('America/Mexico_City')->toDateString();
+        $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
 
         // Obtener el último movimiento de conductor de hoy por unidad.
         // NO filtramos whereNotNull(conductor_asignado) porque un retiro sin
@@ -423,7 +476,15 @@ class DespachoController extends Controller
                 'relevo_tarjeton' => $relevoTarjetonResp,
                 'relevo_hora' => $relevoHoraResp,
                 'itinerario' => (bool) ($unidad->itinerario ?? false),
+                'hora_incorporacion' => $unidad->hora_incorporacion ?? null,
                 'hora_desincorporacion' => $unidad->hora_desincorporacion ?? null,
+                'desincorporada_itinerario' => self::esDesincorporadaPorItinerario(
+                    $estatus,
+                    $unidad->itinerario,
+                    $unidad->hora_desincorporacion,
+                    $unidad->hora_incorporacion,
+                    $horaActual
+                ),
                 'ya_encerrada' => $yaEncerrada,
             ];
         });
@@ -716,6 +777,18 @@ class DespachoController extends Controller
                     'itinerario' => (bool) ($info->itinerario ?? false),
                     'hora_incorporacion' => $info->hora_incorporacion ?? null,
                     'hora_desincorporacion' => $info->hora_desincorporacion ?? null,
+                    'desincorporada_itinerario' => self::esDesincorporadaPorItinerario(
+                        $estatus,
+                        $info->itinerario,
+                        $info->hora_desincorporacion,
+                        $info->hora_incorporacion
+                    ),
+                    'estatus_itinerario' => self::esDesincorporadaPorItinerario(
+                        $estatus,
+                        $info->itinerario,
+                        $info->hora_desincorporacion,
+                        $info->hora_incorporacion
+                    ) ? 'DESINCORPORADA POR ITINERARIO' : null,
                     'kilometraje' => $info->kilometraje,
                     'mantenimiento_conductor' => $info->mantenimiento_conductor,
                     'mantenimiento_tarjeton' => $info->mantenimiento_tarjeton,
@@ -2115,13 +2188,15 @@ class DespachoController extends Controller
         $hoy = $nowMexico->toDateString();
         $horaActual = $nowMexico->format('H:i');
 
-        if (! Cache::has('cambio_dia_operativo_ejecutado_'.$hoy)) {
+        $horaObjetivo = '00:00';
+
+        if ($horaActual >= $horaObjetivo) {
             $esDiaAnterior = DB::table('informacion_operativa')
                 ->whereNotNull('fecha_registro')
                 ->whereDate('fecha_registro', '<', $hoy)
                 ->exists();
 
-            if ($esDiaAnterior) {
+            if ($esDiaAnterior && ! Cache::has('cambio_dia_operativo_ejecutado_'.$hoy)) {
                 self::ejecutarCambioDiaAutomatico();
             }
         }
@@ -2204,6 +2279,15 @@ class DespachoController extends Controller
                 $tarjetonEfectivo = $reg->relevo_tarjeton;
             }
 
+            // Desincorporación temporal por itinerario según horario actual
+            $isDesincItinerario = self::esDesincorporadaPorItinerario(
+                $reg->estatus,
+                $reg->itinerario,
+                $reg->hora_desincorporacion,
+                $reg->hora_incorporacion,
+                $horaActual
+            );
+
             return [
                 'UNIDAD_ID' => $reg->unidad_id,
                 'unidad_id' => $reg->unidad_id,
@@ -2233,12 +2317,15 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $isDesincorporada ? null : $reg->hora_salida_patio,
                 'HORA_PROGRAMADA' => $isDesincorporada ? null : $reg->hora_salida_patio,
                 'ACOPLE' => $isDesincorporada ? null : $reg->acople,
-                'HORA_SALIDA' => $horaSalidaEfectiva,
-                'HORA_REAL_SALIDA_PATIO' => $horaSalidaEfectiva,
+                'HORA_SALIDA' => $isDesincItinerario ? null : $horaSalidaEfectiva,
+                'HORA_REAL_SALIDA_PATIO' => $isDesincItinerario ? null : $horaSalidaEfectiva,
                 'PATIO_NORTE' => (bool) $reg->patio_norte,
                 'ITINERARIO' => (bool) $reg->itinerario,
                 'HORA_INCORPORACION' => $isDesincorporada ? null : $reg->hora_incorporacion,
                 'HORA_DESINCORPORACION' => $isDesincorporada ? null : $reg->hora_desincorporacion,
+                'DESINCORPORADA_ITINERARIO' => $isDesincItinerario,
+                'desincorporada_itinerario' => $isDesincItinerario,
+                'SUB_ESTATUS' => $isDesincItinerario ? 'DESINCORPORADA POR ITINERARIO' : null,
                 'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
                 'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
                 'MANTENIMIENTO_RUTA' => $reg->mantenimiento_ruta,

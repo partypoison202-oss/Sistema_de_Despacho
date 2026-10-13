@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Header from '../../../components/Header/Header';
+import { estaDesincorporadaPorItinerario } from '../../../utils/itinerarioUtils';
 import './DetalleUnidades.css';
 
 // ---- Helpers para leer campos con distintos nombres posibles ----
@@ -66,6 +67,7 @@ const getTarjeton = (d) => {
 const STATUS_TABS = [
   { key: 'unidadesOperacion', label: 'Operación', color: 'operacion' },
   { key: 'unidadesCirculando', label: 'Circulando', color: 'circulando' },
+  { key: 'unidadesDesincItinerario', label: 'Desinc. Itinerario', color: 'itinerario' },
   { key: 'unidadesReserva', label: 'Reserva', color: 'reserva' },
   { key: 'unidadesMantenimiento', label: 'Mantenimiento', color: 'mantenimiento' },
   { key: 'unidadesPercance', label: 'Percance', color: 'percance' },
@@ -105,13 +107,21 @@ export default function DetalleUnidades() {
   const totalCount = model.units ? model.units.length : (model.total || groups.reduce((acc, g) => g.key !== 'unidadesCirculando' ? acc + g.units.length : acc, 0));
 
   const getUnitStatusInfo = (u, group) => {
-    const est = (u.ESTATUS || u.estatus || '').toUpperCase().trim();
-    const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
-    const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
-
     if (group && group.key === 'unidadesCirculando') {
       return { color: 'circulando', label: 'Operación (Circulando)' };
     }
+
+    if (group && group.key === 'unidadesDesincItinerario') {
+      return { color: 'itinerario', label: 'DESINCORPORADA POR ITINERARIO' };
+    }
+
+    if (estaDesincorporadaPorItinerario(u)) {
+      return { color: 'itinerario', label: 'DESINCORPORADA POR ITINERARIO' };
+    }
+
+    const est = (u.ESTATUS || u.estatus || '').toUpperCase().trim();
+    const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').trim();
+    const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
 
     if (est.includes('OPERACI')) {
       if (horaSalida !== '' && !isEncerrada) return { color: 'circulando', label: 'Operación (Circulando)' };
@@ -188,6 +198,10 @@ export default function DetalleUnidades() {
           <div className="detalle-kpi detalle-kpi--circulando">
             <span className="detalle-kpi__value">{model.circulando ?? 0}</span>
             <span className="detalle-kpi__label">Circulando</span>
+          </div>
+          <div className="detalle-kpi detalle-kpi--itinerario">
+            <span className="detalle-kpi__value">{model.desincItinerario ?? 0}</span>
+            <span className="detalle-kpi__label">Desinc. Itinerario</span>
           </div>
           <div className="detalle-kpi detalle-kpi--reserva">
             <span className="detalle-kpi__value">{model.reserva ?? 0}</span>

@@ -457,6 +457,7 @@ export default function DetalleUnidadMantenimiento() {
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
+      desincorporada_itinerario: Boolean(u.desincorporada_itinerario),
     }));
   };
 
@@ -513,7 +514,12 @@ export default function DetalleUnidadMantenimiento() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidadesList, tipoTransporte]);
 
-  const unidadesPorEstado = (estado) => (unidadesList || []).filter((u) => u.estado === estado);
+  const unidadesPorEstado = (estado) => (unidadesList || []).filter((u) => {
+    if (estado === 'operacion') {
+      return u.estado === 'operacion' && !u.desincorporada_itinerario;
+    }
+    return u.estado === estado;
+  });
   const unidadesReserva = unidadesPorEstado('reserva');
 
   const unidadesReservaFiltradas = useMemo(() => {

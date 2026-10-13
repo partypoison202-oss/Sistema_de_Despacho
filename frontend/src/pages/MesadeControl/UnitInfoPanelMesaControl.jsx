@@ -774,6 +774,25 @@ export default function UnitInfoPanel({
             <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
           </div>
         </div>
+        {datosOperativos?.desincorporada_itinerario && (
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.15)',
+            border: '1.5px solid #d97706',
+            color: '#fef3c7',
+            padding: '0.45rem 1rem',
+            borderRadius: '9999px',
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            letterSpacing: '0.04em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            boxShadow: '0 2px 10px rgba(217, 119, 6, 0.2)'
+          }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
+            DESINCORPORADA POR ITINERARIO
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -988,21 +1007,6 @@ export default function UnitInfoPanel({
               </div>
             </div>)}
 
-            {/* Hora de incorporación por itinerario (solo si se le asignó dato) */}
-            {!isReservaOrMantenimiento && !!datosOperativos.horaIncorporacion && String(datosOperativos.horaIncorporacion).trim() !== '' && String(datosOperativos.horaIncorporacion).trim() !== '--:--' && (
-              <div className="info-card__item">
-                <span className="info-card__label">Hora de incorporación por itinerario</span>
-                <div className="badge-display badge-display--green" style={{ padding: '0.5rem 1rem', opacity: 1, background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46' }}>
-                  <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: '#059669' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', color: '#065f46' }}>
-                    <span>{datosOperativos.horaIncorporacion}</span>
-                  </span>
-                </div>
-              </div>
-            )}
-
             {/* Hora de desincorporación por itinerario (solo si se le asignó dato) */}
             {!isReservaOrMantenimiento && !!datosOperativos.horaDesincorporacion && String(datosOperativos.horaDesincorporacion).trim() !== '' && String(datosOperativos.horaDesincorporacion).trim() !== '--:--' && (
               <div className="info-card__item">
@@ -1013,6 +1017,21 @@ export default function UnitInfoPanel({
                   </svg>
                   <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', color: '#92400e' }}>
                     <span>{datosOperativos.horaDesincorporacion}</span>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Hora de incorporación por itinerario (solo si se le asignó dato) */}
+            {!isReservaOrMantenimiento && !!datosOperativos.horaIncorporacion && String(datosOperativos.horaIncorporacion).trim() !== '' && String(datosOperativos.horaIncorporacion).trim() !== '--:--' && (
+              <div className="info-card__item">
+                <span className="info-card__label">Hora de incorporación por itinerario</span>
+                <div className="badge-display badge-display--green" style={{ padding: '0.5rem 1rem', opacity: 1, background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46' }}>
+                  <svg className="badge-display__icon" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: '#059669' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="badge-display__text" style={{ fontSize: '0.9rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', color: '#065f46' }}>
+                    <span>{datosOperativos.horaIncorporacion}</span>
                   </span>
                 </div>
               </div>
@@ -1212,15 +1231,15 @@ export default function UnitInfoPanel({
                 }}>
                   <button
                     onClick={() => handlePlataformaMovimiento('INCORPORACION')}
-                    disabled={datosOperativos.estatus === 'operacion'}
+                    disabled={datosOperativos.estatus === 'operacion' && !datosOperativos.desincorporada_itinerario}
                     style={{
                       flex: 1,
                       border: 'none',
-                      background: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-100)' : '#6b1d33',
-                      color: datosOperativos.estatus === 'operacion' ? 'var(--tw-color-gray-400)' : 'white',
+                      background: (datosOperativos.estatus === 'operacion' && !datosOperativos.desincorporada_itinerario) ? 'var(--tw-color-gray-100)' : '#6b1d33',
+                      color: (datosOperativos.estatus === 'operacion' && !datosOperativos.desincorporada_itinerario) ? 'var(--tw-color-gray-400)' : 'white',
                       fontWeight: 700,
                       fontSize: '0.85rem',
-                      cursor: datosOperativos.estatus === 'operacion' ? 'not-allowed' : 'pointer',
+                      cursor: (datosOperativos.estatus === 'operacion' && !datosOperativos.desincorporada_itinerario) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s'
                     }}
                   >
@@ -1228,16 +1247,16 @@ export default function UnitInfoPanel({
                   </button>
                   <button
                     onClick={() => handlePlataformaMovimiento('DESINCORPORACION')}
-                    disabled={datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento'}
+                    disabled={datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento' || Boolean(datosOperativos.desincorporada_itinerario)}
                     style={{
                       flex: 1,
                       border: 'none',
                       borderLeft: '1px solid #e5e7eb',
-                      background: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento') ? 'var(--tw-color-gray-100)' : '#6b1d33',
-                      color: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento') ? 'var(--tw-color-gray-400)' : 'white',
+                      background: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento' || Boolean(datosOperativos.desincorporada_itinerario)) ? 'var(--tw-color-gray-100)' : '#6b1d33',
+                      color: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento' || Boolean(datosOperativos.desincorporada_itinerario)) ? 'var(--tw-color-gray-400)' : 'white',
                       fontWeight: 700,
                       fontSize: '0.85rem',
-                      cursor: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento') ? 'not-allowed' : 'pointer',
+                      cursor: (datosOperativos.estatus === 'reserva' || datosOperativos.estatus === 'mantenimiento' || Boolean(datosOperativos.desincorporada_itinerario)) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s'
                     }}
                   >

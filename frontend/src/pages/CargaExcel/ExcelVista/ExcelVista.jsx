@@ -160,7 +160,7 @@ export default function ExcelPreview({
   // HORA_REAL_SALIDA_PATIO fue eliminada — la registra Despacho en tiempo real, no se programa aquí
   const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE'];
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
-  const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_INCORPORACION', 'HORA_DESINCORPORACION'];
+  const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
 
   const headers = isRelevos
     ? [...baseHeaders, ...relevosHeaders, ...tailHeaders]
@@ -307,7 +307,7 @@ export default function ExcelPreview({
     // (evita matches falsos en campos ocultos como RELEVO_TARJETON cuando no estamos en modo relevos)
     if (searchTerm && searchTerm.trim()) {
       const searchableKeys = new Set([
-        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_INCORPORACION', 'HORA_DESINCORPORACION',
+        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION',
         ...headers, // headers activos según el modo (titular, relevos, etc.)
       ]);
 
