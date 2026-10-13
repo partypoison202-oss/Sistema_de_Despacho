@@ -911,8 +911,8 @@ export default function CargaExcel({ isPasteles = false }) {
       });
 
     } else {
-      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_INCORPORACION', 'HORA_DESINCORPORACION'];
-      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de incorporación', 'Hora de desincorporación'];
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de desincorporación', 'Hora de incorporación'];
     }
 
     const datosHoja = [

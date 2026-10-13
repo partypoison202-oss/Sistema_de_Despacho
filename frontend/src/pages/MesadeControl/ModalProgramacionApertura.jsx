@@ -132,8 +132,8 @@ export default function ModalProgramacionApertura({
       'HORA_SALIDA_PATIO',
       'HORA_ACOPLE',
       'ITINERARIO',
-      'HORA_INCORPORACION',
       'HORA_DESINCORPORACION',
+      'HORA_INCORPORACION',
       'MOTIVO_FALLA'
     ];
 
@@ -151,8 +151,8 @@ export default function ModalProgramacionApertura({
       `"${u.hora_salida_patio || ''}"`,
       `"${u.acople || ''}"`,
       `"${u.itinerario ? 'SI' : 'NO'}"`,
-      `"${u.hora_incorporacion || ''}"`,
       `"${u.hora_desincorporacion || ''}"`,
+      `"${u.hora_incorporacion || ''}"`,
       `"${u.motivo_estatus || u.motivo || u.falla || ''}"`
     ]);
 
@@ -438,8 +438,8 @@ export default function ModalProgramacionApertura({
                     <th>Conductor de Relevo</th>
                     <th style={{ width: '140px' }}>Horario Programado</th>
                     <th style={{ width: '80px', textAlign: 'center' }}>Itinerario</th>
-                    <th style={{ width: '100px', textAlign: 'center' }}>Hora Incorp.</th>
                     <th style={{ width: '100px', textAlign: 'center' }}>Hora Desinc.</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Hora Incorp.</th>
                     <th>Motivo / Falla Apertura</th>
                     <th style={{ width: '110px', textAlign: 'center' }}>Acción</th>
                   </tr>
@@ -585,25 +585,6 @@ export default function ModalProgramacionApertura({
                           )}
                         </td>
 
-                        {/* Hora Incorporación */}
-                        <td style={{ textAlign: 'center' }}>
-                          {u.hora_incorporacion ? (
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: '#ecfdf5',
-                              color: '#065f46',
-                              fontSize: '0.8rem',
-                              fontWeight: 700
-                            }}>
-                              {u.hora_incorporacion}
-                            </span>
-                          ) : (
-                            <span style={{ color: '#cbd5e1' }}>-</span>
-                          )}
-                        </td>
-
                         {/* Hora Desincorporación */}
                         <td style={{ textAlign: 'center' }}>
                           {u.hora_desincorporacion ? (
@@ -617,6 +598,25 @@ export default function ModalProgramacionApertura({
                               fontWeight: 700
                             }}>
                               {u.hora_desincorporacion}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#cbd5e1' }}>-</span>
+                          )}
+                        </td>
+
+                        {/* Hora Incorporación */}
+                        <td style={{ textAlign: 'center' }}>
+                          {u.hora_incorporacion ? (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: '#ecfdf5',
+                              color: '#065f46',
+                              fontSize: '0.8rem',
+                              fontWeight: 700
+                            }}>
+                              {u.hora_incorporacion}
                             </span>
                           ) : (
                             <span style={{ color: '#cbd5e1' }}>-</span>

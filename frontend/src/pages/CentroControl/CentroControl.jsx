@@ -7,6 +7,7 @@ import { descargarReportesGeneralesConAlerta } from '../../utils/reporteGeneralU
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import { generarPDFProgramacionOperativa } from '../../utils/generarPDFProgramacionOperativa';
+import { estaDesincorporadaPorItinerario } from '../../utils/itinerarioUtils';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
@@ -149,14 +150,17 @@ export default function CentroControl() {
       });
       const getEstatus = (d) => normStr(d.ESTATUS || d.estatus);
 
-      // Operación = todas las unidades asignadas con estatus de operación en tiempo real
-      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      // Unidades desincorporadas por itinerario (en su ventana horaria activa)
+      const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
 
-      // Circulando = las que YA salieron de despacho (validadas con hora_real_salida_patio y no encerradas)
+      // Operación = unidades asignadas con estatus operación que NO están desincorporadas por itinerario
+      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d));
+
+      // Circulando = las que YA salieron de despacho (validadas con hora_real_salida_patio, no encerradas y no en itinerario)
       const unidadesCirculando = units.filter((d) => {
         const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        return getEstatus(d).includes('OPERACI') && horaSalida !== '' && !isEncerrada;
+        return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
       });
       // Reserva = todas las que tienen estatus 'reserva'
       const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
@@ -167,6 +171,7 @@ export default function CentroControl() {
 
       const total        = units.length;
       const operacion    = unidadesOperacion.length;
+      const desincItinerario = unidadesDesincItinerario.length;
       const circulando   = unidadesCirculando.length;
       const mantenimiento = unidadesMantenimiento.length;
       const reserva      = unidadesReserva.length;
@@ -193,12 +198,14 @@ export default function CentroControl() {
         total,
         programadas,
         operacion,
+        desincItinerario,
         circulando,
         reserva,
         mantenimiento,
         percance,
         otros,
         unidadesOperacion,
+        unidadesDesincItinerario,
         unidadesCirculando,
         unidadesReserva,
         unidadesMantenimiento,
@@ -213,12 +220,13 @@ export default function CentroControl() {
       total: (acc.total || 0) + (m.total || 0),
       programadas: acc.programadas + m.programadas,
       operacion: acc.operacion + m.operacion,
+      desincItinerario: (acc.desincItinerario || 0) + (m.desincItinerario || 0),
       circulando: (acc.circulando || 0) + (m.circulando || 0),
       reserva: acc.reserva + m.reserva,
       mantenimiento: acc.mantenimiento + m.mantenimiento,
       percance: (acc.percance || 0) + (m.percance || 0),
     }),
-    { total: 0, programadas: 0, operacion: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
+    { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
   );
 
   const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round((totales.circulando / totales.programadas) * 100)) : 0;
@@ -347,7 +355,10 @@ export default function CentroControl() {
         let colorClass = 'operacion';
         let labelStatus = horaSalida !== '' ? 'Operación (Circulando)' : 'Operación';
 
-        if (estatus.includes('OPERACI')) { 
+        if (estaDesincorporadaPorItinerario(u)) {
+          colorClass = 'itinerario';
+          labelStatus = 'DESINCORPORADA POR ITINERARIO';
+        } else if (estatus.includes('OPERACI')) { 
           if (horaSalida !== '') {
             colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
           } else {
@@ -375,6 +386,9 @@ export default function CentroControl() {
 
   // ---- Desglose por Rutas (Troncales y Alimentadoras) ----
   const getUnitStatusInfo = (u) => {
+    if (estaDesincorporadaPorItinerario(u)) {
+      return { label: 'DESINCORPORADA POR ITINERARIO', color: 'itinerario' };
+    }
     const est = getEstatus(u);
     const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').toString().trim();
     const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
@@ -425,11 +439,12 @@ export default function CentroControl() {
 
     const result = Object.values(routesMap).map((r) => {
       const units = r.units;
-      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
+      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d));
       const unidadesCirculando = units.filter((d) => {
         const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        return getEstatus(d).includes('OPERACI') && horaSalida !== '' && !isEncerrada;
+        return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
       });
       const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
@@ -437,6 +452,7 @@ export default function CentroControl() {
 
       const total = units.length;
       const operacion = unidadesOperacion.length;
+      const desincItinerario = unidadesDesincItinerario.length;
       const circulando = unidadesCirculando.length;
       const reserva = unidadesReserva.length;
       const mantenimiento = unidadesMantenimiento.length;
@@ -449,10 +465,12 @@ export default function CentroControl() {
         total,
         programadas,
         operacion,
+        desincItinerario,
         circulando,
         reserva,
         mantenimiento,
         percance,
+        unidadesDesincItinerario,
         eficiencia,
         unidadesOperacion,
         unidadesCirculando,
@@ -778,7 +796,7 @@ export default function CentroControl() {
                       <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
                         <span style={{ fontWeight: '700', color: '#601a2a' }}>{getNumeroEconomico(u)}</span>
                         <span style={{ fontWeight: '600' }}>{u.__modelInfo.label}</span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'itinerario' ? '#b45309' : u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'itinerario' ? '#fef3c7' : u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6', border: u.__statusColor === 'itinerario' ? '1px solid #fde68a' : 'none' }}>
                           {u.__statusLabel}
                         </span>
                         <span>{getRuta(u)}</span>
@@ -832,18 +850,27 @@ export default function CentroControl() {
                       <span
                         className="centro-bar__seg centro-bar__seg--operacion"
                         style={{ width: `${pct(m.operacion, m.total || m.programadas)}%` }}
+                        title={`Operación: ${m.operacion}`}
+                      />
+                      <span
+                        className="centro-bar__seg"
+                        style={{ width: `${pct(m.desincItinerario, m.total || m.programadas)}%`, backgroundColor: '#d97706' }}
+                        title={`Desinc. Itinerario: ${m.desincItinerario}`}
                       />
                       <span
                         className="centro-bar__seg centro-bar__seg--reserva"
                         style={{ width: `${pct(m.reserva, m.total || m.programadas)}%` }}
+                        title={`Reserva: ${m.reserva}`}
                       />
                       <span
                         className="centro-bar__seg centro-bar__seg--mantenimiento"
                         style={{ width: `${pct(m.mantenimiento, m.total || m.programadas)}%` }}
+                        title={`Mantenimiento: ${m.mantenimiento}`}
                       />
                       <span
                         className="centro-bar__seg centro-bar__seg--percance"
                         style={{ width: `${pct(m.percance, m.total || m.programadas)}%` }}
+                        title={`Percance: ${m.percance}`}
                       />
                     </div>
 
@@ -855,6 +882,14 @@ export default function CentroControl() {
                           {cargando ? '—' : `${Math.round(pct(m.operacion, m.total || m.programadas))}%`}
                         </span>
                         <span className="centro-status-value">{cargando ? '—' : m.operacion}</span>
+                      </div>
+                      <div className="centro-status-row">
+                        <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
+                        <span className="centro-status-label">Desinc. Itinerario</span>
+                        <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7' }}>
+                          {cargando ? '—' : `${Math.round(pct(m.desincItinerario, m.total || m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value">{cargando ? '—' : m.desincItinerario}</span>
                       </div>
                       <div className="centro-status-row">
                         <span className="centro-status-dot centro-status-dot--reserva" />
