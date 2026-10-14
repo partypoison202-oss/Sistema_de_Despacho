@@ -346,9 +346,6 @@ export default function DetalleUnidadEncierro() {
     }));
 
     return mapped.filter(u => {
-      // Las unidades en mantenimiento o percance quedan completamente excluidas del encierro físico
-      if (u.estado === 'mantenimiento' || u.estado === 'percance') return false;
-
       // Solo unidades que ya fueron despachadas hoy (tienen hora de salida asignada)
       if (u.horaRealSalidaPatio === '') return false;
 
