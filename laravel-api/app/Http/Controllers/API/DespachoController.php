@@ -1396,8 +1396,8 @@ class DespachoController extends Controller
                     $insertRow = [];
                     foreach ($arrayRow as $key => $val) {
                         if (isset($targetCols[$key])) {
-                            if (in_array($key, ['patio_norte', 'transporte_patio_norte'])) {
-                                $insertRow[$key] = $val ? 'true' : 'false';
+                            if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                                $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
                             } else {
                                 $insertRow[$key] = $val;
                             }
@@ -1411,7 +1411,11 @@ class DespachoController extends Controller
                         $inicialRowFiltered = [];
                         foreach ($insertRow as $k => $v) {
                             if (isset($inicialCols[$k])) {
-                                $inicialRowFiltered[$k] = $v;
+                                if (in_array($k, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                                    $inicialRowFiltered[$k] = filter_var($v, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                                } else {
+                                    $inicialRowFiltered[$k] = $v;
+                                }
                             }
                         }
                         $inicialRowFiltered['fecha'] = $fechaHoy;
@@ -1530,74 +1534,36 @@ class DespachoController extends Controller
         }
     }
 
-    public function aplicarCambioDia()
+    public function aplicarCambioDia(Request $request)
     {
-        try {
-            DB::beginTransaction();
+        $user = $request->user();
+        $rolCodigo = strtoupper(trim($user?->role?->codigo ?? ''));
+        $rolNombre = strtoupper(trim($user?->role?->nombre ?? ''));
+        $username = strtolower(trim($user?->usuario ?? ''));
 
-            $manana = DB::table('informacion_operativa_manana')->get();
+        $autorizado = in_array($rolCodigo, ['ADMIN', 'ADMINISTRADOR'])
+            || in_array($rolNombre, ['ADMIN', 'ADMINISTRADOR'])
+            || str_contains($username, 'enrique');
 
-            DB::table('informacion_operativa')->delete();
-
-            $tarjetones = [];
-            $maniobristas = [];
-
-            foreach ($manana as $row) {
-                unset($row->id);
-                $arrayRow = (array) $row;
-                if (array_key_exists('patio_norte', $arrayRow)) {
-                    $arrayRow['patio_norte'] = $arrayRow['patio_norte'] ? 'true' : 'false';
-                }
-                if (array_key_exists('transporte_patio_norte', $arrayRow)) {
-                    $arrayRow['transporte_patio_norte'] = $arrayRow['transporte_patio_norte'] ? 'true' : 'false';
-                }
-
-                // Reiniciar campos de validación para el nuevo día
-                if (array_key_exists('hora_real_salida_patio', $arrayRow)) {
-                    $arrayRow['hora_real_salida_patio'] = null;
-                }
-                if (array_key_exists('firma_base64', $arrayRow)) {
-                    $arrayRow['firma_base64'] = null;
-                }
-
-                DB::table('informacion_operativa')->insert($arrayRow);
-
-                if (! empty($row->numero_tarjeton)) {
-                    $tarjetones[] = $row->numero_tarjeton;
-                }
-                if (! empty($row->tarjeton_maniobrista)) {
-                    $maniobristas[] = $row->tarjeton_maniobrista;
-                }
-            }
-
-            DB::table('conductores')->update(['estado_servicio' => 'disponible']);
-            DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
-
-            if (! empty($tarjetones)) {
-                DB::table('conductores')->whereIn('tarjeton', array_unique($tarjetones))->update(['estado_servicio' => 'en_servicio']);
-            }
-            if (! empty($maniobristas)) {
-                DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristas))->update(['estado_servicio' => 'en_servicio']);
-            }
-
-            DB::table('informacion_operativa_manana')->delete();
-
-            DB::commit();
-
+        if (! $autorizado) {
             return response()->json([
-                'status' => 'success',
-                'message' => 'Cambio de día aplicado exitosamente',
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error al aplicar el cambio de dia: '.$e->getMessage());
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Error al hacer el cambio de día',
-            ], 500);
+                'status'  => 'error',
+                'message' => 'Acceso denegado. Solo administradores autorizados pueden ejecutar esta acción.',
+            ], 403);
         }
+
+        if (DB::table('informacion_operativa_manana')->count() === 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No hay programación registrada en "Día Siguiente" para trasladar al día actual.',
+            ], 400);
+        }
+
+        $resAuto = self::ejecutarCambioDiaAutomatico();
+
+        \Log::info('Cambio de día operativo manual ejecutado exitosamente por: '.($user->usuario ?? 'admin'));
+
+        return response()->json($resAuto, ($resAuto['status'] ?? '') === 'error' ? 500 : 200);
     }
 
     public function aplicarCambioDiaEspecifico($dia)

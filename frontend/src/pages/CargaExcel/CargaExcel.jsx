@@ -39,9 +39,14 @@ export default function CargaExcel({ isPasteles = false }) {
 
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
+  const _usuario = String(user?.usuario || '').toLowerCase().trim();
+  const isAdminOrEnrique = _roleCodigo === 'ADMIN' || _roleCodigo === 'ADMINISTRADOR'
+    || _roleNombre === 'ADMIN' || _roleNombre === 'ADMINISTRADOR'
+    || _usuario.includes('enrique');
   const isRelevos = _roleCodigo === 'RELEVOS' || _roleCodigo === 'REVELOS'
     || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
     || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
+  const [isApplyingCambioDia, setIsApplyingCambioDia] = useState(false);
 
   const getAuthHeaders = () => {
     const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
@@ -1289,6 +1294,117 @@ export default function CargaExcel({ isPasteles = false }) {
     }
   };
 
+  const handleCambioDiaManual = async () => {
+    if (!isAdminOrEnrique) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Acceso Denegado',
+        text: 'Solo administradores autorizados o Enrique pueden ejecutar esta acción.',
+        confirmButtonColor: 'var(--color-maroon)'
+      });
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: '¿Sobrescribir el Día Operativo?',
+      html: `
+        <div style="text-align: left; font-size: 0.92rem; line-height: 1.5; color: #1f2937;">
+          <div style="display: flex; align-items: center; gap: 8px; color: #b91c1c; font-weight: 700; font-size: 0.98rem; margin-bottom: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Acción Crítica e Irreversible</span>
+          </div>
+
+          <p style="margin: 0 0 10px 0; color: #374151;">
+            Esta operación reemplazará inmediatamente toda la programación activa de <strong>Día Operativo (Actual)</strong> con la información capturada en <strong>Día Siguiente</strong>.
+          </p>
+
+          <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
+            <div style="font-weight: 700; color: #991b1b; margin-bottom: 6px; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+              Riesgos e impacto de esta acción:
+            </div>
+            <ul style="margin: 0; padding-left: 1.15rem; font-size: 0.84rem; color: #7f1d1d; line-height: 1.45;">
+              <li><strong>Pérdida de avances diarios:</strong> Se eliminarán las validaciones, firmas y horas reales de salida de patio ya registradas hoy.</li>
+              <li><strong>Sobrescritura total:</strong> Las asignaciones de unidades, rutas y conductores actuales serán sustituidas.</li>
+              <li><strong>Vaciado de Día Siguiente:</strong> La tabla de mañana quedará en blanco para la próxima carga.</li>
+            </ul>
+          </div>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px; color: #475569; font-size: 0.82rem; line-height: 1.4;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span><strong>Ejecución automática regular:</strong> El servidor aplica este traspaso automáticamente cada medianoche a las <strong>12:00 AM</strong>. Utiliza este botón únicamente si requieres adelantar el cambio de forma manual.</span>
+          </div>
+
+          <p style="color: #b91c1c; font-weight: 700; margin: 0; text-align: center; font-size: 0.92rem;">
+            ¿Estás seguro de que deseas forzar la sobrescritura ahora?
+          </p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#4b5563',
+      confirmButtonText: 'Sí, sobrescribir y aplicar',
+      cancelButtonText: 'Cancelar',
+      focusCancel: true
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      setIsApplyingCambioDia(true);
+
+      const response = await fetch(`${API_BASE}/api/despacho/aplicar-cambio-dia`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.status === 'error') {
+        throw new Error(data.message || 'Error al ejecutar el cambio de día.');
+      }
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Programación Aplicada',
+        text: data.message || 'La programación de "Día Siguiente" se ha aplicado exitosamente al "Día Operativo (Actual)".',
+        confirmButtonColor: 'var(--color-maroon)'
+      });
+
+      setHasChanges(false);
+      setVerInicio(false);
+      setTabActiva('HOY');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['despacho-datos'] }),
+        queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] }),
+      ]);
+      await refetchData();
+
+    } catch (error) {
+      console.error('Error al aplicar cambio de día:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.message || 'Ocurrió un error al intentar aplicar el cambio de día.',
+        confirmButtonColor: 'var(--color-maroon)'
+      });
+    } finally {
+      setIsApplyingCambioDia(false);
+    }
+  };
+
   // ─── JSX ──────────────────────────────────────────────────────────────────────
   return (
     <div className="excel-layout">
@@ -1343,6 +1459,18 @@ export default function CargaExcel({ isPasteles = false }) {
               >
                 Días Festivos
               </button>
+            </div>
+          )}
+
+          {/* Nota informativa de ejecución automática a las 12:00 AM (medianoche) */}
+          {tabActiva === 'MANANA' && !isPasteles && !isRelevos && (
+            <div className="excel-info-notice-banner">
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                <strong>Nota:</strong> La programación registrada en <strong>Día Siguiente</strong> se aplicará automáticamente al <strong>Día Operativo (Actual)</strong> a las <strong>12:00 AM (medianoche / madrugada)</strong>.
+              </span>
             </div>
           )}
 
@@ -1441,6 +1569,26 @@ export default function CargaExcel({ isPasteles = false }) {
                   Subir Excel
                 </button>
               </>
+            )}
+
+            {/* Botón Exclusivo: Aplicar Programación del Día Siguiente al Día Operativo Actual (Solo Admin / Enrique en pestaña Día Siguiente) */}
+            {isAdminOrEnrique && !isPasteles && !isRelevos && tabActiva === 'MANANA' && (
+              <button
+                type="button"
+                onClick={handleCambioDiaManual}
+                disabled={isApplyingCambioDia}
+                className="excel-btn-capsule excel-btn-capsule--rojo"
+                title="Traslada la programación revisada de Día Siguiente al Día Operativo (Actual)"
+              >
+                {isApplyingCambioDia ? (
+                  <span className="spinner-mini" style={{ borderColor: 'rgba(220, 38, 38, 0.3)', borderTopColor: '#dc2626' }}></span>
+                ) : (
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                {isApplyingCambioDia ? 'Aplicando...' : 'Aplicar al Día Operativo (Actual)'}
+              </button>
             )}
           </div>
         </div>
