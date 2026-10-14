@@ -995,13 +995,13 @@ class DespachoController extends Controller
 
             if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
                 $data['estatus'] = 'operacion';
-            } elseif (! $tieneServicioAsignado && $estatusReq === 'operacion') {
-                $data['estatus'] = 'reserva';
+            } elseif (!empty($estatusReq)) {
+                $data['estatus'] = $estatusReq;
             } else {
-                $data['estatus'] = $estatusReq ?: ($tieneServicioAsignado ? 'operacion' : 'reserva');
+                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
             }
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+            if (strtolower($data['estatus']) === 'reserva') {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -1023,8 +1023,37 @@ class DespachoController extends Controller
                 $data['ciclo'] = null;
                 $data['motivo'] = null;
                 $data['motivo_estatus'] = null;
+            } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
+                $data['ruta'] = '';
+                $data['numero_tarjeton'] = '';
+                $data['nombre_conductor'] = '';
+                $data['tarjeton_maniobrista'] = '';
+                $data['nombre_maniobrista'] = '';
+                $data['relevo_tarjeton'] = '';
+                $data['relevo_conductor'] = '';
+                $data['relevo_hora'] = '';
+                $data['corridas'] = null;
+                $data['hora_salida_patio'] = null;
+                $data['acople'] = null;
+                $data['hora_real_salida_patio'] = null;
+                $data['patio_norte'] = 'false';
+                $data['transporte_patio_norte'] = 'false';
+                $data['itinerario'] = 'false';
+                $data['hora_incorporacion'] = null;
+                $data['hora_desincorporacion'] = null;
+                $prevInfo = $infoOperativaRegistros->get($unidad->id);
+                $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
+                    ? trim((string)$fila['FALLA'])
+                    : ($prevInfo->falla ?? null);
+                $data['ciclo'] = $prevInfo->ciclo ?? null;
+                $data['motivo'] = $prevInfo->motivo ?? null;
+                $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? null;
             } else {
                 $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
+                $data['falla'] = null;
+                $data['ciclo'] = null;
+                $data['motivo'] = null;
+                $data['motivo_estatus'] = null;
             }
 
             if ($registroId) {
@@ -1074,7 +1103,7 @@ class DespachoController extends Controller
             } else {
                 try {
                     $data['unidad_id'] = $unidad->id;
-                    $data['estatus'] = trim((string) ($fila['ESTATUS'] ?? 'operacion'));
+                    $data['estatus'] = $data['estatus'] ?? trim((string) ($fila['ESTATUS'] ?? 'operacion'));
                     $data['fecha_registro'] = now();
 
                     DB::table('informacion_operativa')->insert($data);
@@ -1191,7 +1220,8 @@ class DespachoController extends Controller
             }
         }
 
-        $infoOperativaIds = DB::table('informacion_operativa_manana')->pluck('id', 'unidad_id')->all();
+        $infoOperativaMananaRegistros = DB::table('informacion_operativa_manana')->get()->keyBy('unidad_id');
+        $infoOperativaIds = $infoOperativaMananaRegistros->map(fn ($r) => $r->id)->all();
 
         $unidadesProcesadasIds = [];
         $actualizados = 0;
@@ -1276,7 +1306,18 @@ class DespachoController extends Controller
                 'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
+            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']));
+
+            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+                $data['estatus'] = 'operacion';
+            } elseif (!empty($estatusReq)) {
+                $data['estatus'] = $estatusReq;
+            } else {
+                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+            }
+
+            if (strtolower($data['estatus']) === 'reserva') {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -1298,8 +1339,37 @@ class DespachoController extends Controller
                 $data['ciclo'] = null;
                 $data['motivo'] = null;
                 $data['motivo_estatus'] = null;
+            } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
+                $data['ruta'] = '';
+                $data['numero_tarjeton'] = '';
+                $data['nombre_conductor'] = '';
+                $data['tarjeton_maniobrista'] = '';
+                $data['nombre_maniobrista'] = '';
+                $data['relevo_tarjeton'] = '';
+                $data['relevo_conductor'] = '';
+                $data['relevo_hora'] = '';
+                $data['corridas'] = null;
+                $data['hora_salida_patio'] = null;
+                $data['acople'] = null;
+                $data['hora_real_salida_patio'] = null;
+                $data['patio_norte'] = 'false';
+                $data['transporte_patio_norte'] = 'false';
+                $data['itinerario'] = 'false';
+                $data['hora_incorporacion'] = null;
+                $data['hora_desincorporacion'] = null;
+                $prevInfo = $infoOperativaMananaRegistros->get($unidad->id);
+                $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
+                    ? trim((string)$fila['FALLA'])
+                    : ($prevInfo->falla ?? null);
+                $data['ciclo'] = $prevInfo->ciclo ?? null;
+                $data['motivo'] = $prevInfo->motivo ?? null;
+                $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? null;
             } else {
                 $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
+                $data['falla'] = null;
+                $data['ciclo'] = null;
+                $data['motivo'] = null;
+                $data['motivo_estatus'] = null;
             }
 
             if ($registroId) {
@@ -1390,7 +1460,8 @@ class DespachoController extends Controller
             }
         }
 
-        $infoOperativaIds = DB::table($tableName)->pluck('id', 'unidad_id')->all();
+        $infoOperativaEspecificoRegistros = DB::table($tableName)->get()->keyBy('unidad_id');
+        $infoOperativaIds = $infoOperativaEspecificoRegistros->map(fn ($r) => $r->id)->all();
 
         $unidadesProcesadasIds = [];
         $actualizados = 0;
@@ -1475,7 +1546,18 @@ class DespachoController extends Controller
                 'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
             ];
 
-            if (in_array(strtolower($data['estatus']), ['mantenimiento', 'reserva'])) {
+            $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
+            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']));
+
+            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+                $data['estatus'] = 'operacion';
+            } elseif (!empty($estatusReq)) {
+                $data['estatus'] = $estatusReq;
+            } else {
+                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+            }
+
+            if (strtolower($data['estatus']) === 'reserva') {
                 $data['ruta'] = '';
                 $data['numero_tarjeton'] = '';
                 $data['nombre_conductor'] = '';
@@ -1497,8 +1579,37 @@ class DespachoController extends Controller
                 $data['ciclo'] = null;
                 $data['motivo'] = null;
                 $data['motivo_estatus'] = null;
+            } elseif (in_array(strtolower($data['estatus']), ['mantenimiento', 'percance'])) {
+                $data['ruta'] = '';
+                $data['numero_tarjeton'] = '';
+                $data['nombre_conductor'] = '';
+                $data['tarjeton_maniobrista'] = '';
+                $data['nombre_maniobrista'] = '';
+                $data['relevo_tarjeton'] = '';
+                $data['relevo_conductor'] = '';
+                $data['relevo_hora'] = '';
+                $data['corridas'] = null;
+                $data['hora_salida_patio'] = null;
+                $data['acople'] = null;
+                $data['hora_real_salida_patio'] = null;
+                $data['patio_norte'] = 'false';
+                $data['transporte_patio_norte'] = 'false';
+                $data['itinerario'] = 'false';
+                $data['hora_incorporacion'] = null;
+                $data['hora_desincorporacion'] = null;
+                $prevInfo = $infoOperativaEspecificoRegistros->get($unidad->id);
+                $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
+                    ? trim((string)$fila['FALLA'])
+                    : ($prevInfo->falla ?? null);
+                $data['ciclo'] = $prevInfo->ciclo ?? null;
+                $data['motivo'] = $prevInfo->motivo ?? null;
+                $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? null;
             } else {
                 $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
+                $data['falla'] = null;
+                $data['ciclo'] = null;
+                $data['motivo'] = null;
+                $data['motivo_estatus'] = null;
             }
 
             if ($registroId) {

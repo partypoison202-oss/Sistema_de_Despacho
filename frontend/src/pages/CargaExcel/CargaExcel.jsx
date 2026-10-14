@@ -257,10 +257,12 @@ export default function CargaExcel({ isPasteles = false }) {
         updatedData[index]['HORA_DESINCORPORACION'] = '';
         updatedData[index]['TARJETON_MANIOBRISTA'] = '';
         updatedData[index]['NOMBRE_MANIOBRISTA'] = '';
-        updatedData[index]['FALLA'] = '';
-        updatedData[index]['CICLO'] = '';
-        updatedData[index]['MOTIVO'] = '';
-        updatedData[index]['MOTIVO_ESTATUS'] = '';
+        if (valStr === 'reserva') {
+          updatedData[index]['FALLA'] = '';
+          updatedData[index]['CICLO'] = '';
+          updatedData[index]['MOTIVO'] = '';
+          updatedData[index]['MOTIVO_ESTATUS'] = '';
+        }
       } else {
         updatedData[index]['ESTATUS'] = valStr;
       }
