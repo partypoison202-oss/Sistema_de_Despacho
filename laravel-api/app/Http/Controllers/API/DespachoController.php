@@ -1748,7 +1748,11 @@ class DespachoController extends Controller
                         $inicialRowFiltered = [];
                         foreach ($insertRow as $k => $v) {
                             if (isset($inicialCols[$k])) {
-                                $inicialRowFiltered[$k] = $v;
+                                if (in_array($k, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                                    $inicialRowFiltered[$k] = filter_var($v, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                                } else {
+                                    $inicialRowFiltered[$k] = $v;
+                                }
                             }
                         }
                         $inicialRowFiltered['fecha'] = $fechaHoy;
@@ -1890,9 +1894,37 @@ class DespachoController extends Controller
         }
     }
 
-    public function aplicarCambioDia()
+    public function aplicarCambioDia(Request $request)
     {
+        $user = $request->user();
+        $rolCodigo = strtoupper(trim($user?->role?->codigo ?? ''));
+        $rolNombre = strtoupper(trim($user?->role?->nombre ?? ''));
+        $username = strtolower(trim($user?->usuario ?? ''));
+        $nombreCompleto = strtolower(trim($user?->nombre_completo ?? ''));
+
+        $autorizado = in_array($rolCodigo, ['ADMIN', 'ADMINISTRADOR'])
+            || in_array($rolNombre, ['ADMIN', 'ADMINISTRADOR'])
+            || str_contains($username, 'enrique')
+            || str_contains($username, 'erik')
+            || str_contains($nombreCompleto, 'erik');
+
+        if (! $autorizado) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Acceso denegado. Solo administradores autorizados pueden ejecutar esta acción.',
+            ], 403);
+        }
+
+        if (DB::table('informacion_operativa_manana')->count() === 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'No hay programación registrada en "Día Siguiente" para trasladar al día actual.',
+            ], 400);
+        }
+
         $resAuto = self::ejecutarCambioDiaAutomatico();
+
+        \Log::info('Cambio de día operativo manual ejecutado exitosamente por: '.($user->usuario ?? 'admin'));
 
         return response()->json($resAuto, ($resAuto['status'] ?? '') === 'error' ? 500 : 200);
     }
