@@ -1586,9 +1586,19 @@ class DespachoController extends Controller
                     unset($row->id);
                     $arrayRow = (array) $row;
                     $unidadId = $row->unidad_id ?? null;
+                    $estatusManana = strtolower(trim($row->estatus ?? ''));
+                    $tieneServicioAsignado = !empty(trim((string)($row->numero_tarjeton ?? ''))) || !empty(trim((string)($row->ruta ?? '')));
 
-                    // Si la unidad estaba en Mantenimiento o Percance, se excluye del reseteo y se preserva íntegra
+                    // Si la unidad estaba en Mantenimiento o Percance hoy:
+                    // Se preserva en mantenimiento solo si no fue programada explícitamente para operar mañana
+                    $seMantieneEnMantenimiento = false;
                     if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
+                        if ($estatusManana !== 'operacion' && !$tieneServicioAsignado) {
+                            $seMantieneEnMantenimiento = true;
+                        }
+                    }
+
+                    if ($seMantieneEnMantenimiento) {
                         $bloqueada = (array) $unidadesBloqueadas->get($unidadId);
                         unset($bloqueada['id']);
 
@@ -2951,13 +2961,6 @@ class DespachoController extends Controller
             return response()->json(['status' => 'error', 'message' => 'No hay información operativa para la unidad'], 400);
         }
 
-        $estatusActual = strtolower(trim($registroOperativo->estatus ?? ''));
-        if ($estatusActual !== 'operacion') {
-            return response()->json([
-                'status'  => 'error',
-                'message' => "La unidad ECO {$numeroEco} se encuentra en estado '{$registroOperativo->estatus}' y no puede ser encerrada manualmente (solo aplica a unidades en Operación).",
-            ], 422);
-        }
 
         $horaEncierro = date('H:i:s');
         $motivoFinal = $request->motivo_estatus ?? 'Fin de turno (Encierro regular)';
