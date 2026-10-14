@@ -63,6 +63,7 @@ function procesarModelos(listaUnidades) {
     { id: 'VAGONETA', label: 'Vagoneta', alt: [] },
     { id: 'ORION', label: 'Orión', alt: ['ORIÓN'] }
   ];
+
   const modelStats = MODELOS.map(m => {
     const matchPattern = [m.id, ...m.alt];
     const units = listaUnidades.filter(u => {
@@ -70,6 +71,7 @@ function procesarModelos(listaUnidades) {
       return matchPattern.some(p => tipo.includes(p));
     });
     const prog = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
+
     const oper = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       const isOper = status.includes('OPERACI');
@@ -271,7 +273,9 @@ export async function descargarResumenDespachoExcel(setLoading) {
                 ws.addImage(imgId, { tl: { col: bus.col + offsetCol, row: 6 + offsetRow }, ext: { width: bus.w, height: bus.h } });
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        // Ignorar fallo al cargar imagenes decorativas
+    }
 
     const r8 = ws.getRow(8); r8.height = 40;
     ws.getCell('A8').value = 'Eficiencia';

@@ -40,8 +40,11 @@ class BitacoraHelper
                     $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida');
                     $hasHoraReal = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
                     $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'relevo_tarjeton');
+                    $hasItinerario = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'itinerario');
+                    $hasHoraIncorp = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_incorporacion');
+                    $hasHoraDesinc = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_desincorporacion');
 
-                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo) {
+                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo, $hasItinerario, $hasHoraIncorp, $hasHoraDesinc) {
                         $item = [
                             'fecha_historial' => $hoy,
                             'momento'         => 'INICIO',
@@ -83,6 +86,18 @@ class BitacoraHelper
                             $item['relevo_tarjeton'] = $registro->relevo_tarjeton ?? null;
                             $item['relevo_conductor'] = $registro->relevo_conductor ?? null;
                             $item['relevo_hora'] = $registro->relevo_hora ?? null;
+                        }
+
+                        if ($hasItinerario) {
+                            $item['itinerario'] = filter_var($registro->itinerario ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+
+                        if ($hasHoraIncorp) {
+                            $item['hora_incorporacion'] = $registro->hora_incorporacion ?? null;
+                        }
+
+                        if ($hasHoraDesinc) {
+                            $item['hora_desincorporacion'] = $registro->hora_desincorporacion ?? null;
                         }
 
                         return $item;

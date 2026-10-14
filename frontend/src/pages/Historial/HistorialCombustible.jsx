@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
 import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
 export default function HistorialCombustible() {
@@ -336,18 +337,6 @@ export default function HistorialCombustible() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label style={{ fontWeight: '700', color: '#334155' }}>Buscar:</label>
-              <input
-                type="text"
-                placeholder="Ej. ECO, tipo o folio..."
-                value={filtroBusqueda}
-                onChange={e => setFiltroBusqueda(e.target.value)}
-                style={{ padding: '0.5rem 0.8rem', borderRadius: '0.5rem', border: '1px solid #d1d5db', outline: 'none', fontSize: '0.9rem', width: '200px' }}
-                disabled={cargando}
-              />
-            </div>
-
             <button
               className="export-excel-btn"
               onClick={exportToExcel}
@@ -388,6 +377,21 @@ export default function HistorialCombustible() {
             Reportes Generados (Folios COMB)
           </button>
         </div>
+
+        {/* Buscador Contextual Unificado */}
+        <HistorialSearchBar
+          value={filtroBusqueda}
+          onChange={setFiltroBusqueda}
+          placeholder={
+            activeTab === 'cargas'
+              ? 'Buscar por económico, tipo de unidad o número de cincho...'
+              : activeTab === 'cambios'
+              ? 'Buscar por económico, tipo, detalles o usuario...'
+              : 'Buscar por folio o usuario que generó el reporte...'
+          }
+          totalCount={activeData.length}
+          filteredCount={datosFiltrados.length}
+        />
 
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>

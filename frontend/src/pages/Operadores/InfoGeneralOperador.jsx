@@ -32,7 +32,7 @@ const calcularAntiguedad = (fechaIngreso) => {
 
 // Helper para normalizar la URL de la foto del operador
 const getFotoUrl = (foto) => {
-  if (!foto) return null;
+  if (!foto || foto === 'null' || foto === 'undefined') return null;
   if (foto.startsWith('http') || foto.startsWith('data:') || foto.startsWith('blob:')) return foto;
   if (foto.startsWith('/storage')) return `${API_BASE}${foto}`;
   return `${API_BASE}/storage/${foto}`;
@@ -967,7 +967,7 @@ export default function InfoGeneralOperador({ conductores }) {
                 <span className="absolute inset-0 flex items-center justify-center z-0">
                   {displayConductor.nombre && displayConductor.nombre !== '------------------------' ? displayConductor.nombre.charAt(0).toUpperCase() : 'O'}
                 </span>
-                {displayConductor.foto && (
+                {getFotoUrl(displayConductor.foto) && (
                   <img 
                     src={getFotoUrl(displayConductor.foto)} 
                     alt={displayConductor.nombre} 

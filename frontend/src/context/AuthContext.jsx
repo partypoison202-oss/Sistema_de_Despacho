@@ -86,14 +86,29 @@ export const AuthProvider = ({ children }) => {
   };
 
   const canEditModulo = (moduloCodigo) => {
-    if (!user?.modulos) return false;
-    if (user.role?.codigo === 'ADMINISTRADOR') return true;
-    if (user.role?.codigo === 'LECTURA') return false;
-    
-    const mod = user.modulos.find(m => 
-      (typeof m === 'object' ? m.modulo_codigo : m) === moduloCodigo
-    );
-    
+    if (!user) return false;
+    const roleCode = String(user.role?.codigo || '').toUpperCase().trim();
+    if (roleCode === 'ADMINISTRADOR') return true;
+    if (roleCode === 'LECTURA') return false;
+
+    const norm = (s) => String(s || '').toLowerCase().replace(/[-_\s]/g, '');
+    const targetNorm = norm(moduloCodigo);
+
+    // Permisos directos por rol para operaciones de Mesa de Control / Plataforma / Pasteles
+    if (
+      (roleCode === 'MESA_CONTROL' || roleCode === 'MESA_DE_CONTROL' || roleCode === 'PLATAFORMA' || roleCode === 'PASTELES' || roleCode === 'CENTRO_CONTROL' || roleCode === 'CENTRO_DE_CONTROL') &&
+      (targetNorm === 'mesacontrol' || targetNorm === 'centrocontrol')
+    ) {
+      return true;
+    }
+
+    if (!user.modulos) return false;
+
+    const mod = user.modulos.find((m) => {
+      const code = typeof m === 'object' ? m.modulo_codigo : m;
+      return norm(code) === targetNorm;
+    });
+
     if (!mod) return false;
     if (typeof mod === 'object') {
       return !mod.solo_lectura;

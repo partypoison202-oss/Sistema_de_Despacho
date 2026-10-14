@@ -86,14 +86,14 @@
 /* ---------- KPIs por estatus ---------- */
 .detalle-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 14px;
   margin-bottom: 24px;
 }
 
 @media (max-width: 900px) {
   .detalle-kpis {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -141,6 +141,13 @@
   color: #059669;
 }
 
+.detalle-kpi--itinerario {
+  border-left-color: #d97706;
+}
+.detalle-kpi--itinerario .detalle-kpi__value {
+  color: #d97706;
+}
+
 .detalle-kpi--reserva {
   border-left-color: var(--status-blue-text);
 }
@@ -153,6 +160,13 @@
 }
 .detalle-kpi--mantenimiento .detalle-kpi__value {
   color: var(--status-yellow-text);
+}
+
+.detalle-kpi--percance {
+  border-left-color: #e11d48;
+}
+.detalle-kpi--percance .detalle-kpi__value {
+  color: #e11d48;
 }
 
 /* ---------- Filtros y Buscador ---------- */
@@ -233,6 +247,7 @@
 
 .detalle-tab--operacion.is-active { background: #0284c7; border-color: #0284c7; }
 .detalle-tab--circulando.is-active { background: var(--status-green-text); border-color: var(--status-green-text); }
+.detalle-tab--itinerario.is-active { background: #d97706; border-color: #d97706; color: #ffffff; }
 .detalle-tab--reserva.is-active { background: var(--status-blue-text); border-color: var(--status-blue-text); }
 .detalle-tab--mantenimiento.is-active { background: var(--status-yellow-text); border-color: var(--status-yellow-text); }
 .detalle-tab--percance.is-active { background: #b91c1c; border-color: #b91c1c; }
@@ -325,6 +340,12 @@
 .detalle-table__status--circulando {
   color: var(--status-green-text);
   background: var(--status-green-light);
+}
+
+.detalle-table__status--itinerario {
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
 }
 
 .detalle-table__status--reserva {

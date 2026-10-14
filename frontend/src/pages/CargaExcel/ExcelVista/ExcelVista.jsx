@@ -21,6 +21,9 @@ const HEADER_TRANSLATIONS = {
   ACOPLE: 'HORA DE ACOPLE',            // campo acople en BD
   CORRIDAS: 'Corrida',
   PATIO_NORTE: 'Patio Norte',
+  ITINERARIO: 'ITINERARIO',
+  HORA_INCORPORACION: 'Hora de incorporacion',
+  HORA_DESINCORPORACION: 'Hora de desincorporacion',
 };
 
 const SmartTimeInput = ({ value, onChange, disabled }) => {
@@ -157,7 +160,7 @@ export default function ExcelPreview({
   // HORA_REAL_SALIDA_PATIO fue eliminada — la registra Despacho en tiempo real, no se programa aquí
   const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE'];
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
-  const tailHeaders = ['ESTATUS', 'PATIO_NORTE'];
+  const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
 
   const headers = isRelevos
     ? [...baseHeaders, ...relevosHeaders, ...tailHeaders]
@@ -170,16 +173,14 @@ export default function ExcelPreview({
   const estatusTranslations = {
     operacion: 'Operación',
     mantenimiento: 'Mantenimiento',
-    reserva: 'Reserva',
-    no_programada: 'No programada'
+    reserva: 'Reserva'
   };
 
   // Colores asociados a cada estatus para badges y listados
   const estatusColors = {
     operacion: { bg: 'rgba(16, 185, 129, 0.08)', text: '#10b981', border: 'rgba(16, 185, 129, 0.2)' },       // Verde
     mantenimiento: { bg: 'rgba(239, 68, 68, 0.08)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' },   // Rojo
-    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' },        // Azul
-    no_programada: { bg: 'rgba(107, 114, 128, 0.08)', text: '#6b7280', border: 'rgba(107, 114, 128, 0.25)' } // Gris neutro
+    reserva: { bg: 'rgba(59, 130, 246, 0.08)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' }        // Azul
   };
 
   // 1. Ordenar los datos por tipo de unidad (según el orden de la lista) y luego por ECO numérico
@@ -200,6 +201,17 @@ export default function ExcelPreview({
         if (pB === -1) pB = 999;
         if (pA !== pB) return pA - pB;
         return rutaA.localeCompare(rutaB, undefined, { numeric: true, sensitivity: 'base' });
+      } else if (rutaA && rutaB) {
+        // Ambas son la misma ruta (y no están vacías), ordenar por corrida
+        const cA = a.CORRIDAS != null && String(a.CORRIDAS).trim() !== '' ? parseInt(a.CORRIDAS, 10) : NaN;
+        const cB = b.CORRIDAS != null && String(b.CORRIDAS).trim() !== '' ? parseInt(b.CORRIDAS, 10) : NaN;
+        
+        const isNumA = !isNaN(cA);
+        const isNumB = !isNaN(cB);
+        
+        if (isNumA && isNumB && cA !== cB) return cA - cB;
+        if (isNumA && !isNumB) return -1;
+        if (!isNumA && isNumB) return 1;
       }
     }
 
@@ -264,8 +276,6 @@ export default function ExcelPreview({
 
       const noEsOperacion =
         statusNorm.includes('reserva') ||
-        statusNorm.includes('no_programada') ||
-        statusNorm.includes('no programada') ||
         statusNorm.includes('mantenimiento') ||
         statusNorm.includes('inhabilitad') ||
         statusNorm.includes('percance') ||
@@ -297,7 +307,7 @@ export default function ExcelPreview({
     // (evita matches falsos en campos ocultos como RELEVO_TARJETON cuando no estamos en modo relevos)
     if (searchTerm && searchTerm.trim()) {
       const searchableKeys = new Set([
-        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE',
+        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION',
         ...headers, // headers activos según el modo (titular, relevos, etc.)
       ]);
 
@@ -459,7 +469,7 @@ export default function ExcelPreview({
               filteredData.map((fila, index) => {
                 const originalIndex = fila.__originalIndex ?? data.indexOf(fila);
                 const rawRowStatus = String(fila.ESTATUS || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const isRowDisabled = rawRowStatus.includes('mantenimiento') || rawRowStatus.includes('reserva') || rawRowStatus.includes('no_programada') || rawRowStatus.includes('no programada');
+                const isRowDisabled = rawRowStatus.includes('mantenimiento') || rawRowStatus.includes('reserva');
                 const isBottomRow = filteredData.length > 1 && (filteredData.length - index <= 2);
 
                 return (
@@ -467,9 +477,12 @@ export default function ExcelPreview({
                     {headers.map(h => {
                       if (readOnly) {
                         let displayValue = fila[h] ?? '';
+                        if (h === 'NOMBRE_CONDUCTOR' || h === 'RELEVO_CONDUCTOR') {
+                          displayValue = String(displayValue).toUpperCase();
+                        }
                         if (h === 'ESTATUS') {
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                          const curSt = (rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'no_programada' : rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+                          const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : (rawSt.includes('reserva') || rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt] || fila[h];
                           const color = estatusColors[curSt] || estatusColors.operacion;
                           return (
@@ -490,6 +503,19 @@ export default function ExcelPreview({
                           );
                         }
 
+                        if (h === 'PATIO_NORTE' || h === 'ITINERARIO') {
+                          return (
+                            <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                              <input
+                                type="checkbox"
+                                checked={!!fila[h]}
+                                disabled
+                                style={{ transform: 'scale(1.4)', accentColor: '#6b1d33', cursor: 'not-allowed' }}
+                              />
+                            </td>
+                          );
+                        }
+
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`}>
                             <div style={{
@@ -497,7 +523,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 'center' : 'left',
                             }}>
                               {displayValue}
                             </div>
@@ -512,11 +538,13 @@ export default function ExcelPreview({
                       // Si el campo es de solo lectura, mostrar texto plano (o insignias para Estatus)
                       if (isFieldReadOnly) {
                         let displayValue = fila[h] ?? '';
-                        if (h === 'ESTATUS') {
+                        if (h === 'NOMBRE_CONDUCTOR' || h === 'RELEVO_CONDUCTOR') {
+                          displayValue = String(displayValue).toUpperCase();
+                        } else if (h === 'ESTATUS') {
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                          const curSt = (rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'no_programada' : rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+                          const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : (rawSt.includes('reserva') || rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt] || fila[h];
-                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA') {
+                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
                           displayValue = fila[h] || '00:00';
                         }
 
@@ -527,7 +555,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 'center' : 'left',
                               display: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'flex' : 'block',
                               alignItems: 'center',
                               justifyContent: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'center' : 'initial',
@@ -578,7 +606,7 @@ export default function ExcelPreview({
                         );
                       }
 
-                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') {
+                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '0.2rem' }}>
@@ -598,6 +626,22 @@ export default function ExcelPreview({
                         const isUrbanuss = fila.TIPO_DE_UNIDAD === 'URBANUSS' || fila.TIPO_DE_UNIDAD === 'URBANUS';
                         if (!isUrbanuss) return <td key={h} className={`cell-${h.toLowerCase()}`}></td>;
 
+                        return (
+                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <input
+                              type="checkbox"
+                              checked={!!fila[h]}
+                              onChange={(e) => {
+                                onUpdate && onUpdate(originalIndex, h, e.target.checked);
+                              }}
+                              disabled={isRowDisabled || readOnly}
+                              style={{ transform: 'scale(1.4)', cursor: (isRowDisabled || readOnly) ? 'not-allowed' : 'pointer', accentColor: '#6b1d33' }}
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (h === 'ITINERARIO') {
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                             <input
@@ -1101,7 +1145,7 @@ export default function ExcelPreview({
                       if (h === 'ESTATUS') {
                         const isEstatusOpen = openDropdown.rowIndex === originalIndex && openDropdown.field === 'ESTATUS';
                         const rawStatus = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        const currentStatus = (rawStatus.includes('no_programada') || rawStatus.includes('no programada')) ? 'no_programada' : rawStatus.includes('mantenimiento') ? 'mantenimiento' : rawStatus.includes('reserva') ? 'reserva' : 'operacion';
+                        const currentStatus = rawStatus.includes('mantenimiento') ? 'mantenimiento' : (rawStatus.includes('reserva') || rawStatus.includes('no_programada') || rawStatus.includes('no programada')) ? 'reserva' : 'operacion';
                         const statusStyle = estatusColors[currentStatus] || estatusColors.operacion;
 
                         return (
@@ -1231,7 +1275,7 @@ export default function ExcelPreview({
                                       if (num < 1) val = '1';
                                       else if (num > 20) val = '20';
                                     }
-                                  } else if (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') {
+                                  } else if (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
                                     // Limitar a solo números y formato HH:MM
                                     let cleaned = val.replace(/\D/g, '').substring(0, 4);
                                     if (cleaned.length >= 3) {
@@ -1244,8 +1288,8 @@ export default function ExcelPreview({
                                   onUpdate && onUpdate(originalIndex, h, val);
                                 }}
                                 className={`edit-input edit-text-input ${h === 'CORRIDAS' ? 'text-center' : ''}`}
-                                placeholder={ (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') ? '--:--' : '' }
-                                maxLength={(h === 'CORRIDAS') ? 2 : (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA') ? 5 : undefined}
+                                placeholder={ (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? '--:--' : '' }
+                                maxLength={(h === 'CORRIDAS') ? 2 : (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 5 : undefined}
                                 style={{
                                   paddingRight: h === 'CORRIDAS' ? '0' : '8px',
                                   cursor: isRowDisabled ? 'not-allowed' : 'text',

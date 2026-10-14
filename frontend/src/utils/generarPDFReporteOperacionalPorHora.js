@@ -23,8 +23,9 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
         throw new Error("No hay datos para generar el reporte.");
     }
 
-    const getEstatus = (d) => (d.ESTATUS || '').toUpperCase().trim();
-    const getTipo = (d) => (d.TIPO_DE_UNIDAD || '').toUpperCase().trim();
+    const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+    const getTipo = (d) => (d.TIPO_DE_UNIDAD || d.tipo_de_unidad || d.tipo || '').toUpperCase().trim();
+    const getHoraSalida = (d) => (d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || '').toString().trim();
 
     const techNames = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
     const unidadesPorTecnologia = {
@@ -56,9 +57,11 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
             totalFlota++;
 
             // Clasificación dentro de patio
+            const horaSalida = getHoraSalida(unit);
             const isMantenimiento = estatus.includes('MANTENIMIENTO');
             const isItinerario = estatus.includes('ITINERARIO') || estatus.includes('DESINCORPORADA') || estatus.includes('PERCANCE');
-            const isReserva = estatus.includes('RESERVA') && !estatus.includes('INTERMEDIA');
+            const isOperacionNoDespachada = estatus.includes('OPERACI') && !horaSalida;
+            const isReserva = (estatus.includes('RESERVA') && !estatus.includes('INTERMEDIA')) || isOperacionNoDespachada;
 
             if (isMantenimiento) {
                 unidadesPorTecnologia[techKey].taller.push(unit);
@@ -103,7 +106,9 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
             ctx.drawImage(logoImg, 0, 0);
             pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 5, 2, 45, 18);
         }
-    } catch(e) {}
+    } catch(e) {
+        // Ignorar fallo al cargar logo principal
+    }
     
     // Logo Hidalgo (Derecha)
     try {
@@ -115,7 +120,9 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
             ctx.drawImage(hgoImg, 0, 0);
             pdf.addImage(canvas.toDataURL('image/png'), 'PNG', pw - 25, 2, 20, 20);
         }
-    } catch(e) {}
+    } catch(e) {
+        // Ignorar fallo al cargar logo secundario
+    }
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(14);

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 const CALENDAR_WIDTH = 288; // w-72
 const CALENDAR_HEIGHT = 320; // approx height
 
-const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false, mode = "date", minDate, maxDate }) => {
+const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", disableFuture = true, disablePast = false, mode = "date", minDate, maxDate, showIcon = true }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState(mode === 'month' ? 'months' : 'days'); // 'days' | 'months' | 'years'
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -219,9 +219,11 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
         style={{ minHeight: '42px' }}
       >
         <div className="flex items-center gap-2 text-slate-700">
-          <svg className="w-4 h-4 text-[#6b1d33]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          {showIcon && (
+            <svg className="w-4 h-4 text-[#6b1d33]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          )}
           <span className={`text-xs sm:text-sm font-semibold ${value ? 'text-slate-800' : 'text-slate-400'}`}>
             {formatDisplayValue()}
           </span>

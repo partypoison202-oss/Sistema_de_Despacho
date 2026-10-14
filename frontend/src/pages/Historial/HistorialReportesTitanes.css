@@ -201,42 +201,63 @@
 
 .hrt-tabla-wrapper {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
   overflow-x: auto;
-  padding: 8px;
+  padding: 0;
 }
 
 .hrt-tabla {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  text-align: left;
 }
 
 .hrt-tabla thead th {
   text-align: left;
-  padding: 12px 14px;
-  background: var(--hrt-vino-suave);
-  color: var(--hrt-vino);
+  padding: 0.9rem 1rem;
+  background-color: var(--color-maroon, #701c33);
+  color: #ffffff;
   font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.03em;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #521526;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  vertical-align: middle;
+}
+
+.hrt-tabla thead th:first-child {
+  border-top-left-radius: 0.75rem;
+}
+
+.hrt-tabla thead th:last-child {
+  border-top-right-radius: 0.75rem;
 }
 
 .hrt-tabla tbody tr {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f1f5f9;
   transition: background 0.15s ease;
 }
 
 .hrt-tabla tbody tr:hover {
-  background: var(--hrt-vino-suave);
+  background: #f8fafc;
+}
+
+.hrt-tabla tbody tr:last-child {
+  border-bottom: none;
 }
 
 .hrt-tabla td {
-  padding: 12px 14px;
-  color: #333;
+  padding: 0.9rem 1rem;
+  color: #334155;
+  font-size: 0.88rem;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* Badges de tipo de evento */

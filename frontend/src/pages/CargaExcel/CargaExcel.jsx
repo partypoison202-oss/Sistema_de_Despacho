@@ -114,20 +114,18 @@ export default function CargaExcel({ isPasteles = false }) {
     refetchInterval: hasChanges ? false : 8000,
   });
 
+
   useEffect(() => {
     if (serverData && !hasChanges) {
-      let dataToSet = serverData;
-      if (isPasteles) {
-        dataToSet = serverData.map(item => {
-          if (item.ESTATUS === 'no_programada') {
-            return { ...item, ESTATUS: 'reserva' };
-          }
-          return item;
-        });
-      }
+      const dataToSet = serverData.map(item => {
+        if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
+          return { ...item, ESTATUS: 'reserva' };
+        }
+        return item;
+      });
       setPreviewData(dataToSet);
     }
-  }, [serverData, hasChanges, isPasteles]);
+  }, [serverData, hasChanges]);
 
   const trimString = (str) => String(str ?? '').trim();
 
@@ -143,6 +141,7 @@ export default function CargaExcel({ isPasteles = false }) {
   };
 
   const registrosVisibles = previewData.map((fila, originalIndex) => ({ fila, originalIndex }));
+
 
   const solicitarFaltaSiAplica = async (originalTarjeton, originalName, ecoUnidad, rol = 'conductor') => {
     if (!originalTarjeton) return;
@@ -223,7 +222,7 @@ export default function CargaExcel({ isPasteles = false }) {
     const valStr = String(value ?? '').trim();
 
     if (field === 'ESTATUS') {
-      if (valStr === 'mantenimiento' || valStr === 'reserva' || valStr === 'no_programada') {
+      if (valStr === 'mantenimiento' || valStr === 'reserva') {
         if (isPasteles && (valStr === 'mantenimiento' || valStr === 'reserva')) {
           const currentEco = updatedData[index]?.ECONOMICO;
           const hasService = Boolean(
@@ -258,12 +257,17 @@ export default function CargaExcel({ isPasteles = false }) {
         updatedData[index]['HORA_REAL_SALIDA_PATIO'] = '';
         updatedData[index]['CORRIDAS'] = null;
         updatedData[index]['PATIO_NORTE'] = false;
+        updatedData[index]['ITINERARIO'] = false;
+        updatedData[index]['HORA_INCORPORACION'] = '';
+        updatedData[index]['HORA_DESINCORPORACION'] = '';
         updatedData[index]['TARJETON_MANIOBRISTA'] = '';
         updatedData[index]['NOMBRE_MANIOBRISTA'] = '';
-        updatedData[index]['FALLA'] = '';
-        updatedData[index]['CICLO'] = '';
-        updatedData[index]['MOTIVO'] = '';
-        updatedData[index]['MOTIVO_ESTATUS'] = '';
+        if (valStr === 'reserva') {
+          updatedData[index]['FALLA'] = '';
+          updatedData[index]['CICLO'] = '';
+          updatedData[index]['MOTIVO'] = '';
+          updatedData[index]['MOTIVO_ESTATUS'] = '';
+        }
       } else {
         updatedData[index]['ESTATUS'] = valStr;
       }
@@ -283,7 +287,7 @@ export default function CargaExcel({ isPasteles = false }) {
 
       const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.RELEVO_TARJETON) === normalizeTarjeton(valStr));
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
-      const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
+      const newDriverName = newDriverConductor ? (newDriverConductor.nombre || '').toUpperCase() : '';
 
       if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
         Swal.fire({
@@ -360,7 +364,7 @@ export default function CargaExcel({ isPasteles = false }) {
 
       const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.TARJETON) === normalizeTarjeton(valStr));
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
-      const newDriverName = newDriverConductor ? newDriverConductor.nombre : '';
+      const newDriverName = newDriverConductor ? (newDriverConductor.nombre || '').toUpperCase() : '';
 
       if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
         Swal.fire({
@@ -881,18 +885,59 @@ export default function CargaExcel({ isPasteles = false }) {
       return;
     }
 
-    const columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS'];
-    const encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida'];
+    let columnas;
+    let encabezados;
+    let dataToExport = previewData;
+
+    if (isRelevos) {
+      columnas = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA', 'ESTATUS', 'PATIO_NORTE'];
+      encabezados = ['Tipo Unidad', 'Económico', 'Ruta', 'Corrida', 'Tarjetón Relevo', 'Conductor Relevo', 'Hora Relevo', 'Estatus', 'Patio Norte'];
+      
+      // Filtrar solo los de operacion y ordenar por numero de economico
+      dataToExport = dataToExport.filter(fila => {
+        const statusNorm = String(fila.ESTATUS || 'operacion')
+          .trim()
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        const noEsOperacion =
+          statusNorm.includes('reserva') ||
+          statusNorm.includes('mantenimiento') ||
+          statusNorm.includes('inhabilitad') ||
+          statusNorm.includes('percance') ||
+          statusNorm.includes('encierro') ||
+          statusNorm.includes('baja') ||
+          statusNorm.includes('taller');
+
+        return !noEsOperacion;
+      }).sort((a, b) => {
+        const ecoA = parseInt(a.ECONOMICO || '0', 10);
+        const ecoB = parseInt(b.ECONOMICO || '0', 10);
+        return ecoA - ecoB;
+      });
+
+    } else {
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de desincorporación', 'Hora de incorporación'];
+    }
 
     const datosHoja = [
       encabezados,
-      ...previewData.map(fila => columnas.map(col => fila[col] ?? ''))
+      ...dataToExport.map(fila => columnas.map(col => {
+        let value = fila[col] ?? '';
+        if (col === 'PATIO_NORTE' || col === 'ITINERARIO') {
+          if (value === true || value === 1 || value === '1' || value === 'true') value = 'SÍ';
+          else value = 'NO';
+        }
+        return value;
+      }))
     ];
 
     const worksheet = XLSX.utils.aoa_to_sheet(datosHoja);
 
     worksheet['!cols'] = encabezados.map((h, i) => ({
-      wch: Math.max(h.length, ...previewData.map(fila => String(fila[columnas[i]] ?? '').length)) + 3
+      wch: Math.max(h.length, ...dataToExport.map(fila => String(fila[columnas[i]] ?? '').length)) + 3
     }));
 
     const colorPorEstatus = {
@@ -1021,10 +1066,29 @@ export default function CargaExcel({ isPasteles = false }) {
           
           if (!jsonData || jsonData.length === 0) return;
 
+          // Validar columnas requeridas globalmente en la hoja
+          const firstRowKeys = Object.keys(jsonData[0] || {}).map(k => k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_'));
+          const requiredCols = {
+              'ECONOMICO': 'ECONOMICO',
+              'SERVICIO': 'SERVICIO',
+              'TARJETON': 'TARJETON',
+              'HORA_DE_SALIDA_DE_PATIO': 'HORA DE SALIDA DE PATIO',
+              'HORA_DE_ACOPLE': 'HORA DE ACOPLE'
+          };
           
-            if (tabActiva === 'MANANA') {
-                // Para MANANA, acumulamos todo directo para mandar al backend
-                jsonData.forEach(row => {
+          let faltanColumnas = false;
+          Object.keys(requiredCols).forEach(reqKey => {
+              if (!firstRowKeys.includes(reqKey)) {
+                  errores.push(`Hoja "${sheetName}": Falta la columna obligatoria "${requiredCols[reqKey]}". Por favor usa la plantilla correcta.`);
+                  faltanColumnas = true;
+              }
+          });
+          
+          if (faltanColumnas) return; // Si faltan columnas, saltarse el procesamiento de filas de esta hoja
+          
+          if (tabActiva === 'MANANA') {
+              // Para MANANA, acumulamos todo directo para mandar al backend
+              jsonData.forEach((row, index) => {
                     const normalizedRow = {};
                     Object.keys(row).forEach(k => {
                         const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
@@ -1047,9 +1111,13 @@ export default function CargaExcel({ isPasteles = false }) {
                     if (normalizedRow['ECONOMICO']) {
                         const isPatioNorte = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'TRUE' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === '1' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SÍ' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SI';
                         actualizaciones.push({
+                            'HOJA': sheetName,
+                            'FILA': index + 2,
                             'ECONOMICO': normalizedRow['ECONOMICO'],
                             'SERVICIO': normalizedRow['SERVICIO'],
                             'TARJETON': normalizedRow['TARJETON'],
+                            'CONDUCTOR': (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
+                            'NOMBRE_CONDUCTOR': (normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
                             'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
                             'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
                             'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
@@ -1112,8 +1180,10 @@ export default function CargaExcel({ isPasteles = false }) {
              if (!conductorObj) {
                errores.push(`Hoja "${sheetName}", Fila ${index + 2} (Eco ${eco}): El tarjetón ${tarjeton} no existe o no está activo.`);
              } else {
-               nombreConductor = conductorObj.nombre;
+               nombreConductor = (conductorObj.nombre || '').toUpperCase();
              }
+           } else if (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']) {
+             nombreConductor = String(normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']).trim().toUpperCase();
            }
 
            const horaEntradaT6 = aHoraTexto(normalizedRow['RAW_HORA_ENTRADA_T6']) || '';
@@ -1126,7 +1196,7 @@ export default function CargaExcel({ isPasteles = false }) {
              ruta,
              corrida,
              tarjeton,
-             nombreConductor,
+             nombreConductor: (nombreConductor || '').toUpperCase(),
              horaSalida,
              horaAcople,
              horaEntrada: horaEntradaT6,
@@ -1213,7 +1283,7 @@ export default function CargaExcel({ isPasteles = false }) {
            newData[act.index].RUTA = act.ruta;
            newData[act.index].CORRIDAS = act.corrida;
            newData[act.index].TARJETON = act.tarjeton;
-           newData[act.index].NOMBRE_CONDUCTOR = act.nombreConductor;
+           newData[act.index].NOMBRE_CONDUCTOR = (act.nombreConductor || '').toUpperCase();
            newData[act.index].HORA_SALIDA_PATIO = act.horaSalida;
            newData[act.index].ACOPLE = act.horaAcople;
            newData[act.index].HORA_DE_ACOPLE = act.horaAcople;
@@ -1223,7 +1293,7 @@ export default function CargaExcel({ isPasteles = false }) {
            if (tieneServicio) {
               newData[act.index].ESTATUS = 'operacion';
            } else {
-              newData[act.index].ESTATUS = 'no_programada';
+              newData[act.index].ESTATUS = 'reserva';
            }
         });
 
@@ -1269,15 +1339,12 @@ export default function CargaExcel({ isPasteles = false }) {
       if (!response.ok) throw new Error('Error al obtener datos de inicio');
       const data = await response.json();
       
-      let finalData = data;
-      if (isPasteles) {
-        finalData = data.map(item => {
-          if (item.ESTATUS === 'no_programada') {
-            return { ...item, ESTATUS: 'reserva' };
-          }
-          return item;
-        });
-      }
+      const finalData = data.map(item => {
+        if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
+          return { ...item, ESTATUS: 'reserva' };
+        }
+        return item;
+      });
 
       setInicioData(finalData);
       setVerInicio(true);
@@ -1405,13 +1472,19 @@ export default function CargaExcel({ isPasteles = false }) {
     }
   };
 
+  const fechaHoyStr = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const dManana = new Date();
+  dManana.setDate(dManana.getDate() + 1);
+  const fechaMananaStr = dManana.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
   // ─── JSX ──────────────────────────────────────────────────────────────────────
   return (
     <div className="excel-layout">
       <Header hasUnsavedChanges={hasChanges} onSaveAndExit={handleSaveChangesDirectly} />
       <main className="excel-main-content">
-        <div className="excel-top-bar">
-          <div className="page-header-container" style={{ margin: '0 auto 20px auto' }}>
+        <div className="excel-top-bar" style={{ flexDirection: 'column' }}>
+          <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem', marginBottom: '20px' }}>
+            <div className="page-header-container" style={{ margin: '0', flex: '1 1 400px', textAlign: 'center', minWidth: '300px' }}>
             <p className="page-eyebrow">
               {isRelevos ? 'GESTIÓN DE OPERACIONES' : 'SISTEMA DE'}
             </p>
@@ -1419,16 +1492,42 @@ export default function CargaExcel({ isPasteles = false }) {
               {isRelevos ? 'RELEVOS DE T6' : isPasteles ? 'PROGRAMACIÓN Y LOGÍSTICA (PASTELES)' : 'PROGRAMACIÓN Y LOGÍSTICA'}
             </h1>
             <p className="excel-subtitle">
-              {isRelevos 
-                ? 'Gestiona, asiste y concilia los relevos operativos de los T6'
-                : isPasteles
-                ? 'Organiza la programación operativa y gestiona el cambio de unidades por unidades en reserva'
-                : 'Organiza, edita y concilia la programación operativa directamente en el sistema'}
+              {isRelevos ? (
+                'Gestiona, asiste y concilia los relevos operativos de los T6'
+              ) : isPasteles ? (
+                <>Organiza la programación operativa para el día de mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
+              ) : tabActiva === 'HOY' ? (
+                <>Vista del reporte correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
+              ) : tabActiva === 'MANANA' ? (
+                <>Edición de la programación correspondiente a mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
+              ) : (
+                'Organiza, edita y concilia la programación operativa directamente en el sistema'
+              )}
             </p>
+            <div style={{ 
+              marginTop: '12px', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              backgroundColor: '#fffbeb', 
+              color: '#92400e', 
+              border: '1px solid #fcd34d', 
+              padding: '8px 14px', 
+              borderRadius: '6px', 
+              fontSize: '0.85rem', 
+              fontWeight: '500',
+              visibility: (!isRelevos && (tabActiva === 'MANANA' || isPasteles)) ? 'visible' : 'hidden',
+              pointerEvents: (!isRelevos && (tabActiva === 'MANANA' || isPasteles)) ? 'auto' : 'none'
+            }}>
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span><strong>Nota importante:</strong> La programación operativa de esta pantalla se transferirá automáticamente al día en curso a las 12:00 AM (medianoche).</span>
+            </div>
           </div>
 
           {!isPasteles && (
-            <div className="excel-tabs-container">
+            <div className="excel-tabs-container" style={{ margin: '0', flexShrink: 0 }}>
               <button
                 className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
                 onClick={() => {
@@ -1461,18 +1560,7 @@ export default function CargaExcel({ isPasteles = false }) {
               </button>
             </div>
           )}
-
-          {/* Nota informativa de ejecución automática a las 12:00 AM (medianoche) */}
-          {tabActiva === 'MANANA' && !isPasteles && !isRelevos && (
-            <div className="excel-info-notice-banner">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>
-                <strong>Nota:</strong> La programación registrada en <strong>Día Siguiente</strong> se aplicará automáticamente al <strong>Día Operativo (Actual)</strong> a las <strong>12:00 AM (medianoche / madrugada)</strong>.
-              </span>
-            </div>
-          )}
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem 0.75rem', flexWrap: 'wrap', width: '100%' }}>
 
@@ -1538,7 +1626,7 @@ export default function CargaExcel({ isPasteles = false }) {
               </svg>
               Descargar Excel
             </button>
-            {!isPasteles && tabActiva !== 'HOY' && (
+            {!isPasteles && !isRelevos && tabActiva !== 'HOY' && (
               <>
                 <button
                   type="button"
@@ -1553,9 +1641,11 @@ export default function CargaExcel({ isPasteles = false }) {
                 <input
                   type="file"
                   accept=".xlsx, .xls, .csv"
+                  multiple={false}
                   ref={fileInputRef}
                   style={{ display: 'none' }}
                   onChange={handleUploadExcel}
+                  onClick={(e) => { e.target.value = null; }}
                 />
                 <button
                   type="button"
@@ -1646,6 +1736,18 @@ export default function CargaExcel({ isPasteles = false }) {
       <ModalComparativaAlimentadoras
         isOpen={showComparativaModal}
         onClose={() => setShowComparativaModal(false)}
+        previewData={previewData}
+        catalogConductores={catalogConductores}
+        catalogRutasObj={catalogRutasObj}
+        onUpdateRecord={handleUpdateRecord}
+        onOpenCambioUnidad={(fila, originalIndex) => {
+          setModalCambioData({
+            isOpen: true,
+            unidadSaliente: { ...fila },
+            outgoingIndex: originalIndex,
+            nuevoEstatus: 'reserva',
+          });
+        }}
       />
 
       {/* Modal para sustitución de unidad en modo Pasteles */}
@@ -1654,7 +1756,12 @@ export default function CargaExcel({ isPasteles = false }) {
         onClose={() => setModalCambioData(prev => ({ ...prev, isOpen: false }))}
         unidadSaliente={modalCambioData.unidadSaliente}
         nuevoEstatus={modalCambioData.nuevoEstatus}
-        unidadesDisponibles={previewData.filter(u => String(u.ESTATUS || '').toLowerCase().trim() === 'reserva')}
+        unidadesDisponibles={previewData.filter(u => {
+          const estatus = String(u.ESTATUS || '').toLowerCase().trim();
+          const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase().trim();
+          const isTroncal = tipo.includes('urbanus');
+          return estatus === 'reserva' && !isTroncal;
+        })}
         onConfirmarCambio={(unidadReserva, nuevoEstatus) => {
           const updatedData = [...previewData];
           const outIdx = modalCambioData.outgoingIndex;

@@ -17,21 +17,25 @@ const loadImage = (src) => {
     });
 };
 
-export const generarPDFReporteGeneral = async (data) => {
+export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     if (!data || !data.length) {
         throw new Error("No hay datos para generar el reporte.");
     }
 
-    const troncales = data.filter(item => ['T-01', 'T-02', 'T-04', 'T-05', 'T-SIN ASIGNAR'].includes(item.ruta) && (item.en_operacion > 0 || item.en_mantenimiento > 0 || item.ruta !== 'T-SIN ASIGNAR'));
-    const alimentadoras = data.filter(item => (item.ruta.startsWith('RA') || item.ruta.startsWith('ORION')) && (item.en_operacion > 0 || item.en_mantenimiento > 0 || item.ruta !== 'RA-SIN ASIGNAR'));
+    const troncales = data.filter(item => (item.tipo === 'troncal' || ['T-01', 'T-02', 'T-04', 'T-05', 'T-SIN ASIGNAR'].includes(item.ruta)) && (item.en_operacion > 0 || item.en_mantenimiento > 0 || item.ruta !== 'T-SIN ASIGNAR'));
+    const alimentadoras = data.filter(item => (item.tipo === 'alimentadora' || item.ruta.startsWith('RA') || item.ruta.startsWith('ORION')) && (item.en_operacion > 0 || item.en_mantenimiento > 0 || item.ruta !== 'RA-SIN ASIGNAR'));
 
     const troncalOperacion     = troncales.reduce((s, r) => s + Number(r.en_operacion), 0);
-    const troncalMantenimiento = troncales.reduce((s, r) => s + Number(r.en_mantenimiento), 0);
-    const troncalTotal         = troncalOperacion + troncalMantenimiento;
+    const troncalMantenimiento = totalsExtra?.troncalMantenimiento !== undefined 
+        ? Number(totalsExtra.troncalMantenimiento) 
+        : troncales.reduce((s, r) => s + Number(r.en_mantenimiento), 0);
+    const troncalTotal         = totalsExtra?.troncalTotal ?? (troncalOperacion + troncalMantenimiento);
 
     const alimentadoraOperacion     = alimentadoras.reduce((s, r) => s + Number(r.en_operacion), 0);
-    const alimentadoraMantenimiento = alimentadoras.reduce((s, r) => s + Number(r.en_mantenimiento), 0);
-    const alimentadoraTotal         = alimentadoraOperacion + alimentadoraMantenimiento;
+    const alimentadoraMantenimiento = totalsExtra?.alimentadoraMantenimiento !== undefined 
+        ? Number(totalsExtra.alimentadoraMantenimiento) 
+        : alimentadoras.reduce((s, r) => s + Number(r.en_mantenimiento), 0);
+    const alimentadoraTotal         = totalsExtra?.alimentadoraTotal ?? (alimentadoraOperacion + alimentadoraMantenimiento);
 
     const fecha = new Date().toLocaleDateString('es-MX', {
         day: 'numeric', month: 'long', year: 'numeric'

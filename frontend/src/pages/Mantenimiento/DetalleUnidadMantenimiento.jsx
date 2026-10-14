@@ -457,6 +457,7 @@ export default function DetalleUnidadMantenimiento() {
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: `ECO${String(u.numero_eco ?? '').padStart(3, '0')}`,
       estado: String(u.estatus ?? 'operacion').toLowerCase(),
+      desincorporada_itinerario: Boolean(u.desincorporada_itinerario),
     }));
   };
 
@@ -513,7 +514,12 @@ export default function DetalleUnidadMantenimiento() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidadesList, tipoTransporte]);
 
-  const unidadesPorEstado = (estado) => (unidadesList || []).filter((u) => u.estado === estado);
+  const unidadesPorEstado = (estado) => (unidadesList || []).filter((u) => {
+    if (estado === 'operacion') {
+      return u.estado === 'operacion' && !u.desincorporada_itinerario;
+    }
+    return u.estado === estado;
+  });
   const unidadesReserva = unidadesPorEstado('reserva');
 
   const unidadesReservaFiltradas = useMemo(() => {
@@ -1690,8 +1696,9 @@ export default function DetalleUnidadMantenimiento() {
                         <h3 className="info-card__title">Encierro Operativo</h3>
                       </div>
                       <div className="info-card__body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
                           {[
+                            { id: 'operacion', label: 'OPERACIÓN', color: 'var(--status-green-text)', bgActive: 'var(--status-green-light)' },
                             { id: 'reserva', label: 'RESERVA', color: 'var(--status-blue-text)', bgActive: 'var(--status-blue-light)' },
                             { id: 'mantenimiento', label: 'MANTENIMIENTO', color: 'var(--status-yellow-text)', bgActive: 'var(--status-yellow-light)' },
                             { id: 'percance', label: 'PERCANCE', color: '#b91c1c', bgActive: '#fef2f2' },
@@ -2458,12 +2465,12 @@ export default function DetalleUnidadMantenimiento() {
                     type="text"
                     placeholder=""
                     value={folioFormValue}
-                    onChange={(e) => setFolioFormValue(e.target.value.replace(/\D/g, ''))}
+                    onChange={(e) => setFolioFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-1 focus:ring-brand-maroon"
                     autoFocus
                   />
                 </div>
-                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe solo el número del folio.</span>
+                <span className="text-slate-400 text-xs mt-1 block font-medium" style={{ fontSize: '0.75rem' }}>Escribe el folio (solo letras y números).</span>
               </div>
 
               <div className="flex gap-2 mt-4">
@@ -2512,9 +2519,9 @@ export default function DetalleUnidadMantenimiento() {
                 <input
                   id="incidenciaInput"
                   type="text"
-                  placeholder="Ej. 1234"
+                  placeholder=""
                   value={incidenciaFormValue}
-                  onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setIncidenciaFormValue(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
                   className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-brand-maroon focus:ring-0 text-slate-700 font-medium transition-colors"
                   autoFocus
                   disabled={isLectura}

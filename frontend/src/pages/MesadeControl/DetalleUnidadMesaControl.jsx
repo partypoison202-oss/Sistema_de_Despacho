@@ -26,7 +26,7 @@ export default function DetalleUnidadMesaControl() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { canEditModulo } = useContext(AuthContext);
-  const isLectura = !canEditModulo('mesacontrol');
+  const isLectura = !canEditModulo('mesa_control') && !canEditModulo('mesacontrol');
 
   // Hooks moved before early return (rules-of-hooks)
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -134,6 +134,10 @@ export default function DetalleUnidadMesaControl() {
       tarjeton: String(u.tarjeton ?? '').trim(),
       display: formatearEco(u.numero_eco),
       estado: u.estatus || 'operacion',
+      desincorporada_itinerario: Boolean(u.desincorporada_itinerario),
+      hora_desincorporacion: u.hora_desincorporacion || '',
+      hora_incorporacion: u.hora_incorporacion || '',
+      itinerario: Boolean(u.itinerario),
     }));
   };
 
@@ -195,8 +199,15 @@ export default function DetalleUnidadMesaControl() {
     refetchInterval: 5000,
   });
 
-  const unidadesPorEstado = (estado) =>
-    unidadesList.filter((u) => u.estado === estado);
+  const unidadesPorEstado = (estado) => {
+    if (estado === 'operacion') {
+      return unidadesList.filter((u) => (u.estado || '').toLowerCase() === 'operacion' && !u.desincorporada_itinerario);
+    }
+    if (estado === 'desinc_itinerario') {
+      return unidadesList.filter((u) => u.desincorporada_itinerario);
+    }
+    return unidadesList.filter((u) => (u.estado || '').toLowerCase() === estado.toLowerCase() && !u.desincorporada_itinerario);
+  };
 
   // Sincronización instantánea de estatus entre módulos y pestañas en tiempo real
   useEffect(() => {
@@ -212,6 +223,8 @@ export default function DetalleUnidadMesaControl() {
           queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
           queryClient.invalidateQueries(['conteo-unidades-global']);
           queryClient.invalidateQueries(['unidades-list']);
+          queryClient.invalidateQueries(['conductores-list']);
+          queryClient.invalidateQueries(['reservas-autorizadas']);
         }
       };
     } catch (e) {
@@ -248,7 +261,11 @@ export default function DetalleUnidadMesaControl() {
     
     // Validar autorización de reserva, manejando types mismatch y loading state
     const authArray = Array.isArray(reservasAutorizadas) ? reservasAutorizadas : [];
-    const isAuthorized = authArray.some(t => String(t) === String(c.tarjeton));
+    const isAuthorized = authArray.some(t => {
+      const padT = String(t || '').trim().padStart(4, '0');
+      const padC = String(c.tarjeton || '').trim().padStart(4, '0');
+      return padT === padC || String(t).trim() === String(c.tarjeton).trim();
+    });
     
     // Si la API aún no carga (undefined), o si no está autorizado, filtramos.
     if (!isAuthorized && reservasAutorizadas !== undefined) {
@@ -429,6 +446,10 @@ export default function DetalleUnidadMesaControl() {
           horaSalidaPatio: activeUnitData.hora_salida_patio || '',
           acople: activeUnitData.acople || '',
           relevo_hora: activeUnitData.relevo_hora || '',
+          itinerario: activeUnitData.itinerario || false,
+          horaIncorporacion: activeUnitData.hora_incorporacion || '',
+          horaDesincorporacion: activeUnitData.hora_desincorporacion || '',
+          desincorporada_itinerario: Boolean(activeUnitData.desincorporada_itinerario),
         });
         setFallaTexto(activeUnitData.falla || '');
         setSelectedEstado(activeUnitData.estatus || 'operacion');
@@ -449,6 +470,9 @@ export default function DetalleUnidadMesaControl() {
           relevo_conductor: '',
           relevo_tarjeton: '',
           relevo_hora: '',
+          itinerario: false,
+          horaIncorporacion: '',
+          horaDesincorporacion: '',
         });
         setFallaTexto('');
       }
@@ -533,18 +557,21 @@ export default function DetalleUnidadMesaControl() {
   };
 
   const handleUpdateAfterMovement = async (ecoActualizado, ecoReemplazo) => {
-    queryClient.invalidateQueries(['unidades-list-mesacontrol']);
-    queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
-    queryClient.invalidateQueries(['conductores-list']);
-    queryClient.invalidateQueries(['despacho-hoy']);
-    queryClient.invalidateQueries(['conteo-unidades-global']);
+    queryClient.invalidateQueries({ queryKey: ['unidades-list-mesacontrol'] });
+    queryClient.invalidateQueries({ queryKey: ['unidades-reserva-reemplazo'] });
+    queryClient.invalidateQueries({ queryKey: ['conductores-list'] });
+    queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+    queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+    queryClient.invalidateQueries({ queryKey: ['programacion-apertura-dia'] });
+    queryClient.invalidateQueries({ queryKey: ['programacion-apertura-resumen'] });
+    queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
     fetchConductores();
     refetchActiveUnit();
     if (ecoActualizado) {
-      queryClient.invalidateQueries(['unidad-detalle']);
+      queryClient.invalidateQueries({ queryKey: ['unidad-detalle'] });
     }
     if (ecoReemplazo) {
-      queryClient.invalidateQueries(['unidad-detalle']);
+      queryClient.invalidateQueries({ queryKey: ['unidad-detalle'] });
     }
   };
 
@@ -1090,12 +1117,16 @@ export default function DetalleUnidadMesaControl() {
           });
         });
 
-        queryClient.invalidateQueries(['unidades-list-mesacontrol']);
-        queryClient.invalidateQueries(['unidades-reserva-reemplazo']);
-        queryClient.invalidateQueries(['unidad-detalle']);
-        queryClient.invalidateQueries(['unidadesDashboard']);
-        queryClient.invalidateQueries(['unidades-list']);
-        queryClient.invalidateQueries(['conteo-unidades-global']);
+        queryClient.invalidateQueries({ queryKey: ['unidades-list-mesacontrol'] });
+        queryClient.invalidateQueries({ queryKey: ['unidades-reserva-reemplazo'] });
+        queryClient.invalidateQueries({ queryKey: ['unidad-detalle'] });
+        queryClient.invalidateQueries({ queryKey: ['unidadesDashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['unidades-list'] });
+        queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
+        queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+        queryClient.invalidateQueries({ queryKey: ['programacion-apertura-dia'] });
+        queryClient.invalidateQueries({ queryKey: ['programacion-apertura-resumen'] });
+        queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
 
         if (typeof BroadcastChannel !== 'undefined') {
           try {
@@ -1297,6 +1328,18 @@ export default function DetalleUnidadMesaControl() {
               estado="percance"
               titulo="Percance"
               unidades={unidadesPorEstado('percance')}
+              cargandoUnidades={cargandoUnidades}
+              configActual={configActual}
+              onSelectUnit={handleSelectUnit}
+            />
+            <UnitSelector
+              isOpen={openDropdown === 'desinc_itinerario'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'desinc_itinerario' : null)}
+              selectedOption={selectedOption}
+              selectedEstado={selectedEstado}
+              estado="desinc_itinerario"
+              titulo="Desinc. Itinerario"
+              unidades={unidadesPorEstado('desinc_itinerario')}
               cargandoUnidades={cargandoUnidades}
               configActual={configActual}
               onSelectUnit={handleSelectUnit}
@@ -1881,7 +1924,7 @@ export default function DetalleUnidadMesaControl() {
               </label>
             )}
 
-            {!cambioUnidadActivo ? (
+            {!cambioUnidadActivo && modalEstatusNuevo === 'operacion' ? (
               <>
                 <div style={{ textAlign: 'left', marginBottom: '1rem' }}>
                   <label style={{ display: 'block', fontWeight: '600', fontSize: '14px', marginBottom: '5px', color: '#374151' }}>
@@ -1988,7 +2031,7 @@ export default function DetalleUnidadMesaControl() {
                   <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>* Seleccione una ruta de la lista.</p>
                 </div>
               </>
-            ) : (
+            ) : cambioUnidadActivo ? (
               <div style={{ display: 'grid', gap: '1.25rem', padding: '1.25rem', borderRadius: '1rem', border: '1px solid #e5e7eb', background: '#f8fafc', marginBottom: '1.5rem' }}>
 
                 {/* Número de ECO - Dropdown */}
@@ -2204,7 +2247,7 @@ export default function DetalleUnidadMesaControl() {
                 </div>
 
               </div>
-            )}
+            ) : null}
 
             <div className="custom-modal-actions">
               <button

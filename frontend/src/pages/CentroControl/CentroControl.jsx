@@ -7,6 +7,7 @@ import { descargarReportesGeneralesConAlerta } from '../../utils/reporteGeneralU
 import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticasCentro';
 import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import { generarPDFProgramacionOperativa } from '../../utils/generarPDFProgramacionOperativa';
+import { estaDesincorporadaPorItinerario } from '../../utils/itinerarioUtils';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
@@ -52,15 +53,12 @@ const ROUTE_DESCRIPTIONS = {
   '16': { tipo: 'alimentadora', label: '16', desc: '16 San Carlos - E. Zona Plateada' },
   '17': { tipo: 'alimentadora', label: '17', desc: '17 Tezontle - Av. Universidad' },
   '19': { tipo: 'alimentadora', label: '19', desc: '19 Parque de Poblamiento 1 y 2' },
-  '20B': { tipo: 'alimentadora', label: '20B', desc: '20B Ruta Incluyente Poniente - Oriente' },
-  'T-SIN ASIGNAR': { tipo: 'troncal', label: 'T-SIN ASIGNAR', desc: 'Troncal Sin Asignar' },
-  'SIN ASIGNAR': { tipo: 'alimentadora', label: 'SIN ASIGNAR', desc: 'Alimentadora Sin Asignar' }
+  '20B': { tipo: 'alimentadora', label: '20B', desc: '20B Ruta Incluyente Poniente - Oriente' }
 };
 
 const normalizeRutaKey = (rawRuta, tipoUnidad) => {
   if (!rawRuta || rawRuta.trim() === '' || rawRuta.toUpperCase().includes('SIN ASIGNAR')) {
-    const isTroncal = (tipoUnidad || '').toUpperCase().includes('URBANUS');
-    return isTroncal ? 'T-SIN ASIGNAR' : 'SIN ASIGNAR';
+    return null;
   }
   let clean = rawRuta.toUpperCase().trim();
   const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)/i);
@@ -83,7 +81,7 @@ export default function CentroControl() {
 
   const [globalSearch, setGlobalSearch] = useState('');
   const [vistaDesglose, setVistaDesglose] = useState('tipo'); // 'tipo' | 'rutas'
-  const [filtroRutaCategoria, setFiltroRutaCategoria] = useState('TODAS'); // 'TODAS' | 'TRONCAL' | 'ALIMENTADORA' | 'SIN_ASIGNAR'
+  const [filtroRutaCategoria, setFiltroRutaCategoria] = useState('TODAS'); // 'TODAS' | 'TRONCAL' | 'ALIMENTADORA'
   const [filtroRutaTexto, setFiltroRutaTexto] = useState('');
   const [expandedRoute, setExpandedRoute] = useState(null);
 
@@ -114,80 +112,121 @@ export default function CentroControl() {
     refetchInterval: 10000, // Cada 10s – monitoreo activo de operaciones
   });
 
+  // Programación inicial del día (fija desde el cambio de día operativo)
+  const fetchInicioHoy = async () => {
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    const res = await fetch(`${API_BASE}/api/despacho/inicio-hoy`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return [];
+    return res.json();
+  };
+
+  const { data: inicioData = [] } = useQuery({
+    queryKey: ['despacho-inicio-hoy'],
+    queryFn: fetchInicioHoy,
+    staleTime: 60000 * 30, // 30 min (congelado de inicio de día)
+    refetchOnWindowFocus: false,
+  });
+
+  const normStr = (str) =>
+    (str || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+
   const modelData = React.useMemo(() => {
     return modelsConfig.map((mc) => {
       const units = (Array.isArray(apiData) ? apiData : []).filter((d) => {
-        const matchesModel = d.TIPO_DE_UNIDAD?.toUpperCase().includes(mc.id);
-        const est = (d.ESTATUS || '').toLowerCase().trim();
-        const isNoProgramada = est === 'no_programada' || est === 'no programada';
+        const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+        const est = normStr(d.ESTATUS || d.estatus);
+        const isNoProgramada = est === 'NO_PROGRAMADA' || est === 'NO PROGRAMADA';
         return matchesModel && !isNoProgramada;
       });
-      const getEstatus = (d) => (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+      const getEstatus = (d) => normStr(d.ESTATUS || d.estatus);
 
-      // Operación = todas las unidades asignadas con estatus de operación
-      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      // Unidades desincorporadas por itinerario (en su ventana horaria activa)
+      const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
 
-      // Circulando = las que YA salieron de despacho (tienen hora real de salida de patio y no están encerradas)
+      // Operación = unidades asignadas con estatus operación que NO están desincorporadas por itinerario
+      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d));
+
+      // Circulando = las que YA salieron de despacho (validadas con hora_real_salida_patio, no encerradas y no en itinerario)
       const unidadesCirculando = units.filter((d) => {
         const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        return getEstatus(d).includes('OPERACI') && horaSalida !== '' && !isEncerrada;
+        return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
       });
-      // Reserva = todas las que tienen estatus 'reserva' (programadas pero sin despachar)
+      // Reserva = todas las que tienen estatus 'reserva'
       const unidadesReserva      = units.filter((d) => getEstatus(d) === 'RESERVA');
       // Mantenimiento = todas las que tienen estatus 'mantenimiento'
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
+      // Percance = todas las que tienen estatus 'percance'
       const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
       const total        = units.length;
       const operacion    = unidadesOperacion.length;
+      const desincItinerario = unidadesDesincItinerario.length;
       const circulando   = unidadesCirculando.length;
       const mantenimiento = unidadesMantenimiento.length;
       const reserva      = unidadesReserva.length;
       const percance     = unidadesPercance.length;
       const otros        = 0;
       
-      const programadas = unidadesOperacion.length;
+      // Total Programadas fijo: Unidades en operación programadas al inicio del día (snapshot de cambio de día)
+      const hasSnapshot = Array.isArray(inicioData) && inicioData.length > 0;
+      const programadasInicio = hasSnapshot
+        ? inicioData.filter(d => {
+            const matchesModel = normStr(d.TIPO_DE_UNIDAD).includes(normStr(mc.id));
+            const estatusNorm = normStr(d.ESTATUS || d.estatus);
+            const isOperacion = estatusNorm.includes('OPERACI');
+            return matchesModel && isOperacion;
+          }).length
+        : 0;
 
-      const idsConEstatus = new Set([
-        ...unidadesOperacion,
-        ...unidadesMantenimiento,
-        ...unidadesReserva,
-        ...unidadesPercance,
-      ]);
-      const unidadesOtros = [];
+      // Si el snapshot está disponible, se respeta el congelado de inicio de día para cada modelo.
+      // Solo si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales.
+      const programadas = hasSnapshot ? programadasInicio : (unidadesOperacion.length || total);
 
       return {
         ...mc,
         total,
         programadas,
         operacion,
+        desincItinerario,
         circulando,
         reserva,
         mantenimiento,
         percance,
         otros,
         unidadesOperacion,
+        unidadesDesincItinerario,
         unidadesCirculando,
         unidadesReserva,
         unidadesMantenimiento,
         unidadesPercance,
-        unidadesOtros,
         units,
       };
     });
-  }, [apiData]);
+  }, [apiData, inicioData]);
 
   const totales = modelData.reduce(
     (acc, m) => ({
       total: (acc.total || 0) + (m.total || 0),
       programadas: acc.programadas + m.programadas,
       operacion: acc.operacion + m.operacion,
+      desincItinerario: (acc.desincItinerario || 0) + (m.desincItinerario || 0),
       circulando: (acc.circulando || 0) + (m.circulando || 0),
       reserva: acc.reserva + m.reserva,
       mantenimiento: acc.mantenimiento + m.mantenimiento,
+      percance: (acc.percance || 0) + (m.percance || 0),
     }),
-    { total: 0, programadas: 0, operacion: 0, circulando: 0, reserva: 0, mantenimiento: 0 }
+    { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
   );
 
   const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round((totales.circulando / totales.programadas) * 100)) : 0;
@@ -316,7 +355,10 @@ export default function CentroControl() {
         let colorClass = 'operacion';
         let labelStatus = horaSalida !== '' ? 'Operación (Circulando)' : 'Operación';
 
-        if (estatus.includes('OPERACI')) { 
+        if (estaDesincorporadaPorItinerario(u)) {
+          colorClass = 'itinerario';
+          labelStatus = 'DESINCORPORADA POR ITINERARIO';
+        } else if (estatus.includes('OPERACI')) { 
           if (horaSalida !== '') {
             colorClass = 'operacion'; labelStatus = 'Operación (Circulando)'; 
           } else {
@@ -344,6 +386,9 @@ export default function CentroControl() {
 
   // ---- Desglose por Rutas (Troncales y Alimentadoras) ----
   const getUnitStatusInfo = (u) => {
+    if (estaDesincorporadaPorItinerario(u)) {
+      return { label: 'DESINCORPORADA POR ITINERARIO', color: 'itinerario' };
+    }
     const est = getEstatus(u);
     const horaSalida = (u.HORA_REAL_SALIDA_PATIO || u.HORA_SALIDA || '').toString().trim();
     const isEncerrada = Boolean(u.YA_ENCERRADA || u.ya_encerrada);
@@ -370,6 +415,7 @@ export default function CentroControl() {
       const rawRuta = (u.RUTA ?? u.NOMBRE_RUTA ?? u.NO_RUTA ?? u.RUTA_ASIGNADA ?? '').toString().trim();
       const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || '').toString().trim();
       const key = normalizeRutaKey(rawRuta, tipoUnidad);
+      if (!key) return;
 
       if (!routesMap[key]) {
         const isTroncal = key.startsWith('T');
@@ -393,11 +439,12 @@ export default function CentroControl() {
 
     const result = Object.values(routesMap).map((r) => {
       const units = r.units;
-      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI'));
+      const unidadesDesincItinerario = units.filter((d) => estaDesincorporadaPorItinerario(d));
+      const unidadesOperacion = units.filter((d) => getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d));
       const unidadesCirculando = units.filter((d) => {
         const horaSalida = (d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA || '').toString().trim();
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-        return getEstatus(d).includes('OPERACI') && horaSalida !== '' && !isEncerrada;
+        return getEstatus(d).includes('OPERACI') && !estaDesincorporadaPorItinerario(d) && horaSalida !== '' && !isEncerrada;
       });
       const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
@@ -405,6 +452,7 @@ export default function CentroControl() {
 
       const total = units.length;
       const operacion = unidadesOperacion.length;
+      const desincItinerario = unidadesDesincItinerario.length;
       const circulando = unidadesCirculando.length;
       const reserva = unidadesReserva.length;
       const mantenimiento = unidadesMantenimiento.length;
@@ -417,10 +465,12 @@ export default function CentroControl() {
         total,
         programadas,
         operacion,
+        desincItinerario,
         circulando,
         reserva,
         mantenimiento,
         percance,
+        unidadesDesincItinerario,
         eficiencia,
         unidadesOperacion,
         unidadesCirculando,
@@ -431,11 +481,6 @@ export default function CentroControl() {
     });
 
     return result.sort((a, b) => {
-      const aSin = a.key.includes('SIN ASIGNAR');
-      const bSin = b.key.includes('SIN ASIGNAR');
-      if (aSin && !bSin) return 1;
-      if (!aSin && bSin) return -1;
-
       if (a.tipo === 'troncal' && b.tipo !== 'troncal') return -1;
       if (a.tipo !== 'troncal' && b.tipo === 'troncal') return 1;
 
@@ -443,15 +488,13 @@ export default function CentroControl() {
     });
   }, [apiData]);
 
-  const troncalesCount = React.useMemo(() => routeData.filter(r => r.tipo === 'troncal' && !r.key.includes('SIN ASIGNAR')).length, [routeData]);
-  const alimentadorasCount = React.useMemo(() => routeData.filter(r => r.tipo === 'alimentadora' && !r.key.includes('SIN ASIGNAR')).length, [routeData]);
-  const sinAsignarCount = React.useMemo(() => routeData.filter(r => r.key.includes('SIN ASIGNAR')).length, [routeData]);
+  const troncalesCount = React.useMemo(() => routeData.filter(r => r.tipo === 'troncal').length, [routeData]);
+  const alimentadorasCount = React.useMemo(() => routeData.filter(r => r.tipo === 'alimentadora').length, [routeData]);
 
   const rutasVisibles = React.useMemo(() => {
     return routeData.filter(r => {
-      if (filtroRutaCategoria === 'TRONCAL' && (r.tipo !== 'troncal' || r.key.includes('SIN ASIGNAR'))) return false;
-      if (filtroRutaCategoria === 'ALIMENTADORA' && (r.tipo !== 'alimentadora' || r.key.includes('SIN ASIGNAR'))) return false;
-      if (filtroRutaCategoria === 'SIN_ASIGNAR' && !r.key.includes('SIN ASIGNAR')) return false;
+      if (filtroRutaCategoria === 'TRONCAL' && r.tipo !== 'troncal') return false;
+      if (filtroRutaCategoria === 'ALIMENTADORA' && r.tipo !== 'alimentadora') return false;
 
       if (filtroRutaTexto.trim() !== '') {
         const query = filtroRutaTexto.toLowerCase().trim();
@@ -615,7 +658,7 @@ export default function CentroControl() {
                   <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
               </div>
-              <span className="centro-kpi__value">{cargando ? '—' : totales.operacion}</span>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.circulando}</span>
               <span className="centro-kpi__label">En operación</span>
             </div>
 
@@ -638,6 +681,18 @@ export default function CentroControl() {
               </div>
               <span className="centro-kpi__value">{cargando ? '—' : totales.mantenimiento}</span>
               <span className="centro-kpi__label">En Mantenimiento</span>
+            </div>
+
+            <div className="centro-kpi centro-kpi--percance">
+              <div className="centro-kpi__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <span className="centro-kpi__value">{cargando ? '—' : totales.percance}</span>
+              <span className="centro-kpi__label">En Percance</span>
             </div>
 
             <div className="centro-kpi" style={{ borderLeft: '4px solid #d97706', background: 'linear-gradient(to right, rgba(251, 191, 36, 0.08), #ffffff)', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.1)' }}>
@@ -741,7 +796,7 @@ export default function CentroControl() {
                       <div key={i} style={{ display: 'grid', gridTemplateColumns: '80px 100px 100px 1fr 90px 100px 1.2fr', gap: '12px', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#111827' }}>
                         <span style={{ fontWeight: '700', color: '#601a2a' }}>{getNumeroEconomico(u)}</span>
                         <span style={{ fontWeight: '600' }}>{u.__modelInfo.label}</span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '3px 10px', borderRadius: '999px', width: 'fit-content', color: u.__statusColor === 'itinerario' ? '#b45309' : u.__statusColor === 'operacion' ? '#059669' : u.__statusColor === 'reserva' ? '#b45309' : u.__statusColor === 'mantenimiento' ? '#dc2626' : '#4b5563', backgroundColor: u.__statusColor === 'itinerario' ? '#fef3c7' : u.__statusColor === 'operacion' ? '#ecfdf5' : u.__statusColor === 'reserva' ? '#fffbeb' : u.__statusColor === 'mantenimiento' ? '#fef2f2' : '#f3f4f6', border: u.__statusColor === 'itinerario' ? '1px solid #fde68a' : 'none' }}>
                           {u.__statusLabel}
                         </span>
                         <span>{getRuta(u)}</span>
@@ -795,14 +850,27 @@ export default function CentroControl() {
                       <span
                         className="centro-bar__seg centro-bar__seg--operacion"
                         style={{ width: `${pct(m.operacion, m.total || m.programadas)}%` }}
+                        title={`Operación: ${m.operacion}`}
+                      />
+                      <span
+                        className="centro-bar__seg"
+                        style={{ width: `${pct(m.desincItinerario, m.total || m.programadas)}%`, backgroundColor: '#d97706' }}
+                        title={`Desinc. Itinerario: ${m.desincItinerario}`}
                       />
                       <span
                         className="centro-bar__seg centro-bar__seg--reserva"
                         style={{ width: `${pct(m.reserva, m.total || m.programadas)}%` }}
+                        title={`Reserva: ${m.reserva}`}
                       />
                       <span
                         className="centro-bar__seg centro-bar__seg--mantenimiento"
                         style={{ width: `${pct(m.mantenimiento, m.total || m.programadas)}%` }}
+                        title={`Mantenimiento: ${m.mantenimiento}`}
+                      />
+                      <span
+                        className="centro-bar__seg centro-bar__seg--percance"
+                        style={{ width: `${pct(m.percance, m.total || m.programadas)}%` }}
+                        title={`Percance: ${m.percance}`}
                       />
                     </div>
 
@@ -814,6 +882,14 @@ export default function CentroControl() {
                           {cargando ? '—' : `${Math.round(pct(m.operacion, m.total || m.programadas))}%`}
                         </span>
                         <span className="centro-status-value">{cargando ? '—' : m.operacion}</span>
+                      </div>
+                      <div className="centro-status-row">
+                        <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
+                        <span className="centro-status-label">Desinc. Itinerario</span>
+                        <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7' }}>
+                          {cargando ? '—' : `${Math.round(pct(m.desincItinerario, m.total || m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value">{cargando ? '—' : m.desincItinerario}</span>
                       </div>
                       <div className="centro-status-row">
                         <span className="centro-status-dot centro-status-dot--reserva" />
@@ -830,6 +906,14 @@ export default function CentroControl() {
                           {cargando ? '—' : `${Math.round(pct(m.mantenimiento, m.total || m.programadas))}%`}
                         </span>
                         <span className="centro-status-value">{cargando ? '—' : m.mantenimiento}</span>
+                      </div>
+                      <div className="centro-status-row">
+                        <span className="centro-status-dot centro-status-dot--percance" />
+                        <span className="centro-status-label">Percance</span>
+                        <span className="centro-status-percent centro-status-percent--percance">
+                          {cargando ? '—' : `${Math.round(pct(m.percance, m.total || m.programadas))}%`}
+                        </span>
+                        <span className="centro-status-value">{cargando ? '—' : m.percance}</span>
                       </div>
                       <div className="centro-status-row" style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid #f3f4f6' }}>
                         <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
@@ -875,17 +959,6 @@ export default function CentroControl() {
                     <span>Alimentadoras</span>
                     <span className="centro-route-pill__count">{alimentadorasCount}</span>
                   </button>
-
-                  {sinAsignarCount > 0 && (
-                    <button
-                      type="button"
-                      className={`centro-route-pill ${filtroRutaCategoria === 'SIN_ASIGNAR' ? 'active' : ''}`}
-                      onClick={() => setFiltroRutaCategoria('SIN_ASIGNAR')}
-                    >
-                      <span>Sin Asignar</span>
-                      <span className="centro-route-pill__count">{sinAsignarCount}</span>
-                    </button>
-                  )}
                 </div>
 
                 <div style={{ position: 'relative' }}>
@@ -914,8 +987,7 @@ export default function CentroControl() {
                   {rutasVisibles.map((r) => {
                     const isExpanded = expandedRoute === r.key;
                     const isTroncal = r.tipo === 'troncal';
-                    const isSinAsignar = r.key.includes('SIN ASIGNAR');
-                    const cardModifier = isTroncal ? 'troncal' : isSinAsignar ? 'sin-asignar' : 'alimentadora';
+                    const cardModifier = isTroncal ? 'troncal' : 'alimentadora';
 
                     return (
                       <div
@@ -937,7 +1009,7 @@ export default function CentroControl() {
                               {r.label}
                             </span>
                             <span className={`centro-route-type-tag centro-route-type-tag--${cardModifier}`}>
-                              {isTroncal ? 'TRONCAL' : isSinAsignar ? 'SIN ASIGNAR' : 'ALIMENTADORA'}
+                              {isTroncal ? 'TRONCAL' : 'ALIMENTADORA'}
                             </span>
                           </div>
                           <span className="centro-route-card__total">

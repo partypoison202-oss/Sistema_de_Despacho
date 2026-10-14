@@ -352,7 +352,7 @@ export default function DetalleUnidadEncierro() {
       // Si ya fue encerrada HOY, la mantenemos (para mostrar en "Unidades Encerradas")
       if (u.yaEncerrada) return true;
 
-      // Las unidades pendientes de encierro deben estar en operación activa (no desincorporadas/en mantenimiento)
+      // Las unidades pendientes de encierro deben estar en operación activa
       return u.estado === 'operacion';
     });
   };

@@ -77,19 +77,20 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     pdf.setFontSize(12);
     pdf.text(fecha, pw - 10, 32, { align: 'right' });
 
-    // 2. KPIs GLOBALES (5 Cajas)
-    let currentY = 40;
+    // 2. KPIs GLOBALES (6 Cajas)
+    let currentY = 38;
     const marginX = 10;
     const totalW = pw - marginX * 2;
-    const gap = 4;
-    const boxWidth = (totalW - (gap * 4)) / 5;
+    const gap = 3;
+    const boxWidth = (totalW - (gap * 5)) / 6;
     const boxHeight = 24;
     
     const kpis = [
         { label: 'TOTAL PROGRAMADAS', value: totales.programadas, color: COLOR_GUINDA },
-        { label: 'EN OPERACIÓN', value: totales.operacion, color: COLOR_GREEN },
+        { label: 'EN OPERACIÓN', value: totales.circulando ?? totales.operacion, color: COLOR_GREEN },
         { label: 'EN RESERVA', value: totales.reserva, color: COLOR_GOLD },
         { label: 'EN MANTENIMIENTO', value: totales.mantenimiento, color: COLOR_RED },
+        { label: 'EN PERCANCE', value: totales.percance ?? 0, color: [225, 29, 72] },
         { label: 'EFICIENCIA OPERATIVA', value: `${eficienciaGlobal}%`, color: COLOR_GOLD, bg: [254, 243, 199] }
     ];
 
@@ -107,18 +108,18 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         
         // Valor
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(22);
+        pdf.setFontSize(20);
         pdf.setTextColor(...kpi.color);
         pdf.text(String(kpi.value), x + (boxWidth / 2) + 1, currentY + 12, { align: 'center' });
 
         // Etiqueta
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(6);
+        pdf.setFontSize(5.2);
         pdf.setTextColor(...(kpi.bg ? kpi.color : COLOR_GRAY));
         pdf.text(kpi.label, x + (boxWidth / 2) + 1, currentY + 19, { align: 'center' });
     });
 
-    currentY += 34; // Aumentamos el margen de 28 a 34 para dar más respiro
+    currentY += 32;
 
     // Título sección
     pdf.setFont('helvetica', 'bold');
@@ -132,9 +133,9 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
     // 3. DESGLOSE POR TIPO DE UNIDAD (Grid 2x2)
     const cardGapX = 8;
-    const cardGapY = 12;
+    const cardGapY = 10;
     const cardWidth = (totalW - cardGapX) / 2;
-    const cardHeight = 65;
+    const cardHeight = 72;
 
     // Cargar las imágenes de los modelos concurrentemente
     const images = {};
@@ -190,10 +191,10 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(9);
         pdf.setTextColor(...COLOR_GRAY);
-        pdf.text(`${m.programadas} unidades`, x + 26, y + 14);
+        pdf.text(`${m.total ?? m.units?.length ?? m.programadas} unidades`, x + 26, y + 14);
 
-        // Segmented Bar (Operacion, Reserva, Mantenimiento)
-        const barY = y + 22;
+        // Segmented Bar (Operacion, Reserva, Mantenimiento, Percance)
+        const barY = y + 20;
         const barX = x + 8;
         const barW = cardWidth - 16;
         const barH = 4;
@@ -206,9 +207,10 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         if (m.operacion > 0) activeSegments.push({ val: m.operacion, color: COLOR_GREEN });
         if (m.reserva > 0) activeSegments.push({ val: m.reserva, color: COLOR_GOLD });
         if (m.mantenimiento > 0) activeSegments.push({ val: m.mantenimiento, color: COLOR_RED });
+        if ((m.percance || 0) > 0) activeSegments.push({ val: m.percance, color: [225, 29, 72] });
 
         // Calculamos el divisor seguro
-        const divisor = m.programadas > 0 ? m.programadas : (m.operacion + m.reserva + m.mantenimiento);
+        const divisor = (m.total || m.programadas) > 0 ? (m.total || m.programadas) : (m.operacion + m.reserva + m.mantenimiento + (m.percance || 0));
 
         activeSegments.forEach((seg, i) => {
             const segW = divisor > 0 ? (seg.val / divisor) * barW : 0;
@@ -218,13 +220,9 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
                 const isLast = i === activeSegments.length - 1;
                 
                 pdf.setFillColor(...seg.color);
-                // Draw rounded rect for the full width to get rounded corners
                 pdf.roundedRect(currentBarX, barY, segW, barH, 2, 2, 'F');
                 
-                // Square off the left side if not first
                 if (!isFirst) pdf.rect(currentBarX, barY, 2, barH, 'F');
-                
-                // Square off the right side if not last
                 if (!isLast) pdf.rect(currentBarX + segW - 2, barY, 2, barH, 'F');
                 
                 currentBarX += segW;
@@ -232,57 +230,52 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         });
 
         // List Rows
-        const pct = (val) => m.programadas > 0 ? Math.round((val / m.programadas) * 100) : 0;
-        const eficiencia = m.programadas > 0 ? Math.round(((m.operacion + m.reserva) / m.programadas) * 100) : 0;
+        const pct = (val) => (m.total || m.programadas) > 0 ? Math.round((val / (m.total || m.programadas)) * 100) : 0;
+        const eficiencia = (m.operacion || m.programadas) > 0 ? Math.min(100, Math.round(((m.circulando || 0) / (m.operacion || m.programadas)) * 100)) : 0;
 
         const rows = [
             { label: 'Operación', val: m.operacion, p: pct(m.operacion), color: COLOR_GREEN, bg: [220, 252, 231] },
             { label: 'Reserva', val: m.reserva, p: pct(m.reserva), color: COLOR_GOLD, bg: [254, 243, 199] },
             { label: 'Mantenimiento', val: m.mantenimiento, p: pct(m.mantenimiento), color: COLOR_RED, bg: [254, 226, 226] },
+            { label: 'Percance', val: m.percance || 0, p: pct(m.percance || 0), color: [225, 29, 72], bg: [255, 228, 230] },
             { label: 'Eficiencia', val: null, p: eficiencia, color: COLOR_GOLD, bg: [254, 243, 199], isEficiencia: true }
         ];
 
-        let rowY = y + 35;
+        let rowY = y + 31;
         rows.forEach(r => {
-            // Line separator above
-            if (!r.isEficiencia) {
-                pdf.setDrawColor(243, 244, 246);
-                pdf.line(x + 8, rowY - 4, x + cardWidth - 8, rowY - 4);
-            } else {
-                pdf.setDrawColor(229, 231, 235);
-                pdf.line(x + 8, rowY - 4, x + cardWidth - 8, rowY - 4);
-            }
+            pdf.setDrawColor(243, 244, 246);
+            pdf.line(x + 8, rowY - 3.5, x + cardWidth - 8, rowY - 3.5);
 
             // Dot
             pdf.setFillColor(...r.color);
-            pdf.circle(x + 10, rowY - 1, 1.5, 'F');
+            pdf.circle(x + 10, rowY - 1, 1.3, 'F');
 
             // Label
             pdf.setFont('helvetica', r.isEficiencia ? 'bold' : 'normal');
-            pdf.setFontSize(8);
+            pdf.setFontSize(7.5);
             pdf.setTextColor(...(r.isEficiencia ? r.color : COLOR_GRAY));
             pdf.text(r.label, x + 14, rowY);
 
             // Badge %
             const badgeW = 10;
-            const badgeH = 4.5;
+            const badgeH = 4;
             pdf.setFillColor(...r.bg);
-            pdf.roundedRect(x + cardWidth - 30, rowY - 3.5, badgeW, badgeH, 2.25, 2.25, 'F');
+            pdf.roundedRect(x + cardWidth - 28, rowY - 3.2, badgeW, badgeH, 2, 2, 'F');
             
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(6.5);
+            pdf.setFontSize(6);
             pdf.setTextColor(...r.color);
-            pdf.text(`${r.p}%`, x + cardWidth - 25.5, rowY - 0.2, { align: 'center' });
+            pdf.text(`${r.p}%`, x + cardWidth - 23, rowY - 0.3, { align: 'center' });
 
             // Value
             if (r.val !== null) {
                 pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(9);
+                pdf.setFontSize(8.5);
                 pdf.setTextColor(17, 24, 39);
                 pdf.text(String(r.val), x + cardWidth - 10, rowY, { align: 'right' });
             }
 
-            rowY += 9;
+            rowY += 7.5;
         });
     });
 

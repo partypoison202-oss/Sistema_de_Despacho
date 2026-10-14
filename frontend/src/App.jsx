@@ -44,6 +44,7 @@ const CheckList              = lazy(() => lazyRetry(() => import('./pages/CheckL
 const HistorialCheckList     = lazy(() => lazyRetry(() => import('./pages/CheckList/HistorialCheckList')));
 const MenuHistorial          = lazy(() => lazyRetry(() => import('./pages/Historial/MenuHistorial')));
 const HistorialGeneral       = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialGeneral')));
+const HistorialMesaControl   = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialMesaControl')));
 const HistorialProgramacion  = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialProgramacion')));
 const HistorialDespacho      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialDespacho')));
 const HistorialEncierro      = lazy(() => lazyRetry(() => import('./pages/Historial/HistorialEncierro')));
@@ -224,6 +225,11 @@ function App() {
             <Route path="/historial/general" element={
               <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA']}>
                 <HistorialGeneral />
+              </ProtectedRoute>
+            } />
+            <Route path="/historial/mesa-control" element={
+              <ProtectedRoute allowedModules={['historial']} allowedRoles={['ADMINISTRADOR', 'LECTURA', 'CENTRO_CONTROL', 'CENTRO_DE_CONTROL', 'MESA_CONTROL', 'MESA_DE_CONTROL', 'PLATAFORMA']}>
+                <HistorialMesaControl />
               </ProtectedRoute>
             } />
             <Route path="/historial/programacion" element={
