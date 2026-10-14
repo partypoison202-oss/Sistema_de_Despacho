@@ -1900,10 +1900,13 @@ class DespachoController extends Controller
         $rolCodigo = strtoupper(trim($user?->role?->codigo ?? ''));
         $rolNombre = strtoupper(trim($user?->role?->nombre ?? ''));
         $username = strtolower(trim($user?->usuario ?? ''));
+        $nombreCompleto = strtolower(trim($user?->nombre_completo ?? ''));
 
         $autorizado = in_array($rolCodigo, ['ADMIN', 'ADMINISTRADOR'])
             || in_array($rolNombre, ['ADMIN', 'ADMINISTRADOR'])
-            || str_contains($username, 'enrique');
+            || str_contains($username, 'enrique')
+            || str_contains($username, 'erik')
+            || str_contains($nombreCompleto, 'erik');
 
         if (! $autorizado) {
             return response()->json([

@@ -40,9 +40,12 @@ export default function CargaExcel({ isPasteles = false }) {
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
   const _usuario = String(user?.usuario || '').toLowerCase().trim();
+  const _nombreCompleto = String(user?.nombre_completo || '').toLowerCase().trim();
   const isAdminOrEnrique = _roleCodigo === 'ADMIN' || _roleCodigo === 'ADMINISTRADOR'
     || _roleNombre === 'ADMIN' || _roleNombre === 'ADMINISTRADOR'
-    || _usuario.includes('enrique');
+    || _usuario.includes('enrique')
+    || _usuario.includes('erik')
+    || _nombreCompleto.includes('erik');
   const isRelevos = _roleCodigo === 'RELEVOS' || _roleCodigo === 'REVELOS'
     || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
     || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
