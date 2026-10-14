@@ -4920,6 +4920,9 @@ class DespachoController extends Controller
                     $partes = explode('-', $servicio);
                     $rutaStr = trim((string) ($partes[0] ?? ''));
                     $corridaVal = isset($partes[1]) ? trim((string) $partes[1]) : '';
+                } elseif (preg_match('/^([^\s]+)\s+(\d+)$/', $servicio, $matchesServicio)) {
+                    $rutaStr = trim($matchesServicio[1]);
+                    $corridaVal = trim($matchesServicio[2]);
                 } else {
                     $rutaStr = $servicio !== '' ? $servicio : trim((string) ($fila['ruta'] ?? ''));
                     $corridaVal = trim((string) ($fila['corrida'] ?? ''));
@@ -4994,12 +4997,18 @@ class DespachoController extends Controller
                     $nombreConductor = mb_strtoupper(trim((string) ($fila['CONDUCTOR'] ?? $fila['NOMBRE_CONDUCTOR'])), 'UTF-8');
                 }
                 
-                $patioNorteBool = filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $patioNorteRaw = $fila['PATIO_NORTE'] ?? ($fila['patio_norte'] ?? false);
+                $patioNorteStr = strtoupper(trim((string)$patioNorteRaw));
+                $patioNorteBool = filter_var($patioNorteRaw, FILTER_VALIDATE_BOOLEAN) || in_array($patioNorteStr, ['SI', 'SÍ', '1', 'TRUE']);
                 $patioNorteVal = $patioNorteBool ? 'true' : 'false';
-                $itinerarioBool = filter_var($fila['ITINERARIO'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+                $itinerarioRaw = $fila['ITINERARIO'] ?? ($fila['itinerario'] ?? false);
+                $itinerarioStr = strtoupper(trim((string)$itinerarioRaw));
+                $itinerarioBool = filter_var($itinerarioRaw, FILTER_VALIDATE_BOOLEAN) || in_array($itinerarioStr, ['SI', 'SÍ', '1', 'TRUE']);
                 $itinerarioVal = $itinerarioBool ? 'true' : 'false';
-                $horaIncorporacionVal = trim((string) ($fila['HORA DE INCORPORACION'] ?? ($fila['horaIncorporacion'] ?? ($fila['HORA_INCORPORACION'] ?? '')))) ?: null;
-                $horaDesincorporacionVal = trim((string) ($fila['HORA DE DESINCORPORACION'] ?? ($fila['horaDesincorporacion'] ?? ($fila['HORA_DESINCORPORACION'] ?? '')))) ?: null;
+
+                $horaIncorporacionVal = trim((string) ($fila['HORA DE INCORPORACION'] ?? ($fila['horaIncorporacion'] ?? ($fila['HORA_INCORPORACION'] ?? ($fila['hora_incorporacion'] ?? ''))))) ?: null;
+                $horaDesincorporacionVal = trim((string) ($fila['HORA DE DESINCORPORACION'] ?? ($fila['horaDesincorporacion'] ?? ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))))) ?: null;
 
                 // Lógica de "reserva" o "operación"
                 // Si Ruta, Tarjetón, Hora Salida, Hora Acople y Corrida están vacíos, es una reserva explícita.
@@ -5089,12 +5098,15 @@ class DespachoController extends Controller
                             'falla'                     => $bloq->falla,
                             'motivo'                    => $bloq->motivo,
                             'observaciones'             => $bloq->observaciones,
-                            'patio_norte'               => $bloq->patio_norte ?? 'false',
+                            'patio_norte'               => filter_var($bloq->patio_norte ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                            'itinerario'                => 'false',
                         ];
                     } else {
                         $insertData[] = [
-                            'unidad_id' => $u->id,
-                            'estatus'   => 'reserva',
+                            'unidad_id'   => $u->id,
+                            'estatus'     => 'reserva',
+                            'patio_norte' => 'false',
+                            'itinerario'  => 'false',
                         ];
                     }
                 }

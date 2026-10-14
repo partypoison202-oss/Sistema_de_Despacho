@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -986,7 +986,18 @@ export default function CargaExcel({ isPasteles = false }) {
 
   // ─── DESCARGAR PLANTILLA ────────────────────────────────────────────────────────
   const handleDownloadTemplate = () => {
-    const encabezados = ['TIPO UNIDAD', 'SERVICIO', 'ECONOMICO', 'HORA ENTRADA T6', 'TARJETON', 'HORA DE SALIDA DE PATIO', 'HORA DE ACOPLE'];
+    const encabezados = [
+      'TIPO UNIDAD',
+      'SERVICIO',
+      'ECONOMICO',
+      'HORA ENTRADA T6',
+      'TARJETON',
+      'HORA DE SALIDA DE PATIO',
+      'HORA DE ACOPLE',
+      'ITINERARIO',
+      'HORA DE DESINCORPORACION',
+      'HORA DE INCORPORACION'
+    ];
     const tiposHoja = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
 
     const workbook = XLSX.utils.book_new();
@@ -1008,6 +1019,9 @@ export default function CargaExcel({ isPasteles = false }) {
       ['TARJETON', 'Solo el número del tarjetón del conductor. Sin nombres ni letras.', '044, 165'],
       ['HORA DE SALIDA DE PATIO', 'Hora en formato de 24 horas.', '05:00, 14:30'],
       ['HORA DE ACOPLE', 'Hora en formato de 24 horas.', '05:15, 14:45'],
+      ['ITINERARIO', 'Indicar si la unidad entra en itinerario (SÍ / NO).', 'SÍ, NO'],
+      ['HORA DE DESINCORPORACION', 'Hora en formato de 24 horas a la que sale de ruta por itinerario (opcional).', '09:30, 13:00'],
+      ['HORA DE INCORPORACION', 'Hora en formato de 24 horas a la que se reincorpora a la ruta (opcional).', '16:30, 17:00'],
       [],
       ['Llena cada unidad en la hoja que corresponde a su tipo. Si una unidad no sale hoy, no la agregues.'],
       [],
@@ -1016,7 +1030,7 @@ export default function CargaExcel({ isPasteles = false }) {
     ];
 
     const worksheetGuia = XLSX.utils.aoa_to_sheet(guiaHoja);
-    worksheetGuia['!cols'] = [{ wch: 26 }, { wch: 60 }, { wch: 32 }];
+    worksheetGuia['!cols'] = [{ wch: 28 }, { wch: 68 }, { wch: 32 }];
     for (let col = 0; col < 3; col++) {
       const ref = XLSX.utils.encode_cell({ r: 2, c: col });
       if (worksheetGuia[ref]) {
@@ -1028,7 +1042,7 @@ export default function CargaExcel({ isPasteles = false }) {
     // ─── UNA HOJA POR TIPO DE UNIDAD (solo encabezados, sin datos) ───
     tiposHoja.forEach(tipo => {
       const worksheet = XLSX.utils.aoa_to_sheet([encabezados]);
-      worksheet['!cols'] = encabezados.map((h, i) => ({ wch: i === 5 ? 26 : 20 }));
+      worksheet['!cols'] = encabezados.map((h, i) => ({ wch: i === 4 ? 16 : 24 }));
       XLSX.utils.book_append_sheet(workbook, worksheet, tipo);
     });
 
@@ -1103,6 +1117,10 @@ export default function CargaExcel({ isPasteles = false }) {
                     
                     if (normalizedRow['ECONOMICO']) {
                         const isPatioNorte = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'TRUE' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === '1' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SÍ' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SI';
+                        const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
+                        const hDesinc = normalizedRow['HORA_DE_DESINCORPORACION'] || normalizedRow['HORA_DESINCORPORACION'] || '';
+                        const hIncorp = normalizedRow['HORA_DE_INCORPORACION'] || normalizedRow['HORA_INCORPORACION'] || '';
+
                         actualizaciones.push({
                             'HOJA': sheetName,
                             'FILA': index + 2,
@@ -1114,7 +1132,10 @@ export default function CargaExcel({ isPasteles = false }) {
                             'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
                             'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
                             'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
-                            'PATIO_NORTE': isPatioNorte
+                            'PATIO_NORTE': isPatioNorte,
+                            'ITINERARIO': isItinerario,
+                            'HORA DE DESINCORPORACION': hDesinc,
+                            'HORA DE INCORPORACION': hIncorp
                         });
                     }
                 });
@@ -1156,16 +1177,19 @@ export default function CargaExcel({ isPasteles = false }) {
               return;
            }
 
-           // SERVICIO viene como RUTA-CORRIDA (ej. T05-06)
+           // SERVICIO viene como RUTA-CORRIDA (ej. T05-06 o 1A 01)
            const servicio = normalizedRow['SERVICIO'] || '';
-           const partesServicio = servicio.split('-');
+           const partesServicio = servicio.includes('-') ? servicio.split('-') : servicio.split(/\s+/);
            const ruta = (partesServicio[0] || '').trim();
            const corridaRaw = (partesServicio[1] || '').trim();
            const corrida = corridaRaw !== '' && !isNaN(parseInt(corridaRaw, 10)) ? String(parseInt(corridaRaw, 10)) : corridaRaw;
            const tarjeton = normalizedRow['TARJETON'] || '';
            const horaSalida = aHoraTexto(normalizedRow['RAW_HORA_DE_SALIDA_DE_PATIO']);
            const horaAcople = aHoraTexto(normalizedRow['RAW_HORA_DE_ACOPLE']);
-           const pn = false;
+           const horaDesinc = aHoraTexto(normalizedRow['RAW_HORA_DE_DESINCORPORACION'] || normalizedRow['RAW_HORA_DESINCORPORACION']) || '';
+           const horaIncorp = aHoraTexto(normalizedRow['RAW_HORA_DE_INCORPORACION'] || normalizedRow['RAW_HORA_INCORPORACION']) || '';
+           const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
+           const pn = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI';
 
            let nombreConductor = '';
            if (tarjeton) {
@@ -1193,9 +1217,14 @@ export default function CargaExcel({ isPasteles = false }) {
              horaSalida,
              horaAcople,
              horaEntrada: horaEntradaT6,
+             horaDesinc,
+             horaIncorp,
+             itinerario: isItinerario,
              'HORA DE SALIDA DE PATIO': horaSalida,
              'HORA DE ACOPLE': horaAcople,
              'HORA ENTRADA T6': horaEntradaT6,
+             'HORA DE DESINCORPORACION': horaDesinc,
+             'HORA DE INCORPORACION': horaIncorp,
              pn
            });
           });
@@ -1281,6 +1310,9 @@ export default function CargaExcel({ isPasteles = false }) {
            newData[act.index].ACOPLE = act.horaAcople;
            newData[act.index].HORA_DE_ACOPLE = act.horaAcople;
            if (act.pn) newData[act.index].PATIO_NORTE = true;
+           newData[act.index].ITINERARIO = act.itinerario;
+           newData[act.index].HORA_DESINCORPORACION = act.horaDesinc;
+           newData[act.index].HORA_INCORPORACION = act.horaIncorp;
 
            const tieneServicio = act.ruta || act.tarjeton || act.corrida;
            if (tieneServicio) {

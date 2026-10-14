@@ -77,12 +77,12 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     pdf.setFontSize(12);
     pdf.text(fecha, pw - 10, 32, { align: 'right' });
 
-    // 2. KPIs GLOBALES (6 Cajas)
+    // 2. KPIs GLOBALES (7 Cajas)
     let currentY = 38;
     const marginX = 10;
     const totalW = pw - marginX * 2;
-    const gap = 3;
-    const boxWidth = (totalW - (gap * 5)) / 6;
+    const gap = 2.5;
+    const boxWidth = (totalW - (gap * 6)) / 7;
     const boxHeight = 24;
     
     const kpis = [
@@ -91,6 +91,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         { label: 'EN RESERVA', value: totales.reserva, color: COLOR_GOLD },
         { label: 'EN MANTENIMIENTO', value: totales.mantenimiento, color: COLOR_RED },
         { label: 'EN PERCANCE', value: totales.percance ?? 0, color: [225, 29, 72] },
+        { label: 'POR ITINERARIO', value: totales.desincItinerario ?? 0, color: [217, 119, 6] },
         { label: 'EFICIENCIA OPERATIVA', value: `${eficienciaGlobal}%`, color: COLOR_GOLD, bg: [254, 243, 199] }
     ];
 

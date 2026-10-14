@@ -82,12 +82,18 @@
 /* ---------- KPIs globales ---------- */
 .centro-kpis {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 14px;
   margin-bottom: 36px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+  .centro-kpis {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
   .centro-kpis {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -144,11 +150,12 @@
 }
 
 .centro-kpi__label {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--cc-text-muted);
+  line-height: 1.25;
 }
 
 .centro-kpi--total {
@@ -204,6 +211,17 @@
 }
 .centro-kpi--percance .centro-kpi__value {
   color: #dc2626;
+}
+
+.centro-kpi--itinerario {
+  border-left-color: #d97706;
+}
+.centro-kpi--itinerario .centro-kpi__icon {
+  background: #fef3c7;
+  color: #d97706;
+}
+.centro-kpi--itinerario .centro-kpi__value {
+  color: #b45309;
 }
 
 /* ---------- Encabezado de sección ---------- */
