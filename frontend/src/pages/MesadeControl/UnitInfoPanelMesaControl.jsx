@@ -668,8 +668,8 @@ export default function UnitInfoPanel({
       if (result.inhabilitado) {
         Swal.fire({
           icon: 'warning',
-          title: 'Operador Inhabilitado',
-          html: `El operador <b>${result.conductor_inhabilitado_nombre || 'anterior'}</b> ha sido <b>INHABILITADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
+          title: 'Operador No Asignado',
+          html: `El operador <b>${result.conductor_inhabilitado_nombre || 'anterior'}</b> ha quedado <b>NO ASIGNADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
           confirmButtonColor: '#ef4444'
         });
       } else {

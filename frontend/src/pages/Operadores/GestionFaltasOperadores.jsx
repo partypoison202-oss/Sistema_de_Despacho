@@ -523,7 +523,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                 : 'bg-red-100 text-red-800 hover:bg-red-200'
             }`}
           >
-            Inhabilitados ({kpis.totalInhabilitados})
+            No Asignados ({kpis.totalInhabilitados})
           </button>
         </div>
 
@@ -760,12 +760,12 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
                         {esInhab && (
                           <div className="mt-2 text-xs font-bold text-red-700 bg-red-100/90 p-2.5 rounded-lg border border-red-200">
-                            ⚠️ ATENCIÓN: Este operador acumula 4 faltas no justificadas dentro del periodo de 30 días y ha sido inhabilitado automáticamente. No se puede utilizar en ninguna asignación del sistema hasta justificar las faltas requeridas.
+                            ⚠️ ATENCIÓN: Este operador acumula 4 faltas no justificadas dentro del periodo de 30 días y ha sido marcado como NO ASIGNADO automáticamente. No se puede utilizar en ninguna asignación del sistema hasta justificar las faltas requeridas.
                           </div>
                         )}
                         {!esInhab && faltasV === 3 && (
                           <div className="mt-2 text-xs font-bold text-amber-800 bg-amber-100/90 p-2 rounded-lg border border-amber-200">
-                            ⚡ ALERTA: Con 1 falta no justificada más en esta ventana, el operador quedará inhabilitado automáticamente.
+                            ⚡ ALERTA: Con 1 falta no justificada más en esta ventana, el operador quedará como NO ASIGNADO automáticamente.
                           </div>
                         )}
                       </div>
