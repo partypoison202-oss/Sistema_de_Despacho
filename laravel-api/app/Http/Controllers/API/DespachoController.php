@@ -4456,8 +4456,9 @@ class DespachoController extends Controller
             foreach ($movimientosInasistenciaHoy as $mov) {
                 $motivoUpper = strtoupper(trim((string) ($mov->motivo ?? '')));
                 if (str_contains($motivoUpper, 'FALTA') || in_array($motivoUpper, ['PERMISO', 'ENFERMEDAD', 'INCAPACIDAD', 'PERMUTA', 'DESCANSO'])) {
-                    if (! empty($mov->conductor_asignado)) {
-                        $tarjetonesInasistenciaPlataforma[trim((string) $mov->conductor_asignado)] = [
+                    $tarjetonRetirado = !empty($mov->conductor_anterior) ? $mov->conductor_anterior : $mov->conductor_asignado;
+                    if (! empty($tarjetonRetirado)) {
+                        $tarjetonesInasistenciaPlataforma[trim((string) $tarjetonRetirado)] = [
                             'motivo' => $mov->motivo ?? 'Inasistencia',
                             'hora' => $mov->created_at ? Carbon::parse($mov->created_at)->format('H:i') : '',
                         ];
