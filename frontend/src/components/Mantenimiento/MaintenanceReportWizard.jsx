@@ -288,8 +288,8 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         numero_incidencia: incidencia,
         motivo: 'MANTENIMIENTO',
         falla_reportada: formData.falla_reportada, // Se guarda desde el paso 1
-        folio_mantenimiento: '',
-        fecha_folio_mantenimiento: '',
+        folio_mantenimiento: formData.folio_mantenimiento || undefined,
+        fecha_folio_mantenimiento: formData.fecha_folio_mantenimiento || undefined,
         generarFolioAutomatico: false  // NO generar folio al solo registrar incidencia
       });
       onClose();

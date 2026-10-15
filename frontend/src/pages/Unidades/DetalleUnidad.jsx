@@ -197,6 +197,7 @@ export default function DetalleUnidad() {
       acople: String(u.acople ?? '').trim(),
       horaRealSalidaPatio: String(u.hora_real_salida_patio ?? '').trim(),
       horaSalidaPatio: String(u.hora_salida_patio ?? '').trim(),
+      desincorporada_itinerario: Boolean(u.desincorporada_itinerario),
     }));
   };
 
@@ -275,7 +276,7 @@ export default function DetalleUnidad() {
   const unidadesPorEstado = (estado) => {
     let filtradas = unidadesList.filter((u) => u.estado === estado);
     if (estado === 'operacion') {
-      filtradas = filtradas.filter((u) => !u.horaRealSalidaPatio);
+      filtradas = filtradas.filter((u) => !u.horaRealSalidaPatio && !u.desincorporada_itinerario);
     }
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
