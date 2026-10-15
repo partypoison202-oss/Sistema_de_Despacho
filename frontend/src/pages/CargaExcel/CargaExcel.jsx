@@ -1403,7 +1403,8 @@ export default function CargaExcel({ isPasteles = false }) {
             </div>
             <ul style="margin: 0; padding-left: 1.15rem; font-size: 0.84rem; color: #7f1d1d; line-height: 1.45;">
               <li><strong>Pérdida de avances diarios:</strong> Se eliminarán las validaciones, firmas y horas reales de salida de patio ya registradas hoy.</li>
-              <li><strong>Sobrescritura total:</strong> Las asignaciones de unidades, rutas y conductores actuales serán sustituidas.</li>
+              <li><strong>Sobrescritura de operación:</strong> Las asignaciones de unidades en ruta, corridas y conductores del día actual serán sustituidas.</li>
+              <li><strong>Preservación de flota bloqueada:</strong> Las unidades actualmente en <em>Mantenimiento</em> o <em>Percance</em> conservarán su estatus, fallas y folios intactos (salvo que en Día Siguiente se les haya asignado un servicio explícito en ruta).</li>
               <li><strong>Vaciado de Día Siguiente:</strong> La tabla de mañana quedará en blanco para la próxima carga.</li>
             </ul>
           </div>
