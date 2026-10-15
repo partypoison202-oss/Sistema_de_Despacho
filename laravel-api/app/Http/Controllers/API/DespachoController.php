@@ -1048,6 +1048,42 @@ class DespachoController extends Controller
                 $data['ciclo'] = $prevInfo->ciclo ?? null;
                 $data['motivo'] = $prevInfo->motivo ?? null;
                 $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? null;
+
+                // Preservar folios, incidencias y detalles de mantenimiento
+                $data['folio_mantenimiento'] = (isset($fila['FOLIO_MANTENIMIENTO']) && trim((string)$fila['FOLIO_MANTENIMIENTO']) !== '')
+                    ? trim((string)$fila['FOLIO_MANTENIMIENTO'])
+                    : ($prevInfo->folio_mantenimiento ?? null);
+                $data['fecha_folio_mantenimiento'] = (isset($fila['FECHA_FOLIO_MANTENIMIENTO']) && trim((string)$fila['FECHA_FOLIO_MANTENIMIENTO']) !== '')
+                    ? trim((string)$fila['FECHA_FOLIO_MANTENIMIENTO'])
+                    : ($prevInfo->fecha_folio_mantenimiento ?? null);
+                $data['numero_incidencia'] = (isset($fila['NUMERO_INCIDENCIA']) && trim((string)$fila['NUMERO_INCIDENCIA']) !== '')
+                    ? trim((string)$fila['NUMERO_INCIDENCIA'])
+                    : ($prevInfo->numero_incidencia ?? null);
+                $data['falla_reportada'] = (isset($fila['FALLA_REPORTADA']) && trim((string)$fila['FALLA_REPORTADA']) !== '')
+                    ? trim((string)$fila['FALLA_REPORTADA'])
+                    : ($prevInfo->falla_reportada ?? null);
+                $data['diagnostico'] = (isset($fila['DIAGNOSTICO']) && trim((string)$fila['DIAGNOSTICO']) !== '')
+                    ? trim((string)$fila['DIAGNOSTICO'])
+                    : ($prevInfo->diagnostico ?? null);
+                $data['mantenimiento_conductor'] = (isset($fila['MANTENIMIENTO_CONDUCTOR']) && trim((string)$fila['MANTENIMIENTO_CONDUCTOR']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CONDUCTOR'])
+                    : ($prevInfo->mantenimiento_conductor ?? null);
+                $data['mantenimiento_tarjeton'] = (isset($fila['MANTENIMIENTO_TARJETON']) && trim((string)$fila['MANTENIMIENTO_TARJETON']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_TARJETON'])
+                    : ($prevInfo->mantenimiento_tarjeton ?? null);
+                $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_RUTA'])
+                    : ($prevInfo->mantenimiento_ruta ?? null);
+                $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
+                    : ($prevInfo->mantenimiento_corrida ?? null);
+                $data['mantenimiento_kilometraje'] = (isset($fila['MANTENIMIENTO_KILOMETRAJE']) && trim((string)$fila['MANTENIMIENTO_KILOMETRAJE']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_KILOMETRAJE'])
+                    : ($prevInfo->mantenimiento_kilometraje ?? null);
+                $data['firma_base64'] = $prevInfo->firma_base64 ?? null;
+                $data['id_firma'] = $prevInfo->id_firma ?? null;
+                $data['fecha_firma'] = $prevInfo->fecha_firma ?? null;
+                $data['km_ultima_lectura'] = $prevInfo->km_ultima_lectura ?? null;
             } else {
                 $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
                 $data['falla'] = null;
@@ -1221,6 +1257,7 @@ class DespachoController extends Controller
         }
 
         $infoOperativaMananaRegistros = DB::table('informacion_operativa_manana')->get()->keyBy('unidad_id');
+        $infoOperativaHoyRegistros = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
         $infoOperativaIds = $infoOperativaMananaRegistros->map(fn ($r) => $r->id)->all();
 
         $unidadesProcesadasIds = [];
@@ -1358,12 +1395,50 @@ class DespachoController extends Controller
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
                 $prevInfo = $infoOperativaMananaRegistros->get($unidad->id);
+                $prevHoy = $infoOperativaHoyRegistros->get($unidad->id);
+
                 $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
                     ? trim((string)$fila['FALLA'])
-                    : ($prevInfo->falla ?? null);
-                $data['ciclo'] = $prevInfo->ciclo ?? null;
-                $data['motivo'] = $prevInfo->motivo ?? null;
-                $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? null;
+                    : ($prevInfo->falla ?? ($prevHoy->falla ?? null));
+                $data['ciclo'] = $prevInfo->ciclo ?? ($prevHoy->ciclo ?? null);
+                $data['motivo'] = $prevInfo->motivo ?? ($prevHoy->motivo ?? null);
+                $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? ($prevHoy->motivo_estatus ?? null);
+
+                // Preservar folios, incidencias y detalles de mantenimiento para mañana
+                $data['folio_mantenimiento'] = (isset($fila['FOLIO_MANTENIMIENTO']) && trim((string)$fila['FOLIO_MANTENIMIENTO']) !== '')
+                    ? trim((string)$fila['FOLIO_MANTENIMIENTO'])
+                    : ($prevInfo->folio_mantenimiento ?? ($prevHoy->folio_mantenimiento ?? null));
+                $data['fecha_folio_mantenimiento'] = (isset($fila['FECHA_FOLIO_MANTENIMIENTO']) && trim((string)$fila['FECHA_FOLIO_MANTENIMIENTO']) !== '')
+                    ? trim((string)$fila['FECHA_FOLIO_MANTENIMIENTO'])
+                    : ($prevInfo->fecha_folio_mantenimiento ?? ($prevHoy->fecha_folio_mantenimiento ?? null));
+                $data['numero_incidencia'] = (isset($fila['NUMERO_INCIDENCIA']) && trim((string)$fila['NUMERO_INCIDENCIA']) !== '')
+                    ? trim((string)$fila['NUMERO_INCIDENCIA'])
+                    : ($prevInfo->numero_incidencia ?? ($prevHoy->numero_incidencia ?? null));
+                $data['falla_reportada'] = (isset($fila['FALLA_REPORTADA']) && trim((string)$fila['FALLA_REPORTADA']) !== '')
+                    ? trim((string)$fila['FALLA_REPORTADA'])
+                    : ($prevInfo->falla_reportada ?? ($prevHoy->falla_reportada ?? null));
+                $data['diagnostico'] = (isset($fila['DIAGNOSTICO']) && trim((string)$fila['DIAGNOSTICO']) !== '')
+                    ? trim((string)$fila['DIAGNOSTICO'])
+                    : ($prevInfo->diagnostico ?? ($prevHoy->diagnostico ?? null));
+                $data['mantenimiento_conductor'] = (isset($fila['MANTENIMIENTO_CONDUCTOR']) && trim((string)$fila['MANTENIMIENTO_CONDUCTOR']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CONDUCTOR'])
+                    : ($prevInfo->mantenimiento_conductor ?? ($prevHoy->mantenimiento_conductor ?? null));
+                $data['mantenimiento_tarjeton'] = (isset($fila['MANTENIMIENTO_TARJETON']) && trim((string)$fila['MANTENIMIENTO_TARJETON']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_TARJETON'])
+                    : ($prevInfo->mantenimiento_tarjeton ?? ($prevHoy->mantenimiento_tarjeton ?? null));
+                $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_RUTA'])
+                    : ($prevInfo->mantenimiento_ruta ?? ($prevHoy->mantenimiento_ruta ?? null));
+                $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
+                    : ($prevInfo->mantenimiento_corrida ?? ($prevHoy->mantenimiento_corrida ?? null));
+                $data['mantenimiento_kilometraje'] = (isset($fila['MANTENIMIENTO_KILOMETRAJE']) && trim((string)$fila['MANTENIMIENTO_KILOMETRAJE']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_KILOMETRAJE'])
+                    : ($prevInfo->mantenimiento_kilometraje ?? ($prevHoy->mantenimiento_kilometraje ?? null));
+                $data['firma_base64'] = $prevInfo->firma_base64 ?? ($prevHoy->firma_base64 ?? null);
+                $data['id_firma'] = $prevInfo->id_firma ?? ($prevHoy->id_firma ?? null);
+                $data['fecha_firma'] = $prevInfo->fecha_firma ?? ($prevHoy->fecha_firma ?? null);
+                $data['km_ultima_lectura'] = $prevInfo->km_ultima_lectura ?? ($prevHoy->km_ultima_lectura ?? null);
             } else {
                 $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
                 $data['falla'] = null;
@@ -1461,6 +1536,7 @@ class DespachoController extends Controller
         }
 
         $infoOperativaEspecificoRegistros = DB::table($tableName)->get()->keyBy('unidad_id');
+        $infoOperativaHoyRegistros = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
         $infoOperativaIds = $infoOperativaEspecificoRegistros->map(fn ($r) => $r->id)->all();
 
         $unidadesProcesadasIds = [];
@@ -1598,12 +1674,50 @@ class DespachoController extends Controller
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
                 $prevInfo = $infoOperativaEspecificoRegistros->get($unidad->id);
+                $prevHoy = $infoOperativaHoyRegistros->get($unidad->id);
+
                 $data['falla'] = (isset($fila['FALLA']) && trim((string)$fila['FALLA']) !== '')
                     ? trim((string)$fila['FALLA'])
-                    : ($prevInfo->falla ?? null);
-                $data['ciclo'] = $prevInfo->ciclo ?? null;
-                $data['motivo'] = $prevInfo->motivo ?? null;
-                $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? null;
+                    : ($prevInfo->falla ?? ($prevHoy->falla ?? null));
+                $data['ciclo'] = $prevInfo->ciclo ?? ($prevHoy->ciclo ?? null);
+                $data['motivo'] = $prevInfo->motivo ?? ($prevHoy->motivo ?? null);
+                $data['motivo_estatus'] = $prevInfo->motivo_estatus ?? ($prevHoy->motivo_estatus ?? null);
+
+                // Preservar folios, incidencias y detalles de mantenimiento para festivo
+                $data['folio_mantenimiento'] = (isset($fila['FOLIO_MANTENIMIENTO']) && trim((string)$fila['FOLIO_MANTENIMIENTO']) !== '')
+                    ? trim((string)$fila['FOLIO_MANTENIMIENTO'])
+                    : ($prevInfo->folio_mantenimiento ?? ($prevHoy->folio_mantenimiento ?? null));
+                $data['fecha_folio_mantenimiento'] = (isset($fila['FECHA_FOLIO_MANTENIMIENTO']) && trim((string)$fila['FECHA_FOLIO_MANTENIMIENTO']) !== '')
+                    ? trim((string)$fila['FECHA_FOLIO_MANTENIMIENTO'])
+                    : ($prevInfo->fecha_folio_mantenimiento ?? ($prevHoy->fecha_folio_mantenimiento ?? null));
+                $data['numero_incidencia'] = (isset($fila['NUMERO_INCIDENCIA']) && trim((string)$fila['NUMERO_INCIDENCIA']) !== '')
+                    ? trim((string)$fila['NUMERO_INCIDENCIA'])
+                    : ($prevInfo->numero_incidencia ?? ($prevHoy->numero_incidencia ?? null));
+                $data['falla_reportada'] = (isset($fila['FALLA_REPORTADA']) && trim((string)$fila['FALLA_REPORTADA']) !== '')
+                    ? trim((string)$fila['FALLA_REPORTADA'])
+                    : ($prevInfo->falla_reportada ?? ($prevHoy->falla_reportada ?? null));
+                $data['diagnostico'] = (isset($fila['DIAGNOSTICO']) && trim((string)$fila['DIAGNOSTICO']) !== '')
+                    ? trim((string)$fila['DIAGNOSTICO'])
+                    : ($prevInfo->diagnostico ?? ($prevHoy->diagnostico ?? null));
+                $data['mantenimiento_conductor'] = (isset($fila['MANTENIMIENTO_CONDUCTOR']) && trim((string)$fila['MANTENIMIENTO_CONDUCTOR']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CONDUCTOR'])
+                    : ($prevInfo->mantenimiento_conductor ?? ($prevHoy->mantenimiento_conductor ?? null));
+                $data['mantenimiento_tarjeton'] = (isset($fila['MANTENIMIENTO_TARJETON']) && trim((string)$fila['MANTENIMIENTO_TARJETON']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_TARJETON'])
+                    : ($prevInfo->mantenimiento_tarjeton ?? ($prevHoy->mantenimiento_tarjeton ?? null));
+                $data['mantenimiento_ruta'] = (isset($fila['MANTENIMIENTO_RUTA']) && trim((string)$fila['MANTENIMIENTO_RUTA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_RUTA'])
+                    : ($prevInfo->mantenimiento_ruta ?? ($prevHoy->mantenimiento_ruta ?? null));
+                $data['mantenimiento_corrida'] = (isset($fila['MANTENIMIENTO_CORRIDA']) && trim((string)$fila['MANTENIMIENTO_CORRIDA']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_CORRIDA'])
+                    : ($prevInfo->mantenimiento_corrida ?? ($prevHoy->mantenimiento_corrida ?? null));
+                $data['mantenimiento_kilometraje'] = (isset($fila['MANTENIMIENTO_KILOMETRAJE']) && trim((string)$fila['MANTENIMIENTO_KILOMETRAJE']) !== '')
+                    ? trim((string)$fila['MANTENIMIENTO_KILOMETRAJE'])
+                    : ($prevInfo->mantenimiento_kilometraje ?? ($prevHoy->mantenimiento_kilometraje ?? null));
+                $data['firma_base64'] = $prevInfo->firma_base64 ?? ($prevHoy->firma_base64 ?? null);
+                $data['id_firma'] = $prevInfo->id_firma ?? ($prevHoy->id_firma ?? null);
+                $data['fecha_firma'] = $prevInfo->fecha_firma ?? ($prevHoy->fecha_firma ?? null);
+                $data['km_ultima_lectura'] = $prevInfo->km_ultima_lectura ?? ($prevHoy->km_ultima_lectura ?? null);
             } else {
                 $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
                 $data['falla'] = null;
@@ -1670,7 +1784,9 @@ class DespachoController extends Controller
             $unidadesBloqueadas = DB::table('informacion_operativa')
                 ->whereIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
                 ->get()
-                ->keyBy('unidad_id');
+                ->keyBy(function ($item) {
+                    return (int) $item->unidad_id;
+                });
 
             $sourceTable = null;
             $deleteSourceAfter = false;
@@ -1696,17 +1812,13 @@ class DespachoController extends Controller
                 foreach ($nuevosRegistros as $row) {
                     unset($row->id);
                     $arrayRow = (array) $row;
-                    $unidadId = $row->unidad_id ?? null;
-                    $estatusManana = strtolower(trim($row->estatus ?? ''));
-                    $tieneServicioAsignado = !empty(trim((string)($row->numero_tarjeton ?? ''))) || !empty(trim((string)($row->ruta ?? '')));
+                    $unidadId = !empty($row->unidad_id) ? (int) $row->unidad_id : null;
 
-                    // Si la unidad estaba en Mantenimiento o Percance hoy:
-                    // Se preserva en mantenimiento solo si no fue programada explícitamente para operar mañana
+                    // Si la unidad estaba en Mantenimiento o Percance:
+                    // Se preserva INCONDICIONALMENTE en su estado de taller (no puede salir a operar hasta que sea liberada).
                     $seMantieneEnMantenimiento = false;
                     if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
-                        if ($estatusManana !== 'operacion' && !$tieneServicioAsignado) {
-                            $seMantieneEnMantenimiento = true;
-                        }
+                        $seMantieneEnMantenimiento = true;
                     }
 
                     if ($seMantieneEnMantenimiento) {
@@ -1724,8 +1836,71 @@ class DespachoController extends Controller
                             }
                         }
 
+                        // Preservar íntegramente todos los datos de mantenimiento
+                        $camposMantenimiento = [
+                            'folio_mantenimiento',
+                            'fecha_folio_mantenimiento',
+                            'numero_incidencia',
+                            'falla_reportada',
+                            'diagnostico',
+                            'mantenimiento_conductor',
+                            'mantenimiento_tarjeton',
+                            'mantenimiento_ruta',
+                            'mantenimiento_corrida',
+                            'mantenimiento_kilometraje',
+                            'motivo_estatus',
+                            'motivo',
+                            'falla',
+                            'observaciones',
+                            'firma_base64',
+                            'id_firma',
+                            'fecha_firma',
+                            'km_ultima_lectura',
+                        ];
+                        foreach ($camposMantenimiento as $campo) {
+                            if (!empty($bloqueada[$campo])) {
+                                $insertRow[$campo] = $bloqueada[$campo];
+                            } elseif (!empty($arrayRow[$campo])) {
+                                $insertRow[$campo] = $arrayRow[$campo];
+                            }
+                        }
+
+                        // Si la fila de origen traía servicio asignado y no lo teníamos en mantenimiento_*, conservarlo como referencia
+                        if (empty($insertRow['mantenimiento_conductor']) && !empty($arrayRow['nombre_conductor'])) {
+                            $insertRow['mantenimiento_conductor'] = $arrayRow['nombre_conductor'];
+                        }
+                        if (empty($insertRow['mantenimiento_tarjeton']) && !empty($arrayRow['numero_tarjeton'])) {
+                            $insertRow['mantenimiento_tarjeton'] = $arrayRow['numero_tarjeton'];
+                        }
+                        if (empty($insertRow['mantenimiento_ruta']) && !empty($arrayRow['ruta'])) {
+                            $insertRow['mantenimiento_ruta'] = $arrayRow['ruta'];
+                        }
+                        if (empty($insertRow['mantenimiento_corrida']) && !empty($arrayRow['corridas'])) {
+                            $insertRow['mantenimiento_corrida'] = $arrayRow['corridas'];
+                        }
+
+                        // Garantizar estatus y motivo de mantenimiento/percance
+                        $insertRow['estatus'] = $bloqueada['estatus'];
+                        $insertRow['motivo_estatus'] = !empty($bloqueada['motivo_estatus']) ? $bloqueada['motivo_estatus'] : strtoupper($bloqueada['estatus']);
+
+                        // Desvincular de servicio activo (la unidad no sale a ruta mientras esté en mantenimiento/percance)
+                        $insertRow['nombre_conductor'] = null;
+                        $insertRow['numero_tarjeton'] = null;
+                        $insertRow['ruta'] = null;
+                        $insertRow['corridas'] = null;
+                        $insertRow['acople'] = null;
+                        $insertRow['hora_salida_patio'] = null;
                         $insertRow['hora_real_salida_patio'] = null;
-                        $insertRow['firma_base64'] = null;
+                        $insertRow['hora_salida'] = null;
+                        $insertRow['hora_programada'] = null;
+                        $insertRow['ciclo'] = null;
+                        $insertRow['tarjeton_maniobrista'] = null;
+                        $insertRow['nombre_maniobrista'] = null;
+                        $insertRow['relevo_tarjeton'] = null;
+                        $insertRow['relevo_conductor'] = null;
+                        $insertRow['relevo_hora'] = null;
+                        $insertRow['hora_desincorporacion'] = null;
+                        $insertRow['hora_incorporacion'] = null;
                         $insertRow['fecha_registro'] = $fechaHoy;
 
                         DB::table('informacion_operativa')->insert($insertRow);
@@ -1743,8 +1918,41 @@ class DespachoController extends Controller
                         }
                     }
 
-                    // Prepare for programacion_inicial (solo las que van a ruta)
-                    if (($insertRow['estatus'] ?? '') !== 'reserva') {
+                    // Si la unidad pasa a mantenimiento o percance desde la tabla origen, recuperar cualquier dato previo si no viene en fila
+                    if (in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                        if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
+                            $bloqueadaPrev = (array) $unidadesBloqueadas->get($unidadId);
+                            $camposMantenimiento = [
+                                'folio_mantenimiento',
+                                'fecha_folio_mantenimiento',
+                                'numero_incidencia',
+                                'falla_reportada',
+                                'diagnostico',
+                                'mantenimiento_conductor',
+                                'mantenimiento_tarjeton',
+                                'mantenimiento_ruta',
+                                'mantenimiento_corrida',
+                                'mantenimiento_kilometraje',
+                                'motivo_estatus',
+                                'motivo',
+                                'falla',
+                                'observaciones',
+                                'firma_base64',
+                                'id_firma',
+                                'fecha_firma',
+                                'km_ultima_lectura',
+                            ];
+                            foreach ($camposMantenimiento as $campo) {
+                                if (empty($insertRow[$campo]) && !empty($bloqueadaPrev[$campo])) {
+                                    $insertRow[$campo] = $bloqueadaPrev[$campo];
+                                }
+                            }
+                        }
+                    }
+
+                    // Prepare for programacion_inicial (únicamente las unidades que van a ruta en operación)
+                    $estatusFinal = strtolower(trim((string)($insertRow['estatus'] ?? '')));
+                    if ($estatusFinal === 'operacion') {
                         $inicialRowFiltered = [];
                         foreach ($insertRow as $k => $v) {
                             if (isset($inicialCols[$k])) {
@@ -1769,7 +1977,10 @@ class DespachoController extends Controller
                         $insertRow['hora_salida'] = null;
                     }
                     if (array_key_exists('firma_base64', $insertRow)) {
-                        $insertRow['firma_base64'] = null;
+                        // Solo reiniciar firma de salida de patio; preservar firma de mantenimiento si la unidad está en taller
+                        if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                            $insertRow['firma_base64'] = null;
+                        }
                     }
                     $insertRow['fecha_registro'] = $fechaHoy;
 
@@ -1800,13 +2011,17 @@ class DespachoController extends Controller
                             }
                         }
                         $insertRow['hora_real_salida_patio'] = null;
-                        $insertRow['firma_base64'] = null;
+                        if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                            $insertRow['firma_base64'] = null;
+                        }
                         $insertRow['fecha_registro'] = $fechaHoy;
                         DB::table('informacion_operativa')->insert($insertRow);
                     }
                 }
 
                 if (! empty($inicialInsert)) {
+                    // Limpiar snapshot previo de programacion_inicial de hoy para evitar duplicados en cambios forzados
+                    DB::table('programacion_inicial')->where('fecha', $fechaHoy)->delete();
                     foreach (array_chunk($inicialInsert, 50) as $chunk) {
                         DB::table('programacion_inicial')->insert($chunk);
                     }
@@ -1826,7 +2041,7 @@ class DespachoController extends Controller
                     DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristas))->update(['estado_servicio' => 'en_servicio']);
                 }
 
-                BitacoraHelper::ensureInicioSnapshot();
+                BitacoraHelper::ensureInicioSnapshot(true);
 
                 DB::commit();
 
@@ -1841,10 +2056,14 @@ class DespachoController extends Controller
             } else {
                 // Si no hay tabla con programación nueva para mañana:
                 // La programación operativa actual (rutas, conductores, horarios) SE MANTIENE para el nuevo día.
-                // Solo se reinician los campos de control de validación diaria.
+                // Solo se reinician los campos de control de validación diaria de unidades en operación.
+                DB::table('informacion_operativa')
+                    ->where('estatus', 'operacion')
+                    ->update([
+                        'hora_real_salida_patio' => null,
+                        'firma_base64'           => null,
+                    ]);
                 DB::table('informacion_operativa')->update([
-                    'hora_real_salida_patio' => null,
-                    'firma_base64'           => null,
                     'fecha_registro'         => $fechaHoy,
                 ]);
 
@@ -1939,31 +2158,189 @@ class DespachoController extends Controller
         try {
             DB::beginTransaction();
 
+            $unidadesBloqueadas = DB::table('informacion_operativa')
+                ->whereIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
+                ->get()
+                ->keyBy(function ($item) {
+                    return (int) $item->unidad_id;
+                });
+
             $registros = DB::table($tableName)->get();
+            $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
             DB::table('informacion_operativa')->delete();
+
+            $fechaHoy = Carbon::now('America/Mexico_City')->toDateString();
 
             foreach ($registros as $reg) {
                 unset($reg->id);
                 $arrayRow = (array) $reg;
-                if (array_key_exists('patio_norte', $arrayRow)) {
-                    $arrayRow['patio_norte'] = $arrayRow['patio_norte'] ? 'true' : 'false';
+                $unidadId = !empty($arrayRow['unidad_id']) ? (int) $arrayRow['unidad_id'] : null;
+
+                $seMantieneEnMantenimiento = false;
+                if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
+                    $seMantieneEnMantenimiento = true;
                 }
-                if (array_key_exists('transporte_patio_norte', $arrayRow)) {
-                    $arrayRow['transporte_patio_norte'] = $arrayRow['transporte_patio_norte'] ? 'true' : 'false';
+
+                if ($seMantieneEnMantenimiento) {
+                    $bloqueada = (array) $unidadesBloqueadas->get($unidadId);
+                    unset($bloqueada['id']);
+                    $insertRow = [];
+                    foreach ($bloqueada as $key => $val) {
+                        if (isset($targetCols[$key])) {
+                            if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                                $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                            } else {
+                                $insertRow[$key] = $val;
+                            }
+                        }
+                    }
+
+                    $camposMantenimiento = [
+                        'folio_mantenimiento',
+                        'fecha_folio_mantenimiento',
+                        'numero_incidencia',
+                        'falla_reportada',
+                        'diagnostico',
+                        'mantenimiento_conductor',
+                        'mantenimiento_tarjeton',
+                        'mantenimiento_ruta',
+                        'mantenimiento_corrida',
+                        'mantenimiento_kilometraje',
+                        'motivo_estatus',
+                        'motivo',
+                        'falla',
+                        'observaciones',
+                        'firma_base64',
+                        'id_firma',
+                        'fecha_firma',
+                        'km_ultima_lectura',
+                    ];
+                    foreach ($camposMantenimiento as $campo) {
+                        if (!empty($bloqueada[$campo])) {
+                            $insertRow[$campo] = $bloqueada[$campo];
+                        } elseif (!empty($arrayRow[$campo])) {
+                            $insertRow[$campo] = $arrayRow[$campo];
+                        }
+                    }
+
+                    if (empty($insertRow['mantenimiento_conductor']) && !empty($arrayRow['nombre_conductor'])) {
+                        $insertRow['mantenimiento_conductor'] = $arrayRow['nombre_conductor'];
+                    }
+                    if (empty($insertRow['mantenimiento_tarjeton']) && !empty($arrayRow['numero_tarjeton'])) {
+                        $insertRow['mantenimiento_tarjeton'] = $arrayRow['numero_tarjeton'];
+                    }
+                    if (empty($insertRow['mantenimiento_ruta']) && !empty($arrayRow['ruta'])) {
+                        $insertRow['mantenimiento_ruta'] = $arrayRow['ruta'];
+                    }
+                    if (empty($insertRow['mantenimiento_corrida']) && !empty($arrayRow['corridas'])) {
+                        $insertRow['mantenimiento_corrida'] = $arrayRow['corridas'];
+                    }
+
+                    $insertRow['estatus'] = $bloqueada['estatus'];
+                    $insertRow['motivo_estatus'] = !empty($bloqueada['motivo_estatus']) ? $bloqueada['motivo_estatus'] : strtoupper($bloqueada['estatus']);
+
+                    $insertRow['nombre_conductor'] = null;
+                    $insertRow['numero_tarjeton'] = null;
+                    $insertRow['ruta'] = null;
+                    $insertRow['corridas'] = null;
+                    $insertRow['acople'] = null;
+                    $insertRow['hora_salida_patio'] = null;
+                    $insertRow['hora_real_salida_patio'] = null;
+                    $insertRow['hora_salida'] = null;
+                    $insertRow['hora_programada'] = null;
+                    $insertRow['ciclo'] = null;
+                    $insertRow['tarjeton_maniobrista'] = null;
+                    $insertRow['nombre_maniobrista'] = null;
+                    $insertRow['relevo_tarjeton'] = null;
+                    $insertRow['relevo_conductor'] = null;
+                    $insertRow['relevo_hora'] = null;
+                    $insertRow['hora_desincorporacion'] = null;
+                    $insertRow['hora_incorporacion'] = null;
+                    $insertRow['fecha_registro'] = $fechaHoy;
+
+                    DB::table('informacion_operativa')->insert($insertRow);
+                    continue;
                 }
-                if (array_key_exists('itinerario', $arrayRow)) {
-                    $arrayRow['itinerario'] = $arrayRow['itinerario'] ? 'true' : 'false';
+
+                $insertRow = [];
+                foreach ($arrayRow as $key => $val) {
+                    if (isset($targetCols[$key])) {
+                        if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                            $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        } else {
+                            $insertRow[$key] = $val;
+                        }
+                    }
+                }
+
+                if (in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                    if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
+                        $bloqueadaPrev = (array) $unidadesBloqueadas->get($unidadId);
+                        $camposMantenimiento = [
+                            'folio_mantenimiento',
+                            'fecha_folio_mantenimiento',
+                            'numero_incidencia',
+                            'falla_reportada',
+                            'diagnostico',
+                            'mantenimiento_conductor',
+                            'mantenimiento_tarjeton',
+                            'mantenimiento_ruta',
+                            'mantenimiento_corrida',
+                            'mantenimiento_kilometraje',
+                            'motivo_estatus',
+                            'motivo',
+                            'falla',
+                            'observaciones',
+                            'firma_base64',
+                            'id_firma',
+                            'fecha_firma',
+                            'km_ultima_lectura',
+                        ];
+                        foreach ($camposMantenimiento as $campo) {
+                            if (empty($insertRow[$campo]) && !empty($bloqueadaPrev[$campo])) {
+                                $insertRow[$campo] = $bloqueadaPrev[$campo];
+                            }
+                        }
+                    }
                 }
 
                 // Reiniciar campos de validación para el nuevo día
-                if (array_key_exists('hora_real_salida_patio', $arrayRow)) {
-                    $arrayRow['hora_real_salida_patio'] = null;
+                if (array_key_exists('hora_real_salida_patio', $insertRow)) {
+                    $insertRow['hora_real_salida_patio'] = null;
                 }
-                if (array_key_exists('firma_base64', $arrayRow)) {
-                    $arrayRow['firma_base64'] = null;
+                if (array_key_exists('firma_base64', $insertRow)) {
+                    if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                        $insertRow['firma_base64'] = null;
+                    }
                 }
+                $insertRow['fecha_registro'] = $fechaHoy;
 
-                DB::table('informacion_operativa')->insert($arrayRow);
+                DB::table('informacion_operativa')->insert($insertRow);
+            }
+
+            // Asegurar que ninguna unidad bloqueada se quede fuera si no venía en la tabla
+            $unidadesInsertadas = DB::table('informacion_operativa')->pluck('unidad_id')->toArray();
+            foreach ($unidadesBloqueadas as $uId => $bloqueadaObj) {
+                if (! in_array($uId, $unidadesInsertadas, true)) {
+                    $bloqueada = (array) $bloqueadaObj;
+                    unset($bloqueada['id']);
+                    $insertRow = [];
+                    foreach ($bloqueada as $key => $val) {
+                        if (isset($targetCols[$key])) {
+                            if (in_array($key, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
+                                $insertRow[$key] = filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                            } else {
+                                $insertRow[$key] = $val;
+                            }
+                        }
+                    }
+                    $insertRow['hora_real_salida_patio'] = null;
+                    if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                        $insertRow['firma_base64'] = null;
+                    }
+                    $insertRow['fecha_registro'] = $fechaHoy;
+                    DB::table('informacion_operativa')->insert($insertRow);
+                }
             }
 
             // Opcional: Si queremos dejar la tabla en blanco luego de aplicarla, descomentamos la siguiente línea
@@ -2392,6 +2769,7 @@ class DespachoController extends Controller
                 'informacion_operativa.motivo',
                 'informacion_operativa.motivo_estatus',
                 'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.numero_incidencia',
                 'informacion_operativa.fecha_folio_mantenimiento',
                 'informacion_operativa.falla_reportada',
                 'informacion_operativa.diagnostico',
@@ -2464,6 +2842,8 @@ class DespachoController extends Controller
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
                 'FOLIO_MANTENIMIENTO' => $reg->folio_mantenimiento,
                 'FECHA_FOLIO_MANTENIMIENTO' => $reg->fecha_folio_mantenimiento,
+                'NUMERO_INCIDENCIA' => $reg->numero_incidencia,
+                'numero_incidencia' => $reg->numero_incidencia,
                 'FALLA_REPORTADA' => $reg->falla_reportada,
                 'DIAGNOSTICO' => $reg->diagnostico,
                 'FIRMA_BASE64' => $reg->firma_base64,
@@ -2518,7 +2898,9 @@ class DespachoController extends Controller
                     $insertRow['hora_real_salida_patio'] = null;
                 }
                 if (array_key_exists('firma_base64', $insertRow)) {
-                    $insertRow['firma_base64'] = null;
+                    if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                        $insertRow['firma_base64'] = null;
+                    }
                 }
 
                 $bulkInserts[] = $insertRow;
@@ -2549,13 +2931,24 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.ciclo',
                 'informacion_operativa_manana.motivo',
                 'informacion_operativa_manana.motivo_estatus',
+                'informacion_operativa_manana.folio_mantenimiento',
+                'informacion_operativa_manana.numero_incidencia',
+                'informacion_operativa_manana.fecha_folio_mantenimiento',
+                'informacion_operativa_manana.falla_reportada',
+                'informacion_operativa_manana.diagnostico',
+                'informacion_operativa_manana.firma_base64',
                 'informacion_operativa_manana.hora_salida_patio',
                 'informacion_operativa_manana.acople',
                 'informacion_operativa_manana.hora_real_salida_patio',
                 'informacion_operativa_manana.patio_norte',
                 'informacion_operativa_manana.itinerario',
                 'informacion_operativa_manana.hora_incorporacion',
-                'informacion_operativa_manana.hora_desincorporacion'
+                'informacion_operativa_manana.hora_desincorporacion',
+                'informacion_operativa_manana.mantenimiento_conductor',
+                'informacion_operativa_manana.mantenimiento_tarjeton',
+                'informacion_operativa_manana.mantenimiento_ruta',
+                'informacion_operativa_manana.mantenimiento_corrida',
+                'informacion_operativa_manana.mantenimiento_kilometraje'
             )
             ->orderBy(DB::raw('COALESCE(informacion_operativa_manana.tipo, transportes.nombre)'))
             ->orderBy('unidades.numero_eco')
@@ -2579,6 +2972,13 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
+                'FOLIO_MANTENIMIENTO' => $reg->folio_mantenimiento,
+                'FECHA_FOLIO_MANTENIMIENTO' => $reg->fecha_folio_mantenimiento,
+                'NUMERO_INCIDENCIA' => $reg->numero_incidencia,
+                'numero_incidencia' => $reg->numero_incidencia,
+                'FALLA_REPORTADA' => $reg->falla_reportada,
+                'DIAGNOSTICO' => $reg->diagnostico,
+                'FIRMA_BASE64' => $reg->firma_base64,
                 'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
                 'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
@@ -2588,6 +2988,11 @@ class DespachoController extends Controller
                 'ITINERARIO' => (bool) $reg->itinerario,
                 'HORA_INCORPORACION' => $reg->hora_incorporacion,
                 'HORA_DESINCORPORACION' => $reg->hora_desincorporacion,
+                'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
+                'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
+                'MANTENIMIENTO_RUTA' => $reg->mantenimiento_ruta,
+                'MANTENIMIENTO_CORRIDA' => $reg->mantenimiento_corrida,
+                'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje,
             ];
         });
 
@@ -2648,13 +3053,24 @@ class DespachoController extends Controller
                 "{$tableName}.ciclo",
                 "{$tableName}.motivo",
                 "{$tableName}.motivo_estatus",
+                "{$tableName}.folio_mantenimiento",
+                "{$tableName}.numero_incidencia",
+                "{$tableName}.fecha_folio_mantenimiento",
+                "{$tableName}.falla_reportada",
+                "{$tableName}.diagnostico",
+                "{$tableName}.firma_base64",
                 "{$tableName}.hora_salida_patio",
                 "{$tableName}.acople",
                 "{$tableName}.hora_real_salida_patio",
                 "{$tableName}.patio_norte",
                 "{$tableName}.itinerario",
                 "{$tableName}.hora_incorporacion",
-                "{$tableName}.hora_desincorporacion"
+                "{$tableName}.hora_desincorporacion",
+                "{$tableName}.mantenimiento_conductor",
+                "{$tableName}.mantenimiento_tarjeton",
+                "{$tableName}.mantenimiento_ruta",
+                "{$tableName}.mantenimiento_corrida",
+                "{$tableName}.mantenimiento_kilometraje"
             )
             ->orderBy(DB::raw("COALESCE({$tableName}.tipo, transportes.nombre)"))
             ->orderBy('unidades.numero_eco')
@@ -2678,6 +3094,13 @@ class DespachoController extends Controller
                 'CICLO' => $reg->ciclo,
                 'MOTIVO' => $reg->motivo,
                 'MOTIVO_ESTATUS' => $reg->motivo_estatus,
+                'FOLIO_MANTENIMIENTO' => $reg->folio_mantenimiento,
+                'FECHA_FOLIO_MANTENIMIENTO' => $reg->fecha_folio_mantenimiento,
+                'NUMERO_INCIDENCIA' => $reg->numero_incidencia,
+                'numero_incidencia' => $reg->numero_incidencia,
+                'FALLA_REPORTADA' => $reg->falla_reportada,
+                'DIAGNOSTICO' => $reg->diagnostico,
+                'FIRMA_BASE64' => $reg->firma_base64,
                 'HORA_DE_ACOPLE' => $reg->hora_salida_patio,
                 'HORA_PROGRAMADA' => $reg->hora_salida_patio,
                 'ACOPLE' => $reg->acople,
@@ -2687,6 +3110,11 @@ class DespachoController extends Controller
                 'ITINERARIO' => (bool) $reg->itinerario,
                 'HORA_INCORPORACION' => $reg->hora_incorporacion,
                 'HORA_DESINCORPORACION' => $reg->hora_desincorporacion,
+                'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
+                'MANTENIMIENTO_TARJETON' => $reg->mantenimiento_tarjeton,
+                'MANTENIMIENTO_RUTA' => $reg->mantenimiento_ruta,
+                'MANTENIMIENTO_CORRIDA' => $reg->mantenimiento_corrida,
+                'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje,
             ];
         });
 
@@ -3245,7 +3673,7 @@ class DespachoController extends Controller
         }
 
         if ($request->has('folio_mantenimiento')) {
-            $folioReq = trim($request->folio_mantenimiento);
+            $folioReq = trim((string)$request->folio_mantenimiento);
             if (! empty($folioReq)) {
                 $existe = DB::table('informacion_operativa')
                     ->where('folio_mantenimiento', $folioReq)
@@ -3258,12 +3686,12 @@ class DespachoController extends Controller
                         'message' => "El número de folio '$folioReq' ya está siendo usado por otra unidad. Por favor verifica.",
                     ], 400);
                 }
+                $updateData['folio_mantenimiento'] = $folioReq;
             }
-            $updateData['folio_mantenimiento'] = $folioReq;
         }
 
         if ($request->has('numero_incidencia')) {
-            $incReq = trim($request->numero_incidencia);
+            $incReq = trim((string)$request->numero_incidencia);
             if (! empty($incReq)) {
                 $existeInc = DB::table('informacion_operativa')
                     ->where('numero_incidencia', $incReq)
@@ -3276,8 +3704,8 @@ class DespachoController extends Controller
                         'message' => "El número de incidencia '$incReq' ya está siendo usado por otra unidad. Por favor verifica.",
                     ], 400);
                 }
+                $updateData['numero_incidencia'] = $incReq;
             }
-            $updateData['numero_incidencia'] = $incReq;
         }
 
         if ($request->has('fecha_folio_mantenimiento')) {
@@ -3310,10 +3738,10 @@ class DespachoController extends Controller
         }
 
         if ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance') {
-            $updateData['mantenimiento_conductor'] = ! empty($registroOperativo->nombre_conductor) ? $registroOperativo->nombre_conductor : ($registroOperativo->mantenimiento_conductor ?? null);
-            $updateData['mantenimiento_tarjeton'] = ! empty($registroOperativo->numero_tarjeton) ? $registroOperativo->numero_tarjeton : ($registroOperativo->mantenimiento_tarjeton ?? null);
-            $updateData['mantenimiento_ruta'] = ! empty($registroOperativo->ruta) ? $registroOperativo->ruta : ($registroOperativo->mantenimiento_ruta ?? null);
-            $updateData['mantenimiento_corrida'] = ! empty($registroOperativo->corridas) ? $registroOperativo->corridas : ($registroOperativo->mantenimiento_corrida ?? null);
+            $updateData['mantenimiento_conductor'] = $updateData['mantenimiento_conductor'] ?? (! empty($registroOperativo->nombre_conductor) ? $registroOperativo->nombre_conductor : ($registroOperativo->mantenimiento_conductor ?? null));
+            $updateData['mantenimiento_tarjeton'] = $updateData['mantenimiento_tarjeton'] ?? (! empty($registroOperativo->numero_tarjeton) ? $registroOperativo->numero_tarjeton : ($registroOperativo->mantenimiento_tarjeton ?? null));
+            $updateData['mantenimiento_ruta'] = $updateData['mantenimiento_ruta'] ?? (! empty($registroOperativo->ruta) ? $registroOperativo->ruta : ($registroOperativo->mantenimiento_ruta ?? null));
+            $updateData['mantenimiento_corrida'] = $updateData['mantenimiento_corrida'] ?? (! empty($registroOperativo->corridas) ? $registroOperativo->corridas : ($registroOperativo->mantenimiento_corrida ?? null));
 
             $updateData['nombre_conductor'] = null;
             $updateData['numero_tarjeton'] = null;
@@ -4276,10 +4704,24 @@ class DespachoController extends Controller
                 'incidencia' => 'required|string|max:255',
             ]);
 
+            $numeroEco = str_pad(ltrim(trim($request->numero_eco), '0'), 3, '0', STR_PAD_LEFT);
+            $tipoNormalizado = strtolower(trim($request->tipo));
+
+            $unidad = DB::table('unidades')->where('numero_eco', $numeroEco)->first();
+            if (! $unidad) {
+                return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada'], 404);
+            }
+
             $registroOperativo = DB::table('informacion_operativa')
-                ->where('numero_eco', $request->numero_eco)
-                ->where('tipo', $request->tipo)
+                ->where('unidad_id', $unidad->id)
+                ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
                 ->first();
+
+            if (! $registroOperativo) {
+                $registroOperativo = DB::table('informacion_operativa')
+                    ->where('unidad_id', $unidad->id)
+                    ->first();
+            }
 
             if (! $registroOperativo) {
                 return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada en operación'], 404);
@@ -4288,19 +4730,19 @@ class DespachoController extends Controller
             DB::table('informacion_operativa')
                 ->where('id', $registroOperativo->id)
                 ->update([
-                    'folio_mantenimiento' => $request->incidencia,
+                    'numero_incidencia' => trim($request->incidencia),
                 ]);
 
             BitacoraHelper::registrarCambio(
                 $registroOperativo->unidad_id,
                 'ASIGNACION_INCIDENCIA',
-                'ASIGNÓ NÚMERO DE INCIDENCIA: '.$request->incidencia
+                'ASIGNÓ NÚMERO DE INCIDENCIA: '.trim($request->incidencia)
             );
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Número de incidencia asignado exitosamente',
-                'incidencia' => $request->incidencia,
+                'incidencia' => trim($request->incidencia),
             ], 200);
 
         } catch (\Exception $e) {
@@ -5018,6 +5460,12 @@ class DespachoController extends Controller
                 $unidadesDict[(string)$u->numero_eco] = $u;
             }
 
+            // Obtener unidades actualmente en Mantenimiento o Percance para preservar su estatus
+            $unidadesMantenimientoPercance = DB::table('informacion_operativa')
+                ->whereIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
+                ->get()
+                ->keyBy('unidad_id');
+
             $unidadesProcesadas = [];
             $ecosEnExcel = [];
             $tarjetonesEnExcel = [];
@@ -5158,18 +5606,49 @@ class DespachoController extends Controller
                 $horaDesincorporacionVal = trim((string) ($fila['HORA DE DESINCORPORACION'] ?? ($fila['horaDesincorporacion'] ?? ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))))) ?: null;
 
                 // Lógica de "reserva" o "operación"
-                // Si Ruta, Tarjetón, Hora Salida, Hora Acople y Corrida están vacíos, es una reserva explícita.
+                // Si Ruta, Tarjetón, Hora Salida, Hora Acople y Corrida están vacíos:
                 $estaVacia = ($rutaStr === '' && $corridaVal === '' && $tarjetonStr === '' && $horaSalida === '' && $horaAcople === '');
                 
                 if ($estaVacia) {
-                    $insertData[] = [
-                        'unidad_id' => $unidadId,
-                        'estatus' => 'reserva',
-                        'patio_norte' => $patioNorteVal,
-                        'itinerario' => $itinerarioVal,
-                        'hora_incorporacion' => null,
-                        'hora_desincorporacion' => null,
-                    ];
+                    if ($unidadesMantenimientoPercance->has($unidadId)) {
+                        $bloq = $unidadesMantenimientoPercance->get($unidadId);
+                        $insertData[] = [
+                            'unidad_id'                 => $unidadId,
+                            'tipo'                      => $bloq->tipo ?? (!empty($tipoUnidadDB) ? $tipoUnidadDB : null),
+                            'estatus'                   => $bloq->estatus,
+                            'motivo_estatus'            => $bloq->motivo_estatus,
+                            'folio_mantenimiento'       => $bloq->folio_mantenimiento,
+                            'fecha_folio_mantenimiento' => $bloq->fecha_folio_mantenimiento,
+                            'numero_incidencia'         => $bloq->numero_incidencia,
+                            'falla_reportada'           => $bloq->falla_reportada,
+                            'diagnostico'               => $bloq->diagnostico,
+                            'falla'                     => $bloq->falla,
+                            'motivo'                    => $bloq->motivo,
+                            'observaciones'             => $bloq->observaciones ?? null,
+                            'firma_base64'              => $bloq->firma_base64,
+                            'id_firma'                  => $bloq->id_firma,
+                            'fecha_firma'               => $bloq->fecha_firma,
+                            'km_ultima_lectura'         => $bloq->km_ultima_lectura,
+                            'mantenimiento_conductor'   => $bloq->mantenimiento_conductor,
+                            'mantenimiento_tarjeton'    => $bloq->mantenimiento_tarjeton,
+                            'mantenimiento_ruta'        => $bloq->mantenimiento_ruta,
+                            'mantenimiento_corrida'     => $bloq->mantenimiento_corrida,
+                            'mantenimiento_kilometraje' => $bloq->mantenimiento_kilometraje,
+                            'patio_norte'               => $patioNorteVal,
+                            'itinerario'                => $itinerarioVal,
+                            'hora_incorporacion'        => null,
+                            'hora_desincorporacion'     => null,
+                        ];
+                    } else {
+                        $insertData[] = [
+                            'unidad_id' => $unidadId,
+                            'estatus' => 'reserva',
+                            'patio_norte' => $patioNorteVal,
+                            'itinerario' => $itinerarioVal,
+                            'hora_incorporacion' => null,
+                            'hora_desincorporacion' => null,
+                        ];
+                    }
                 } else {
                     // Si no está vacía, DEBE tener todo lleno para ser operación
                     $faltantes = [];
@@ -5221,13 +5700,7 @@ class DespachoController extends Controller
                 ], 422);
             }
 
-            // Obtener unidades actualmente en Mantenimiento o Percance para preservar su estatus
-            $unidadesMantenimientoPercance = DB::table('informacion_operativa')
-                ->whereIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
-                ->get()
-                ->keyBy('unidad_id');
-
-            // Las unidades que no vinieron en el excel: si están en mantenimiento/percance conservan ese estatus, si no van a reserva
+            // Las unidades que no vinieron en el excel: si están en mantenimiento/percance conservan ese estatus con todos sus datos, si no van a reserva
             $unidadesProcesadas = array_unique($unidadesProcesadas);
             foreach ($unidadesData as $u) {
                 if (! in_array($u->id, $unidadesProcesadas, true)) {
@@ -5240,11 +5713,21 @@ class DespachoController extends Controller
                             'motivo_estatus'            => $bloq->motivo_estatus,
                             'folio_mantenimiento'       => $bloq->folio_mantenimiento,
                             'fecha_folio_mantenimiento' => $bloq->fecha_folio_mantenimiento,
+                            'numero_incidencia'         => $bloq->numero_incidencia,
                             'falla_reportada'           => $bloq->falla_reportada,
                             'diagnostico'               => $bloq->diagnostico,
                             'falla'                     => $bloq->falla,
                             'motivo'                    => $bloq->motivo,
-                            'observaciones'             => $bloq->observaciones,
+                            'observaciones'             => $bloq->observaciones ?? null,
+                            'firma_base64'              => $bloq->firma_base64,
+                            'id_firma'                  => $bloq->id_firma,
+                            'fecha_firma'               => $bloq->fecha_firma,
+                            'km_ultima_lectura'         => $bloq->km_ultima_lectura,
+                            'mantenimiento_conductor'   => $bloq->mantenimiento_conductor,
+                            'mantenimiento_tarjeton'    => $bloq->mantenimiento_tarjeton,
+                            'mantenimiento_ruta'        => $bloq->mantenimiento_ruta,
+                            'mantenimiento_corrida'     => $bloq->mantenimiento_corrida,
+                            'mantenimiento_kilometraje' => $bloq->mantenimiento_kilometraje,
                             'patio_norte'               => filter_var($bloq->patio_norte ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                             'itinerario'                => 'false',
                         ];
