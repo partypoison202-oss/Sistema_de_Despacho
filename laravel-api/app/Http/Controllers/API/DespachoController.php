@@ -3978,10 +3978,18 @@ class DespachoController extends Controller
             ], 404);
         }
 
+        $tiposBusqueda = self::normalizarTiposTransporte($request->tipo);
+
         $registroOperativo = DB::table('informacion_operativa')
             ->where('unidad_id', $unidad->id)
-            ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
+            ->whereIn(DB::raw('LOWER(tipo)'), $tiposBusqueda)
             ->first();
+
+        if (! $registroOperativo) {
+            $registroOperativo = DB::table('informacion_operativa')
+                ->where('unidad_id', $unidad->id)
+                ->first();
+        }
 
         if (! $registroOperativo) {
             return response()->json([
