@@ -136,7 +136,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             style={{ cursor: 'pointer' }}
           >
             <img
-              src="/images/acotma_logo_connombre_contorno_v2.png"
+              src="/images/acotma_pantone_p3.png"
               alt="Logo ACOTMA"
               className="app-header__brand-logo-2"
             />
