@@ -1349,7 +1349,6 @@ export default function DetalleUnidad() {
                 estado="operacion"
                 titulo="Operación"
                 unidades={unidadesPorEstado('operacion')}
-                totalProgramadas={totalProgramadasOperacion}
                 cargandoUnidades={cargandoUnidades}
                 configActual={configActual}
                 onSelectUnit={handleSelectUnit}

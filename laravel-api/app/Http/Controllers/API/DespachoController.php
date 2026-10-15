@@ -222,10 +222,24 @@ class DespachoController extends Controller
     }
 
     /**
+     * Normaliza el tipo de transporte para soportar variantes como urbanus / urbanuss.
+     */
+    public static function normalizarTiposTransporte($tipo): array
+    {
+        $tipoNorm = strtolower(trim((string) $tipo));
+        if ($tipoNorm === 'urbanuss' || $tipoNorm === 'urbanus') {
+            return ['urbanuss', 'urbanus'];
+        }
+        return [$tipoNorm];
+    }
+
+    /**
      * Obtiene el conteo de unidades con registro operativo hoy, agrupadas por tipo.
      */
     public function conteoUnidadesPorTipo(Request $request)
     {
+        self::procesarEncierrosAutomaticos();
+
         $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
 
         $registros = DB::table('informacion_operativa')
@@ -247,6 +261,9 @@ class DespachoController extends Controller
             }
 
             $tipo = strtolower(trim($item->tipo));
+            if ($tipo === 'urbanus') {
+                $tipo = 'urbanuss';
+            }
             $agrupados[$tipo][$item->unidad_id] = true;
         }
 
@@ -259,6 +276,8 @@ class DespachoController extends Controller
 
     public function conteoUnidadesEncierro(Request $request)
     {
+        self::procesarEncierrosAutomaticos();
+
         $hoy = Carbon::now('America/Mexico_City')->toDateString();
 
         $conteos = DB::table('informacion_operativa')
@@ -280,6 +299,9 @@ class DespachoController extends Controller
         foreach ($conteos as $item) {
             if (! empty($item->tipo)) {
                 $tipo = strtolower(trim($item->tipo));
+                if ($tipo === 'urbanus') {
+                    $tipo = 'urbanuss';
+                }
                 if (isset($resultado[$tipo])) {
                     $resultado[$tipo] += (int) $item->total;
                 } else {
@@ -297,11 +319,13 @@ class DespachoController extends Controller
      */
     public function listarUnidadesPorTipo(Request $request, $tipo)
     {
-        $tipoNormalizado = strtolower(trim($tipo));
+        self::procesarEncierrosAutomaticos();
+
+        $tiposBusqueda = self::normalizarTiposTransporte($tipo);
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), $tiposBusqueda)
             ->select(
                 'unidades.id as unidad_id',
                 'unidades.numero_eco',
@@ -316,6 +340,7 @@ class DespachoController extends Controller
                 'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_real_salida_patio',
+                'informacion_operativa.hora_encierro',
                 'informacion_operativa.folio_mantenimiento',
                 'informacion_operativa.numero_incidencia',
                 'informacion_operativa.fecha_folio_mantenimiento',
@@ -493,7 +518,7 @@ class DespachoController extends Controller
                 'hora_salida_patio' => $horaSalidaPatioEfectiva,
                 'acople' => $acopleEfectivo,
                 'hora_real_salida_patio' => $horaRealSalida,
-                'hora_encierro' => $encierro?->hora_encierro ?? null,
+                'hora_encierro' => $encierro?->hora_encierro ?? ($unidad->hora_encierro ?? null),
                 'folio_mantenimiento' => $unidad->folio_mantenimiento,
                 'numero_incidencia' => $unidad->numero_incidencia,
                 'fecha_folio_mantenimiento' => $unidad->fecha_folio_mantenimiento,
@@ -538,9 +563,11 @@ class DespachoController extends Controller
             return response()->json(['status' => 'success', 'unidad' => null], 200);
         }
 
+        $tiposBusqueda = self::normalizarTiposTransporte($tipo);
+
         $unidad = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), $tiposBusqueda)
             ->where('informacion_operativa.numero_tarjeton', $tarjetonLimpio)
             ->select('unidades.numero_eco as numero_eco', 'informacion_operativa.numero_tarjeton as tarjeton', 'informacion_operativa.estatus')
             ->first();
@@ -565,11 +592,11 @@ class DespachoController extends Controller
      */
     public function obtenerPorTipo($tipo)
     {
-        $tipoNormalizado = strtolower(trim($tipo));
+        $tiposBusqueda = self::normalizarTiposTransporte($tipo);
 
         $data = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), $tiposBusqueda)
             ->select(
                 'unidades.numero_eco as economico',
                 'informacion_operativa.ruta',
@@ -592,7 +619,9 @@ class DespachoController extends Controller
     public function obtenerDetalleUnidad($tipo, $numeroEco)
     {
         try {
-            $tipoNormalizado = strtolower(trim($tipo));
+            self::procesarEncierrosAutomaticos();
+
+            $tiposBusqueda = self::normalizarTiposTransporte($tipo);
 
             $numeroEcoClean = str_pad(trim($numeroEco), 3, '0', STR_PAD_LEFT);
 
@@ -603,7 +632,7 @@ class DespachoController extends Controller
             $info = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->where('unidades.numero_eco', $numeroEcoClean)
-                ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+                ->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), $tiposBusqueda)
                 ->select(
                     'informacion_operativa.ruta',
                     'informacion_operativa.nombre_conductor',
@@ -624,6 +653,7 @@ class DespachoController extends Controller
                     'informacion_operativa.hora_salida_patio',
                     'informacion_operativa.acople',
                     'informacion_operativa.hora_real_salida_patio',
+                    'informacion_operativa.hora_encierro',
                     'informacion_operativa.observaciones',
                     'informacion_operativa.transporte_patio_norte',
                     'unidades.kilometraje',
@@ -1269,6 +1299,8 @@ class DespachoController extends Controller
 
         // Asegurar snapshot de inicio únicamente si aún no existe, sin sobrescribir el congelado del cambio de día operativo
         BitacoraHelper::ensureInicioSnapshot(false);
+
+        self::procesarEncierrosAutomaticos();
 
         return response()->json([
             'status' => 'success',
@@ -2673,10 +2705,12 @@ class DespachoController extends Controller
                     ], 404);
                 }
 
+                $tiposBusqueda = self::normalizarTiposTransporte($request->tipo);
+
                 // Ahora obtenemos el registro operativo con bloqueo para evitar concurrencia
                 $registro = DB::table('informacion_operativa')
                     ->where('unidad_id', $unidad->id)
-                    ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
+                    ->whereIn(DB::raw('LOWER(tipo)'), $tiposBusqueda)
                     ->lockForUpdate()
                     ->first();
 
@@ -2713,14 +2747,14 @@ class DespachoController extends Controller
                     }
                 }
 
-                if ($request->has('ruta') && ! empty($request->ruta)) {
-                    $updateData['ruta'] = $request->ruta;
+                if ($request->has('ruta') && ! empty($request->ruta) && ! str_contains(strtolower($request->ruta), 'seleccione')) {
+                    $updateData['ruta'] = substr(trim((string)$request->ruta), 0, 20);
                 }
-                if ($request->has('tarjeton') && ! empty($request->tarjeton)) {
-                    $updateData['numero_tarjeton'] = $request->tarjeton;
+                if ($request->has('tarjeton') && ! empty($request->tarjeton) && ! str_contains(strtolower($request->tarjeton), 'seleccione')) {
+                    $updateData['numero_tarjeton'] = trim((string)$request->tarjeton);
                 }
-                if ($request->has('conductor') && ! empty($request->conductor)) {
-                    $updateData['nombre_conductor'] = $request->conductor;
+                if ($request->has('conductor') && ! empty($request->conductor) && ! str_contains(strtolower($request->conductor), 'seleccione')) {
+                    $updateData['nombre_conductor'] = trim((string)$request->conductor);
                 }
                 if ($request->has('corridas') && $request->corridas !== null) {
                     $updateData['corridas'] = $request->corridas;
@@ -2770,6 +2804,8 @@ class DespachoController extends Controller
                         implode(' | ', $detallesHoras)
                     );
                 }
+
+                self::procesarEncierrosAutomaticos();
 
                 return response()->json([
                     'status' => 'success',
@@ -3533,9 +3569,11 @@ class DespachoController extends Controller
                     return response()->json(['status' => 'error', 'message' => 'Unidad no encontrada'], 404);
                 }
 
+                $tiposBusqueda = self::normalizarTiposTransporte($request->tipo);
+
                 $registroOperativo = DB::table('informacion_operativa')
                     ->where('unidad_id', $unidad->id)
-                    ->whereRaw('LOWER(tipo) = ?', [$tipoNormalizado])
+                    ->whereIn(DB::raw('LOWER(tipo)'), $tiposBusqueda)
                     ->lockForUpdate()
                     ->first();
 
@@ -3548,14 +3586,14 @@ class DespachoController extends Controller
                 }
 
                 $updateData = [];
-                if ($request->has('ruta')) {
-                    $updateData['ruta'] = $request->ruta;
+                if ($request->has('ruta') && ! empty($request->ruta) && ! str_contains(strtolower($request->ruta), 'seleccione')) {
+                    $updateData['ruta'] = substr(trim((string)$request->ruta), 0, 20);
                 }
-                if ($request->has('tarjeton')) {
-                    $updateData['numero_tarjeton'] = $request->tarjeton;
+                if ($request->has('tarjeton') && ! empty($request->tarjeton) && ! str_contains(strtolower($request->tarjeton), 'seleccione')) {
+                    $updateData['numero_tarjeton'] = trim((string)$request->tarjeton);
                 }
-                if ($request->has('conductor')) {
-                    $updateData['nombre_conductor'] = $request->conductor;
+                if ($request->has('conductor') && ! empty($request->conductor) && ! str_contains(strtolower($request->conductor), 'seleccione')) {
+                    $updateData['nombre_conductor'] = trim((string)$request->conductor);
                 }
                 if ($request->has('corridas') || $request->has('corrida')) {
                     $updateData['corridas'] = $request->corridas ?? $request->corrida;
@@ -3755,24 +3793,23 @@ class DespachoController extends Controller
             $encerradasCount = 0;
 
             foreach ($unidadesParaEncierro as $registroOperativo) {
-                $horaEnc = trim((string) $registroOperativo->hora_encierro);
-                if (strlen($horaEnc) > 5) {
-                    $horaEnc = substr($horaEnc, 0, 5);
-                }
-
-                $horaSalidaPatio = trim((string) ($registroOperativo->hora_salida_patio ?? $registroOperativo->hora_real_salida_patio ?? '00:00'));
-                if (strlen($horaSalidaPatio) > 5) {
-                    $horaSalidaPatio = substr($horaSalidaPatio, 0, 5);
+                $horaEncRaw = trim((string) $registroOperativo->hora_encierro);
+                $partsEnc = explode(':', $horaEncRaw);
+                if (count($partsEnc) >= 2) {
+                    $horaEnc = sprintf('%02d:%02d', (int) $partsEnc[0], (int) $partsEnc[1]);
+                } else {
+                    continue;
                 }
 
                 $debeEncerrar = false;
 
-                if ($horaSalidaPatio <= $horaEnc) {
+                if ($horaEnc >= '06:00') {
+                    // Turno regular diurno/vespertino (06:00 a 23:59)
                     if ($horaActual >= $horaEnc) {
                         $debeEncerrar = true;
                     }
                 } else {
-                    // Turno nocturno que cruza medianoche
+                    // Turno nocturno que cruza medianoche hacia la madrugada (00:00 a 05:59)
                     if ($horaActual >= $horaEnc && $horaActual < '06:00') {
                         $debeEncerrar = true;
                     }
@@ -4661,13 +4698,13 @@ class DespachoController extends Controller
      */
     public function unidadesPorRuta($tipo, $ruta)
     {
-        $tipoNormalizado = strtolower(trim($tipo));
+        $tiposBusqueda = self::normalizarTiposTransporte($tipo);
 
         $rutaLimpia = trim($ruta);
 
         $unidades = DB::table('informacion_operativa')
             ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-            ->whereRaw('LOWER(informacion_operativa.tipo) = ?', [$tipoNormalizado])
+            ->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), $tiposBusqueda)
             ->where('informacion_operativa.ruta', $rutaLimpia)
             ->select(
                 'unidades.numero_eco',
