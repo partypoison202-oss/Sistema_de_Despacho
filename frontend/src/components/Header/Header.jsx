@@ -126,7 +126,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
           )}
         </div>
 
-        {/* Center Section: Logo ACOTMA */}
+        {/* Center Section: Logo SITMAH */}
         <div className="app-header__center">
           <button
             type="button"
@@ -136,8 +136,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             style={{ cursor: 'pointer' }}
           >
             <img
-              src="/images/acotma_pantone_p3.png"
-              alt="Logo ACOTMA"
+              src="/images/sitmah_logo.webp"
+              alt="Logo SITMAH"
               className="app-header__brand-logo-2"
             />
           </button>

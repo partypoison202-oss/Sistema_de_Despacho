@@ -4,7 +4,6 @@ import { useContext, useEffect } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { ROLE_DEFAULT_MODULES } from '../../components/ProtectedRoute';
 import Header from '../../components/Header/Header';
-import MenuFooter from '../../components/MenuFooter/MenuFooter';
 import './Menu.css';
 
 const menuItems = [
@@ -394,8 +393,6 @@ export default function Menu() {
           </div>
         )}
       </main>
-
-      <MenuFooter />
     </div>
   );
 }

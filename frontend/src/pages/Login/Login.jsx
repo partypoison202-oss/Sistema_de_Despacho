@@ -179,19 +179,15 @@ export default function Login() {
     <div className="login-wrapper">
       <GlobalClock className="absolute top-4 right-4 hidden lg:flex" />
       <div className="login-split">
-        {/* PANEL IZQUIERDO (Branding ACOTMA) - Visible solo en Desktop */}
+        {/* PANEL IZQUIERDO (Branding de Sitmah) - Visible solo en Desktop */}
         <div className="login-split__left">
-            <img
-                src="/images/acotma_logo_login.png"
-                alt="ACOTMA"
-                className="login-split__logo"
-            />
+            <LogoSTM className="login-split__logo" />
             <h1 className="login-split__brand-title">
-                Aplicación de Control de<br />Transporte Masivo
+                Sistema de Transporte<br />Metropolitano
             </h1>
             <div className="login-split__brand-divider" />
             <p className="login-split__brand-subtitle">
-                Sistema de Transporte Metropolitano
+                SITMAH
             </p>
         </div>
 
@@ -202,8 +198,8 @@ export default function Login() {
               
               {/* Imagen que solo se muestra en móvil para conservar el diseño actual */}
               <img
-                src="/images/acotma_logo_login.png"
-                alt="ACOTMA"
+                src={headerConfig.image}
+                alt={headerConfig.alt}
                 className="login__mobile-brand-image"
               />
 
@@ -293,7 +289,7 @@ export default function Login() {
               </form>
               
               <p className="login__footer-text">
-                  ACOTMA &copy; {new Date().getFullYear()}
+                  SITMAH &copy; {new Date().getFullYear()}
               </p>
             </div>
           </main>

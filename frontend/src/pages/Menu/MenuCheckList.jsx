@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
-import MenuFooter from '../../components/MenuFooter/MenuFooter';
 import './Menu.css';
 
 const checklistMenuItems = [
@@ -74,8 +73,6 @@ export default function MenuCheckList() {
           ))}
         </div>
       </main>
-
-      <MenuFooter />
     </div>
   );
 }
