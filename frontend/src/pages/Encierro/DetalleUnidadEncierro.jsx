@@ -346,11 +346,11 @@ export default function DetalleUnidadEncierro() {
     }));
 
     return mapped.filter(u => {
+      // Si ya fue encerrada HOY, la mantenemos siempre (para verla en la lista y consultarla)
+      if (u.yaEncerrada) return true;
+
       // Solo unidades que ya fueron despachadas hoy (tienen hora de salida asignada)
       if (u.horaRealSalidaPatio === '') return false;
-
-      // Si ya fue encerrada HOY, la mantenemos (para mostrar en "Unidades Encerradas")
-      if (u.yaEncerrada) return true;
 
       // Las unidades pendientes de encierro deben estar en operación activa
       return u.estado === 'operacion';
@@ -402,7 +402,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedRuta);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaRealSalidaPatio !== '' && (u.estado === 'operacion' || u.yaEncerrada);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedRuta]);
   const unidadesPorTroncalList = useMemo(() => {
@@ -410,7 +410,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaRealSalidaPatio !== '' && (u.estado === 'operacion' || u.yaEncerrada);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedTroncal]);
   const cargandoUnidadesPorRuta = false;
@@ -439,10 +439,22 @@ export default function DetalleUnidadEncierro() {
     return total.length;
   }, [unidadesList, selectedRuta, esAlimentadora, selectedTroncal, isTroncal, unidadesPorRutaList, unidadesPorTroncalList]);
 
+  const totalEncerradasOperacion = useMemo(() => {
+    let encerradas = unidadesList.filter((u) => u.yaEncerrada);
+    if (selectedRuta && esAlimentadora) {
+      const ecos = unidadesPorRutaList.map(u => u.eco);
+      encerradas = encerradas.filter(u => ecos.includes(u.eco));
+    }
+    if (selectedTroncal && isTroncal) {
+      const ecos = unidadesPorTroncalList.map(u => u.eco);
+      encerradas = encerradas.filter(u => ecos.includes(u.eco));
+    }
+    return encerradas.length;
+  }, [unidadesList, selectedRuta, esAlimentadora, selectedTroncal, isTroncal, unidadesPorRutaList, unidadesPorTroncalList]);
 
   const unidadesPorEstado = (estado) => {
-    // En encierro, el dropdown de Operación muestra las unidades en operación que están pendientes de encierro
-    let filtradas = unidadesList.filter((u) => u.estado === 'operacion' && !u.yaEncerrada);
+    // En encierro, el dropdown de Operación muestra todas las unidades que operaron hoy (pendientes y encerradas)
+    let filtradas = unidadesList.filter((u) => u.estado === 'operacion' || u.yaEncerrada);
 
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
@@ -1395,6 +1407,7 @@ export default function DetalleUnidadEncierro() {
                 estado="operacion"
                 titulo="Operación"
                 unidades={unidadesPorEstado('operacion')}
+                contadorCustom={totalEncerradasOperacion}
                 totalProgramadas={totalProgramadasOperacion}
                 cargandoUnidades={cargandoUnidades}
                 configActual={configActual}

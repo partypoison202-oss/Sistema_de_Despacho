@@ -43,8 +43,9 @@ class BitacoraHelper
                     $hasItinerario = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'itinerario');
                     $hasHoraIncorp = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_incorporacion');
                     $hasHoraDesinc = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_desincorporacion');
+                    $hasHoraEncierro = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_encierro');
 
-                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo, $hasItinerario, $hasHoraIncorp, $hasHoraDesinc) {
+                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo, $hasItinerario, $hasHoraIncorp, $hasHoraDesinc, $hasHoraEncierro) {
                         $item = [
                             'fecha_historial' => $hoy,
                             'momento'         => 'INICIO',
@@ -98,6 +99,10 @@ class BitacoraHelper
 
                         if ($hasHoraDesinc) {
                             $item['hora_desincorporacion'] = $registro->hora_desincorporacion ?? null;
+                        }
+
+                        if ($hasHoraEncierro) {
+                            $item['hora_encierro'] = $registro->hora_encierro ?? null;
                         }
 
                         return $item;

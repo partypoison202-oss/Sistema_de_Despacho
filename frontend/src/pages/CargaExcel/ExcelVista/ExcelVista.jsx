@@ -19,6 +19,7 @@ const HEADER_TRANSLATIONS = {
   ESTATUS: 'Estatus',
   HORA_DE_ACOPLE: 'HORA DE SALIDA DE PATIO',   // campo hora_salida_patio en BD
   ACOPLE: 'HORA DE ACOPLE',            // campo acople en BD
+  HORA_ENCIERRO: 'HORA DE ENCIERRO',
   CORRIDAS: 'Corrida',
   PATIO_NORTE: 'Patio Norte',
   ITINERARIO: 'ITINERARIO',
@@ -158,12 +159,12 @@ export default function ExcelPreview({
   const baseHeaders = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS'];
   // HORA_SALIDA_PATIO fue eliminada — era duplicado de HORA_DE_ACOPLE (mismo campo en BD: hora_salida_patio)
   // HORA_REAL_SALIDA_PATIO fue eliminada — la registra Despacho en tiempo real, no se programa aquí
-  const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE'];
+  const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_ENCIERRO'];
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
 
   const headers = isRelevos
-    ? [...baseHeaders, ...relevosHeaders, ...tailHeaders]
+    ? [...baseHeaders, ...relevosHeaders, 'HORA_ENCIERRO', ...tailHeaders]
     : [...baseHeaders, ...titularHeaders, ...tailHeaders];
 
   // Orden personalizado solicitado
@@ -523,7 +524,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_ENCIERRO' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 'center' : 'left',
                             }}>
                               {displayValue}
                             </div>
@@ -544,8 +545,8 @@ export default function ExcelPreview({
                           const rawSt = String(fila[h] || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                           const curSt = rawSt.includes('mantenimiento') ? 'mantenimiento' : (rawSt.includes('reserva') || rawSt.includes('no_programada') || rawSt.includes('no programada')) ? 'reserva' : 'operacion';
                           displayValue = estatusTranslations[curSt] || fila[h];
-                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
-                          displayValue = fila[h] || '00:00';
+                        } else if (h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_ENCIERRO' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
+                          displayValue = fila[h] || '--:--';
                         }
 
                         return (
@@ -555,7 +556,7 @@ export default function ExcelPreview({
                               fontSize: '0.875rem',
                               color: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '#111827' : '#4b5563',
                               fontWeight: (h === 'TIPO_DE_UNIDAD' || h === 'ECONOMICO') ? '700' : 'normal',
-                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 'center' : 'left',
+                              textAlign: (h === 'CORRIDAS' || h === 'HORA_DE_ACOPLE' || h === 'ECONOMICO' || h === 'ACOPLE' || h === 'HORA_ENCIERRO' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'HORA_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 'center' : 'left',
                               display: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'flex' : 'block',
                               alignItems: 'center',
                               justifyContent: (h === 'ECONOMICO' && isPasteles && !readOnly) ? 'center' : 'initial',
@@ -606,7 +607,7 @@ export default function ExcelPreview({
                         );
                       }
 
-                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
+                      if (h === 'HORA_DE_ACOPLE' || h === 'HORA_SALIDA_PATIO' || h === 'ACOPLE' || h === 'HORA_ENCIERRO' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
                         return (
                           <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '0.2rem' }}>
@@ -1275,7 +1276,7 @@ export default function ExcelPreview({
                                       if (num < 1) val = '1';
                                       else if (num > 20) val = '20';
                                     }
-                                  } else if (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
+                                  } else if (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_ENCIERRO' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') {
                                     // Limitar a solo números y formato HH:MM
                                     let cleaned = val.replace(/\D/g, '').substring(0, 4);
                                     if (cleaned.length >= 3) {
@@ -1288,8 +1289,8 @@ export default function ExcelPreview({
                                   onUpdate && onUpdate(originalIndex, h, val);
                                 }}
                                 className={`edit-input edit-text-input ${h === 'CORRIDAS' ? 'text-center' : ''}`}
-                                placeholder={ (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? '--:--' : '' }
-                                maxLength={(h === 'CORRIDAS') ? 2 : (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 5 : undefined}
+                                placeholder={ (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_ENCIERRO' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? '--:--' : '' }
+                                maxLength={(h === 'CORRIDAS') ? 2 : (h === 'HORA_SALIDA_PATIO' || h === 'HORA_DE_ACOPLE' || h === 'ACOPLE' || h === 'HORA_ENCIERRO' || h === 'HORA_REAL_SALIDA_PATIO' || h === 'RELEVO_HORA' || h === 'HORA_INCORPORACION' || h === 'HORA_DESINCORPORACION') ? 5 : undefined}
                                 style={{
                                   paddingRight: h === 'CORRIDAS' ? '0' : '8px',
                                   cursor: isRowDisabled ? 'not-allowed' : 'text',
