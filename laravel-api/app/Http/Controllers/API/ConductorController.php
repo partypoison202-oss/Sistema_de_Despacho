@@ -885,7 +885,7 @@ class ConductorController extends Controller
         );
 
         $mensaje = $fueInhabilitado
-            ? 'Falta registrada correctamente. ATENCIÓN: El operador ha sido INHABILITADO al acumular 4 faltas en un lapso de 30 días.'
+            ? 'Falta registrada correctamente. ATENCIÓN: El operador está NO ASIGNADO al acumular 4 faltas en un lapso de 30 días.'
             : 'Falta registrada correctamente.';
 
         return response()->json([

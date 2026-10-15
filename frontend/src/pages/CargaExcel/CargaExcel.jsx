@@ -191,8 +191,8 @@ export default function CargaExcel({ isPasteles = false }) {
             origConductorObj.estatus = 'inhabilitado';
             Swal.fire({
               icon: 'warning',
-              title: 'Operador Inhabilitado',
-              html: `El operador <b>${origConductorObj.nombre}</b> ha sido <b>INHABILITADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
+              title: 'Operador No Asignado',
+              html: `El operador <b>${origConductorObj.nombre}</b> ha quedado <b>NO ASIGNADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
               confirmButtonColor: '#ef4444'
             });
           } else {
@@ -295,8 +295,8 @@ export default function CargaExcel({ isPasteles = false }) {
       if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
         Swal.fire({
           icon: 'error',
-          title: 'Operador Inhabilitado',
-          text: `El operador ${newDriverName} (Tarjetón: ${newDriverConductor.tarjeton}) está INHABILITADO por acumulación de faltas y no puede ser asignado.`,
+          title: 'Operador No Asignado',
+          text: `El operador ${newDriverName} (Tarjetón: ${newDriverConductor.tarjeton}) está NO ASIGNADO por acumulación de faltas y no puede ser asignado.`,
           confirmButtonColor: '#ef4444'
         });
         return;
@@ -372,8 +372,8 @@ export default function CargaExcel({ isPasteles = false }) {
       if (newDriverConductor && newDriverConductor.estatus === 'inhabilitado') {
         Swal.fire({
           icon: 'error',
-          title: 'Operador Inhabilitado',
-          text: `El operador ${newDriverName} (Tarjetón: ${newDriverConductor.tarjeton}) está INHABILITADO por acumulación de faltas y no puede ser asignado.`,
+          title: 'Operador No Asignado',
+          text: `El operador ${newDriverName} (Tarjetón: ${newDriverConductor.tarjeton}) está NO ASIGNADO por acumulación de faltas y no puede ser asignado.`,
           confirmButtonColor: '#ef4444'
         });
         return;

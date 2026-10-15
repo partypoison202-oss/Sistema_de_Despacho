@@ -103,7 +103,7 @@ class PlataformaController extends Controller
                         ->first();
                     if ($cond) {
                         if ($cond->estatus === 'inhabilitado') {
-                            return response()->json(['error' => 'El conductor seleccionado está INHABILITADO por acumulación de faltas.'], 422);
+                            return response()->json(['error' => 'El conductor seleccionado está NO ASIGNADO por acumulación de faltas.'], 422);
                         }
                         $datosUpdate['numero_tarjeton'] = $cond->tarjeton;
                         $datosUpdate['nombre_conductor'] = trim($cond->nombres . ' ' . $cond->apellidos);
@@ -401,7 +401,7 @@ class PlataformaController extends Controller
                     return response()->json(['error' => 'Conductor no encontrado en el sistema.'], 404);
                 }
                 if ($conductorNuevo->estatus === 'inhabilitado') {
-                    return response()->json(['error' => 'El conductor seleccionado está INHABILITADO por acumulación de faltas.'], 422);
+                    return response()->json(['error' => 'El conductor seleccionado está NO ASIGNADO por acumulación de faltas.'], 422);
                 }
                 $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
                 $nombreCompletoAsig = trim($conductorNuevo->nombres . ' ' . $conductorNuevo->apellidos);
@@ -706,7 +706,7 @@ class PlataformaController extends Controller
                         return response()->json(['error' => 'Conductor de reemplazo no encontrado.'], 404);
                     }
                     if ($conductorNuevo->estatus === 'inhabilitado') {
-                        return response()->json(['error' => 'El conductor de reemplazo está INHABILITADO por acumulación de faltas.'], 422);
+                        return response()->json(['error' => 'El conductor de reemplazo está NO ASIGNADO por acumulación de faltas.'], 422);
                     }
                     $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
                     $nombreCompleto = trim(($conductorNuevo->nombres ?? '') . ' ' . ($conductorNuevo->apellidos ?? ''));
