@@ -12,6 +12,7 @@ export default function UnitSelector({
   titulo,
   unidades,
   totalProgramadas,   // ← NUEVO: total de unidades programadas (sin filtrar por hora_real_salida_patio)
+  contadorCustom,     // ← Opcional: valor numérico a mostrar en la parte izquierda del contador
   cargandoUnidades,
   configActual,
   onSelectUnit,
@@ -55,9 +56,12 @@ export default function UnitSelector({
 
   const displayValue = titulo;
 
-  // Si se pasa totalProgramadas, mostrar "pendientes / total"
+  // Si se pasa totalProgramadas, mostrar "pendientes/encerradas / total"
   // Si no se pasa, mostrar solo el contador actual (comportamiento anterior)
   const mostrarDoble = totalProgramadas !== undefined && totalProgramadas !== null;
+  const valorIzquierdo = contadorCustom !== undefined && contadorCustom !== null
+    ? contadorCustom
+    : unidades.length;
 
   return (
     <div className="dropdown-container" ref={dropdownRef} style={{ position: 'relative', overflow: 'visible' }}>
@@ -81,7 +85,7 @@ export default function UnitSelector({
         {/* Burbuja de contador */}
         {!cargandoUnidades && (
           mostrarDoble ? (
-            // Burbuja con dos valores: pendientes / total
+            // Burbuja con dos valores: valorIzquierdo / total
             <span
               style={{
                 position: 'absolute',
@@ -102,7 +106,7 @@ export default function UnitSelector({
                 gap: '3px',
               }}
             >
-              <span>{unidades.length}</span>
+              <span>{valorIzquierdo}</span>
               <span style={{ opacity: 0.6, fontWeight: 400 }}>/</span>
               <span style={{ opacity: 0.75 }}>{totalProgramadas}</span>
             </span>
@@ -126,7 +130,7 @@ export default function UnitSelector({
                 border: '2px solid #ffffff',
               }}
             >
-              {unidades.length}
+              {valorIzquierdo}
             </span>
           )
         )}
@@ -149,8 +153,33 @@ export default function UnitSelector({
                   onClick={() => onSelectUnit(unidad)}
                   onMouseEnter={() => handleMouseEnter(unidad)}
                   className="dropdown-menu__item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    background: unidad.yaEncerrada ? '#f0fdf4' : undefined,
+                    color: unidad.yaEncerrada ? '#166534' : undefined,
+                    fontWeight: unidad.yaEncerrada ? 600 : undefined,
+                  }}
                 >
-                  {unidad.display}
+                  <span>{unidad.display}</span>
+                  {unidad.yaEncerrada && (
+                    <span
+                      style={{
+                        fontSize: '0.62rem',
+                        backgroundColor: '#dcfce7',
+                        color: '#15803d',
+                        border: '1px solid #86efac',
+                        padding: '1px 6px',
+                        borderRadius: '9999px',
+                        fontWeight: 700,
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      ENCERRADA
+                    </span>
+                  )}
                 </button>
               ))
             )}
