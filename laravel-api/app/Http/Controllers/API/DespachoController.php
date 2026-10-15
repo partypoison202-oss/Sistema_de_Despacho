@@ -3672,7 +3672,10 @@ class DespachoController extends Controller
         }
 
 
-        $horaEncierro = date('H:i:s');
+        $horaEncierro = trim((string) $request->input('hora_encierro'));
+        if (empty($horaEncierro)) {
+            $horaEncierro = Carbon::now('America/Mexico_City')->format('H:i:s');
+        }
         $motivoFinal = $request->motivo_estatus ?? 'Fin de turno (Encierro regular)';
 
         // Liberar conductor si tenía uno asignado (titular y/o relevo)
@@ -3732,13 +3735,14 @@ class DespachoController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Actualizar estatus en informacion_operativa a reserva y limpiar datos del registro operativo
+        // Actualizar estatus en informacion_operativa a reserva y registrar hora de encierro
         DB::table('informacion_operativa')
             ->where('id', $registroOperativo->id)
             ->update([
                 'estatus' => 'reserva',
                 'motivo_estatus' => $motivoFinal,
                 'motivo' => $motivoFinal,
+                'hora_encierro' => $horaEncierro,
                 'nombre_conductor' => null,
                 'numero_tarjeton' => null,
                 'ruta' => null,
