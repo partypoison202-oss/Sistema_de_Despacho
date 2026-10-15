@@ -31,7 +31,7 @@ const getFaltasArray = (conductor) => {
     for (let i = 0; i < faltasFaltantes; i++) {
       items.push({
         id: `virtual_falta_${conductor.id}_${i}_${Date.now()}`,
-        fecha: conductor.updated_at ? String(conductor.updated_at).substring(0, 10) : 'Fecha sin registrar',
+        fecha: new Date().toISOString().substring(0, 10),
         motivo: 'Inasistencia no justificada en sistema',
         estado: 'pendiente',
         justificada: false
@@ -215,10 +215,11 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
     setSubiendo(true);
 
     try {
+      const isVirtual = faltaAJustificar.id && String(faltaAJustificar.id).startsWith('virtual_falta_');
       const formData = new FormData();
       formData.append('justificante', archivoSeleccionado);
       if (faltaAJustificar.id) formData.append('falta_id', faltaAJustificar.id);
-      if (faltaAJustificar.index !== undefined) formData.append('falta_index', faltaAJustificar.index);
+      if (!isVirtual && faltaAJustificar.index !== undefined) formData.append('falta_index', faltaAJustificar.index);
       if (observacionesJustificante) formData.append('observaciones', observacionesJustificante);
       if (faltaAJustificar.fecha) formData.append('fecha_falta', faltaAJustificar.fecha);
       if (faltaAJustificar.motivo) formData.append('motivo_falta', faltaAJustificar.motivo);
@@ -335,9 +336,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       const headers = getAuthHeaders ? getAuthHeaders() : { 'Content-Type': 'application/json' };
       headers['Content-Type'] = 'application/json';
 
+      const isVirtual = faltaInfo.id && String(faltaInfo.id).startsWith('virtual_falta_');
       const bodyData = {};
       if (faltaInfo.id) bodyData.falta_id = faltaInfo.id;
-      if (faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
+      if (!isVirtual && faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
       if (faltaInfo.fecha) bodyData.fecha_falta = faltaInfo.fecha;
       if (faltaInfo.motivo) bodyData.motivo_falta = faltaInfo.motivo;
 
@@ -400,11 +402,12 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       const headers = getAuthHeaders ? getAuthHeaders() : { 'Content-Type': 'application/json' };
       headers['Content-Type'] = 'application/json';
 
+      const isVirtual = faltaInfo.id && String(faltaInfo.id).startsWith('virtual_falta_');
       const bodyData = {
         motivo_anulacion: motivo || 'Eliminada por Administrador'
       };
       if (faltaInfo.id) bodyData.falta_id = faltaInfo.id;
-      if (faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
+      if (!isVirtual && faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
       if (faltaInfo.fecha) bodyData.fecha_falta = faltaInfo.fecha;
 
       const res = await fetch(`${API_BASE}/api/conductores/${conductorActualData.id}/eliminar-falta`, {
