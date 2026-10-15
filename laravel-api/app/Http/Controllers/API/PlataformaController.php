@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use App\Helpers\BitacoraHelper;
+use App\Helpers\BitacoraConductorHelper;
+use App\Models\Conductor;
 
 class PlataformaController extends Controller
 {
@@ -31,6 +34,9 @@ class PlataformaController extends Controller
             'cambio_operador_activo' => 'nullable|boolean',
             'numero_tarjeton_nuevo' => 'nullable|string',
             'numero_tarjeton' => 'nullable|string',
+            'tarjeton_conductor_anterior' => 'nullable|string',
+            'nombre_conductor_anterior' => 'nullable|string',
+            'numero_tarjeton_anterior' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
@@ -410,58 +416,282 @@ class PlataformaController extends Controller
                 }
 
                 // ─── Determinar conductor vigente ANTES de este cambio ───────────
-                // Regla: se busca el último movimiento de hoy para esta unidad
-                // (RETIRO_CONDUCTOR o ASIGNACION_CONDUCTOR) sin filtrar por NULL,
-                // ya que un retiro sin reemplazo también es un evento válido.
                 $fechaHoy = Carbon::now('America/Mexico_City')->toDateString();
                 $horaActualStr = Carbon::now('America/Mexico_City')->format('H:i');
 
-                $ultimoMovHoy = DB::table('plataforma_movimientos')
-                    ->where('unidad_id', $unidadId)
-                    ->whereDate('created_at', $fechaHoy)
-                    ->whereIn('tipo_movimiento', ['RETIRO_CONDUCTOR', 'ASIGNACION_CONDUCTOR'])
-                    ->orderBy('created_at', 'desc')
-                    ->first();
+                // 1) Si el frontend envía explícitamente el tarjetón del conductor anterior:
+                $tarjetonOriginal = null;
+                if ($request->filled('tarjeton_conductor_anterior')) {
+                    $tarjetonOriginal = trim((string)$request->tarjeton_conductor_anterior);
+                } elseif ($request->filled('numero_tarjeton_anterior')) {
+                    $tarjetonOriginal = trim((string)$request->numero_tarjeton_anterior);
+                }
 
-                if ($ultimoMovHoy) {
-                    // El último evento manual de hoy define al conductor actual
-                    $conductorAnteriorRegistro = $ultimoMovHoy->conductor_asignado;
-                } else {
-                    // No hay movimientos manuales hoy: evaluar titular vs relevo programado
-                    $conductorAnteriorRegistro = $registroOperativo->numero_tarjeton;
-                    if (!empty($registroOperativo->relevo_hora) && !empty($registroOperativo->relevo_tarjeton)) {
-                        if ($horaActualStr >= $registroOperativo->relevo_hora) {
-                            $conductorAnteriorRegistro = $registroOperativo->relevo_tarjeton;
+                // 2) Fallback si no viene explícito: evaluar último movimiento manual o registroOperativo
+                if (empty($tarjetonOriginal)) {
+                    $ultimoMovHoy = DB::table('plataforma_movimientos')
+                        ->where('unidad_id', $unidadId)
+                        ->whereDate('created_at', $fechaHoy)
+                        ->whereIn('tipo_movimiento', ['RETIRO_CONDUCTOR', 'ASIGNACION_CONDUCTOR'])
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    if ($ultimoMovHoy && !empty($ultimoMovHoy->conductor_asignado)) {
+                        $tarjetonOriginal = $ultimoMovHoy->conductor_asignado;
+                    } else {
+                        $tarjetonOriginal = $registroOperativo->numero_tarjeton;
+                        if (!empty($registroOperativo->relevo_hora) && !empty($registroOperativo->relevo_tarjeton)) {
+                            if ($horaActualStr >= $registroOperativo->relevo_hora) {
+                                $tarjetonOriginal = $registroOperativo->relevo_tarjeton;
+                            }
                         }
                     }
                 }
-                // ─────────────────────────────────────────────────────────────────
 
-                // 1) Liberar conductor anterior
-                if ($registroOperativo && $registroOperativo->numero_tarjeton) {
-                    $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
-                    $tarjetonClean = ltrim($tarjetonAnterior, '0');
+                $conductorAnteriorRegistro = $tarjetonOriginal ?: $registroOperativo->numero_tarjeton;
+
+                // ─── Buscar registro completo del conductor anterior en catálogo ──
+                $conductorOriginal = null;
+                $tarjetonCandidates = [];
+                if (!empty($tarjetonOriginal)) {
+                    $tarjetonClean = ltrim($tarjetonOriginal, '0');
                     $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
+                    $tarjetonCandidates = array_values(array_unique([$tarjetonOriginal, $tarjetonClean, $tarjetonPad]));
 
-                    DB::table('conductores')
-                        ->whereIn('tarjeton', $tarjetonCandidates)
-                        ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
-                        ->update(['estado_servicio' => 'disponible']);
-                }
-                if ($registroOperativo && !empty($registroOperativo->relevo_tarjeton)) {
-                    $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
-                    $tarjetonRelClean = ltrim($tarjetonRel, '0');
-                    $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
-
-                    DB::table('conductores')
-                        ->whereIn('tarjeton', $tarjetonRelCandidates)
-                        ->orWhere('id', is_numeric($tarjetonRel) ? (int)$tarjetonRel : 0)
-                        ->update(['estado_servicio' => 'disponible']);
+                    $conductorOriginal = Conductor::whereIn('tarjeton', $tarjetonCandidates)
+                        ->orWhere('id', is_numeric($tarjetonOriginal) ? (int)$tarjetonOriginal : 0)
+                        ->first();
                 }
 
-                // 2) Actualizar registro con nuevo conductor (si hay reemplazo)
+                if (!$conductorOriginal && !empty($request->nombre_conductor_anterior)) {
+                    $conductorOriginal = Conductor::whereRaw("TRIM(CONCAT(COALESCE(nombres,''), ' ', COALESCE(apellidos,''))) = ?", [trim($request->nombre_conductor_anterior)])
+                        ->first();
+                }
+
+                if (!$conductorOriginal && !empty($registroOperativo->nombre_conductor)) {
+                    $conductorOriginal = Conductor::whereRaw("TRIM(CONCAT(COALESCE(nombres,''), ' ', COALESCE(apellidos,''))) = ?", [trim($registroOperativo->nombre_conductor)])
+                        ->first();
+                }
+
+                // ─── Procesar motivo del conductor original ───────────────────────
+                $motivoRaw = trim((string)($request->motivo ?? ''));
+                $motivoUpper = strtoupper($motivoRaw);
+                $fueInhabilitado = false;
+                $conductorInhabilitadoNombre = null;
+                $nombreConductorOriginal = $conductorOriginal 
+                    ? ($conductorOriginal->nombre ?? trim(($conductorOriginal->nombres ?? '') . ' ' . ($conductorOriginal->apellidos ?? ''))) 
+                    : ($request->nombre_conductor_anterior ?? $registroOperativo->nombre_conductor ?? 'Conductor');
+
+                if ($motivoUpper === 'RESERVA' || str_contains($motivoUpper, 'RESERVA')) {
+                    // 1) MANDAR A RESERVA
+                    if ($conductorOriginal) {
+                        $conductorOriginal->estado_servicio = 'disponible';
+                        $conductorOriginal->save();
+
+                        $tarjPad = str_pad(ltrim(trim((string)$conductorOriginal->tarjeton), '0'), 4, '0', STR_PAD_LEFT);
+                        if (Schema::hasTable('reservas_autorizadas')) {
+                            DB::table('reservas_autorizadas')->updateOrInsert(
+                                [
+                                    'tarjeton' => $tarjPad,
+                                    'fecha_operativa' => $fechaHoy,
+                                ],
+                                [
+                                    'updated_at' => Carbon::now(),
+                                    'created_at' => Carbon::now(),
+                                ]
+                            );
+                        }
+
+                        BitacoraConductorHelper::registrarAccion(
+                            $conductorOriginal->id,
+                            $conductorOriginal->tarjeton,
+                            $nombreConductorOriginal,
+                            'CAMBIO_A_RESERVA',
+                            "Conductor enviado a reserva desde Mesa de Control al ser retirado/reemplazado de ECO{$numeroEcoPad}",
+                            $request
+                        );
+                    } elseif (!empty($tarjetonCandidates)) {
+                        DB::table('conductores')
+                            ->whereIn('tarjeton', $tarjetonCandidates)
+                            ->update(['estado_servicio' => 'disponible']);
+
+                        if (Schema::hasTable('reservas_autorizadas')) {
+                            $padCandidate = str_pad(ltrim(trim((string)$tarjetonOriginal), '0'), 4, '0', STR_PAD_LEFT);
+                            DB::table('reservas_autorizadas')->updateOrInsert(
+                                [
+                                    'tarjeton' => $padCandidate,
+                                    'fecha_operativa' => $fechaHoy,
+                                ],
+                                [
+                                    'updated_at' => Carbon::now(),
+                                    'created_at' => Carbon::now(),
+                                ]
+                            );
+                        }
+                    }
+
+                } elseif ($motivoUpper === 'FALTA' || str_contains($motivoUpper, 'FALTA')) {
+                    // 2) REGISTRAR FALTA EN KARDEX COMO EN EL MÓDULO DE PASTELES
+                    if ($conductorOriginal) {
+                        $rawDetalle = $conductorOriginal->faltas_detalle;
+                        $detalle = [];
+                        if (is_array($rawDetalle)) {
+                            $detalle = $rawDetalle;
+                        } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
+                            $parsed = json_decode($rawDetalle, true);
+                            if (is_array($parsed)) $detalle = $parsed;
+                        }
+
+                        $motivoFalta = "Inasistencia registrada por cambio de conductor en Mesa de Control (Unidad: ECO{$numeroEcoPad})";
+                        $nuevaFalta = [
+                            'id' => 'falta_' . time() . '_' . random_int(1000, 9999),
+                            'fecha' => $fechaHoy,
+                            'motivo' => $motivoFalta,
+                            'estado' => 'pendiente',
+                            'justificada' => false,
+                        ];
+
+                        $detalle[] = $nuevaFalta;
+                        $conductorOriginal->faltas_detalle = $detalle;
+                        $conductorOriginal->faltas = ((int)($conductorOriginal->faltas ?? 0)) + 1;
+
+                        // Evaluar regla de 4 faltas en 30 días
+                        $eval = $conductorOriginal->evaluarInhabilitacionFaltas();
+
+                        $tarjPad = str_pad(trim((string)$conductorOriginal->tarjeton), 4, '0', STR_PAD_LEFT);
+                        $tarjRaw = trim((string)$conductorOriginal->tarjeton);
+                        $tarjClean = ltrim($tarjRaw, '0');
+                        $tarjetonesBusqueda = array_values(array_unique(array_filter([$tarjRaw, $tarjPad, $tarjClean])));
+
+                        if (!empty($eval['inhabilitado'])) {
+                            $conductorOriginal->estatus = 'inhabilitado';
+                            $conductorOriginal->estado_servicio = null;
+                            $fueInhabilitado = true;
+                            $conductorInhabilitadoNombre = $nombreConductorOriginal;
+
+                            // Desvincular de otras unidades asignadas
+                            if (Schema::hasTable('informacion_operativa')) {
+                                DB::table('informacion_operativa')
+                                    ->where('id', '!=', $registroOperativo->id)
+                                    ->where(function($q) use ($tarjetonesBusqueda) {
+                                        $q->whereIn('numero_tarjeton', $tarjetonesBusqueda)
+                                          ->orWhereIn('relevo_tarjeton', $tarjetonesBusqueda);
+                                    })
+                                    ->update([
+                                        'numero_tarjeton' => null,
+                                        'nombre_conductor' => null,
+                                        'relevo_tarjeton' => null,
+                                        'relevo_conductor' => null,
+                                        'relevo_hora' => null
+                                    ]);
+                            }
+                        } else {
+                            $conductorOriginal->estado_servicio = 'falta';
+
+                            // Desvincular de reservas_autorizadas para hoy
+                            if (Schema::hasTable('reservas_autorizadas')) {
+                                DB::table('reservas_autorizadas')
+                                    ->whereIn('tarjeton', $tarjetonesBusqueda)
+                                    ->where('fecha_operativa', $fechaHoy)
+                                    ->delete();
+                            }
+                        }
+
+                        $conductorOriginal->save();
+
+                        BitacoraConductorHelper::registrarAccion(
+                            $conductorOriginal->id,
+                            $conductorOriginal->tarjeton,
+                            $nombreConductorOriginal,
+                            'REGISTRO_FALTA',
+                            "Inasistencia (Falta) registrada desde Mesa de Control en ECO{$numeroEcoPad}: {$motivoFalta}",
+                            $request
+                        );
+                    } elseif (!empty($tarjetonCandidates)) {
+                        DB::table('conductores')
+                            ->whereIn('tarjeton', $tarjetonCandidates)
+                            ->update(['estado_servicio' => 'falta']);
+
+                        if (Schema::hasTable('reservas_autorizadas')) {
+                            DB::table('reservas_autorizadas')
+                                ->whereIn('tarjeton', $tarjetonCandidates)
+                                ->where('fecha_operativa', $fechaHoy)
+                                ->delete();
+                        }
+                    }
+
+                } elseif ($motivoUpper === 'MANIOBRISTA') {
+                    if ($conductorOriginal) {
+                        $conductorOriginal->estado_servicio = 'maniobrista';
+                        $conductorOriginal->save();
+
+                        $tarjPad = str_pad(trim((string)$conductorOriginal->tarjeton), 4, '0', STR_PAD_LEFT);
+                        $tarjRaw = trim((string)$conductorOriginal->tarjeton);
+                        $tarjClean = ltrim($tarjRaw, '0');
+                        $tarjetonesBusqueda = array_values(array_unique(array_filter([$tarjRaw, $tarjPad, $tarjClean])));
+
+                        if (Schema::hasTable('reservas_autorizadas')) {
+                            DB::table('reservas_autorizadas')
+                                ->whereIn('tarjeton', $tarjetonesBusqueda)
+                                ->where('fecha_operativa', $fechaHoy)
+                                ->delete();
+                        }
+
+                        BitacoraConductorHelper::registrarAccion(
+                            $conductorOriginal->id,
+                            $conductorOriginal->tarjeton,
+                            $nombreConductorOriginal,
+                            'CAMBIO_A_MANIOBRISTA',
+                            "Conductor asignado como maniobrista desde Mesa de Control (Unidad ECO{$numeroEcoPad})",
+                            $request
+                        );
+                    } elseif (!empty($tarjetonCandidates)) {
+                        DB::table('conductores')
+                            ->whereIn('tarjeton', $tarjetonCandidates)
+                            ->update(['estado_servicio' => 'maniobrista']);
+                    }
+
+                } else {
+                    // OTROS MOTIVOS (PERMISO, ENFERMEDAD, OTRO)
+                    $estadoAsignar = 'disponible';
+                    if ($motivoUpper === 'PERMISO') {
+                        $estadoAsignar = 'permiso';
+                    } elseif ($motivoUpper === 'ENFERMEDAD') {
+                        $estadoAsignar = 'incapacidad';
+                    }
+
+                    if ($conductorOriginal) {
+                        $conductorOriginal->estado_servicio = $estadoAsignar;
+                        $conductorOriginal->save();
+
+                        $tarjPad = str_pad(trim((string)$conductorOriginal->tarjeton), 4, '0', STR_PAD_LEFT);
+                        $tarjRaw = trim((string)$conductorOriginal->tarjeton);
+                        $tarjClean = ltrim($tarjRaw, '0');
+                        $tarjetonesBusqueda = array_values(array_unique(array_filter([$tarjRaw, $tarjPad, $tarjClean])));
+
+                        if (Schema::hasTable('reservas_autorizadas')) {
+                            DB::table('reservas_autorizadas')
+                                ->whereIn('tarjeton', $tarjetonesBusqueda)
+                                ->where('fecha_operativa', $fechaHoy)
+                                ->delete();
+                        }
+
+                        BitacoraConductorHelper::registrarAccion(
+                            $conductorOriginal->id,
+                            $conductorOriginal->tarjeton,
+                            $nombreConductorOriginal,
+                            'RETIRO_CONDUCTOR',
+                            "Conductor retirado desde Mesa de Control con motivo: {$motivoUpper} (ECO{$numeroEcoPad})",
+                            $request
+                        );
+                    } elseif (!empty($tarjetonCandidates)) {
+                        DB::table('conductores')
+                            ->whereIn('tarjeton', $tarjetonCandidates)
+                            ->update(['estado_servicio' => $estadoAsignar]);
+                    }
+                }
+
+                // ─── 2) Actualizar registro con nuevo conductor (si hay reemplazo) ─
                 if ($request->has('numero_tarjeton_nuevo') && $request->numero_tarjeton_nuevo) {
                     $tarjetonNuevo = trim($request->numero_tarjeton_nuevo);
                     $tarjetonNuevoClean = ltrim($tarjetonNuevo, '0');
@@ -483,7 +713,18 @@ class PlataformaController extends Controller
                     $datosUpdate['nombre_conductor'] = $nombreCompleto;
                     DB::table('conductores')->where('id', $conductorNuevo->id)->update(['estado_servicio' => 'en_servicio']);
 
-                    $mensajeBitacora = "CAMBIO DE CONDUCTOR A: " . $conductorNuevo->tarjeton . " - " . $nombreCompleto . " - MOTIVO RETIRO ANTERIOR: " . strtoupper($request->motivo ?? '');
+                    // Si el conductor retirado era el relevo programado, limpiar los campos de relevo
+                    if ($tarjetonOriginal && !empty($registroOperativo->relevo_tarjeton)) {
+                        $cleanRel = ltrim(trim($registroOperativo->relevo_tarjeton), '0');
+                        $cleanOrig = ltrim(trim($tarjetonOriginal), '0');
+                        if ($cleanRel === $cleanOrig) {
+                            $datosUpdate['relevo_tarjeton'] = null;
+                            $datosUpdate['relevo_conductor'] = null;
+                            $datosUpdate['relevo_hora'] = null;
+                        }
+                    }
+
+                    $mensajeBitacora = "CAMBIO DE CONDUCTOR A: " . $conductorNuevo->tarjeton . " - " . $nombreCompleto . " - MOTIVO RETIRO ANTERIOR: " . $motivoUpper;
                 } else {
                     $datosUpdate['mantenimiento_conductor'] = $registroOperativo->nombre_conductor ?? $registroOperativo->mantenimiento_conductor ?? null;
                     $datosUpdate['mantenimiento_tarjeton'] = $registroOperativo->numero_tarjeton ?? $registroOperativo->mantenimiento_tarjeton ?? null;
@@ -492,7 +733,7 @@ class PlataformaController extends Controller
                     $datosUpdate['relevo_tarjeton'] = null;
                     $datosUpdate['relevo_conductor'] = null;
                     $datosUpdate['relevo_hora'] = null;
-                    $mensajeBitacora = "RETIRO DE CONDUCTOR: " . ($registroOperativo->numero_tarjeton ?? $registroOperativo->nombre_conductor ?? 'SIN TARJETÓN') . " - MOTIVO: " . strtoupper($request->motivo ?? '');
+                    $mensajeBitacora = "RETIRO DE CONDUCTOR: " . ($registroOperativo->numero_tarjeton ?? $registroOperativo->nombre_conductor ?? 'SIN TARJETÓN') . " - MOTIVO: " . $motivoUpper;
                 }
             }
 
@@ -552,7 +793,13 @@ class PlataformaController extends Controller
             );
 
             DB::commit();
-            return response()->json(['status' => 'success', 'message' => 'Movimiento registrado correctamente']);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Movimiento registrado correctamente',
+                'inhabilitado' => $fueInhabilitado ?? false,
+                'conductor_inhabilitado_nombre' => $conductorInhabilitadoNombre ?? null,
+                'total_faltas' => isset($conductorOriginal) ? (int)($conductorOriginal->faltas ?? 0) : null,
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
