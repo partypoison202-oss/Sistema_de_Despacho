@@ -18,3 +18,9 @@
 # Estándares de Datos
 
 - **Formato de Nombres de Usuario/Personas**: Siempre que se agreguen, procesen o modifiquen nombres de usuarios o personas en la base de datos (ya sea mediante seeders, migraciones o en el código fuente), estos deben convertirse a Tipo Título (primera letra en mayúscula, resto en minúsculas) para mantener la limpieza y estandarización.
+
+# Identidad y Nombre del Sistema
+
+- **Nombre Oficial**: El sistema se denomina **Aplicación de Control de Transporte Masivo (ACOTMA)**.
+- **Identificador de Sitio / Nombre Corto**: En navegadores, buscadores, meta tags y títulos debe figurar como **ACOTMA** o **Aplicación de Control de Transporte Masivo**, en reemplazo de "Sistema de Despacho" o "Gobierno del Estado de Hidalgo".
+

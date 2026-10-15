@@ -107,11 +107,10 @@
   width: auto;
 }
 
-/* El logo 2 (Logo central) */
+/* El logo 2 (Logo central ACOTMA) */
 .app-header__brand-logo-2 {
-  height: 37px;
+  height: 56px;
   width: auto;
-  filter: brightness(0) invert(1);
 }
 
 @media (max-width: 640px) {
@@ -124,7 +123,7 @@
   }
 
   .app-header__brand-logo-2 {
-    height: 22px;
+    height: 36px;
   }
 }
 
@@ -134,7 +133,7 @@
   }
 
   .app-header__brand-logo-2 {
-    height: 18px;
+    height: 28px;
   }
 }
 
