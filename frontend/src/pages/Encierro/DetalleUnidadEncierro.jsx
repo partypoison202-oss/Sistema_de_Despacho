@@ -349,6 +349,9 @@ export default function DetalleUnidadEncierro() {
       // Si ya fue encerrada HOY, la mantenemos siempre (para verla en la lista y consultarla)
       if (u.yaEncerrada) return true;
 
+      // Solo unidades que ya fueron despachadas hoy (tienen hora de salida asignada)
+      if (u.horaRealSalidaPatio === '') return false;
+
       // Las unidades pendientes de encierro deben estar en operación activa
       return u.estado === 'operacion';
     });
