@@ -2,6 +2,7 @@ import React, { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import Header from '../../components/Header/Header';
+import MenuFooter from '../../components/MenuFooter/MenuFooter';
 import '../Menu/Menu.css';
 
 const historialItems = [
@@ -253,6 +254,8 @@ export default function MenuHistorial() {
           ))}
         </div>
       </main>
+
+      <MenuFooter />
     </div>
   );
 }

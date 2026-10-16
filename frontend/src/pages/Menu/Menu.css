@@ -10,7 +10,9 @@
 /* ════════════════════════════════
    PÁGINA
 ════════════════════════════════ */
-.dashboard-page {
+.dashboard-page,
+.menu-page,
+.dashboard-container {
   min-height: 100vh;
   background-color: var(--tw-color-gray-50);
   display: flex;
