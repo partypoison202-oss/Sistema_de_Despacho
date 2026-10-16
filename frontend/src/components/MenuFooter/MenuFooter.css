@@ -1,0 +1,100 @@
+/* src/components/MenuFooter/MenuFooter.css */
+
+.menu-footer {
+  width: 100%;
+  margin-top: auto;
+  background-color: var(--color-maroon, #601a2a);
+  border-top: 1.5px solid var(--color-gold, #c5a059);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+  padding: 0.65rem 2rem;
+  box-sizing: border-box;
+}
+
+.menu-footer__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* ── Lado Izquierdo ── */
+.menu-footer__left {
+  display: flex;
+  align-items: center;
+}
+
+.menu-footer__copyright {
+  margin: 0;
+  font-size: 0.775rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.35;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* ── Lado Derecho (3 líneas compactas) ── */
+.menu-footer__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 0.15rem;
+}
+
+.menu-footer__line {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.25;
+}
+
+.menu-footer__heading {
+  color: var(--color-gold, #c5a059);
+  font-weight: 700;
+  margin-right: 0.35rem;
+}
+
+.menu-footer__phone {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-decoration: none;
+  line-height: 1.25;
+  transition: color 0.18s ease;
+}
+
+.menu-footer__phone:hover {
+  color: var(--color-gold, #c5a059);
+  text-decoration: underline;
+}
+
+/* ── Adaptabilidad Móvil ── */
+@media (max-width: 768px) {
+  .menu-footer {
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .menu-footer__container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.25rem;
+  }
+
+  .menu-footer__left {
+    align-items: center;
+    text-align: center;
+  }
+
+  .menu-footer__right {
+    align-items: center;
+    text-align: center;
+  }
+
+  .menu-footer__address {
+    max-width: 100%;
+  }
+}

@@ -136,7 +136,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
             style={{ cursor: 'pointer' }}
           >
             <img
-              src="/images/sitmah_logo.webp"
+              src="/images/acotma_logo_todo_blanco.png"
               alt="Logo SITMAH"
               className="app-header__brand-logo-2"
             />
@@ -151,7 +151,12 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                 className="app-header__profile-btn"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
               >
-                <UserAvatar fotoUrl={user.foto_url} nombre={user.nombre_completo} size={40} />
+                <UserAvatar
+                  fotoUrl={user.foto_url}
+                  nombre={user.nombre_completo}
+                  size={54}
+                  className="app-header__avatar"
+                />
               </button>
 
               {showProfileMenu && (
