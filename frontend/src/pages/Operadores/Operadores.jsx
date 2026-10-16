@@ -169,10 +169,10 @@ function StatusDropdown({ value, onChange, disabled = false }) {
       <div className="status-dropdown-container" ref={dropdownRef}>
         <div
           className="status-dropdown-trigger inhabilitado"
-          title="Este operador está INHABILITADO por acumulación de 4 faltas en 30 días"
+          title="Este operador está NO ASIGNADO por acumulación de 4 faltas en 30 días"
           style={{ cursor: 'default', backgroundColor: '#dc2626', color: '#ffffff', fontWeight: 'bold' }}
         >
-          <span className="status-text">INHABILITADO</span>
+          <span className="status-text">NO ASIGNADO</span>
         </div>
       </div>
     );
