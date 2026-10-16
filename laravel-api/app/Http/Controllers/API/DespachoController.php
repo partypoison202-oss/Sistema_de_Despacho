@@ -295,6 +295,7 @@ class DespachoController extends Controller
      */
     public function listarUnidadesPorTipo(Request $request, $tipo)
     {
+        self::verificarYEjecutarCambioDiaAutomatico();
         $tipoNormalizado = strtolower(trim($tipo));
 
         $unidades = DB::table('unidades')
@@ -965,7 +966,7 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
+            $horaSalidaRealVal = trim((string) ($fila['HORA_REAL_SALIDA_PATIO'] ?? $fila['HORA_SALIDA'] ?? ''));
 
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
@@ -1085,7 +1086,11 @@ class DespachoController extends Controller
                 $data['fecha_firma'] = $prevInfo->fecha_firma ?? null;
                 $data['km_ultima_lectura'] = $prevInfo->km_ultima_lectura ?? null;
             } else {
-                $data['hora_real_salida_patio'] = $horaSalidaRealVal !== '' ? $horaSalidaRealVal : null;
+                // Si la unidad está en operación, PRESERVAR la hora de salida de patio registrada por Despacho
+                // a menos que venga un valor explícito en la fila entrante.
+                $data['hora_real_salida_patio'] = $horaSalidaRealVal !== ''
+                    ? $horaSalidaRealVal
+                    : ($prevInfo->hora_real_salida_patio ?? null);
                 $data['falla'] = null;
                 $data['ciclo'] = null;
                 $data['motivo'] = null;
@@ -1768,6 +1773,28 @@ class DespachoController extends Controller
         ], 200);
     }
 
+    /**
+     * Verifica y asegura que el cambio de día operativo se ejecute oportunamente.
+     */
+    public static function verificarYEjecutarCambioDiaAutomatico()
+    {
+        $nowMexico = Carbon::now('America/Mexico_City');
+        $hoy = $nowMexico->toDateString();
+
+        if (Cache::has('cambio_dia_operativo_ejecutado_'.$hoy)) {
+            return;
+        }
+
+        $esDiaAnterior = DB::table('informacion_operativa')
+            ->whereNotNull('fecha_registro')
+            ->whereDate('fecha_registro', '<', $hoy)
+            ->exists();
+
+        if ($esDiaAnterior) {
+            self::ejecutarCambioDiaAutomatico();
+        }
+    }
+
     public static function ejecutarCambioDiaAutomatico()
     {
         $now = Carbon::now('America/Mexico_City');
@@ -1798,6 +1825,23 @@ class DespachoController extends Controller
             }
 
             if ($sourceTable) {
+                // Identificar si alguna unidad ya fue despachada HOY en informacion_operativa
+                // (por ejemplo, si el cambio de día corre después del inicio de despacho matutino)
+                $despachadasHoy = DB::table('informacion_operativa')
+                    ->where(function ($q) use ($fechaHoy) {
+                        $q->where('fecha_registro', $fechaHoy)
+                          ->orWhere(function ($sub) {
+                              $sub->whereNotNull('hora_real_salida_patio')
+                                  ->whereRaw("TRIM(hora_real_salida_patio) != ''");
+                          });
+                    })
+                    ->whereNotNull('hora_real_salida_patio')
+                    ->whereRaw("TRIM(hora_real_salida_patio) != ''")
+                    ->get()
+                    ->keyBy(function ($item) {
+                        return (int) $item->unidad_id;
+                    });
+
                 $nuevosRegistros = DB::table($sourceTable)->get();
                 DB::table('informacion_operativa')->delete();
 
@@ -1970,16 +2014,25 @@ class DespachoController extends Controller
                     }
 
                     // Reiniciar campos de validación para el nuevo día
-                    if (array_key_exists('hora_real_salida_patio', $insertRow)) {
-                        $insertRow['hora_real_salida_patio'] = null;
-                    }
-                    if (array_key_exists('hora_salida', $insertRow)) {
-                        $insertRow['hora_salida'] = null;
-                    }
-                    if (array_key_exists('firma_base64', $insertRow)) {
-                        // Solo reiniciar firma de salida de patio; preservar firma de mantenimiento si la unidad está en taller
-                        if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
-                            $insertRow['firma_base64'] = null;
+                    // PROTECCIÓN: Si la unidad ya fue validada/despachada hoy, preservar su hora de salida y firma
+                    if ($unidadId && isset($despachadasHoy) && $despachadasHoy->has($unidadId)) {
+                        $prevDespacho = $despachadasHoy->get($unidadId);
+                        $insertRow['hora_real_salida_patio'] = $prevDespacho->hora_real_salida_patio;
+                        if (!empty($prevDespacho->firma_base64)) {
+                            $insertRow['firma_base64'] = $prevDespacho->firma_base64;
+                        }
+                    } else {
+                        if (array_key_exists('hora_real_salida_patio', $insertRow)) {
+                            $insertRow['hora_real_salida_patio'] = null;
+                        }
+                        if (array_key_exists('hora_salida', $insertRow)) {
+                            $insertRow['hora_salida'] = null;
+                        }
+                        if (array_key_exists('firma_base64', $insertRow)) {
+                            // Solo reiniciar firma de salida de patio; preservar firma de mantenimiento si la unidad está en taller
+                            if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                                $insertRow['firma_base64'] = null;
+                            }
                         }
                     }
                     $insertRow['fecha_registro'] = $fechaHoy;
@@ -2056,9 +2109,14 @@ class DespachoController extends Controller
             } else {
                 // Si no hay tabla con programación nueva para mañana:
                 // La programación operativa actual (rutas, conductores, horarios) SE MANTIENE para el nuevo día.
-                // Solo se reinician los campos de control de validación diaria de unidades en operación.
+                // Solo se reinician los campos de control de validación diaria de unidades en operación
+                // que tengan fecha de registro de días anteriores (despachos de ayer).
                 DB::table('informacion_operativa')
                     ->where('estatus', 'operacion')
+                    ->where(function ($q) use ($fechaHoy) {
+                        $q->whereNull('fecha_registro')
+                          ->orWhereDate('fecha_registro', '<', $fechaHoy);
+                    })
                     ->update([
                         'hora_real_salida_patio' => null,
                         'firma_base64'           => null,
@@ -2653,6 +2711,7 @@ class DespachoController extends Controller
                     $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio;
                     if (! empty($request->hora_real_salida_patio)) {
                         $updateData['estatus'] = 'operacion';
+                        $updateData['fecha_registro'] = Carbon::now('America/Mexico_City')->toDateString();
                     }
                 }
 
@@ -2735,28 +2794,13 @@ class DespachoController extends Controller
      */
     public function obtenerDatosHoy()
     {
-        // Auto-ejecución del cambio de día a partir de las 12:00 AM (00:00)
-        $nowMexico = Carbon::now('America/Mexico_City');
-        $hoy = $nowMexico->toDateString();
-        $horaActual = $nowMexico->format('H:i');
-
-        $horaObjetivo = '00:00';
-
-        if ($horaActual >= $horaObjetivo) {
-            $esDiaAnterior = DB::table('informacion_operativa')
-                ->whereNotNull('fecha_registro')
-                ->whereDate('fecha_registro', '<', $hoy)
-                ->exists();
-
-            if ($esDiaAnterior && ! Cache::has('cambio_dia_operativo_ejecutado_'.$hoy)) {
-                self::ejecutarCambioDiaAutomatico();
-            }
-        }
+        self::verificarYEjecutarCambioDiaAutomatico();
 
         $hasRelevo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
 
         $hoyMexico = Carbon::now('America/Mexico_City')->toDateString();
         $hoyUtc = Carbon::now('UTC')->toDateString();
+        $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
 
         $idsEncerradasHoy = DB::table('historial_operativo')
             ->where('momento', 'ENCIERRO')
@@ -2872,8 +2916,8 @@ class DespachoController extends Controller
                 'HORA_DE_ACOPLE' => $isDesincorporada ? null : $reg->hora_salida_patio,
                 'HORA_PROGRAMADA' => $isDesincorporada ? null : $reg->hora_salida_patio,
                 'ACOPLE' => $isDesincorporada ? null : $reg->acople,
-                'HORA_SALIDA' => $isDesincItinerario ? null : $horaSalidaEfectiva,
-                'HORA_REAL_SALIDA_PATIO' => $isDesincItinerario ? null : $horaSalidaEfectiva,
+                'HORA_SALIDA' => $horaSalidaEfectiva,
+                'HORA_REAL_SALIDA_PATIO' => $horaSalidaEfectiva,
                 'PATIO_NORTE' => (bool) $reg->patio_norte,
                 'ITINERARIO' => (bool) $reg->itinerario,
                 'HORA_INCORPORACION' => $isDesincorporada ? null : $reg->hora_incorporacion,
@@ -3500,6 +3544,7 @@ class DespachoController extends Controller
                     $updateData['hora_real_salida_patio'] = $request->hora_real_salida_patio;
                 }
                 $updateData['estatus'] = 'operacion';
+                $updateData['fecha_registro'] = Carbon::now('America/Mexico_City')->toDateString();
 
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
