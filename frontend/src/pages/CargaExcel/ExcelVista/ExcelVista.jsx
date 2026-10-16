@@ -175,7 +175,7 @@ export default function ExcelPreview({
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
 
   const headers = isRelevos
-    ? [...baseHeaders, ...relevosHeaders, 'ESTATUS', 'PATIO_NORTE']
+    ? [...baseHeaders, ...relevosHeaders, 'ESTATUS']
     : isPastelesMode
       ? [...baseHeaders, ...pastelesHeaders, 'ESTATUS', 'PATIO_NORTE']
       : [...baseHeaders, ...titularHeaders, ...tailHeaders];
@@ -321,7 +321,8 @@ export default function ExcelPreview({
     // (evita matches falsos en campos ocultos como RELEVO_TARJETON cuando no estamos en modo relevos)
     if (searchTerm && searchTerm.trim()) {
       const searchableKeys = new Set([
-        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE',
+        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS',
+        ...(isRelevos ? [] : ['PATIO_NORTE']),
         ...(isRelevos || isPastelesMode ? [] : ['ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION', 'HORA_ENCIERRO']),
         ...headers, // headers activos según el modo (titular, relevos, etc.)
       ]);
