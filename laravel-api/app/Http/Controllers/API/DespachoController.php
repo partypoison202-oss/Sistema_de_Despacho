@@ -140,7 +140,12 @@ class DespachoController extends Controller
 
             \Log::info('Delete ejecutado sin transacción');
 
-            $chunks = array_chunk($registrosParaInsertar, 50);
+            $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+            $registrosFiltrados = array_map(function ($row) use ($targetCols) {
+                return array_intersect_key($row, $targetCols);
+            }, $registrosParaInsertar);
+
+            $chunks = array_chunk($registrosFiltrados, 50);
             foreach ($chunks as $chunk) {
                 DB::table('informacion_operativa')->insert($chunk);
             }
@@ -280,12 +285,20 @@ class DespachoController extends Controller
 
         $hoy = Carbon::now('America/Mexico_City')->toDateString();
 
-        $conteos = DB::table('informacion_operativa')
+        $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
+        $hasHoraSalida = Schema::hasColumn('informacion_operativa', 'hora_salida');
+        $colSalidaInfo = $hasHoraRealSalidaPatio ? 'hora_real_salida_patio' : ($hasHoraSalida ? 'hora_salida' : null);
+
+        $queryConteos = DB::table('informacion_operativa')
             ->select('tipo', DB::raw('count(distinct unidad_id) as total'))
-            ->whereRaw("LOWER(estatus) = 'operacion'")
-            ->whereNotNull('hora_real_salida_patio')
-            ->whereRaw("TRIM(hora_real_salida_patio) != ''")
-            ->whereNotExists(function ($query) use ($hoy) {
+            ->whereRaw("LOWER(estatus) = 'operacion'");
+
+        if ($colSalidaInfo) {
+            $queryConteos->whereNotNull($colSalidaInfo)
+                ->whereRaw("TRIM(CAST({$colSalidaInfo} AS VARCHAR)) != ''");
+        }
+
+        $conteos = $queryConteos->whereNotExists(function ($query) use ($hoy) {
                 $query->select(DB::raw(1))
                     ->from('historial_operativo')
                     ->whereColumn('historial_operativo.unidad_id', 'informacion_operativa.unidad_id')
@@ -324,6 +337,11 @@ class DespachoController extends Controller
         $tiposBusqueda = self::normalizarTiposTransporte($tipo);
 
         $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
+        $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
+        $hasHoraSalida = Schema::hasColumn('informacion_operativa', 'hora_salida');
+        $colSalidaPatio = $hasHoraRealSalidaPatio 
+            ? 'informacion_operativa.hora_real_salida_patio' 
+            : ($hasHoraSalida ? 'informacion_operativa.hora_salida as hora_real_salida_patio' : DB::raw('NULL as hora_real_salida_patio'));
 
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
@@ -341,7 +359,7 @@ class DespachoController extends Controller
                 'informacion_operativa.corridas',
                 'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_real_salida_patio',
+                $colSalidaPatio,
                 $hasHoraEncierro ? 'informacion_operativa.hora_encierro' : DB::raw('NULL as hora_encierro'),
                 'informacion_operativa.folio_mantenimiento',
                 'informacion_operativa.numero_incidencia',
@@ -642,6 +660,11 @@ class DespachoController extends Controller
                 ->first();
 
             $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
+            $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
+            $hasHoraSalida = Schema::hasColumn('informacion_operativa', 'hora_salida');
+            $colSalidaPatio = $hasHoraRealSalidaPatio 
+                ? 'informacion_operativa.hora_real_salida_patio' 
+                : ($hasHoraSalida ? 'informacion_operativa.hora_salida as hora_real_salida_patio' : DB::raw('NULL as hora_real_salida_patio'));
 
             $info = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
@@ -666,7 +689,7 @@ class DespachoController extends Controller
                     'informacion_operativa.firma_base64',
                     'informacion_operativa.hora_salida_patio',
                     'informacion_operativa.acople',
-                    'informacion_operativa.hora_real_salida_patio',
+                    $colSalidaPatio,
                     $hasHoraEncierro ? 'informacion_operativa.hora_encierro' : DB::raw('NULL as hora_encierro'),
                     'informacion_operativa.observaciones',
                     'informacion_operativa.transporte_patio_norte',
@@ -721,13 +744,21 @@ class DespachoController extends Controller
                 // EXCEPTO si tiene un encierro registrado hoy: en ese caso preservamos o restauramos los datos del encierro para poder visualizar la unidad en Encierro de Unidades
                 if (in_array($estatus, ['mantenimiento', 'reserva', 'percance'], true)) {
                     if ($encierroHoy) {
-                        $despachoHoy = DB::table('historial_operativo')
+                        $hasHoraRealHist = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
+                        $hasHoraSalidaHist = Schema::hasColumn('historial_operativo', 'hora_salida');
+                        $colSalidaHist = $hasHoraRealHist ? 'hora_real_salida_patio' : ($hasHoraSalidaHist ? 'hora_salida' : null);
+
+                        $despachoQuery = DB::table('historial_operativo')
                             ->where('unidad_id', $unidadBase->id)
-                            ->where('fecha_historial', date('Y-m-d'))
-                            ->whereNotNull('hora_real_salida_patio')
-                            ->whereRaw("TRIM(hora_real_salida_patio) != ''")
-                            ->orderByDesc('id')
-                            ->first();
+                            ->where('fecha_historial', date('Y-m-d'));
+
+                        if ($colSalidaHist) {
+                            $despachoQuery->whereNotNull($colSalidaHist)
+                                ->whereRaw("TRIM(CAST({$colSalidaHist} AS VARCHAR)) != ''");
+                        }
+                        $despachoHoy = $despachoQuery->orderByDesc('id')->first();
+
+                        $horaSalidaHistVal = $despachoHoy ? ($despachoHoy->hora_real_salida_patio ?? ($despachoHoy->hora_salida ?? null)) : null;
 
                         $info->ruta = $encierroHoy->ruta ?: ($info->ruta ?: $despachoHoy?->ruta);
                         $info->nombre_conductor = $encierroHoy->nombre_conductor ?: ($info->nombre_conductor ?: $despachoHoy?->nombre_conductor);
@@ -736,7 +767,7 @@ class DespachoController extends Controller
                         $info->ciclo = $encierroHoy->ciclo ?: $info->ciclo;
                         $info->hora_salida_patio = $encierroHoy->hora_salida_patio ?: ($info->hora_salida_patio ?: $despachoHoy?->hora_salida_patio);
                         $info->acople = $encierroHoy->acople ?: ($info->acople ?: $despachoHoy?->acople);
-                        $info->hora_real_salida_patio = $encierroHoy->hora_real_salida_patio ?: ($info->hora_real_salida_patio ?: $despachoHoy?->hora_real_salida_patio);
+                        $info->hora_real_salida_patio = $encierroHoy->hora_real_salida_patio ?? ($encierroHoy->hora_salida ?? ($info->hora_real_salida_patio ?: $horaSalidaHistVal));
                         $info->relevo_conductor = $encierroHoy->relevo_conductor ?: $info->relevo_conductor;
                         $info->relevo_tarjeton = $encierroHoy->relevo_tarjeton ?: $info->relevo_tarjeton;
                         $info->relevo_hora = $encierroHoy->relevo_hora ?: $info->relevo_hora;
@@ -1013,6 +1044,8 @@ class DespachoController extends Controller
         DB::table('conductores')->update(['estado_servicio' => 'disponible']);
         DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
 
+        $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+
         foreach ($unidadesReq as $fila) {
             $ecoVal = trim((string) ($fila['ECONOMICO'] ?? ''));
             $numeroEco = ltrim($ecoVal, '0');
@@ -1238,9 +1271,10 @@ class DespachoController extends Controller
                         }
                     }
 
+                    $updateFiltered = array_intersect_key($data, $targetCols);
                     DB::table('informacion_operativa')
                         ->where('id', $registroId)
-                        ->update($data);
+                        ->update($updateFiltered);
                     $actualizados++;
                 } catch (\Exception $e) {
                     \Log::error("Fallo individual de actualización en ID {$registroId}: ".$e->getMessage());
@@ -1252,7 +1286,8 @@ class DespachoController extends Controller
                     $data['estatus'] = $data['estatus'] ?? trim((string) ($fila['ESTATUS'] ?? 'operacion'));
                     $data['fecha_registro'] = now();
 
-                    DB::table('informacion_operativa')->insert($data);
+                    $insertFiltered = array_intersect_key($data, $targetCols);
+                    DB::table('informacion_operativa')->insert($insertFiltered);
                     $creados++;
 
                     try {
@@ -1376,6 +1411,8 @@ class DespachoController extends Controller
         $actualizados = 0;
         $creados = 0;
         $errores = [];
+
+        $mananaCols = array_flip(Schema::getColumnListing('informacion_operativa_manana'));
 
         foreach ($unidadesReq as $fila) {
             $ecoVal = trim((string) ($fila['ECONOMICO'] ?? ''));
@@ -1565,9 +1602,10 @@ class DespachoController extends Controller
 
             if ($registroId) {
                 try {
+                    $updateFiltered = array_intersect_key($data, $mananaCols);
                     DB::table('informacion_operativa_manana')
                         ->where('id', $registroId)
-                        ->update($data);
+                        ->update($updateFiltered);
                     $actualizados++;
                 } catch (\Exception $e) {
                     \Log::error("Fallo individual actualización MANANA ID {$registroId}: ".$e->getMessage());
@@ -1579,7 +1617,8 @@ class DespachoController extends Controller
                     $data['estatus'] = trim((string) ($fila['ESTATUS'] ?? 'operacion'));
                     $data['fecha_registro'] = now();
 
-                    DB::table('informacion_operativa_manana')->insert($data);
+                    $insertFiltered = array_intersect_key($data, $mananaCols);
+                    DB::table('informacion_operativa_manana')->insert($insertFiltered);
                     $creados++;
                 } catch (\Exception $e) {
                     \Log::error("Fallo individual creación MANANA ECO {$numeroEcoClean}: ".$e->getMessage());
@@ -1659,6 +1698,8 @@ class DespachoController extends Controller
         $actualizados = 0;
         $creados = 0;
         $errores = [];
+
+        $festivoCols = array_flip(Schema::getColumnListing($tableName));
 
         foreach ($unidadesReq as $fila) {
             $ecoVal = trim((string) ($fila['ECONOMICO'] ?? ''));
@@ -1848,9 +1889,10 @@ class DespachoController extends Controller
 
             if ($registroId) {
                 try {
+                    $updateFiltered = array_intersect_key($data, $festivoCols);
                     DB::table($tableName)
                         ->where('id', $registroId)
-                        ->update($data);
+                        ->update($updateFiltered);
                     $actualizados++;
                 } catch (\Exception $e) {
                     \Log::error("Fallo individual actualización {$dia} ID {$registroId}: ".$e->getMessage());
@@ -1862,7 +1904,8 @@ class DespachoController extends Controller
                     $data['estatus'] = trim((string) ($fila['ESTATUS'] ?? 'operacion'));
                     $data['fecha_registro'] = now();
 
-                    DB::table($tableName)->insert($data);
+                    $insertFiltered = array_intersect_key($data, $festivoCols);
+                    DB::table($tableName)->insert($insertFiltered);
                     $creados++;
                 } catch (\Exception $e) {
                     \Log::error("Fallo individual creación {$dia} ECO {$numeroEcoClean}: ".$e->getMessage());
@@ -2021,8 +2064,10 @@ class DespachoController extends Controller
                         $insertRow['relevo_hora'] = null;
                         $insertRow['hora_desincorporacion'] = null;
                         $insertRow['hora_incorporacion'] = null;
+                        $insertRow['hora_encierro'] = null;
                         $insertRow['fecha_registro'] = $fechaHoy;
 
+                        $insertRow = array_intersect_key($insertRow, $targetCols);
                         DB::table('informacion_operativa')->insert($insertRow);
                         continue;
                     }
@@ -2086,7 +2131,7 @@ class DespachoController extends Controller
                         $inicialRowFiltered['fecha'] = $fechaHoy;
                         $inicialRowFiltered['created_at'] = now();
                         $inicialRowFiltered['updated_at'] = now();
-                        $inicialInsert[] = $inicialRowFiltered;
+                        $inicialInsert[] = array_intersect_key($inicialRowFiltered, $inicialCols);
                     }
 
                     // Reiniciar campos de validación para el nuevo día
@@ -2104,6 +2149,7 @@ class DespachoController extends Controller
                     }
                     $insertRow['fecha_registro'] = $fechaHoy;
 
+                    $insertRow = array_intersect_key($insertRow, $targetCols);
                     DB::table('informacion_operativa')->insert($insertRow);
 
                     if (! empty($row->numero_tarjeton)) {
@@ -2130,11 +2176,20 @@ class DespachoController extends Controller
                                 }
                             }
                         }
-                        $insertRow['hora_real_salida_patio'] = null;
+                        if (isset($targetCols['hora_real_salida_patio'])) {
+                            $insertRow['hora_real_salida_patio'] = null;
+                        }
+                        if (isset($targetCols['hora_salida'])) {
+                            $insertRow['hora_salida'] = null;
+                        }
+                        if (isset($targetCols['hora_encierro'])) {
+                            $insertRow['hora_encierro'] = null;
+                        }
                         if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
                             $insertRow['firma_base64'] = null;
                         }
                         $insertRow['fecha_registro'] = $fechaHoy;
+                        $insertRow = array_intersect_key($insertRow, $targetCols);
                         DB::table('informacion_operativa')->insert($insertRow);
                     }
                 }
@@ -2177,15 +2232,27 @@ class DespachoController extends Controller
                 // Si no hay tabla con programación nueva para mañana:
                 // La programación operativa actual (rutas, conductores, horarios) SE MANTIENE para el nuevo día.
                 // Solo se reinician los campos de control de validación diaria de unidades en operación.
-                DB::table('informacion_operativa')
-                    ->where('estatus', 'operacion')
-                    ->update([
-                        'hora_real_salida_patio' => null,
-                        'firma_base64'           => null,
+                $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+                $updateOperacion = [];
+                if (isset($targetCols['hora_real_salida_patio'])) {
+                    $updateOperacion['hora_real_salida_patio'] = null;
+                }
+                if (isset($targetCols['hora_salida'])) {
+                    $updateOperacion['hora_salida'] = null;
+                }
+                if (isset($targetCols['firma_base64'])) {
+                    $updateOperacion['firma_base64'] = null;
+                }
+                if (! empty($updateOperacion)) {
+                    DB::table('informacion_operativa')
+                        ->where('estatus', 'operacion')
+                        ->update($updateOperacion);
+                }
+                if (isset($targetCols['fecha_registro'])) {
+                    DB::table('informacion_operativa')->update([
+                        'fecha_registro' => $fechaHoy,
                     ]);
-                DB::table('informacion_operativa')->update([
-                    'fecha_registro'         => $fechaHoy,
-                ]);
+                }
 
                 DB::table('conductores')->update(['estado_servicio' => 'disponible']);
                 DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
@@ -2376,8 +2443,10 @@ class DespachoController extends Controller
                     $insertRow['relevo_hora'] = null;
                     $insertRow['hora_desincorporacion'] = null;
                     $insertRow['hora_incorporacion'] = null;
+                    $insertRow['hora_encierro'] = null;
                     $insertRow['fecha_registro'] = $fechaHoy;
 
+                    $insertRow = array_intersect_key($insertRow, $targetCols);
                     DB::table('informacion_operativa')->insert($insertRow);
                     continue;
                 }
@@ -2428,6 +2497,9 @@ class DespachoController extends Controller
                 if (array_key_exists('hora_real_salida_patio', $insertRow)) {
                     $insertRow['hora_real_salida_patio'] = null;
                 }
+                if (array_key_exists('hora_salida', $insertRow)) {
+                    $insertRow['hora_salida'] = null;
+                }
                 if (array_key_exists('firma_base64', $insertRow)) {
                     if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
                         $insertRow['firma_base64'] = null;
@@ -2435,6 +2507,7 @@ class DespachoController extends Controller
                 }
                 $insertRow['fecha_registro'] = $fechaHoy;
 
+                $insertRow = array_intersect_key($insertRow, $targetCols);
                 DB::table('informacion_operativa')->insert($insertRow);
             }
 
@@ -2454,11 +2527,20 @@ class DespachoController extends Controller
                             }
                         }
                     }
-                    $insertRow['hora_real_salida_patio'] = null;
+                    if (isset($targetCols['hora_real_salida_patio'])) {
+                        $insertRow['hora_real_salida_patio'] = null;
+                    }
+                    if (isset($targetCols['hora_salida'])) {
+                        $insertRow['hora_salida'] = null;
+                    }
+                    if (isset($targetCols['hora_encierro'])) {
+                        $insertRow['hora_encierro'] = null;
+                    }
                     if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
                         $insertRow['firma_base64'] = null;
                     }
                     $insertRow['fecha_registro'] = $fechaHoy;
+                    $insertRow = array_intersect_key($insertRow, $targetCols);
                     DB::table('informacion_operativa')->insert($insertRow);
                 }
             }
@@ -2781,9 +2863,12 @@ class DespachoController extends Controller
                     $updateData['observaciones'] = $request->observaciones;
                 }
 
+                $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+                $filteredUpdate = array_intersect_key($updateData, $targetCols);
+
                 DB::table('informacion_operativa')
                     ->where('id', $registro->id)
-                    ->update($updateData);
+                    ->update($filteredUpdate);
 
                 // Registrar acción detallada en la bitácora de cambios
                 if ($request->filled('hora_real_salida_patio')) {
@@ -2867,6 +2952,13 @@ class DespachoController extends Controller
         self::procesarEncierrosAutomaticos();
 
         $hasRelevo = Schema::hasColumn('informacion_operativa', 'relevo_tarjeton');
+        $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
+        $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
+        $hasHoraSalida = Schema::hasColumn('informacion_operativa', 'hora_salida');
+
+        $colSalidaPatio = $hasHoraRealSalidaPatio 
+            ? 'informacion_operativa.hora_real_salida_patio' 
+            : ($hasHoraSalida ? 'informacion_operativa.hora_salida as hora_real_salida_patio' : DB::raw('NULL as hora_real_salida_patio'));
 
         $hoyMexico = Carbon::now('America/Mexico_City')->toDateString();
         $hoyUtc = Carbon::now('UTC')->toDateString();
@@ -2911,8 +3003,8 @@ class DespachoController extends Controller
                 'informacion_operativa.firma_base64',
                 'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
-                'informacion_operativa.hora_encierro',
-                'informacion_operativa.hora_real_salida_patio',
+                $hasHoraEncierro ? 'informacion_operativa.hora_encierro' : DB::raw('NULL as hora_encierro'),
+                $colSalidaPatio,
                 'informacion_operativa.patio_norte',
                 'informacion_operativa.itinerario',
                 'informacion_operativa.hora_incorporacion',
@@ -3049,6 +3141,13 @@ class DespachoController extends Controller
         }
 
         $hasRelevo = Schema::hasColumn('informacion_operativa_manana', 'relevo_tarjeton');
+        $hasHoraEncierro = Schema::hasColumn('informacion_operativa_manana', 'hora_encierro');
+        $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa_manana', 'hora_real_salida_patio');
+        $hasHoraSalida = Schema::hasColumn('informacion_operativa_manana', 'hora_salida');
+
+        $colSalidaPatio = $hasHoraRealSalidaPatio 
+            ? 'informacion_operativa_manana.hora_real_salida_patio' 
+            : ($hasHoraSalida ? 'informacion_operativa_manana.hora_salida as hora_real_salida_patio' : DB::raw('NULL as hora_real_salida_patio'));
 
         $registros = DB::table('unidades')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
@@ -3077,8 +3176,8 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.firma_base64',
                 'informacion_operativa_manana.hora_salida_patio',
                 'informacion_operativa_manana.acople',
-                'informacion_operativa_manana.hora_encierro',
-                'informacion_operativa_manana.hora_real_salida_patio',
+                $hasHoraEncierro ? 'informacion_operativa_manana.hora_encierro' : DB::raw('NULL as hora_encierro'),
+                $colSalidaPatio,
                 'informacion_operativa_manana.patio_norte',
                 'informacion_operativa_manana.itinerario',
                 'informacion_operativa_manana.hora_incorporacion',
@@ -3173,6 +3272,13 @@ class DespachoController extends Controller
         }
 
         $hasRelevo = Schema::hasColumn($tableName, 'relevo_tarjeton');
+        $hasHoraEncierro = Schema::hasColumn($tableName, 'hora_encierro');
+        $hasHoraRealSalidaPatio = Schema::hasColumn($tableName, 'hora_real_salida_patio');
+        $hasHoraSalida = Schema::hasColumn($tableName, 'hora_salida');
+
+        $colSalidaPatio = $hasHoraRealSalidaPatio 
+            ? "{$tableName}.hora_real_salida_patio" 
+            : ($hasHoraSalida ? "{$tableName}.hora_salida as hora_real_salida_patio" : DB::raw('NULL as hora_real_salida_patio'));
 
         $registros = DB::table('unidades')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
@@ -3202,8 +3308,8 @@ class DespachoController extends Controller
                 "{$tableName}.firma_base64",
                 "{$tableName}.hora_salida_patio",
                 "{$tableName}.acople",
-                "{$tableName}.hora_encierro",
-                "{$tableName}.hora_real_salida_patio",
+                $hasHoraEncierro ? "{$tableName}.hora_encierro" : DB::raw('NULL as hora_encierro'),
+                $colSalidaPatio,
                 "{$tableName}.patio_norte",
                 "{$tableName}.itinerario",
                 "{$tableName}.hora_incorporacion",
@@ -3491,9 +3597,13 @@ class DespachoController extends Controller
             $columns[] = 'historial_operativo.acople';
         }
 
-        $hasHoraSalida = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
-        if ($hasHoraSalida) {
+        $hasHoraRealSalida = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
+        $hasHoraSalidaLegacy = Schema::hasColumn('historial_operativo', 'hora_salida');
+        $hasHoraSalida = $hasHoraRealSalida || $hasHoraSalidaLegacy;
+        if ($hasHoraRealSalida) {
             $columns[] = 'historial_operativo.hora_real_salida_patio';
+        } elseif ($hasHoraSalidaLegacy) {
+            $columns[] = 'historial_operativo.hora_salida as hora_real_salida_patio';
         }
 
         $hasPatioNorte = Schema::hasColumn('historial_operativo', 'patio_norte');
@@ -3766,9 +3876,12 @@ class DespachoController extends Controller
             $insertEncierro['relevo_hora'] = $registroOperativo->relevo_hora;
         }
 
+        $historialCols = array_flip(Schema::getColumnListing('historial_operativo'));
+        $insertEncierro = array_intersect_key($insertEncierro, $historialCols);
         DB::table('historial_operativo')->insert($insertEncierro);
 
         // Actualizar estatus en informacion_operativa a reserva y registrar hora de encierro si existe
+        $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
         $updateInfoOperativa = [
             'estatus' => 'reserva',
             'motivo_estatus' => $motivoFinal,
@@ -3795,9 +3908,11 @@ class DespachoController extends Controller
             'transporte_patio_norte' => 'false',
         ];
 
-        if (Schema::hasColumn('informacion_operativa', 'hora_encierro')) {
+        if (isset($targetCols['hora_encierro'])) {
             $updateInfoOperativa['hora_encierro'] = $horaEncierro;
         }
+
+        $updateInfoOperativa = array_intersect_key($updateInfoOperativa, $targetCols);
 
         DB::table('informacion_operativa')
             ->where('id', $registroOperativo->id)
@@ -3943,37 +4058,43 @@ class DespachoController extends Controller
                     $insertAutoHistorial['relevo_hora'] = $registroOperativo->relevo_hora;
                 }
 
+                $historialCols = array_flip(Schema::getColumnListing('historial_operativo'));
+                $insertAutoHistorial = array_intersect_key($insertAutoHistorial, $historialCols);
                 DB::table('historial_operativo')->insert($insertAutoHistorial);
 
                 // 4. Actualizar informacion_operativa: pasar a reserva y limpiar datos operativos de calle,
                 // manteniendo intacta la hora_encierro asignada por programación
+                $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+                $updateEncierroAuto = [
+                    'estatus' => 'reserva',
+                    'motivo_estatus' => $motivoFinal,
+                    'motivo' => $motivoFinal,
+                    'nombre_conductor' => null,
+                    'numero_tarjeton' => null,
+                    'ruta' => null,
+                    'corridas' => null,
+                    'ciclo' => null,
+                    'falla' => null,
+                    'hora_salida_patio' => null,
+                    'acople' => null,
+                    'hora_real_salida_patio' => null,
+                    'relevo_tarjeton' => null,
+                    'relevo_conductor' => null,
+                    'relevo_hora' => null,
+                    'tarjeton_maniobrista' => null,
+                    'nombre_maniobrista' => null,
+                    'mantenimiento_conductor' => null,
+                    'mantenimiento_tarjeton' => null,
+                    'mantenimiento_ruta' => null,
+                    'mantenimiento_corrida' => null,
+                    'patio_norte' => 'false',
+                    'transporte_patio_norte' => 'false',
+                ];
+                $updateEncierroAuto = array_intersect_key($updateEncierroAuto, $targetCols);
+
                 DB::table('informacion_operativa')
                     ->where('id', $registroOperativo->id)
-                    ->update([
-                        'estatus' => 'reserva',
-                        'motivo_estatus' => $motivoFinal,
-                        'motivo' => $motivoFinal,
-                        'nombre_conductor' => null,
-                        'numero_tarjeton' => null,
-                        'ruta' => null,
-                        'corridas' => null,
-                        'ciclo' => null,
-                        'falla' => null,
-                        'hora_salida_patio' => null,
-                        'acople' => null,
-                        'hora_real_salida_patio' => null,
-                        'relevo_tarjeton' => null,
-                        'relevo_conductor' => null,
-                        'relevo_hora' => null,
-                        'tarjeton_maniobrista' => null,
-                        'nombre_maniobrista' => null,
-                        'mantenimiento_conductor' => null,
-                        'mantenimiento_tarjeton' => null,
-                        'mantenimiento_ruta' => null,
-                        'mantenimiento_corrida' => null,
-                        'patio_norte' => 'false',
-                        'transporte_patio_norte' => 'false',
-                    ]);
+                    ->update($updateEncierroAuto);
 
                 BitacoraHelper::registrarCambio(
                     $registroOperativo->unidad_id,
@@ -4232,9 +4353,12 @@ class DespachoController extends Controller
             }
         }
 
+        $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+        $filteredUpdate = array_intersect_key($updateData, $targetCols);
+
         DB::table('informacion_operativa')
             ->where('id', $registroOperativo->id)
-            ->update($updateData);
+            ->update($filteredUpdate);
 
         // Registrar acción en la bitácora de cambios para la unidad original
         BitacoraHelper::registrarCambio(
@@ -6150,8 +6274,10 @@ class DespachoController extends Controller
             }
 
             // Insertar todo
+            $mananaCols = array_flip(Schema::getColumnListing('informacion_operativa_manana'));
             foreach ($insertData as $data) {
-                DB::table('informacion_operativa_manana')->insert($data);
+                $filteredData = array_intersect_key($data, $mananaCols);
+                DB::table('informacion_operativa_manana')->insert($filteredData);
             }
 
             if (! empty($entradasT6Data)) {

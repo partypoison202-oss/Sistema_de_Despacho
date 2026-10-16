@@ -14,7 +14,7 @@ return new class extends Migration
         if (Schema::hasTable('historial_operativo')) {
             Schema::table('historial_operativo', function (Blueprint $table) {
                 if (!Schema::hasColumn('historial_operativo', 'hora_real_salida_patio')) {
-                    $table->string('hora_real_salida_patio', 20)->nullable()->after('hora_salida');
+                    $table->string('hora_real_salida_patio', 20)->nullable();
                 }
             });
         }
