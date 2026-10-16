@@ -895,8 +895,8 @@ export default function CargaExcel({ isPasteles = false }) {
     let dataToExport = previewData;
 
     if (isRelevos) {
-      columnas = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA', 'HORA_ENCIERRO', 'ESTATUS', 'PATIO_NORTE'];
-      encabezados = ['Tipo Unidad', 'Económico', 'Ruta', 'Corrida', 'Tarjetón Relevo', 'Conductor Relevo', 'Hora Relevo', 'Hora de Encierro', 'Estatus', 'Patio Norte'];
+      columnas = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA', 'ESTATUS', 'PATIO_NORTE'];
+      encabezados = ['Tipo Unidad', 'Económico', 'Ruta', 'Corrida', 'Tarjetón Relevo', 'Conductor Relevo', 'Hora Relevo', 'Estatus', 'Patio Norte'];
       
       // Filtrar solo los de operacion y ordenar por numero de economico
       dataToExport = dataToExport.filter(fila => {
@@ -922,6 +922,9 @@ export default function CargaExcel({ isPasteles = false }) {
         return ecoA - ecoB;
       });
 
+    } else if (isPasteles) {
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'CORRIDAS', 'PATIO_NORTE'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Corrida', 'Patio Norte'];
     } else {
       columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_ENCIERRO', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
       encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora de Encierro', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de desincorporación', 'Hora de incorporación'];
@@ -1767,6 +1770,7 @@ export default function CargaExcel({ isPasteles = false }) {
             hasChanges={hasChanges}
             isSaving={isSaving}
             isPasteles={isPasteles}
+            isRelevos={isRelevos}
             onOpenCambioUnidad={(fila, originalIndex) => {
               setModalCambioData({
                 isOpen: true,

@@ -133,17 +133,27 @@ export default function ExcelPreview({
   isSaving,
   readOnly = false,
   isPasteles = false,
+  isRelevos: isRelevosProp,
   onOpenCambioUnidad = null,
 }) {
   const { user } = useContext(AuthContext);
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
+
+  const isPastelesMode = Boolean(isPasteles)
+    || _roleCodigo === 'PASTELES' || _roleCodigo === 'PROGRAMACION_PASTELES'
+    || _roleNombre === 'PASTELES' || _roleNombre === 'PROGRAMACION_PASTELES'
+    || (typeof window !== 'undefined' && window.location.pathname.includes('programacion-pasteles'));
+
   // isRelevos es verdadero si:
-  //   a) El usuario tiene el rol RELEVOS, O
-  //   b) El admin entró por la tarjeta "RELEVOS" del menú (vistaPreview)
-  const isRelevos = _roleCodigo === 'RELEVOS' || _roleCodigo === 'REVELOS'
-    || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
-    || sessionStorage.getItem('vistaPreview') === 'RELEVOS';
+  //   a) Se pasa explícitamente como prop, O
+  //   b) El usuario tiene el rol RELEVOS, O
+  //   c) El admin entró por la tarjeta "RELEVOS" del menú (vistaPreview)
+  const isRelevos = isRelevosProp !== undefined
+    ? Boolean(isRelevosProp)
+    : (_roleCodigo === 'RELEVOS' || _roleCodigo === 'REVELOS'
+       || _roleNombre === 'RELEVOS' || _roleNombre === 'REVELOS'
+       || sessionStorage.getItem('vistaPreview') === 'RELEVOS');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTech, setSelectedTech] = useState('');
   const [ordenarPorRuta, setOrdenarPorRuta] = useState(false);
@@ -160,12 +170,15 @@ export default function ExcelPreview({
   // HORA_SALIDA_PATIO fue eliminada — era duplicado de HORA_DE_ACOPLE (mismo campo en BD: hora_salida_patio)
   // HORA_REAL_SALIDA_PATIO fue eliminada — la registra Despacho en tiempo real, no se programa aquí
   const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_ENCIERRO'];
+  const pastelesHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR'];
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
 
   const headers = isRelevos
-    ? [...baseHeaders, ...relevosHeaders, 'HORA_ENCIERRO', ...tailHeaders]
-    : [...baseHeaders, ...titularHeaders, ...tailHeaders];
+    ? [...baseHeaders, ...relevosHeaders, 'ESTATUS', 'PATIO_NORTE']
+    : isPastelesMode
+      ? [...baseHeaders, ...pastelesHeaders, 'ESTATUS', 'PATIO_NORTE']
+      : [...baseHeaders, ...titularHeaders, ...tailHeaders];
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
@@ -308,7 +321,8 @@ export default function ExcelPreview({
     // (evita matches falsos en campos ocultos como RELEVO_TARJETON cuando no estamos en modo relevos)
     if (searchTerm && searchTerm.trim()) {
       const searchableKeys = new Set([
-        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION',
+        'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS', 'PATIO_NORTE',
+        ...(isRelevos || isPastelesMode ? [] : ['ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION', 'HORA_ENCIERRO']),
         ...headers, // headers activos según el modo (titular, relevos, etc.)
       ]);
 
