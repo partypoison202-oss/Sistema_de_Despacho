@@ -18,7 +18,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
 
   useEffect(() => {
     if (isOpen) {
-      cargarCiclos();
+      void cargarCiclos();
     } else {
       setCiclos('');
       setCiclosGuardados(null);
@@ -61,14 +61,14 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
     }
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleGuardar();
+      void handleGuardar();
     }
   };
 
   const handleGuardar = async () => {
     const valorTrim = String(ciclos).trim();
     if (!valorTrim) {
-      Swal.fire({
+      void Swal.fire({
         icon: 'warning',
         title: 'Campo Requerido',
         text: 'Por favor ingresa un número de ciclos válido.',
@@ -77,9 +77,9 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
       return;
     }
 
-    const numeroCiclos = parseInt(valorTrim, 10);
-    if (isNaN(numeroCiclos) || numeroCiclos < 0) {
-      Swal.fire({
+    const numeroCiclos = Number.parseInt(valorTrim, 10);
+    if (Number.isNaN(numeroCiclos) || numeroCiclos < 0) {
+      void Swal.fire({
         icon: 'warning',
         title: 'Número Inválido',
         text: 'El número de ciclos debe ser un número entero mayor o igual a cero.',
@@ -103,7 +103,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
 
       if (res.ok) {
         setCiclosGuardados(numeroCiclos);
-        Swal.fire({
+        void Swal.fire({
           icon: 'success',
           title: '¡Ciclos Guardados!',
           html: `Se ha registrado el número de ciclos programados: <strong>${numeroCiclos}</strong> para la operación del día.`,
@@ -112,7 +112,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
         });
         onClose();
       } else {
-        Swal.fire({
+        void Swal.fire({
           icon: 'error',
           title: 'Error al guardar',
           text: data.message || 'No se pudo guardar el número de ciclos.',
@@ -121,7 +121,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
       }
     } catch (err) {
       console.error('Error al guardar ciclos:', err);
-      Swal.fire({
+      void Swal.fire({
         icon: 'error',
         title: 'Error de Red',
         text: 'Ocurrió un error al comunicarse con el servidor.',
@@ -172,7 +172,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
               justifyContent: 'center',
               border: '1px solid rgba(107, 29, 51, 0.2)'
             }}>
-              <svg width="22" height="22" fill="none" stroke="#6b1d33" strokeWidth="2.2" viewBox="0 0 24 24">
+              <svg width="22" height="22" fill="none" stroke="#6b1d33" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </div>
@@ -219,7 +219,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
             fontSize: '0.85rem',
             color: '#334155'
           }}>
-            <svg width="16" height="16" fill="none" stroke="#c5a059" strokeWidth="2" viewBox="0 0 24 24">
+            <svg width="16" height="16" fill="none" stroke="#c5a059" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>Fecha programada: <strong>{fechaTexto}</strong></span>
@@ -235,7 +235,6 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                autoFocus
                 placeholder={cargando ? 'Cargando ciclos...' : 'Ej. 240'}
                 value={ciclos}
                 onChange={handleInputChange}
@@ -299,7 +298,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
               fontSize: '0.82rem',
               color: '#065f46'
             }}>
-              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               <span>Valor registrado actualmente en el sistema: <strong>{ciclosGuardados}</strong> ciclos</span>
@@ -334,7 +333,9 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
           </button>
           <button
             type="button"
-            onClick={handleGuardar}
+            onClick={() => {
+              void handleGuardar();
+            }}
             disabled={guardando || cargando || !ciclos.trim()}
             style={{
               padding: '0.65rem 1.5rem',
@@ -367,7 +368,7 @@ export default function ModalCiclos({ isOpen, onClose, tabActiva = 'MANANA', fec
               </>
             ) : (
               <>
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span>Guardar Ciclos</span>
