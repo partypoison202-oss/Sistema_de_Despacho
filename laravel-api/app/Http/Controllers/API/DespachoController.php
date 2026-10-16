@@ -323,6 +323,8 @@ class DespachoController extends Controller
 
         $tiposBusqueda = self::normalizarTiposTransporte($tipo);
 
+        $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
+
         $unidades = DB::table('unidades')
             ->join('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
             ->whereIn(DB::raw('LOWER(informacion_operativa.tipo)'), $tiposBusqueda)
@@ -340,7 +342,7 @@ class DespachoController extends Controller
                 'informacion_operativa.hora_salida_patio',
                 'informacion_operativa.acople',
                 'informacion_operativa.hora_real_salida_patio',
-                'informacion_operativa.hora_encierro',
+                $hasHoraEncierro ? 'informacion_operativa.hora_encierro' : DB::raw('NULL as hora_encierro'),
                 'informacion_operativa.folio_mantenimiento',
                 'informacion_operativa.numero_incidencia',
                 'informacion_operativa.fecha_folio_mantenimiento',
@@ -390,25 +392,35 @@ class DespachoController extends Controller
             ->groupBy('unidad_id')
             ->map(fn ($items) => $items->first());
 
-        // Pre-cargar despachos de hoy con hora_real_salida_patio no nula
-        $despachosHoy = DB::table('historial_operativo')
-            ->whereIn('unidad_id', $unidadIds)
-            ->where('fecha_historial', $fechaHoy)
-            ->whereNotNull('hora_real_salida_patio')
-            ->whereRaw("TRIM(hora_real_salida_patio) != ''")
-            ->orderByDesc('id')
-            ->get()
-            ->groupBy('unidad_id')
-            ->map(fn ($items) => $items->first());
+        // Pre-cargar despachos de hoy con hora de salida no nula
+        $hasHoraRealEnHistorial = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
+        $hasHoraSalidaEnHistorial = Schema::hasColumn('historial_operativo', 'hora_salida');
+        $colSalidaHistorial = $hasHoraRealEnHistorial ? 'hora_real_salida_patio' : ($hasHoraSalidaEnHistorial ? 'hora_salida' : null);
+
+        $despachosHoy = collect();
+        if ($colSalidaHistorial && ! empty($unidadIds)) {
+            $despachosHoy = DB::table('historial_operativo')
+                ->whereIn('unidad_id', $unidadIds)
+                ->where('fecha_historial', $fechaHoy)
+                ->whereNotNull($colSalidaHistorial)
+                ->whereRaw("TRIM(CAST({$colSalidaHistorial} AS VARCHAR)) != ''")
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('unidad_id')
+                ->map(fn ($items) => $items->first());
+        }
         // ──────────────────────────────────────────────────────────────────────
 
-        $unidades = $unidades->map(function ($unidad) use ($ultimoMovPorUnidad, $encierrosHoy, $despachosHoy, $horaActual) {
+        $unidades = $unidades->map(function ($unidad) use ($ultimoMovPorUnidad, $encierrosHoy, $despachosHoy, $horaActual, $colSalidaHistorial) {
             $encierro = $encierrosHoy->get($unidad->unidad_id);
             $yaEncerrada = ! is_null($encierro);
 
             $despacho = $despachosHoy->get($unidad->unidad_id);
+            $horaDespachoHistorial = $despacho ? ($colSalidaHistorial ? ($despacho->{$colSalidaHistorial} ?? null) : null) : null;
+            $horaEncierroHistorial = $encierro ? ($colSalidaHistorial ? ($encierro->{$colSalidaHistorial} ?? null) : null) : null;
+
             $horaRealSalida = $unidad->hora_real_salida_patio
-                ?: ($encierro?->hora_real_salida_patio ?: $despacho?->hora_real_salida_patio);
+                ?: ($horaEncierroHistorial ?: $horaDespachoHistorial);
 
             $estatusRaw = strtolower(trim($unidad->estatus ?? 'operacion'));
             $estatus = match ($estatusRaw) {
@@ -629,6 +641,8 @@ class DespachoController extends Controller
                 ->where('numero_eco', $numeroEcoClean)
                 ->first();
 
+            $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
+
             $info = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->where('unidades.numero_eco', $numeroEcoClean)
@@ -653,7 +667,7 @@ class DespachoController extends Controller
                     'informacion_operativa.hora_salida_patio',
                     'informacion_operativa.acople',
                     'informacion_operativa.hora_real_salida_patio',
-                    'informacion_operativa.hora_encierro',
+                    $hasHoraEncierro ? 'informacion_operativa.hora_encierro' : DB::raw('NULL as hora_encierro'),
                     'informacion_operativa.observaciones',
                     'informacion_operativa.transporte_patio_norte',
                     'unidades.kilometraje',
@@ -3703,16 +3717,22 @@ class DespachoController extends Controller
                 ->update(['estado_servicio' => 'disponible']);
         }
 
-        $horaRealSalidaSnapshot = $registroOperativo->hora_real_salida_patio
-            ?: DB::table('historial_operativo')
+        $hasHoraRealEnHistorial = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
+        $hasHoraSalidaEnHistorial = Schema::hasColumn('historial_operativo', 'hora_salida');
+        $colSalidaHistorial = $hasHoraRealEnHistorial ? 'hora_real_salida_patio' : ($hasHoraSalidaEnHistorial ? 'hora_salida' : null);
+
+        $horaRealSalidaSnapshot = $registroOperativo->hora_real_salida_patio;
+        if (! $horaRealSalidaSnapshot && $colSalidaHistorial) {
+            $horaRealSalidaSnapshot = DB::table('historial_operativo')
                 ->where('unidad_id', $unidad->id)
                 ->where('fecha_historial', date('Y-m-d'))
-                ->whereNotNull('hora_real_salida_patio')
+                ->whereNotNull($colSalidaHistorial)
                 ->orderByDesc('id')
-                ->value('hora_real_salida_patio');
+                ->value($colSalidaHistorial);
+        }
 
         // Registrar snapshot en historial_operativo ANTES de limpiar la informacion_operativa
-        DB::table('historial_operativo')->insert([
+        $insertEncierro = [
             'unidad_id' => $unidad->id,
             'ruta' => $registroOperativo->ruta,
             'numero_tarjeton' => $registroOperativo->numero_tarjeton,
@@ -3722,48 +3742,66 @@ class DespachoController extends Controller
             'estatus' => 'reserva',
             'motivo_estatus' => $motivoFinal,
             'momento' => 'ENCIERRO',
-            'hora_encierro' => $horaEncierro,
-            'hora_real_salida_patio' => $horaRealSalidaSnapshot,
-            'hora_salida_patio' => $registroOperativo->hora_salida_patio,
-            'acople' => $registroOperativo->acople,
-            'relevo_conductor' => $registroOperativo->relevo_conductor,
-            'relevo_tarjeton' => $registroOperativo->relevo_tarjeton,
-            'relevo_hora' => $registroOperativo->relevo_hora,
             'fecha_historial' => date('Y-m-d'),
             'fecha_registro' => now(),
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
 
-        // Actualizar estatus en informacion_operativa a reserva y registrar hora de encierro
+        if (Schema::hasColumn('historial_operativo', 'hora_encierro')) {
+            $insertEncierro['hora_encierro'] = $horaEncierro;
+        }
+        if ($colSalidaHistorial && $horaRealSalidaSnapshot) {
+            $insertEncierro[$colSalidaHistorial] = $horaRealSalidaSnapshot;
+        }
+        if (Schema::hasColumn('historial_operativo', 'hora_salida_patio')) {
+            $insertEncierro['hora_salida_patio'] = $registroOperativo->hora_salida_patio;
+        }
+        if (Schema::hasColumn('historial_operativo', 'acople')) {
+            $insertEncierro['acople'] = $registroOperativo->acople;
+        }
+        if (Schema::hasColumn('historial_operativo', 'relevo_conductor')) {
+            $insertEncierro['relevo_conductor'] = $registroOperativo->relevo_conductor;
+            $insertEncierro['relevo_tarjeton'] = $registroOperativo->relevo_tarjeton;
+            $insertEncierro['relevo_hora'] = $registroOperativo->relevo_hora;
+        }
+
+        DB::table('historial_operativo')->insert($insertEncierro);
+
+        // Actualizar estatus en informacion_operativa a reserva y registrar hora de encierro si existe
+        $updateInfoOperativa = [
+            'estatus' => 'reserva',
+            'motivo_estatus' => $motivoFinal,
+            'motivo' => $motivoFinal,
+            'nombre_conductor' => null,
+            'numero_tarjeton' => null,
+            'ruta' => null,
+            'corridas' => null,
+            'ciclo' => null,
+            'falla' => null,
+            'hora_salida_patio' => null,
+            'acople' => null,
+            'hora_real_salida_patio' => null,
+            'relevo_tarjeton' => null,
+            'relevo_conductor' => null,
+            'relevo_hora' => null,
+            'tarjeton_maniobrista' => null,
+            'nombre_maniobrista' => null,
+            'mantenimiento_conductor' => null,
+            'mantenimiento_tarjeton' => null,
+            'mantenimiento_ruta' => null,
+            'mantenimiento_corrida' => null,
+            'patio_norte' => 'false',
+            'transporte_patio_norte' => 'false',
+        ];
+
+        if (Schema::hasColumn('informacion_operativa', 'hora_encierro')) {
+            $updateInfoOperativa['hora_encierro'] = $horaEncierro;
+        }
+
         DB::table('informacion_operativa')
             ->where('id', $registroOperativo->id)
-            ->update([
-                'estatus' => 'reserva',
-                'motivo_estatus' => $motivoFinal,
-                'motivo' => $motivoFinal,
-                'hora_encierro' => $horaEncierro,
-                'nombre_conductor' => null,
-                'numero_tarjeton' => null,
-                'ruta' => null,
-                'corridas' => null,
-                'ciclo' => null,
-                'falla' => null,
-                'hora_salida_patio' => null,
-                'acople' => null,
-                'hora_real_salida_patio' => null,
-                'relevo_tarjeton' => null,
-                'relevo_conductor' => null,
-                'relevo_hora' => null,
-                'tarjeton_maniobrista' => null,
-                'nombre_maniobrista' => null,
-                'mantenimiento_conductor' => null,
-                'mantenimiento_tarjeton' => null,
-                'mantenimiento_ruta' => null,
-                'mantenimiento_corrida' => null,
-                'patio_norte' => 'false',
-                'transporte_patio_norte' => 'false',
-            ]);
+            ->update($updateInfoOperativa);
 
         return response()->json([
             'status' => 'success',
@@ -3782,6 +3820,10 @@ class DespachoController extends Controller
             $now = Carbon::now('America/Mexico_City');
             $horaActual = $now->format('H:i');
             $fechaHoy = $now->toDateString();
+
+            if (! Schema::hasColumn('informacion_operativa', 'hora_encierro')) {
+                return 0;
+            }
 
             // Buscar unidades en operación que tengan hora_encierro asignada
             $unidadesParaEncierro = DB::table('informacion_operativa')
@@ -3852,16 +3894,22 @@ class DespachoController extends Controller
                         ->update(['estado_servicio' => 'disponible']);
                 }
 
-                $horaRealSalidaSnapshot = $registroOperativo->hora_real_salida_patio
-                    ?: DB::table('historial_operativo')
+                $hasHoraRealEnHistorial = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
+                $hasHoraSalidaEnHistorial = Schema::hasColumn('historial_operativo', 'hora_salida');
+                $colSalidaHistorial = $hasHoraRealEnHistorial ? 'hora_real_salida_patio' : ($hasHoraSalidaEnHistorial ? 'hora_salida' : null);
+
+                $horaRealSalidaSnapshot = $registroOperativo->hora_real_salida_patio;
+                if (! $horaRealSalidaSnapshot && $colSalidaHistorial) {
+                    $horaRealSalidaSnapshot = DB::table('historial_operativo')
                         ->where('unidad_id', $registroOperativo->unidad_id)
                         ->where('fecha_historial', $fechaHoy)
-                        ->whereNotNull('hora_real_salida_patio')
+                        ->whereNotNull($colSalidaHistorial)
                         ->orderByDesc('id')
-                        ->value('hora_real_salida_patio');
+                        ->value($colSalidaHistorial);
+                }
 
                 // 3. Registrar snapshot en historial_operativo
-                DB::table('historial_operativo')->insert([
+                $insertAutoHistorial = [
                     'unidad_id' => $registroOperativo->unidad_id,
                     'ruta' => $registroOperativo->ruta,
                     'numero_tarjeton' => $registroOperativo->numero_tarjeton,
@@ -3871,18 +3919,31 @@ class DespachoController extends Controller
                     'estatus' => 'reserva',
                     'motivo_estatus' => $motivoFinal,
                     'momento' => 'ENCIERRO',
-                    'hora_encierro' => $horaRegistroEncierro,
-                    'hora_real_salida_patio' => $horaRealSalidaSnapshot,
-                    'hora_salida_patio' => $registroOperativo->hora_salida_patio,
-                    'acople' => $registroOperativo->acople,
-                    'relevo_conductor' => $registroOperativo->relevo_conductor,
-                    'relevo_tarjeton' => $registroOperativo->relevo_tarjeton,
-                    'relevo_hora' => $registroOperativo->relevo_hora,
                     'fecha_historial' => $fechaHoy,
                     'fecha_registro' => now(),
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
+
+                if (Schema::hasColumn('historial_operativo', 'hora_encierro')) {
+                    $insertAutoHistorial['hora_encierro'] = $horaRegistroEncierro;
+                }
+                if ($colSalidaHistorial && $horaRealSalidaSnapshot) {
+                    $insertAutoHistorial[$colSalidaHistorial] = $horaRealSalidaSnapshot;
+                }
+                if (Schema::hasColumn('historial_operativo', 'hora_salida_patio')) {
+                    $insertAutoHistorial['hora_salida_patio'] = $registroOperativo->hora_salida_patio;
+                }
+                if (Schema::hasColumn('historial_operativo', 'acople')) {
+                    $insertAutoHistorial['acople'] = $registroOperativo->acople;
+                }
+                if (Schema::hasColumn('historial_operativo', 'relevo_conductor')) {
+                    $insertAutoHistorial['relevo_conductor'] = $registroOperativo->relevo_conductor;
+                    $insertAutoHistorial['relevo_tarjeton'] = $registroOperativo->relevo_tarjeton;
+                    $insertAutoHistorial['relevo_hora'] = $registroOperativo->relevo_hora;
+                }
+
+                DB::table('historial_operativo')->insert($insertAutoHistorial);
 
                 // 4. Actualizar informacion_operativa: pasar a reserva y limpiar datos operativos de calle,
                 // manteniendo intacta la hora_encierro asignada por programación
