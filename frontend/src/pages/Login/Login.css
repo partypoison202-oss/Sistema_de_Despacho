@@ -266,8 +266,10 @@
   }
 
   .login-split__logo {
-    height: 6rem;
-    width: 6rem;
+    height: 5.5rem;
+    width: auto;
+    max-width: 14rem;
+    object-fit: contain;
     margin-bottom: 1.5rem;
   }
 

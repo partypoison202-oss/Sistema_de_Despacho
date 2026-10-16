@@ -103,39 +103,15 @@
 
 /* El logo 1 */
 .app-header__brand-logo-1 {
-  height: 58px;
+  height: 70px;
   width: auto;
 }
 
 /* El logo 2 (Logo central) */
 .app-header__brand-logo-2 {
-  height: 37px;
+  height: 70px;
   width: auto;
   filter: brightness(0) invert(1);
-}
-
-@media (max-width: 640px) {
-  .app-header__inner {
-    padding: 0 0.85rem;
-  }
-
-  .app-header__brand-logo-1 {
-    height: 38px;
-  }
-
-  .app-header__brand-logo-2 {
-    height: 22px;
-  }
-}
-
-@media (max-width: 420px) {
-  .app-header__brand-logo-1 {
-    height: 30px;
-  }
-
-  .app-header__brand-logo-2 {
-    height: 18px;
-  }
 }
 
 /* Profile Dropdown Styles */
@@ -150,18 +126,41 @@
   border: none;
   cursor: pointer;
   padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.app-header__profile-btn:hover {
+  transform: scale(1.05);
+}
+
+.app-header__avatar {
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  min-height: 54px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-header__profile-btn:hover .app-header__avatar {
+  border-color: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
 }
 
 .profile-icon {
-  width: 40px;
-  height: 40px;
+  width: 54px;
+  height: 54px;
   background-color: var(--color-gold);
   color: var(--tw-color-white);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: bold;
   border: 2px solid #fff;
   transition: transform 0.2s ease;
@@ -171,9 +170,84 @@
   transform: scale(1.05);
 }
 
+/* ════════════════════════════════
+   RESPONSIVE HEADER
+════════════════════════════════ */
+
+/* Tablets */
+@media (max-width: 768px) {
+  .app-header__inner {
+    height: 70px;
+    padding: 0 1.25rem;
+  }
+
+  .app-header__brand-logo-1 {
+    height: 54px;
+  }
+
+  .app-header__brand-logo-2 {
+    height: 52px;
+  }
+
+  .app-header__avatar,
+  .profile-icon {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+  }
+}
+
+/* Móviles (iPhone 16, Plus, Pro Max, etc. <= 640px) */
+@media (max-width: 640px) {
+  .app-header__inner {
+    height: 60px;
+    padding: 0 0.85rem;
+  }
+
+  .app-header__brand-logo-1 {
+    height: 42px;
+  }
+
+  .app-header__brand-logo-2 {
+    height: 38px;
+  }
+
+  .app-header__avatar,
+  .profile-icon {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .app-header__inner {
+    height: 58px;
+    padding: 0 0.75rem;
+  }
+
+  .app-header__brand-logo-1 {
+    height: 38px;
+  }
+
+  .app-header__brand-logo-2 {
+    height: 34px;
+  }
+
+  .app-header__avatar,
+  .profile-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+}
+
 .app-header__profile-menu {
   position: absolute;
-  top: 60px;
+  top: calc(100% + 12px);
   right: 0;
   background-color: var(--tw-color-white);
   border: 1px solid var(--tw-color-gray-200);
