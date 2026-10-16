@@ -682,7 +682,7 @@ export default function ExcelPreview({
                         );
 
                         return (
-                          <td key={h} className={`cell-${h.toLowerCase()}`} style={{ position: 'relative' }}>
+                          <td key={h} className={`cell-${h.toLowerCase()}`}>
                             <button
                               type="button"
                               onClick={(e) => {
