@@ -12,3 +12,7 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('historial:guardar')->dailyAt('22:05');
 Schedule::command('despacho:cambio-dia-automatico')->dailyAt('00:00')->timezone('America/Mexico_City');
 
+Schedule::call(function () {
+    \App\Http\Controllers\API\DespachoController::procesarEncierrosAutomaticos();
+})->everyMinute()->timezone('America/Mexico_City');
+

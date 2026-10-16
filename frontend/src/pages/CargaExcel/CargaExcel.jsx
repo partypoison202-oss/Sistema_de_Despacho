@@ -895,10 +895,12 @@ export default function CargaExcel({ isPasteles = false }) {
     let dataToExport = previewData;
 
     if (isRelevos) {
-      columnas = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA', 'ESTATUS', 'PATIO_NORTE'];
-      encabezados = ['Tipo Unidad', 'Económico', 'Ruta', 'Corrida', 'Tarjetón Relevo', 'Conductor Relevo', 'Hora Relevo', 'Estatus', 'Patio Norte'];
-      
-      // Filtrar solo los de operacion y ordenar por numero de economico
+      columnas = ['TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA', 'ESTATUS'];
+      encabezados = ['Tipo Unidad', 'Económico', 'Ruta', 'Corrida', 'Tarjetón Relevo', 'Conductor Relevo', 'Hora Relevo', 'Estatus'];
+
+      const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
+
+      // Filtrar solo los de operacion y ordenar igual que la tabla de la pantalla
       dataToExport = dataToExport.filter(fila => {
         const statusNorm = String(fila.ESTATUS || 'operacion')
           .trim()
@@ -917,15 +919,39 @@ export default function CargaExcel({ isPasteles = false }) {
 
         return !noEsOperacion;
       }).sort((a, b) => {
+        const typeA = String(a.TIPO_DE_UNIDAD || '').toUpperCase();
+        const typeB = String(b.TIPO_DE_UNIDAD || '').toUpperCase();
+        const normA = typeA === 'URBANUS' ? 'URBANUSS' : typeA;
+        const normB = typeB === 'URBANUS' ? 'URBANUSS' : typeB;
+
+        let indexA = customSortOrder.indexOf(normA);
+        if (indexA === -1) indexA = 999;
+        let indexB = customSortOrder.indexOf(normB);
+        if (indexB === -1) indexB = 999;
+
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+
         const ecoA = parseInt(a.ECONOMICO || '0', 10);
         const ecoB = parseInt(b.ECONOMICO || '0', 10);
         return ecoA - ecoB;
       });
 
+    } else if (isPasteles) {
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'CORRIDAS', 'PATIO_NORTE'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Corrida', 'Patio Norte'];
     } else {
-      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
-      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de desincorporación', 'Hora de incorporación'];
+      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_ENCIERRO', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
+      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora de Encierro', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de desincorporación', 'Hora de incorporación'];
     }
+
+    const displayTarjeton = (t) => {
+      const raw = String(t ?? '').trim();
+      if (!raw) return '';
+      const n = parseInt(raw, 10);
+      return isNaN(n) ? raw : String(n).padStart(4, '0');
+    };
 
     const datosHoja = [
       encabezados,
@@ -934,6 +960,21 @@ export default function CargaExcel({ isPasteles = false }) {
         if (col === 'PATIO_NORTE' || col === 'ITINERARIO') {
           if (value === true || value === 1 || value === '1' || value === 'true') value = 'SÍ';
           else value = 'NO';
+        } else if (col === 'RELEVO_TARJETON' || col === 'TARJETON') {
+          value = displayTarjeton(value);
+        } else if (col === 'RELEVO_CONDUCTOR' || col === 'NOMBRE_CONDUCTOR') {
+          value = String(value).toUpperCase();
+        } else if (col === 'ESTATUS') {
+          const rawSt = String(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          if (rawSt.includes('operaci')) value = 'Operación';
+          else if (rawSt.includes('reserva')) value = 'Reserva';
+          else if (rawSt.includes('mantenimiento')) value = 'Mantenimiento';
+        } else if (col === 'ECONOMICO') {
+          const rawEco = String(value).trim();
+          const nEco = parseInt(rawEco, 10);
+          if (!isNaN(nEco) && rawEco.length < 3) {
+            value = String(nEco).padStart(3, '0');
+          }
         }
         return value;
       }))
@@ -969,9 +1010,11 @@ export default function CargaExcel({ isPasteles = false }) {
       };
     }
 
-    previewData.forEach((fila, rowIdx) => {
+    dataToExport.forEach((fila, rowIdx) => {
       const excelRow = rowIdx + 1;
-      const bgColor = colorPorEstatus[String(fila.ESTATUS || '').toLowerCase()] || 'FFFFFF';
+      const rawSt = String(fila.ESTATUS || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const stKey = rawSt.includes('mantenimiento') ? 'mantenimiento' : rawSt.includes('reserva') ? 'reserva' : 'operacion';
+      const bgColor = colorPorEstatus[stKey] || 'FFFFFF';
 
       for (let col = rango.s.c; col <= rango.e.c; col++) {
         const celdaRef = XLSX.utils.encode_cell({ r: excelRow, c: col });
@@ -989,11 +1032,18 @@ export default function CargaExcel({ isPasteles = false }) {
       }
     });
 
+    const sheetName = isRelevos ? 'Relevos_T6' : isPasteles ? 'Pasteles' : 'Despacho';
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Despacho');
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
     const fecha = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `Despacho_Diario_${fecha}.xlsx`, { cellStyles: true });
+    const fileName = isRelevos
+      ? `Relevos_T6_${fecha}.xlsx`
+      : isPasteles
+        ? `Programacion_Pasteles_${fecha}.xlsx`
+        : `Despacho_Diario_${fecha}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName, { cellStyles: true });
   };
 
   // ─── DESCARGAR PLANTILLA ────────────────────────────────────────────────────────
@@ -1006,6 +1056,7 @@ export default function CargaExcel({ isPasteles = false }) {
       'TARJETON',
       'HORA DE SALIDA DE PATIO',
       'HORA DE ACOPLE',
+      'HORA DE ENCIERRO',
       'ITINERARIO',
       'HORA DE DESINCORPORACION',
       'HORA DE INCORPORACION'
@@ -1031,6 +1082,7 @@ export default function CargaExcel({ isPasteles = false }) {
       ['TARJETON', 'Solo el número del tarjetón del conductor. Sin nombres ni letras.', '044, 165'],
       ['HORA DE SALIDA DE PATIO', 'Hora en formato de 24 horas.', '05:00, 14:30'],
       ['HORA DE ACOPLE', 'Hora en formato de 24 horas.', '05:15, 14:45'],
+      ['HORA DE ENCIERRO', 'Hora en formato de 24 horas a la que la unidad debe encerrarse por programación (opcional).', '21:30, 22:45'],
       ['ITINERARIO', 'Indicar si la unidad entra en itinerario (SÍ / NO).', 'SÍ, NO'],
       ['HORA DE DESINCORPORACION', 'Hora en formato de 24 horas a la que sale de ruta por itinerario (opcional).', '09:30, 13:00'],
       ['HORA DE INCORPORACION', 'Hora en formato de 24 horas a la que se reincorpora a la ruta (opcional).', '16:30, 17:00'],
@@ -1132,6 +1184,7 @@ export default function CargaExcel({ isPasteles = false }) {
                         const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
                         const hDesinc = normalizedRow['HORA_DE_DESINCORPORACION'] || normalizedRow['HORA_DESINCORPORACION'] || '';
                         const hIncorp = normalizedRow['HORA_DE_INCORPORACION'] || normalizedRow['HORA_INCORPORACION'] || '';
+                        const hEncierro = normalizedRow['HORA_DE_ENCIERRO'] || normalizedRow['HORA_ENCIERRO'] || normalizedRow['ENCIERRO'] || '';
 
                         actualizaciones.push({
                             'HOJA': sheetName,
@@ -1143,6 +1196,7 @@ export default function CargaExcel({ isPasteles = false }) {
                             'NOMBRE_CONDUCTOR': (normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
                             'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
                             'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
+                            'HORA DE ENCIERRO': hEncierro,
                             'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
                             'PATIO_NORTE': isPatioNorte,
                             'ITINERARIO': isItinerario,
@@ -1171,7 +1225,7 @@ export default function CargaExcel({ isPasteles = false }) {
              // Removemos acentos para asegurar un match correcto con las columnas de la plantilla
              const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
              normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
-             if (cleanKey.startsWith('HORA')) normalizedRow[`RAW_${cleanKey}`] = row[k];
+             if (cleanKey.startsWith('HORA') || cleanKey.includes('ENCIERRO')) normalizedRow[`RAW_${cleanKey}`] = row[k];
            });
 
            const eco = normalizedRow['ECONOMICO'] || '';
@@ -1198,6 +1252,7 @@ export default function CargaExcel({ isPasteles = false }) {
            const tarjeton = normalizedRow['TARJETON'] || '';
            const horaSalida = aHoraTexto(normalizedRow['RAW_HORA_DE_SALIDA_DE_PATIO']);
            const horaAcople = aHoraTexto(normalizedRow['RAW_HORA_DE_ACOPLE']);
+           const horaEncierro = aHoraTexto(normalizedRow['RAW_HORA_DE_ENCIERRO'] || normalizedRow['RAW_HORA_ENCIERRO'] || normalizedRow['RAW_ENCIERRO']) || '';
            const horaDesinc = aHoraTexto(normalizedRow['RAW_HORA_DE_DESINCORPORACION'] || normalizedRow['RAW_HORA_DESINCORPORACION']) || '';
            const horaIncorp = aHoraTexto(normalizedRow['RAW_HORA_DE_INCORPORACION'] || normalizedRow['RAW_HORA_INCORPORACION']) || '';
            const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
@@ -1228,12 +1283,15 @@ export default function CargaExcel({ isPasteles = false }) {
              nombreConductor: (nombreConductor || '').toUpperCase(),
              horaSalida,
              horaAcople,
+             horaEncierro,
              horaEntrada: horaEntradaT6,
              horaDesinc,
              horaIncorp,
              itinerario: isItinerario,
              'HORA DE SALIDA DE PATIO': horaSalida,
              'HORA DE ACOPLE': horaAcople,
+             'HORA DE ENCIERRO': horaEncierro,
+             'HORA_ENCIERRO': horaEncierro,
              'HORA ENTRADA T6': horaEntradaT6,
              'HORA DE DESINCORPORACION': horaDesinc,
              'HORA DE INCORPORACION': horaIncorp,
@@ -1321,6 +1379,8 @@ export default function CargaExcel({ isPasteles = false }) {
            newData[act.index].HORA_SALIDA_PATIO = act.horaSalida;
            newData[act.index].ACOPLE = act.horaAcople;
            newData[act.index].HORA_DE_ACOPLE = act.horaAcople;
+           newData[act.index].HORA_ENCIERRO = act.horaEncierro;
+           newData[act.index].hora_encierro = act.horaEncierro;
            if (act.pn) newData[act.index].PATIO_NORTE = true;
            newData[act.index].ITINERARIO = act.itinerario;
            newData[act.index].HORA_DESINCORPORACION = act.horaDesinc;
@@ -1757,6 +1817,7 @@ export default function CargaExcel({ isPasteles = false }) {
             hasChanges={hasChanges}
             isSaving={isSaving}
             isPasteles={isPasteles}
+            isRelevos={isRelevos}
             onOpenCambioUnidad={(fila, originalIndex) => {
               setModalCambioData({
                 isOpen: true,
