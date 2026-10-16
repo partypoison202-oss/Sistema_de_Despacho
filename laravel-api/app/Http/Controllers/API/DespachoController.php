@@ -2143,6 +2143,28 @@ class DespachoController extends Controller
 
         $resAuto = self::ejecutarCambioDiaAutomatico();
 
+        // Si se configuraron ciclos para mañana, sincronizarlos para la fecha operativa actual al aplicar manualmente
+        try {
+            if (Schema::hasTable('programacion_ciclos')) {
+                $fechaHoy = Carbon::today('America/Mexico_City')->toDateString();
+                $fechaManana = Carbon::tomorrow('America/Mexico_City')->toDateString();
+                $ciclosManana = DB::table('programacion_ciclos')->where('fecha_operativa', $fechaManana)->first();
+                if ($ciclosManana) {
+                    $ahora = Carbon::now('America/Mexico_City');
+                    DB::table('programacion_ciclos')->updateOrInsert(
+                        ['fecha_operativa' => $fechaHoy],
+                        [
+                            'ciclos' => $ciclosManana->ciclos,
+                            'updated_at' => $ahora,
+                            'created_at' => $ahora,
+                        ]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('No se pudieron trasladar los ciclos de mañana a hoy: '.$e->getMessage());
+        }
+
         \Log::info('Cambio de día operativo manual ejecutado exitosamente por: '.($user->usuario ?? 'admin'));
 
         return response()->json($resAuto, ($resAuto['status'] ?? '') === 'error' ? 500 : 200);
@@ -5768,4 +5790,85 @@ class DespachoController extends Controller
             ], 500);
         }
     }
+
+    private function resolverFechaCiclos($fechaInput)
+    {
+        $fecha = Carbon::today('America/Mexico_City');
+        switch (strtoupper(trim((string) $fechaInput))) {
+            case 'MANANA':
+                $fecha->addDay();
+                break;
+            case 'HOY':
+            case 'FESTIVO':
+                break;
+            default:
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $fechaInput)) {
+                    return (string) $fechaInput;
+                }
+                break;
+        }
+        return $fecha->toDateString();
+    }
+
+    public function obtenerCiclos(Request $request)
+    {
+        $fechaInput = $request->query('fecha', 'MANANA');
+        $fecha = $this->resolverFechaCiclos($fechaInput);
+
+        if (!Schema::hasTable('programacion_ciclos')) {
+            return response()->json([
+                'fecha' => $fecha,
+                'ciclos' => null,
+            ], 200);
+        }
+
+        $registro = DB::table('programacion_ciclos')
+            ->where('fecha_operativa', $fecha)
+            ->first();
+
+        return response()->json([
+            'fecha' => $fecha,
+            'ciclos' => $registro ? (int) $registro->ciclos : null,
+        ], 200);
+    }
+
+    public function guardarCiclos(Request $request)
+    {
+        $request->validate([
+            'fecha' => 'required|string',
+            'ciclos' => 'required|integer|min:0',
+        ]);
+
+        $fechaInput = $request->input('fecha', 'MANANA');
+        $fecha = $this->resolverFechaCiclos($fechaInput);
+        $ciclos = (int) $request->input('ciclos');
+
+        if (!Schema::hasTable('programacion_ciclos')) {
+            Schema::create('programacion_ciclos', function (Blueprint $table) {
+                $table->id();
+                $table->date('fecha_operativa')->unique();
+                $table->integer('ciclos');
+                $table->timestamps();
+            });
+        }
+
+        $ahora = Carbon::now('America/Mexico_City');
+
+        DB::table('programacion_ciclos')->updateOrInsert(
+            ['fecha_operativa' => $fecha],
+            [
+                'ciclos' => $ciclos,
+                'updated_at' => $ahora,
+                'created_at' => $ahora,
+            ]
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Número de ciclos guardado correctamente.',
+            'fecha' => $fecha,
+            'ciclos' => $ciclos,
+        ], 200);
+    }
 }
+

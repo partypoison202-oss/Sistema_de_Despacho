@@ -17,6 +17,25 @@ const loadImage = (src) => {
     });
 };
 
+const drawImageFitted = (pdf, img, areaX, areaY, areaW, areaH) => {
+    if (!img || !(img.naturalWidth > 0 || img.width > 0)) return;
+    const canvas = document.createElement('canvas');
+    canvas.width  = img.naturalWidth  || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const ratio = Math.min(areaW / canvas.width, areaH / canvas.height);
+    const drawW = canvas.width * ratio;
+    const drawH = canvas.height * ratio;
+    const x = areaX + (areaW - drawW) / 2;
+    const y = areaY + (areaH - drawH) / 2;
+
+    if (drawW > 0 && drawH > 0) {
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
+    }
+};
+
 export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     if (!data || !data.length) {
         throw new Error("No hay datos para generar el reporte.");
@@ -88,9 +107,11 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     pdf.setFontSize(16);
     pdf.text(fecha, pw - 10, 35, { align: 'right' });
 
-    // IMÁGENES A LA IZQUIERDA (Perfiles laterales)
-    const urbanusImg = await loadImage('/images/urbanu.webp');
-    const zafiroImg = await loadImage('/images/alimentadora.webp');
+    // IMÁGENES A LA IZQUIERDA
+    const urbanusImg  = await loadImage('/images/urbanu.webp');
+    const zafiroImg   = await loadImage('/images/zafirofrenterealista.webp');
+    const vagonetaImg = await loadImage('/images/vagoneta frente.webp');
+    const orionImg    = await loadImage('/images/orionfrente.webp');
 
     // TABLA A LA DERECHA
     const head = [
@@ -230,25 +251,18 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
 
     pdf.setFillColor(...COLOR_BEIGE);
     pdf.roundedRect(c1_x, c1_y, c1_w, c1_h, 5, 5, 'F');
-    if (urbanusImg && (urbanusImg.naturalWidth > 0 || urbanusImg.width > 0)) {
-        const canvas = document.createElement('canvas');
-        canvas.width  = urbanusImg.naturalWidth  || urbanusImg.width;
-        canvas.height = urbanusImg.naturalHeight || urbanusImg.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(urbanusImg, 0, 0);
-        
-        const maxW = c1_w - 6;
-        const maxH = Math.max(10, c1_h - 10);
-        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-        const drawW = canvas.width * ratio;
-        const drawH = canvas.height * ratio;
-        const x = c1_x + (c1_w - drawW) / 2;
-        const y = c1_y + (c1_h - drawH) / 2;
-        
-        if (drawW > 0 && drawH > 0) {
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
-        }
-    }
+
+    // Título "RUTA TRONCAL"
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(13);
+    pdf.setTextColor(...COLOR_GUINDA);
+    pdf.text('RUTA TRONCAL', c1_x + (c1_w / 2), c1_y + 8, { align: 'center' });
+
+    // Imagen Urbanus
+    const c1_imgY = c1_y + 10;
+    const c1_imgH = Math.max(10, c1_h - 12);
+    const c1_imgW = c1_w - 6;
+    drawImageFitted(pdf, urbanusImg, c1_x + 3, c1_imgY, c1_imgW, c1_imgH);
 
     // Caja 2 (Alimentadoras) - Alineada con la sección de Alimentadoras
     const c2_x = 23;
@@ -256,26 +270,33 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     const c2_y = finalAlimStart + 1.5;
     const c2_h = finalAlimEnd - c2_y;
 
+    pdf.setFillColor(...COLOR_BEIGE);
     pdf.roundedRect(c2_x, c2_y, c2_w, c2_h, 5, 5, 'F');
-    if (zafiroImg && (zafiroImg.naturalWidth > 0 || zafiroImg.width > 0)) {
-        const canvas = document.createElement('canvas');
-        canvas.width  = zafiroImg.naturalWidth  || zafiroImg.width;
-        canvas.height = zafiroImg.naturalHeight || zafiroImg.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(zafiroImg, 0, 0);
-        
-        const maxW = c2_w - 6;
-        const maxH = Math.max(10, c2_h - 10);
-        const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-        const drawW = canvas.width * ratio;
-        const drawH = canvas.height * ratio;
-        const x = c2_x + (c2_w - drawW) / 2;
-        const y = c2_y + (c2_h - drawH) / 2;
-        
-        if (drawW > 0 && drawH > 0) {
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, drawW, drawH);
-        }
-    }
+
+    // Título "RUTA ALIMENTADORA"
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(13);
+    pdf.setTextColor(...COLOR_GUINDA);
+    pdf.text('RUTA ALIMENTADORA', c2_x + (c2_w / 2), c2_y + 8, { align: 'center' });
+
+    // Imágenes Alimentadoras (Pirámide: Zafiro arriba; Vagoneta y Orión abajo lado a lado)
+    const c2_availY = c2_y + 10;
+    const c2_availH = Math.max(20, c2_h - 12);
+    const c2_availW = c2_w - 6; // 64mm
+
+    const gapY = 2.5;
+    const rowH = (c2_availH - gapY) / 2;
+
+    // Nivel 1: Zafiro centrado
+    drawImageFitted(pdf, zafiroImg, c2_x + 3, c2_availY, c2_availW, rowH);
+
+    // Nivel 2: Vagoneta a la izquierda, Orión a la derecha
+    const gapX = 3;
+    const colW = (c2_availW - gapX) / 2;
+    const row2Y = c2_availY + rowH + gapY;
+
+    drawImageFitted(pdf, vagonetaImg, c2_x + 3, row2Y, colW, rowH);
+    drawImageFitted(pdf, orionImg, c2_x + 3 + colW + gapX, row2Y, colW, rowH);
 
     pdf.save(`Reporte_Rutas_${new Date().toISOString().slice(0,10)}.pdf`);
 };
