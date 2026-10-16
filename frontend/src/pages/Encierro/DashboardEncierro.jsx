@@ -86,11 +86,36 @@ export default function DashboardEncierro() {
                 unidades = Array.isArray(datos) ? datos : [];
               }
             }
-            const unidadEncontrada = unidades.find((unidad) => {
+            let unidadEncontrada = unidades.find((unidad) => {
               const valorEco = unidad.numero_eco !== undefined ? unidad.numero_eco : unidad.eco;
               const numeroEcoUnidad = normalizarNumeroEco(valorEco ?? '');
               return numeroEcoUnidad === eco;
             });
+
+            // Si se encontró en caché pero no parece estar en operación ni encerrada, consultar directamente al API para obtener el estado real
+            if (unidadEncontrada && !unidadEncontrada.ya_encerrada && !unidadEncontrada.yaEncerrada) {
+              const estatusNorm = (unidadEncontrada.estatus || unidadEncontrada.estado || '').toLowerCase().trim();
+              if (!estatusNorm.includes('operaci')) {
+                try {
+                  const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${modulo.id}`, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      'Content-Type': 'application/json',
+                    },
+                  });
+                  if (respuesta.ok) {
+                    const datos = await respuesta.json();
+                    if (Array.isArray(datos)) {
+                      queryClient.setQueryData(['unidades-list-encierro', modulo.id], datos);
+                      const fresco = datos.find((u) => normalizarNumeroEco(u.numero_eco ?? u.eco ?? '') === eco);
+                      if (fresco) unidadEncontrada = fresco;
+                    }
+                  }
+                } catch (e) {
+                  // ignorar fallo de refresco individual
+                }
+              }
+            }
 
             return unidadEncontrada ? { modulo, unidad: unidadEncontrada } : null;
           } catch (error) {
@@ -102,13 +127,19 @@ export default function DashboardEncierro() {
 
       const coincidencia = resultados.find(Boolean);
       if (coincidencia) {
-        const estatusUnidad = coincidencia.unidad.estatus || coincidencia.unidad.estado || 'operacion';
-        const isOperacion = estatusUnidad.toLowerCase().trim().includes('operaci');
-        if (!isOperacion) {
+        const estatusUnidad = (coincidencia.unidad.estatus || coincidencia.unidad.estado || '').toLowerCase().trim();
+        const isOperacion = estatusUnidad.includes('operaci');
+        const isYaEncerrada = Boolean(
+          coincidencia.unidad.ya_encerrada ||
+          coincidencia.unidad.yaEncerrada ||
+          (coincidencia.unidad.hora_encierro && String(coincidencia.unidad.hora_encierro).trim() !== '')
+        );
+
+        if (!isOperacion && !isYaEncerrada) {
           Swal.fire({
             icon: 'warning',
             title: 'Unidad no disponible',
-            text: `La unidad ${eco} no se puede procesar porque no está en operación.`,
+            text: `La unidad ${eco} no se puede procesar porque no está en operación ni cuenta con registro de encierro.`,
             confirmButtonColor: '#601a2a',
           });
           return;

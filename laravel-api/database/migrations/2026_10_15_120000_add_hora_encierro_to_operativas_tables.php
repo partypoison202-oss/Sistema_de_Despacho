@@ -22,7 +22,7 @@ return new class extends Migration
             if (Schema::hasTable($tableName)) {
                 Schema::table($tableName, function (Blueprint $table) use ($tableName) {
                     if (!Schema::hasColumn($tableName, 'hora_encierro')) {
-                        $table->string('hora_encierro', 20)->nullable()->after('acople');
+                        $table->string('hora_encierro', 20)->nullable();
                     }
                 });
             }

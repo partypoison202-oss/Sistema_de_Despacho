@@ -56,7 +56,12 @@ export function useGlobalPrefetch() {
       kilometraje: u.kilometraje || '',
       socio: String(u.socio ?? '').trim(),
       horaRealSalidaPatio: String(u.hora_real_salida_patio ?? '').trim(),
-      horaSalidaPatio: String(u.hora_salida_patio ?? '').trim()
+      hora_real_salida_patio: String(u.hora_real_salida_patio ?? '').trim(),
+      horaSalidaPatio: String(u.hora_salida_patio ?? '').trim(),
+      estatus: String(u.estatus ?? 'operacion').trim().toLowerCase(),
+      hora_encierro: u.hora_encierro || '',
+      ya_encerrada: Boolean(u.ya_encerrada),
+      yaEncerrada: Boolean(u.ya_encerrada),
     });
 
     // Prefetch transport modules (Mesa Control / Despacho / Mantenimiento)

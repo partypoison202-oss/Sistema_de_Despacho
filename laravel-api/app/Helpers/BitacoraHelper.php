@@ -35,17 +35,18 @@ class BitacoraHelper
                 $registros = DB::table('informacion_operativa')->get();
 
                 if ($registros->isNotEmpty()) {
-                    $hasManiobrista = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'tarjeton_maniobrista');
-                    $hasAcople = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'acople');
-                    $hasHoraSalida = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_salida');
-                    $hasHoraReal = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
-                    $hasRelevo = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'relevo_tarjeton');
-                    $hasItinerario = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'itinerario');
-                    $hasHoraIncorp = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_incorporacion');
-                    $hasHoraDesinc = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_desincorporacion');
-                    $hasHoraEncierro = \Illuminate\Support\Facades\Schema::hasColumn('historial_operativo', 'hora_encierro');
+                    $historialCols = array_flip(\Illuminate\Support\Facades\Schema::getColumnListing('historial_operativo'));
+                    $hasManiobrista = isset($historialCols['tarjeton_maniobrista']);
+                    $hasAcople = isset($historialCols['acople']);
+                    $hasHoraSalida = isset($historialCols['hora_salida']);
+                    $hasHoraReal = isset($historialCols['hora_real_salida_patio']);
+                    $hasRelevo = isset($historialCols['relevo_tarjeton']);
+                    $hasItinerario = isset($historialCols['itinerario']);
+                    $hasHoraIncorp = isset($historialCols['hora_incorporacion']);
+                    $hasHoraDesinc = isset($historialCols['hora_desincorporacion']);
+                    $hasHoraEncierro = isset($historialCols['hora_encierro']);
 
-                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo, $hasItinerario, $hasHoraIncorp, $hasHoraDesinc, $hasHoraEncierro) {
+                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $historialCols, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo, $hasItinerario, $hasHoraIncorp, $hasHoraDesinc, $hasHoraEncierro) {
                         $item = [
                             'fecha_historial' => $hoy,
                             'momento'         => 'INICIO',
@@ -59,7 +60,7 @@ class BitacoraHelper
                             'corridas'        => $registro->corridas,
                             'ciclo'           => $registro->ciclo,
                             'motivo'          => $registro->motivo,
-                            'hora_salida_patio' => $registro->hora_salida_patio,
+                            'hora_salida_patio' => $registro->hora_salida_patio ?? ($registro->hora_programada ?? null),
                             'motivo_estatus'  => $registro->motivo_estatus,
                             'fecha_registro'  => $registro->fecha_registro,
                             'created_at'      => Carbon::now(),
@@ -76,11 +77,11 @@ class BitacoraHelper
                         }
 
                         if ($hasHoraSalida) {
-                            $item['hora_salida'] = $registro->hora_salida ?? null;
+                            $item['hora_salida'] = $registro->hora_salida ?? ($registro->hora_real_salida_patio ?? null);
                         }
 
                         if ($hasHoraReal) {
-                            $item['hora_real_salida_patio'] = $registro->hora_real_salida_patio ?? null;
+                            $item['hora_real_salida_patio'] = $registro->hora_real_salida_patio ?? ($registro->hora_salida ?? null);
                         }
 
                         if ($hasRelevo) {
@@ -105,10 +106,12 @@ class BitacoraHelper
                             $item['hora_encierro'] = $registro->hora_encierro ?? null;
                         }
 
-                        return $item;
+                        return array_intersect_key($item, $historialCols);
                     })->toArray();
 
-                    DB::table('historial_operativo')->insert($datosInsertar);
+                    foreach (array_chunk($datosInsertar, 50) as $chunk) {
+                        DB::table('historial_operativo')->insert($chunk);
+                    }
                     Log::info("Snapshot INICIO guardado de forma auto-generada para la fecha {$hoy}.");
                 }
             }

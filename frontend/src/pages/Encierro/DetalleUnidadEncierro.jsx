@@ -526,12 +526,14 @@ export default function DetalleUnidadEncierro() {
         unidad.display === formatearEco(ecoNormalizado)
     );
 
-    if (unidadEncontrada && unidadEncontrada.acople) {
-      return;
-    }
+    const targetUnidad = unidadEncontrada || {
+      eco: ecoNormalizado,
+      display: formatearEco(ecoNormalizado),
+      yaEncerrada: true,
+    };
 
-    if (unidadEncontrada && selectedOption !== unidadEncontrada.display) {
-      handleSelectUnit(unidadEncontrada);
+    if (selectedOption !== targetUnidad.display) {
+      handleSelectUnit(targetUnidad);
     }
   }, [searchParams, unidadesList, selectedOption]);
 
@@ -657,6 +659,7 @@ export default function DetalleUnidadEncierro() {
           queryClient.invalidateQueries(['conteo-unidades-encierro-global']);
           queryClient.invalidateQueries(['despacho-hoy']);
           queryClient.invalidateQueries(['conteo-unidades-global']);
+          queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
 
           const Swal = (await import('sweetalert2')).default;
           Swal.fire({
