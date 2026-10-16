@@ -243,10 +243,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/despacho/hoy', [DespachoController::class, 'obtenerDatosHoy']);
     Route::get('/despacho/inicio-hoy', [DespachoController::class, 'obtenerInicioHoy']);
     Route::get('/despacho/manana', [DespachoController::class, 'obtenerDatosManana']);
+    Route::get('/despacho/ciclos', [DespachoController::class, 'obtenerCiclos']);
     Route::get('/despacho/especifico/{dia}', [DespachoController::class, 'obtenerDatosEspecifico']);
     Route::post('/despacho/importar', [DespachoController::class, 'importar']);
     Route::post('/despacho/actualizar', [DespachoController::class, 'actualizar']);
     Route::post('/despacho/actualizar-manana', [DespachoController::class, 'actualizarManana']);
+    Route::post('/despacho/ciclos', [DespachoController::class, 'guardarCiclos']);
     Route::post('/despacho/actualizar-especifico/{dia}', [DespachoController::class, 'actualizarEspecifico']);
     Route::post('/despacho/aplicar-cambio-dia', [DespachoController::class, 'aplicarCambioDia']);
     Route::post('/despacho/aplicar-cambio-especifico/{dia}', [DespachoController::class, 'aplicarCambioDiaEspecifico']);
