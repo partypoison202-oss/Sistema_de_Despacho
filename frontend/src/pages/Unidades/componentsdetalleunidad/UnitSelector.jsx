@@ -1,7 +1,4 @@
-// src/pages/MesaControl/components/UnitSelector.jsx
 import React, { useRef, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import API_BASE from '../../../config/api';
 
 export default function UnitSelector({
   isOpen,
@@ -21,7 +18,6 @@ export default function UnitSelector({
 }) {
   const toggleDropdown = () => setIsOpen(!isOpen);
   const dropdownRef = useRef(null);
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -32,27 +28,6 @@ export default function UnitSelector({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, setIsOpen]);
-
-  const handleMouseEnter = (unidad) => {
-    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
-    if (!token) return;
-    const numeroLimpio = String(unidad.eco).padStart(3, '0');
-    queryClient.prefetchQuery({
-      queryKey: ['unidad-detalle', configActual.id, numeroLimpio],
-      queryFn: async () => {
-        const url = `${API_BASE}/api/unidades/detalle/${configActual.id}/${numeroLimpio}`;
-        const res = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!res.ok) throw new Error('Error prefetch');
-        return res.json();
-      },
-      staleTime: 60000,
-    });
-  };
 
   const displayValue = titulo;
 
@@ -151,7 +126,6 @@ export default function UnitSelector({
                 <button
                   key={unidad.display}
                   onClick={() => onSelectUnit(unidad)}
-                  onMouseEnter={() => handleMouseEnter(unidad)}
                   className="dropdown-menu__item"
                   style={{
                     display: 'flex',

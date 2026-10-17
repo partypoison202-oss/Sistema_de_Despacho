@@ -144,8 +144,9 @@ export default function Dashboard() {
     }
   };
 
-  const fetchConteos = async () => {
+  const fetchConteos = async ({ signal }) => {
     const response = await fetch(`${API_BASE}/api/despacho/conteo-unidades`, {
+      signal,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
@@ -158,7 +159,8 @@ export default function Dashboard() {
   const { data: conteos = {}, isLoading: cargando } = useQuery({
     queryKey: ['conteo-unidades-global'],
     queryFn: fetchConteos,
-    refetchInterval: 5000, // Actualiza silenciosamente cada 5 segundos
+    staleTime: 8000,
+    refetchInterval: 10000, // Actualiza silenciosamente cada 10 segundos
   });
 
   return (
