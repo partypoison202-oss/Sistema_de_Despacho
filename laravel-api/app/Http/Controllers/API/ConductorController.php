@@ -141,13 +141,7 @@ class ConductorController extends Controller
                 $estaAsignado = isset($asignacionesMap[$tarjetonClean]);
                 if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                     $c->estado_servicio = null;
-                } elseif ($c->estado_servicio === 'maniobrista') {
-                    // Respetar siempre el estado maniobrista, aunque esté asignado
-                    $c->estado_servicio = 'maniobrista';
-                } elseif ($c->estado_servicio === 'falta' || $c->estado_servicio === 'incapacidad' || $c->estado_servicio === 'permiso' || $c->estado_servicio === 'descanso') {
-                    // Respetar estados no disponibles
-                    $c->estado_servicio = $c->estado_servicio;
-                } else {
+                } elseif ($c->estado_servicio !== 'maniobrista' && !in_array($c->estado_servicio, ['falta', 'incapacidad', 'permiso', 'descanso'])) {
                     $c->estado_servicio = $estaAsignado ? 'en_servicio' : ($c->estado_servicio ?? 'disponible');
                 }
                 return $c;
@@ -167,7 +161,7 @@ class ConductorController extends Controller
         }
     }
 
-    public function show(Request $request, $id)
+    public function show($id)
     {
         $this->ensureColumnsExist();
         $conductor = Conductor::findOrFail($id);
@@ -188,9 +182,13 @@ class ConductorController extends Controller
                             'numero_tarjeton' => null,
                             'nombre_conductor' => null
                         ]);
-                } catch (\Throwable $e) {}
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Error actualizando conductor inhabilitado: ' . $e->getMessage());
+                }
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Error evaluando faltas en show conductor: ' . $e->getMessage());
+        }
 
         $tarjetonClean = trim((string)($conductor->tarjeton ?? ''));
         $estaAsignado = false;
@@ -199,15 +197,13 @@ class ConductorController extends Controller
                 ->where('numero_tarjeton', $tarjetonClean)
                 ->where('numero_tarjeton', '!=', '')
                 ->exists();
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+            $estaAsignado = false;
+        }
 
         if ($conductor->estatus === 'baja' || $conductor->estatus === 'inhabilitado') {
             $conductor->estado_servicio = null;
-        } elseif ($conductor->estado_servicio === 'maniobrista') {
-            $conductor->estado_servicio = 'maniobrista';
-        } elseif (in_array($conductor->estado_servicio, ['falta', 'incapacidad', 'permiso', 'descanso'])) {
-            $conductor->estado_servicio = $conductor->estado_servicio;
-        } else {
+        } elseif ($conductor->estado_servicio !== 'maniobrista' && !in_array($conductor->estado_servicio, ['falta', 'incapacidad', 'permiso', 'descanso'])) {
             $conductor->estado_servicio = $estaAsignado ? 'en_servicio' : ($conductor->estado_servicio ?? 'disponible');
         }
 

@@ -359,6 +359,22 @@ const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder =
   return prevProps.value === nextProps.value && prevProps.type === nextProps.type;
 });
 
+const mostrarAlertaErrorConductores = (err) => {
+  const esSesionExpirada = err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.';
+  Swal.fire({
+    icon: 'error',
+    title: esSesionExpirada ? 'Sesión expirada' : 'Error',
+    text: esSesionExpirada ? err.message : 'No se pudieron cargar los operadores.',
+    confirmButtonColor: '#6b1d33'
+  }).then((result) => {
+    if (result.isConfirmed && esSesionExpirada) {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  });
+};
+
 export default function Operadores() {
   const { user } = useContext(AuthContext);
   const [modalFaltasOpen, setModalFaltasOpen] = useState(false);
@@ -608,32 +624,21 @@ export default function Operadores() {
       if (res.status === 401) {
         throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
       }
-      if (!res.ok) throw new Error('Error al cargar operadores');
+      if (!res.ok) {
+        throw new Error('Error al cargar operadores');
+      }
       const data = await res.json();
       setConductores(Array.isArray(data) ? data : []);
     } catch (err) {
-      if (err.name === 'AbortError') return;
-      console.error(err);
-      if (!silent) {
-        Swal.fire({
-          icon: 'error',
-          title: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.' ? 'Sesión expirada' : 'Error',
-          text: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.'
-            ? err.message
-            : 'No se pudieron cargar los operadores.',
-          confirmButtonColor: '#6b1d33'
-        }).then((result) => {
-          if (result.isConfirmed && err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.') {
-            // Limpiar tokens y redirigir al login si la sesión expiró
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('token');
-            window.location.href = '/login';
-          }
-        });
+      if (err.name !== 'AbortError') {
+        console.error(err);
+        if (!silent) {
+          mostrarAlertaErrorConductores(err);
+        }
       }
     } finally {
-      if (fetchAbortControllerRef.current === controller) {
-        if (!silent) setLoading(false);
+      if (fetchAbortControllerRef.current === controller && !silent) {
+        setLoading(false);
       }
     }
   };
