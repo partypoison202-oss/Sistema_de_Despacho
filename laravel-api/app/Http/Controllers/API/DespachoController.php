@@ -2008,6 +2008,20 @@ class DespachoController extends Controller
                 $nuevosRegistros = DB::table($sourceTable)->get();
                 DB::table('informacion_operativa')->delete();
 
+                // Limpiar registros erróneos de auto-encierro generados prematuramente para hoy
+                // (para que ninguna unidad restaurada aparezca falsamente como "Ya encerrada")
+                DB::table('historial_operativo')
+                    ->where('fecha_historial', $fechaHoy)
+                    ->where('momento', 'ENCIERRO')
+                    ->where(function ($q) {
+                        $q->where('motivo_estatus', 'Fin de turno (Encierro programado)')
+                          ->orWhereNull('hora_real_salida_patio')
+                          ->orWhere('hora_real_salida_patio', '')
+                          ->orWhere('hora_real_salida_patio', '00:00')
+                          ->orWhere('hora_real_salida_patio', '00:00:00');
+                    })
+                    ->delete();
+
                 $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
                 $inicialCols = array_flip(Schema::getColumnListing('programacion_inicial'));
                 $tarjetones = [];
@@ -4012,11 +4026,22 @@ class DespachoController extends Controller
                 return 0;
             }
 
+            $hasHoraRealSalida = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
+            if (! $hasHoraRealSalida) {
+                return 0;
+            }
+
             // Buscar unidades en operación que tengan hora_encierro asignada
+            // Y que YA HAYAN SIDO DESPACHADAS DE PATIO (hora_real_salida_patio válida).
+            // NUNCA auto-encerrar unidades que siguen en patio pendientes por despachar.
             $unidadesParaEncierro = DB::table('informacion_operativa')
                 ->whereRaw("LOWER(estatus) = 'operacion'")
                 ->whereNotNull('hora_encierro')
                 ->whereRaw("TRIM(CAST(hora_encierro AS VARCHAR)) != ''")
+                ->whereNotNull('hora_real_salida_patio')
+                ->whereRaw("TRIM(CAST(hora_real_salida_patio AS VARCHAR)) != ''")
+                ->whereRaw("TRIM(CAST(hora_real_salida_patio AS VARCHAR)) != '00:00'")
+                ->whereRaw("TRIM(CAST(hora_real_salida_patio AS VARCHAR)) != '00:00:00'")
                 ->get();
 
             if ($unidadesParaEncierro->isEmpty()) {
@@ -4026,6 +4051,18 @@ class DespachoController extends Controller
             $encerradasCount = 0;
 
             foreach ($unidadesParaEncierro as $registroOperativo) {
+                // Validación estricta 1: La unidad DEBE haber salido físicamente de patio hoy
+                $horaRealRaw = trim((string) ($registroOperativo->hora_real_salida_patio ?? ''));
+                if ($horaRealRaw === '' || $horaRealRaw === '00:00' || $horaRealRaw === '00:00:00') {
+                    continue; // Aún en patio (pendiente por despachar). Jamás auto-encerrar.
+                }
+
+                $partsSalida = explode(':', $horaRealRaw);
+                if (count($partsSalida) < 2) {
+                    continue;
+                }
+                $horaSalidaReal = sprintf('%02d:%02d', (int) $partsSalida[0], (int) $partsSalida[1]);
+
                 $horaEncRaw = trim((string) $registroOperativo->hora_encierro);
                 $partsEnc = explode(':', $horaEncRaw);
                 if (count($partsEnc) >= 2) {
@@ -4038,14 +4075,35 @@ class DespachoController extends Controller
 
                 if ($horaEnc >= '06:00') {
                     // Turno regular diurno/vespertino (06:00 a 23:59)
-                    if ($horaActual >= $horaEnc) {
-                        $debeEncerrar = true;
+                    if ($horaActual >= '06:00') {
+                        // En el día: encierra si ya se alcanzó o superó la hora de encierro
+                        // y la hora de encierro es posterior o igual a la salida
+                        if ($horaActual >= $horaEnc && $horaEnc >= $horaSalidaReal) {
+                            $debeEncerrar = true;
+                        }
+                    } else {
+                        // Pasó la medianoche a la madrugada del día siguiente y la unidad salió el día previo
+                        if ($horaSalidaReal >= '06:00') {
+                            $debeEncerrar = true;
+                        }
                     }
                 } else {
-                    // Turno nocturno que cruza medianoche hacia la madrugada (00:00 a 05:59)
-                    if ($horaActual >= $horaEnc && $horaActual < '06:00') {
-                        $debeEncerrar = true;
+                    // Turno nocturno que concluye en la madrugada (00:00 a 05:59)
+                    if ($horaActual < '06:00') {
+                        if ($horaSalidaReal >= '06:00') {
+                            // Salió en el turno de la tarde/noche anterior y concluye en esta madrugada
+                            if ($horaActual >= $horaEnc) {
+                                $debeEncerrar = true;
+                            }
+                        } else {
+                            // Salió en esta misma madrugada y concluye más tarde en la misma madrugada
+                            if ($horaActual >= $horaEnc && $horaEnc >= $horaSalidaReal) {
+                                $debeEncerrar = true;
+                            }
+                        }
                     }
+                    // Si $horaActual >= '06:00', aún estamos en el turno diurno previo a la medianoche;
+                    // la hora de encierro de madrugada es para el final del día, no al inicio.
                 }
 
                 if (! $debeEncerrar) {
