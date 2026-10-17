@@ -61,13 +61,13 @@ export default function CargaExcel({ isPasteles = false }) {
     };
   };
 
-  const fetchCatalogos = async () => {
+  const fetchCatalogos = async ({ signal }) => {
     const headers = getAuthHeaders();
     const [resUnidades, resConductores, resRutas, resManiobristas] = await Promise.all([
-      fetch(`${API_BASE}/api/despacho/catalogo/unidades`, { headers }),
-      fetch(`${API_BASE}/api/conductores`, { headers }),
-      fetch(`${API_BASE}/api/despacho/rutas`, { headers }),
-      fetch(`${API_BASE}/api/maniobristas`, { headers })
+      fetch(`${API_BASE}/api/despacho/catalogo/unidades`, { headers, signal }),
+      fetch(`${API_BASE}/api/conductores`, { headers, signal }),
+      fetch(`${API_BASE}/api/despacho/rutas`, { headers, signal }),
+      fetch(`${API_BASE}/api/maniobristas`, { headers, signal })
     ]);
 
     if (!resUnidades.ok || !resConductores.ok || !resRutas.ok || !resManiobristas.ok) {
@@ -98,7 +98,7 @@ export default function CargaExcel({ isPasteles = false }) {
   const catalogManiobristas = catalogos?.maniobristas || [];
   const catalogRutasObj = catalogos?.rutasObj || { troncales: [], alimentadoras: [] };
 
-  const fetchDatos = async ({ queryKey }) => {
+  const fetchDatos = async ({ queryKey, signal }) => {
     const [_key, tab] = queryKey;
     const headers = getAuthHeaders();
     let url = `${API_BASE}/api/despacho/hoy`;
@@ -106,6 +106,7 @@ export default function CargaExcel({ isPasteles = false }) {
     else if (tab === 'FESTIVO') url = `${API_BASE}/api/despacho/especifico/festivo`;
 
     const response = await fetch(url, {
+      signal,
       headers
     });
     if (!response.ok) throw new Error(`Error al obtener datos de ${tab}`);
@@ -116,7 +117,8 @@ export default function CargaExcel({ isPasteles = false }) {
   const { data: serverData, isLoading: cargandoTabla, refetch: refetchData } = useQuery({
     queryKey: ['despacho-datos', tabActiva],
     queryFn: fetchDatos,
-    refetchInterval: hasChanges ? false : 8000,
+    staleTime: 5000,
+    refetchInterval: hasChanges ? false : 15000,
   });
 
 
@@ -938,9 +940,6 @@ export default function CargaExcel({ isPasteles = false }) {
         return ecoA - ecoB;
       });
 
-    } else if (isPasteles) {
-      columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'CORRIDAS', 'PATIO_NORTE'];
-      encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Corrida', 'Patio Norte'];
     } else {
       columnas = ['ECONOMICO', 'TIPO_DE_UNIDAD', 'ESTATUS', 'RUTA', 'TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_ENCIERRO', 'HORA_REAL_SALIDA_PATIO', 'CORRIDAS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
       encabezados = ['Económico', 'Tipo de Unidad', 'Estatus', 'Ruta', 'Tarjetón', 'Conductor', 'Hora de salida de patio', 'Acople', 'Hora de Encierro', 'Hora Salida', 'Corrida', 'Patio Norte', 'Itinerario', 'Hora de desincorporación', 'Hora de incorporación'];
