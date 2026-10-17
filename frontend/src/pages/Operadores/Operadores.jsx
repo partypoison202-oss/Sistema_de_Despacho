@@ -359,6 +359,22 @@ const EditableCell = React.memo(({ value, onChange, type = 'text', placeholder =
   return prevProps.value === nextProps.value && prevProps.type === nextProps.type;
 });
 
+const mostrarAlertaErrorConductores = (err) => {
+  const esSesionExpirada = err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.';
+  Swal.fire({
+    icon: 'error',
+    title: esSesionExpirada ? 'Sesión expirada' : 'Error',
+    text: esSesionExpirada ? err.message : 'No se pudieron cargar los operadores.',
+    confirmButtonColor: '#6b1d33'
+  }).then((result) => {
+    if (result.isConfirmed && esSesionExpirada) {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  });
+};
+
 export default function Operadores() {
   const { user } = useContext(AuthContext);
   const [modalFaltasOpen, setModalFaltasOpen] = useState(false);
@@ -398,6 +414,7 @@ export default function Operadores() {
   const [foto, setFoto] = useState(null);
   const [qrFile, setQrFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const fetchAbortControllerRef = useRef(null);
 
   const tipoOptions = [
     { value: '', label: 'Seleccionar...' },
@@ -592,38 +609,37 @@ export default function Operadores() {
   };
 
   const fetchConductores = async (silent = false) => {
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    fetchAbortControllerRef.current = controller;
+
     if (!silent) setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/conductores?incluir_bajas=true`, {
+        signal: controller.signal,
         headers: getAuthHeaders()
       });
       if (res.status === 401) {
         throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
       }
-      if (!res.ok) throw new Error('Error al cargar operadores');
+      if (!res.ok) {
+        throw new Error('Error al cargar operadores');
+      }
       const data = await res.json();
       setConductores(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
-      if (!silent) {
-        Swal.fire({
-          icon: 'error',
-          title: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.' ? 'Sesión expirada' : 'Error',
-          text: err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.'
-            ? err.message
-            : 'No se pudieron cargar los operadores.',
-          confirmButtonColor: '#6b1d33'
-        }).then((result) => {
-          if (result.isConfirmed && err.message === 'Sesión expirada. Por favor, inicia sesión nuevamente.') {
-            // Limpiar tokens y redirigir al login si la sesión expiró
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('token');
-            window.location.href = '/login';
-          }
-        });
+      if (err.name !== 'AbortError') {
+        console.error(err);
+        if (!silent) {
+          mostrarAlertaErrorConductores(err);
+        }
       }
     } finally {
-      if (!silent) setLoading(false);
+      if (fetchAbortControllerRef.current === controller && !silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -646,32 +662,25 @@ export default function Operadores() {
     }
   };
 
-  // Carga inicial
+  // Carga inicial y limpieza de peticiones al desmontar
   useEffect(() => {
     fetchConductores();
+    return () => {
+      if (fetchAbortControllerRef.current) {
+        fetchAbortControllerRef.current.abort();
+      }
+    };
   }, []);
 
-  // Polling silencioso & Bloquear scroll de fondo
+  // Bloquear scroll de fondo cuando hay modales abiertos
   useEffect(() => {
     const isAnyModalOpen = showDetailsModal || showEditModal || showAddModal;
-
-    // Bloquear el scroll en el body si hay modales abiertos
     if (isAnyModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-
-    // Polling cada 15 segundos para no saturar ni alentar el navegador
-    let interval;
-    if (!isAnyModalOpen) {
-      interval = setInterval(() => {
-        fetchConductores(true);
-      }, 15000);
-    }
-
     return () => {
-      clearInterval(interval);
       document.body.style.overflow = '';
     };
   }, [showDetailsModal, showEditModal, showAddModal]);
@@ -832,6 +841,18 @@ export default function Operadores() {
     setFoto(null);
     setQrFile(null);
     setShowEditModal(true);
+
+    // Si el operador tiene foto o QR en BD pero no vino en el listado ligero, cargarlos bajo demanda
+    if ((c.tiene_foto || c.tiene_qr || !c.foto) && c.id) {
+      fetch(`${API_BASE}/api/conductores/${c.id}`, { headers: getAuthHeaders() })
+        .then(res => res.ok ? res.json() : null)
+        .then(full => {
+          if (full) {
+            setSelectedConductor(prev => (prev?.id === c.id ? { ...prev, foto: full.foto, qr_documento: full.qr_documento } : prev));
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   const handleEditSubmit = async (e) => {

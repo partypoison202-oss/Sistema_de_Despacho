@@ -801,7 +801,20 @@ export default function InfoGeneralOperador({ conductores }) {
   // Selección
   const handleSelect = (conductor) => {
     setSelectedConductor(conductor);
-    setSearchTerm(''); // Opcional: limpiar búsqueda o dejarla
+    setSearchTerm('');
+    if (conductor?.id && conductor.id !== '---') {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      fetch(`${API_BASE}/api/conductores/${conductor.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(full => {
+          if (full) {
+            setSelectedConductor(prev => (prev?.id === conductor.id ? { ...prev, ...full } : prev));
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   const defaultConductor = {
