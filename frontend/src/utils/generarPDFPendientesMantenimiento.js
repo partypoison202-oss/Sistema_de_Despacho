@@ -2,34 +2,19 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
- * Carga una imagen y elimina el fondo blanco usando canvas,
- * devolviendo un dataURL PNG con transparencia.
+ * Carga el logo institucional oficial en su formato original
+ * respetando sus colores (dorado y blanco) y transparencia natural para jsPDF.
  */
-const cargarLogoTransparente = (src) =>
+const cargarLogoOficial = (src) =>
   new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      // Quitar fondo y pintar el logo de blanco (como brightness-0 invert)
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i] > 230 && data[i + 1] > 230 && data[i + 2] > 230) {
-          // Fondo casi-blanco -> hacerlo transparente
-          data[i + 3] = 0; 
-        } else if (data[i + 3] > 0) {
-          // Si el pixel no es transparente, hacerlo completamente blanco
-          data[i] = 255;
-          data[i + 1] = 255;
-          data[i + 2] = 255;
-        }
-      }
-      ctx.putImageData(imageData, 0, 0);
       resolve(canvas.toDataURL('image/png'));
     };
     img.onerror = () => resolve(null);
@@ -90,8 +75,8 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
   const pdf = new jsPDF('l', 'mm', 'letter');
   const pageW = pdf.internal.pageSize.getWidth();
 
-  // Cargar logo de alta calidad con fondo transparente
-  const logoDataUrl = await cargarLogoTransparente('/images/sistema_de_tm.webp');
+  // Cargar logo oficial respetando colores originales y transparencia
+  const logoDataUrl = await cargarLogoOficial('/images/sistema_de_tm.webp');
 
   // Fecha / hora
   const now = new Date();
@@ -140,6 +125,47 @@ export const generarPDFPendientesMantenimiento = async (unidades, tipo) => {
     subtitulo = 'Unidades con reporte de falla activo';
     filename = `Reporte_Economicos_Folio_${fechaStr.replace(/ /g, '_')}.pdf`;
   }
+
+  // Ordenar: el más nuevo arriba, el más viejo abajo (descendente)
+  // 1. Por fecha de ingreso / folio (fecha más reciente primero)
+  // 2. Si las fechas son iguales, por número de folio / incidencia (mayor número = más nuevo arriba)
+  // 3. Fallback por ID de registro (id_incidencia mayor = creado recientemente arriba)
+  const obtenerTimestamp = (u) => {
+    const f = (tipo === 'en-mantenimiento' ? u.fecha_folio_mantenimiento : null) || u.fecha_registro || u.fecha_folio_mantenimiento;
+    if (!f) return -Infinity;
+    const t = new Date(f).getTime();
+    return isNaN(t) ? -Infinity : t;
+  };
+
+  const extraerNumero = (val) => {
+    if (!val) return 0;
+    const digits = String(val).replace(/\D/g, '');
+    return digits ? parseInt(digits, 10) : 0;
+  };
+
+  unidadesFiltradas.sort((a, b) => {
+    const timeA = obtenerTimestamp(a);
+    const timeB = obtenerTimestamp(b);
+    if (timeA !== timeB) {
+      return timeB - timeA; // Más nuevo (mayor timestamp) arriba, más viejo abajo
+    }
+
+    const folioA = tipo === 'pendientes' ? a.numero_incidencia : (a.folio_mantenimiento || a.numero_incidencia);
+    const folioB = tipo === 'pendientes' ? b.numero_incidencia : (b.folio_mantenimiento || b.numero_incidencia);
+    const numA = extraerNumero(folioA);
+    const numB = extraerNumero(folioB);
+    if (numA !== numB && numA > 0 && numB > 0) {
+      return numB - numA; // Más nuevo (mayor número) arriba, más viejo abajo
+    }
+
+    const idA = Number(a.id_incidencia) || 0;
+    const idB = Number(b.id_incidencia) || 0;
+    if (idA !== idB && idA > 0 && idB > 0) {
+      return idB - idA; // Mayor ID arriba, menor ID abajo
+    }
+
+    return String(b.numero_eco || '').localeCompare(String(a.numero_eco || ''));
+  });
 
   // Encabezado
   agregarEncabezado(pdf, logoDataUrl, titulo, subtitulo);

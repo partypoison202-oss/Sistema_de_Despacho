@@ -8,6 +8,22 @@ import jsPDF from 'jspdf';
 import { AuthContext } from '../../context/AuthContext';
 
 
+const MESES_ABREV = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+const getMesActualAbrev = () => MESES_ABREV[new Date().getMonth()];
+const parsearCodigoMes = (valor) => {
+  if (!valor || typeof valor !== 'string') {
+    return { mes: getMesActualAbrev(), codigo: '' };
+  }
+  const match = valor.trim().match(/^([A-Za-z]{3})-(.*)$/);
+  if (match) {
+    const mesCand = match[1].toUpperCase();
+    if (MESES_ABREV.includes(mesCand)) {
+      return { mes: mesCand, codigo: match[2].toUpperCase() };
+    }
+  }
+  return { mes: getMesActualAbrev(), codigo: valor.trim().toUpperCase() };
+};
+
 export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, initialData, initialStep = 1, printOnly = false, conductores = [] }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -22,6 +38,8 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
   // Form Data
   const [incidencia, setIncidencia] = useState('');
+  const [incidenciaMesPrefijo, setIncidenciaMesPrefijo] = useState(getMesActualAbrev());
+  const [isEditandoIncidenciaMes, setIsEditandoIncidenciaMes] = useState(false);
   const [folioOrden, setFolioOrden] = useState('');
   const [formData, setFormData] = useState({
     eco: '',
@@ -43,13 +61,16 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       hasInitialized.current = true;
       // Si hay incidencia existente, vamos al paso 2.
       const incidenciaExistente = initialData?.numero_incidencia || '';
+      const parsedIncidencia = parsearCodigoMes(incidenciaExistente);
       let pasoInicial = 1;
-      if (initialStep === 2 || incidenciaExistente) {
+      if (initialStep === 2 || (parsedIncidencia.codigo && parsedIncidencia.codigo.length > 0)) {
         pasoInicial = 2;
       }
 
       setStep(pasoInicial);
-      setIncidencia(incidenciaExistente);
+      setIncidenciaMesPrefijo(parsedIncidencia.mes);
+      setIncidencia(parsedIncidencia.codigo);
+      setIsEditandoIncidenciaMes(false);
 
       // Extraemos el folio de la orden si ya existe
       if (initialData?.folio_mantenimiento) {
@@ -66,11 +87,11 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
           const name = initialData?.conductorNombre || initialData?.conductor || '';
           return (name.toLowerCase().includes('no reportado') || name.toLowerCase().includes('sin asignar') || name.toLowerCase().includes('desconocido')) ? '' : name;
         })(),
-        tarjeton: initialData?.tarjeton || '',
+        tarjeton: String(initialData?.tarjeton || '').replace(/\D/g, ''),
         fecha: fechaActual,
         hora_reporte: horaActual,
         servicio: initialData?.servicio || '',
-        corrida: initialData?.corrida || '',
+        corrida: String(initialData?.corrida || '').replace(/\D/g, ''),
         km: initialData?.km || '',
         falla_reportada: initialData?.falla_reportada || '',
         diagnostico: initialData?.diagnostico || '',
@@ -164,7 +185,12 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Bloquear letras y caracteres especiales en tarjetón y corrida - solo números
+    if (name === 'tarjeton' || name === 'corrida') {
+      value = value.replace(/\D/g, '');
+    }
 
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
@@ -250,9 +276,11 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
       // Generamos y descargamos el PDF inmediatamente para mejor experiencia de usuario
       await handleGeneratePDF();
 
+      const incidenciaCompleta = incidencia.trim() ? `${incidenciaMesPrefijo}-${incidencia.trim().toUpperCase()}` : '';
+
       // Luego guardamos en backend
       await onSuccess({
-        numero_incidencia: incidencia,
+        numero_incidencia: incidenciaCompleta,
         folio_mantenimiento: folioOrden || '',
         motivo: 'MANTENIMIENTO',
         fecha_folio_mantenimiento: new Date().toISOString(),
@@ -284,8 +312,9 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     setLoading(true);
     setErrorMsg('');
     try {
+      const incidenciaCompleta = incidencia.trim() ? `${incidenciaMesPrefijo}-${incidencia.trim().toUpperCase()}` : '';
       await onSuccess({
-        numero_incidencia: incidencia,
+        numero_incidencia: incidenciaCompleta,
         motivo: 'MANTENIMIENTO',
         falla_reportada: formData.falla_reportada, // Se guarda desde el paso 1
         folio_mantenimiento: '',
@@ -308,24 +337,73 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
       <div className="w-full text-left mb-6">
         <label className="block text-sm font-semibold text-gray-700 mb-2">Asignar número de incidencia:</label>
-        <input
-          type="text"
-          value={incidencia}
-          onChange={(e) => setIncidencia(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
-          className="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:border-[#6b1d33] focus:outline-none transition-colors mb-4"
-          placeholder=""
-          autoFocus
-          disabled={isLectura}
-        />
+        <div className="flex items-center w-full border-2 border-gray-300 rounded-lg overflow-hidden focus-within:border-[#6b1d33] transition-colors mb-4 bg-white">
+          {isEditandoIncidenciaMes ? (
+            <div className="bg-gray-100 border-r border-gray-300 flex items-center px-2 py-2">
+              <input
+                type="text"
+                value={incidenciaMesPrefijo}
+                maxLength={3}
+                autoFocus
+                disabled={isLectura}
+                onChange={(e) => setIncidenciaMesPrefijo(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
+                onBlur={() => {
+                  if (!incidenciaMesPrefijo.trim()) setIncidenciaMesPrefijo(getMesActualAbrev());
+                  setIsEditandoIncidenciaMes(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!incidenciaMesPrefijo.trim()) setIncidenciaMesPrefijo(getMesActualAbrev());
+                    setIsEditandoIncidenciaMes(false);
+                  }
+                }}
+                className="w-14 px-1 py-1 text-center font-bold text-gray-800 bg-white border border-[#6b1d33] rounded text-sm focus:outline-none uppercase shadow-xs"
+                placeholder="MES"
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => !isLectura && setIsEditandoIncidenciaMes(true)}
+              title="Haz clic para editar el mes (ej. OCT)"
+              disabled={isLectura}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-3 border-r border-gray-300 select-none flex items-center gap-1.5 text-base tracking-wide transition-colors cursor-pointer group disabled:cursor-not-allowed"
+            >
+              <span className="group-hover:text-[#6b1d33]">{incidenciaMesPrefijo}</span>
+              {!isLectura && (
+                <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#6b1d33] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              )}
+            </button>
+          )}
+          <span className="text-gray-400 font-extrabold select-none pl-2.5 pr-1">-</span>
+          <input
+            type="text"
+            value={incidencia}
+            onChange={(e) => setIncidencia(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
+            className="flex-1 p-3 text-lg font-bold uppercase focus:outline-none bg-transparent text-gray-900"
+            placeholder=""
+            autoFocus={!isEditandoIncidenciaMes}
+            disabled={isLectura}
+          />
+        </div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">Falla Reportada:</label>
         <textarea
           value={formData.falla_reportada}
+          maxLength={100}
           onChange={(e) => setFormData(prev => ({ ...prev, falla_reportada: e.target.value.replace(/[0-9]/g, '').toUpperCase() }))}
           className="w-full border-2 border-gray-300 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:outline-none transition-colors"
           placeholder="Describa la falla brevemente..."
           rows="3"
           disabled={isLectura}
         ></textarea>
+        <div className="text-right mt-1">
+          <span className={`text-xs font-semibold ${(formData.falla_reportada || '').length >= 100 ? 'text-red-500' : 'text-gray-400'}`}>
+            {(formData.falla_reportada || '').length} / 100 letras
+          </span>
+        </div>
       </div>
 
       <div className="flex gap-4 w-full justify-center mt-2 flex-row-reverse">
@@ -362,7 +440,9 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
             <div className="md:col-span-3">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">N° INCIDENCIA</label>
-              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">{incidencia}</div>
+              <div className="text-lg font-bold text-gray-900 border-b-2 border-gray-200 pb-1">
+                {incidencia ? `${incidenciaMesPrefijo}-${incidencia}` : 'SIN ASIGNAR'}
+              </div>
             </div>
             <div className="md:col-span-3">
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ECO</label>
@@ -384,7 +464,16 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">ID (Tarjetón) <span className="text-red-500">*</span></label>
-              <input type="text" name="tarjeton" value={formData.tarjeton} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
+              <input 
+                type="text" 
+                name="tarjeton" 
+                value={formData.tarjeton} 
+                onChange={handleInputChange} 
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Solo números (ej. 12345)"
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" 
+              />
               <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NÚMERO DE TARJETÓN (EJ. 12345)</p>
             </div>
           </div>
@@ -424,7 +513,16 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Corrida <span className="text-red-500">*</span></label>
-              <input type="text" name="corrida" value={formData.corrida} onChange={handleInputChange} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" />
+              <input 
+                type="text" 
+                name="corrida" 
+                value={formData.corrida} 
+                onChange={handleInputChange} 
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Solo números (ej. 2)"
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm" 
+              />
               <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">INGRESE EL NÚMERO DE CORRIDA (EJ. 2)</p>
             </div>
             <div>
@@ -437,18 +535,42 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
           <div className="space-y-5 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Falla Reportada <span className="text-red-500">*</span></label>
-              <textarea name="falla_reportada" value={formData.falla_reportada} onChange={handleInputChange} rows="2" className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm"></textarea>
-              <p className="text-[10.5px] text-gray-400 mt-1 font-medium uppercase">DESCRIBA LA FALLA LO MÁS DETALLADO POSIBLE</p>
+              <textarea 
+                name="falla_reportada" 
+                value={formData.falla_reportada} 
+                maxLength={100}
+                onChange={handleInputChange} 
+                rows="2" 
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#6b1d33] focus:ring-2 focus:ring-[#6b1d33]/20 transition-all shadow-sm"
+              ></textarea>
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-[10.5px] text-gray-400 font-medium uppercase">DESCRIBA LA FALLA LO MÁS DETALLADO POSIBLE</p>
+                <span className={`text-xs font-semibold ${(formData.falla_reportada || '').length >= 100 ? 'text-red-500' : 'text-gray-400'}`}>
+                  {(formData.falla_reportada || '').length} / 100 letras
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="mb-4">
-            <SignaturePad
-              label="REPORTÓ (FIRMA)"
-              height={140}
-              onSave={(base64) => setFormData(prev => ({ ...prev, firma_base64: base64 }))}
-              onClear={() => setFormData(prev => ({ ...prev, firma_base64: '' }))}
-            />
+          <div className="pt-2">
+            <div className="max-w-[620px] mx-auto bg-gray-50/70 p-4 rounded-xl border border-gray-200/80 shadow-xs">
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-[#6b1d33]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                  REPORTÓ (FIRMA) <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">FIRMA DIGITAL</span>
+              </div>
+              <SignaturePad
+                label=""
+                height={160}
+                disabled={isLectura}
+                initialImage={formData.firma_base64}
+                onSave={(base64) => setFormData(prev => ({ ...prev, firma_base64: base64 }))}
+                onClear={() => setFormData(prev => ({ ...prev, firma_base64: '' }))}
+              />
+              <p className="text-[10px] text-gray-400 mt-2 font-medium uppercase text-center">Dibuje su firma en el recuadro con el mouse o dedo</p>
+            </div>
           </div>
 
         </div>
@@ -489,7 +611,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
 
       {/* Contenedor Oculto para la plantilla PDF */}
       <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-        <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden || '' }} />
+        <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia: (incidencia ? `${incidenciaMesPrefijo}-${incidencia}` : ''), folio: folioOrden || '' }} />
       </div>
     </div>
   );
@@ -501,7 +623,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
         <p className="text-white text-lg font-semibold animate-pulse">Generando e imprimiendo Orden de Mantenimiento...</p>
         {/* Contenedor Oculto para la plantilla PDF */}
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
-          <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia, folio: folioOrden || '' }} />
+          <PrintableMaintenanceOrder ref={printableRef} data={{ ...formData, incidencia: (incidencia ? `${incidenciaMesPrefijo}-${incidencia}` : ''), folio: folioOrden || '' }} />
         </div>
       </div>,
       document.body
@@ -512,7 +634,7 @@ export default function MaintenanceReportWizard({ isOpen, onClose, onSuccess, in
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overscroll-none">
       <div
         className="bg-white rounded-xl shadow-2xl w-full relative overflow-hidden"
-        style={{ maxWidth: (step === 1) ? '500px' : '800px', transition: 'max-width 0.3s ease-in-out' }}
+        style={{ maxWidth: (step === 1) ? '500px' : '820px' }}
       >
         {step === 1 ? renderStep1() : renderStep2()}
       </div>

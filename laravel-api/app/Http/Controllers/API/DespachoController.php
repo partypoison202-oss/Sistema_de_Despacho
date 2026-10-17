@@ -584,6 +584,7 @@ class DespachoController extends Controller
                     'informacion_operativa.motivo_estatus',
                     'informacion_operativa.folio_mantenimiento',
                     'informacion_operativa.numero_incidencia',
+                    'informacion_operativa.fecha_registro',
                     'informacion_operativa.fecha_folio_mantenimiento',
                     'informacion_operativa.falla_reportada',
                     'informacion_operativa.diagnostico',
@@ -619,6 +620,54 @@ class DespachoController extends Controller
                 if ($registroBitacora && ! empty($registroBitacora->detalles)) {
                     if (preg_match('/HORA SALIDA:\s*([0-9]{1,2}:[0-9]{2})/i', $registroBitacora->detalles, $matches)) {
                         $horaSalidaLegacy = strtoupper($matches[1]);
+                    }
+                }
+            }
+
+            // Enriquecer fecha_registro y fecha_folio_mantenimiento con la hora exacta de la bitácora si tienen 00:00:00 o vienen sin hora
+            if ($info && ($info->numero_incidencia || $info->folio_mantenimiento)) {
+                $bitacoraUnit = DB::table('bitacora_cambios_unidades')
+                    ->where('unidad_id', $unidadBase->id)
+                    ->where(function ($q) {
+                        $q->whereIn('bitacora_cambios_unidades.tipo_accion', [
+                            'ACTUALIZACION_FOLIO', 
+                            'GENERAR_FOLIO', 
+                            'ASIGNACION_FOLIO',
+                            'ASIGNACION_INCIDENCIA', 
+                            'ACTUALIZACION_MANTENIMIENTO',
+                            'CAMBIO_ESTATUS'
+                        ])
+                        ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%FOLIO%')
+                        ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%INCIDENCIA%');
+                    })
+                    ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+                    ->get();
+
+                // 1. Hora real de la incidencia
+                $auditInc = $bitacoraUnit->first(function ($b) use ($info) {
+                    if ($info->numero_incidencia && str_contains($b->detalles ?? '', $info->numero_incidencia)) {
+                        return true;
+                    }
+                    return in_array($b->tipo_accion, ['ASIGNACION_INCIDENCIA', 'CAMBIO_ESTATUS']);
+                });
+                if ($auditInc && !empty($auditInc->created_at)) {
+                    $fechaRegStr = trim((string)($info->fecha_registro ?? ''));
+                    if (empty($fechaRegStr) || str_ends_with($fechaRegStr, '00:00:00') || str_ends_with($fechaRegStr, '00:00')) {
+                        $info->fecha_registro = $auditInc->created_at;
+                    }
+                }
+
+                // 2. Hora real del folio
+                $auditFol = $bitacoraUnit->first(function ($b) use ($info) {
+                    if ($info->folio_mantenimiento && str_contains($b->detalles ?? '', $info->folio_mantenimiento)) {
+                        return true;
+                    }
+                    return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
+                });
+                if ($auditFol && !empty($auditFol->created_at)) {
+                    $fechaFolStr = trim((string)($info->fecha_folio_mantenimiento ?? ''));
+                    if (empty($fechaFolStr) || str_ends_with($fechaFolStr, '00:00:00') || str_ends_with($fechaFolStr, '00:00')) {
+                        $info->fecha_folio_mantenimiento = $auditFol->created_at;
                     }
                 }
             }
@@ -763,6 +812,7 @@ class DespachoController extends Controller
                     'motivo_estatus' => $info->motivo_estatus,
                     'folio_mantenimiento' => $info->folio_mantenimiento,
                     'numero_incidencia' => $info->numero_incidencia,
+                    'fecha_registro' => $info->fecha_registro ?? null,
                     'fecha_folio_mantenimiento' => $info->fecha_folio_mantenimiento,
                     'falla_reportada' => $info->falla_reportada,
                     'diagnostico' => $info->diagnostico,
@@ -3278,6 +3328,7 @@ class DespachoController extends Controller
                 }
             }
             $updateData['numero_incidencia'] = $incReq;
+            $updateData['fecha_registro'] = \Carbon\Carbon::now();
         }
 
         if ($request->has('fecha_folio_mantenimiento')) {
@@ -3409,15 +3460,72 @@ class DespachoController extends Controller
             ->update($updateData);
 
         // Registrar acción en la bitácora de cambios para la unidad original
-        BitacoraHelper::registrarCambio(
-            $unidad->id,
-            'CAMBIO_ESTATUS',
-            ($nuevoEstatus === 'reserva' || $nuevoEstatus === 'mantenimiento' || $nuevoEstatus === 'percance')
-                ? 'CAMBIO DE ESTATUS DE '.strtoupper($registroOperativo->estatus ?? '').' A '.strtoupper($nuevoEstatus).($motivoEstatus ? ' POR MOTIVO: '.strtoupper($motivoEstatus) : '').($cambioUnidadActivo ? ' (UNIDAD REEMPLAZADA)' : '')
-                : 'CAMBIO DE ESTATUS DE '.strtoupper($registroOperativo->estatus ?? '').' A '.strtoupper($nuevoEstatus),
-            $registroOperativo->estatus ?? null,
-            $nuevoEstatus
-        );
+        $estatusAnterior = strtolower(trim($registroOperativo->estatus ?? ''));
+        $incidenciaAnterior = trim($registroOperativo->numero_incidencia ?? '');
+        $folioAnterior = trim($registroOperativo->folio_mantenimiento ?? '');
+
+        $incidenciaNueva = $request->has('numero_incidencia') ? trim($request->numero_incidencia ?? '') : $incidenciaAnterior;
+        $folioNuevo = $request->has('folio_mantenimiento') ? trim($request->folio_mantenimiento ?? '') : $folioAnterior;
+        $fallaNueva = $request->has('falla_reportada') ? trim($request->falla_reportada ?? '') : '';
+
+        // 1. Registro si hubo cambio real de estatus (ej. OPERACION -> MANTENIMIENTO)
+        if ($estatusAnterior !== $nuevoEstatus) {
+            $detallesEstatus = 'CAMBIO DE ESTATUS DE ' . strtoupper($estatusAnterior ?: 'SIN ESTATUS') . ' A ' . strtoupper($nuevoEstatus);
+            if ($motivoEstatus && strtoupper($motivoEstatus) !== strtoupper($nuevoEstatus)) {
+                $detallesEstatus .= ' POR MOTIVO: ' . strtoupper($motivoEstatus);
+            }
+            if ($cambioUnidadActivo) {
+                $detallesEstatus .= ' (UNIDAD REEMPLAZADA)';
+            }
+
+            BitacoraHelper::registrarCambio(
+                $unidad->id,
+                'CAMBIO_ESTATUS',
+                $detallesEstatus,
+                $estatusAnterior ?: null,
+                $nuevoEstatus
+            );
+        }
+
+        // 2. Registro específico si se asignó o modificó la incidencia
+        if ($request->has('numero_incidencia') && !empty($incidenciaNueva) && $incidenciaNueva !== $incidenciaAnterior) {
+            $detalleIncidencia = "ASIGNACIÓN DE INCIDENCIA: {$incidenciaNueva}";
+            if (!empty($fallaNueva)) {
+                $detalleIncidencia .= " - FALLA: " . strtoupper($fallaNueva);
+            }
+            BitacoraHelper::registrarCambio(
+                $unidad->id,
+                'ASIGNACION_INCIDENCIA',
+                $detalleIncidencia,
+                $incidenciaAnterior ?: 'SIN INCIDENCIA',
+                $incidenciaNueva
+            );
+        }
+
+        // 3. Registro específico si se asignó o modificó el folio de mantenimiento
+        if ($request->has('folio_mantenimiento') && !empty($folioNuevo) && $folioNuevo !== $folioAnterior) {
+            $detalleFolio = "ASIGNACIÓN DE FOLIO: {$folioNuevo}";
+            BitacoraHelper::registrarCambio(
+                $unidad->id,
+                'ASIGNACION_FOLIO',
+                $detalleFolio,
+                $folioAnterior ?: 'SIN FOLIO',
+                $folioNuevo
+            );
+        }
+
+        // 4. Si el estatus no cambió y tampoco incidencia/folio, pero se actualizaron diagnóstico o falla
+        if ($estatusAnterior === $nuevoEstatus && !$request->has('numero_incidencia') && !$request->has('folio_mantenimiento')) {
+            if ($request->has('falla_reportada') || $request->has('diagnostico')) {
+                BitacoraHelper::registrarCambio(
+                    $unidad->id,
+                    'ACTUALIZACION_MANTENIMIENTO',
+                    'ACTUALIZACIÓN DE DIAGNÓSTICO / FALLA EN TALLER',
+                    $registroOperativo->falla_reportada ?: 'SIN REPORTE',
+                    $request->falla_reportada ?: $request->diagnostico
+                );
+            }
+        }
 
         // Si es un cambio de unidad, procesar el reemplazo
         $conductorAsignado = null;
@@ -3734,7 +3842,8 @@ class DespachoController extends Controller
                 'informacion_operativa.mantenimiento_corrida',
                 'informacion_operativa.mantenimiento_kilometraje'
             )
-            ->orderBy('unidades.numero_eco')
+            ->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) DESC')
+            ->orderBy('informacion_operativa.id', 'DESC')
             ->get();
 
         return response()->json($unidades, 200);

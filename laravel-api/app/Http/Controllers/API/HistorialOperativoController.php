@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use App\Helpers\BitacoraConductorHelper;
+use App\Helpers\BitacoraHelper;
 
 class HistorialOperativoController extends Controller
 {
@@ -450,18 +451,19 @@ class HistorialOperativoController extends Controller
         // 1. Inicio (unidades que iniciaron en mantenimiento)
         $inicio = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
-            ->where('historial_operativo.estatus', 'MANTENIMIENTO')
+            ->whereRaw('LOWER(historial_operativo.estatus) = ?', ['mantenimiento'])
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_operativo.tipo',
+                DB::raw("COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre, '') as tipo"),
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
                 'historial_operativo.falla'
             )
-            ->orderBy('historial_operativo.tipo')
+            ->orderByRaw("COALESCE(historial_operativo.tipo, transportes.nombre, '')")
             ->orderBy('unidades.numero_eco')
             ->get();
 
@@ -469,76 +471,113 @@ class HistorialOperativoController extends Controller
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
-                ->where('momento', 'FIN')
-                ->where('historial_operativo.estatus', 'MANTENIMIENTO')
+                ->whereIn(DB::raw('UPPER(momento)'), ['FIN', 'ENCIERRO'])
+                ->whereRaw('LOWER(historial_operativo.estatus) = ?', ['mantenimiento'])
                 ->select(
                     'historial_operativo.id as id_historial',
                     'unidades.numero_eco as economico',
-                    'historial_operativo.tipo',
+                    DB::raw("COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre, '') as tipo"),
                     'historial_operativo.estatus',
                     'historial_operativo.motivo_estatus',
                     'historial_operativo.falla'
                 )
-                ->orderBy('historial_operativo.tipo')
+                ->orderByRaw("COALESCE(historial_operativo.tipo, transportes.nombre, '')")
                 ->orderBy('unidades.numero_eco')
                 ->get();
         }
 
-        // 2. Cambios (solo de mantenimiento o admin)
+        // 2. Cambios en el transcurso vinculados a Mantenimiento
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
-            ->whereIn('roles.codigo', ['MANTENIMIENTO', 'ADMINISTRADOR', 'CARGA_DE_COMBUSTIBLE'])
+            ->where(function($q) {
+                $q->whereRaw('LOWER(bitacora_cambios_unidades.estatus_nuevo) = ?', ['mantenimiento'])
+                  ->orWhereRaw('LOWER(bitacora_cambios_unidades.estatus_anterior) = ?', ['mantenimiento'])
+                  ->orWhereRaw('LOWER(bitacora_cambios_unidades.tipo_accion) LIKE ?', ['%mantenimiento%'])
+                  ->orWhereRaw('LOWER(bitacora_cambios_unidades.tipo_accion) LIKE ?', ['%folio%'])
+                  ->orWhereRaw('LOWER(bitacora_cambios_unidades.tipo_accion) LIKE ?', ['%incidencia%'])
+                  ->orWhereRaw('LOWER(roles.codigo) = ?', ['mantenimiento']);
+            })
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                DB::raw("COALESCE(unidades.tipo, transportes.nombre, '') as tipo_unidad"),
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
                 'bitacora_cambios_unidades.estatus_nuevo',
                 'bitacora_cambios_unidades.detalles',
-                'bitacora_cambios_unidades.created_at as hora'
+                'bitacora_cambios_unidades.created_at as hora',
+                'informacion_operativa.numero_incidencia',
+                'informacion_operativa.folio_mantenimiento',
+                'informacion_operativa.falla_reportada'
             )
             ->orderBy('bitacora_cambios_unidades.created_at', 'asc')
             ->get();
 
-        // 3. Fin
+        // 3. Fin (unidades que finalizaron el turno en mantenimiento)
         $fin = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
-            ->where('momento', 'FIN')
-            ->where('historial_operativo.estatus', 'MANTENIMIENTO')
+            ->whereIn(DB::raw('UPPER(historial_operativo.momento)'), ['FIN', 'ENCIERRO'])
+            ->whereRaw('LOWER(historial_operativo.estatus) = ?', ['mantenimiento'])
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_operativo.tipo',
+                DB::raw("COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre, '') as tipo"),
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
                 'historial_operativo.falla'
             )
-            ->orderBy('historial_operativo.tipo')
+            ->orderByRaw("COALESCE(historial_operativo.tipo, transportes.nombre, '')")
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
-            $fin = DB::table('informacion_operativa')
-                ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
-                ->where('informacion_operativa.estatus', 'mantenimiento')
-                ->select(
-                    'informacion_operativa.id as id_historial',
-                    'unidades.numero_eco as economico',
-                    'informacion_operativa.tipo',
-                    'informacion_operativa.estatus',
-                    'informacion_operativa.motivo_estatus',
-                    'informacion_operativa.falla'
-                )
-                ->orderBy('informacion_operativa.tipo')
-                ->orderBy('unidades.numero_eco')
-                ->get();
+        if ($fin->isEmpty()) {
+            if ($fecha === Carbon::today()->toDateString()) {
+                $fin = DB::table('informacion_operativa')
+                    ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                    ->where(DB::raw('LOWER(informacion_operativa.estatus)'), 'mantenimiento')
+                    ->select(
+                        'informacion_operativa.id as id_historial',
+                        'unidades.numero_eco as economico',
+                        DB::raw("COALESCE(informacion_operativa.tipo, unidades.tipo, transportes.nombre, '') as tipo"),
+                        'informacion_operativa.estatus',
+                        'informacion_operativa.motivo_estatus',
+                        DB::raw("COALESCE(informacion_operativa.falla_reportada, informacion_operativa.falla) as falla")
+                    )
+                    ->orderByRaw("COALESCE(informacion_operativa.tipo, transportes.nombre, '')")
+                    ->orderBy('unidades.numero_eco')
+                    ->get();
+            } else {
+                // Si es fecha pasada sin snapshot FIN, intentar recuperar desde el INICIO del día siguiente
+                $nextDate = Carbon::parse($fecha)->addDay()->toDateString();
+                $fin = DB::table('historial_operativo')
+                    ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                    ->where('fecha_historial', $nextDate)
+                    ->where(DB::raw('UPPER(historial_operativo.momento)'), 'INICIO')
+                    ->whereRaw('LOWER(historial_operativo.estatus) = ?', ['mantenimiento'])
+                    ->select(
+                        'historial_operativo.id as id_historial',
+                        'unidades.numero_eco as economico',
+                        DB::raw("COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre, '') as tipo"),
+                        'historial_operativo.estatus',
+                        'historial_operativo.motivo_estatus',
+                        'historial_operativo.falla'
+                    )
+                    ->orderByRaw("COALESCE(historial_operativo.tipo, transportes.nombre, '')")
+                    ->orderBy('unidades.numero_eco')
+                    ->get();
+            }
         }
 
         // 4. Registros de checklists/cargas de mantenimiento (conservar funcionalidad histórica previa)
@@ -565,6 +604,269 @@ class HistorialOperativoController extends Controller
             'fin' => $fin,
             'checklists' => $checklists
         ]);
+    }
+
+    /**
+     * Trazabilidad histórica: Consulta de folios pasados con visualización cronológica y fecha de registro.
+     */
+    public function getHistorialFolios(Request $request)
+    {
+        $fecha = $request->query('fecha');
+
+        $query = DB::table('informacion_operativa')
+            ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->where(function ($q) {
+                // 1. Unidades que tienen folio físico de mantenimiento asignado
+                $q->where(function ($qFolio) {
+                    $qFolio->whereNotNull('informacion_operativa.folio_mantenimiento')
+                           ->where('informacion_operativa.folio_mantenimiento', '!=', '');
+                })
+                // 2. O unidades con número de incidencia asignado (excluyendo percance no resuelto sin folio)
+                ->orWhere(function ($qInc) {
+                    $qInc->whereNotNull('informacion_operativa.numero_incidencia')
+                         ->where('informacion_operativa.numero_incidencia', '!=', '')
+                         ->whereRaw("LOWER(COALESCE(informacion_operativa.estatus, '')) != ?", ['percance']);
+                });
+            });
+
+        if ($fecha) {
+            $query->where(function ($q) use ($fecha) {
+                $q->whereDate('informacion_operativa.fecha_folio_mantenimiento', $fecha)
+                  ->orWhereDate('informacion_operativa.fecha_registro', $fecha);
+            });
+            $query->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) ASC');
+        } else {
+            $query->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) DESC');
+        }
+
+        $folios = $query->select(
+            'informacion_operativa.id',
+            'informacion_operativa.unidad_id',
+            'unidades.numero_eco as economico',
+            DB::raw("COALESCE(informacion_operativa.tipo, unidades.tipo, transportes.nombre, '') as tipo"),
+            'informacion_operativa.folio_mantenimiento',
+            'informacion_operativa.fecha_folio_mantenimiento',
+            'informacion_operativa.numero_incidencia',
+            'informacion_operativa.fecha_registro',
+            'informacion_operativa.estatus',
+            'informacion_operativa.motivo_estatus',
+            DB::raw("COALESCE(informacion_operativa.falla_reportada, informacion_operativa.falla, '') as falla"),
+            'informacion_operativa.diagnostico',
+            'informacion_operativa.mantenimiento_conductor',
+            'informacion_operativa.mantenimiento_tarjeton',
+            'informacion_operativa.mantenimiento_ruta',
+            'informacion_operativa.mantenimiento_corrida',
+            'informacion_operativa.mantenimiento_kilometraje'
+        )
+        ->orderBy('unidades.numero_eco', 'ASC')
+        ->get();
+
+        // Trazabilidad de bitácora de auditoría vinculada a estas unidades
+        $unidadIds = $folios->pluck('unidad_id')->filter()->unique()->all();
+        $bitacoras = DB::table('bitacora_cambios_unidades')
+            ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+            ->whereIn('bitacora_cambios_unidades.unidad_id', $unidadIds)
+            ->where(function ($q) {
+                $q->whereIn('bitacora_cambios_unidades.tipo_accion', [
+                    'ACTUALIZACION_FOLIO', 
+                    'GENERAR_FOLIO', 
+                    'ASIGNACION_FOLIO',
+                    'ASIGNACION_INCIDENCIA', 
+                    'ACTUALIZACION_MANTENIMIENTO',
+                    'CAMBIO_ESTATUS'
+                ])
+                  ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%FOLIO%')
+                  ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%INCIDENCIA%');
+            })
+            ->select(
+                'bitacora_cambios_unidades.id',
+                'bitacora_cambios_unidades.unidad_id',
+                'bitacora_cambios_unidades.fecha',
+                'bitacora_cambios_unidades.tipo_accion',
+                'bitacora_cambios_unidades.estatus_anterior',
+                'bitacora_cambios_unidades.estatus_nuevo',
+                'bitacora_cambios_unidades.detalles',
+                'bitacora_cambios_unidades.created_at as hora',
+                'usuarios.nombre_completo as usuario_nombre'
+            )
+            ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+            ->get()
+            ->groupBy('unidad_id');
+
+        $folios = $folios->map(function ($f) use ($bitacoras) {
+            $fAuditoria = collect($bitacoras->get($f->unidad_id, []));
+            $f->auditoria = $fAuditoria->values()->all();
+
+            // 1. Resolver hora real de la incidencia si fecha_registro tiene 00:00:00 o no tiene hora
+            $auditIncidencia = $fAuditoria->first(function ($b) use ($f) {
+                if ($f->numero_incidencia && str_contains($b->detalles ?? '', $f->numero_incidencia)) {
+                    return true;
+                }
+                return in_array($b->tipo_accion, ['ASIGNACION_INCIDENCIA', 'CAMBIO_ESTATUS']);
+            });
+
+            if ($auditIncidencia && !empty($auditIncidencia->hora)) {
+                $fechaRegStr = trim((string)($f->fecha_registro ?? ''));
+                if (empty($fechaRegStr) || str_ends_with($fechaRegStr, '00:00:00') || str_ends_with($fechaRegStr, '00:00')) {
+                    $f->fecha_registro = $auditIncidencia->hora;
+                }
+            }
+
+            // 2. Resolver hora real del folio si fecha_folio_mantenimiento tiene 00:00:00
+            $auditFolio = $fAuditoria->first(function ($b) use ($f) {
+                if ($f->folio_mantenimiento && str_contains($b->detalles ?? '', $f->folio_mantenimiento)) {
+                    return true;
+                }
+                return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO']);
+            });
+
+            if ($auditFolio && !empty($auditFolio->hora)) {
+                $fechaFolioStr = trim((string)($f->fecha_folio_mantenimiento ?? ''));
+                if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
+                    $f->fecha_folio_mantenimiento = $auditFolio->hora;
+                }
+            }
+
+            return $f;
+        });
+
+        return response()->json($folios, 200);
+    }
+
+    /**
+     * Edición y actualización: Permitir actualizar fecha y folio en registros que lo ameriten, con bitácora de auditoría.
+     */
+    public function actualizarFolioHistorico(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|integer',
+            'folio_mantenimiento' => 'nullable|string|max:50',
+            'fecha_folio_mantenimiento' => 'nullable|string',
+            'numero_incidencia' => 'nullable|string|max:50',
+            'motivo_auditoria' => 'required|string|min:3|max:500'
+        ]);
+
+        $registro = DB::table('informacion_operativa')->where('id', $request->id)->first();
+        if (! $registro) {
+            return response()->json(['status' => 'error', 'message' => 'Registro no encontrado en información operativa'], 404);
+        }
+
+        $unidad = DB::table('unidades')->where('id', $registro->unidad_id)->first();
+        $eco = $unidad ? $unidad->numero_eco : $registro->unidad_id;
+
+        $nuevoFolio = $request->filled('folio_mantenimiento') ? trim($request->folio_mantenimiento) : null;
+        $nuevaIncidencia = $request->filled('numero_incidencia') ? trim($request->numero_incidencia) : null;
+        $nuevaFecha = $request->filled('fecha_folio_mantenimiento') ? $request->fecha_folio_mantenimiento : null;
+        $motivoAuditoria = trim($request->motivo_auditoria);
+
+        // Validar que el folio no esté duplicado en otra unidad
+        if ($nuevoFolio) {
+            $existe = DB::table('informacion_operativa')
+                ->where('folio_mantenimiento', $nuevoFolio)
+                ->where('id', '!=', $registro->id)
+                ->exists();
+            if ($existe) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "El folio '$nuevoFolio' ya se encuentra asignado a otra unidad. Por favor verifique."
+                ], 422);
+            }
+        }
+
+        $folioAnterior = $registro->folio_mantenimiento ?? '';
+        $fechaAnterior = $registro->fecha_folio_mantenimiento ?? '';
+        $incidenciaAnterior = $registro->numero_incidencia ?? '';
+
+        $cambios = [];
+        if ($folioAnterior !== ($nuevoFolio ?? '')) {
+            $cambios[] = "Folio: '" . ($folioAnterior ?: 'SIN FOLIO') . "' -> '" . ($nuevoFolio ?: 'SIN FOLIO') . "'";
+        }
+        if (substr((string)$fechaAnterior, 0, 10) !== substr((string)$nuevaFecha, 0, 10)) {
+            $cambios[] = "Fecha Folio: '" . ($fechaAnterior ?: 'SIN FECHA') . "' -> '" . ($nuevaFecha ?: 'SIN FECHA') . "'";
+        }
+        if ($incidenciaAnterior !== ($nuevaIncidencia ?? '')) {
+            $cambios[] = "Incidencia: '" . ($incidenciaAnterior ?: 'SIN INCIDENCIA') . "' -> '" . ($nuevaIncidencia ?: 'SIN INCIDENCIA') . "'";
+        }
+
+        if (empty($cambios)) {
+            return response()->json([
+                'status' => 'info',
+                'message' => 'No se detectaron modificaciones en el folio o fecha.'
+            ], 200);
+        }
+
+        $updateData = [
+            'folio_mantenimiento' => $nuevoFolio,
+            'fecha_folio_mantenimiento' => $nuevaFecha
+        ];
+        if ($request->has('numero_incidencia')) {
+            $updateData['numero_incidencia'] = $nuevaIncidencia;
+            $updateData['fecha_registro'] = \Carbon\Carbon::now();
+        }
+
+        DB::table('informacion_operativa')->where('id', $registro->id)->update($updateData);
+
+        $usuarioNombre = auth()->user() ? auth()->user()->nombre_completo : 'Usuario Autorizado';
+        $detalleAudit = "ACTUALIZACIÓN DE FOLIO/FECHA EN ECO {$eco}: " . implode(' | ', $cambios) . " | MOTIVO AUDITORÍA: " . strtoupper($motivoAuditoria);
+
+        $tipoAccion = 'ACTUALIZACION_FOLIO';
+        if ($incidenciaAnterior !== ($nuevaIncidencia ?? '') && $folioAnterior === ($nuevoFolio ?? '')) {
+            $tipoAccion = empty($incidenciaAnterior) ? 'ASIGNACION_INCIDENCIA' : 'ACTUALIZACION_INCIDENCIA';
+        } elseif ($folioAnterior !== ($nuevoFolio ?? '') && empty($folioAnterior)) {
+            $tipoAccion = 'ASIGNACION_FOLIO';
+        }
+
+        BitacoraHelper::registrarCambio(
+            $registro->unidad_id,
+            $tipoAccion,
+            $detalleAudit,
+            $folioAnterior,
+            $nuevoFolio
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Folio y fecha actualizados correctamente para el ECO {$eco}.",
+            'detalles' => $detalleAudit,
+            'registro' => [
+                'id' => $registro->id,
+                'folio_mantenimiento' => $nuevoFolio,
+                'fecha_folio_mantenimiento' => $nuevaFecha,
+                'numero_incidencia' => $nuevaIncidencia
+            ]
+        ], 200);
+    }
+
+    /**
+     * Bitácora de auditoría de folios: Historial de modificaciones de folios y fechas.
+     */
+    public function getAuditoriaFolios(Request $request)
+    {
+        $query = DB::table('bitacora_cambios_unidades')
+            ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+            ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+            ->where(function ($q) {
+                $q->whereIn('bitacora_cambios_unidades.tipo_accion', ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO'])
+                  ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%FOLIO%');
+            })
+            ->select(
+                'bitacora_cambios_unidades.id',
+                'unidades.numero_eco as economico',
+                DB::raw("COALESCE(unidades.tipo, transportes.nombre, '') as tipo_unidad"),
+                'usuarios.nombre_completo as usuario_nombre',
+                'bitacora_cambios_unidades.tipo_accion',
+                'bitacora_cambios_unidades.estatus_anterior',
+                'bitacora_cambios_unidades.estatus_nuevo',
+                'bitacora_cambios_unidades.detalles',
+                'bitacora_cambios_unidades.fecha',
+                'bitacora_cambios_unidades.created_at as hora'
+            )
+            ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+            ->get();
+
+        return response()->json($query, 200);
     }
 
     /**

@@ -7,3 +7,9 @@ frontend/dist/
 # Archivos temporales de exportación
 laravel-api/export.sql
 .env    
+.DS_Store
+*.DS_Store
+diff.patch
+sonar_issues*.json
+usuarios_completos.csv
+*.csv
