@@ -51,13 +51,6 @@ class ImportarDiaSiguiente extends Command
         $eliminados = DB::table('historial_operativo')
             ->where('fecha_historial', $fechaHoy)
             ->where('momento', 'ENCIERRO')
-            ->where(function ($q) {
-                $q->where('motivo_estatus', 'Fin de turno (Encierro programado)')
-                  ->orWhereNull('hora_real_salida_patio')
-                  ->orWhere('hora_real_salida_patio', '')
-                  ->orWhere('hora_real_salida_patio', '00:00')
-                  ->orWhere('hora_real_salida_patio', '00:00:00');
-            })
             ->delete();
 
         // 3. Limpiar marcas de caché para forzar refresco total
