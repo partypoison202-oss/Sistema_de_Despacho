@@ -140,10 +140,6 @@ export default function ExcelPreview({
   const _roleCodigo = String(user?.role?.codigo || '').toUpperCase().trim();
   const _roleNombre = String(user?.role?.nombre || '').toUpperCase().trim();
 
-  const isPastelesMode = Boolean(isPasteles)
-    || _roleCodigo === 'PASTELES' || _roleCodigo === 'PROGRAMACION_PASTELES'
-    || _roleNombre === 'PASTELES' || _roleNombre === 'PROGRAMACION_PASTELES'
-    || (typeof window !== 'undefined' && window.location.pathname.includes('programacion-pasteles'));
 
   // isRelevos es verdadero si:
   //   a) Se pasa explícitamente como prop, O
@@ -170,15 +166,12 @@ export default function ExcelPreview({
   // HORA_SALIDA_PATIO fue eliminada — era duplicado de HORA_DE_ACOPLE (mismo campo en BD: hora_salida_patio)
   // HORA_REAL_SALIDA_PATIO fue eliminada — la registra Despacho en tiempo real, no se programa aquí
   const titularHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR', 'HORA_DE_ACOPLE', 'ACOPLE', 'HORA_ENCIERRO'];
-  const pastelesHeaders = ['TARJETON', 'NOMBRE_CONDUCTOR'];
   const relevosHeaders = ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'];
   const tailHeaders = ['ESTATUS', 'PATIO_NORTE', 'ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION'];
 
   const headers = isRelevos
     ? [...baseHeaders, ...relevosHeaders, 'ESTATUS']
-    : isPastelesMode
-      ? [...baseHeaders, ...pastelesHeaders, 'ESTATUS', 'PATIO_NORTE']
-      : [...baseHeaders, ...titularHeaders, ...tailHeaders];
+    : [...baseHeaders, ...titularHeaders, ...tailHeaders];
 
   // Orden personalizado solicitado
   const customSortOrder = ['URBANUSS', 'ZAFIRO', 'VAGONETA', 'ORION'];
@@ -323,7 +316,7 @@ export default function ExcelPreview({
       const searchableKeys = new Set([
         'TIPO_DE_UNIDAD', 'ECONOMICO', 'RUTA', 'CORRIDAS', 'ESTATUS',
         ...(isRelevos ? [] : ['PATIO_NORTE']),
-        ...(isRelevos || isPastelesMode ? [] : ['ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION', 'HORA_ENCIERRO']),
+        ...(isRelevos ? [] : ['ITINERARIO', 'HORA_DESINCORPORACION', 'HORA_INCORPORACION', 'HORA_ENCIERRO']),
         ...headers, // headers activos según el modo (titular, relevos, etc.)
       ]);
 
