@@ -75,6 +75,23 @@ class ConductorController extends Controller
                 });
             }
 
+            // Excluir blobs pesados (foto y qr_documento en base64) por defecto para aligerar la respuesta (de 67MB a ~150KB)
+            if (!$request->boolean('con_fotos')) {
+                $columns = [
+                    'id', 'tarjeton', 'nombres', 'apellidos', 'tipo_tarjeton', 'estado_servicio', 'estatus',
+                    'ultima_capacitacion', 'proxima_capacitacion', 'accidentes_siniestros', 'faltas', 'retardos',
+                    'amonestaciones', 'reconocimientos', 'condicionamientos_juridicos', 'condicionamientos_medicos',
+                    'permutas', 'permisos', 'evaluacion', 'observaciones', 'vigencia_licencia', 'sexo',
+                    'fecha_nacimiento', 'telefono', 'referencia_1', 'referencia_2', 'fecha_ingreso',
+                    'amonestaciones_detalle', 'reconocimientos_detalle', 'permisos_detalle', 'permutas_detalle',
+                    'accidentes_siniestros_detalle', 'faltas_detalle', 'retardos_detalle', 'descansos_detalle',
+                    'vacaciones_detalle', 'incapacidades_detalle', 'created_at', 'updated_at',
+                    DB::raw("CASE WHEN foto IS NOT NULL AND LENGTH(foto) > 0 THEN true ELSE false END as tiene_foto"),
+                    DB::raw("CASE WHEN qr_documento IS NOT NULL AND LENGTH(qr_documento) > 0 THEN true ELSE false END as tiene_qr")
+                ];
+                $query->select($columns);
+            }
+
             // Obtener todos los tarjetones asignados en tiempo real en despacho con lookup O(1)
             $asignacionesMap = [];
             try {
@@ -89,7 +106,12 @@ class ConductorController extends Controller
                 $asignacionesMap = [];
             }
 
-            $conductores = $query->get()->map(function ($c) use ($asignacionesMap) {
+            $conFotos = $request->boolean('con_fotos');
+            $conductores = $query->get()->map(function ($c) use ($asignacionesMap, $conFotos) {
+                if (!$conFotos) {
+                    $c->foto = null;
+                    $c->qr_documento = null;
+                }
                 try {
                     // Evaluar regla de 4 faltas en 30 días
                     $eval = $c->evaluarInhabilitacionFaltas();
@@ -143,6 +165,56 @@ class ConductorController extends Controller
             \Illuminate\Support\Facades\Log::error('Error al listar conductores: ' . $e->getMessage());
             return response()->json(['error' => 'Error al listar conductores', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function show(Request $request, $id)
+    {
+        $this->ensureColumnsExist();
+        $conductor = Conductor::findOrFail($id);
+
+        try {
+            $eval = $conductor->evaluarInhabilitacionFaltas();
+            if (!empty($eval['inhabilitado']) && $conductor->estatus !== 'inhabilitado') {
+                $conductor->estatus = 'inhabilitado';
+                $conductor->estado_servicio = null;
+                try {
+                    DB::table('conductores')->where('id', $conductor->id)->update([
+                        'estatus' => 'inhabilitado',
+                        'estado_servicio' => null
+                    ]);
+                    DB::table('informacion_operativa')
+                        ->where('numero_tarjeton', $conductor->tarjeton)
+                        ->update([
+                            'numero_tarjeton' => null,
+                            'nombre_conductor' => null
+                        ]);
+                } catch (\Throwable $e) {}
+            }
+        } catch (\Throwable $e) {}
+
+        $tarjetonClean = trim((string)($conductor->tarjeton ?? ''));
+        $estaAsignado = false;
+        try {
+            $estaAsignado = DB::table('informacion_operativa')
+                ->where('numero_tarjeton', $tarjetonClean)
+                ->where('numero_tarjeton', '!=', '')
+                ->exists();
+        } catch (\Throwable $e) {}
+
+        if ($conductor->estatus === 'baja' || $conductor->estatus === 'inhabilitado') {
+            $conductor->estado_servicio = null;
+        } elseif ($conductor->estado_servicio === 'maniobrista') {
+            $conductor->estado_servicio = 'maniobrista';
+        } elseif (in_array($conductor->estado_servicio, ['falta', 'incapacidad', 'permiso', 'descanso'])) {
+            $conductor->estado_servicio = $conductor->estado_servicio;
+        } else {
+            $conductor->estado_servicio = $estaAsignado ? 'en_servicio' : ($conductor->estado_servicio ?? 'disponible');
+        }
+
+        $conductor->tiene_foto = !empty($conductor->foto);
+        $conductor->tiene_qr = !empty($conductor->qr_documento);
+
+        return response()->json($conductor);
     }
 
     public function store(Request $request)
