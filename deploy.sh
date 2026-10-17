@@ -84,6 +84,10 @@ chmod -R 777 storage bootstrap/cache
 echo -e "${BLUE}🛠️ 5.5. Ejecutando reparador interno de base de datos...${NC}"
 "$PHP_BIN" artisan db:arreglar-permisos
 
+# Paso 5.6: Liberar encierros y asegurar flota matutina lista para despacho
+echo -e "${BLUE}🚌 5.6. Liberando unidades para despacho matutino...${NC}"
+"$PHP_BIN" artisan despacho:liberar-encierros || true
+
 # Paso 6: Ejecución de migraciones (solo estructura, CERO inserts)
 echo -e "${BLUE}🗄️ 6. Ejecutando migraciones de base de datos (solo nuevas tablas/cambios)...${NC}"
 "$PHP_BIN" artisan migrate --force
