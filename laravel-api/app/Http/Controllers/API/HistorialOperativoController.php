@@ -270,13 +270,26 @@ class HistorialOperativoController extends Controller
         }
 
         // 4. Encierros del día
-        $encierros = DB::table('historial_operativo')
+        $queryEncierros = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
             ->where('fecha_historial', $fecha)
-            ->where('momento', 'ENCIERRO')
+            ->where('momento', 'ENCIERRO');
+
+        $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
+        if ($fecha === $fechaHoyMex || $fecha === Carbon::today()->toDateString()) {
+            $idsEnOperacion = DB::table('informacion_operativa')
+                ->whereRaw("LOWER(estatus) = 'operacion'")
+                ->pluck('unidad_id')
+                ->toArray();
+            if (! empty($idsEnOperacion)) {
+                $queryEncierros->whereNotIn('historial_operativo.unidad_id', $idsEnOperacion);
+            }
+        }
+
+        $encierros = $queryEncierros
             ->select(
                 'historial_operativo.id as id_historial',
-                    'unidades.numero_eco as economico',
+                'unidades.numero_eco as economico',
                 'historial_operativo.tipo',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton as tarjeton',

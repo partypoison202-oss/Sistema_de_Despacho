@@ -430,8 +430,40 @@ class DespachoController extends Controller
         }
         // ──────────────────────────────────────────────────────────────────────
 
+        // Si hay registros de encierro de hoy para unidades que actualmente están en operación
+        // (por ejemplo, unidades que fueron desincorporadas y luego reincorporadas a operación),
+        // eliminamos esos encierros obsoletos de historial_operativo para mantener consistencia.
+        $unidadesEnOperacionIds = $unidades->filter(function ($u) {
+            $st = strtolower(trim($u->estatus ?? 'operacion'));
+            return ! in_array($st, ['reserva', 'no_programada', 'mantenimiento', 'percance'], true);
+        })->pluck('unidad_id')->toArray();
+
+        if (! empty($unidadesEnOperacionIds)) {
+            $encierrosObsoletosIds = $encierrosHoy->keys()
+                ->intersect($unidadesEnOperacionIds)
+                ->toArray();
+            if (! empty($encierrosObsoletosIds)) {
+                DB::table('historial_operativo')
+                    ->whereIn('unidad_id', $encierrosObsoletosIds)
+                    ->where('fecha_historial', $fechaHoy)
+                    ->where('momento', 'ENCIERRO')
+                    ->delete();
+                foreach ($encierrosObsoletosIds as $eId) {
+                    $encierrosHoy->forget($eId);
+                }
+            }
+        }
+
         $unidades = $unidades->map(function ($unidad) use ($ultimoMovPorUnidad, $encierrosHoy, $despachosHoy, $horaActual, $colSalidaHistorial) {
-            $encierro = $encierrosHoy->get($unidad->unidad_id);
+            $estatusRaw = strtolower(trim($unidad->estatus ?? 'operacion'));
+            $estatus = match ($estatusRaw) {
+                'no_programada', 'reserva' => 'reserva',
+                'mantenimiento' => 'mantenimiento',
+                'percance' => 'percance',
+                default => 'operacion',
+            };
+
+            $encierro = $estatus === 'operacion' ? null : $encierrosHoy->get($unidad->unidad_id);
             $yaEncerrada = ! is_null($encierro);
 
             $despacho = $despachosHoy->get($unidad->unidad_id);
@@ -549,7 +581,7 @@ class DespachoController extends Controller
                 'hora_salida_patio' => $horaSalidaPatioEfectiva,
                 'acople' => $acopleEfectivo,
                 'hora_real_salida_patio' => $horaRealSalida,
-                'hora_encierro' => $encierro?->hora_encierro ?? ($unidad->hora_encierro ?? null),
+                'hora_encierro' => $estatus === 'operacion' ? null : ($encierro?->hora_encierro ?? ($unidad->hora_encierro ?? null)),
                 'folio_mantenimiento' => $unidad->folio_mantenimiento,
                 'numero_incidencia' => $unidad->numero_incidencia,
                 'fecha_folio_mantenimiento' => $unidad->fecha_folio_mantenimiento,
@@ -787,8 +819,18 @@ class DespachoController extends Controller
                     }
                 }
 
-                if ($encierroHoy) {
+                if ($encierroHoy && $estatus !== 'operacion') {
                     $info->hora_encierro = $encierroHoy->hora_encierro;
+                } elseif ($estatus === 'operacion') {
+                    $info->hora_encierro = null;
+                    if ($encierroHoy) {
+                        DB::table('historial_operativo')
+                            ->where('unidad_id', $unidadBase->id)
+                            ->where('fecha_historial', date('Y-m-d'))
+                            ->where('momento', 'ENCIERRO')
+                            ->delete();
+                        $encierroHoy = null;
+                    }
                 }
             }
 
@@ -937,7 +979,7 @@ class DespachoController extends Controller
                     'nivel_adblue' => $unidadBase->nivel_adblue ?? null,
                     'numero_cincho' => $unidadBase->numero_cincho ?? null,
                     'fecha_ultima_carga' => $unidadBase->fecha_ultima_carga ?? null,
-                    'ya_encerrada' => ! is_null($encierroHoy),
+                    'ya_encerrada' => ! is_null($encierroHoy) && $estatus !== 'operacion',
                 ] : [
                     'status' => 'success',
                     'asignado' => false,
@@ -3059,6 +3101,13 @@ class DespachoController extends Controller
             ->map(fn ($id) => (int) $id)
             ->toArray();
 
+        $idsOperacion = DB::table('informacion_operativa')
+            ->whereRaw("LOWER(estatus) = 'operacion'")
+            ->pluck('unidad_id')
+            ->map(fn ($id) => (int) $id)
+            ->toArray();
+        $idsEncerradasHoy = array_values(array_diff($idsEncerradasHoy, $idsOperacion));
+
         $registros = DB::table('unidades')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
@@ -4444,6 +4493,15 @@ class DespachoController extends Controller
             $updateData['motivo_estatus'] = $motivoEstatus ?: 'OPERACION';
             $updateData['falla'] = null;
             $updateData['motivo'] = null;
+            $updateData['hora_encierro'] = null;
+
+            // Si la unidad vuelve a entrar en operación, eliminar cualquier encierro previo de hoy
+            $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
+            DB::table('historial_operativo')
+                ->where('unidad_id', $unidad->id)
+                ->where('fecha_historial', $fechaHoyMex)
+                ->where('momento', 'ENCIERRO')
+                ->delete();
 
             $allInputs = $request->all();
             if (array_key_exists('nombre_conductor', $allInputs)) {
@@ -4622,6 +4680,7 @@ class DespachoController extends Controller
                     'cambio_motivo' => $motivoEstatus ?: 'REEMPLAZO',
                     'falla' => null,
                     'motivo' => null,
+                    'hora_encierro' => null,
                     'updated_at' => now(),
                 ];
 
@@ -4635,6 +4694,14 @@ class DespachoController extends Controller
                     $reemplazoData['created_at'] = now();
                     DB::table('informacion_operativa')->insert($reemplazoData);
                 }
+
+                // Si la unidad de reemplazo tenía un encierro previo de hoy, liberarlo/eliminarlo
+                $fechaHoyMexReemplazo = Carbon::now('America/Mexico_City')->toDateString();
+                DB::table('historial_operativo')
+                    ->where('unidad_id', $unidadReemplazo->id)
+                    ->where('fecha_historial', $fechaHoyMexReemplazo)
+                    ->where('momento', 'ENCIERRO')
+                    ->delete();
 
                 // A la unidad saliente (reemplazada) le quitamos hora_real_salida_patio para que no figure en encierro pendiente
                 DB::table('informacion_operativa')
