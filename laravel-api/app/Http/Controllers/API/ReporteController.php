@@ -38,6 +38,13 @@ class ReporteController extends Controller
             ->map(fn($id) => (int)$id)
             ->toArray();
 
+        $idsOperacion = DB::table('informacion_operativa')
+            ->whereRaw("LOWER(estatus) = 'operacion'")
+            ->pluck('unidad_id')
+            ->map(fn($id) => (int)$id)
+            ->toArray();
+        $idsEncerradasHoy = array_values(array_diff($idsEncerradasHoy, $idsOperacion));
+
         $registros = DB::table('informacion_operativa')->get();
 
         foreach ($registros as $reg) {
@@ -116,6 +123,13 @@ class ReporteController extends Controller
                 ->pluck('unidad_id')
                 ->map(fn($id) => (int)$id)
                 ->toArray();
+
+            $idsOperacion = DB::table('informacion_operativa')
+                ->whereRaw("LOWER(estatus) = 'operacion'")
+                ->pluck('unidad_id')
+                ->map(fn($id) => (int)$id)
+                ->toArray();
+            $idsEncerradasHoy = array_values(array_diff($idsEncerradasHoy, $idsOperacion));
 
             $registros = DB::table('informacion_operativa')->get();
             $resultado = [];
