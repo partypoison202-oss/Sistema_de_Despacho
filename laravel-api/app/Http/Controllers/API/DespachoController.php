@@ -2030,55 +2030,103 @@ class DespachoController extends Controller
             }
 
             if ($sourceTable) {
-                // Identificar si alguna unidad ya fue despachada HOY en informacion_operativa
-                // (por ejemplo, si el cambio de día corre después del inicio de despacho matutino)
-                $despachadasHoy = DB::table('informacion_operativa')
-                    ->where(function ($q) use ($fechaHoy) {
-                        $q->where('fecha_registro', $fechaHoy)
-                          ->orWhere(function ($sub) {
-                              $sub->whereNotNull('hora_real_salida_patio')
-                                  ->whereRaw("TRIM(hora_real_salida_patio) != ''");
-                          });
-                    })
-                    ->whereNotNull('hora_real_salida_patio')
-                    ->whereRaw("TRIM(hora_real_salida_patio) != ''")
-                    ->get()
-                    ->keyBy(function ($item) {
-                        return (int) $item->unidad_id;
-                    });
-
                 $nuevosRegistros = DB::table($sourceTable)->get();
                 DB::table('informacion_operativa')->delete();
 
-                // Limpiar registros erróneos de auto-encierro generados prematuramente para hoy
-                // (para que ninguna unidad restaurada aparezca falsamente como "Ya encerrada")
+                // Limpiar cualquier registro de encierro de hoy para garantizar que el nuevo día comience limpio
                 DB::table('historial_operativo')
                     ->where('fecha_historial', $fechaHoy)
                     ->where('momento', 'ENCIERRO')
-                    ->where(function ($q) {
-                        $q->where('motivo_estatus', 'Fin de turno (Encierro programado)')
-                          ->orWhereNull('hora_real_salida_patio')
-                          ->orWhere('hora_real_salida_patio', '')
-                          ->orWhere('hora_real_salida_patio', '00:00')
-                          ->orWhere('hora_real_salida_patio', '00:00:00');
-                    })
                     ->delete();
 
                 $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
                 $inicialCols = array_flip(Schema::getColumnListing('programacion_inicial'));
+                $historialCols = array_flip(Schema::getColumnListing('historial_operativo'));
                 $tarjetones = [];
                 $maniobristas = [];
 
-                // Copy to programacion_inicial
+                // Copy to programacion_inicial y snapshot de INICIO (deben capturar el 100% de la flota programada original)
                 $inicialInsert = [];
+                $snapshotInicioInsert = [];
 
                 foreach ($nuevosRegistros as $row) {
                     unset($row->id);
                     $arrayRow = (array) $row;
                     $unidadId = !empty($row->unidad_id) ? (int) $row->unidad_id : null;
 
-                    // Si la unidad estaba en Mantenimiento o Percance:
-                    // Se preserva INCONDICIONALMENTE en su estado de taller (no puede salir a operar hasta que sea liberada).
+                    // 1. Determinar si esta unidad fue planificada/programada para salir a operar en la programación original
+                    $estatusOriginal = strtolower(trim((string)($arrayRow['estatus'] ?? '')));
+                    $tieneServicioProgramado = !empty($arrayRow['ruta']) || !empty($arrayRow['numero_tarjeton']) || !empty($arrayRow['corridas']);
+                    $esProgramadaOperacion = ($estatusOriginal === 'operacion' || $tieneServicioProgramado);
+
+                    // 2. Registrar en programacion_inicial para que la flota programada original quede íntegra y fija (ej. 91 unidades)
+                    if ($esProgramadaOperacion) {
+                        $inicialRowFiltered = [];
+                        foreach ($arrayRow as $k => $v) {
+                            if (isset($inicialCols[$k])) {
+                                $inicialRowFiltered[$k] = in_array($k, ['patio_norte', 'transporte_patio_norte', 'itinerario'])
+                                    ? (filter_var($v, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                                    : $v;
+                            }
+                        }
+                        $inicialRowFiltered['estatus'] = 'operacion';
+                        $inicialRowFiltered['fecha'] = $fechaHoy;
+                        $inicialRowFiltered['created_at'] = now();
+                        $inicialRowFiltered['updated_at'] = now();
+                        $inicialInsert[] = array_intersect_key($inicialRowFiltered, $inicialCols);
+                    }
+
+                    // 3. Registrar en snapshot de historial_operativo (momento = 'INICIO') con su estatus programado
+                    // Esto garantiza que Monitoreo de la Operación (Centro de Control) y Resumen de Despacho
+                    // muestren el total programado real fijado (ej. 91) aun si la unidad se encuentra en taller.
+                    $snapshotItem = [
+                        'fecha_historial' => $fechaHoy,
+                        'momento'         => 'INICIO',
+                        'unidad_id'       => $unidadId,
+                        'ruta'            => $arrayRow['ruta'] ?? null,
+                        'numero_tarjeton' => $arrayRow['numero_tarjeton'] ?? null,
+                        'nombre_conductor'=> $arrayRow['nombre_conductor'] ?? null,
+                        'tipo'            => $arrayRow['tipo'] ?? null,
+                        'estatus'         => $esProgramadaOperacion ? 'operacion' : ($arrayRow['estatus'] ?? 'reserva'),
+                        'falla'           => $arrayRow['falla'] ?? null,
+                        'corridas'        => $arrayRow['corridas'] ?? null,
+                        'ciclo'           => $arrayRow['ciclo'] ?? null,
+                        'motivo'          => $arrayRow['motivo'] ?? null,
+                        'motivo_estatus'  => $arrayRow['motivo_estatus'] ?? null,
+                        'hora_salida_patio' => $arrayRow['hora_salida_patio'] ?? ($arrayRow['hora_programada'] ?? null),
+                        'fecha_registro'  => $fechaHoy,
+                        'created_at'      => now(),
+                        'updated_at'      => now(),
+                    ];
+                    if (isset($historialCols['tarjeton_maniobrista'])) {
+                        $snapshotItem['tarjeton_maniobrista'] = $arrayRow['tarjeton_maniobrista'] ?? null;
+                        $snapshotItem['nombre_maniobrista']   = $arrayRow['nombre_maniobrista'] ?? null;
+                    }
+                    if (isset($historialCols['acople'])) {
+                        $snapshotItem['acople'] = $arrayRow['acople'] ?? null;
+                    }
+                    if (isset($historialCols['itinerario'])) {
+                        $snapshotItem['itinerario'] = filter_var($arrayRow['itinerario'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                    }
+                    if (isset($historialCols['hora_incorporacion'])) {
+                        $snapshotItem['hora_incorporacion'] = $arrayRow['hora_incorporacion'] ?? null;
+                    }
+                    if (isset($historialCols['hora_desincorporacion'])) {
+                        $snapshotItem['hora_desincorporacion'] = $arrayRow['hora_desincorporacion'] ?? null;
+                    }
+                    if (isset($historialCols['hora_encierro'])) {
+                        $snapshotItem['hora_encierro'] = $arrayRow['hora_encierro'] ?? null;
+                    }
+                    if (isset($historialCols['relevo_tarjeton'])) {
+                        $snapshotItem['relevo_tarjeton'] = $arrayRow['relevo_tarjeton'] ?? null;
+                        $snapshotItem['relevo_conductor'] = $arrayRow['relevo_conductor'] ?? null;
+                        $snapshotItem['relevo_hora'] = $arrayRow['relevo_hora'] ?? null;
+                    }
+                    $snapshotInicioInsert[] = array_intersect_key($snapshotItem, $historialCols);
+
+                    // 4. Si la unidad estaba en Mantenimiento o Percance:
+                    // Se preserva INCONDICIONALMENTE en su estado de taller en informacion_operativa
+                    // (no puede salir a operar hasta que sea formalmente liberada de taller).
                     $seMantieneEnMantenimiento = false;
                     if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
                         $seMantieneEnMantenimiento = true;
@@ -2215,45 +2263,24 @@ class DespachoController extends Controller
                         }
                     }
 
-                    // Prepare for programacion_inicial (únicamente las unidades que van a ruta en operación)
-                    $estatusFinal = strtolower(trim((string)($insertRow['estatus'] ?? '')));
-                    if ($estatusFinal === 'operacion') {
-                        $inicialRowFiltered = [];
-                        foreach ($insertRow as $k => $v) {
-                            if (isset($inicialCols[$k])) {
-                                if (in_array($k, ['patio_norte', 'transporte_patio_norte', 'itinerario'])) {
-                                    $inicialRowFiltered[$k] = filter_var($v, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
-                                } else {
-                                    $inicialRowFiltered[$k] = $v;
-                                }
-                            }
-                        }
-                        $inicialRowFiltered['fecha'] = $fechaHoy;
-                        $inicialRowFiltered['created_at'] = now();
-                        $inicialRowFiltered['updated_at'] = now();
-                        $inicialInsert[] = array_intersect_key($inicialRowFiltered, $inicialCols);
+                    // Reiniciar campos de validación para el nuevo día operativo (reinicio limpio de operaciones)
+                    // Las unidades en mantenimiento o percance ya fueron procesadas y preservadas arriba.
+                    if (array_key_exists('hora_real_salida_patio', $insertRow)) {
+                        $insertRow['hora_real_salida_patio'] = null;
                     }
-
-                    // Reiniciar campos de validación para el nuevo día
-                    // PROTECCIÓN: Si la unidad ya fue validada/despachada hoy, preservar su hora de salida y firma
-                    if ($unidadId && isset($despachadasHoy) && $despachadasHoy->has($unidadId)) {
-                        $prevDespacho = $despachadasHoy->get($unidadId);
-                        $insertRow['hora_real_salida_patio'] = $prevDespacho->hora_real_salida_patio;
-                        if (!empty($prevDespacho->firma_base64)) {
-                            $insertRow['firma_base64'] = $prevDespacho->firma_base64;
-                        }
-                    } else {
-                        if (array_key_exists('hora_real_salida_patio', $insertRow)) {
-                            $insertRow['hora_real_salida_patio'] = null;
-                        }
-                        if (array_key_exists('hora_salida', $insertRow)) {
-                            $insertRow['hora_salida'] = null;
-                        }
-                        if (array_key_exists('firma_base64', $insertRow)) {
-                            // Solo reiniciar firma de salida de patio; preservar firma de mantenimiento si la unidad está en taller
-                            if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
-                                $insertRow['firma_base64'] = null;
-                            }
+                    if (array_key_exists('hora_salida', $insertRow)) {
+                        $insertRow['hora_salida'] = null;
+                    }
+                    if (array_key_exists('hora_desincorporacion', $insertRow)) {
+                        $insertRow['hora_desincorporacion'] = null;
+                    }
+                    if (array_key_exists('hora_incorporacion', $insertRow)) {
+                        $insertRow['hora_incorporacion'] = null;
+                    }
+                    if (array_key_exists('firma_base64', $insertRow)) {
+                        // Solo reiniciar firma de salida de patio; preservar firma de mantenimiento si la unidad está en taller
+                        if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
+                            $insertRow['firma_base64'] = null;
                         }
                     }
                     $insertRow['fecha_registro'] = $fechaHoy;
@@ -2300,6 +2327,21 @@ class DespachoController extends Controller
                         $insertRow['fecha_registro'] = $fechaHoy;
                         $insertRow = array_intersect_key($insertRow, $targetCols);
                         DB::table('informacion_operativa')->insert($insertRow);
+
+                        // Registrar también en el snapshot de inicio como mantenimiento
+                        $bloqArray = (array) $bloqueadaObj;
+                        $snapBloq = [
+                            'fecha_historial' => $fechaHoy,
+                            'momento'         => 'INICIO',
+                            'unidad_id'       => $uId,
+                            'tipo'            => $bloqArray['tipo'] ?? null,
+                            'estatus'         => $bloqArray['estatus'] ?? 'mantenimiento',
+                            'motivo_estatus'  => $bloqArray['motivo_estatus'] ?? 'MANTENIMIENTO',
+                            'fecha_registro'  => $fechaHoy,
+                            'created_at'      => now(),
+                            'updated_at'      => now(),
+                        ];
+                        $snapshotInicioInsert[] = array_intersect_key($snapBloq, $historialCols);
                     }
                 }
 
@@ -2308,6 +2350,17 @@ class DespachoController extends Controller
                     DB::table('programacion_inicial')->where('fecha', $fechaHoy)->delete();
                     foreach (array_chunk($inicialInsert, 50) as $chunk) {
                         DB::table('programacion_inicial')->insert($chunk);
+                    }
+                }
+
+                // Guardar snapshot congelado de INICIO en historial_operativo con el 100% de la flota programada
+                if (! empty($snapshotInicioInsert)) {
+                    DB::table('historial_operativo')
+                        ->where('fecha_historial', $fechaHoy)
+                        ->where('momento', 'INICIO')
+                        ->delete();
+                    foreach (array_chunk($snapshotInicioInsert, 50) as $chunk) {
+                        DB::table('historial_operativo')->insert($chunk);
                     }
                 }
 
@@ -2325,8 +2378,6 @@ class DespachoController extends Controller
                     DB::table('maniobristas')->whereIn('tarjeton', array_unique($maniobristas))->update(['estado_servicio' => 'en_servicio']);
                 }
 
-                BitacoraHelper::ensureInicioSnapshot(true);
-
                 DB::commit();
 
                 Cache::forever('cambio_dia_operativo_ejecutado_'.$fechaHoy, true);
@@ -2340,9 +2391,22 @@ class DespachoController extends Controller
             } else {
                 // Si no hay tabla con programación nueva para mañana:
                 // La programación operativa actual (rutas, conductores, horarios) SE MANTIENE para el nuevo día.
-                // Solo se reinician los campos de control de validación diaria de unidades en operación
-                // que tengan fecha de registro de días anteriores (despachos de ayer).
+                // Reinicio de operaciones: las unidades que estaban en reserva por encierro vuelven a operación.
+                // Solo las unidades en mantenimiento o percance conservan su estatus de taller.
                 $targetCols = array_flip(Schema::getColumnListing('informacion_operativa'));
+
+                DB::table('informacion_operativa')
+                    ->whereNotIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
+                    ->where(function ($q) {
+                        $q->where('motivo_estatus', 'like', '%Encierro%')
+                          ->orWhere('motivo_estatus', 'like', '%Fin de turno%');
+                    })
+                    ->update([
+                        'estatus' => 'operacion',
+                        'motivo_estatus' => null,
+                        'motivo' => null,
+                    ]);
+
                 $updateOperacion = [];
                 if (isset($targetCols['hora_real_salida_patio'])) {
                     $updateOperacion['hora_real_salida_patio'] = null;
@@ -2350,28 +2414,29 @@ class DespachoController extends Controller
                 if (isset($targetCols['hora_salida'])) {
                     $updateOperacion['hora_salida'] = null;
                 }
+                if (isset($targetCols['hora_desincorporacion'])) {
+                    $updateOperacion['hora_desincorporacion'] = null;
+                }
+                if (isset($targetCols['hora_incorporacion'])) {
+                    $updateOperacion['hora_incorporacion'] = null;
+                }
                 if (isset($targetCols['firma_base64'])) {
                     $updateOperacion['firma_base64'] = null;
                 }
+                if (isset($targetCols['fecha_registro'])) {
+                    $updateOperacion['fecha_registro'] = $fechaHoy;
+                }
                 if (! empty($updateOperacion)) {
                     DB::table('informacion_operativa')
-                        ->where('estatus', 'operacion')
-                        ->where(function ($q) use ($fechaHoy) {
-                            $q->whereNull('fecha_registro')
-                              ->orWhereDate('fecha_registro', '<', $fechaHoy);
-                        })
+                        ->whereNotIn(DB::raw('LOWER(estatus)'), ['mantenimiento', 'percance'])
                         ->update($updateOperacion);
                 }
-                if (isset($targetCols['fecha_registro'])) {
-                    DB::table('informacion_operativa')
-                        ->where(function ($q) use ($fechaHoy) {
-                            $q->whereNull('fecha_registro')
-                              ->orWhereDate('fecha_registro', '<', $fechaHoy);
-                        })
-                        ->update([
-                            'fecha_registro' => $fechaHoy,
-                        ]);
-                }
+
+                // Limpiar cualquier registro de encierro de hoy en historial_operativo
+                DB::table('historial_operativo')
+                    ->where('fecha_historial', $fechaHoy)
+                    ->where('momento', 'ENCIERRO')
+                    ->delete();
 
                 DB::table('conductores')->update(['estado_servicio' => 'disponible']);
                 DB::table('maniobristas')->update(['estado_servicio' => 'disponible']);
@@ -4117,6 +4182,14 @@ class DespachoController extends Controller
                 if (count($partsEnc) >= 2) {
                     $horaEnc = sprintf('%02d:%02d', (int) $partsEnc[0], (int) $partsEnc[1]);
                 } else {
+                    continue;
+                }
+
+                // REGLA: Ignorar unidades con hora de encierro de 12:00 am a 02:00 am (00:00 a 02:59)
+                // Pertenecen al cierre de turno de madrugada del día siguiente y NO se deben encerrar
+                // automáticamente por programación. Podrán ser encerradas manualmente desde el módulo
+                // de encierro o al desincorporarse como las demás.
+                if ($horaEnc >= '00:00' && $horaEnc <= '02:59') {
                     continue;
                 }
 
