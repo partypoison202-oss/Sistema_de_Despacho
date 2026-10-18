@@ -4004,27 +4004,21 @@ class DespachoController extends Controller
 
         // Liberar conductor si tenía uno asignado (titular y/o relevo)
         if (! empty($registroOperativo->numero_tarjeton)) {
-            $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
-            $tarjetonClean = ltrim($tarjetonAnterior, '0');
-            $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-            $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
-
-            DB::table('conductores')
-                ->whereIn('tarjeton', $tarjetonCandidates)
-                ->orWhere('id', is_numeric($tarjetonAnterior) ? (int) $tarjetonAnterior : 0)
-                ->update(['estado_servicio' => 'disponible']);
+            $tarjetonCandidates = PlataformaController::obtenerCandidatosTarjeton($registroOperativo->numero_tarjeton);
+            if (!empty($tarjetonCandidates)) {
+                DB::table('conductores')
+                    ->whereIn('tarjeton', $tarjetonCandidates)
+                    ->update(['estado_servicio' => 'disponible']);
+            }
         }
 
         if (! empty($registroOperativo->relevo_tarjeton)) {
-            $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
-            $tarjetonRelClean = ltrim($tarjetonRel, '0');
-            $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
-            $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
-
-            DB::table('conductores')
-                ->whereIn('tarjeton', $tarjetonRelCandidates)
-                ->orWhere('id', is_numeric($tarjetonRel) ? (int) $tarjetonRel : 0)
-                ->update(['estado_servicio' => 'disponible']);
+            $tarjetonRelCandidates = PlataformaController::obtenerCandidatosTarjeton($registroOperativo->relevo_tarjeton);
+            if (!empty($tarjetonRelCandidates)) {
+                DB::table('conductores')
+                    ->whereIn('tarjeton', $tarjetonRelCandidates)
+                    ->update(['estado_servicio' => 'disponible']);
+            }
         }
 
         $hasHoraRealEnHistorial = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
@@ -4237,28 +4231,22 @@ class DespachoController extends Controller
 
                 // 1. Liberar conductor titular si tenía uno asignado
                 if (! empty($registroOperativo->numero_tarjeton)) {
-                    $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
-                    $tarjetonClean = ltrim($tarjetonAnterior, '0');
-                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
-
-                    DB::table('conductores')
-                        ->whereIn('tarjeton', $tarjetonCandidates)
-                        ->orWhere('id', is_numeric($tarjetonAnterior) ? (int) $tarjetonAnterior : 0)
-                        ->update(['estado_servicio' => 'disponible']);
+                    $tarjetonCandidates = PlataformaController::obtenerCandidatosTarjeton($registroOperativo->numero_tarjeton);
+                    if (!empty($tarjetonCandidates)) {
+                        DB::table('conductores')
+                            ->whereIn('tarjeton', $tarjetonCandidates)
+                            ->update(['estado_servicio' => 'disponible']);
+                    }
                 }
 
                 // 2. Liberar conductor de relevo si tenía uno asignado
                 if (! empty($registroOperativo->relevo_tarjeton)) {
-                    $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
-                    $tarjetonRelClean = ltrim($tarjetonRel, '0');
-                    $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
-
-                    DB::table('conductores')
-                        ->whereIn('tarjeton', $tarjetonRelCandidates)
-                        ->orWhere('id', is_numeric($tarjetonRel) ? (int) $tarjetonRel : 0)
-                        ->update(['estado_servicio' => 'disponible']);
+                    $tarjetonRelCandidates = PlataformaController::obtenerCandidatosTarjeton($registroOperativo->relevo_tarjeton);
+                    if (!empty($tarjetonRelCandidates)) {
+                        DB::table('conductores')
+                            ->whereIn('tarjeton', $tarjetonRelCandidates)
+                            ->update(['estado_servicio' => 'disponible']);
+                    }
                 }
 
                 $hasHoraRealEnHistorial = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
@@ -4540,26 +4528,20 @@ class DespachoController extends Controller
             $updateData['transporte_patio_norte'] = 'false';
 
             if ($registroOperativo && $registroOperativo->numero_tarjeton) {
-                $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
-                $tarjetonClean = ltrim($tarjetonAnterior, '0');
-                $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-                $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
-
-                DB::table('conductores')
-                    ->whereIn('tarjeton', $tarjetonCandidates)
-                    ->orWhere('id', is_numeric($tarjetonAnterior) ? (int) $tarjetonAnterior : 0)
-                    ->update(['estado_servicio' => 'disponible']);
+                $tarjetonCandidates = PlataformaController::obtenerCandidatosTarjeton($registroOperativo->numero_tarjeton);
+                if (!empty($tarjetonCandidates)) {
+                    DB::table('conductores')
+                        ->whereIn('tarjeton', $tarjetonCandidates)
+                        ->update(['estado_servicio' => 'disponible']);
+                }
             }
             if ($registroOperativo && ! empty($registroOperativo->relevo_tarjeton)) {
-                $tarjetonRel = trim($registroOperativo->relevo_tarjeton);
-                $tarjetonRelClean = ltrim($tarjetonRel, '0');
-                $tarjetonRelPad = str_pad($tarjetonRelClean === '' ? '0' : $tarjetonRelClean, 4, '0', STR_PAD_LEFT);
-                $tarjetonRelCandidates = array_values(array_unique([$tarjetonRel, $tarjetonRelClean, $tarjetonRelPad]));
-
-                DB::table('conductores')
-                    ->whereIn('tarjeton', $tarjetonRelCandidates)
-                    ->orWhere('id', is_numeric($tarjetonRel) ? (int) $tarjetonRel : 0)
-                    ->update(['estado_servicio' => 'disponible']);
+                $tarjetonRelCandidates = PlataformaController::obtenerCandidatosTarjeton($registroOperativo->relevo_tarjeton);
+                if (!empty($tarjetonRelCandidates)) {
+                    DB::table('conductores')
+                        ->whereIn('tarjeton', $tarjetonRelCandidates)
+                        ->update(['estado_servicio' => 'disponible']);
+                }
             }
         } else {
             $updateData['hora_real_salida_patio'] = ! empty($registroOperativo->hora_real_salida_patio) ? $registroOperativo->hora_real_salida_patio : date('H:i:s');
@@ -4674,14 +4656,7 @@ class DespachoController extends Controller
 
                 $nombreConductorReemplazo = null;
                 if ($tarjetonReemplazo) {
-                    $tarjetonClean = ltrim($tarjetonReemplazo, '0');
-                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonCandidates = array_values(array_unique([$tarjetonReemplazo, $tarjetonClean, $tarjetonPad]));
-
-                    $conductorReemplazo = DB::table('conductores')
-                        ->whereIn('tarjeton', $tarjetonCandidates)
-                        ->orWhere('id', is_numeric($tarjetonReemplazo) ? (int) $tarjetonReemplazo : 0)
-                        ->first();
+                    $conductorReemplazo = PlataformaController::buscarConductorPorTarjeton($tarjetonReemplazo);
 
                     if ($conductorReemplazo) {
                         $tarjetonReemplazo = $conductorReemplazo->tarjeton;

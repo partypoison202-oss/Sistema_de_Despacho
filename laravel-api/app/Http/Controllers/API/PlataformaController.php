@@ -14,6 +14,53 @@ use App\Models\Conductor;
 
 class PlataformaController extends Controller
 {
+    /**
+     * Genera candidatos de búsqueda para un número de tarjetón
+     * admitiendo variaciones de ceros a la izquierda (ej. '13', '013', '0013').
+     */
+    public static function obtenerCandidatosTarjeton(?string $tarjeton): array
+    {
+        if ($tarjeton === null || trim((string)$tarjeton) === '') {
+            return [];
+        }
+        $raw = trim((string)$tarjeton);
+        $clean = ltrim($raw, '0');
+        if ($clean === '') {
+            $clean = '0';
+        }
+        $pad4 = str_pad($clean, 4, '0', STR_PAD_LEFT);
+        $pad3 = str_pad($clean, 3, '0', STR_PAD_LEFT);
+
+        return array_values(array_unique(array_filter([$raw, $clean, $pad4, $pad3])));
+    }
+
+    /**
+     * Busca un conductor por tarjetón de forma estricta (sin cruces con el autoincremental id).
+     */
+    public static function buscarConductorPorTarjeton(?string $tarjeton)
+    {
+        if ($tarjeton === null || trim((string)$tarjeton) === '') {
+            return null;
+        }
+        $raw = trim((string)$tarjeton);
+
+        // 1. Coincidencia exacta primero
+        $exacto = DB::table('conductores')->where('tarjeton', $raw)->first();
+        if ($exacto) {
+            return $exacto;
+        }
+
+        // 2. Coincidencia con formatos candidatos (con/sin ceros a la izquierda)
+        $candidatos = self::obtenerCandidatosTarjeton($raw);
+        if (empty($candidatos)) {
+            return null;
+        }
+
+        return DB::table('conductores')
+            ->whereIn('tarjeton', $candidatos)
+            ->first();
+    }
+
     public function registrarMovimiento(Request $request)
     {
         $request->validate([
@@ -106,16 +153,17 @@ class PlataformaController extends Controller
                 // Asignar conductor y ruta al incorporar
                 $datosUpdate['numero_tarjeton'] = $request->conductor;
                 if ($request->conductor) {
-                    $cond = DB::table('conductores')
-                        ->where('tarjeton', $request->conductor)
-                        ->orWhere('id', is_numeric($request->conductor) ? (int)$request->conductor : 0)
-                        ->first();
+                    $cond = self::buscarConductorPorTarjeton($request->conductor);
                     if ($cond) {
                         if ($cond->estatus === 'inhabilitado') {
                             return response()->json(['error' => 'El conductor seleccionado está NO ASIGNADO por acumulación de faltas.'], 422);
                         }
                         $datosUpdate['numero_tarjeton'] = $cond->tarjeton;
-                        $datosUpdate['nombre_conductor'] = trim($cond->nombres . ' ' . $cond->apellidos);
+                        $nombreCond = trim(($cond->nombres ?? '') . ' ' . ($cond->apellidos ?? ''));
+                        if (empty($nombreCond)) {
+                            $nombreCond = trim(($cond->apellidos ?? '') . ' ' . ($cond->nombres ?? ''));
+                        }
+                        $datosUpdate['nombre_conductor'] = $nombreCond;
                         DB::table('conductores')->where('id', $cond->id)->update(['estado_servicio' => 'en_servicio']);
                     }
                 }
@@ -151,15 +199,12 @@ class PlataformaController extends Controller
 
                 // Limpiar conductor y ruta en servicio activo al desincorporar
                 if ($registroOperativo && $registroOperativo->numero_tarjeton) {
-                    $tarjetonAnterior = trim($registroOperativo->numero_tarjeton);
-                    $tarjetonClean = ltrim($tarjetonAnterior, '0');
-                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonCandidates = array_values(array_unique([$tarjetonAnterior, $tarjetonClean, $tarjetonPad]));
-
-                    DB::table('conductores')
-                        ->whereIn('tarjeton', $tarjetonCandidates)
-                        ->orWhere('id', is_numeric($tarjetonAnterior) ? (int)$tarjetonAnterior : 0)
-                        ->update(['estado_servicio' => 'disponible']);
+                    $tarjetonCandidates = self::obtenerCandidatosTarjeton($registroOperativo->numero_tarjeton);
+                    if (!empty($tarjetonCandidates)) {
+                        DB::table('conductores')
+                            ->whereIn('tarjeton', $tarjetonCandidates)
+                            ->update(['estado_servicio' => 'disponible']);
+                    }
                 }
                 $datosUpdate['nombre_conductor'] = null;
                 $datosUpdate['numero_tarjeton'] = null;
@@ -231,15 +276,7 @@ class PlataformaController extends Controller
 
                     $nombreConductorReemplazo = null;
                     if ($tarjetonReemplazo) {
-                        $tarjetonClean = ltrim($tarjetonReemplazo, '0');
-                        $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-                        $tarjetonCandidates = array_values(array_unique([$tarjetonReemplazo, $tarjetonClean, $tarjetonPad]));
-
-                        $conductorR = DB::table('conductores')
-                            ->whereIn('tarjeton', $tarjetonCandidates)
-                            ->orWhere('id', is_numeric($tarjetonReemplazo) ? (int)$tarjetonReemplazo : 0)
-                            ->first();
-
+                        $conductorR = self::buscarConductorPorTarjeton($tarjetonReemplazo);
                         if ($conductorR) {
                             $tarjetonReemplazo = $conductorR->tarjeton;
                             $nombreConductorReemplazo = trim(($conductorR->nombres ?? '') . ' ' . ($conductorR->apellidos ?? ''));
@@ -411,10 +448,7 @@ class PlataformaController extends Controller
                 if (!$registroOperativo) {
                     return response()->json(['error' => 'No hay registro operativo para esta unidad.'], 422);
                 }
-                $conductorNuevo = DB::table('conductores')
-                    ->where('tarjeton', $request->numero_tarjeton)
-                    ->orWhere('id', is_numeric($request->numero_tarjeton) ? (int)$request->numero_tarjeton : 0)
-                    ->first();
+                $conductorNuevo = self::buscarConductorPorTarjeton($request->numero_tarjeton);
                 if (!$conductorNuevo) {
                     return response()->json(['error' => 'Conductor no encontrado en el sistema.'], 404);
                 }
@@ -422,7 +456,10 @@ class PlataformaController extends Controller
                     return response()->json(['error' => 'El conductor seleccionado está NO ASIGNADO por acumulación de faltas.'], 422);
                 }
                 $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
-                $nombreCompletoAsig = trim($conductorNuevo->nombres . ' ' . $conductorNuevo->apellidos);
+                $nombreCompletoAsig = trim(($conductorNuevo->nombres ?? '') . ' ' . ($conductorNuevo->apellidos ?? ''));
+                if (empty($nombreCompletoAsig)) {
+                    $nombreCompletoAsig = trim(($conductorNuevo->apellidos ?? '') . ' ' . ($conductorNuevo->nombres ?? ''));
+                }
                 $datosUpdate['nombre_conductor'] = $nombreCompletoAsig;
 
                 DB::table('conductores')->where('id', $conductorNuevo->id)->update(['estado_servicio' => 'en_servicio']);
@@ -470,15 +507,9 @@ class PlataformaController extends Controller
 
                 // ─── Buscar registro completo del conductor anterior en catálogo ──
                 $conductorOriginal = null;
-                $tarjetonCandidates = [];
-                if (!empty($tarjetonOriginal)) {
-                    $tarjetonClean = ltrim($tarjetonOriginal, '0');
-                    $tarjetonPad = str_pad($tarjetonClean === '' ? '0' : $tarjetonClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonCandidates = array_values(array_unique([$tarjetonOriginal, $tarjetonClean, $tarjetonPad]));
-
-                    $conductorOriginal = Conductor::whereIn('tarjeton', $tarjetonCandidates)
-                        ->orWhere('id', is_numeric($tarjetonOriginal) ? (int)$tarjetonOriginal : 0)
-                        ->first();
+                $tarjetonCandidates = self::obtenerCandidatosTarjeton($tarjetonOriginal);
+                if (!empty($tarjetonCandidates)) {
+                    $conductorOriginal = Conductor::whereIn('tarjeton', $tarjetonCandidates)->first();
                 }
 
                 if (!$conductorOriginal && !empty($request->nombre_conductor_anterior)) {
@@ -712,22 +743,18 @@ class PlataformaController extends Controller
                 // ─── 2) Actualizar registro con nuevo conductor (si hay reemplazo) ─
                 if ($request->has('numero_tarjeton_nuevo') && $request->numero_tarjeton_nuevo) {
                     $tarjetonNuevo = trim($request->numero_tarjeton_nuevo);
-                    $tarjetonNuevoClean = ltrim($tarjetonNuevo, '0');
-                    $tarjetonNuevoPad = str_pad($tarjetonNuevoClean === '' ? '0' : $tarjetonNuevoClean, 4, '0', STR_PAD_LEFT);
-                    $tarjetonNuevoCandidates = array_values(array_unique([$tarjetonNuevo, $tarjetonNuevoClean, $tarjetonNuevoPad]));
-
-                    $conductorNuevo = DB::table('conductores')
-                        ->whereIn('tarjeton', $tarjetonNuevoCandidates)
-                        ->orWhere('id', is_numeric($tarjetonNuevo) ? (int)$tarjetonNuevo : 0)
-                        ->first();
+                    $conductorNuevo = self::buscarConductorPorTarjeton($tarjetonNuevo);
                     if (!$conductorNuevo) {
-                        return response()->json(['error' => 'Conductor de reemplazo no encontrado.'], 404);
+                        return response()->json(['error' => 'Conductor de reemplazo no encontrado (Tarjetón: ' . $tarjetonNuevo . ').'], 404);
                     }
                     if ($conductorNuevo->estatus === 'inhabilitado') {
                         return response()->json(['error' => 'El conductor de reemplazo está NO ASIGNADO por acumulación de faltas.'], 422);
                     }
                     $datosUpdate['numero_tarjeton'] = $conductorNuevo->tarjeton;
                     $nombreCompleto = trim(($conductorNuevo->nombres ?? '') . ' ' . ($conductorNuevo->apellidos ?? ''));
+                    if (empty($nombreCompleto)) {
+                        $nombreCompleto = trim(($conductorNuevo->apellidos ?? '') . ' ' . ($conductorNuevo->nombres ?? ''));
+                    }
                     $datosUpdate['nombre_conductor'] = $nombreCompleto;
                     DB::table('conductores')->where('id', $conductorNuevo->id)->update(['estado_servicio' => 'en_servicio']);
 
@@ -817,6 +844,8 @@ class PlataformaController extends Controller
                 'inhabilitado' => $fueInhabilitado ?? false,
                 'conductor_inhabilitado_nombre' => $conductorInhabilitadoNombre ?? null,
                 'total_faltas' => isset($conductorOriginal) ? (int)($conductorOriginal->faltas ?? 0) : null,
+                'conductor_asignado_tarjeton' => $datosUpdate['numero_tarjeton'] ?? null,
+                'conductor_asignado_nombre' => $datosUpdate['nombre_conductor'] ?? null,
             ]);
 
         } catch (\Exception $e) {
