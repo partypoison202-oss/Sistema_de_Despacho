@@ -987,7 +987,7 @@ export default function DetalleUnidadMesaControl() {
     const matchNumeros = selectedOption.match(/\d+/);
     const numeroLimpio = matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
 
-    const foundConductor = (conductoresDisponibles || dbConductores || []).find(c => c.id.toString() === modalEstatusConductor);
+    const foundConductor = (conductoresDisponibles || dbConductores || []).find(c => String(c.tarjeton || c.id) === String(modalEstatusConductor));
 
     let payloadUpdate = {
       numero_eco: numeroLimpio,
@@ -1944,7 +1944,7 @@ export default function DetalleUnidadMesaControl() {
                       <span>
                         {modalEstatusConductor
                           ? (() => {
-                            const found = (dbConductores || []).find(c => c.id.toString() === modalEstatusConductor || c.tarjeton === modalEstatusConductor);
+                            const found = (dbConductores || []).find(c => String(c.tarjeton) === String(modalEstatusConductor) || String(c.id) === String(modalEstatusConductor));
                             return found ? `${found.nombre} (${found.tarjeton})` : 'Seleccione un conductor...';
                           })()
                           : 'Seleccione un conductor...'}

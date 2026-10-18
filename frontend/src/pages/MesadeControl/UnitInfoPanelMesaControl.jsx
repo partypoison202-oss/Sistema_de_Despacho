@@ -1392,7 +1392,7 @@ export default function UnitInfoPanel({
                     onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'SELECCIONAR'}
+                      {platConductor ? (conductoresDisponibles.find(c => String(c.tarjeton || c.id) === String(platConductor))?.nombre + ` (${platConductor})`) : 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1403,16 +1403,16 @@ export default function UnitInfoPanel({
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
                         {conductoresDisponibles.map(c => (
                           <button
-                            key={c.id}
+                            key={c.tarjeton || c.id}
                             type="button"
                             className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platConductor == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: String(platConductor) === String(c.tarjeton || c.id) ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
-                              setPlatConductor(c.id);
+                              setPlatConductor(c.tarjeton || c.id);
                               setPlatConductorDropdown(false);
                             }}
                           >
-                            {c.nombre} ({c.id})
+                            {c.nombre} ({c.tarjeton || c.id})
                           </button>
                         ))}
                       </div>
@@ -1701,7 +1701,7 @@ export default function UnitInfoPanel({
                     onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'SELECCIONAR'}
+                      {platConductor ? (conductoresDisponibles.find(c => String(c.tarjeton || c.id) === String(platConductor))?.nombre + ` (${platConductor})`) : 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1712,16 +1712,16 @@ export default function UnitInfoPanel({
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
                         {conductoresDisponibles.map(c => (
                           <button
-                            key={c.id}
+                            key={c.tarjeton || c.id}
                             type="button"
                             className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platConductor == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: String(platConductor) === String(c.tarjeton || c.id) ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
-                              setPlatConductor(c.id);
+                              setPlatConductor(c.tarjeton || c.id);
                               setPlatConductorDropdown(false);
                             }}
                           >
-                            {c.nombre} ({c.id})
+                            {c.nombre} ({c.tarjeton || c.id})
                           </button>
                         ))}
                       </div>
@@ -1825,24 +1825,24 @@ export default function UnitInfoPanel({
                           <div style={{ overflowY: 'auto', flex: 1 }}>
                             {conductoresDisponibles && conductoresDisponibles
                               .filter(c =>
-                                String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) ||
+                                String(c.tarjeton || c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) ||
                                 (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))
                               )
                               .map((c) => (
                                 <button
-                                  key={c.id}
+                                  key={c.tarjeton || c.id}
                                   type="button"
                                   className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorReemplazoSeleccionado?.id == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: String(operadorReemplazoSeleccionado?.tarjeton || operadorReemplazoSeleccionado?.id) === String(c.tarjeton || c.id) ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                                   onClick={() => {
                                     setOperadorReemplazoSeleccionado(c);
                                     setDropdownOperadorOpen(false);
                                   }}
                                 >
-                                  {c.nombre} ({c.id})
+                                  {c.nombre} ({c.tarjeton || c.id})
                                 </button>
                               ))}
-                            {conductoresDisponibles && conductoresDisponibles.filter(c => String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) || (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))).length === 0 && (
+                            {conductoresDisponibles && conductoresDisponibles.filter(c => String(c.tarjeton || c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) || (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))).length === 0 && (
                               <div style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
                                 No se encontraron conductores.
                               </div>
