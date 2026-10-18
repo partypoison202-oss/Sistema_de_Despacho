@@ -1876,9 +1876,7 @@ export default function CargaExcel({ isPasteles = false }) {
         nuevoEstatus={modalCambioData.nuevoEstatus}
         unidadesDisponibles={previewData.filter(u => {
           const estatus = String(u.ESTATUS || '').toLowerCase().trim();
-          const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase().trim();
-          const isTroncal = tipo.includes('urbanus');
-          return estatus === 'reserva' && !isTroncal;
+          return estatus === 'reserva';
         })}
         onConfirmarCambio={(unidadReserva, nuevoEstatus) => {
           const updatedData = [...previewData];
