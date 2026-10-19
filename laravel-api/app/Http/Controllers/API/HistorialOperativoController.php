@@ -827,6 +827,8 @@ class HistorialOperativoController extends Controller
             'folio_mantenimiento' => 'nullable|string|max:50',
             'fecha_folio_mantenimiento' => 'nullable|string',
             'numero_incidencia' => 'nullable|string|max:50',
+            'fecha_registro' => 'nullable|string',
+            'falla_reportada' => 'nullable|string|max:255',
             'motivo_auditoria' => 'required|string|min:5|max:500'
         ]);
 
@@ -840,7 +842,9 @@ class HistorialOperativoController extends Controller
 
         $nuevoFolio = $request->filled('folio_mantenimiento') ? mb_strtoupper(trim($request->folio_mantenimiento), 'UTF-8') : null;
         $nuevaIncidencia = $request->filled('numero_incidencia') ? mb_strtoupper(trim($request->numero_incidencia), 'UTF-8') : null;
-        $nuevaFecha = $request->filled('fecha_folio_mantenimiento') ? $request->fecha_folio_mantenimiento : null;
+        $nuevaFechaFolio = $request->filled('fecha_folio_mantenimiento') ? $request->fecha_folio_mantenimiento : null;
+        $nuevaFechaInc = $request->filled('fecha_registro') ? $request->fecha_registro : null;
+        $nuevaFalla = $request->has('falla_reportada') ? (trim($request->falla_reportada) ? mb_strtoupper(trim($request->falla_reportada), 'UTF-8') : null) : null;
         $motivoAuditoria = mb_strtoupper(trim($request->motivo_auditoria), 'UTF-8');
 
         // Validar que el folio no esté duplicado en otra unidad
@@ -858,40 +862,50 @@ class HistorialOperativoController extends Controller
         }
 
         $folioAnterior = $registro->folio_mantenimiento ?? '';
-        $fechaAnterior = $registro->fecha_folio_mantenimiento ?? '';
+        $fechaFolioAnterior = $registro->fecha_folio_mantenimiento ?? '';
         $incidenciaAnterior = $registro->numero_incidencia ?? '';
+        $fechaIncAnterior = $registro->fecha_registro ?? '';
+        $fallaAnterior = $registro->falla_reportada ?? $registro->falla ?? '';
 
         $cambios = [];
         if ($folioAnterior !== ($nuevoFolio ?? '')) {
             $cambios[] = "Folio: '" . ($folioAnterior ?: 'SIN FOLIO') . "' -> '" . ($nuevoFolio ?: 'SIN FOLIO') . "'";
         }
-        if (substr((string)$fechaAnterior, 0, 10) !== substr((string)$nuevaFecha, 0, 10)) {
-            $cambios[] = "Fecha Folio: '" . ($fechaAnterior ?: 'SIN FECHA') . "' -> '" . ($nuevaFecha ?: 'SIN FECHA') . "'";
+        if (substr((string)$fechaFolioAnterior, 0, 10) !== substr((string)$nuevaFechaFolio, 0, 10)) {
+            $cambios[] = "Fecha Folio: '" . ($fechaFolioAnterior ?: 'SIN FECHA') . "' -> '" . ($nuevaFechaFolio ?: 'SIN FECHA') . "'";
         }
         if ($incidenciaAnterior !== ($nuevaIncidencia ?? '')) {
             $cambios[] = "Incidencia: '" . ($incidenciaAnterior ?: 'SIN INCIDENCIA') . "' -> '" . ($nuevaIncidencia ?: 'SIN INCIDENCIA') . "'";
+        }
+        if ($nuevaFechaInc && substr((string)$fechaIncAnterior, 0, 10) !== substr((string)$nuevaFechaInc, 0, 10)) {
+            $cambios[] = "Fecha Incidencia: '" . ($fechaIncAnterior ?: 'SIN FECHA') . "' -> '" . ($nuevaFechaInc ?: 'SIN FECHA') . "'";
+        }
+        if ($request->has('falla_reportada') && ($fallaAnterior ?: '') !== ($nuevaFalla ?: '')) {
+            $cambios[] = "Falla: '" . ($fallaAnterior ?: 'SIN REPORTE') . "' -> '" . ($nuevaFalla ?: 'SIN REPORTE') . "'";
         }
 
         if (empty($cambios)) {
             return response()->json([
                 'status' => 'info',
-                'message' => 'No se detectaron modificaciones en el folio o fecha.'
+                'message' => 'No se detectaron modificaciones en el folio, incidencia, fechas o falla.'
             ], 200);
         }
 
         $updateData = [
             'folio_mantenimiento' => $nuevoFolio,
-            'fecha_folio_mantenimiento' => $nuevaFecha
+            'fecha_folio_mantenimiento' => $nuevaFechaFolio,
+            'numero_incidencia' => $nuevaIncidencia
         ];
-        if ($request->has('numero_incidencia')) {
-            $updateData['numero_incidencia'] = $nuevaIncidencia;
-            $updateData['fecha_registro'] = \Carbon\Carbon::now();
+        if ($nuevaFechaInc) {
+            $updateData['fecha_registro'] = $nuevaFechaInc;
+        }
+        if ($request->has('falla_reportada')) {
+            $updateData['falla_reportada'] = $nuevaFalla;
         }
 
         DB::table('informacion_operativa')->where('id', $registro->id)->update($updateData);
 
-        $usuarioNombre = auth()->user() ? auth()->user()->nombre_completo : 'Usuario Autorizado';
-        $detalleAudit = "ACTUALIZACIÓN DE FOLIO/FECHA EN ECO {$eco}: " . implode(' | ', $cambios) . " | MOTIVO AUDITORÍA: " . strtoupper($motivoAuditoria);
+        $detalleAudit = "ACTUALIZACIÓN DE DATOS EN ECO {$eco}: " . implode(' | ', $cambios) . " | MOTIVO AUDITORÍA: " . strtoupper($motivoAuditoria);
 
         $tipoAccion = 'ACTUALIZACION_FOLIO';
         if ($incidenciaAnterior !== ($nuevaIncidencia ?? '') && $folioAnterior === ($nuevoFolio ?? '')) {
@@ -910,13 +924,15 @@ class HistorialOperativoController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => "Folio y fecha actualizados correctamente para el ECO {$eco}.",
+            'message' => "Datos actualizados correctamente para el ECO {$eco}.",
             'detalles' => $detalleAudit,
             'registro' => [
                 'id' => $registro->id,
                 'folio_mantenimiento' => $nuevoFolio,
-                'fecha_folio_mantenimiento' => $nuevaFecha,
-                'numero_incidencia' => $nuevaIncidencia
+                'fecha_folio_mantenimiento' => $nuevaFechaFolio,
+                'numero_incidencia' => $nuevaIncidencia,
+                'fecha_registro' => $updateData['fecha_registro'] ?? $registro->fecha_registro,
+                'falla_reportada' => $nuevaFalla
             ]
         ], 200);
     }
