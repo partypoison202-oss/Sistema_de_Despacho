@@ -54,6 +54,15 @@ export default function DetalleUnidad() {
 
   const modalConductorRef = React.useRef(null);
   const modalRutaRef = React.useRef(null);
+  const selectUnitAbortRef = React.useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (selectUnitAbortRef.current) {
+        selectUnitAbortRef.current.abort();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -173,13 +182,14 @@ export default function DetalleUnidad() {
     return base;
   };
 
-  const fetchUnidades = async () => {
+  const fetchUnidades = async ({ signal }) => {
     const token = getToken();
     if (!token) {
       navigate('/login');
       return [];
     }
     const respuesta = await fetch(`${API_BASE}/api/unidades/listar/${tipoTransporte}`, {
+      signal,
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     });
     if (respuesta.status === 401) {
@@ -204,16 +214,17 @@ export default function DetalleUnidad() {
   const { data: unidadesList = [], isLoading: cargandoUnidades } = useQuery({
     queryKey: ['unidades-list', tipoTransporte],
     queryFn: fetchUnidades,
-    staleTime: 0,
-    refetchInterval: 5000,
+    staleTime: 10000,
+    refetchInterval: 10000,
   });
 
   const { data: dbConductores = [], isLoading: cargandoConductores, refetch: fetchConductores } = useQuery({
     queryKey: ['conductores-list'],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) return [];
       const res = await fetch(`${API_BASE}/api/conductores`, {
+        signal,
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -228,8 +239,8 @@ export default function DetalleUnidad() {
       }
       return [];
     },
-    staleTime: 60000,
-    refetchInterval: 30000,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 60000,
   });
 
   // ✅ NUEVO: unidades de la ruta alimentadora seleccionada
@@ -238,12 +249,12 @@ export default function DetalleUnidad() {
     isLoading: cargandoUnidadesPorRuta,
   } = useQuery({
     queryKey: ['unidades-por-ruta', tipoTransporte, selectedRuta],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const token = getToken();
       if (!token || !selectedRuta) return [];
       const res = await fetch(
         `${API_BASE}/api/despacho/unidades-por-ruta/${tipoTransporte}/${encodeURIComponent(selectedRuta)}`,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+        { signal, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
       if (!res.ok) throw new Error('Error al obtener unidades de la ruta');
       const data = await res.json();
@@ -259,7 +270,7 @@ export default function DetalleUnidad() {
       })).sort((a, b) => parseTimeToMinutes(a.horaSalidaPatio) - parseTimeToMinutes(b.horaSalidaPatio));
     },
     enabled: !!selectedRuta && esAlimentadora,
-    staleTime: 0,
+    staleTime: 10000,
   });
 
   // ✅ NUEVO: unidades de la troncal seleccionada, derivadas localmente (mismo patrón que Encierro)
@@ -430,6 +441,17 @@ export default function DetalleUnidad() {
       return;
     }
 
+    // Cancelar cualquier petición previa de detalle que siga en vuelo
+    if (selectUnitAbortRef.current) {
+      selectUnitAbortRef.current.abort();
+    }
+    const currentAbortController = new AbortController();
+    selectUnitAbortRef.current = currentAbortController;
+
+    const timeoutId = setTimeout(() => {
+      currentAbortController.abort();
+    }, 12000); // 12s timeout de seguridad para nunca quedarse colgado
+
     const ecoSeleccionado = unidadSeleccionada.display;
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(unidadSeleccionada.estado);
@@ -453,6 +475,7 @@ export default function DetalleUnidad() {
         queryKey: ['unidad-detalle', tipoTransporte, numeroLimpio],
         queryFn: async () => {
           const res = await fetch(url, {
+            signal: currentAbortController.signal,
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           });
           if (!res.ok) throw new Error('Error en peticion');
@@ -493,6 +516,10 @@ export default function DetalleUnidad() {
         setFallaTexto('');
       }
     } catch (error) {
+      if (error?.name === 'AbortError') {
+        // Petición cancelada intencionalmente por selección de otra unidad; ignorar silenciosamente
+        return;
+      }
       console.error('Error en la petición:', error);
       setDatosOperativos({
         conductor: 'Error de conexión',
@@ -502,7 +529,10 @@ export default function DetalleUnidad() {
         horaRealSalidaPatio: '',
       });
     } finally {
-      setCargandoDatos(false);
+      clearTimeout(timeoutId);
+      if (selectUnitAbortRef.current === currentAbortController) {
+        setCargandoDatos(false);
+      }
     }
   };
 

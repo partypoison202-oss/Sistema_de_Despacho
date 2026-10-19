@@ -271,13 +271,26 @@ class HistorialOperativoController extends Controller
         }
 
         // 4. Encierros del día
-        $encierros = DB::table('historial_operativo')
+        $queryEncierros = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
             ->where('fecha_historial', $fecha)
-            ->where('momento', 'ENCIERRO')
+            ->where('momento', 'ENCIERRO');
+
+        $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
+        if ($fecha === $fechaHoyMex || $fecha === Carbon::today()->toDateString()) {
+            $idsEnOperacion = DB::table('informacion_operativa')
+                ->whereRaw("LOWER(estatus) = 'operacion'")
+                ->pluck('unidad_id')
+                ->toArray();
+            if (! empty($idsEnOperacion)) {
+                $queryEncierros->whereNotIn('historial_operativo.unidad_id', $idsEnOperacion);
+            }
+        }
+
+        $encierros = $queryEncierros
             ->select(
                 'historial_operativo.id as id_historial',
-                    'unidades.numero_eco as economico',
+                'unidades.numero_eco as economico',
                 'historial_operativo.tipo',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton as tarjeton',
@@ -1270,11 +1283,12 @@ class HistorialOperativoController extends Controller
         // 1. Inicio
         $inicio = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
             ->select(
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                DB::raw('COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
                 'historial_operativo.tipo',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
@@ -1299,11 +1313,12 @@ class HistorialOperativoController extends Controller
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
                 ->where('momento', 'FIN')
                 ->select(
                     'unidades.numero_eco as economico',
-                    'unidades.tipo as tipo_unidad',
+                    DB::raw('COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
                     'historial_operativo.tipo',
                     'historial_operativo.ruta',
                     'historial_operativo.numero_tarjeton',
@@ -1328,13 +1343,14 @@ class HistorialOperativoController extends Controller
         // 2. Cambios (Bitácora de movimientos)
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_unidad'),
                 'usuarios.nombre_completo as usuario_nombre',
                 'roles.nombre as usuario_rol',
                 'bitacora_cambios_unidades.tipo_accion',
@@ -1349,11 +1365,12 @@ class HistorialOperativoController extends Controller
         // 3. Fin / Estado Actual
         $fin = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'FIN')
             ->select(
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                DB::raw('COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
                 'historial_operativo.tipo',
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
@@ -1377,9 +1394,10 @@ class HistorialOperativoController extends Controller
         if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
             $fin = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->select(
                     'unidades.numero_eco as economico',
-                    'unidades.tipo as tipo_unidad',
+                    DB::raw('COALESCE(informacion_operativa.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
                     'informacion_operativa.tipo',
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',

@@ -14,27 +14,24 @@ const LiveClockAcople = ({ horaCongelada }) => {
     return () => clearInterval(t);
   }, [horaCongelada]); // Cuando horaCongelada cambia de null a un valor, el efecto se re-ejecuta y limpia el interval anterior
 
-  let horas12, minutos, segundos, ampm, separador;
+  let horas24, minutos, segundos, separador;
 
   if (horaCongelada) {
-    const partes = horaCongelada.split(':');
+    const partes = String(horaCongelada).split(':');
     const h24 = parseInt(partes[0], 10);
-    ampm = h24 >= 12 ? 'P.M.' : 'A.M.';
-    horas12 = String(h24 % 12 || 12).padStart(2, '0');
-    minutos = partes[1] || '00';
-    segundos = partes[2] ? partes[2].substring(0, 2) : '00';
+    horas24 = String(isNaN(h24) ? 0 : h24).padStart(2, '0');
+    minutos = String(partes[1] || '00').padStart(2, '0');
+    segundos = partes[2] ? String(partes[2].substring(0, 2)).padStart(2, '0') : '00';
     separador = ':';
   } else {
-    const horas24 = ahora.getHours();
-    ampm = horas24 >= 12 ? 'P.M.' : 'A.M.';
-    horas12 = String(horas24 % 12 || 12).padStart(2, '0');
+    horas24 = String(ahora.getHours()).padStart(2, '0');
     minutos = String(ahora.getMinutes()).padStart(2, '0');
     segundos = String(ahora.getSeconds()).padStart(2, '0');
     const parpadeo = ahora.getSeconds() % 2 === 0;
     separador = parpadeo ? ':' : ' ';
   }
 
-  const horaMostrada = `${horas12}${separador}${minutos}${separador}${segundos} ${ampm}`;
+  const horaMostrada = `${horas24}${separador}${minutos}${separador}${segundos}`;
 
   return (
     <div className="info-card__item">
@@ -346,11 +343,11 @@ export default function DetalleUnidadEncierro() {
     }));
 
     return mapped.filter(u => {
+      // Si ya fue encerrada HOY, la mantenemos siempre (para verla en la lista y consultarla)
+      if (u.yaEncerrada) return true;
+
       // Solo unidades que ya fueron despachadas hoy (tienen hora de salida asignada)
       if (u.horaRealSalidaPatio === '') return false;
-
-      // Si ya fue encerrada HOY, la mantenemos (para mostrar en "Unidades Encerradas")
-      if (u.yaEncerrada) return true;
 
       // Las unidades pendientes de encierro deben estar en operación activa
       return u.estado === 'operacion';
@@ -402,7 +399,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedRuta);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaRealSalidaPatio !== '' && (u.estado === 'operacion' || u.yaEncerrada);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedRuta]);
   const unidadesPorTroncalList = useMemo(() => {
@@ -410,7 +407,7 @@ export default function DetalleUnidadEncierro() {
     const rutaSeleccionada = normalizeRutaClave(selectedTroncal);
     return unidadesList.filter((u) => {
       const rutaUnidad = normalizeRutaClave(u.ruta);
-      return rutaUnidad && rutaUnidad === rutaSeleccionada && u.horaRealSalidaPatio !== '' && (u.estado === 'operacion' || u.yaEncerrada);
+      return rutaUnidad && rutaUnidad === rutaSeleccionada && (u.estado === 'operacion' || u.yaEncerrada);
     });
   }, [unidadesList, selectedTroncal]);
   const cargandoUnidadesPorRuta = false;
@@ -439,10 +436,22 @@ export default function DetalleUnidadEncierro() {
     return total.length;
   }, [unidadesList, selectedRuta, esAlimentadora, selectedTroncal, isTroncal, unidadesPorRutaList, unidadesPorTroncalList]);
 
+  const totalEncerradasOperacion = useMemo(() => {
+    let encerradas = unidadesList.filter((u) => u.yaEncerrada);
+    if (selectedRuta && esAlimentadora) {
+      const ecos = unidadesPorRutaList.map(u => u.eco);
+      encerradas = encerradas.filter(u => ecos.includes(u.eco));
+    }
+    if (selectedTroncal && isTroncal) {
+      const ecos = unidadesPorTroncalList.map(u => u.eco);
+      encerradas = encerradas.filter(u => ecos.includes(u.eco));
+    }
+    return encerradas.length;
+  }, [unidadesList, selectedRuta, esAlimentadora, selectedTroncal, isTroncal, unidadesPorRutaList, unidadesPorTroncalList]);
 
   const unidadesPorEstado = (estado) => {
-    // En encierro, el dropdown de Operación muestra las unidades en operación que están pendientes de encierro
-    let filtradas = unidadesList.filter((u) => u.estado === 'operacion' && !u.yaEncerrada);
+    // En encierro, el dropdown de Operación muestra todas las unidades que operaron hoy (pendientes y encerradas)
+    let filtradas = unidadesList.filter((u) => u.estado === 'operacion' || u.yaEncerrada);
 
     if (selectedRuta && esAlimentadora) {
       const ecosEnRuta = unidadesPorRutaList.map((u) => u.eco);
@@ -517,12 +526,14 @@ export default function DetalleUnidadEncierro() {
         unidad.display === formatearEco(ecoNormalizado)
     );
 
-    if (unidadEncontrada && unidadEncontrada.acople) {
-      return;
-    }
+    const targetUnidad = unidadEncontrada || {
+      eco: ecoNormalizado,
+      display: formatearEco(ecoNormalizado),
+      yaEncerrada: true,
+    };
 
-    if (unidadEncontrada && selectedOption !== unidadEncontrada.display) {
-      handleSelectUnit(unidadEncontrada);
+    if (selectedOption !== targetUnidad.display) {
+      handleSelectUnit(targetUnidad);
     }
   }, [searchParams, unidadesList, selectedOption]);
 
@@ -622,6 +633,7 @@ export default function DetalleUnidadEncierro() {
       const payload = {
         tipo: tipoTransporte,
         numero_eco: numeroLimpio,
+        hora_encierro: horaCapturada,
         motivo_estatus: observaciones || 'Fin de turno (Encierro regular)',
       };
 
@@ -647,6 +659,7 @@ export default function DetalleUnidadEncierro() {
           queryClient.invalidateQueries(['conteo-unidades-encierro-global']);
           queryClient.invalidateQueries(['despacho-hoy']);
           queryClient.invalidateQueries(['conteo-unidades-global']);
+          queryClient.invalidateQueries(['unidades-list-encierro', tipoTransporte]);
 
           const Swal = (await import('sweetalert2')).default;
           Swal.fire({
@@ -740,7 +753,12 @@ export default function DetalleUnidadEncierro() {
           relevo_hora: resultado.relevo_hora || '',
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
-        setAcopleCongelado(resultado.hora_encierro || null);
+        const estaYaEncerrada = Boolean(
+          resultado.ya_encerrada ||
+          (resultado.estatus && resultado.estatus.toLowerCase() === 'reserva') ||
+          unidadSeleccionada?.yaEncerrada
+        );
+        setAcopleCongelado(estaYaEncerrada ? (resultado.hora_encierro || 'VALIDADO') : null);
       } else {
         setDatosOperativos({
           conductor: 'No reportado hoy',
@@ -1395,6 +1413,7 @@ export default function DetalleUnidadEncierro() {
                 estado="operacion"
                 titulo="Operación"
                 unidades={unidadesPorEstado('operacion')}
+                contadorCustom={totalEncerradasOperacion}
                 totalProgramadas={totalProgramadasOperacion}
                 cargandoUnidades={cargandoUnidades}
                 configActual={configActual}
@@ -2136,11 +2155,8 @@ export default function DetalleUnidadEncierro() {
                             const minutos = String(now.getMinutes()).padStart(2, '0');
                             const segundos = String(now.getSeconds()).padStart(2, '0');
 
-                            const ampm = parseInt(horas24, 10) >= 12 ? 'P.M.' : 'A.M.';
-                            const horas12 = String(parseInt(horas24, 10) % 12 || 12).padStart(2, '0');
-
                             const horaParaGuardar = `${horas24}:${minutos}:${segundos}`;
-                            const stringCongelado = `${horas24}:${minutos}:${segundos}`; // LiveClock parses 24h
+                            const stringCongelado = `${horas24}:${minutos}:${segundos}`;
 
                             await handleGuardarAcople(horaParaGuardar, observaciones);
                             setAcopleCongelado(stringCongelado);

@@ -31,7 +31,7 @@ const getFaltasArray = (conductor) => {
     for (let i = 0; i < faltasFaltantes; i++) {
       items.push({
         id: `virtual_falta_${conductor.id}_${i}_${Date.now()}`,
-        fecha: conductor.updated_at ? String(conductor.updated_at).substring(0, 10) : 'Fecha sin registrar',
+        fecha: new Date().toISOString().substring(0, 10),
         motivo: 'Inasistencia no justificada en sistema',
         estado: 'pendiente',
         justificada: false
@@ -215,10 +215,11 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
     setSubiendo(true);
 
     try {
+      const isVirtual = faltaAJustificar.id && String(faltaAJustificar.id).startsWith('virtual_falta_');
       const formData = new FormData();
       formData.append('justificante', archivoSeleccionado);
       if (faltaAJustificar.id) formData.append('falta_id', faltaAJustificar.id);
-      if (faltaAJustificar.index !== undefined) formData.append('falta_index', faltaAJustificar.index);
+      if (!isVirtual && faltaAJustificar.index !== undefined) formData.append('falta_index', faltaAJustificar.index);
       if (observacionesJustificante) formData.append('observaciones', observacionesJustificante);
       if (faltaAJustificar.fecha) formData.append('fecha_falta', faltaAJustificar.fecha);
       if (faltaAJustificar.motivo) formData.append('motivo_falta', faltaAJustificar.motivo);
@@ -335,9 +336,10 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       const headers = getAuthHeaders ? getAuthHeaders() : { 'Content-Type': 'application/json' };
       headers['Content-Type'] = 'application/json';
 
+      const isVirtual = faltaInfo.id && String(faltaInfo.id).startsWith('virtual_falta_');
       const bodyData = {};
       if (faltaInfo.id) bodyData.falta_id = faltaInfo.id;
-      if (faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
+      if (!isVirtual && faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
       if (faltaInfo.fecha) bodyData.fecha_falta = faltaInfo.fecha;
       if (faltaInfo.motivo) bodyData.motivo_falta = faltaInfo.motivo;
 
@@ -400,11 +402,12 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
       const headers = getAuthHeaders ? getAuthHeaders() : { 'Content-Type': 'application/json' };
       headers['Content-Type'] = 'application/json';
 
+      const isVirtual = faltaInfo.id && String(faltaInfo.id).startsWith('virtual_falta_');
       const bodyData = {
         motivo_anulacion: motivo || 'Eliminada por Administrador'
       };
       if (faltaInfo.id) bodyData.falta_id = faltaInfo.id;
-      if (faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
+      if (!isVirtual && faltaInfo.index !== undefined) bodyData.falta_index = faltaInfo.index;
       if (faltaInfo.fecha) bodyData.fecha_falta = faltaInfo.fecha;
 
       const res = await fetch(`${API_BASE}/api/conductores/${conductorActualData.id}/eliminar-falta`, {
@@ -523,7 +526,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                 : 'bg-red-100 text-red-800 hover:bg-red-200'
             }`}
           >
-            Inhabilitados ({kpis.totalInhabilitados})
+            No Asignados ({kpis.totalInhabilitados})
           </button>
         </div>
 
@@ -619,7 +622,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                             <circle cx="12" cy="12" r="10" />
                             <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
                           </svg>
-                          INHABILITADO
+                          NO ASIGNADO
                         </span>
                       ) : (
                         <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold ${
@@ -668,7 +671,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                     <h3 className="font-extrabold text-slate-900 text-lg">{conductorActualData.nombre}</h3>
                     {(conductorActualData.estatus === 'inhabilitado' || conductorActualData.info_ventana_faltas?.inhabilitado) && (
                       <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black bg-red-600 text-white uppercase tracking-wider">
-                        INHABILITADO
+                        NO ASIGNADO
                       </span>
                     )}
                   </div>
@@ -738,7 +741,7 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
                           </span>
                           {esInhab ? (
                             <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded">
-                              INHABILITADO (4/4 FALTAS)
+                              NO ASIGNADO (4/4 FALTAS)
                             </span>
                           ) : faltasV === 3 ? (
                             <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">
@@ -760,12 +763,12 @@ export default function GestionFaltasOperadores({ conductores = [], onRefresh, g
 
                         {esInhab && (
                           <div className="mt-2 text-xs font-bold text-red-700 bg-red-100/90 p-2.5 rounded-lg border border-red-200">
-                            ⚠️ ATENCIÓN: Este operador acumula 4 faltas no justificadas dentro del periodo de 30 días y ha sido inhabilitado automáticamente. No se puede utilizar en ninguna asignación del sistema hasta justificar las faltas requeridas.
+                            ⚠️ ATENCIÓN: Este operador acumula 4 faltas no justificadas dentro del periodo de 30 días y ha sido marcado como NO ASIGNADO automáticamente. No se puede utilizar en ninguna asignación del sistema hasta justificar las faltas requeridas.
                           </div>
                         )}
                         {!esInhab && faltasV === 3 && (
                           <div className="mt-2 text-xs font-bold text-amber-800 bg-amber-100/90 p-2 rounded-lg border border-amber-200">
-                            ⚡ ALERTA: Con 1 falta no justificada más en esta ventana, el operador quedará inhabilitado automáticamente.
+                            ⚡ ALERTA: Con 1 falta no justificada más en esta ventana, el operador quedará como NO ASIGNADO automáticamente.
                           </div>
                         )}
                       </div>

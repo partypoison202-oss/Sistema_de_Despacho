@@ -197,6 +197,40 @@
   justify-content: space-between;
 }
 
+.filtro-tipo-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.filtro-tipo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filtro-tipo-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.filtro-tipo-btn.active {
+  background: #65002d;
+  color: #ffffff;
+  border-color: #65002d;
+  box-shadow: 0 1px 3px rgba(101, 0, 45, 0.2);
+}
+
 .buscador-reserva-input-container {
   position: relative;
   display: flex;

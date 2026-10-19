@@ -75,6 +75,23 @@ class ConductorController extends Controller
                 });
             }
 
+            // Excluir blobs pesados (foto y qr_documento en base64) por defecto para aligerar la respuesta (de 67MB a ~150KB)
+            if (!$request->boolean('con_fotos')) {
+                $columns = [
+                    'id', 'tarjeton', 'nombres', 'apellidos', 'tipo_tarjeton', 'estado_servicio', 'estatus',
+                    'ultima_capacitacion', 'proxima_capacitacion', 'accidentes_siniestros', 'faltas', 'retardos',
+                    'amonestaciones', 'reconocimientos', 'condicionamientos_juridicos', 'condicionamientos_medicos',
+                    'permutas', 'permisos', 'evaluacion', 'observaciones', 'vigencia_licencia', 'sexo',
+                    'fecha_nacimiento', 'telefono', 'referencia_1', 'referencia_2', 'fecha_ingreso',
+                    'amonestaciones_detalle', 'reconocimientos_detalle', 'permisos_detalle', 'permutas_detalle',
+                    'accidentes_siniestros_detalle', 'faltas_detalle', 'retardos_detalle', 'descansos_detalle',
+                    'vacaciones_detalle', 'incapacidades_detalle', 'created_at', 'updated_at',
+                    DB::raw("CASE WHEN foto IS NOT NULL AND LENGTH(foto) > 0 THEN true ELSE false END as tiene_foto"),
+                    DB::raw("CASE WHEN qr_documento IS NOT NULL AND LENGTH(qr_documento) > 0 THEN true ELSE false END as tiene_qr")
+                ];
+                $query->select($columns);
+            }
+
             // Obtener todos los tarjetones asignados en tiempo real en despacho con lookup O(1)
             $asignacionesMap = [];
             try {
@@ -89,7 +106,12 @@ class ConductorController extends Controller
                 $asignacionesMap = [];
             }
 
-            $conductores = $query->get()->map(function ($c) use ($asignacionesMap) {
+            $conFotos = $request->boolean('con_fotos');
+            $conductores = $query->get()->map(function ($c) use ($asignacionesMap, $conFotos) {
+                if (!$conFotos) {
+                    $c->foto = null;
+                    $c->qr_documento = null;
+                }
                 try {
                     // Evaluar regla de 4 faltas en 30 días
                     $eval = $c->evaluarInhabilitacionFaltas();
@@ -119,13 +141,7 @@ class ConductorController extends Controller
                 $estaAsignado = isset($asignacionesMap[$tarjetonClean]);
                 if ($c->estatus === 'baja' || $c->estatus === 'inhabilitado') {
                     $c->estado_servicio = null;
-                } elseif ($c->estado_servicio === 'maniobrista') {
-                    // Respetar siempre el estado maniobrista, aunque esté asignado
-                    $c->estado_servicio = 'maniobrista';
-                } elseif ($c->estado_servicio === 'falta' || $c->estado_servicio === 'incapacidad' || $c->estado_servicio === 'permiso' || $c->estado_servicio === 'descanso') {
-                    // Respetar estados no disponibles
-                    $c->estado_servicio = $c->estado_servicio;
-                } else {
+                } elseif ($c->estado_servicio !== 'maniobrista' && !in_array($c->estado_servicio, ['falta', 'incapacidad', 'permiso', 'descanso'])) {
                     $c->estado_servicio = $estaAsignado ? 'en_servicio' : ($c->estado_servicio ?? 'disponible');
                 }
                 return $c;
@@ -143,6 +159,58 @@ class ConductorController extends Controller
             \Illuminate\Support\Facades\Log::error('Error al listar conductores: ' . $e->getMessage());
             return response()->json(['error' => 'Error al listar conductores', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function show($id)
+    {
+        $this->ensureColumnsExist();
+        $conductor = Conductor::findOrFail($id);
+
+        try {
+            $eval = $conductor->evaluarInhabilitacionFaltas();
+            if (!empty($eval['inhabilitado']) && $conductor->estatus !== 'inhabilitado') {
+                $conductor->estatus = 'inhabilitado';
+                $conductor->estado_servicio = null;
+                try {
+                    DB::table('conductores')->where('id', $conductor->id)->update([
+                        'estatus' => 'inhabilitado',
+                        'estado_servicio' => null
+                    ]);
+                    DB::table('informacion_operativa')
+                        ->where('numero_tarjeton', $conductor->tarjeton)
+                        ->update([
+                            'numero_tarjeton' => null,
+                            'nombre_conductor' => null
+                        ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Error actualizando conductor inhabilitado: ' . $e->getMessage());
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Error evaluando faltas en show conductor: ' . $e->getMessage());
+        }
+
+        $tarjetonClean = trim((string)($conductor->tarjeton ?? ''));
+        $estaAsignado = false;
+        try {
+            $estaAsignado = DB::table('informacion_operativa')
+                ->where('numero_tarjeton', $tarjetonClean)
+                ->where('numero_tarjeton', '!=', '')
+                ->exists();
+        } catch (\Throwable $e) {
+            $estaAsignado = false;
+        }
+
+        if ($conductor->estatus === 'baja' || $conductor->estatus === 'inhabilitado') {
+            $conductor->estado_servicio = null;
+        } elseif ($conductor->estado_servicio !== 'maniobrista' && !in_array($conductor->estado_servicio, ['falta', 'incapacidad', 'permiso', 'descanso'])) {
+            $conductor->estado_servicio = $estaAsignado ? 'en_servicio' : ($conductor->estado_servicio ?? 'disponible');
+        }
+
+        $conductor->tiene_foto = !empty($conductor->foto);
+        $conductor->tiene_qr = !empty($conductor->qr_documento);
+
+        return response()->json($conductor);
     }
 
     public function store(Request $request)
@@ -512,17 +580,32 @@ class ConductorController extends Controller
 
         $faltaIndexCheck = $request->input('falta_index');
         $faltaIdCheck = $request->input('falta_id');
+        $fechaFaltaCheck = $request->input('fecha_falta');
+        $esVirtualCheck = $faltaIdCheck && str_starts_with((string)$faltaIdCheck, 'virtual_falta_');
         $targetFecha = null;
 
-        foreach ($detalleCheck as $idx => $item) {
-            if (($faltaIdCheck && isset($item['id']) && (string)$item['id'] === (string)$faltaIdCheck) || ($faltaIndexCheck !== null && (int)$idx === (int)$faltaIndexCheck)) {
-                $targetFecha = $item['fecha'] ?? null;
-                break;
+        // 1. Si viene un ID real (no virtual), buscar fecha por ID en detalleCheck
+        if ($faltaIdCheck && !$esVirtualCheck) {
+            foreach ($detalleCheck as $item) {
+                if (isset($item['id']) && (string)$item['id'] === (string)$faltaIdCheck) {
+                    $targetFecha = $item['fecha'] ?? null;
+                    break;
+                }
             }
         }
 
+        // 2. Si no se encontró por ID o es virtual, usar la fecha explícita enviada
+        if (!$targetFecha && $fechaFaltaCheck) {
+            $targetFecha = $fechaFaltaCheck;
+        }
+
+        // 3. Si no hay ID ni fecha, pero el índice es válido y NO es virtual
+        if (!$targetFecha && $faltaIndexCheck !== null && !$esVirtualCheck && isset($detalleCheck[$faltaIndexCheck])) {
+            $targetFecha = $detalleCheck[$faltaIndexCheck]['fecha'] ?? null;
+        }
+
         if (!$targetFecha) {
-            $targetFecha = $request->input('fecha_falta') ?: ($conductor->updated_at ? ($conductor->updated_at instanceof \DateTimeInterface ? $conductor->updated_at->format('Y-m-d') : (is_string($conductor->updated_at) ? substr($conductor->updated_at, 0, 10) : date('Y-m-d'))) : date('Y-m-d'));
+            $targetFecha = date('Y-m-d');
         }
 
         if (!$isAdmin && $targetFecha && $targetFecha !== 'Fecha sin registrar') {
@@ -576,25 +659,63 @@ class ConductorController extends Controller
 
             $faltaIndex = $request->input('falta_index');
             $faltaId = $request->input('falta_id');
+            $fechaFalta = $request->input('fecha_falta');
+            $esVirtual = $faltaId && str_starts_with((string)$faltaId, 'virtual_falta_');
             $updated = false;
 
-            foreach ($detalle as $idx => &$item) {
-                if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
-                    $item['estado'] = 'justificada';
-                    $item['justificada'] = true;
-                    $item['justificante_url'] = '/api/justificantes/' . $filename;
-                    $item['justificante_nombre'] = $safeOriginalName;
-                    $item['justificante_fecha'] = date('Y-m-d H:i');
-                    $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
-                    $updated = true;
-                    break;
+            // 1. Buscar por ID exacto si no es virtual
+            if ($faltaId && !$esVirtual) {
+                foreach ($detalle as $idx => &$item) {
+                    if (isset($item['id']) && (string)$item['id'] === (string)$faltaId) {
+                        $item['estado'] = 'justificada';
+                        $item['justificada'] = true;
+                        $item['justificante_url'] = '/api/justificantes/' . $filename;
+                        $item['justificante_nombre'] = $safeOriginalName;
+                        $item['justificante_fecha'] = date('Y-m-d H:i');
+                        $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
+                        $updated = true;
+                        break;
+                    }
                 }
+                unset($item);
             }
 
+            // 2. Si no se encontró por ID y NO es virtual pero hay fecha, buscar en detalle una falta pendiente con esa fecha
+            if (!$updated && $fechaFalta && !$esVirtual) {
+                foreach ($detalle as $idx => &$item) {
+                    $itemFecha = isset($item['fecha']) ? substr((string)$item['fecha'], 0, 10) : '';
+                    $targetFechaLimpia = substr((string)$fechaFalta, 0, 10);
+                    $yaJust = (isset($item['estado']) && $item['estado'] === 'justificada') || !empty($item['justificada']);
+                    if (!$yaJust && $itemFecha === $targetFechaLimpia) {
+                        $item['estado'] = 'justificada';
+                        $item['justificada'] = true;
+                        $item['justificante_url'] = '/api/justificantes/' . $filename;
+                        $item['justificante_nombre'] = $safeOriginalName;
+                        $item['justificante_fecha'] = date('Y-m-d H:i');
+                        $item['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
+                        $updated = true;
+                        break;
+                    }
+                }
+                unset($item);
+            }
+
+            // 3. Si no se encontró por ID ni fecha, y falta_index es válido y NO es virtual
+            if (!$updated && $faltaIndex !== null && !$esVirtual && isset($detalle[$faltaIndex])) {
+                $detalle[$faltaIndex]['estado'] = 'justificada';
+                $detalle[$faltaIndex]['justificada'] = true;
+                $detalle[$faltaIndex]['justificante_url'] = '/api/justificantes/' . $filename;
+                $detalle[$faltaIndex]['justificante_nombre'] = $safeOriginalName;
+                $detalle[$faltaIndex]['justificante_fecha'] = date('Y-m-d H:i');
+                $detalle[$faltaIndex]['observaciones_justificacion'] = $request->input('observaciones') ?: 'Justificante adjuntado correctamente';
+                $updated = true;
+            }
+
+            // 4. Si la falta era virtual o nueva, agregar el nuevo registro formal
             if (!$updated) {
                 $detalle[] = [
                     'id' => 'falta_' . time() . '_' . random_int(1000, 9999),
-                    'fecha' => $request->input('fecha_falta') ?: date('Y-m-d'),
+                    'fecha' => $fechaFalta ?: date('Y-m-d'),
                     'motivo' => $request->input('motivo_falta') ?: 'Falta registrada',
                     'estado' => 'justificada',
                     'justificada' => true,
@@ -605,7 +726,7 @@ class ConductorController extends Controller
                 ];
             }
 
-            $conductor->faltas_detalle = $detalle;
+            $conductor->faltas_detalle = array_values($detalle);
 
             if ($conductor->faltas > 0) {
                 $conductor->faltas = max(0, (int)$conductor->faltas - 1);
@@ -667,19 +788,29 @@ class ConductorController extends Controller
 
         $faltaIndex = $request->input('falta_index');
         $faltaId = $request->input('falta_id');
+        $fechaFaltaInput = $request->input('fecha_falta');
+        $esVirtual = $faltaId && str_starts_with((string)$faltaId, 'virtual_falta_');
         $updated = false;
 
         $fechaFalta = null;
 
         // 1. Determinar la fecha de la falta a convertir
-        foreach ($detalle as $idx => $item) {
-            if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
-                $fechaFalta = $item['fecha'] ?? null;
-                break;
+        if ($faltaId && !$esVirtual) {
+            foreach ($detalle as $item) {
+                if (isset($item['id']) && (string)$item['id'] === (string)$faltaId) {
+                    $fechaFalta = $item['fecha'] ?? null;
+                    break;
+                }
             }
         }
+        if (!$fechaFalta && $fechaFaltaInput) {
+            $fechaFalta = $fechaFaltaInput;
+        }
+        if (!$fechaFalta && $faltaIndex !== null && !$esVirtual && isset($detalle[$faltaIndex])) {
+            $fechaFalta = $detalle[$faltaIndex]['fecha'] ?? null;
+        }
         if (!$fechaFalta) {
-            $fechaFalta = $request->input('fecha_falta') ?: date('Y-m-d');
+            $fechaFalta = date('Y-m-d');
         }
 
         // 2. Validar que no exista ya un retardo en esa misma fecha dentro de faltas_detalle
@@ -704,20 +835,48 @@ class ConductorController extends Controller
             }
         }
 
-        foreach ($detalle as $idx => &$item) {
-            if (($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) || ($faltaIndex !== null && (int)$idx === (int)$faltaIndex)) {
-                $item['estado'] = 'retardo';
-                $item['justificada'] = false; 
-                $item['observaciones_justificacion'] = 'Convertido a retardo el ' . date('Y-m-d H:i');
-                $updated = true;
-                break;
+        // 4. Actualizar por ID exacto si no es virtual
+        if ($faltaId && !$esVirtual) {
+            foreach ($detalle as $idx => &$item) {
+                if (isset($item['id']) && (string)$item['id'] === (string)$faltaId) {
+                    $item['estado'] = 'retardo';
+                    $item['justificada'] = false; 
+                    $item['observaciones_justificacion'] = 'Convertido a retardo el ' . date('Y-m-d H:i');
+                    $updated = true;
+                    break;
+                }
             }
+            unset($item);
+        }
+
+        // 5. Si no se encontró por ID y NO es virtual, buscar por fecha en detalle
+        if (!$updated && $fechaFalta && !$esVirtual) {
+            foreach ($detalle as $idx => &$item) {
+                $itemFecha = isset($item['fecha']) ? substr((string)$item['fecha'], 0, 10) : '';
+                $targetFechaLimpia = substr((string)$fechaFalta, 0, 10);
+                if ($itemFecha === $targetFechaLimpia && ($item['estado'] ?? '') !== 'retardo') {
+                    $item['estado'] = 'retardo';
+                    $item['justificada'] = false;
+                    $item['observaciones_justificacion'] = 'Convertido a retardo el ' . date('Y-m-d H:i');
+                    $updated = true;
+                    break;
+                }
+            }
+            unset($item);
+        }
+
+        // 6. Si no se encontró por ID ni fecha, y falta_index es válido y NO es virtual
+        if (!$updated && $faltaIndex !== null && !$esVirtual && isset($detalle[$faltaIndex])) {
+            $detalle[$faltaIndex]['estado'] = 'retardo';
+            $detalle[$faltaIndex]['justificada'] = false;
+            $detalle[$faltaIndex]['observaciones_justificacion'] = 'Convertido a retardo el ' . date('Y-m-d H:i');
+            $updated = true;
         }
 
         if (!$updated) {
             $detalle[] = [
                 'id' => 'retardo_' . time() . '_' . random_int(1000, 9999),
-                'fecha' => $request->input('fecha_falta') ?: date('Y-m-d'),
+                'fecha' => $fechaFalta,
                 'motivo' => ($request->input('motivo_falta') ?: 'Falta registrada') . ' (Convertido a retardo)',
                 'estado' => 'retardo',
                 'justificada' => false,
@@ -725,7 +884,7 @@ class ConductorController extends Controller
             ];
         }
 
-        $conductor->faltas_detalle = $detalle;
+        $conductor->faltas_detalle = array_values($detalle);
 
         if ($conductor->faltas > 0) {
             $conductor->faltas = max(0, (int)$conductor->faltas - 1);
@@ -885,7 +1044,7 @@ class ConductorController extends Controller
         );
 
         $mensaje = $fueInhabilitado
-            ? 'Falta registrada correctamente. ATENCIÓN: El operador ha sido INHABILITADO al acumular 4 faltas en un lapso de 30 días.'
+            ? 'Falta registrada correctamente. ATENCIÓN: El operador está NO ASIGNADO al acumular 4 faltas en un lapso de 30 días.'
             : 'Falta registrada correctamente.';
 
         return response()->json([
@@ -923,25 +1082,73 @@ class ConductorController extends Controller
 
         $faltaIndex = $request->input('falta_index');
         $faltaId = $request->input('falta_id');
+        $fechaFalta = $request->input('fecha_falta');
+        $esVirtual = $faltaId && str_starts_with((string)$faltaId, 'virtual_falta_');
+
         $eliminada = null;
         $nuevoDetalle = [];
 
-        foreach ($detalle as $idx => $item) {
-            $match = ($faltaId && isset($item['id']) && (string)$item['id'] === (string)$faltaId) ||
-                     ($faltaIndex !== null && (int)$idx === (int)$faltaIndex);
-            if ($match && $eliminada === null) {
-                $eliminada = $item;
-            } else {
-                $nuevoDetalle[] = $item;
-            }
-        }
-
-        // Si la falta no estaba explícita en el array (ej. generada como conteo)
-        if ($eliminada === null && $conductor->faltas > 0) {
+        if ($esVirtual) {
+            // Es una falta virtual generada en frontend (conteo numérico sin registro individual en JSON).
+            // NO se debe tocar ni eliminar ningún elemento del arreglo $detalle existente.
+            $nuevoDetalle = $detalle;
             $eliminada = [
-                'fecha' => $request->input('fecha_falta') ?: date('Y-m-d'),
-                'motivo' => 'Falta eliminada por ajuste manual'
+                'fecha' => $fechaFalta ?: date('Y-m-d'),
+                'motivo' => $request->input('motivo_anulacion') ?: 'Falta eliminada por Administrador',
+                'estado' => 'pendiente',
+                'justificada' => false,
             ];
+        } else {
+            // 1. Si viene faltaId y NO es virtual, buscar primero por ID exacto
+            if ($faltaId) {
+                foreach ($detalle as $item) {
+                    if (isset($item['id']) && (string)$item['id'] === (string)$faltaId && $eliminada === null) {
+                        $eliminada = $item;
+                    } else {
+                        $nuevoDetalle[] = $item;
+                    }
+                }
+            } elseif ($fechaFalta) {
+                // 2. Si no hay ID, buscar coincidencia por fecha exacta en el arreglo
+                // Priorizar eliminar una falta no justificada de esa fecha
+                $targetFechaLimpia = substr((string)$fechaFalta, 0, 10);
+                $indexCoincidencia = null;
+                foreach ($detalle as $idx => $item) {
+                    $itemFecha = isset($item['fecha']) ? substr((string)$item['fecha'], 0, 10) : '';
+                    if ($itemFecha === $targetFechaLimpia) {
+                        $esJ = isset($item['estado']) && ($item['estado'] === 'justificada' || !empty($item['justificada']));
+                        if (!$esJ) {
+                            $indexCoincidencia = $idx;
+                            break;
+                        } elseif ($indexCoincidencia === null) {
+                            $indexCoincidencia = $idx;
+                        }
+                    }
+                }
+                foreach ($detalle as $idx => $item) {
+                    if ($idx === $indexCoincidencia && $eliminada === null) {
+                        $eliminada = $item;
+                    } else {
+                        $nuevoDetalle[] = $item;
+                    }
+                }
+            }
+
+            // 3. Si no se encontró por ID ni fecha, pero faltaIndex es válido
+            if ($eliminada === null && $faltaIndex !== null && isset($detalle[$faltaIndex])) {
+                $eliminada = $detalle[$faltaIndex];
+                unset($detalle[$faltaIndex]);
+                $nuevoDetalle = array_values($detalle);
+            }
+
+            // 4. Si la falta no estaba explícita en el array
+            if ($eliminada === null && $conductor->faltas > 0) {
+                $eliminada = [
+                    'fecha' => $fechaFalta ?: date('Y-m-d'),
+                    'motivo' => 'Falta eliminada por ajuste manual'
+                ];
+                $nuevoDetalle = $detalle;
+            }
         }
 
         $conductor->faltas_detalle = array_values($nuevoDetalle);
@@ -955,7 +1162,9 @@ class ConductorController extends Controller
         $eval = $conductor->evaluarInhabilitacionFaltas();
         if ($conductor->estatus === 'inhabilitado' && !$eval['inhabilitado']) {
             $conductor->estatus = 'activo';
-            $conductor->estado_servicio = 'disponible';
+            if ($conductor->estado_servicio === 'falta') {
+                $conductor->estado_servicio = 'disponible';
+            }
         }
 
         $conductor->save();

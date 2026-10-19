@@ -580,9 +580,17 @@ export default function UnitInfoPanel({
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 1,
             numero_tarjeton_nuevo: operadorReemplazoSeleccionado.tarjeton || (operadorReemplazoSeleccionado.id != null ? String(operadorReemplazoSeleccionado.id) : null),
+            tarjeton_conductor_anterior: datosOperativos.tarjeton || null,
+            nombre_conductor_anterior: datosOperativos.conductor || null,
             motivo: motivoFinal
           };
-          successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
+          if (motivoFinal === 'RESERVA') {
+            successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}. El conductor anterior fue enviado a reserva.`;
+          } else if (motivoFinal === 'FALTA') {
+            successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}. Se registró la inasistencia (falta) al conductor anterior.`;
+          } else {
+            successMessage = `Conductor cambiado en ECO${ecoNum} a ${operadorReemplazoSeleccionado.nombre}.`;
+          }
           errorMessage = 'Error al cambiar conductor';
         } else {
           if (!platMotivo) {
@@ -600,9 +608,17 @@ export default function UnitInfoPanel({
             tipo: configActual.id,
             tipo_movimiento: 'RETIRO_CONDUCTOR',
             cambio_operador_activo: 0,
+            tarjeton_conductor_anterior: datosOperativos.tarjeton || null,
+            nombre_conductor_anterior: datosOperativos.conductor || null,
             motivo: motivoFinal
           };
-          successMessage = `Conductor retirado de ECO${ecoNum}.`;
+          if (motivoFinal === 'RESERVA') {
+            successMessage = `Conductor retirado de ECO${ecoNum} y enviado a reserva.`;
+          } else if (motivoFinal === 'FALTA') {
+            successMessage = `Conductor retirado de ECO${ecoNum} con falta registrada.`;
+          } else {
+            successMessage = `Conductor retirado de ECO${ecoNum}.`;
+          }
           errorMessage = 'Error al retirar conductor';
         }
       }
@@ -628,13 +644,37 @@ export default function UnitInfoPanel({
       queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
       queryClient.invalidateQueries({ queryKey: ['conteo-unidades-global'] });
       queryClient.invalidateQueries({ queryKey: ['conductores-list'] });
+      queryClient.invalidateQueries({ queryKey: ['conductores'] });
+      queryClient.invalidateQueries({ queryKey: ['reservas-autorizadas'] });
+      queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
       queryClient.invalidateQueries({ queryKey: ['programacion-apertura-dia'] });
       queryClient.invalidateQueries({ queryKey: ['programacion-apertura-resumen'] });
       queryClient.invalidateQueries({ queryKey: ['monitoreo-conductores-dia'] });
+
+      if (typeof BroadcastChannel !== 'undefined') {
+        try {
+          const bc = new BroadcastChannel('unidades_estatus_channel');
+          bc.postMessage({ tipo: 'CAMBIO_ESTATUS', action: 'estatus_updated' });
+          bc.close();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       if (typeof onUpdate === 'function') onUpdate(ecoNum, reemplazoActivo ? unidadReemplazoSeleccionada?.eco : null);
       setModalPlataformaVisible(null);
       const Swal = (await import('sweetalert2')).default;
-      Swal.fire({ icon: 'success', title: 'Éxito', text: successMessage, confirmButtonColor: '#6b1d33' });
+
+      if (result.inhabilitado) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Operador No Asignado',
+          html: `El operador <b>${result.conductor_inhabilitado_nombre || 'anterior'}</b> ha quedado <b>NO ASIGNADO</b> automáticamente al acumular 4 faltas en un lapso de 30 días.<br/><br/><small style="color: #64748b;">No podrá ser asignado en ninguna unidad del sistema hasta justificar sus faltas.</small>`,
+          confirmButtonColor: '#ef4444'
+        });
+      } else {
+        Swal.fire({ icon: 'success', title: 'Éxito', text: successMessage, confirmButtonColor: '#6b1d33' });
+      }
     } catch (error) {
       const Swal = (await import('sweetalert2')).default;
       Swal.fire('Error', error.message || 'Ocurrió un error en el movimiento.', 'error');
@@ -1352,7 +1392,7 @@ export default function UnitInfoPanel({
                     onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'SELECCIONAR'}
+                      {platConductor ? (conductoresDisponibles.find(c => String(c.tarjeton || c.id) === String(platConductor))?.nombre + ` (${platConductor})`) : 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1363,16 +1403,16 @@ export default function UnitInfoPanel({
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
                         {conductoresDisponibles.map(c => (
                           <button
-                            key={c.id}
+                            key={c.tarjeton || c.id}
                             type="button"
                             className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platConductor == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: String(platConductor) === String(c.tarjeton || c.id) ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
-                              setPlatConductor(c.id);
+                              setPlatConductor(c.tarjeton || c.id);
                               setPlatConductorDropdown(false);
                             }}
                           >
-                            {c.nombre} ({c.id})
+                            {c.nombre} ({c.tarjeton || c.id})
                           </button>
                         ))}
                       </div>
@@ -1661,7 +1701,7 @@ export default function UnitInfoPanel({
                     onClick={() => { setPlatConductorDropdown(!platConductorDropdown); setPlatRutaDropdown(false); setPlatMotivoDropdown(false); setPlatEstatusDropdown(false); }}
                   >
                     <span style={{ fontWeight: 600, color: platConductor ? '#0b162c' : '#94a3b8', overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.3, flex: 1, textAlign: 'left' }}>
-                      {platConductor ? conductoresDisponibles.find(c => c.id == platConductor)?.nombre + ` (${platConductor})` : 'SELECCIONAR'}
+                      {platConductor ? (conductoresDisponibles.find(c => String(c.tarjeton || c.id) === String(platConductor))?.nombre + ` (${platConductor})`) : 'SELECCIONAR'}
                     </span>
                     <svg className={`arrow-icon ${platConductorDropdown ? 'dropdown-trigger__arrow--open' : ''}`} style={{ transition: 'transform 0.2s', transform: platConductorDropdown ? 'rotate(180deg)' : 'none', width: '1rem', height: '1rem', color: '#6b1d33', flexShrink: 0, marginLeft: '0.5rem' }} fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 22h-24l12-20z" transform="rotate(180 12 12)" />
@@ -1672,16 +1712,16 @@ export default function UnitInfoPanel({
                       <div className="dropdown-menu__scroll" style={{ maxHeight: '14rem' }}>
                         {conductoresDisponibles.map(c => (
                           <button
-                            key={c.id}
+                            key={c.tarjeton || c.id}
                             type="button"
                             className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: platConductor == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                            style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: String(platConductor) === String(c.tarjeton || c.id) ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                             onClick={() => {
-                              setPlatConductor(c.id);
+                              setPlatConductor(c.tarjeton || c.id);
                               setPlatConductorDropdown(false);
                             }}
                           >
-                            {c.nombre} ({c.id})
+                            {c.nombre} ({c.tarjeton || c.id})
                           </button>
                         ))}
                       </div>
@@ -1785,24 +1825,24 @@ export default function UnitInfoPanel({
                           <div style={{ overflowY: 'auto', flex: 1 }}>
                             {conductoresDisponibles && conductoresDisponibles
                               .filter(c =>
-                                String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) ||
+                                String(c.tarjeton || c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) ||
                                 (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))
                               )
                               .map((c) => (
                                 <button
-                                  key={c.id}
+                                  key={c.tarjeton || c.id}
                                   type="button"
                                   className="dropdown-menu__item hover:bg-slate-50 transition-colors"
-                                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: operadorReemplazoSeleccionado?.id == c.id ? 'bold' : '500', textAlign: 'left', width: '100%' }}
+                                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', background: 'var(--tw-color-white)', color: '#0b162c', fontWeight: String(operadorReemplazoSeleccionado?.tarjeton || operadorReemplazoSeleccionado?.id) === String(c.tarjeton || c.id) ? 'bold' : '500', textAlign: 'left', width: '100%' }}
                                   onClick={() => {
                                     setOperadorReemplazoSeleccionado(c);
                                     setDropdownOperadorOpen(false);
                                   }}
                                 >
-                                  {c.nombre} ({c.id})
+                                  {c.nombre} ({c.tarjeton || c.id})
                                 </button>
                               ))}
-                            {conductoresDisponibles && conductoresDisponibles.filter(c => String(c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) || (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))).length === 0 && (
+                            {conductoresDisponibles && conductoresDisponibles.filter(c => String(c.tarjeton || c.id).toLowerCase().includes(operadorBusqueda.toLowerCase()) || (c.nombre && c.nombre.toLowerCase().includes(operadorBusqueda.toLowerCase()))).length === 0 && (
                               <div style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
                                 No se encontraron conductores.
                               </div>

@@ -13,7 +13,9 @@ export default function HistorialMesaControl() {
   const [activeTab, setActiveTab] = useState('cambios'); // 'cambios', 'flota', 'resumen'
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
+  const [isTipoDropdownOpen, setIsTipoDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const tipoDropdownRef = useRef(null);
 
   // 1. Fechas con historial
   const { data: fechas = [], isLoading: isLoadingFechas } = useQuery({
@@ -42,6 +44,9 @@ export default function HistorialMesaControl() {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+      }
+      if (tipoDropdownRef.current && !tipoDropdownRef.current.contains(event.target)) {
+        setIsTipoDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -295,34 +300,6 @@ export default function HistorialMesaControl() {
           </div>
         </div>
 
-        {/* Pestañas de Navegación */}
-        <div className="historial-tabs" style={{ marginBottom: '1.25rem' }}>
-          <button
-            type="button"
-            className={`historial-tab-btn ${activeTab === 'cambios' ? 'active' : ''}`}
-            onClick={() => setActiveTab('cambios')}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-            Bitácora de Movimientos y Cambios ({cambios.length})
-          </button>
-
-          <button
-            type="button"
-            className={`historial-tab-btn ${activeTab === 'flota' ? 'active' : ''}`}
-            onClick={() => setActiveTab('flota')}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-              <rect x="1" y="3" width="15" height="13" rx="2" />
-              <path d="M16 8h4l3 5v3h-7V8z" />
-              <circle cx="5.5" cy="18.5" r="2.5" />
-              <circle cx="18.5" cy="18.5" r="2.5" />
-            </svg>
-            Estado de Flota ({flota.length})
-          </button>
-        </div>
 
         {/* Barra de Búsqueda y Filtro de Tipo */}
         <HistorialSearchBar
@@ -332,29 +309,45 @@ export default function HistorialMesaControl() {
           totalCount={activeTab === 'cambios' ? cambios.length : flota.length}
           filteredCount={activeTab === 'cambios' ? cambiosFiltrados.length : flotaFiltrada.length}
           extraFilters={
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: '700', color: '#475569' }}>Tipo:</label>
-              <select
-                value={filtroTipo}
-                onChange={(e) => setFiltroTipo(e.target.value)}
-                style={{
-                  padding: '0.55rem 0.9rem',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.85rem',
-                  backgroundColor: '#ffffff',
-                  color: '#1e293b',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  fontWeight: '500',
-                }}
-              >
-                <option value="">Todos los Tipos</option>
-                <option value="URBANUSS">URBANUSS</option>
-                <option value="ZAFIRO">ZAFIRO</option>
-                <option value="VAGONETA">VAGONETA</option>
-                <option value="ORION">ORIÓN</option>
-              </select>
+            <div className="historial-tipo-select-container" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: '700', color: '#334155' }}>Tipo:</label>
+              <div className="custom-dropdown-container" ref={tipoDropdownRef} style={{ minWidth: '160px' }}>
+                <button
+                  type="button"
+                  className={`custom-dropdown-trigger ${isTipoDropdownOpen ? 'open' : ''}`}
+                  onClick={() => setIsTipoDropdownOpen(!isTipoDropdownOpen)}
+                >
+                  {filtroTipo || 'TODOS LOS TIPOS'}
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 10l5 5 5-5H7z" />
+                  </svg>
+                </button>
+                {isTipoDropdownOpen && (
+                  <div className="custom-dropdown-menu">
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {[
+                        { label: 'TODOS LOS TIPOS', value: '' },
+                        { label: 'URBANUSS', value: 'URBANUSS' },
+                        { label: 'ZAFIRO', value: 'ZAFIRO' },
+                        { label: 'VAGONETA', value: 'VAGONETA' },
+                        { label: 'ORIÓN', value: 'ORION' },
+                      ].map((item) => (
+                        <button
+                          key={item.value}
+                          type="button"
+                          className={`custom-dropdown-item ${filtroTipo === item.value ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFiltroTipo(item.value);
+                            setIsTipoDropdownOpen(false);
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           }
         />

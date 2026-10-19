@@ -814,6 +814,11 @@ export default function DetalleUnidadMantenimiento() {
           diagnostico: resultado.diagnostico || null,
           firma_base64: resultado.firma_base64 || null,
           kilometraje: resultado.kilometraje || null,
+          mantenimiento_conductor: resultado.mantenimiento_conductor || null,
+          mantenimiento_tarjeton: resultado.mantenimiento_tarjeton || null,
+          mantenimiento_ruta: resultado.mantenimiento_ruta || null,
+          mantenimiento_corrida: resultado.mantenimiento_corrida || null,
+          mantenimiento_kilometraje: resultado.mantenimiento_kilometraje || null,
         });
         setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
       } else {
@@ -1529,7 +1534,7 @@ export default function DetalleUnidadMantenimiento() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.378-1.377 2.622-1.377 4 0" />
                           </svg>
                           <p className="info-card__value">
-                            {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || 'No asignado')}
+                            {cargandoDatos ? 'Buscando...' : (datosOperativos.tarjeton || datosOperativos.mantenimiento_tarjeton || 'No asignado')}
                           </p>
                         </div>
                       </div>
@@ -1541,7 +1546,7 @@ export default function DetalleUnidadMantenimiento() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
                           <p className="info-card__value" style={{ fontSize: '0.9rem' }}>
-                            {cargandoDatos ? 'Buscando...' : (datosOperativos.conductor || 'No asignado')}
+                            {cargandoDatos ? 'Buscando...' : ((datosOperativos.conductor && datosOperativos.conductor !== 'No reportado hoy' && datosOperativos.conductor !== 'Sin conductor') ? datosOperativos.conductor : (datosOperativos.mantenimiento_conductor || 'No asignado'))}
                           </p>
                         </div>
                       </div>
@@ -1554,7 +1559,7 @@ export default function DetalleUnidadMantenimiento() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                           <p className="info-card__value">
-                            {cargandoDatos ? 'Buscando...' : (datosOperativos.ruta || 'Sin ruta')}
+                            {cargandoDatos ? 'Buscando...' : ((datosOperativos.ruta && datosOperativos.ruta !== 'Sin ruta' && datosOperativos.ruta !== 'Sin ruta asignada') ? datosOperativos.ruta : (datosOperativos.mantenimiento_ruta || 'Sin ruta'))}
                           </p>
                         </div>
                       </div>
@@ -1567,7 +1572,7 @@ export default function DetalleUnidadMantenimiento() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v3.375l2.25 1.125" />
                           </svg>
                           <p className="info-card__value">
-                            {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || 'No asignada')}
+                            {cargandoDatos ? 'Buscando...' : (datosOperativos.corrida || datosOperativos.mantenimiento_corrida || 'No asignada')}
                           </p>
                         </div>
                       </div>
@@ -2487,17 +2492,17 @@ export default function DetalleUnidadMantenimiento() {
                 estatus: estatusWizard,
                 motivo_estatus: data.motivo,
                 numero_incidencia: data.numero_incidencia || prev.numero_incidencia || null,
-                folio_mantenimiento: folioFinal,
-                fecha_folio_mantenimiento: fechaFolioFinal,
-                falla_reportada: data.falla_reportada,
-                diagnostico: data.diagnostico,
-                firma_base64: data.firma_base64,
-                kilometraje: data.kilometraje,
-                mantenimiento_conductor: data.mantenimiento_conductor,
-                mantenimiento_tarjeton: data.mantenimiento_tarjeton,
-                mantenimiento_ruta: data.mantenimiento_ruta,
-                mantenimiento_corrida: data.mantenimiento_corrida,
-                mantenimiento_kilometraje: data.mantenimiento_kilometraje
+                folio_mantenimiento: folioFinal || prev.folio_mantenimiento || null,
+                fecha_folio_mantenimiento: fechaFolioFinal || prev.fecha_folio_mantenimiento || null,
+                falla_reportada: data.falla_reportada || prev.falla_reportada || null,
+                diagnostico: data.diagnostico || prev.diagnostico || null,
+                firma_base64: data.firma_base64 || prev.firma_base64 || null,
+                kilometraje: data.kilometraje || prev.kilometraje || null,
+                mantenimiento_conductor: data.mantenimiento_conductor || prev.mantenimiento_conductor || null,
+                mantenimiento_tarjeton: data.mantenimiento_tarjeton || prev.mantenimiento_tarjeton || null,
+                mantenimiento_ruta: data.mantenimiento_ruta || prev.mantenimiento_ruta || null,
+                mantenimiento_corrida: data.mantenimiento_corrida || prev.mantenimiento_corrida || null,
+                mantenimiento_kilometraje: data.mantenimiento_kilometraje || prev.mantenimiento_kilometraje || null
               }));
 
               setSelectedEstado(estatusWizard);
@@ -2511,8 +2516,8 @@ export default function DetalleUnidadMantenimiento() {
                       estado: estatusWizard,
                       estatus: estatusWizard,
                       motivo_estatus: data.motivo,
-                      folio_mantenimiento: folioFinal,
-                      numero_incidencia: data.numero_incidencia || null,
+                      folio_mantenimiento: folioFinal || u.folio_mantenimiento || null,
+                      numero_incidencia: data.numero_incidencia || u.numero_incidencia || null,
                     };
                   }
                   return u;

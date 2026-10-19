@@ -87,6 +87,19 @@ export default function GeneracionGafete({ conductores }) {
                         setSelectedConductor(c);
                         setSearchTerm(c.nombre);
                         setQrImageError(false);
+                        if (c?.id) {
+                          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                          fetch(`${API_BASE}/api/conductores/${c.id}`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          })
+                            .then(res => res.ok ? res.json() : null)
+                            .then(full => {
+                              if (full) {
+                                setSelectedConductor(prev => (prev?.id === c.id ? { ...prev, ...full } : prev));
+                              }
+                            })
+                            .catch(() => {});
+                        }
                       }}
                     >
                       <div className="font-bold text-slate-800">{c.nombre}</div>

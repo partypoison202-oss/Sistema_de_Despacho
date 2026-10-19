@@ -1,5 +1,5 @@
 // src/pages/CargaExcel/ModalCambioUnidad.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './ModalCambioUnidad.css';
 
 export default function ModalCambioUnidad({
@@ -13,35 +13,86 @@ export default function ModalCambioUnidad({
 }) {
   const [busqueda, setBusqueda] = useState('');
   const [selectedEco, setSelectedEco] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState('compatibles');
 
-  // Unidades en reserva disponibles filtradas por búsqueda
-  const unidadesFiltradas = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
+  // Resetear estados al abrir el modal o cambiar de unidad saliente
+  useEffect(() => {
+    if (isOpen) {
+      setBusqueda('');
+      setSelectedEco('');
+      setFiltroTipo('compatibles');
+    }
+  }, [isOpen, unidadSaliente?.ECONOMICO]);
+
+  const tipoSaliente = String(
+    unidadSaliente?.TIPO_DE_UNIDAD || unidadSaliente?.TIPO_UNIDAD || ''
+  ).toLowerCase().trim();
+  const rutaSaliente = String(unidadSaliente?.RUTA || '').toUpperCase().trim();
+  const esTroncalSaliente = tipoSaliente.includes('urbanu') || rutaSaliente.startsWith('T-');
+
+  // Clasificación de unidades disponibles en reserva
+  const { listaCompatibles, listaOtras, todasDisponibles } = useMemo(() => {
     const list = (unidadesDisponibles || []).filter((u) => {
       const eco = String(u.ECONOMICO || '').trim();
       if (!eco) return false;
       if (unidadSaliente && String(unidadSaliente.ECONOMICO).trim() === eco) return false;
-      const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase().trim();
-      if (tipo.includes('urbanus')) return false;
       return true;
     });
 
+    const compatibles = [];
+    const otras = [];
+
+    list.forEach((u) => {
+      const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase().trim();
+      const esTroncal = tipo.includes('urbanu');
+      if (tipoSaliente || rutaSaliente) {
+        if (esTroncalSaliente === esTroncal) {
+          compatibles.push(u);
+        } else {
+          otras.push(u);
+        }
+      } else {
+        compatibles.push(u);
+      }
+    });
+
+    return {
+      listaCompatibles: compatibles,
+      listaOtras: otras,
+      todasDisponibles: list,
+    };
+  }, [unidadesDisponibles, unidadSaliente, esTroncalSaliente, tipoSaliente, rutaSaliente]);
+
+  // Unidades en reserva filtradas por pestaña activa y búsqueda
+  const unidadesFiltradas = useMemo(() => {
+    const baseList = filtroTipo === 'compatibles' ? listaCompatibles : todasDisponibles;
+    const q = busqueda.trim().toLowerCase();
+
     if (!q) {
-      return list.sort((a, b) =>
+      return [...baseList].sort((a, b) =>
         String(a.ECONOMICO).localeCompare(String(b.ECONOMICO), undefined, { numeric: true })
       );
     }
 
-    return list
-      .filter((u) => {
+    let results = baseList.filter((u) => {
+      const eco = String(u.ECONOMICO || '').toLowerCase();
+      const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase();
+      return eco.includes(q) || tipo.includes(q);
+    });
+
+    // Si no hay resultados en compatibles al buscar texto específico, buscar en todas
+    if (results.length === 0 && filtroTipo === 'compatibles') {
+      results = todasDisponibles.filter((u) => {
         const eco = String(u.ECONOMICO || '').toLowerCase();
-        const tipo = String(u.TIPO_DE_UNIDAD || '').toLowerCase();
+        const tipo = String(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD || '').toLowerCase();
         return eco.includes(q) || tipo.includes(q);
-      })
-      .sort((a, b) =>
-        String(a.ECONOMICO).localeCompare(String(b.ECONOMICO), undefined, { numeric: true })
-      );
-  }, [unidadesDisponibles, busqueda, unidadSaliente]);
+      });
+    }
+
+    return results.sort((a, b) =>
+      String(a.ECONOMICO).localeCompare(String(b.ECONOMICO), undefined, { numeric: true })
+    );
+  }, [listaCompatibles, todasDisponibles, filtroTipo, busqueda]);
 
   if (!isOpen || !unidadSaliente) return null;
 
@@ -107,9 +158,9 @@ export default function ModalCambioUnidad({
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
                 <span>Eco #{unidadSaliente.ECONOMICO}</span>
-                {unidadSaliente.TIPO_DE_UNIDAD && (
+                {(unidadSaliente.TIPO_DE_UNIDAD || unidadSaliente.TIPO_UNIDAD) && (
                   <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '500' }}>
-                    ({unidadSaliente.TIPO_DE_UNIDAD})
+                    ({unidadSaliente.TIPO_DE_UNIDAD || unidadSaliente.TIPO_UNIDAD})
                   </span>
                 )}
               </div>
@@ -166,6 +217,26 @@ export default function ModalCambioUnidad({
               </span>
             </div>
 
+            {/* Pestañas de tipo de flota si hay variedad de reservas disponibles */}
+            {listaOtras.length > 0 && (
+              <div className="filtro-tipo-tabs">
+                <button
+                  type="button"
+                  className={`filtro-tipo-btn ${filtroTipo === 'compatibles' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipo('compatibles')}
+                >
+                  {esTroncalSaliente ? 'Urbanuss (Troncal)' : 'Alimentadoras'} ({listaCompatibles.length})
+                </button>
+                <button
+                  type="button"
+                  className={`filtro-tipo-btn ${filtroTipo === 'todas' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipo('todas')}
+                >
+                  Todas las reservas ({todasDisponibles.length})
+                </button>
+              </div>
+            )}
+
             <div className="buscador-reserva-input-container">
               <svg className="buscador-reserva-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
@@ -199,6 +270,8 @@ export default function ModalCambioUnidad({
                 <div className="empty-reserva-message">
                   {busqueda
                     ? `No se encontraron unidades en reserva con el criterio "${busqueda}".`
+                    : filtroTipo === 'compatibles' && listaOtras.length > 0
+                    ? `No hay unidades ${esTroncalSaliente ? 'Urbanuss' : 'alimentadoras'} disponibles en reserva.`
                     : 'No hay unidades en reserva disponibles actualmente.'}
                 </div>
               ) : (
@@ -215,8 +288,8 @@ export default function ModalCambioUnidad({
                           {isSelected && <div className="item-reserva-radio-inner" />}
                         </div>
                         <span className="item-reserva-eco">Eco #{u.ECONOMICO}</span>
-                        {u.TIPO_DE_UNIDAD && (
-                          <span className="item-reserva-tipo">{u.TIPO_DE_UNIDAD}</span>
+                        {(u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD) && (
+                          <span className="item-reserva-tipo">{u.TIPO_DE_UNIDAD || u.TIPO_UNIDAD}</span>
                         )}
                       </div>
                       <div className="item-reserva-badge">
