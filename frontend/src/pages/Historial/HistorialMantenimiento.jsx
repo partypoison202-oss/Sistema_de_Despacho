@@ -709,7 +709,50 @@ export default function HistorialMantenimiento() {
           </div>
 
           <div className="historial-toolbar-controls">
-            <div className="historial-date-control">
+            {/* Si estamos en Revisión e Historial de Folios, selector de alcance justo a lado de la fecha */}
+            {activeTab === 'folios' && (
+              <div className="header-scope-selector-wrapper">
+                <div className="hero-segmented-selector header-scope-selector">
+                  <button
+                    type="button"
+                    className={`seg-btn ${verSoloFechaFolios ? 'active' : ''}`}
+                    onClick={() => {
+                      setVerSoloFechaFolios(true);
+                      setFiltroTipoFolio('todos');
+                    }}
+                    title={`Ver folios de la fecha seleccionada (${selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'Día'})`}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span>Por Día</span>
+                    <span className={`seg-count ${kpiTotalDia === 0 ? 'count-zero' : ''}`}>{kpiTotalDia}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`seg-btn ${!verSoloFechaFolios ? 'active' : ''}`}
+                    onClick={() => {
+                      setVerSoloFechaFolios(false);
+                      setFiltroTipoFolio('todos');
+                    }}
+                    title="Ver historial acumulado de todos los días y meses"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                    </svg>
+                    <span>Historial Completo</span>
+                    <span className="seg-count">{kpiTotalGlobal}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className={`historial-date-control ${activeTab === 'folios' && !verSoloFechaFolios ? 'date-control-subtle' : ''}`}>
               <span className="fecha-control-label">Fecha:</span>
               <div className="custom-dropdown-container" ref={dropdownRef}>
                 <button 
@@ -762,32 +805,6 @@ export default function HistorialMantenimiento() {
             </div>
 
             <div className="historial-action-buttons-group">
-              {/* Botón Actualizar Instantáneo con Animación Táctil */}
-              <button 
-                type="button"
-                className={`btn-actualizar-instantaneo ${isRefreshingInstant ? 'btn-active-pressed' : ''}`} 
-                onClick={handleActualizarInstantaneo}
-                disabled={cargando || isRefreshingInstant}
-                title="Recargar y sincronizar datos al instante"
-              >
-                <svg 
-                  width="14" 
-                  height="14" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2.4" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                  className={cargando || isRefreshingInstant ? 'spinning-refresh' : ''}
-                >
-                  <path d="M23 4v6h-6"></path>
-                  <path d="M1 20v-6h6"></path>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-                <span>{cargando || isRefreshingInstant ? 'Actualizando...' : 'Actualizar'}</span>
-              </button>
-              
               {/* Botón Descargar Excel con Animación Táctil y Check de Éxito */}
               <button 
                 type="button"
@@ -854,50 +871,9 @@ export default function HistorialMantenimiento() {
 
         {/* SECCIÓN: Revisión e Historial de Folios Previos - Filtros Rápidos */}
         {activeTab === 'folios' && (
-          <div className="folios-premium-container" style={{ marginBottom: '1rem' }}>
+          <div className="folios-premium-container" style={{ marginBottom: '0.85rem' }}>
             <div className="folios-controls-panel">
               <div className="folios-filter-chips">
-                {/* Selector de Alcance Temporal: Por Día vs Historial Completo */}
-                <div className="hero-segmented-selector" style={{ margin: 0, padding: '3px 4px' }}>
-                  <button
-                    type="button"
-                    className={`seg-btn ${verSoloFechaFolios ? 'active' : ''}`}
-                    onClick={() => {
-                      setVerSoloFechaFolios(true);
-                      setFiltroTipoFolio('todos');
-                    }}
-                    title={`Ver únicamente registros de la fecha seleccionada (${selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'Día'})`}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    Por Día
-                    <span className="seg-count">{kpiTotalDia}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`seg-btn ${!verSoloFechaFolios ? 'active' : ''}`}
-                    onClick={() => {
-                      setVerSoloFechaFolios(false);
-                      setFiltroTipoFolio('todos');
-                    }}
-                    title="Ver historial acumulado de todos los días y meses"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="2" y1="12" x2="22" y2="12"></line>
-                    </svg>
-                    Historial Completo
-                    <span className="seg-count">{kpiTotalGlobal}</span>
-                  </button>
-                </div>
-
-                <div style={{ width: '1px', height: '22px', background: '#e2e8f0', margin: '0 0.35rem' }}></div>
-
                 <span className="filter-chips-label">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
@@ -938,8 +914,33 @@ export default function HistorialMantenimiento() {
                 </button>
               </div>
 
-              {/* Botón Parque Vehicular al final de los filtros */}
+              {/* Botones al final a la derecha: Actualizar al lado de Parque Vehicular */}
               <div className="folios-actions-end">
+                <button 
+                  type="button"
+                  className={`btn-actualizar-instantaneo ${isRefreshingInstant ? 'btn-active-pressed' : ''}`} 
+                  onClick={handleActualizarInstantaneo}
+                  disabled={cargando || isRefreshingInstant}
+                  title="Recargar y sincronizar datos al instante"
+                >
+                  <svg 
+                    width="14" 
+                    height="14" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2.4" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    className={cargando || isRefreshingInstant ? 'spinning-refresh' : ''}
+                  >
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span>{cargando || isRefreshingInstant ? 'Actualizando...' : 'Actualizar'}</span>
+                </button>
+
                 <button 
                   type="button"
                   className="btn-ir-parque-vehicular" 
@@ -956,9 +957,34 @@ export default function HistorialMantenimiento() {
           </div>
         )}
 
-        {/* Botón Parque Vehicular para las otras pestañas */}
+        {/* Botones de acción para las otras pestañas */}
         {activeTab !== 'folios' && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <button 
+              type="button"
+              className={`btn-actualizar-instantaneo ${isRefreshingInstant ? 'btn-active-pressed' : ''}`} 
+              onClick={handleActualizarInstantaneo}
+              disabled={cargando || isRefreshingInstant}
+              title="Recargar y sincronizar datos al instante"
+            >
+              <svg 
+                width="14" 
+                height="14" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2.4" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className={cargando || isRefreshingInstant ? 'spinning-refresh' : ''}
+              >
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>{cargando || isRefreshingInstant ? 'Actualizando...' : 'Actualizar'}</span>
+            </button>
+
             <button 
               type="button"
               className="btn-ir-parque-vehicular" 
@@ -969,6 +995,40 @@ export default function HistorialMantenimiento() {
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
               </svg>
               <span>Parque Vehicular</span>
+            </button>
+          </div>
+        )}
+
+        {/* Guía Anti-Confusión: Banner explicativo cuando la fecha seleccionada tiene 0 folios pero hay folios en otras fechas */}
+        {activeTab === 'folios' && verSoloFechaFolios && kpiTotalDia === 0 && kpiTotalGlobal > 0 && !cargando && (
+          <div className="guidance-banner-alert">
+            <div className="guidance-banner-content">
+              <span className="guidance-banner-icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              </span>
+              <div className="guidance-banner-text">
+                <span className="guidance-title">Sin registros el {selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'día seleccionado'}.</span>
+                <span className="guidance-desc">No hay capturas en esta fecha, pero existen <strong>{kpiTotalGlobal} folios</strong> acumulados en el historial.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="guidance-banner-action-btn"
+              onClick={() => {
+                setVerSoloFechaFolios(false);
+                setFiltroTipoFolio('todos');
+              }}
+              title="Cambiar a la vista acumulada de Historial Completo"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+              </svg>
+              <span>Ver Historial Completo ({kpiTotalGlobal})</span>
             </button>
           </div>
         )}
@@ -1271,7 +1331,7 @@ export default function HistorialMantenimiento() {
                 })}
                 {datosFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="text-center" style={{ padding: '4rem 2rem', color: '#94a3b8' }}>
+                    <td colSpan="8" className="text-center" style={{ padding: '3.5rem 2rem', color: '#94a3b8' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         <div className="empty-state-icon-circle">
                           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1282,19 +1342,37 @@ export default function HistorialMantenimiento() {
                         <h4 style={{ margin: '0.75rem 0 0 0', fontWeight: 800, color: '#334155', fontSize: '1.1rem' }}>
                           No se encontraron registros de folios
                         </h4>
-                        <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.88rem', color: '#64748b', maxWidth: '440px', lineHeight: 1.4 }}>
+                        <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.88rem', color: '#64748b', maxWidth: '480px', lineHeight: 1.45 }}>
                           {filtroBusqueda.trim() ? (
                             <>
                               No hay resultados para "<strong>{filtroBusqueda}</strong>". Recuerda que la búsqueda solo opera por <strong>Económico</strong>, <strong>N° de Incidencia</strong> o <strong>N° de Folio</strong>.
                             </>
                           ) : verSoloFechaFolios ? (
                             <>
-                              No se registraron folios ni incidencias el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>. Si deseas consultar folios de otras fechas, pulsa en <strong>"Historial Completo"</strong> o cambia la fecha arriba.
+                              No se registraron folios ni incidencias el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>.
                             </>
                           ) : (
-                            'No hay económicos que coincidan con los filtros actuales.'
+                            'No hay económicos que coincidan con los filtros seleccionados.'
                           )}
                         </p>
+
+                        {/* Botón directo para pasar a Historial Completo con un solo clic */}
+                        {verSoloFechaFolios && kpiTotalGlobal > 0 && !filtroBusqueda.trim() && (
+                          <button
+                            type="button"
+                            className="btn-ir-historial-completo-empty"
+                            onClick={() => {
+                              setVerSoloFechaFolios(false);
+                              setFiltroTipoFolio('todos');
+                            }}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <line x1="2" y1="12" x2="22" y2="12"></line>
+                            </svg>
+                            <span>Ver Historial Completo ({kpiTotalGlobal} folios disponibles)</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1963,10 +2041,175 @@ export default function HistorialMantenimiento() {
           background: #691B31;
           color: #ffffff;
         }
+        .header-scope-selector-wrapper {
+          display: flex;
+          align-items: center;
+        }
+        .header-scope-selector {
+          height: 38px;
+          display: inline-flex;
+          align-items: center;
+          background: #f8fafc;
+          padding: 3px;
+          border-radius: 8px;
+          gap: 3px;
+          border: 1.5px solid #cbd5e1;
+          box-sizing: border-box;
+        }
+        .header-scope-selector .seg-btn {
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 10px;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #64748b;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .header-scope-selector .seg-btn:hover {
+          color: #0f172a;
+        }
+        .header-scope-selector .seg-btn.active {
+          background: #ffffff;
+          color: #691B31;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          font-weight: 800;
+        }
+        .header-scope-selector .seg-btn .seg-count {
+          background: #e2e8f0;
+          color: #475569;
+          font-size: 0.72rem;
+          font-weight: 800;
+          padding: 1px 7px;
+          border-radius: 10px;
+          transition: all 0.15s ease;
+        }
+        .header-scope-selector .seg-btn.active .seg-count {
+          background: #691B31;
+          color: #ffffff;
+        }
+        .header-scope-selector .seg-btn .seg-count.count-zero {
+          opacity: 0.8;
+          background: #f1f5f9;
+          color: #94a3b8;
+          border: 1px solid #e2e8f0;
+        }
+        .header-scope-selector .seg-btn.active .seg-count.count-zero {
+          background: #f1f5f9;
+          color: #64748b;
+        }
+        .date-control-subtle {
+          opacity: 0.88;
+        }
         .folios-actions-end {
           display: flex;
           align-items: center;
+          gap: 8px;
           margin-left: auto;
+          flex-wrap: wrap;
+        }
+
+        /* Banner de orientación Anti-Confusión */
+        .guidance-banner-alert {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+          border: 1px solid #fde68a;
+          border-left: 4px solid #f59e0b;
+          border-radius: 10px;
+          padding: 0.75rem 1.1rem;
+          margin-bottom: 0.85rem;
+          gap: 1rem;
+          box-shadow: 0 1px 3px rgba(245, 158, 11, 0.08);
+          animation: fadeInBanner 0.25s ease-out;
+        }
+        @keyframes fadeInBanner {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .guidance-banner-content {
+          display: flex;
+          align-items: center;
+          gap: 0.7rem;
+          color: #78350f;
+        }
+        .guidance-banner-icon {
+          color: #d97706;
+          display: flex;
+          align-items: center;
+          flex-shrink: 0;
+        }
+        .guidance-banner-text {
+          font-size: 0.84rem;
+          line-height: 1.4;
+          color: #78350f;
+        }
+        .guidance-title {
+          font-weight: 800;
+          margin-right: 0.35rem;
+        }
+        .guidance-desc {
+          color: #92400e;
+        }
+        .guidance-banner-action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 32px;
+          padding: 0 0.85rem;
+          background: #691B31;
+          color: #ffffff;
+          border: 1px solid #521324;
+          border-radius: 7px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+          box-shadow: 0 1px 3px rgba(105, 27, 49, 0.2);
+          transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+          flex-shrink: 0;
+        }
+        .guidance-banner-action-btn:hover {
+          background: #521324;
+          transform: translateY(-1px);
+          box-shadow: 0 3px 8px rgba(105, 27, 49, 0.3);
+        }
+        .guidance-banner-action-btn:active {
+          transform: scale(0.96);
+        }
+
+        /* Botón 1-click en Empty State para ir a Historial Completo */
+        .btn-ir-historial-completo-empty {
+          margin-top: 1.1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 38px;
+          padding: 0 1.25rem;
+          background: linear-gradient(135deg, #691B31 0%, #480020 100%);
+          color: #ffffff;
+          border: 1px solid #480020;
+          border-radius: 8px;
+          font-size: 0.84rem;
+          font-weight: 700;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(105, 27, 49, 0.25);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-ir-historial-completo-empty:hover {
+          background: linear-gradient(135deg, #7e213b 0%, #580028 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(105, 27, 49, 0.35);
+        }
+        .btn-ir-historial-completo-empty:active {
+          transform: scale(0.96) translateY(1px);
         }
 
         /* Botón Bitácora Global Luxury */
@@ -3473,6 +3716,14 @@ export default function HistorialMantenimiento() {
           .historial-toolbar-controls {
             flex-wrap: wrap;
             width: 100%;
+          }
+          .guidance-banner-alert {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .guidance-banner-action-btn {
+            width: 100%;
+            justify-content: center;
           }
         }
       `}</style>
