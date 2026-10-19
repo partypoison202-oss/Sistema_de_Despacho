@@ -829,6 +829,23 @@ export default function HistorialMantenimiento() {
                 <div className="hero-segmented-selector header-scope-selector">
                   <button
                     type="button"
+                    className={`seg-btn ${!verSoloFechaFolios ? 'active' : ''}`}
+                    onClick={() => {
+                      setVerSoloFechaFolios(false);
+                      setFiltroTipoFolio('todos');
+                    }}
+                    title="Ver historial acumulado de todos los días y meses"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                    </svg>
+                    <span>Historial Completo</span>
+                    <span className="seg-count">{kpiTotalGlobal}</span>
+                  </button>
+
+                  <button
+                    type="button"
                     className={`seg-btn ${verSoloFechaFolios ? 'active' : ''}`}
                     onClick={() => {
                       setVerSoloFechaFolios(true);
@@ -844,23 +861,6 @@ export default function HistorialMantenimiento() {
                     </svg>
                     <span>Por Día</span>
                     <span className={`seg-count ${kpiTotalDia === 0 ? 'count-zero' : ''}`}>{kpiTotalDia}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`seg-btn ${!verSoloFechaFolios ? 'active' : ''}`}
-                    onClick={() => {
-                      setVerSoloFechaFolios(false);
-                      setFiltroTipoFolio('todos');
-                    }}
-                    title="Ver historial acumulado de todos los días y meses"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="2" y1="12" x2="22" y2="12"></line>
-                    </svg>
-                    <span>Historial Completo</span>
-                    <span className="seg-count">{kpiTotalGlobal}</span>
                   </button>
                 </div>
               </div>
@@ -1132,17 +1132,9 @@ export default function HistorialMantenimiento() {
 
         {/* Guía Anti Capa 8: Aclaración explícita de campos permitidos */}
         {activeTab === 'folios' && (
-          <div className="search-anti-capa8-hint">
-            <span className="search-hint-badge">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-              Criterio de búsqueda:
-            </span>
-            <span className="search-hint-text">
-              Este buscador filtra <strong>únicamente</strong> por <strong>Número Económico</strong>, <strong>N° de Incidencia</strong> o <strong>N° de Folio</strong>. <em>(No busca por descripción de falla, motivo ni estatus de la unidad).</em>
+          <div className="search-anti-capa8-hint" style={{ marginTop: '-6px', padding: '2px 6px', background: 'transparent', border: 'none' }}>
+            <span className="search-hint-text" style={{ fontSize: '0.78rem', color: '#64748b' }}>
+              Puedes buscar por: <strong>Económico</strong> · <strong>Incidencia</strong> · <strong>Folio</strong>
             </span>
           </div>
         )}
@@ -1304,13 +1296,7 @@ export default function HistorialMantenimiento() {
 
                       {/* 2. ECO (Texto limpio con clic para ver expediente completo) */}
                       <td style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                           <span>{d.economico}</span>
-                           <button type="button" className="btn-ver-expediente-primary" style={{ padding: '3px 9px', fontSize: '0.72rem', gap: '4px', borderRadius: '6px' }} onClick={() => consultarExpedientePorEco(d.economico)} title={`Ver historial completo del ECO ${d.economico}`}>
-                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                             Historial
-                           </button>
-                         </span>
+                         <span style={{ fontWeight: 800 }}>{d.economico}</span>
                       </td>
 
                       {/* 3. N° Incidencia (LUEGO INCIDENCIAS) */}
