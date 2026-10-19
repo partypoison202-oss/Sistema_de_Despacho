@@ -1298,13 +1298,13 @@ export default function HistorialMantenimiento() {
 
                       {/* 2. ECO (Texto limpio con clic para ver expediente completo) */}
                       <td style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <span 
-                          className="eco-clickable-badge"
-                          onClick={() => consultarExpedientePorEco(d.economico)}
-                          title={`Haga clic para ver el expediente histórico completo del ECO ${d.economico}`}
-                        >
-                          {d.economico}
-                        </span>
+                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                           <span>{d.economico}</span>
+                           <button type="button" className="btn-ver-expediente-primary" style={{ padding: '3px 9px', fontSize: '0.72rem', gap: '4px', borderRadius: '6px' }} onClick={() => consultarExpedientePorEco(d.economico)} title={`Ver historial completo del ECO ${d.economico}`}>
+                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                             Historial
+                           </button>
+                         </span>
                       </td>
 
                       {/* 3. N° Incidencia (LUEGO INCIDENCIAS) */}
