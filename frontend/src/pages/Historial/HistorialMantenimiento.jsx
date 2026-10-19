@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
@@ -44,6 +44,12 @@ export default function HistorialMantenimiento() {
   const [filtroHistorialGlobal, setFiltroHistorialGlobal] = useState('');
   const [isDownloadingExcel, setIsDownloadingExcel] = useState(false);
   const [isRefreshingInstant, setIsRefreshingInstant] = useState(false);
+
+  // Estados y Query para Expediente Histórico Profundo por Unidad
+  const [modalExpedienteOpen, setModalExpedienteOpen] = useState(false);
+  const [expedienteSeleccionado, setExpedienteSeleccionado] = useState(null);
+  const [tabExpediente, setTabExpediente] = useState('taller'); // 'taller' | 'bitacora'
+  const [isConsultandoEco, setIsConsultandoEco] = useState(false);
 
   // 1. Obtener listado de fechas únicas (Cacheado por 5 minutos)
   const { data: fechas = [], isLoading: isLoadingFechas } = useQuery({
@@ -133,7 +139,27 @@ export default function HistorialMantenimiento() {
     },
     enabled: modalGlobalHistorialOpen,
     staleTime: 0,
-    refetchOnMount: 'always'
+  });
+
+  // 5. [ALTERNATIVA 1] Sin detección automática en el buscador: el expediente solo se abre al hacer clic en el ECO.
+  // (La detección por buscador pertenece a la Alternativa 2: rama Mantenimiento-alt2)
+  const ecoBuscado = useMemo(() => '', []);
+
+  const { data: expedienteProfundo, isLoading: isLoadingExpediente } = useQuery({
+    queryKey: ['expediente-profundo-unidad', ecoBuscado],
+    queryFn: async () => {
+      if (!ecoBuscado) return null;
+      const response = await fetch(`${API_BASE}/api/historial-operativo/expediente-unidad/${ecoBuscado}`, {
+        headers: {
+          'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: Boolean(ecoBuscado),
+    staleTime: 60000,
   });
 
   // Escuchar eventos en vivo desde otras ventanas o pestañas (ej. cambios en DetalleUnidadMantenimiento)
@@ -574,6 +600,47 @@ export default function HistorialMantenimiento() {
   const abrirModalHistorial = (item) => {
     setRegistroHistorialSeleccionado(item);
     setModalHistorialOpen(true);
+  };
+
+  // Abrir modal de expediente histórico completo de una unidad (Consulta Profunda)
+  const abrirExpedienteCompleto = (expData) => {
+    setExpedienteSeleccionado(expData);
+    setTabExpediente('taller');
+    setModalExpedienteOpen(true);
+  };
+
+  const consultarExpedientePorEco = async (ecoNum) => {
+    if (!ecoNum) return;
+    setIsConsultandoEco(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/historial-operativo/expediente-unidad/${ecoNum}`, {
+        headers: {
+          'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (!response.ok) throw new Error('Error al consultar');
+      const data = await response.json();
+      if (data.found) {
+        abrirExpedienteCompleto(data);
+      } else {
+        Swal.fire({
+          icon: 'info',
+          title: 'Unidad sin registros',
+          text: data.message || `No se encontró información histórica para el económico ${ecoNum}`,
+          confirmButtonColor: '#691B31'
+        });
+      }
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de consulta',
+        text: 'No se pudo cargar el expediente de la unidad.',
+        confirmButtonColor: '#691B31'
+      });
+    } finally {
+      setIsConsultandoEco(false);
+    }
   };
 
   // Renderizador visual y estructurado de los detalles de modificación de bitácora
@@ -1074,6 +1141,44 @@ export default function HistorialMantenimiento() {
           </div>
         )}
 
+        {/* Banner de Consulta Histórica Profunda al buscar un Económico */}
+        {activeTab === 'folios' && ecoBuscado && expedienteProfundo?.found && (
+          <div className="deep-search-alert-banner">
+            <div className="deep-search-alert-left">
+              <span className="deep-search-pill-eco">ECO {expedienteProfundo.unidad.numero_eco}</span>
+              <span className="deep-search-pill-tipo">{expedienteProfundo.unidad.tipo_transporte}</span>
+              <span className={`deep-search-pill-status estatus-${String(expedienteProfundo.estadisticas.estatus_actual || 'operacion').toLowerCase()}`}>
+                <span className="pulse-dot"></span>
+                {String(expedienteProfundo.estadisticas.estatus_actual || 'Operación').toUpperCase()}
+              </span>
+              <span className="deep-search-alert-text">
+                {expedienteProfundo.estadisticas.estatus_actual === 'mantenimiento' ? (
+                  <>Unidad actualmente en <strong>Taller</strong> {expedienteProfundo.estadisticas.folio_actual ? `(Folio activo: ${expedienteProfundo.estadisticas.folio_actual})` : '(Sin folio asignado hoy)'}</>
+                ) : (
+                  <>Unidad actualmente en <strong>{expedienteProfundo.estadisticas.estatus_actual.toUpperCase()}</strong> {expedienteProfundo.estado_actual?.ruta ? `• Ruta ${expedienteProfundo.estado_actual.ruta}` : ''}</>
+                )}
+                {expedienteProfundo.estadisticas.total_ingresos_taller > 0 ? (
+                  <> • <strong>{expedienteProfundo.estadisticas.total_ingresos_taller}</strong> ingresos históricos a taller</>
+                ) : (
+                  <> • <strong>{expedienteProfundo.estadisticas.total_movimientos_bitacora}</strong> movimientos en bitácora</>
+                )}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="btn-deep-search-pill"
+              onClick={() => abrirExpedienteCompleto(expedienteProfundo)}
+              title="Abrir expediente histórico completo de esta unidad"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span>Ver Expediente Histórico</span>
+            </button>
+          </div>
+        )}
+
         {cargando ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem' }}>
             <span className="spinner" style={{ marginBottom: '1.25rem' }}></span>
@@ -1191,9 +1296,15 @@ export default function HistorialMantenimiento() {
                         {d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '-'}
                       </td>
 
-                      {/* 2. ECO (Texto limpio tipo Estado Inicial) */}
+                      {/* 2. ECO (Texto limpio con clic para ver expediente completo) */}
                       <td style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        {d.economico}
+                        <span 
+                          className="eco-clickable-badge"
+                          onClick={() => consultarExpedientePorEco(d.economico)}
+                          title={`Haga clic para ver el expediente histórico completo del ECO ${d.economico}`}
+                        >
+                          {d.economico}
+                        </span>
                       </td>
 
                       {/* 3. N° Incidencia (LUEGO INCIDENCIAS) */}
@@ -1339,48 +1450,96 @@ export default function HistorialMantenimiento() {
                 {datosFiltrados.length === 0 && (
                   <tr>
                     <td colSpan="8" className="text-center" style={{ padding: '3.5rem 2rem', color: '#94a3b8' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        <div className="empty-state-icon-circle">
-                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                          </svg>
-                        </div>
-                        <h4 style={{ margin: '0.75rem 0 0 0', fontWeight: 800, color: '#334155', fontSize: '1.1rem' }}>
-                          No se encontraron registros de folios
-                        </h4>
-                        <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.88rem', color: '#64748b', maxWidth: '480px', lineHeight: 1.45 }}>
-                          {filtroBusqueda.trim() ? (
-                            <>
-                              No hay resultados para "<strong>{filtroBusqueda}</strong>". Recuerda que la búsqueda solo opera por <strong>Económico</strong>, <strong>N° de Incidencia</strong> o <strong>N° de Folio</strong>.
-                            </>
-                          ) : verSoloFechaFolios ? (
-                            <>
-                              No se registraron folios ni incidencias el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>.
-                            </>
-                          ) : (
-                            'No hay económicos que coincidan con los filtros seleccionados.'
-                          )}
-                        </p>
+                      {ecoBuscado && expedienteProfundo?.found ? (
+                        <div className="deep-search-empty-box">
+                          <div className="deep-search-empty-badge-header">
+                            <span className="deep-search-eco-big">ECO {expedienteProfundo.unidad.numero_eco}</span>
+                            <span className="deep-search-tipo-big">{expedienteProfundo.unidad.tipo_transporte}</span>
+                            <span className={`estatus-badge estatus-${String(expedienteProfundo.estadisticas.estatus_actual || 'operacion').toLowerCase()}`}>
+                              <span className="pulse-dot"></span>
+                              {String(expedienteProfundo.estadisticas.estatus_actual || 'Operación').toUpperCase()}
+                            </span>
+                          </div>
 
-                        {/* Botón directo para pasar a Historial Completo con un solo clic */}
-                        {verSoloFechaFolios && kpiTotalGlobal > 0 && !filtroBusqueda.trim() && (
+                          <h4 style={{ margin: '0.85rem 0 0.35rem 0', fontWeight: 800, color: '#1e293b', fontSize: '1.2rem' }}>
+                            {expedienteProfundo.estadisticas.estatus_actual === 'mantenimiento'
+                              ? `El ECO ${expedienteProfundo.unidad.numero_eco} está en Taller pero sin folio asignado hoy`
+                              : `El ECO ${expedienteProfundo.unidad.numero_eco} no tiene folios ni fallas activas hoy`}
+                          </h4>
+
+                          <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.9rem', color: '#64748b', maxWidth: '560px', lineHeight: 1.55 }}>
+                            {expedienteProfundo.estadisticas.estatus_actual !== 'mantenimiento' ? (
+                              <>
+                                Esta unidad se encuentra actualmente en estatus <strong>{expedienteProfundo.estadisticas.estatus_actual.toUpperCase()}</strong>
+                                {expedienteProfundo.estado_actual?.ruta ? ` cubriendo la Ruta ${expedienteProfundo.estado_actual.ruta}` : ''}
+                                {expedienteProfundo.estado_actual?.nombre_conductor ? ` con el operador ${expedienteProfundo.estado_actual.nombre_conductor}` : ''}.
+                                <br />
+                              </>
+                            ) : null}
+                            {expedienteProfundo.estadisticas.total_ingresos_taller > 0 || expedienteProfundo.estadisticas.total_movimientos_bitacora > 0 ? (
+                              <>
+                                Cuenta con un expediente registrado de <strong>{expedienteProfundo.estadisticas.total_ingresos_taller} ingresos históricos a taller</strong> y <strong>{expedienteProfundo.estadisticas.total_movimientos_bitacora} movimientos en bitácora</strong>.
+                              </>
+                            ) : (
+                              'No cuenta con ingresos pasados por fallas mecánicas registrados en el sistema.'
+                            )}
+                          </p>
+
                           <button
                             type="button"
-                            className="btn-ir-historial-completo-empty"
-                            onClick={() => {
-                              setVerSoloFechaFolios(false);
-                              setFiltroTipoFolio('todos');
-                            }}
+                            className="btn-ver-expediente-primary"
+                            onClick={() => abrirExpedienteCompleto(expedienteProfundo)}
                           >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                             </svg>
-                            <span>Ver Historial Completo ({kpiTotalGlobal} folios disponibles)</span>
+                            <span>Consultar Expediente Histórico Completo del ECO {expedienteProfundo.unidad.numero_eco}</span>
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                          <div className="empty-state-icon-circle">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="11" cy="11" r="8"></circle>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                          </div>
+                          <h4 style={{ margin: '0.75rem 0 0 0', fontWeight: 800, color: '#334155', fontSize: '1.1rem' }}>
+                            No se encontraron registros de folios
+                          </h4>
+                          <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.88rem', color: '#64748b', maxWidth: '480px', lineHeight: 1.45 }}>
+                            {filtroBusqueda.trim() ? (
+                              <>
+                                No hay resultados para "<strong>{filtroBusqueda}</strong>". Recuerda que la búsqueda solo opera por <strong>Económico</strong>, <strong>N° de Incidencia</strong> o <strong>N° de Folio</strong>.
+                              </>
+                            ) : verSoloFechaFolios ? (
+                              <>
+                                No se registraron folios ni incidencias el día <strong>{selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'seleccionado'}</strong>.
+                              </>
+                            ) : (
+                              'No hay económicos que coincidan con los filtros seleccionados.'
+                            )}
+                          </p>
+
+                          {/* Botón directo para pasar a Historial Completo con un solo clic */}
+                          {verSoloFechaFolios && kpiTotalGlobal > 0 && !filtroBusqueda.trim() && (
+                            <button
+                              type="button"
+                              className="btn-ir-historial-completo-empty"
+                              onClick={() => {
+                                setVerSoloFechaFolios(false);
+                                setFiltroTipoFolio('todos');
+                              }}
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                              </svg>
+                              <span>Ver Historial Completo ({kpiTotalGlobal} folios disponibles)</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}
@@ -1812,8 +1971,501 @@ export default function HistorialMantenimiento() {
         </div>
       )}
 
+      {/* MODAL: Expediente Histórico de Unidad (Consulta Profunda) */}
+      {modalExpedienteOpen && expedienteSeleccionado && (
+        <div className="modal-backdrop-luxury" onClick={() => setModalExpedienteOpen(false)}>
+          <div className="modal-card-luxury modal-expediente-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-luxury">
+              <div className="header-accent-bar" style={{ background: 'linear-gradient(90deg, #691B31, #BC955B)' }}></div>
+              <div className="header-title-box">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                  <span className="modal-pill-tag" style={{ background: '#fdf2f4', color: '#691B31', borderColor: '#fecdd3' }}>
+                    Expediente Histórico
+                  </span>
+                  <span className="modal-pill-tag" style={{ background: '#f1f5f9', color: '#475569', borderColor: '#cbd5e1' }}>
+                    {expedienteSeleccionado.unidad.tipo_transporte}
+                  </span>
+                  <span className={`estatus-badge estatus-${String(expedienteSeleccionado.estadisticas.estatus_actual || 'operacion').toLowerCase()}`}>
+                    <span className="pulse-dot"></span>
+                    {String(expedienteSeleccionado.estadisticas.estatus_actual || 'Operación').toUpperCase()}
+                  </span>
+                </div>
+                <h3 className="modal-main-title">
+                  Hoja de Vida y Expediente — ECO {expedienteSeleccionado.unidad.numero_eco}
+                </h3>
+                <p className="modal-subtitle">
+                  {expedienteSeleccionado.estado_actual?.ruta ? `Ruta Actual: ${expedienteSeleccionado.estado_actual.ruta} • ` : ''}
+                  {expedienteSeleccionado.estado_actual?.nombre_conductor ? `Operador: ${expedienteSeleccionado.estado_actual.nombre_conductor} • ` : ''}
+                  {expedienteSeleccionado.unidad.kilometraje ? `Kilometraje: ${expedienteSeleccionado.unidad.kilometraje} km` : 'Sin odómetro registrado'}
+                </p>
+              </div>
+              <button type="button" className="btn-modal-close" onClick={() => setModalExpedienteOpen(false)}>✕</button>
+            </div>
+
+            {/* Métricas KPI Rápidas de la Unidad */}
+            <div className="expediente-kpi-bar">
+              <div className="expediente-kpi-item">
+                <span className="exp-kpi-num">{expedienteSeleccionado.estadisticas.total_ingresos_taller}</span>
+                <span className="exp-kpi-lbl">Ingresos a Taller</span>
+              </div>
+              <div className="expediente-kpi-item">
+                <span className="exp-kpi-num">{expedienteSeleccionado.estadisticas.total_movimientos_bitacora}</span>
+                <span className="exp-kpi-lbl">Movimientos Bitácora</span>
+              </div>
+              <div className="expediente-kpi-item">
+                <span className="exp-kpi-num">{expedienteSeleccionado.estadisticas.total_movimientos_folio}</span>
+                <span className="exp-kpi-lbl">Eventos de Folio</span>
+              </div>
+              <div className="expediente-kpi-item">
+                <span className="exp-kpi-num" style={{ fontSize: '0.88rem', color: '#691B31' }}>
+                  {expedienteSeleccionado.estadisticas.folio_actual || 'Sin Folio Activo'}
+                </span>
+                <span className="exp-kpi-lbl">Folio Hoy</span>
+              </div>
+            </div>
+
+            {/* Pestañas internas del Expediente */}
+            <div className="expediente-tabs-header">
+              <button
+                type="button"
+                className={`expediente-tab-btn ${tabExpediente === 'taller' ? 'active' : ''}`}
+                onClick={() => setTabExpediente('taller')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                </svg>
+                <span>Ingresos y Reportes de Taller ({expedienteSeleccionado.historial_taller?.length || 0})</span>
+              </button>
+              <button
+                type="button"
+                className={`expediente-tab-btn ${tabExpediente === 'bitacora' ? 'active' : ''}`}
+                onClick={() => setTabExpediente('bitacora')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span>Bitácora Oficial de Cambios ({expedienteSeleccionado.bitacora?.length || 0})</span>
+              </button>
+            </div>
+
+            {/* Contenido según pestaña */}
+            <div className="modal-body-luxury expediente-modal-body">
+              {tabExpediente === 'taller' ? (
+                expedienteSeleccionado.historial_taller && expedienteSeleccionado.historial_taller.length > 0 ? (
+                  <div className="expediente-taller-list">
+                    {expedienteSeleccionado.historial_taller.map((t, idx) => (
+                      <div key={t.id || idx} className="expediente-taller-card">
+                        <div className="exp-card-header">
+                          <div className="exp-card-date">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                              <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                            <span>{formatearFechaDiaMesAnio(t.fecha_historial)}</span>
+                            {t.momento && <span className="exp-momento-tag">{t.momento}</span>}
+                          </div>
+                          <span className={`estatus-badge estatus-${String(t.estatus || 'mantenimiento').toLowerCase()}`}>
+                            {String(t.estatus || 'MANTENIMIENTO').toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="exp-card-body">
+                          <div className="exp-falla-row">
+                            <span className="exp-label">Falla / Motivo:</span>
+                            <span className="exp-val exp-val-falla">{t.falla_reportada || t.falla || t.motivo_estatus || 'Revisión en taller'}</span>
+                          </div>
+                          {t.diagnostico && (
+                            <div className="exp-falla-row">
+                              <span className="exp-label">Diagnóstico:</span>
+                              <span className="exp-val exp-val-diag">{t.diagnostico}</span>
+                            </div>
+                          )}
+                          <div className="exp-meta-row">
+                            {t.ruta && <span className="exp-meta-pill">Ruta: {t.ruta}</span>}
+                            {t.nombre_conductor && <span className="exp-meta-pill">Conductor: {t.nombre_conductor}</span>}
+                            {t.fecha_registro && <span className="exp-meta-pill">Hora: {formatearFechaHora(t.fecha_registro)}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-history-view">
+                    <div className="empty-history-icon">
+                      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                    </div>
+                    <h4>Sin Reportes de Taller Registrados</h4>
+                    <p>Esta unidad no registra ingresos históricos por fallas en los cierres de jornada.</p>
+                  </div>
+                )
+              ) : (
+                /* Pestaña: Bitácora Oficial */
+                expedienteSeleccionado.bitacora && expedienteSeleccionado.bitacora.length > 0 ? (
+                  <div className="luxury-timeline">
+                    {expedienteSeleccionado.bitacora.map((aud, idx) => (
+                      <div key={aud.id || idx} className="luxury-timeline-node">
+                        <div className="timeline-marker">
+                          <div className="timeline-dot"></div>
+                          {idx < expedienteSeleccionado.bitacora.length - 1 && <div className="timeline-stem"></div>}
+                        </div>
+                        <div className="timeline-card">
+                          <div className="timeline-header-line">
+                            <span className="estatus-badge" style={getAccionBadgeStyle(aud.tipo_accion)}>
+                              {formatAccion(aud.tipo_accion)}
+                            </span>
+                            <span className="timeline-timestamp">{formatearFechaHora(aud.hora)}</span>
+                          </div>
+                          <div className="timeline-details-text">
+                            {renderDetallesModificacionGlobal(aud.detalles, aud)}
+                          </div>
+                          <div className="timeline-footer-meta">
+                            <span className="meta-user">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                              </svg>
+                              {aud.usuario_nombre || 'Sistema'}
+                            </span>
+                            {aud.estatus_anterior && (
+                              <span className="meta-diff">
+                                <span className="diff-tag old">{aud.estatus_anterior}</span>
+                                <span className="diff-arrow">→</span>
+                                <span className="diff-tag new">{aud.estatus_nuevo}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-history-view">
+                    <div className="empty-history-icon">
+                      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                    </div>
+                    <h4>Sin Movimientos en Bitácora</h4>
+                    <p>No se encontraron registros de auditoría para este económico.</p>
+                  </div>
+                )
+              )}
+            </div>
+
+            <div className="modal-footer-luxury">
+              <button type="button" className="btn-luxury-cancel" onClick={() => setModalExpedienteOpen(false)}>
+                Cerrar Expediente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ESTILOS PREMIUM PARA REVISIÓN E HISTORIAL DE FOLIOS */}
       <style>{`
+        /* ==========================================================================
+           BÚSQUEDA HISTÓRICA PROFUNDA & EXPEDIENTE DE UNIDAD
+           ========================================================================== */
+        .deep-search-alert-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          background: #ffffff;
+          border: 1.5px solid #cbd5e1;
+          border-left: 5px solid #691B31;
+          border-radius: 12px;
+          padding: 0.75rem 1.15rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          flex-wrap: wrap;
+        }
+        .deep-search-alert-left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .deep-search-pill-eco {
+          font-weight: 800;
+          font-size: 0.88rem;
+          color: #691B31;
+          background: #fdf2f4;
+          padding: 3px 10px;
+          border-radius: 6px;
+          border: 1px solid #fecdd3;
+        }
+        .deep-search-pill-tipo {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #475569;
+          background: #f1f5f9;
+          padding: 3px 8px;
+          border-radius: 6px;
+        }
+        .deep-search-pill-status {
+          font-size: 0.72rem;
+          font-weight: 800;
+          padding: 3px 9px;
+          border-radius: 20px;
+          text-transform: uppercase;
+        }
+        .deep-search-alert-text {
+          font-size: 0.84rem;
+          color: #334155;
+        }
+        .btn-deep-search-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 8px;
+          border: 1px solid #521324;
+          background: linear-gradient(135deg, #691B31 0%, #872341 100%);
+          color: #ffffff;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(105, 27, 49, 0.25);
+          transition: all 0.18s ease;
+          white-space: nowrap;
+        }
+        .btn-deep-search-pill:hover {
+          background: linear-gradient(135deg, #521324 0%, #691B31 100%);
+          transform: translateY(-1px);
+        }
+
+        /* Tarjeta de Búsqueda Profunda en Empty State */
+        .deep-search-empty-box {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: #ffffff;
+          border: 1.5px solid #cbd5e1;
+          border-radius: 16px;
+          padding: 2.25rem 2rem;
+          max-width: 640px;
+          margin: 0 auto;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        }
+        .deep-search-empty-badge-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 0.6rem;
+        }
+        .deep-search-eco-big {
+          font-weight: 900;
+          font-size: 1.35rem;
+          color: #691B31;
+          background: #fdf2f4;
+          padding: 4px 14px;
+          border-radius: 8px;
+          border: 1.5px solid #fecdd3;
+        }
+        .deep-search-tipo-big {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #475569;
+          background: #f1f5f9;
+          padding: 4px 10px;
+          border-radius: 6px;
+        }
+        .btn-ver-expediente-primary {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 20px;
+          border-radius: 9px;
+          border: 1px solid #521324;
+          background: linear-gradient(135deg, #691B31 0%, #872341 100%);
+          color: #ffffff;
+          font-size: 0.88rem;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(105, 27, 49, 0.3);
+          transition: all 0.18s ease;
+        }
+        .btn-ver-expediente-primary:hover {
+          background: linear-gradient(135deg, #521324 0%, #691B31 100%);
+          transform: translateY(-1px);
+        }
+
+        /* ECO Clickable en Tabla */
+        .eco-clickable-badge {
+          display: inline-block;
+          cursor: pointer;
+          padding: 3px 8px;
+          border-radius: 6px;
+          background: transparent;
+          color: #0f172a;
+          font-weight: 800;
+          transition: all 0.15s ease;
+        }
+        .eco-clickable-badge:hover {
+          background: #fdf2f4;
+          color: #691B31;
+          box-shadow: 0 0 0 1.5px #fecdd3;
+          transform: scale(1.04);
+        }
+
+        /* Modal de Expediente */
+        .modal-expediente-card {
+          max-width: 820px !important;
+          width: 95%;
+        }
+        .expediente-kpi-bar {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 10px;
+          padding: 0.85rem 1.5rem;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .expediente-kpi-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 9px;
+          padding: 8px 10px;
+          text-align: center;
+        }
+        .exp-kpi-num {
+          font-size: 1.15rem;
+          font-weight: 900;
+          color: #0f172a;
+          line-height: 1.2;
+        }
+        .exp-kpi-lbl {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          margin-top: 2px;
+        }
+        .expediente-tabs-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0.75rem 1.5rem 0 1.5rem;
+          background: #ffffff;
+          border-bottom: 2px solid #e2e8f0;
+        }
+        .expediente-tab-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          border: none;
+          background: transparent;
+          font-size: 0.84rem;
+          font-weight: 700;
+          color: #64748b;
+          cursor: pointer;
+          border-bottom: 3px solid transparent;
+          margin-bottom: -2px;
+          transition: all 0.15s ease;
+        }
+        .expediente-tab-btn:hover {
+          color: #0f172a;
+        }
+        .expediente-tab-btn.active {
+          color: #691B31;
+          font-weight: 800;
+          border-bottom-color: #691B31;
+        }
+        .expediente-modal-body {
+          max-height: 480px !important;
+          overflow-y: auto;
+          padding: 1.25rem 1.5rem !important;
+        }
+        .expediente-taller-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .expediente-taller-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-left: 4px solid #691B31;
+          border-radius: 10px;
+          padding: 0.9rem 1.15rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .exp-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .exp-card-date {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 800;
+          font-size: 0.84rem;
+          color: #0f172a;
+        }
+        .exp-card-date svg {
+          color: #691B31;
+        }
+        .exp-momento-tag {
+          font-size: 0.68rem;
+          font-weight: 800;
+          background: #f1f5f9;
+          color: #475569;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+        .exp-falla-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          font-size: 0.82rem;
+          line-height: 1.4;
+        }
+        .exp-label {
+          font-weight: 700;
+          color: #64748b;
+          flex-shrink: 0;
+        }
+        .exp-val {
+          color: #1e293b;
+        }
+        .exp-val-falla {
+          font-weight: 700;
+          color: #881337;
+        }
+        .exp-val-diag {
+          font-style: italic;
+          color: #334155;
+        }
+        .exp-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 2px;
+        }
+        .exp-meta-pill {
+          font-size: 0.72rem;
+          font-weight: 600;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          padding: 2px 7px;
+          border-radius: 5px;
+        }
         /* ==========================================================================
            PESTAÑAS DE NAVEGACIÓN SUPERIOR - ESTILO INSTITUCIONAL
            ========================================================================== */

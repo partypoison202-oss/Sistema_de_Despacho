@@ -322,6 +322,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/historial-operativo/mantenimiento-folios', [HistorialOperativoController::class, 'getHistorialFolios']);
     Route::post('/historial-operativo/actualizar-folio', [HistorialOperativoController::class, 'actualizarFolioHistorico']);
     Route::get('/historial-operativo/auditoria-folios', [HistorialOperativoController::class, 'getAuditoriaFolios']);
+    Route::get('/historial-operativo/expediente-unidad/{economico}', [HistorialOperativoController::class, 'getExpedienteUnidad']);
     Route::get('/historial-operativo/general/{fecha}', [HistorialOperativoController::class, 'getHistorialGeneral']);
     Route::get('/historial-operativo/mesa-control/{fecha}', [HistorialOperativoController::class, 'getHistorialMesaControl']);
     Route::get('/historial-operativo/programacion/{fecha}', [HistorialOperativoController::class, 'getHistorialProgramacion']);

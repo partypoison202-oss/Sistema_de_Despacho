@@ -1746,7 +1746,138 @@ class HistorialOperativoController extends Controller
             ]);
         }
     }
+
+    /**
+     * Consulta profunda de una unidad: Obtiene expediente histórico de mantenimiento,
+     * bitácora de auditoría y estado operativo actual para cualquier económico.
+     */
+    public function getExpedienteUnidad($economico)
+    {
+        try {
+            $ecoClean = preg_replace('/[^0-9]/', '', (string)$economico);
+            if (empty($ecoClean)) {
+                return response()->json(['found' => false, 'message' => 'Número económico inválido'], 200);
+            }
+
+            $ecoVariantes = array_unique([
+                $ecoClean,
+                ltrim($ecoClean, '0'),
+                str_pad($ecoClean, 3, '0', STR_PAD_LEFT)
+            ]);
+
+            $unidad = DB::table('unidades')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->whereIn('unidades.numero_eco', $ecoVariantes)
+                ->select(
+                    'unidades.id',
+                    'unidades.numero_eco',
+                    'unidades.tipo as unidad_tipo',
+                    'unidades.kilometraje',
+                    DB::raw("COALESCE(unidades.tipo, transportes.nombre, '') as tipo_transporte")
+                )
+                ->first();
+
+            if (!$unidad) {
+                return response()->json([
+                    'found' => false,
+                    'message' => "No se encontró ninguna unidad con el económico '{$economico}'"
+                ], 200);
+            }
+
+            // 1. Estado operativo actual
+            $estadoActual = DB::table('informacion_operativa')
+                ->where('unidad_id', $unidad->id)
+                ->first();
+
+            // 2. Historial de ingresos a taller (historial_operativo)
+            $historialTaller = collect();
+            if (Schema::hasTable('historial_operativo')) {
+                $historialTaller = DB::table('historial_operativo')
+                    ->where('unidad_id', $unidad->id)
+                    ->where(function ($q) {
+                        $q->whereRaw("LOWER(COALESCE(estatus, '')) IN ('mantenimiento', 'percance')")
+                          ->orWhere(function ($qFalla) {
+                              $qFalla->whereNotNull('falla')->where('falla', '!=', '');
+                          })
+                          ->orWhere(function ($qFallaRep) {
+                              $qFallaRep->whereNotNull('falla_reportada')->where('falla_reportada', '!=', '');
+                          });
+                    })
+                    ->select(
+                        'id',
+                        'fecha_historial',
+                        'momento',
+                        'estatus',
+                        'motivo_estatus',
+                        'falla',
+                        'falla_reportada',
+                        'diagnostico',
+                        'nombre_conductor',
+                        'ruta',
+                        'fecha_registro'
+                    )
+                    ->orderBy('fecha_historial', 'desc')
+                    ->get();
+            }
+
+            // 3. Bitácora de cambios y auditoría (bitacora_cambios_unidades)
+            $bitacora = collect();
+            if (Schema::hasTable('bitacora_cambios_unidades')) {
+                $bitacora = DB::table('bitacora_cambios_unidades')
+                    ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
+                    ->where('bitacora_cambios_unidades.unidad_id', $unidad->id)
+                    ->select(
+                        'bitacora_cambios_unidades.id',
+                        'bitacora_cambios_unidades.fecha',
+                        'bitacora_cambios_unidades.tipo_accion',
+                        'bitacora_cambios_unidades.estatus_anterior',
+                        'bitacora_cambios_unidades.estatus_nuevo',
+                        'bitacora_cambios_unidades.detalles',
+                        'bitacora_cambios_unidades.created_at as hora',
+                        'usuarios.nombre_completo as usuario_nombre'
+                    )
+                    ->orderBy('bitacora_cambios_unidades.created_at', 'desc')
+                    ->get();
+            }
+
+            // Estadísticas resumidas
+            $totalMovimientos = $bitacora->count();
+            $totalIngresosTaller = $historialTaller->count();
+
+            // Detectar si alguna vez tuvo folios en la bitácora
+            $movimientosFolio = $bitacora->filter(function ($b) {
+                return in_array($b->tipo_accion, ['ACTUALIZACION_FOLIO', 'GENERAR_FOLIO', 'ASIGNACION_FOLIO'])
+                    || stripos($b->detalles ?? '', 'FOLIO') !== false;
+            })->values();
+
+            return response()->json([
+                'found' => true,
+                'unidad' => $unidad,
+                'estado_actual' => $estadoActual,
+                'estadisticas' => [
+                    'total_movimientos_bitacora' => $totalMovimientos,
+                    'total_ingresos_taller' => $totalIngresosTaller,
+                    'total_movimientos_folio' => $movimientosFolio->count(),
+                    'estatus_actual' => $estadoActual->estatus ?? 'operacion',
+                    'folio_actual' => $estadoActual->folio_mantenimiento ?? null,
+                    'incidencia_actual' => $estadoActual->numero_incidencia ?? null,
+                    'falla_actual' => $estadoActual->falla_reportada ?? $estadoActual->falla ?? null,
+                ],
+                'historial_taller' => $historialTaller,
+                'bitacora' => $bitacora,
+                'movimientos_folio' => $movimientosFolio,
+            ], 200);
+
+        } catch (\Throwable $e) {
+            \Log::error("Error en getExpedienteUnidad({$economico}): " . $e->getMessage());
+            return response()->json([
+                'found' => false,
+                'message' => 'Error al consultar expediente de la unidad: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
+
 
 
 
