@@ -509,6 +509,109 @@ export default function HistorialMantenimiento() {
     });
   };
 
+  // Calcular días de estancia en incidencia o folio
+  const calcularDiasEstancia = (item) => {
+    if (!item) return null;
+    const fInicioStr = item.fecha_folio_mantenimiento || item.fecha_registro;
+    if (!fInicioStr) return null;
+
+    const dInicio = new Date(fInicioStr);
+    if (isNaN(dInicio.getTime())) return null;
+
+    const estatusNorm = String(item.estatus || '').trim().toLowerCase();
+    const esOperacion = estatusNorm === 'operacion';
+
+    let dFin = new Date();
+    let etiqueta = 'Lleva';
+
+    if (esOperacion) {
+      etiqueta = 'Estuvo';
+      if (item.auditoria && Array.isArray(item.auditoria)) {
+        const cambioOp = item.auditoria.find(a => 
+          String(a.estatus_nuevo || '').toLowerCase() === 'operacion' ||
+          (a.detalles && a.detalles.toLowerCase().includes('operacion'))
+        );
+        if (cambioOp && cambioOp.hora) {
+          const dt = new Date(cambioOp.hora);
+          if (!isNaN(dt.getTime())) {
+            dFin = dt;
+          }
+        }
+      }
+    }
+
+    const diffMs = Math.max(0, dFin.getTime() - dInicio.getTime());
+    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+
+    let texto = '';
+    if (diffDias === 0) {
+      texto = diffHoras <= 1 ? 'Menos de 1 hr' : `${diffHoras} hrs`;
+    } else if (diffDias === 1) {
+      texto = '1 día';
+    } else {
+      texto = `${diffDias} días`;
+    }
+
+    return {
+      dias: diffDias,
+      horas: diffHoras,
+      texto,
+      etiqueta,
+      esOperacion
+    };
+  };
+
+  // Extraer antecedente inmediato de incidencia y folio de la auditoría de la unidad
+  const extraerAntecedentes = (item) => {
+    if (!item) return { incidenciaAnterior: null, folioAnterior: null, fechaAnterior: null, usuarioAnterior: null };
+    const auditoria = item.auditoria || [];
+
+    let incAnt = null;
+    let folAnt = null;
+    let fAnt = null;
+    let uAnt = null;
+
+    for (const aud of auditoria) {
+      const det = aud.detalles || '';
+
+      if (!folAnt) {
+        const matchF = det.match(/Folio:\s*'([^']*)'\s*->\s*'([^']*)'/i);
+        if (matchF && matchF[1] && matchF[1] !== 'SIN FOLIO' && matchF[1] !== item.folio_mantenimiento) {
+          folAnt = matchF[1];
+          fAnt = fAnt || aud.hora;
+          uAnt = uAnt || aud.usuario_nombre;
+        } else if (aud.tipo_accion?.includes('FOLIO') && aud.estatus_anterior && aud.estatus_anterior !== 'SIN FOLIO' && aud.estatus_anterior !== item.folio_mantenimiento) {
+          folAnt = aud.estatus_anterior;
+          fAnt = fAnt || aud.hora;
+          uAnt = uAnt || aud.usuario_nombre;
+        }
+      }
+
+      if (!incAnt) {
+        const matchI = det.match(/Incidencia:\s*'([^']*)'\s*->\s*'([^']*)'/i);
+        if (matchI && matchI[1] && matchI[1] !== 'SIN INCIDENCIA' && matchI[1] !== item.numero_incidencia) {
+          incAnt = matchI[1];
+          fAnt = fAnt || aud.hora;
+          uAnt = uAnt || aud.usuario_nombre;
+        } else if (aud.tipo_accion?.includes('INCIDENCIA') && aud.estatus_anterior && aud.estatus_anterior !== 'SIN INCIDENCIA' && aud.estatus_anterior !== item.numero_incidencia) {
+          incAnt = aud.estatus_anterior;
+          fAnt = fAnt || aud.hora;
+          uAnt = uAnt || aud.usuario_nombre;
+        }
+      }
+
+      if (folAnt && incAnt) break;
+    }
+
+    return {
+      incidenciaAnterior: incAnt,
+      folioAnterior: folAnt,
+      fechaAnterior: fAnt,
+      usuarioAnterior: uAnt
+    };
+  };
+
   // Abrir modal de edición de Folio / Fecha / Incidencia
   const abrirModalEdicion = (item) => {
     setFolioEditando(item);
@@ -1341,6 +1444,24 @@ export default function HistorialMantenimiento() {
                             </span>
                             <span className="fecha-dual-text">{d.fecha_folio_mantenimiento ? formatearFechaHora(d.fecha_folio_mantenimiento) : 'Pendiente'}</span>
                           </div>
+
+                          {/* Días transcurridos en incidencia o folio */}
+                          {(() => {
+                            const est = calcularDiasEstancia(d);
+                            if (!est) return null;
+                            return (
+                              <div 
+                                className={`tiempo-estancia-badge ${est.esOperacion ? 'resuelto' : (est.dias >= 3 ? 'critico' : 'activo')}`}
+                                title={`${est.etiqueta} ${est.texto} en taller / folio`}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                <span>{est.etiqueta}: <strong>{est.texto}</strong></span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </td>
 
@@ -1616,103 +1737,198 @@ export default function HistorialMantenimiento() {
             </div>
 
             <form onSubmit={handleGuardarEdicionFolio} className="modal-form-luxury">
-              <div className="modal-body-luxury">
-                {/* 1. N° Incidencia PRIMERO */}
-                <div className="form-group-luxury">
-                  <label>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                    </svg>
-                    N° Incidencia:
-                  </label>
-                  <input
-                    type="text"
-                    value={formIncidencia}
-                    onChange={(e) => setFormIncidencia(e.target.value.toUpperCase())}
-                    placeholder="Ej. OCT-1222 o 55"
-                    className="input-luxury monospace-input"
-                    disabled={isGuardandoEdicion}
-                  />
-                  <span className="input-hint">Valor anterior: {folioEditando.numero_incidencia || 'Sin incidencia asignada'}</span>
-                </div>
+              {(() => {
+                const antecedentesModal = extraerAntecedentes(folioEditando);
+                const estanciaModal = calcularDiasEstancia(folioEditando);
 
-                {/* 2. Folio y Fecha LUEGO */}
-                <div className="form-row-luxury">
-                  <div className="form-group-luxury">
-                    <label>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                      </svg>
-                      Folio de Mantenimiento:
-                    </label>
-                    <input
-                      type="text"
-                      value={formFolio}
-                      onChange={(e) => setFormFolio(e.target.value.toUpperCase())}
-                      placeholder="Ej. OCT-4545 o MANT-01"
-                      className="input-luxury monospace-input"
-                      disabled={isGuardandoEdicion}
-                    />
-                    <span className="input-hint">Valor anterior: {folioEditando.folio_mantenimiento || 'Sin folio asignado'}</span>
-                  </div>
+                return (
+                  <div className="modal-body-luxury">
+                    {/* Banner de días transcurridos en incidencia / folio */}
+                    {estanciaModal && (
+                      <div className={`modal-estancia-banner ${estanciaModal.esOperacion ? 'resuelto' : (estanciaModal.dias >= 3 ? 'critico' : 'activo')}`}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <span>
+                          <strong>{estanciaModal.etiqueta} {estanciaModal.texto}</strong> en {folioEditando.folio_mantenimiento ? 'Folio de Mantenimiento' : 'Incidencia de Taller'}
+                          {estanciaModal.esOperacion ? ' (Unidad reincorporada a Operación)' : ' (Unidad activa en Taller)'}
+                        </span>
+                      </div>
+                    )}
 
-                  <div className="form-group-luxury">
-                    <label>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                      </svg>
-                      Fecha del Folio:
-                    </label>
-                    <div className="apple-picker-luxury-container">
-                      <AppleDatePicker
-                        value={formFechaFolio}
-                        onChange={(val) => setFormFechaFolio(val)}
-                        disableFuture={false}
-                        disablePast={false}
-                        showIcon={true}
-                        placeholder="Seleccionar fecha del folio"
+                    {/* 1. N° Incidencia PRIMERO */}
+                    <div className="form-group-luxury">
+                      <label>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        N° Incidencia:
+                      </label>
+                      <input
+                        type="text"
+                        value={formIncidencia}
+                        onChange={(e) => setFormIncidencia(e.target.value.toUpperCase())}
+                        placeholder="Ej. OCT-1222 o 55"
+                        className="input-luxury monospace-input"
+                        disabled={isGuardandoEdicion}
+                      />
+                      <div className="input-hint-row">
+                        <span>
+                          Valor actual: <strong>{folioEditando.numero_incidencia || 'Sin incidencia'}</strong>
+                          {antecedentesModal.incidenciaAnterior ? ` • Antecedente anterior: ${antecedentesModal.incidenciaAnterior}` : ''}
+                        </span>
+                        {antecedentesModal.incidenciaAnterior && antecedentesModal.incidenciaAnterior !== formIncidencia && (
+                          <button
+                            type="button"
+                            className="btn-usar-anterior"
+                            onClick={() => setFormIncidencia(antecedentesModal.incidenciaAnterior)}
+                            title="Restaurar o editar valor anterior"
+                          >
+                            ↺ Cargar anterior
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Folio y Fecha LUEGO */}
+                    <div className="form-row-luxury">
+                      <div className="form-group-luxury">
+                        <label>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                          </svg>
+                          Folio de Mantenimiento:
+                        </label>
+                        <input
+                          type="text"
+                          value={formFolio}
+                          onChange={(e) => setFormFolio(e.target.value.toUpperCase())}
+                          placeholder="Ej. OCT-4545 o MANT-01"
+                          className="input-luxury monospace-input"
+                          disabled={isGuardandoEdicion}
+                        />
+                        <div className="input-hint-row">
+                          <span>
+                            Valor actual: <strong>{folioEditando.folio_mantenimiento || 'Sin folio'}</strong>
+                            {antecedentesModal.folioAnterior ? ` • Antecedente: ${antecedentesModal.folioAnterior}` : ''}
+                          </span>
+                          {antecedentesModal.folioAnterior && antecedentesModal.folioAnterior !== formFolio && (
+                            <button
+                              type="button"
+                              className="btn-usar-anterior"
+                              onClick={() => setFormFolio(antecedentesModal.folioAnterior)}
+                              title="Restaurar o editar valor anterior"
+                            >
+                              ↺ Cargar anterior
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="form-group-luxury">
+                        <label>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                          </svg>
+                          Fecha del Folio:
+                        </label>
+                        <div className="apple-picker-luxury-container">
+                          <AppleDatePicker
+                            value={formFechaFolio}
+                            onChange={(val) => setFormFechaFolio(val)}
+                            disableFuture={false}
+                            disablePast={false}
+                            showIcon={true}
+                            placeholder="Seleccionar fecha del folio"
+                          />
+                        </div>
+                        <span className="input-hint">Fecha actual: {formatearFechaSimple(folioEditando.fecha_folio_mantenimiento)}</span>
+                      </div>
+                    </div>
+
+                    {/* Comparativa de Registro Actual y Antecedente Inmediato con Nota Operativa */}
+                    <div className="antecedentes-box-luxury">
+                      <div className="antecedentes-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        <span>Trazabilidad: Actual vs Antecedente Inmediato</span>
+                      </div>
+
+                      <div className="antecedentes-grid">
+                        <div className="antecedente-item ant-col-actual">
+                          <span className="ant-badge badge-actual">REGISTRO ACTUAL</span>
+                          <div className="ant-field"><span>Incidencia:</span> <strong>{folioEditando.numero_incidencia || 'Sin asignar'}</strong></div>
+                          <div className="ant-field"><span>Folio:</span> <strong>{folioEditando.folio_mantenimiento || 'Sin asignar'}</strong></div>
+                          <div className="ant-field muted"><span>Fecha:</span> {formatearFechaSimple(folioEditando.fecha_folio_mantenimiento || folioEditando.fecha_registro)}</div>
+                        </div>
+
+                        <div className="antecedente-item ant-col-anterior">
+                          <span className="ant-badge badge-anterior">ANTECEDENTE ANTERIOR</span>
+                          <div className="ant-field"><span>Incidencia previa:</span> <strong>{antecedentesModal.incidenciaAnterior || 'Sin antecedente'}</strong></div>
+                          <div className="ant-field"><span>Folio previo:</span> <strong>{antecedentesModal.folioAnterior || 'Sin antecedente'}</strong></div>
+                          <div className="ant-field muted">
+                            <span>Modificado:</span> {antecedentesModal.fechaAnterior ? formatearFechaHora(antecedentesModal.fechaAnterior) : 'Sin cambios previos'}
+                            {antecedentesModal.usuarioAnterior ? ` (${antecedentesModal.usuarioAnterior})` : ''}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Nota solicitada: solo actual y anterior */}
+                      <div className="nota-edicion-autorizada">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" style={{ color: '#b45309', flexShrink: 0, marginTop: '2px' }}>
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <div className="nota-text">
+                          <strong>Nota de Control Operativo:</strong> Únicamente se permite modificar la <strong>incidencia o folio actual</strong> y su <strong>antecedente anterior</strong> inmediato. Todo ajuste requiere justificación obligatoria en mayúsculas asentada en la bitácora histórica.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-group-luxury highlight-required">
+                      <label>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#691B31' }}>
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        Motivo de la Modificación * (OBLIGATORIO)
+                      </label>
+                      <textarea
+                        rows="3"
+                        value={formMotivoCambio}
+                        onChange={(e) => setFormMotivoCambio(e.target.value.toUpperCase())}
+                        placeholder="ESCRIBA LA JUSTIFICACIÓN OBLIGATORIA DEL CAMBIO PARA LA BITÁCORA HISTÓRICA (EJ. CORRECCIÓN EN FOLIO FÍSICO EMITIDO POR TALLER)..."
+                        className="textarea-luxury"
+                        style={{ textTransform: 'uppercase' }}
+                        required
+                        disabled={isGuardandoEdicion}
                       />
                     </div>
-                    <span className="input-hint">Fecha actual: {formatearFechaSimple(folioEditando.fecha_folio_mantenimiento)}</span>
-                  </div>
-                </div>
 
-                <div className="form-group-luxury highlight-required">
-                  <label>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#691B31' }}>
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    </svg>
-                    Motivo de la Modificación * (OBLIGATORIO)
-                  </label>
-                  <textarea
-                    rows="3"
-                    value={formMotivoCambio}
-                    onChange={(e) => setFormMotivoCambio(e.target.value.toUpperCase())}
-                    placeholder="ESCRIBA LA JUSTIFICACIÓN OBLIGATORIA DEL CAMBIO PARA LA BITÁCORA HISTÓRICA (EJ. CORRECCIÓN EN FOLIO FÍSICO EMITIDO POR TALLER)..."
-                    className="textarea-luxury"
-                    style={{ textTransform: 'uppercase' }}
-                    required
-                    disabled={isGuardandoEdicion}
-                  />
-                </div>
-
-                <div className="luxury-callout-warning">
-                  <div className="callout-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="12"></line>
-                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
+                    <div className="luxury-callout-warning">
+                      <div className="callout-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                      </div>
+                      <div className="callout-text">
+                        <strong>Registro Permanente:</strong> Esta actualización se asentará de forma inmediata en la bitácora de modificaciones vinculando tu usuario, fecha y valores anteriores.
+                      </div>
+                    </div>
                   </div>
-                  <div className="callout-text">
-                    <strong>Registro Permanente:</strong> Esta actualización se asentará de forma inmediata en la bitácora de modificaciones vinculando tu usuario, fecha y valores anteriores.
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               <div className="modal-footer-luxury">
                 <button
@@ -3858,6 +4074,183 @@ export default function HistorialMantenimiento() {
           border-radius: 9px;
           padding: 0.8rem 0.95rem;
           margin-top: 0.5rem;
+        }
+
+        /* Badge de Días en Incidencia / Folio en Tabla */
+        .tiempo-estancia-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 2.5px 8px;
+          border-radius: 6px;
+          margin-top: 5px;
+          width: fit-content;
+        }
+        .tiempo-estancia-badge svg {
+          flex-shrink: 0;
+        }
+        .tiempo-estancia-badge.resuelto {
+          background: #f0fdf4;
+          color: #166534;
+          border: 1px solid #bbf7d0;
+        }
+        .tiempo-estancia-badge.activo {
+          background: #fffbeb;
+          color: #92400e;
+          border: 1px solid #fde68a;
+        }
+        .tiempo-estancia-badge.critico {
+          background: #fef2f2;
+          color: #991b1b;
+          border: 1px solid #fecaca;
+        }
+
+        /* Banner de Estancia en Modal */
+        .modal-estancia-banner {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 8px 14px;
+          border-radius: 8px;
+          margin-bottom: 1.15rem;
+          font-size: 0.83rem;
+          font-weight: 600;
+          line-height: 1.4;
+        }
+        .modal-estancia-banner svg {
+          flex-shrink: 0;
+        }
+        .modal-estancia-banner.resuelto {
+          background: #f0fdf4;
+          color: #166534;
+          border: 1px solid #bbf7d0;
+        }
+        .modal-estancia-banner.activo {
+          background: #fffbeb;
+          color: #92400e;
+          border: 1px solid #fde68a;
+        }
+        .modal-estancia-banner.critico {
+          background: #fef2f2;
+          color: #991b1b;
+          border: 1px solid #fecaca;
+        }
+
+        /* Botón cargar anterior */
+        .input-hint-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 4px;
+          font-size: 0.74rem;
+          color: #64748b;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+        .btn-usar-anterior {
+          background: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          color: #475569;
+          font-size: 0.69rem;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .btn-usar-anterior:hover {
+          background: #691B31;
+          color: #ffffff;
+          border-color: #691B31;
+        }
+
+        /* Antecedentes Box en Modal */
+        .antecedentes-box-luxury {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          padding: 12px 14px;
+          margin-bottom: 1.15rem;
+        }
+        .antecedentes-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.78rem;
+          font-weight: 800;
+          color: #334155;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+        .antecedentes-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        @media (max-width: 600px) {
+          .antecedentes-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .antecedente-item {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .antecedente-item.ant-col-actual {
+          border-left: 3px solid #691B31;
+        }
+        .antecedente-item.ant-col-anterior {
+          border-left: 3px solid #b45309;
+        }
+        .ant-badge {
+          font-size: 0.64rem;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          padding: 1px 6px;
+          border-radius: 4px;
+          width: fit-content;
+        }
+        .ant-badge.badge-actual {
+          background: #fdf2f4;
+          color: #691B31;
+        }
+        .ant-badge.badge-anterior {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        .ant-field {
+          font-size: 0.78rem;
+          color: #1e293b;
+        }
+        .ant-field span {
+          color: #64748b;
+          font-weight: 600;
+        }
+        .ant-field.muted {
+          font-size: 0.71rem;
+          color: #64748b;
+        }
+        .nota-edicion-autorizada {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          background: #fffbeb;
+          border: 1px solid #fef08a;
+          border-left: 3px solid #d97706;
+          border-radius: 7px;
+          padding: 8px 11px;
+          margin-top: 10px;
+          font-size: 0.76rem;
+          color: #78350f;
+          line-height: 1.45;
         }
         .callout-icon {
           color: #ea580c;
