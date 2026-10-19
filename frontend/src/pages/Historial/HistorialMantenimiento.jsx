@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
@@ -12,6 +12,7 @@ import './Historial.css';
 
 export default function HistorialMantenimiento() {
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -739,6 +740,19 @@ export default function HistorialMantenimiento() {
             </div>
 
             <div className="historial-action-buttons-group">
+              {/* Botón Ir a Mantenimiento Parque Vehicular */}
+              <button 
+                type="button"
+                className="btn-ir-parque-vehicular" 
+                onClick={() => navigate('/mantenimiento')}
+                title="Ir a Mantenimiento Parque Vehicular"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
+                </svg>
+                <span>Parque Vehicular</span>
+              </button>
+
               {/* Botón Actualizar Instantáneo con Animación Táctil */}
               <button 
                 type="button"
@@ -3197,6 +3211,40 @@ export default function HistorialMantenimiento() {
           background: #fdf2f4;
           color: #691B31;
           font-weight: 800;
+        }
+        .btn-ir-parque-vehicular {
+          height: 38px;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 0 0.95rem;
+          background: linear-gradient(135deg, #691B31 0%, #480020 100%);
+          color: #ffffff;
+          border: 1px solid #480020;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+          box-sizing: border-box;
+          box-shadow: 0 2px 5px rgba(105, 27, 49, 0.22);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          user-select: none;
+        }
+        .btn-ir-parque-vehicular svg {
+          color: #f6e05e;
+          transition: transform 0.25s ease;
+        }
+        .btn-ir-parque-vehicular:hover {
+          background: linear-gradient(135deg, #7e213b 0%, #580028 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(105, 27, 49, 0.35);
+        }
+        .btn-ir-parque-vehicular:hover svg {
+          transform: rotate(-15deg);
+        }
+        .btn-ir-parque-vehicular:active {
+          transform: scale(0.94) translateY(1px);
         }
         .btn-actualizar-instantaneo {
           height: 38px;
