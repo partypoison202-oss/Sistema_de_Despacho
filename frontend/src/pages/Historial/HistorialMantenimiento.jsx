@@ -476,11 +476,12 @@ export default function HistorialMantenimiento() {
   const formatearFechaHora = (fechaStr) => {
     if (!fechaStr) return '—';
     try {
-      const f = new Date(fechaStr);
+      const str = String(fechaStr).trim();
+      const safeStr = str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str;
+      const f = new Date(safeStr);
       if (isNaN(f.getTime())) return fechaStr;
 
       const fechaParte = f.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const str = String(fechaStr).trim();
 
       // Si la fecha original solo tiene formato YYYY-MM-DD o termina en 00:00:00 y no tiene hora real registrada
       const esCero = (f.getHours() === 0 && f.getMinutes() === 0) && (str.length <= 10 || str.endsWith('00:00:00') || str.endsWith('00:00'));
@@ -492,6 +493,21 @@ export default function HistorialMantenimiento() {
     } catch (e) {
       return fechaStr;
     }
+  };
+
+  // Formatear etiqueta de tiempo corta y entendible (ej: "Estuvo < 1h", "Estuvo 3d", "Lleva 4d")
+  const formatearTiempoCorto = (tiempoObj) => {
+    if (!tiempoObj) return null;
+    let txt = String(tiempoObj.texto || '').trim();
+    txt = txt
+      .replace(/menos de 1 hr/i, '< 1h')
+      .replace(/menos de 1 hora/i, '< 1h')
+      .replace(/(\d+)\s*días?/i, '$1d')
+      .replace(/(\d+)\s*hrs?/i, '$1h')
+      .replace(/(\d+)\s*horas?/i, '$1h');
+    
+    const eti = tiempoObj.etiqueta || (tiempoObj.es_operacion ? 'Estuvo' : 'Lleva');
+    return `${eti} ${txt}`;
   };
 
   // Copiar al portapapeles con toast de confirmación
@@ -1343,14 +1359,14 @@ export default function HistorialMantenimiento() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th style={{ width: '95px', minWidth: '90px' }}>TIPO</th>
-                  <th style={{ width: '65px', minWidth: '60px', textAlign: 'center' }}>ECO</th>
-                  <th style={{ width: '135px', minWidth: '130px' }}>N° INCIDENCIA</th>
-                  <th style={{ width: '130px', minWidth: '125px' }}>N° DE FOLIO</th>
-                  <th style={{ width: '180px', minWidth: '175px' }}>CRONOLOGÍA (INCIDENCIA / FOLIO)</th>
-                  <th style={{ minWidth: '200px' }}>FALLA & DIAGNÓSTICO REPORTADO</th>
-                  <th style={{ width: '125px', minWidth: '120px' }}>ESTATUS ACTUAL</th>
-                  <th style={{ textAlign: 'center', width: '175px', minWidth: '170px' }}>ACCIONES</th>
+                  <th style={{ width: '80px', minWidth: '75px' }}>TIPO</th>
+                  <th style={{ width: '50px', minWidth: '45px', textAlign: 'center' }}>ECO</th>
+                  <th style={{ width: '110px', minWidth: '105px' }}>N° INCIDENCIA</th>
+                  <th style={{ width: '110px', minWidth: '105px' }}>N° FOLIO</th>
+                  <th style={{ width: '275px', minWidth: '265px' }}>CRONOLOGÍA (INC / FOLIO)</th>
+                  <th style={{ minWidth: '150px' }}>FALLA & DIAGNÓSTICO</th>
+                  <th style={{ width: '120px', minWidth: '115px', textAlign: 'center' }}>ESTATUS</th>
+                  <th style={{ textAlign: 'center', width: '165px', minWidth: '160px' }}>ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
@@ -1359,7 +1375,7 @@ export default function HistorialMantenimiento() {
                   return (
                     <tr key={d.id} className="tr-folio-item">
                       {/* 1. Tipo (Texto limpio tipo Estado Inicial) */}
-                      <td style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.84rem', whiteSpace: 'nowrap' }}>
+                      <td style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
                         {d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '-'}
                       </td>
 
@@ -1423,41 +1439,27 @@ export default function HistorialMantenimiento() {
                       <td>
                         <div className="fechas-dual-column">
                           <div className="fecha-dual-row" title="Fecha y hora de la incidencia registrada">
-                            <span className="fecha-tag-pill">
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                              </svg>
-                              Incidencia:
-                            </span>
+                            <span className="fecha-tag-pill">Inc:</span>
                             <span className="fecha-dual-text bold">{formatearFechaHora(d.fecha_registro)}</span>
                             {d.tiempo_incidencia && (
                               <span 
                                 className={`tiempo-tag-pill ${d.tiempo_incidencia.es_operacion ? 'resuelto' : (d.tiempo_incidencia.dias >= 3 ? 'critico' : 'activo')}`}
-                                title={`Tiempo transcurrido en incidencia: ${d.tiempo_incidencia.texto}`}
+                                title={`Tiempo en incidencia: ${d.tiempo_incidencia.texto}`}
                               >
-                                {d.tiempo_incidencia.etiqueta}: {d.tiempo_incidencia.texto}
+                                {formatearTiempoCorto(d.tiempo_incidencia)}
                               </span>
                             )}
                           </div>
 
                           <div className="fecha-dual-row" title="Fecha oficial del folio emitido en taller">
-                            <span className="fecha-tag-pill muted">
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                              </svg>
-                              Folio:
-                            </span>
+                            <span className="fecha-tag-pill muted">Folio:</span>
                             <span className="fecha-dual-text">{d.fecha_folio_mantenimiento ? formatearFechaHora(d.fecha_folio_mantenimiento) : 'Pendiente'}</span>
                             {d.folio_mantenimiento && d.tiempo_folio ? (
                               <span 
                                 className={`tiempo-tag-pill ${d.tiempo_folio.es_operacion ? 'resuelto' : (d.tiempo_folio.dias >= 3 ? 'critico' : 'activo')}`}
-                                title={`Tiempo transcurrido con folio emitido: ${d.tiempo_folio.texto}`}
+                                title={`Tiempo con folio emitido: ${d.tiempo_folio.texto}`}
                               >
-                                {d.tiempo_folio.etiqueta}: {d.tiempo_folio.texto}
+                                {formatearTiempoCorto(d.tiempo_folio)}
                               </span>
                             ) : (
                               <span className="tiempo-tag-pill sin-folio">Sin folio</span>
@@ -1483,8 +1485,8 @@ export default function HistorialMantenimiento() {
                         </div>
                       </td>
 
-                      {/* 7. Estatus Actual */}
-                      <td>
+                      {/* 7. Estatus */}
+                      <td style={{ textAlign: 'center' }}>
                         <span className={`estatus-badge estatus-${String(d.estatus || 'mantenimiento').toLowerCase()}`}>
                           <span className="pulse-dot"></span>
                           {String(d.estatus || 'Mantenimiento').toUpperCase()}
@@ -1500,7 +1502,7 @@ export default function HistorialMantenimiento() {
                             onClick={() => abrirModalEdicion(d)}
                             title="Actualizar incidencia, folio o fecha con justificación obligatoria"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
@@ -1513,7 +1515,7 @@ export default function HistorialMantenimiento() {
                             onClick={() => abrirModalHistorial(d)}
                             title="Consultar historial de cambios para esta unidad"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10"></circle>
                               <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
@@ -3367,7 +3369,7 @@ export default function HistorialMantenimiento() {
           background-color: #BC955B;
         }
 
-        /* Tabla de Folios - Estilo Responsivo con Sticky Actions */
+        /* Tabla de Folios - Estilo Responsivo */
         .table-folios-luxury {
           border-radius: 14px;
           border: 1px solid #e2e8f0;
@@ -3382,19 +3384,20 @@ export default function HistorialMantenimiento() {
           border-collapse: separate;
           border-spacing: 0;
           width: 100%;
-          min-width: 1150px;
+          min-width: 1020px;
         }
         .table-folios-luxury th {
           background-color: #691B31 !important;
           color: #ffffff;
-          font-size: 0.78rem;
+          font-size: 0.76rem;
           font-weight: 700;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.04em;
           text-transform: uppercase;
-          padding: 10px 12px;
+          padding: 10px 10px;
           border-bottom: 2px solid #521324;
           text-align: left;
           vertical-align: middle;
+          white-space: nowrap;
         }
         .table-folios-luxury th:first-child {
           border-top-left-radius: 13px;
@@ -3402,11 +3405,6 @@ export default function HistorialMantenimiento() {
         .table-folios-luxury th:last-child {
           border-top-right-radius: 13px;
           text-align: center;
-          position: sticky;
-          right: 0;
-          z-index: 15;
-          background-color: #691B31 !important;
-          box-shadow: -4px 0 10px rgba(0, 0, 0, 0.15);
         }
         .tr-folio-item {
           transition: background-color 0.15s ease-in-out;
@@ -3414,22 +3412,14 @@ export default function HistorialMantenimiento() {
         .tr-folio-item:hover {
           background-color: #fbf9f6 !important;
         }
-        .tr-folio-item:hover td:last-child {
-          background-color: #fbf9f6 !important;
-        }
         .tr-folio-item td {
-          padding: 9px 12px;
+          padding: 8px 10px;
           vertical-align: middle;
           border-bottom: 1px solid #f1f5f9;
           background-color: inherit;
         }
         .tr-folio-item td:last-child {
-          padding: 10px 14px;
-          position: sticky;
-          right: 0;
-          z-index: 6;
-          background-color: #ffffff;
-          box-shadow: -4px 0 8px rgba(0, 0, 0, 0.06);
+          padding: 8px 10px;
           text-align: center;
         }
 
@@ -3763,33 +3753,39 @@ export default function HistorialMantenimiento() {
         .fechas-dual-column {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.22rem;
+          min-width: 260px;
         }
         .fecha-dual-row {
           display: flex;
           align-items: center;
           gap: 0.35rem;
+          white-space: nowrap;
         }
         .fecha-tag-pill {
           display: inline-flex;
           align-items: center;
-          gap: 3px;
-          font-size: 0.68rem;
+          justify-content: center;
+          font-size: 0.67rem;
           font-weight: 800;
           color: #691B31;
           background: #fdfaf3;
           border: 1px solid #DDC9A3;
-          padding: 0.08rem 0.35rem;
+          padding: 0.08rem 0.32rem;
           border-radius: 4px;
+          flex-shrink: 0;
+          min-width: 38px;
         }
         .fecha-tag-pill.muted {
           color: #64748b;
           background: #f1f5f9;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #cbd5e1;
         }
         .fecha-dual-text {
-          font-size: 0.8rem;
+          font-size: 0.77rem;
           color: #334155;
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
         }
         .fecha-dual-text.bold {
           font-weight: 700;
@@ -4109,12 +4105,13 @@ export default function HistorialMantenimiento() {
         .tiempo-tag-pill {
           display: inline-flex;
           align-items: center;
-          font-size: 0.69rem;
+          font-size: 0.67rem;
           font-weight: 800;
-          padding: 1.5px 7px;
-          border-radius: 5px;
+          padding: 1px 6px;
+          border-radius: 4px;
           white-space: nowrap;
-          margin-left: 6px;
+          flex-shrink: 0;
+          margin-left: auto;
         }
         .tiempo-tag-pill.resuelto {
           background: #ecfdf5;

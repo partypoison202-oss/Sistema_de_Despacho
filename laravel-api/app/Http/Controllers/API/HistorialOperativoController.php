@@ -755,11 +755,11 @@ class HistorialOperativoController extends Controller
                     
                     $txtInc = '';
                     if ($diasInc == 0) {
-                        $txtInc = $diffHorasInc <= 1 ? 'Menos de 1 hr' : "{$diffHorasInc} hrs";
+                        $txtInc = $diffHorasInc <= 1 ? '< 1h' : "{$diffHorasInc}h";
                     } elseif ($diasInc == 1) {
-                        $txtInc = '1 día';
+                        $txtInc = '1d';
                     } else {
-                        $txtInc = "{$diasInc} días";
+                        $txtInc = "{$diasInc}d";
                     }
 
                     $f->tiempo_incidencia = [
@@ -784,11 +784,11 @@ class HistorialOperativoController extends Controller
 
                     $txtFol = '';
                     if ($diasFol == 0) {
-                        $txtFol = $diffHorasFol <= 1 ? 'Menos de 1 hr' : "{$diffHorasFol} hrs";
+                        $txtFol = $diffHorasFol <= 1 ? '< 1h' : "{$diffHorasFol}h";
                     } elseif ($diasFol == 1) {
-                        $txtFol = '1 día';
+                        $txtFol = '1d';
                     } else {
-                        $txtFol = "{$diasFol} días";
+                        $txtFol = "{$diasFol}d";
                     }
 
                     $f->tiempo_folio = [
