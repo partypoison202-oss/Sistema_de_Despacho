@@ -666,10 +666,16 @@ class HistorialOperativoController extends Controller
                     'ASIGNACION_FOLIO',
                     'ASIGNACION_INCIDENCIA', 
                     'ACTUALIZACION_MANTENIMIENTO',
-                    'CAMBIO_ESTATUS'
+                    'CAMBIO_ESTATUS',
+                    'INCORPORACION',
+                    'DESINCORPORACION',
+                    'PROGRAMACION_LOGISTICA'
                 ])
                   ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%FOLIO%')
-                  ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%INCIDENCIA%');
+                  ->orWhere('bitacora_cambios_unidades.detalles', 'ILIKE', '%INCIDENCIA%')
+                  ->orWhereRaw('LOWER(bitacora_cambios_unidades.estatus_anterior) = ?', ['mantenimiento'])
+                  ->orWhereRaw('LOWER(bitacora_cambios_unidades.estatus_nuevo) = ?', ['operacion'])
+                  ->orWhereRaw('LOWER(bitacora_cambios_unidades.estatus_nuevo) = ?', ['mantenimiento']);
             })
             ->select(
                 'bitacora_cambios_unidades.id',
@@ -695,7 +701,8 @@ class HistorialOperativoController extends Controller
                 if ($f->numero_incidencia && str_contains($b->detalles ?? '', $f->numero_incidencia)) {
                     return true;
                 }
-                return in_array($b->tipo_accion, ['ASIGNACION_INCIDENCIA', 'CAMBIO_ESTATUS']);
+                return in_array($b->tipo_accion, ['ASIGNACION_INCIDENCIA']) || 
+                       (in_array($b->tipo_accion, ['CAMBIO_ESTATUS', 'DESINCORPORACION']) && strtolower($b->estatus_nuevo ?? '') === 'mantenimiento');
             });
 
             if ($auditIncidencia && !empty($auditIncidencia->hora)) {
@@ -718,6 +725,82 @@ class HistorialOperativoController extends Controller
                 if (empty($fechaFolioStr) || str_ends_with($fechaFolioStr, '00:00:00') || str_ends_with($fechaFolioStr, '00:00')) {
                     $f->fecha_folio_mantenimiento = $auditFolio->hora;
                 }
+            }
+
+            // 3. Determinar estatus y fecha de corte (si regresó a Operación)
+            $esOperacion = strtolower(trim((string)($f->estatus ?? ''))) === 'operacion';
+            $bitSalida = null;
+            if ($esOperacion) {
+                $bitSalida = $fAuditoria->first(function ($b) {
+                    $estNuevo = strtolower(trim((string)($b->estatus_nuevo ?? '')));
+                    $estAnt = strtolower(trim((string)($b->estatus_anterior ?? '')));
+                    $tipo = strtoupper(trim((string)($b->tipo_accion ?? '')));
+                    return $estNuevo === 'operacion' && ($estAnt === 'mantenimiento' || in_array($tipo, ['INCORPORACION', 'PROGRAMACION_LOGISTICA']));
+                });
+            }
+
+            $fechaFin = $bitSalida ? Carbon::parse($bitSalida->hora) : Carbon::now();
+            $etiqueta = $esOperacion ? 'Estuvo' : 'Lleva';
+            $f->fecha_salida_operacion = $bitSalida ? $bitSalida->hora : null;
+            $f->es_operacion = $esOperacion;
+            $f->estatus_etiqueta = $etiqueta;
+
+            // 4. Cálculo de Días en Incidencia (Independiente)
+            $f->tiempo_incidencia = null;
+            if (!empty($f->fecha_registro)) {
+                try {
+                    $dtInc = Carbon::parse($f->fecha_registro);
+                    $diffHorasInc = max(0, $dtInc->diffInHours($fechaFin, false));
+                    $diasInc = (int) round($diffHorasInc / 24);
+                    
+                    $txtInc = '';
+                    if ($diasInc == 0) {
+                        $txtInc = $diffHorasInc <= 1 ? 'Menos de 1 hr' : "{$diffHorasInc} hrs";
+                    } elseif ($diasInc == 1) {
+                        $txtInc = '1 día';
+                    } else {
+                        $txtInc = "{$diasInc} días";
+                    }
+
+                    $f->tiempo_incidencia = [
+                        'dias' => $diasInc,
+                        'horas' => $diffHorasInc,
+                        'texto' => $txtInc,
+                        'etiqueta' => $etiqueta,
+                        'es_operacion' => $esOperacion,
+                        'fecha_inicio' => $f->fecha_registro,
+                        'fecha_fin' => $fechaFin->toDateTimeString()
+                    ];
+                } catch (\Exception $e) {}
+            }
+
+            // 5. Cálculo de Días con Folio (Independiente)
+            $f->tiempo_folio = null;
+            if (!empty($f->folio_mantenimiento) && !empty($f->fecha_folio_mantenimiento)) {
+                try {
+                    $dtFol = Carbon::parse($f->fecha_folio_mantenimiento);
+                    $diffHorasFol = max(0, $dtFol->diffInHours($fechaFin, false));
+                    $diasFol = (int) round($diffHorasFol / 24);
+
+                    $txtFol = '';
+                    if ($diasFol == 0) {
+                        $txtFol = $diffHorasFol <= 1 ? 'Menos de 1 hr' : "{$diffHorasFol} hrs";
+                    } elseif ($diasFol == 1) {
+                        $txtFol = '1 día';
+                    } else {
+                        $txtFol = "{$diasFol} días";
+                    }
+
+                    $f->tiempo_folio = [
+                        'dias' => $diasFol,
+                        'horas' => $diffHorasFol,
+                        'texto' => $txtFol,
+                        'etiqueta' => $etiqueta,
+                        'es_operacion' => $esOperacion,
+                        'fecha_inicio' => $f->fecha_folio_mantenimiento,
+                        'fecha_fin' => $fechaFin->toDateTimeString()
+                    ];
+                } catch (\Exception $e) {}
             }
 
             return $f;

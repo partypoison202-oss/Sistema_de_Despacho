@@ -1419,7 +1419,7 @@ export default function HistorialMantenimiento() {
                         )}
                       </td>
 
-                      {/* 5. Cronología (Incidencia / Folio) */}
+                      {/* 5. Cronología (Incidencia / Folio con tiempos independientes) */}
                       <td>
                         <div className="fechas-dual-column">
                           <div className="fecha-dual-row" title="Fecha y hora de la incidencia registrada">
@@ -1431,7 +1431,16 @@ export default function HistorialMantenimiento() {
                               Incidencia:
                             </span>
                             <span className="fecha-dual-text bold">{formatearFechaHora(d.fecha_registro)}</span>
+                            {d.tiempo_incidencia && (
+                              <span 
+                                className={`tiempo-tag-pill ${d.tiempo_incidencia.es_operacion ? 'resuelto' : (d.tiempo_incidencia.dias >= 3 ? 'critico' : 'activo')}`}
+                                title={`Tiempo transcurrido en incidencia: ${d.tiempo_incidencia.texto}`}
+                              >
+                                {d.tiempo_incidencia.etiqueta}: {d.tiempo_incidencia.texto}
+                              </span>
+                            )}
                           </div>
+
                           <div className="fecha-dual-row" title="Fecha oficial del folio emitido en taller">
                             <span className="fecha-tag-pill muted">
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1443,25 +1452,17 @@ export default function HistorialMantenimiento() {
                               Folio:
                             </span>
                             <span className="fecha-dual-text">{d.fecha_folio_mantenimiento ? formatearFechaHora(d.fecha_folio_mantenimiento) : 'Pendiente'}</span>
-                          </div>
-
-                          {/* Días transcurridos en incidencia o folio */}
-                          {(() => {
-                            const est = calcularDiasEstancia(d);
-                            if (!est) return null;
-                            return (
-                              <div 
-                                className={`tiempo-estancia-badge ${est.esOperacion ? 'resuelto' : (est.dias >= 3 ? 'critico' : 'activo')}`}
-                                title={`${est.etiqueta} ${est.texto} en taller / folio`}
+                            {d.folio_mantenimiento && d.tiempo_folio ? (
+                              <span 
+                                className={`tiempo-tag-pill ${d.tiempo_folio.es_operacion ? 'resuelto' : (d.tiempo_folio.dias >= 3 ? 'critico' : 'activo')}`}
+                                title={`Tiempo transcurrido con folio emitido: ${d.tiempo_folio.texto}`}
                               >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                                  <circle cx="12" cy="12" r="10" />
-                                  <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                                <span>{est.etiqueta}: <strong>{est.texto}</strong></span>
-                              </div>
-                            );
-                          })()}
+                                {d.tiempo_folio.etiqueta}: {d.tiempo_folio.texto}
+                              </span>
+                            ) : (
+                              <span className="tiempo-tag-pill sin-folio">Sin folio</span>
+                            )}
+                          </div>
                         </div>
                       </td>
 
@@ -1743,19 +1744,47 @@ export default function HistorialMantenimiento() {
 
                 return (
                   <div className="modal-body-luxury">
-                    {/* Banner de días transcurridos en incidencia / folio */}
-                    {estanciaModal && (
-                      <div className={`modal-estancia-banner ${estanciaModal.esOperacion ? 'resuelto' : (estanciaModal.dias >= 3 ? 'critico' : 'activo')}`}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10" />
-                          <polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        <span>
-                          <strong>{estanciaModal.etiqueta} {estanciaModal.texto}</strong> en {folioEditando.folio_mantenimiento ? 'Folio de Mantenimiento' : 'Incidencia de Taller'}
-                          {estanciaModal.esOperacion ? ' (Unidad reincorporada a Operación)' : ' (Unidad activa en Taller)'}
+                    {/* Tiempos Independientes de Incidencia y Folio */}
+                    <div className="modal-estancia-dual-container">
+                      {folioEditando.tiempo_incidencia && (
+                        <div className={`modal-estancia-card ${folioEditando.tiempo_incidencia.es_operacion ? 'resuelto' : (folioEditando.tiempo_incidencia.dias >= 3 ? 'critico' : 'activo')}`}>
+                          <div className="estancia-card-header">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            <span>Tiempo en Incidencia</span>
+                          </div>
+                          <div className="estancia-card-main">
+                            <strong>{folioEditando.tiempo_incidencia.etiqueta}: {folioEditando.tiempo_incidencia.texto}</strong>
+                          </div>
+                          <span className="estancia-card-sub">
+                            {folioEditando.tiempo_incidencia.es_operacion ? 'Registrada el ' : 'Desde el '}
+                            {formatearFechaSimple(folioEditando.fecha_registro)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className={`modal-estancia-card ${folioEditando.folio_mantenimiento && folioEditando.tiempo_folio ? (folioEditando.tiempo_folio.es_operacion ? 'resuelto' : (folioEditando.tiempo_folio.dias >= 3 ? 'critico' : 'activo')) : 'sin-folio'}`}>
+                        <div className="estancia-card-header">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                          </svg>
+                          <span>Tiempo con Folio Físico</span>
+                        </div>
+                        <div className="estancia-card-main">
+                          {folioEditando.folio_mantenimiento && folioEditando.tiempo_folio ? (
+                            <strong>{folioEditando.tiempo_folio.etiqueta}: {folioEditando.tiempo_folio.texto}</strong>
+                          ) : (
+                            <strong style={{ color: '#64748b' }}>Pendiente de Asignar</strong>
+                          )}
+                        </div>
+                        <span className="estancia-card-sub">
+                          {folioEditando.folio_mantenimiento && folioEditando.fecha_folio_mantenimiento 
+                            ? `${folioEditando.tiempo_folio?.es_operacion ? 'Emitido el ' : 'Desde el '}${formatearFechaSimple(folioEditando.fecha_folio_mantenimiento)}`
+                            : 'Sin folio emitido'}
                         </span>
                       </div>
-                    )}
+                    </div>
 
                     {/* 1. N° Incidencia PRIMERO */}
                     <div className="form-group-luxury">
@@ -4076,35 +4105,91 @@ export default function HistorialMantenimiento() {
           margin-top: 0.5rem;
         }
 
-        /* Badge de Días en Incidencia / Folio en Tabla */
-        .tiempo-estancia-badge {
+        /* Badge de Tiempo Independiente para Incidencia y Folio en Tabla */
+        .tiempo-tag-pill {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
-          font-size: 0.72rem;
-          font-weight: 700;
-          padding: 2.5px 8px;
-          border-radius: 6px;
-          margin-top: 5px;
-          width: fit-content;
+          font-size: 0.69rem;
+          font-weight: 800;
+          padding: 1.5px 7px;
+          border-radius: 5px;
+          white-space: nowrap;
+          margin-left: 6px;
         }
-        .tiempo-estancia-badge svg {
-          flex-shrink: 0;
+        .tiempo-tag-pill.resuelto {
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
         }
-        .tiempo-estancia-badge.resuelto {
-          background: #f0fdf4;
-          color: #166534;
-          border: 1px solid #bbf7d0;
-        }
-        .tiempo-estancia-badge.activo {
+        .tiempo-tag-pill.activo {
           background: #fffbeb;
           color: #92400e;
           border: 1px solid #fde68a;
         }
-        .tiempo-estancia-badge.critico {
+        .tiempo-tag-pill.critico {
           background: #fef2f2;
           color: #991b1b;
           border: 1px solid #fecaca;
+        }
+        .tiempo-tag-pill.sin-folio {
+          background: #f1f5f9;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+          font-style: italic;
+        }
+
+        /* Tarjetas Duales de Estancia en Modal (Incidencia y Folio Separados) */
+        .modal-estancia-dual-container {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 1.15rem;
+        }
+        @media (max-width: 550px) {
+          .modal-estancia-dual-container {
+            grid-template-columns: 1fr;
+          }
+        }
+        .modal-estancia-card {
+          padding: 8px 12px;
+          border-radius: 9px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+        .modal-estancia-card.resuelto {
+          background: #f0fdf4;
+          border: 1.5px solid #bbf7d0;
+        }
+        .modal-estancia-card.activo {
+          background: #fffbeb;
+          border: 1.5px solid #fde68a;
+        }
+        .modal-estancia-card.critico {
+          background: #fef2f2;
+          border: 1.5px solid #fecaca;
+        }
+        .modal-estancia-card.sin-folio {
+          background: #f8fafc;
+          border: 1.5px solid #e2e8f0;
+        }
+        .estancia-card-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          color: #475569;
+        }
+        .estancia-card-main {
+          font-size: 0.95rem;
+          color: #0f172a;
+          line-height: 1.25;
+        }
+        .estancia-card-sub {
+          font-size: 0.72rem;
+          color: #64748b;
         }
 
         /* Banner de Estancia en Modal */
