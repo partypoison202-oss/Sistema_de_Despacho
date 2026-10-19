@@ -3627,7 +3627,7 @@ export default function HistorialMantenimiento() {
           to { transform: rotate(360deg); }
         }
 
-        /* Comentario / Guía Anti Capa 8 de Búsqueda */
+        /* Comentario / Guía de Criterio de Búsqueda justo debajo del buscador */
         .search-anti-capa8-hint {
           display: flex;
           align-items: center;
@@ -3637,7 +3637,7 @@ export default function HistorialMantenimiento() {
           border-left: 3.5px solid #691B31;
           padding: 0.55rem 0.95rem;
           border-radius: 8px;
-          margin-top: -0.65rem;
+          margin-top: -0.85rem;
           margin-bottom: 1.25rem;
           font-size: 0.82rem;
           color: #475569;
