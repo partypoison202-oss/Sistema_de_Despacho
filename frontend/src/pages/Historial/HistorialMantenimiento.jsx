@@ -19,7 +19,7 @@ export default function HistorialMantenimiento() {
   const [filtroBusqueda, setFiltroBusqueda] = useState('');
   const [activeTab, setActiveTab] = useState(location?.state?.tab || 'folios'); // 'folios', 'inicio', 'cambios', 'fin', 'checklists'
   const [verSoloFechaFolios, setVerSoloFechaFolios] = useState(true);
-  const [filtroTipoFolio, setFiltroTipoFolio] = useState('todos'); // 'todos', 'con_incidencia', 'sin_incidencia', 'con_folio'
+  const [filtroTipoFolio, setFiltroTipoFolio] = useState('todos'); // 'todos', 'con_incidencia', 'con_folio', 'sin_folio'
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -200,10 +200,17 @@ export default function HistorialMantenimiento() {
   const kpiTotalDia = foliosValidosDia.length;
   const kpiTotalGlobal = foliosValidosGlobal.length;
 
+  const tieneFolioValido = (folio) => {
+    if (!folio) return false;
+    const str = String(folio).trim().toLowerCase();
+    return str !== '' && str !== 's/f' && str !== 'sin folio' && str !== 'sin_folio' && str !== 'pendiente' && str !== 'n/a' && str !== 'null';
+  };
+
   const kpiTotalActivo = foliosBase.length;
   const kpiConIncidenciaActivo = foliosBase.filter(f => f.numero_incidencia && String(f.numero_incidencia).trim() !== '').length;
-  const kpiSinIncidenciaActivo = foliosBase.filter(f => !f.numero_incidencia || String(f.numero_incidencia).trim() === '').length;
-  const kpiConFolioActivo = foliosBase.filter(f => f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '').length;
+  const kpiConFolioActivo = foliosBase.filter(f => tieneFolioValido(f.folio_mantenimiento)).length;
+  const kpiSinFolioActivo = foliosBase.filter(f => !tieneFolioValido(f.folio_mantenimiento)).length;
+  const kpiPendientesActivo = kpiSinFolioActivo; // compatibilidad
   const kpiModificaciones = foliosBase.reduce((acc, f) => acc + (f.auditoria ? f.auditoria.length : 0), 0);
 
   const getActiveData = () => {
@@ -222,10 +229,10 @@ export default function HistorialMantenimiento() {
       let lista = foliosBase;
       if (filtroTipoFolio === 'con_incidencia') {
         lista = lista.filter(f => f.numero_incidencia && String(f.numero_incidencia).trim() !== '');
-      } else if (filtroTipoFolio === 'sin_incidencia' || filtroTipoFolio === 'pendientes') {
-        lista = lista.filter(f => !f.numero_incidencia || String(f.numero_incidencia).trim() === '');
       } else if (filtroTipoFolio === 'con_folio') {
-        lista = lista.filter(f => f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '');
+        lista = lista.filter(f => tieneFolioValido(f.folio_mantenimiento));
+      } else if (filtroTipoFolio === 'sin_folio' || filtroTipoFolio === 'pendientes') {
+        lista = lista.filter(f => !tieneFolioValido(f.folio_mantenimiento));
       }
 
       // ORDENAMIENTO REQUERIDO:
@@ -905,12 +912,12 @@ export default function HistorialMantenimiento() {
                 </button>
                 <button
                   type="button"
-                  className={`chip-btn ${filtroTipoFolio === 'sin_incidencia' || filtroTipoFolio === 'pendientes' ? 'active' : ''}`}
-                  onClick={() => setFiltroTipoFolio('sin_incidencia')}
-                  title="Unidades registradas en el historial sin número de incidencia"
+                  className={`chip-btn ${filtroTipoFolio === 'sin_folio' || filtroTipoFolio === 'pendientes' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipoFolio('sin_folio')}
+                  title="Unidades registradas sin folio de mantenimiento asignado"
                 >
-                  <span className="chip-dot" style={{ backgroundColor: '#16a34a' }}></span>
-                  Sin Incidencia <span className="chip-count">{kpiSinIncidenciaActivo}</span>
+                  <span className="chip-dot" style={{ backgroundColor: '#e11d48' }}></span>
+                  Sin Folio <span className="chip-count">{kpiSinFolioActivo}</span>
                 </button>
               </div>
 
