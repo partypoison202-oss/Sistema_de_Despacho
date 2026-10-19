@@ -100,11 +100,9 @@ export default function HistorialMantenimiento() {
 
   // 3. Trazabilidad histórica: Consulta de folios pasados con visualización cronológica
   const { data: foliosHistoricos = [], isLoading: isLoadingFolios, refetch: refetchFolios } = useQuery({
-    queryKey: ['historial-folios', verSoloFechaFolios ? selectedFecha : 'todos'],
+    queryKey: ['historial-folios'],
     queryFn: async () => {
-      const url = verSoloFechaFolios && selectedFecha
-        ? `${API_BASE}/api/historial-operativo/mantenimiento-folios?fecha=${selectedFecha}`
-        : `${API_BASE}/api/historial-operativo/mantenimiento-folios`;
+      const url = `${API_BASE}/api/historial-operativo/mantenimiento-folios`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${(localStorage.getItem('token') || sessionStorage.getItem('token'))}`,
@@ -167,6 +165,47 @@ export default function HistorialMantenimiento() {
     setVerSoloFechaFolios(true);
   };
 
+  const extraerFechaYMD = (val) => {
+    if (!val) return '';
+    const str = String(val).trim();
+    if (str.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(str)) {
+      return str.slice(0, 10);
+    }
+    try {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().slice(0, 10);
+      }
+    } catch (e) {}
+    return '';
+  };
+
+  // Métricas KPI de Folios (calculadas estrictamente sobre unidades con folio o incidencia)
+  const foliosValidosGlobal = (foliosHistoricos || []).filter(f => 
+    (f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '') || 
+    (f.numero_incidencia && String(f.numero_incidencia).trim() !== '')
+  );
+
+  // Unidades correspondientes a la fecha seleccionada
+  const foliosValidosDia = foliosValidosGlobal.filter(f => {
+    if (!selectedFecha) return true;
+    const fFolio = extraerFechaYMD(f.fecha_folio_mantenimiento);
+    const fInc = extraerFechaYMD(f.fecha_registro);
+    return fFolio === selectedFecha || fInc === selectedFecha;
+  });
+
+  // Lista base según el modo de alcance activo (Por Día vs Todos los Días / Historial Completo)
+  const foliosBase = verSoloFechaFolios ? foliosValidosDia : foliosValidosGlobal;
+
+  const kpiTotalDia = foliosValidosDia.length;
+  const kpiTotalGlobal = foliosValidosGlobal.length;
+
+  const kpiTotalActivo = foliosBase.length;
+  const kpiConIncidenciaActivo = foliosBase.filter(f => f.numero_incidencia && String(f.numero_incidencia).trim() !== '').length;
+  const kpiConFolioActivo = foliosBase.filter(f => f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '').length;
+  const kpiPendientesActivo = foliosBase.filter(f => !f.folio_mantenimiento || String(f.folio_mantenimiento).trim() === '').length;
+  const kpiModificaciones = foliosBase.reduce((acc, f) => acc + (f.auditoria ? f.auditoria.length : 0), 0);
+
   const getActiveData = () => {
     if (activeTab === 'inicio') return datos.inicio || [];
     if (activeTab === 'cambios') {
@@ -180,11 +219,7 @@ export default function HistorialMantenimiento() {
     if (activeTab === 'fin') return datos.fin || [];
     if (activeTab === 'checklists') return datos.checklists || [];
     if (activeTab === 'folios') {
-      // Requerir estrictamente que la unidad tenga Folio físico asignado O Número de Incidencia
-      let lista = (foliosHistoricos || []).filter(f => 
-        (f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '') || 
-        (f.numero_incidencia && String(f.numero_incidencia).trim() !== '')
-      );
+      let lista = foliosBase;
       if (filtroTipoFolio === 'con_incidencia') {
         lista = lista.filter(f => f.numero_incidencia && String(f.numero_incidencia).trim() !== '');
       } else if (filtroTipoFolio === 'con_folio') {
@@ -194,18 +229,16 @@ export default function HistorialMantenimiento() {
       }
 
       // ORDENAMIENTO REQUERIDO:
-      // 1. Si es por día (verSoloFechaFolios === true): "como son por dia, se muestre de la hora mas vieja a la mas reciente" -> ASCENDENTE
-      // 2. Si es Historial Completo (verSoloFechaFolios === false): "del mas viejo al mas nuevo, los viejos abajo y los nuevos folios que vallan saliendo se queden arriba" -> DESCENDENTE
+      // 1. Si es por día (verSoloFechaFolios === true): "de la hora más vieja a la más reciente" -> ASCENDENTE
+      // 2. Si es Historial Completo (verSoloFechaFolios === false): "del más nuevo al más viejo, los viejos abajo y los nuevos folios arriba" -> DESCENDENTE
       return [...lista].sort((a, b) => {
         const timeA = new Date(a.fecha_folio_mantenimiento || a.fecha_registro || 0).getTime();
         const timeB = new Date(b.fecha_folio_mantenimiento || b.fecha_registro || 0).getTime();
 
         if (verSoloFechaFolios) {
-          // De la hora más vieja a la más reciente (ascendente diario)
           if (timeA !== timeB) return timeA - timeB;
           return String(a.economico || '').localeCompare(String(b.economico || ''), undefined, { numeric: true });
         } else {
-          // Del más nuevo al más viejo (los viejos abajo y los nuevos folios arriba)
           if (timeB !== timeA) return timeB - timeA;
           return String(a.economico || '').localeCompare(String(b.economico || ''), undefined, { numeric: true });
         }
@@ -215,17 +248,6 @@ export default function HistorialMantenimiento() {
   };
 
   const activeData = getActiveData();
-
-  // Métricas KPI de Folios (calculadas estrictamente sobre unidades con folio o incidencia)
-  const foliosValidos = (foliosHistoricos || []).filter(f => 
-    (f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '') || 
-    (f.numero_incidencia && String(f.numero_incidencia).trim() !== '')
-  );
-  const kpiTotal = foliosValidos.length;
-  const kpiConIncidencia = foliosValidos.filter(f => f.numero_incidencia && String(f.numero_incidencia).trim() !== '').length;
-  const kpiConFolio = foliosValidos.filter(f => f.folio_mantenimiento && String(f.folio_mantenimiento).trim() !== '').length;
-  const kpiPendientes = foliosValidos.filter(f => !f.folio_mantenimiento || String(f.folio_mantenimiento).trim() === '').length;
-  const kpiModificaciones = foliosValidos.reduce((acc, f) => acc + (f.auditoria ? f.auditoria.length : 0), 0);
 
   // Helper para mostrar falla o diagnóstico sin repetir innecesariamente la palabra "MANTENIMIENTO"
   const getFallaDetalle = (d) => {
@@ -740,19 +762,6 @@ export default function HistorialMantenimiento() {
             </div>
 
             <div className="historial-action-buttons-group">
-              {/* Botón Ir a Mantenimiento Parque Vehicular */}
-              <button 
-                type="button"
-                className="btn-ir-parque-vehicular" 
-                onClick={() => navigate('/mantenimiento')}
-                title="Ir a Mantenimiento Parque Vehicular"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
-                </svg>
-                <span>Parque Vehicular</span>
-              </button>
-
               {/* Botón Actualizar Instantáneo con Animación Táctil */}
               <button 
                 type="button"
@@ -848,23 +857,42 @@ export default function HistorialMantenimiento() {
           <div className="folios-premium-container" style={{ marginBottom: '1rem' }}>
             <div className="folios-controls-panel">
               <div className="folios-filter-chips">
-                {/* Botón Historial Completo */}
+                {/* Selector de Alcance Temporal: Por Día vs Historial Completo */}
                 <div className="hero-segmented-selector" style={{ margin: 0, padding: '3px 4px' }}>
+                  <button
+                    type="button"
+                    className={`seg-btn ${verSoloFechaFolios ? 'active' : ''}`}
+                    onClick={() => {
+                      setVerSoloFechaFolios(true);
+                      setFiltroTipoFolio('todos');
+                    }}
+                    title={`Ver únicamente registros de la fecha seleccionada (${selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'Día'})`}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Por Día
+                    <span className="seg-count">{kpiTotalDia}</span>
+                  </button>
+
                   <button
                     type="button"
                     className={`seg-btn ${!verSoloFechaFolios ? 'active' : ''}`}
                     onClick={() => {
-                      setVerSoloFechaFolios(prev => !prev);
+                      setVerSoloFechaFolios(false);
                       setFiltroTipoFolio('todos');
                     }}
-                    title={!verSoloFechaFolios ? "Haga clic para ver solo la fecha seleccionada" : "Haga clic para ver todo el historial acumulado"}
+                    title="Ver historial acumulado de todos los días y meses"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"></circle>
                       <line x1="2" y1="12" x2="22" y2="12"></line>
                     </svg>
                     Historial Completo
-                    <span className="seg-count">{!verSoloFechaFolios ? foliosHistoricos.length : 'Todo'}</span>
+                    <span className="seg-count">{kpiTotalGlobal}</span>
                   </button>
                 </div>
 
@@ -881,7 +909,7 @@ export default function HistorialMantenimiento() {
                   className={`chip-btn ${filtroTipoFolio === 'todos' ? 'active' : ''}`}
                   onClick={() => setFiltroTipoFolio('todos')}
                 >
-                  Todos <span className="chip-count">{kpiTotal}</span>
+                  Todos <span className="chip-count">{kpiTotalActivo}</span>
                 </button>
                 <button
                   type="button"
@@ -889,7 +917,7 @@ export default function HistorialMantenimiento() {
                   onClick={() => setFiltroTipoFolio('con_incidencia')}
                 >
                   <span className="chip-dot" style={{ backgroundColor: '#A02142' }}></span>
-                  Con Incidencia <span className="chip-count">{kpiConIncidencia}</span>
+                  Con Incidencia <span className="chip-count">{kpiConIncidenciaActivo}</span>
                 </button>
                 <button
                   type="button"
@@ -897,10 +925,51 @@ export default function HistorialMantenimiento() {
                   onClick={() => setFiltroTipoFolio('con_folio')}
                 >
                   <span className="chip-dot dot-amber"></span>
-                  Con Folio <span className="chip-count">{kpiConFolio}</span>
+                  Con Folio <span className="chip-count">{kpiConFolioActivo}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`chip-btn ${filtroTipoFolio === 'pendientes' ? 'active' : ''}`}
+                  onClick={() => setFiltroTipoFolio('pendientes')}
+                  title="Unidades con reporte de falla o incidencia pero sin folio asignado"
+                >
+                  <span className="chip-dot" style={{ backgroundColor: '#e11d48' }}></span>
+                  Pendientes <span className="chip-count">{kpiPendientesActivo}</span>
+                </button>
+              </div>
+
+              {/* Botón Parque Vehicular al final de los filtros */}
+              <div className="folios-actions-end">
+                <button 
+                  type="button"
+                  className="btn-ir-parque-vehicular" 
+                  onClick={() => navigate('/mantenimiento')}
+                  title="Ir a Mantenimiento Parque Vehicular"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
+                  </svg>
+                  <span>Parque Vehicular</span>
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Botón Parque Vehicular para las otras pestañas */}
+        {activeTab !== 'folios' && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+            <button 
+              type="button"
+              className="btn-ir-parque-vehicular" 
+              onClick={() => navigate('/mantenimiento')}
+              title="Ir a Mantenimiento Parque Vehicular"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" />
+              </svg>
+              <span>Parque Vehicular</span>
+            </button>
           </div>
         )}
 
@@ -1881,13 +1950,23 @@ export default function HistorialMantenimiento() {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
           font-weight: 800;
         }
-        .seg-count {
-          background: #691B31;
-          color: #ffffff;
+        .seg-btn .seg-count {
+          background: #e2e8f0;
+          color: #475569;
           font-size: 0.68rem;
           font-weight: 800;
           padding: 1px 6px;
           border-radius: 10px;
+          transition: all 0.15s ease;
+        }
+        .seg-btn.active .seg-count {
+          background: #691B31;
+          color: #ffffff;
+        }
+        .folios-actions-end {
+          display: flex;
+          align-items: center;
+          margin-left: auto;
         }
 
         /* Botón Bitácora Global Luxury */

@@ -630,15 +630,7 @@ class HistorialOperativoController extends Controller
                 });
             });
 
-        if ($fecha) {
-            $query->where(function ($q) use ($fecha) {
-                $q->whereDate('informacion_operativa.fecha_folio_mantenimiento', $fecha)
-                  ->orWhereDate('informacion_operativa.fecha_registro', $fecha);
-            });
-            $query->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) ASC');
-        } else {
-            $query->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) DESC');
-        }
+        $query->orderByRaw('COALESCE(informacion_operativa.fecha_folio_mantenimiento, informacion_operativa.fecha_registro) DESC');
 
         $folios = $query->select(
             'informacion_operativa.id',
@@ -730,6 +722,14 @@ class HistorialOperativoController extends Controller
 
             return $f;
         });
+
+        if ($fecha) {
+            $folios = $folios->filter(function ($f) use ($fecha) {
+                $fFolio = !empty($f->fecha_folio_mantenimiento) ? substr((string)$f->fecha_folio_mantenimiento, 0, 10) : null;
+                $fReg = !empty($f->fecha_registro) ? substr((string)$f->fecha_registro, 0, 10) : null;
+                return $fFolio === $fecha || $fReg === $fecha;
+            })->values();
+        }
 
         return response()->json($folios, 200);
     }
