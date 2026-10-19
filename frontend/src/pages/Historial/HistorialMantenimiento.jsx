@@ -1079,40 +1079,6 @@ export default function HistorialMantenimiento() {
           </div>
         )}
 
-        {/* Guía Anti-Confusión: Banner explicativo cuando la fecha seleccionada tiene 0 folios pero hay folios en otras fechas */}
-        {activeTab === 'folios' && verSoloFechaFolios && kpiTotalDia === 0 && kpiTotalGlobal > 0 && !cargando && (
-          <div className="guidance-banner-alert">
-            <div className="guidance-banner-content">
-              <span className="guidance-banner-icon">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-              </span>
-              <div className="guidance-banner-text">
-                <span className="guidance-title">Sin registros el {selectedFecha ? formatearFechaDiaMesAnio(selectedFecha) : 'día seleccionado'}.</span>
-                <span className="guidance-desc">No hay capturas en esta fecha, pero existen <strong>{kpiTotalGlobal} folios</strong> acumulados en el historial.</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="guidance-banner-action-btn"
-              onClick={() => {
-                setVerSoloFechaFolios(false);
-                setFiltroTipoFolio('todos');
-              }}
-              title="Cambiar a la vista acumulada de Historial Completo"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-              </svg>
-              <span>Ver Historial Completo ({kpiTotalGlobal})</span>
-            </button>
-          </div>
-        )}
-
         {/* Buscador Contextual Unificado */}
         <HistorialSearchBar
           value={filtroBusqueda}
