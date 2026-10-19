@@ -1963,47 +1963,69 @@ export default function HistorialMantenimiento() {
         .hero-segmented-selector {
           display: inline-flex;
           background: #f1f5f9;
-          padding: 4px;
-          border-radius: 11px;
-          gap: 4px;
-          border: 1px solid #e2e8f0;
+          padding: 3px;
+          border-radius: 9px;
+          gap: 3px;
+          border: 1.5px solid #cbd5e1;
         }
         .seg-btn {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 6px 13px;
-          border-radius: 8px;
+          padding: 5px 12px;
+          border-radius: 6px;
           border: none;
           background: transparent;
           font-size: 0.8rem;
-          font-weight: 700;
-          color: #64748b;
+          font-weight: 600;
+          color: #475569;
           cursor: pointer;
           transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .seg-btn:hover {
+        .seg-btn svg {
+          color: #64748b;
+          transition: color 0.15s ease;
+        }
+        .seg-btn:hover:not(.active) {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+        .seg-btn:hover:not(.active) svg {
           color: #0f172a;
         }
         .seg-btn.active {
-          background: #ffffff;
-          color: #0f172a;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-          font-weight: 800;
+          background: #691B31;
+          color: #ffffff;
+          box-shadow: 0 2px 5px rgba(105, 27, 49, 0.28);
+          font-weight: 700;
+        }
+        .seg-btn.active svg {
+          color: #ffffff;
         }
         .seg-btn .seg-count {
           background: #e2e8f0;
-          color: #475569;
-          font-size: 0.68rem;
+          color: #334155;
+          font-size: 0.72rem;
           font-weight: 800;
-          padding: 1px 6px;
+          padding: 1px 7px;
           border-radius: 10px;
           transition: all 0.15s ease;
         }
         .seg-btn.active .seg-count {
-          background: #691B31;
-          color: #ffffff;
+          background: #ffffff;
+          color: #691B31;
+          font-weight: 800;
         }
+        .seg-btn .seg-count.count-zero {
+          background: #e2e8f0;
+          color: #64748b;
+        }
+        .seg-btn.active .seg-count.count-zero {
+          background: rgba(255, 255, 255, 0.25);
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
         .header-scope-selector-wrapper {
           display: flex;
           align-items: center;
@@ -2012,7 +2034,7 @@ export default function HistorialMantenimiento() {
           height: 38px;
           display: inline-flex;
           align-items: center;
-          background: #f8fafc;
+          background: #f1f5f9;
           padding: 3px;
           border-radius: 8px;
           gap: 3px;
@@ -2024,29 +2046,39 @@ export default function HistorialMantenimiento() {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 0 10px;
+          padding: 0 11px;
           border-radius: 6px;
           border: none;
           background: transparent;
           font-size: 0.8rem;
-          font-weight: 700;
-          color: #64748b;
+          font-weight: 600;
+          color: #475569;
           cursor: pointer;
           white-space: nowrap;
           transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .header-scope-selector .seg-btn:hover {
+        .header-scope-selector .seg-btn svg {
+          color: #64748b;
+        }
+        .header-scope-selector .seg-btn:hover:not(.active) {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+        .header-scope-selector .seg-btn:hover:not(.active) svg {
           color: #0f172a;
         }
         .header-scope-selector .seg-btn.active {
-          background: #ffffff;
-          color: #691B31;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          font-weight: 800;
+          background: #691B31;
+          color: #ffffff;
+          box-shadow: 0 2px 5px rgba(105, 27, 49, 0.28);
+          font-weight: 700;
+        }
+        .header-scope-selector .seg-btn.active svg {
+          color: #ffffff;
         }
         .header-scope-selector .seg-btn .seg-count {
           background: #e2e8f0;
-          color: #475569;
+          color: #334155;
           font-size: 0.72rem;
           font-weight: 800;
           padding: 1px 7px;
@@ -2054,18 +2086,18 @@ export default function HistorialMantenimiento() {
           transition: all 0.15s ease;
         }
         .header-scope-selector .seg-btn.active .seg-count {
-          background: #691B31;
-          color: #ffffff;
+          background: #ffffff;
+          color: #691B31;
+          font-weight: 800;
         }
         .header-scope-selector .seg-btn .seg-count.count-zero {
-          opacity: 0.8;
-          background: #f1f5f9;
-          color: #94a3b8;
-          border: 1px solid #e2e8f0;
+          background: #e2e8f0;
+          color: #64748b;
         }
         .header-scope-selector .seg-btn.active .seg-count.count-zero {
-          background: #f1f5f9;
-          color: #64748b;
+          background: rgba(255, 255, 255, 0.25);
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.4);
         }
         .date-control-subtle {
           opacity: 0.88;
