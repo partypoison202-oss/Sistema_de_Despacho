@@ -212,8 +212,14 @@ export default function HistorialMantenimiento() {
     (f.numero_incidencia && String(f.numero_incidencia).trim() !== '')
   );
 
-  // Unidades correspondientes a la fecha seleccionada
+  // Unidades correspondientes a la fecha seleccionada que SIGUEN en taller/percance.
+  // Las que ya regresaron a Operación salen de esta vista y quedan solo en su Historial.
+  const yaEnOperacion = (f) => {
+    const est = String(f.estatus || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return est === 'operacion';
+  };
   const foliosValidosDia = foliosValidosGlobal.filter(f => {
+    if (yaEnOperacion(f)) return false;
     if (!selectedFecha) return true;
     const fFolio = extraerFechaYMD(f.fecha_folio_mantenimiento);
     const fInc = extraerFechaYMD(f.fecha_registro);
