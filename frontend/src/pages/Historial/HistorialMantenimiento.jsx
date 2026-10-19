@@ -698,6 +698,40 @@ export default function HistorialMantenimiento() {
       <Header title="Historial Mantenimiento" hideBackButton={false} />
 
       <main className="historial-content">
+        {/* Pestañas de Selección Superior - Estilo Pestañas Institucionales al Tope */}
+        <div className="historial-top-tabs-wrapper">
+          <div className="historial-top-tabs">
+            <button
+              type="button"
+              className={`historial-top-tab-btn ${activeTab === 'folios' ? 'active' : ''}`}
+              onClick={() => setActiveTab('folios')}
+            >
+              Revisión e Historial de Folios Previos
+            </button>
+            <button
+              type="button"
+              className={`historial-top-tab-btn ${activeTab === 'inicio' ? 'active' : ''}`}
+              onClick={() => setActiveTab('inicio')}
+            >
+              Estado Inicial (Inicio)
+            </button>
+            <button
+              type="button"
+              className={`historial-top-tab-btn ${activeTab === 'cambios' ? 'active' : ''}`}
+              onClick={() => setActiveTab('cambios')}
+            >
+              Cambios en el Transcurso (Mantenimiento)
+            </button>
+            <button
+              type="button"
+              className={`historial-top-tab-btn ${activeTab === 'fin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('fin')}
+            >
+              Estado Final (Fin)
+            </button>
+          </div>
+        </div>
+
         <div className="historial-header">
           <div className="historial-header-title-box">
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
@@ -832,40 +866,6 @@ export default function HistorialMantenimiento() {
                 )}
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Pestañas de Historial - Estilo Control de Personas Conductoras */}
-        <div className="operadores-tabs-container">
-          <div className="operadores-tabs">
-            <button
-              type="button"
-              className={`tab-btn ${activeTab === 'folios' ? 'active' : ''}`}
-              onClick={() => setActiveTab('folios')}
-            >
-              Revisión e Historial de Folios Previos
-            </button>
-            <button
-              type="button"
-              className={`tab-btn ${activeTab === 'inicio' ? 'active' : ''}`}
-              onClick={() => setActiveTab('inicio')}
-            >
-              Estado Inicial (Inicio)
-            </button>
-            <button
-              type="button"
-              className={`tab-btn ${activeTab === 'cambios' ? 'active' : ''}`}
-              onClick={() => setActiveTab('cambios')}
-            >
-              Cambios en el Transcurso (Mantenimiento)
-            </button>
-            <button
-              type="button"
-              className={`tab-btn ${activeTab === 'fin' ? 'active' : ''}`}
-              onClick={() => setActiveTab('fin')}
-            >
-              Estado Final (Fin)
-            </button>
           </div>
         </div>
 
@@ -1808,87 +1808,50 @@ export default function HistorialMantenimiento() {
       {/* ESTILOS PREMIUM PARA REVISIÓN E HISTORIAL DE FOLIOS */}
       <style>{`
         /* ==========================================================================
-           TABS DE NAVEGACIÓN - ESTILO CONTROL DE PERSONAS CONDUCTORAS
+           PESTAÑAS DE NAVEGACIÓN SUPERIOR - ESTILO INSTITUCIONAL
            ========================================================================== */
-        .operadores-tabs-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background: #ffffff;
-          border-radius: 0.85rem;
-          padding: 0.35rem 0.45rem;
-          margin: 0 auto 1.5rem auto;
-          width: fit-content;
-          max-width: 100%;
-          box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
-          border: 1px solid #e2e8f0;
+        .historial-top-tabs-wrapper {
+          width: 100%;
+          border-bottom: 2px solid #e2e8f0;
+          margin-bottom: 1.25rem;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
-          box-sizing: border-box;
         }
-
-        .operadores-tabs {
+        .historial-top-tabs-wrapper::-webkit-scrollbar {
+          display: none;
+        }
+        .historial-top-tabs {
           display: flex;
+          align-items: flex-end;
           gap: 0.35rem;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: nowrap;
+          width: max-content;
+          min-width: 100%;
+          padding: 0 0.25rem;
         }
-
-        .tab-btn {
+        .historial-top-tab-btn {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          padding: 0.55rem 1rem;
-          border-radius: 0.55rem;
-          border: 1px solid transparent;
+          gap: 0.5rem;
+          padding: 0.75rem 1.25rem;
+          border: none;
           background: transparent;
-          color: #64748b;
-          font-size: 0.88rem;
+          font-size: 0.9rem;
           font-weight: 600;
+          color: #64748b;
           cursor: pointer;
           white-space: nowrap;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          outline: none;
-          user-select: none;
+          position: relative;
+          transition: color 0.15s ease;
+          border-bottom: 3px solid transparent;
+          margin-bottom: -2px;
         }
-
-        .tab-btn:hover {
-          background: #f8fafc;
-          color: #1e293b;
-          border-color: #e2e8f0;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        .historial-top-tab-btn:hover {
+          color: #0f172a;
         }
-
-        .tab-btn.active {
-          background: linear-gradient(135deg, var(--color-maroon, #6b1d33) 0%, #521526 100%);
-          color: #ffffff;
-          font-weight: 700;
-          border-color: rgba(107, 29, 51, 0.4);
-          box-shadow: 0 4px 12px rgba(107, 29, 51, 0.24), 0 2px 4px rgba(107, 29, 51, 0.12);
-          transform: translateY(-1px);
-        }
-
-        .tab-btn:active {
-          transform: translateY(0);
-        }
-
-        @media (max-width: 1400px) {
-          .operadores-tabs-container {
-            width: 100%;
-            justify-content: flex-start;
-            padding: 0.35rem 0.5rem;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 transparent;
-          }
-
-          .operadores-tabs {
-            justify-content: flex-start;
-            overflow-x: auto;
-            padding-bottom: 0.25rem;
-            width: max-content;
-            min-width: 100%;
-          }
+        .historial-top-tab-btn.active {
+          color: #691B31;
+          font-weight: 800;
+          border-bottom: 3px solid #691B31;
         }
 
         /* Contenedor Principal de Folios */
@@ -3540,33 +3503,27 @@ export default function HistorialMantenimiento() {
           align-items: center;
           gap: 7px;
           padding: 0 0.95rem;
-          background: linear-gradient(135deg, #691B31 0%, #480020 100%);
+          background: #691B31;
           color: #ffffff;
-          border: 1px solid #480020;
-          border-radius: 8px;
+          border: 1px solid #521324;
+          border-radius: 6px;
           font-size: 0.82rem;
-          font-weight: 700;
+          font-weight: 600;
           cursor: pointer;
           white-space: nowrap;
           box-sizing: border-box;
-          box-shadow: 0 2px 5px rgba(105, 27, 49, 0.22);
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: background-color 0.15s ease, border-color 0.15s ease;
           user-select: none;
         }
         .btn-ir-parque-vehicular svg {
-          color: #f6e05e;
-          transition: transform 0.25s ease;
+          color: #ffffff;
         }
         .btn-ir-parque-vehicular:hover {
-          background: linear-gradient(135deg, #7e213b 0%, #580028 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(105, 27, 49, 0.35);
-        }
-        .btn-ir-parque-vehicular:hover svg {
-          transform: rotate(-15deg);
+          background: #561426;
+          border-color: #420d1c;
         }
         .btn-ir-parque-vehicular:active {
-          transform: scale(0.94) translateY(1px);
+          background: #3e0917;
         }
         .btn-actualizar-instantaneo {
           height: 38px;
@@ -3575,34 +3532,36 @@ export default function HistorialMantenimiento() {
           gap: 6px;
           padding: 0 0.85rem;
           background: #ffffff;
-          border: 1.5px solid #BC955B;
-          color: #691B31;
-          border-radius: 8px;
+          border: 1px solid #cbd5e1;
+          color: #475569;
+          border-radius: 6px;
           font-size: 0.82rem;
-          font-weight: 700;
+          font-weight: 600;
           cursor: pointer;
           white-space: nowrap;
           box-sizing: border-box;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
-        .btn-actualizar-instantaneo:hover:not(:disabled) {
-          background: #fdfbf7;
-          border-color: #691B31;
-          color: #691B31;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 10px rgba(105, 27, 49, 0.15);
+        .btn-actualizar-instantaneo svg {
+          color: #64748b;
         }
-        /* Animación táctil de pulsación al dar clic */
+        .btn-actualizar-instantaneo:hover:not(:disabled) {
+          background: #f8fafc;
+          border-color: #94a3b8;
+          color: #0f172a;
+        }
+        .btn-actualizar-instantaneo:hover:not(:disabled) svg {
+          color: #0f172a;
+        }
         .btn-actualizar-instantaneo:active:not(:disabled),
         .btn-actualizar-instantaneo.btn-active-pressed {
-          transform: scale(0.92) translateY(2px) !important;
-          background: #fdf2f4 !important;
-          border-color: #691B31 !important;
-          box-shadow: 0 0 0 3px rgba(105, 27, 49, 0.22), inset 0 2px 4px rgba(105, 27, 49, 0.18) !important;
+          background: #f1f5f9 !important;
+          border-color: #94a3b8 !important;
+          color: #0f172a !important;
         }
         .btn-actualizar-instantaneo:disabled {
-          opacity: 0.65;
+          opacity: 0.6;
           cursor: not-allowed;
         }
         .export-excel-btn {
