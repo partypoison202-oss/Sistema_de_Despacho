@@ -229,7 +229,7 @@ export default function CentroControl() {
     { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
   );
 
-  const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round((totales.circulando / totales.programadas) * 100)) : 0;
+  const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round(((totales.circulando + (totales.desincItinerario || 0)) / totales.programadas) * 100)) : 0;
 
   const handleGenerarReporte = () => {
     descargarReportesGeneralesConAlerta(setIsGenerating);
