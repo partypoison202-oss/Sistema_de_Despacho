@@ -36,6 +36,23 @@ class HistorialOperativoController extends Controller
     }
 
     /**
+     * Expresión SQL para normalizar y obtener el tipo de unidad con fallback seguro.
+     */
+    private function tipoUnidadRaw($tableColumn = 'historial_operativo.tipo', $alias = 'tipo')
+    {
+        return DB::raw("CASE 
+            WHEN {$tableColumn} IS NOT NULL AND TRIM(CAST({$tableColumn} AS VARCHAR)) != '' AND UPPER(TRIM(CAST({$tableColumn} AS VARCHAR))) != 'DESCONOCIDO' 
+            THEN (CASE WHEN UPPER(TRIM(CAST({$tableColumn} AS VARCHAR))) = 'URBANUS' THEN 'URBANUSS' ELSE UPPER(TRIM(CAST({$tableColumn} AS VARCHAR))) END) 
+            ELSE COALESCE(NULLIF(TRIM(CAST(unidades.tipo AS VARCHAR)), ''), transportes.nombre) 
+        END as {$alias}");
+    }
+
+    private function tipoUnidadFromUnidadesRaw($alias = 'tipo')
+    {
+        return DB::raw("COALESCE(NULLIF(TRIM(CAST(unidades.tipo AS VARCHAR)), ''), transportes.nombre) as {$alias}");
+    }
+
+    /**
      * Obtiene el historial de una fecha, filtrado para Despacho.
      */
     public function getHistorialDespacho($fecha)
@@ -46,6 +63,7 @@ class HistorialOperativoController extends Controller
         // 1. Inicio
         $inicio = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
             ->select(
@@ -54,7 +72,8 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
                 'historial_operativo.corridas',
                 'historial_operativo.ciclo',
@@ -71,6 +90,7 @@ class HistorialOperativoController extends Controller
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
                 ->where('momento', 'FIN')
                 ->select(
@@ -79,7 +99,8 @@ class HistorialOperativoController extends Controller
                     'historial_operativo.ruta',
                     'historial_operativo.numero_tarjeton',
                     'historial_operativo.nombre_conductor',
-                    'historial_operativo.tipo',
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                     'historial_operativo.estatus',
                     'historial_operativo.corridas',
                     'historial_operativo.ciclo',
@@ -96,6 +117,7 @@ class HistorialOperativoController extends Controller
         // 2. Cambios (solo del rol correspondiente: DESPACHO o ADMIN)
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
@@ -103,7 +125,8 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                $this->tipoUnidadFromUnidadesRaw('tipo'),
+                $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -117,6 +140,7 @@ class HistorialOperativoController extends Controller
         // 3. Fin
         $fin = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'FIN')
             ->select(
@@ -125,7 +149,8 @@ class HistorialOperativoController extends Controller
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
                 'historial_operativo.corridas',
                 'historial_operativo.ciclo',
@@ -141,13 +166,15 @@ class HistorialOperativoController extends Controller
         if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
             $fin = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->select(
                     'informacion_operativa.id as id_historial',
                     'unidades.numero_eco as economico',
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',
                     'informacion_operativa.nombre_conductor',
-                    'informacion_operativa.tipo',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.estatus',
                     'informacion_operativa.corridas',
                     'informacion_operativa.ciclo',
@@ -178,13 +205,15 @@ class HistorialOperativoController extends Controller
         // 1. Inicio
         $inicio = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
             ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
                 'historial_operativo.falla'
@@ -197,13 +226,15 @@ class HistorialOperativoController extends Controller
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
                 ->where('momento', 'FIN')
                 ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
                 ->select(
                     'historial_operativo.id as id_historial',
                     'unidades.numero_eco as economico',
-                    'historial_operativo.tipo',
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                     'historial_operativo.estatus',
                     'historial_operativo.motivo_estatus',
                     'historial_operativo.falla'
@@ -216,6 +247,7 @@ class HistorialOperativoController extends Controller
         // 2. Cambios (solo del rol correspondiente: ENCIERRO o ADMIN)
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
@@ -223,7 +255,8 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                $this->tipoUnidadFromUnidadesRaw('tipo'),
+                $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -237,13 +270,15 @@ class HistorialOperativoController extends Controller
         // 3. Fin
         $fin = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'FIN')
             ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
                 'historial_operativo.falla'
@@ -255,11 +290,13 @@ class HistorialOperativoController extends Controller
         if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
             $fin = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->whereIn('informacion_operativa.estatus', ['mantenimiento', 'reserva'])
                 ->select(
                     'informacion_operativa.id as id_historial',
                     'unidades.numero_eco as economico',
-                    'informacion_operativa.tipo',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.estatus',
                     'informacion_operativa.motivo_estatus',
                     'informacion_operativa.falla'
@@ -272,6 +309,7 @@ class HistorialOperativoController extends Controller
         // 4. Encierros del día
         $queryEncierros = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'ENCIERRO');
 
@@ -290,7 +328,8 @@ class HistorialOperativoController extends Controller
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton as tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -323,10 +362,12 @@ class HistorialOperativoController extends Controller
         // 1. Inicio
         $inicio = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
             ->select(
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
                 'historial_operativo.ruta',
@@ -351,10 +392,12 @@ class HistorialOperativoController extends Controller
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
                 ->where('momento', 'FIN')
                 ->select(
-                    'historial_operativo.tipo',
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                     'historial_operativo.id as id_historial',
                     'unidades.numero_eco as economico',
                     'historial_operativo.ruta',
@@ -379,12 +422,14 @@ class HistorialOperativoController extends Controller
         // 2. Cambios (todos los roles sin restricción)
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                $this->tipoUnidadFromUnidadesRaw('tipo'),
+                $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -398,10 +443,12 @@ class HistorialOperativoController extends Controller
         // 3. Fin
         $fin = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'FIN')
             ->select(
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
                 'historial_operativo.ruta',
@@ -425,8 +472,10 @@ class HistorialOperativoController extends Controller
         if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
             $fin = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->select(
-                    'informacion_operativa.tipo',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.id as id_historial',
                     'unidades.numero_eco as economico',
                     'informacion_operativa.ruta',
@@ -463,13 +512,15 @@ class HistorialOperativoController extends Controller
         // 1. Inicio (unidades que iniciaron en mantenimiento)
         $inicio = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
             ->where('historial_operativo.estatus', 'MANTENIMIENTO')
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
                 'historial_operativo.falla'
@@ -482,13 +533,15 @@ class HistorialOperativoController extends Controller
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
                 ->where('momento', 'FIN')
                 ->where('historial_operativo.estatus', 'MANTENIMIENTO')
                 ->select(
                     'historial_operativo.id as id_historial',
                     'unidades.numero_eco as economico',
-                    'historial_operativo.tipo',
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                     'historial_operativo.estatus',
                     'historial_operativo.motivo_estatus',
                     'historial_operativo.falla'
@@ -501,6 +554,7 @@ class HistorialOperativoController extends Controller
         // 2. Cambios (solo de mantenimiento o admin)
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
@@ -508,7 +562,8 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                $this->tipoUnidadFromUnidadesRaw('tipo'),
+                $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                 'usuarios.nombre_completo as usuario_nombre',
                 'bitacora_cambios_unidades.tipo_accion',
                 'bitacora_cambios_unidades.estatus_anterior',
@@ -522,13 +577,15 @@ class HistorialOperativoController extends Controller
         // 3. Fin
         $fin = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'FIN')
             ->where('historial_operativo.estatus', 'MANTENIMIENTO')
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
                 'historial_operativo.motivo_estatus',
                 'historial_operativo.falla'
@@ -540,11 +597,13 @@ class HistorialOperativoController extends Controller
         if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
             $fin = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('informacion_operativa.estatus', 'mantenimiento')
                 ->select(
                     'informacion_operativa.id as id_historial',
                     'unidades.numero_eco as economico',
-                    'informacion_operativa.tipo',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.estatus',
                     'informacion_operativa.motivo_estatus',
                     'informacion_operativa.falla'
@@ -557,11 +616,13 @@ class HistorialOperativoController extends Controller
         // 4. Registros de checklists/cargas de mantenimiento (conservar funcionalidad histórica previa)
         $checklists = DB::table('historial_mantenimiento')
             ->join('unidades', 'historial_mantenimiento.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->whereDate('historial_mantenimiento.fecha_registro', $fecha)
             ->select(
                 'historial_mantenimiento.id as id_historial',
                 'unidades.numero_eco as economico',
-                'historial_mantenimiento.tipo_vehiculo as tipo',
+                $this->tipoUnidadRaw('historial_mantenimiento.tipo_vehiculo', 'tipo'),
+                $this->tipoUnidadRaw('historial_mantenimiento.tipo_vehiculo', 'tipo_unidad'),
                 'historial_mantenimiento.nivel_combustible',
                 'historial_mantenimiento.nivel_adblue',
                 'historial_mantenimiento.kilometraje',
@@ -639,6 +700,7 @@ class HistorialOperativoController extends Controller
 
         $queryBase = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fechaAyer)
             ->whereRaw('LOWER(historial_operativo.tipo) != ?', ['urbanuss']) // Solo alimentadoras
             ->whereNotNull('historial_operativo.ruta')
@@ -646,7 +708,8 @@ class HistorialOperativoController extends Controller
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor'
@@ -702,12 +765,13 @@ class HistorialOperativoController extends Controller
 
         $programacion = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
             ->select(
                 'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -730,10 +794,11 @@ class HistorialOperativoController extends Controller
         if ($programacion->isEmpty() && $fecha === Carbon::today()->toDateString()) {
             $programacion = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->select(
                     'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
-                    'informacion_operativa.tipo',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',
                     'informacion_operativa.nombre_conductor',
@@ -830,13 +895,15 @@ class HistorialOperativoController extends Controller
         // Obtener la bitácora de cambios y movimientos registrados para esta fecha
         $cambios = DB::table('bitacora_cambios_unidades')
             ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+            ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
             ->leftJoin('roles', 'usuarios.rol_id', '=', 'roles.id')
             ->where('bitacora_cambios_unidades.fecha', $fecha)
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                'unidades.tipo as tipo_unidad',
+                $this->tipoUnidadFromUnidadesRaw('tipo'),
+                $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                 'usuarios.nombre_completo as usuario_nombre',
                 'roles.nombre as usuario_rol',
                 'bitacora_cambios_unidades.tipo_accion',
@@ -887,8 +954,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'INICIO')
             ->select(
                 'unidades.numero_eco as economico',
-                DB::raw('COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -917,8 +984,8 @@ class HistorialOperativoController extends Controller
                 ->where('momento', 'FIN')
                 ->select(
                     'unidades.numero_eco as economico',
-                    DB::raw('COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
-                    'historial_operativo.tipo',
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                     'historial_operativo.ruta',
                     'historial_operativo.numero_tarjeton',
                     'historial_operativo.nombre_conductor',
@@ -949,7 +1016,8 @@ class HistorialOperativoController extends Controller
             ->select(
                 'bitacora_cambios_unidades.id',
                 'unidades.numero_eco as economico',
-                DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_unidad'),
+                $this->tipoUnidadFromUnidadesRaw('tipo'),
+                $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                 'usuarios.nombre_completo as usuario_nombre',
                 'roles.nombre as usuario_rol',
                 'bitacora_cambios_unidades.tipo_accion',
@@ -969,8 +1037,8 @@ class HistorialOperativoController extends Controller
             ->where('momento', 'FIN')
             ->select(
                 'unidades.numero_eco as economico',
-                DB::raw('COALESCE(historial_operativo.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
-                'historial_operativo.tipo',
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.ruta',
                 'historial_operativo.numero_tarjeton',
                 'historial_operativo.nombre_conductor',
@@ -996,8 +1064,8 @@ class HistorialOperativoController extends Controller
                 ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->select(
                     'unidades.numero_eco as economico',
-                    DB::raw('COALESCE(informacion_operativa.tipo, unidades.tipo, transportes.nombre) as tipo_unidad'),
-                    'informacion_operativa.tipo',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton',
                     'informacion_operativa.nombre_conductor',
@@ -1051,6 +1119,7 @@ class HistorialOperativoController extends Controller
             if ($isToday && Schema::hasTable('informacion_operativa') && $hasRelevoInfo) {
                 $queryInfo = DB::table('informacion_operativa')
                     ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                     ->where(function($q) {
                         $q->where(function($q1) {
                             $q1->whereNotNull('informacion_operativa.relevo_conductor')
@@ -1063,8 +1132,8 @@ class HistorialOperativoController extends Controller
 
                 $relevosQuery = $queryInfo->select(
                     'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
-                    'informacion_operativa.tipo',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton as titular_tarjeton',
                     'informacion_operativa.nombre_conductor as titular_conductor',
@@ -1083,6 +1152,7 @@ class HistorialOperativoController extends Controller
                 if ($hasMananaRel) {
                     $queryManana = DB::table('informacion_operativa_manana')
                         ->join('unidades', 'informacion_operativa_manana.unidad_id', '=', 'unidades.id')
+                        ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                         ->where(function($q) {
                             $q->where(function($q1) {
                                 $q1->whereNotNull('informacion_operativa_manana.relevo_conductor')
@@ -1095,8 +1165,8 @@ class HistorialOperativoController extends Controller
 
                     $relevosQuery = $queryManana->select(
                         'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
-                        'informacion_operativa_manana.tipo',
+                        $this->tipoUnidadRaw('informacion_operativa_manana.tipo', 'tipo'),
+                        $this->tipoUnidadRaw('informacion_operativa_manana.tipo', 'tipo_unidad'),
                         'informacion_operativa_manana.ruta',
                         'informacion_operativa_manana.numero_tarjeton as titular_tarjeton',
                         'informacion_operativa_manana.nombre_conductor as titular_conductor',
@@ -1114,6 +1184,7 @@ class HistorialOperativoController extends Controller
             if ($relevosQuery->isEmpty() && Schema::hasTable('historial_operativo')) {
                 $query = DB::table('historial_operativo')
                     ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                     ->where('fecha_historial', $fecha);
 
                 if ($hasRelevoHist) {
@@ -1129,8 +1200,8 @@ class HistorialOperativoController extends Controller
 
                     $relevosQuery = $query->select(
                         'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
-                        'historial_operativo.tipo',
+                        $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
+                        $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                         'historial_operativo.ruta',
                         'historial_operativo.numero_tarjeton as titular_tarjeton',
                         'historial_operativo.nombre_conductor as titular_conductor',
@@ -1150,6 +1221,7 @@ class HistorialOperativoController extends Controller
             if (Schema::hasTable('bitacora_cambios_unidades')) {
                 $cambiosBitacora = DB::table('bitacora_cambios_unidades')
                     ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                     ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
                     ->where('bitacora_cambios_unidades.fecha', $fecha)
                     ->where(function($q) {
@@ -1163,7 +1235,8 @@ class HistorialOperativoController extends Controller
                     ->select(
                         'bitacora_cambios_unidades.id',
                         'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
+                        $this->tipoUnidadFromUnidadesRaw('tipo'),
+                        $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                         'usuarios.nombre_completo as usuario_nombre',
                         'bitacora_cambios_unidades.tipo_accion',
                         'bitacora_cambios_unidades.detalles',
@@ -1349,6 +1422,7 @@ class HistorialOperativoController extends Controller
             // 1. Cargas de combustible registradas en esa fecha
             $cargas = DB::table('historial_mantenimiento')
                 ->join('unidades', 'historial_mantenimiento.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where(function($q) use ($fecha) {
                     $q->whereDate('historial_mantenimiento.fecha_registro', $fecha)
                       ->orWhereDate('historial_mantenimiento.created_at', $fecha)
@@ -1362,7 +1436,8 @@ class HistorialOperativoController extends Controller
                 ->select(
                     'historial_mantenimiento.id as id_historial',
                     'unidades.numero_eco as economico',
-                    'historial_mantenimiento.tipo_vehiculo as tipo',
+                    $this->tipoUnidadRaw('historial_mantenimiento.tipo_vehiculo', 'tipo'),
+                    $this->tipoUnidadRaw('historial_mantenimiento.tipo_vehiculo', 'tipo_unidad'),
                     'historial_mantenimiento.nivel_combustible',
                     'historial_mantenimiento.litros_combustible',
                     'historial_mantenimiento.nivel_adblue',
@@ -1382,6 +1457,7 @@ class HistorialOperativoController extends Controller
             $todayMx = Carbon::now('America/Mexico_City')->toDateString();
             if ($cargas->isEmpty() && in_array($fecha, [$todayUtc, $todayMx], true)) {
                 $cargas = DB::table('unidades')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                     ->where(function($q) use ($fecha) {
                         $q->where('fecha_ultima_carga', $fecha)
                           ->orWhere(function($sub) {
@@ -1392,7 +1468,8 @@ class HistorialOperativoController extends Controller
                     ->select(
                         DB::raw('NULL as id_historial'),
                         'unidades.numero_eco as economico',
-                        'unidades.tipo',
+                        $this->tipoUnidadFromUnidadesRaw('tipo'),
+                        $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                         'unidades.nivel_combustible',
                         'unidades.litros_combustible',
                         'unidades.nivel_adblue',
@@ -1413,6 +1490,7 @@ class HistorialOperativoController extends Controller
             if (Schema::hasTable('bitacora_cambios_unidades')) {
                 $cambios = DB::table('bitacora_cambios_unidades')
                     ->join('unidades', 'bitacora_cambios_unidades.unidad_id', '=', 'unidades.id')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                     ->leftJoin('usuarios', 'bitacora_cambios_unidades.usuario_id', '=', 'usuarios.id')
                     ->where('bitacora_cambios_unidades.fecha', $fecha)
                     ->where(function($q) {
@@ -1425,7 +1503,8 @@ class HistorialOperativoController extends Controller
                     ->select(
                         'bitacora_cambios_unidades.id',
                         'unidades.numero_eco as economico',
-                        'unidades.tipo as tipo_unidad',
+                        $this->tipoUnidadFromUnidadesRaw('tipo'),
+                        $this->tipoUnidadFromUnidadesRaw('tipo_unidad'),
                         'usuarios.nombre_completo as usuario_nombre',
                         'bitacora_cambios_unidades.tipo_accion',
                         'bitacora_cambios_unidades.estatus_anterior',

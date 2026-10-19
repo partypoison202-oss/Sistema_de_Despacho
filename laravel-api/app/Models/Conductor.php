@@ -13,6 +13,29 @@ class Conductor extends Model
 
     protected $appends = ['nombre', 'info_ventana_faltas'];
 
+    public static function flushConductoresCache()
+    {
+        try {
+            \Illuminate\Support\Facades\Cache::forget('conductores_index_json_1');
+            \Illuminate\Support\Facades\Cache::forget('conductores_index_json_0');
+            \Illuminate\Support\Facades\Cache::forget('conductores_base_records_all');
+            \Illuminate\Support\Facades\Cache::forget('conductores_base_records_activos');
+            \Illuminate\Support\Facades\Cache::forget('operadores_asignaciones_map');
+        } catch (\Throwable $e) {
+            // Ignorar errores de caché
+        }
+    }
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            self::flushConductoresCache();
+        });
+        static::deleted(function () {
+            self::flushConductoresCache();
+        });
+    }
+
     protected $fillable = [
         'nombres',
         'apellidos',

@@ -17,11 +17,13 @@ class TitanReporteController extends Controller
         try {
             $reportes = DB::table('reportes_titan')
                 ->join('unidades', 'reportes_titan.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->leftJoin('informacion_operativa', 'unidades.id', '=', 'informacion_operativa.unidad_id')
                 ->where('reportes_titan.usuario_id', $usuarioId)
                 ->select(
                     'reportes_titan.*',
                     'unidades.numero_eco as numero_economico',
+                    DB::raw("COALESCE(NULLIF(TRIM(CAST(unidades.tipo AS VARCHAR)), ''), transportes.nombre) as tipo_unidad"),
                     'informacion_operativa.ruta',
                     'informacion_operativa.numero_tarjeton'
                 )

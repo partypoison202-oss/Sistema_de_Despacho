@@ -93,14 +93,15 @@ export default function HistorialCombustible() {
 
     if (activeTab === 'cargas') {
       const ecoStr = String(d.economico || '').toLowerCase();
-      const tipoStr = String(d.tipo || '').toLowerCase();
+      const tipoStr = String(d.tipo || d.tipo_unidad || '').toLowerCase();
       const cinchoStr = String(d.numero_cincho || '').toLowerCase();
       return ecoStr.includes(busqueda) || tipoStr.includes(busqueda) || cinchoStr.includes(busqueda);
     } else if (activeTab === 'cambios') {
       const ecoStr = String(d.economico || '').toLowerCase();
+      const tipoStr = String(d.tipo || d.tipo_unidad || '').toLowerCase();
       const detallesStr = String(d.detalles || '').toLowerCase();
       const usrStr = String(d.usuario_nombre || '').toLowerCase();
-      return ecoStr.includes(busqueda) || detallesStr.includes(busqueda) || usrStr.includes(busqueda);
+      return ecoStr.includes(busqueda) || tipoStr.includes(busqueda) || detallesStr.includes(busqueda) || usrStr.includes(busqueda);
     } else {
       const folioStr = String(d.folio || '').toLowerCase();
       const usuarioStr = String(d.generado_por || '').toLowerCase();
@@ -113,30 +114,36 @@ export default function HistorialCombustible() {
 
     let worksheetData;
     if (activeTab === 'cargas') {
-      worksheetData = datosFiltrados.map(d => ({
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo ? String(d.tipo).toUpperCase() : '',
-        'NIVEL COMBUSTIBLE': d.nivel_combustible || '',
-        'LITROS COMBUSTIBLE': d.litros_combustible || '',
-        'NIVEL ADBLUE': d.nivel_adblue || '',
-        'LITROS ADBLUE': d.litros_adblue || '',
-        'NUMERO CINCHO': d.numero_cincho || '',
-        'CINCHO ADBLUE': d.numero_cincho_adblue || '',
-        'KILOMETRAJE / ODOMETRO': d.kilometraje || d.odometro || '',
-        'FECHA ULTIMA CARGA': d.fecha_ultima_carga || '',
-        'HORA DE REGISTRO': d.hora_guardado ? new Date(d.hora_guardado).toLocaleString('es-MX') : ''
-      }));
+      worksheetData = datosFiltrados.map(d => {
+        const t = d.tipo || d.tipo_unidad;
+        return {
+          'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
+          'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
+          'NIVEL COMBUSTIBLE': d.nivel_combustible || '',
+          'LITROS COMBUSTIBLE': d.litros_combustible || '',
+          'NIVEL ADBLUE': d.nivel_adblue || '',
+          'LITROS ADBLUE': d.litros_adblue || '',
+          'NUMERO CINCHO': d.numero_cincho || '',
+          'CINCHO ADBLUE': d.numero_cincho_adblue || '',
+          'KILOMETRAJE / ODOMETRO': d.kilometraje || d.odometro || '',
+          'FECHA ULTIMA CARGA': d.fecha_ultima_carga || '',
+          'HORA DE REGISTRO': d.hora_guardado ? new Date(d.hora_guardado).toLocaleString('es-MX') : ''
+        };
+      });
     } else if (activeTab === 'cambios') {
-      worksheetData = datosFiltrados.map(d => ({
-        'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
-        'MODIFICACIÓN': formatAccion(d.tipo_accion),
-        'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
-        'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
-        'DETALLES': d.detalles || '',
-        'USUARIO': d.usuario_nombre || 'SISTEMA'
-      }));
+      worksheetData = datosFiltrados.map(d => {
+        const t = d.tipo || d.tipo_unidad;
+        return {
+          'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+          'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
+          'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
+          'MODIFICACIÓN': formatAccion(d.tipo_accion),
+          'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
+          'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
+          'DETALLES': d.detalles || '',
+          'USUARIO': d.usuario_nombre || 'SISTEMA'
+        };
+      });
     } else {
       worksheetData = datosFiltrados.map(d => {
         let resumen;
@@ -404,8 +411,8 @@ export default function HistorialCombustible() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th>ECO</th>
-                  <th>TIPO</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>NIVEL COMBUSTIBLE</th>
                   <th>LITROS COMBUSTIBLE</th>
                   <th>NIVEL ADBLUE</th>
@@ -422,8 +429,8 @@ export default function HistorialCombustible() {
                 {datosFiltrados.length > 0 ? (
                   datosFiltrados.map((d, index) => (
                     <tr key={index}>
-                      <td style={{ fontWeight: '700' }}>{d.economico}</td>
-                      <td>{d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '-'}</td>
+                      <td style={{ fontWeight: '600' }}>{(d.tipo || d.tipo_unidad) ? (String(d.tipo || d.tipo_unidad).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo || d.tipo_unidad).toUpperCase()) : '—'}</td>
+                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                       
                       {editingRow === d.id_historial && d.id_historial ? (
                         <>
@@ -482,8 +489,8 @@ export default function HistorialCombustible() {
               <thead>
                 <tr>
                   <th>HORA</th>
-                  <th>ECO</th>
-                  <th>TIPO DE UNIDAD</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>MODIFICACIÓN</th>
                   <th>ESTATUS ANTERIOR</th>
                   <th>ESTATUS NUEVO</th>
@@ -498,8 +505,8 @@ export default function HistorialCombustible() {
                       <td style={{ whiteSpace: 'nowrap', fontWeight: '500' }}>
                         {d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '-'}
                       </td>
-                      <td style={{ fontWeight: '700' }}>{d.economico}</td>
-                      <td>{d.tipo_unidad ? (String(d.tipo_unidad).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo_unidad).toUpperCase()) : '-'}</td>
+                      <td style={{ fontWeight: '600' }}>{(d.tipo_unidad || d.tipo) ? (String(d.tipo_unidad || d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo_unidad || d.tipo).toUpperCase()) : '—'}</td>
+                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                       <td>
                         <span className={`estatus-badge ${getAccionBadgeStyle(d.tipo_accion)}`}>
                           {formatAccion(d.tipo_accion)}

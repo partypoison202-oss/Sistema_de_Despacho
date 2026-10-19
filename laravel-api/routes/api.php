@@ -219,6 +219,7 @@ Route::get('/api/fix-data', function() {
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::get('/reporte/general', [ReporteController::class, 'reporteGeneral']);
 Route::get('/justificantes/{filename}', [ConductorController::class, 'servirJustificante']);
+Route::get('/unidades/version', [DespachoController::class, 'getVersionUnidades']);
 
 // Rutas que requieren autenticación con Sanctum
 Route::middleware('auth:sanctum')->group(function () {

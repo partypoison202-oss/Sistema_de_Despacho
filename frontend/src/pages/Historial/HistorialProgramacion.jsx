@@ -112,17 +112,24 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
   });
 
   // Filtrado de cambios / movimientos
+  const getTipoDisplay = (d) => {
+    const t = d.tipo || d.tipo_unidad;
+    if (!t) return '';
+    return String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase();
+  };
+
   const cambiosFiltrados = rawCambios.filter(c => {
     const q = busqueda.toLowerCase().trim();
+    const tipoVal = getTipoDisplay(c).toLowerCase();
     const matchesSearch = !q || (
       (c.economico && String(c.economico).toLowerCase().includes(q)) ||
-      (c.tipo_unidad && c.tipo_unidad.toLowerCase().includes(q)) ||
+      tipoVal.includes(q) ||
       (c.tipo_accion && c.tipo_accion.toLowerCase().includes(q)) ||
       (c.detalles && c.detalles.toLowerCase().includes(q)) ||
       (c.usuario_nombre && c.usuario_nombre.toLowerCase().includes(q))
     );
 
-    const matchesTipo = !filtroTipo || String(c.tipo_unidad || '').toUpperCase() === filtroTipo.toUpperCase();
+    const matchesTipo = !filtroTipo || getTipoDisplay(c).toUpperCase() === filtroTipo.toUpperCase();
     return matchesSearch && matchesTipo;
   });
 
@@ -143,7 +150,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
     // Resumen por tipo
     const tiposMap = {};
     baseProgramacion.forEach(d => {
-      let t = d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : 'OTRO';
+      let t = getTipoDisplay(d) || 'OTRO';
       if (!tiposMap[t]) {
         tiposMap[t] = { tipo: t, total: 0, programadas: 0, operacion: 0, reserva: 0, mantenimiento: 0, percance: 0 };
       }
@@ -190,14 +197,16 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
   // Filtrado fino para la tabla (búsqueda, tipo específico, estatus)
   const programacionFiltrada = baseProgramacion.filter(item => {
     const q = busqueda.toLowerCase().trim();
+    const tipoVal = getTipoDisplay(item).toLowerCase();
     const matchesSearch = !q || (
       (item.economico && String(item.economico).toLowerCase().includes(q)) ||
+      tipoVal.includes(q) ||
       (item.nombre_conductor && item.nombre_conductor.toLowerCase().includes(q)) ||
       (item.numero_tarjeton && String(item.numero_tarjeton).toLowerCase().includes(q)) ||
       (item.ruta && item.ruta.toLowerCase().includes(q))
     );
 
-    const matchesTipo = !filtroTipo || String(item.tipo || item.tipo_unidad || '').toUpperCase() === filtroTipo.toUpperCase();
+    const matchesTipo = !filtroTipo || getTipoDisplay(item).toUpperCase() === filtroTipo.toUpperCase();
     
     const estLower = String(item.estatus || '').toLowerCase().trim();
     const matchesEstatus = !filtroEstatus || estLower === filtroEstatus.toLowerCase().trim();
@@ -210,8 +219,8 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
       if (cambiosFiltrados.length === 0) return;
       const worksheetData = cambiosFiltrados.map(d => ({
         'HORA': formatearHora(d.hora),
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'ACCIÓN / MOVIMIENTO': d.tipo_accion || '',
         'ESTATUS ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
         'ESTATUS NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
@@ -233,8 +242,8 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
       if (!programacionFiltrada || programacionFiltrada.length === 0) return;
 
       const worksheetData = programacionFiltrada.map(d => ({
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'RUTA': d.ruta || 'SIN RUTA',
         'TARJETÓN TITULAR': d.numero_tarjeton || '',
         'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
@@ -470,8 +479,8 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
                   <thead>
                     <tr>
                       <th style={{ minWidth: '85px' }}>HORA</th>
-                      <th style={{ minWidth: '85px' }}>UNIDAD</th>
-                      <th style={{ minWidth: '110px' }}>TIPO</th>
+                      <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
+                      <th style={{ minWidth: '110px' }}>ECONÓMICO</th>
                       <th style={{ minWidth: '160px' }}>ACCIÓN / MOVIMIENTO</th>
                       <th style={{ minWidth: '120px' }}>ANTERIOR</th>
                       <th style={{ minWidth: '120px' }}>NUEVO</th>
@@ -483,8 +492,8 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
                     {cambiosFiltrados.map((c, i) => (
                       <tr key={c.id || i}>
                         <td style={{ fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>{formatearHora(c.hora)}</td>
-                        <td style={{ fontWeight: '800', color: '#601a2a' }}>{c.economico ? `ECO${String(c.economico).padStart(3, '0')}` : '—'}</td>
-                        <td style={{ fontWeight: '600', color: '#334155' }}>{c.tipo_unidad ? String(c.tipo_unidad).toUpperCase() : '—'}</td>
+                        <td style={{ fontWeight: '600', color: '#334155' }}>{getTipoDisplay(c) || '—'}</td>
+                        <td style={{ fontWeight: '800', color: '#0f172a' }}>{c.economico ? String(c.economico).padStart(3, '0') : '—'}</td>
                         <td>
                           <span className="estatus-badge" style={{ backgroundColor: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', fontSize: '0.72rem', fontWeight: '800' }}>
                             {c.tipo_accion ? String(c.tipo_accion).replace(/_/g, ' ') : 'MODIFICACIÓN'}
@@ -564,8 +573,8 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
               <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
                 <thead>
                   <tr>
-                    <th style={{ minWidth: '70px' }}>ECO</th>
-                    <th style={{ minWidth: '120px' }}>TIPO UNIDAD</th>
+                    <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
+                    <th style={{ minWidth: '110px' }}>ECONÓMICO</th>
                     <th style={{ minWidth: '130px' }}>RUTA</th>
                     <th style={{ minWidth: '100px' }}>TARJETÓN</th>
                     <th style={{ minWidth: '220px' }}>CONDUCTOR TITULAR</th>
@@ -578,8 +587,8 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
                 <tbody>
                   {programacionFiltrada.map((d, i) => (
                     <tr key={i}>
-                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
-                      <td style={{ fontWeight: '600' }}>{d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '-'}</td>
+                      <td style={{ fontWeight: '600', color: '#334155' }}>{getTipoDisplay(d) || '—'}</td>
+                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                       <td style={{ fontWeight: '700', color: '#1e3a8a' }}>{d.ruta || 'SIN RUTA'}</td>
                       <td style={{ fontWeight: '700', color: '#6b1d33' }}>{d.numero_tarjeton || '-'}</td>
                       <td style={{ fontWeight: '600', color: d.nombre_conductor ? '#1e293b' : '#94a3b8' }}>
