@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Helpers\BitacoraHelper;
 use App\Http\Controllers\Controller;
+use App\Services\SyncService;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
@@ -14,6 +15,18 @@ use Illuminate\Validation\ValidationException;
 
 class DespachoController extends Controller
 {
+    /**
+     * Retorna la versión actual del estado de unidades para sincronización en tiempo real.
+     */
+    public function getVersionUnidades()
+    {
+        return response()->json([
+            'status' => 'success',
+            'version' => SyncService::getVersion(),
+            'timestamp' => microtime(true),
+        ])->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+
     /**
      * Importa y sincroniza los datos usando el formato estandarizado:
      * TIPO_UNIDAD, RUTA, ECONOMICO, TARJETON, NOMBRE_CONDUCTOR
@@ -337,9 +350,9 @@ class DespachoController extends Controller
 
         $tiposBusqueda = self::normalizarTiposTransporte($tipo);
 
-        $hasHoraEncierro = Schema::hasColumn('informacion_operativa', 'hora_encierro');
-        $hasHoraRealSalidaPatio = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
-        $hasHoraSalida = Schema::hasColumn('informacion_operativa', 'hora_salida');
+        $hasHoraEncierro = Cache::remember('col_info_op_hora_encierro', 86400, fn() => Schema::hasColumn('informacion_operativa', 'hora_encierro'));
+        $hasHoraRealSalidaPatio = Cache::remember('col_info_op_hora_real_salida_patio', 86400, fn() => Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio'));
+        $hasHoraSalida = Cache::remember('col_info_op_hora_salida', 86400, fn() => Schema::hasColumn('informacion_operativa', 'hora_salida'));
         $colSalidaPatio = $hasHoraRealSalidaPatio 
             ? 'informacion_operativa.hora_real_salida_patio' 
             : ($hasHoraSalida ? 'informacion_operativa.hora_salida as hora_real_salida_patio' : DB::raw('NULL as hora_real_salida_patio'));
@@ -412,8 +425,8 @@ class DespachoController extends Controller
             ->map(fn ($items) => $items->first());
 
         // Pre-cargar despachos de hoy con hora de salida no nula
-        $hasHoraRealEnHistorial = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
-        $hasHoraSalidaEnHistorial = Schema::hasColumn('historial_operativo', 'hora_salida');
+        $hasHoraRealEnHistorial = Cache::remember('col_hist_op_hora_real_salida_patio', 86400, fn() => Schema::hasColumn('historial_operativo', 'hora_real_salida_patio'));
+        $hasHoraSalidaEnHistorial = Cache::remember('col_hist_op_hora_salida', 86400, fn() => Schema::hasColumn('historial_operativo', 'hora_salida'));
         $colSalidaHistorial = $hasHoraRealEnHistorial ? 'hora_real_salida_patio' : ($hasHoraSalidaEnHistorial ? 'hora_salida' : null);
 
         $despachosHoy = collect();
@@ -1397,6 +1410,7 @@ class DespachoController extends Controller
         BitacoraHelper::ensureInicioSnapshot(false);
 
         self::procesarEncierrosAutomaticos();
+        SyncService::notifyChange();
 
         return response()->json([
             'status' => 'success',
@@ -1997,6 +2011,9 @@ class DespachoController extends Controller
 
         if ($esDiaAnterior) {
             self::ejecutarCambioDiaAutomatico();
+        } else {
+            // El día de hoy ya está inicializado y vigente, cachear para evitar la consulta a la BD en cada petición
+            Cache::put('cambio_dia_operativo_ejecutado_'.$hoy, true, 300);
         }
     }
 
@@ -2968,6 +2985,8 @@ class DespachoController extends Controller
             $conductor->nombre
         );
 
+        SyncService::notifyChange();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Tarjetón y conductor asignados correctamente.',
@@ -3112,6 +3131,7 @@ class DespachoController extends Controller
                 }
 
                 self::procesarEncierrosAutomaticos();
+                SyncService::notifyChange();
 
                 return response()->json([
                     'status' => 'success',
@@ -4112,6 +4132,8 @@ class DespachoController extends Controller
             ->where('id', $registroOperativo->id)
             ->update($updateInfoOperativa);
 
+        SyncService::notifyChange();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Encierro registrado exitosamente',
@@ -4125,16 +4147,23 @@ class DespachoController extends Controller
      */
     public static function procesarEncierrosAutomaticos()
     {
+        $lockKey = 'procesar_encierros_auto_cooldown';
+        if (Cache::has($lockKey)) {
+            return 0;
+        }
+        Cache::put($lockKey, true, 45);
+
         try {
             $now = Carbon::now('America/Mexico_City');
             $horaActual = $now->format('H:i');
             $fechaHoy = $now->toDateString();
 
-            if (! Schema::hasColumn('informacion_operativa', 'hora_encierro')) {
+            $hasHoraEncierro = Cache::remember('col_info_op_hora_encierro', 86400, fn() => Schema::hasColumn('informacion_operativa', 'hora_encierro'));
+            if (! $hasHoraEncierro) {
                 return 0;
             }
 
-            $hasHoraRealSalida = Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio');
+            $hasHoraRealSalida = Cache::remember('col_info_op_hora_real_salida_patio', 86400, fn() => Schema::hasColumn('informacion_operativa', 'hora_real_salida_patio'));
             if (! $hasHoraRealSalida) {
                 return 0;
             }
@@ -4249,8 +4278,8 @@ class DespachoController extends Controller
                     }
                 }
 
-                $hasHoraRealEnHistorial = Schema::hasColumn('historial_operativo', 'hora_real_salida_patio');
-                $hasHoraSalidaEnHistorial = Schema::hasColumn('historial_operativo', 'hora_salida');
+                $hasHoraRealEnHistorial = Cache::remember('col_hist_op_hora_real_salida_patio', 86400, fn() => Schema::hasColumn('historial_operativo', 'hora_real_salida_patio'));
+                $hasHoraSalidaEnHistorial = Cache::remember('col_hist_op_hora_salida', 86400, fn() => Schema::hasColumn('historial_operativo', 'hora_salida'));
                 $colSalidaHistorial = $hasHoraRealEnHistorial ? 'hora_real_salida_patio' : ($hasHoraSalidaEnHistorial ? 'hora_salida' : null);
 
                 $horaRealSalidaSnapshot = $registroOperativo->hora_real_salida_patio;
@@ -4349,6 +4378,7 @@ class DespachoController extends Controller
 
             if ($encerradasCount > 0) {
                 \Log::info("Encierro automático procesado para {$encerradasCount} unidades a las {$horaActual}.");
+                SyncService::notifyChange();
             }
 
             return $encerradasCount;
@@ -4815,6 +4845,8 @@ class DespachoController extends Controller
                 ->update(['hora_real_salida_patio' => null]);
         }
 
+        SyncService::notifyChange();
+
         return response()->json([
             'status' => 'success',
             'message' => 'Estatus actualizado correctamente.',
@@ -4884,6 +4916,8 @@ class DespachoController extends Controller
             'CAMBIO_RUTA',
             'CAMBIO DE RUTA - ANTERIOR: '.strtoupper($operacion->ruta ?? 'SIN RUTA').', NUEVA: '.strtoupper($rutaLimpia)
         );
+
+        SyncService::notifyChange();
 
         return response()->json([
             'status' => 'success',
@@ -5078,6 +5112,7 @@ class DespachoController extends Controller
             ]);
 
             \Log::info('[guardarMantenimiento] Guardado exitosamente', ['id' => $unidad->id]);
+            SyncService::notifyChange();
 
             return response()->json([
                 'status' => 'success',

@@ -330,12 +330,12 @@ export default function HistorialConductores() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th style={{ width: '110px' }}>Tarjetón</th>
-                  <th style={{ width: '220px' }}>Operador</th>
-                  <th style={{ width: '160px' }}>Acción</th>
-                  <th style={{ width: '180px' }}>Usuario</th>
-                  <th>Detalles del Registro</th>
-                  <th style={{ width: '170px' }}>Fecha y Hora</th>
+                  <th style={{ width: '110px' }}>TARJETÓN</th>
+                  <th style={{ width: '220px' }}>OPERADOR</th>
+                  <th style={{ width: '160px' }}>ACCIÓN</th>
+                  <th style={{ width: '180px' }}>USUARIO</th>
+                  <th>DETALLES DEL REGISTRO</th>
+                  <th style={{ width: '170px' }}>FECHA Y HORA</th>
                 </tr>
               </thead>
               <tbody>

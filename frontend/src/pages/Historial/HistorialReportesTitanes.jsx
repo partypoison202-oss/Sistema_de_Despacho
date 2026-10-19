@@ -334,12 +334,12 @@ export default function HistorialReportesTitanes() {
               <table className="hrt-tabla">
                 <thead>
                   <tr>
-                    <th>Fecha</th>
-                    <th>Evento</th>
-                    <th>N° Económico</th>
-                    <th>Titán</th>
-                    <th>Ruta</th>
-                    <th>Tarjetón</th>
+                    <th>FECHA</th>
+                    <th>EVENTO</th>
+                    <th>ECONÓMICO</th>
+                    <th>TITÁN</th>
+                    <th>RUTA</th>
+                    <th>TARJETÓN</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -353,7 +353,7 @@ export default function HistorialReportesTitanes() {
                           {ETIQUETA_EVENTO[r.tipo_evento] || r.tipo_evento}
                         </span>
                       </td>
-                      <td>{r.numero_economico || '-'}</td>
+                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{r.numero_economico ? String(r.numero_economico).padStart(3, '0') : '—'}</td>
                       <td>{titanPorId[r.__usuario_id]?.nombre_completo || '-'}</td>
                       <td>{r.ruta || '-'}</td>
                       <td>{r.numero_tarjeton || '-'}</td>

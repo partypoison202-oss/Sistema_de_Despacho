@@ -89,7 +89,7 @@ export default function HistorialEncierro() {
     if (activeTab === 'cambios') {
       return activeData.filter(d => {
         const eco = String(d.economico || '').toLowerCase();
-        const tipo = String(d.tipo_unidad || '').toLowerCase();
+        const tipo = String(d.tipo_unidad || d.tipo || '').toLowerCase();
         const accion = formatAccion(d.tipo_accion).toLowerCase();
         const ant = String(d.estatus_anterior || '').toLowerCase();
         const nvo = String(d.estatus_nuevo || '').toLowerCase();
@@ -103,7 +103,7 @@ export default function HistorialEncierro() {
       return activeData.filter(d => {
         const hora = String(d.hora_encierro || '').toLowerCase();
         const eco = String(d.economico || '').toLowerCase();
-        const tipo = String(d.tipo || '').toLowerCase();
+        const tipo = String(d.tipo || d.tipo_unidad || '').toLowerCase();
         const est = String(d.estatus || '').toLowerCase();
         const mot = String(d.motivo_estatus || '').toLowerCase();
         const ruta = String(d.ruta || '').toLowerCase();
@@ -118,7 +118,7 @@ export default function HistorialEncierro() {
     // inicio o fin
     return activeData.filter(d => {
       const eco = String(d.economico || '').toLowerCase();
-      const tipo = String(d.tipo || '').toLowerCase();
+      const tipo = String(d.tipo || d.tipo_unidad || '').toLowerCase();
       const est = String(d.estatus || '').toLowerCase();
       const mot = String(d.motivo_estatus || '').toLowerCase();
       const falla = String(d.falla || '').toLowerCase();
@@ -132,38 +132,47 @@ export default function HistorialEncierro() {
 
     let worksheetData;
     if (activeTab === 'cambios') {
-      worksheetData = dataToExport.map(d => ({
-        'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
-        'MODIFICACIÓN': formatAccion(d.tipo_accion),
-        'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
-        'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
-        'DETALLES': d.detalles || '',
-        'USUARIO': d.usuario_nombre || 'SISTEMA'
-      }));
+      worksheetData = dataToExport.map(d => {
+        const t = d.tipo_unidad || d.tipo;
+        return {
+          'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+          'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
+          'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
+          'MODIFICACIÓN': formatAccion(d.tipo_accion),
+          'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
+          'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
+          'DETALLES': d.detalles || '',
+          'USUARIO': d.usuario_nombre || 'SISTEMA'
+        };
+      });
     } else if (activeTab === 'encierros') {
-      worksheetData = dataToExport.map(d => ({
-        'HORA ENCIERRO': d.hora_encierro || '',
-        'ECO': d.economico || '',
-        'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-        'ESTATUS': d.estatus ? String(d.estatus).toUpperCase() : '',
-        'MOTIVO': d.motivo_estatus || '',
-        'RUTA': d.ruta || '',
-        'TARJETÓN TITULAR': d.tarjeton || '',
-        'CONDUCTOR TITULAR': d.nombre_conductor || '',
-        'TARJETÓN RELEVO': d.relevo_tarjeton || '',
-        'CONDUCTOR RELEVO': d.relevo_conductor || '',
-        'HORA RELEVO': d.relevo_hora || ''
-      }));
+      worksheetData = dataToExport.map(d => {
+        const t = d.tipo || d.tipo_unidad;
+        return {
+          'HORA ENCIERRO': d.hora_encierro || '',
+          'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
+          'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
+          'ESTATUS': d.estatus ? String(d.estatus).toUpperCase() : '',
+          'MOTIVO': d.motivo_estatus || '',
+          'RUTA': d.ruta || '',
+          'TARJETÓN TITULAR': d.tarjeton || '',
+          'CONDUCTOR TITULAR': d.nombre_conductor || '',
+          'TARJETÓN RELEVO': d.relevo_tarjeton || '',
+          'CONDUCTOR RELEVO': d.relevo_conductor || '',
+          'HORA RELEVO': d.relevo_hora || ''
+        };
+      });
     } else {
-      worksheetData = dataToExport.map(d => ({
-        'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-        'ECO': d.economico || '',
-        'ESTATUS': d.estatus || '',
-        'MOTIVO DE ESTATUS (BAJA)': d.motivo_estatus || '',
-        'FALLA REPORTADA': d.falla || ''
-      }));
+      worksheetData = dataToExport.map(d => {
+        const t = d.tipo || d.tipo_unidad;
+        return {
+          'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
+          'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
+          'ESTATUS': d.estatus || '',
+          'MOTIVO DE ESTATUS (BAJA)': d.motivo_estatus || '',
+          'FALLA REPORTADA': d.falla || ''
+        };
+      });
     }
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -304,8 +313,8 @@ export default function HistorialEncierro() {
               <thead>
                 <tr>
                   <th>HORA</th>
-                  <th>ECO</th>
                   <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>MODIFICACIÓN</th>
                   <th>VALOR ANTERIOR</th>
                   <th>VALOR NUEVO</th>
@@ -317,8 +326,8 @@ export default function HistorialEncierro() {
                 {filteredData.map((d, i) => (
                   <tr key={d.id || i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
-                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
-                    <td style={{ fontWeight: '600' }}>{d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '-'}</td>
+                    <td style={{ fontWeight: '600' }}>{(d.tipo_unidad || d.tipo) ? (String(d.tipo_unidad || d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo_unidad || d.tipo).toUpperCase()) : '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>
                       <span className="estatus-badge" style={getAccionBadgeStyle(d.tipo_accion)}>
                         {formatAccion(d.tipo_accion)}
@@ -348,8 +357,8 @@ export default function HistorialEncierro() {
               <thead>
                 <tr>
                   <th>HORA ENCIERRO</th>
-                  <th>ECO</th>
                   <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>ESTATUS</th>
                   <th>MOTIVO</th>
                   <th>RUTA</th>
@@ -361,8 +370,8 @@ export default function HistorialEncierro() {
                 {filteredData.map((d, i) => (
                   <tr key={i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{d.hora_encierro || '-'}</td>
-                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
-                    <td style={{ fontWeight: '600' }}>{d.tipo ? String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase() : '-'}</td>
+                    <td style={{ fontWeight: '600' }}>{(d.tipo || d.tipo_unidad) ? (String(d.tipo || d.tipo_unidad).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo || d.tipo_unidad).toUpperCase()) : '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>
                       <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
                         {d.estatus || '-'}
@@ -405,8 +414,8 @@ export default function HistorialEncierro() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th>TIPO</th>
-                  <th>ECO</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>ESTATUS</th>
                   <th>MOTIVO DE ESTATUS (BAJA)</th>
                   <th>FALLA REPORTADA</th>
@@ -415,8 +424,8 @@ export default function HistorialEncierro() {
               <tbody>
                 {filteredData.map((d, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
-                    <td style={{ fontWeight: '700' }}>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{(d.tipo || d.tipo_unidad) ? (String(d.tipo || d.tipo_unidad).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo || d.tipo_unidad).toUpperCase()) : '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>
                       <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
                         {d.estatus}

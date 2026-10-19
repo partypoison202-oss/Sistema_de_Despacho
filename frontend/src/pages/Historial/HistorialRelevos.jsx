@@ -79,12 +79,19 @@ export default function HistorialRelevos() {
     setIsDropdownOpen(false);
   };
 
+  const getTipoDisplay = (d) => {
+    const t = d.tipo || d.tipo_unidad;
+    if (!t) return '';
+    return String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase();
+  };
+
   // Filtrado de relevos
   const relevosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
     if (!q) return relevos;
     return relevos.filter(r => (
       (r.economico && String(r.economico).toLowerCase().includes(q)) ||
+      getTipoDisplay(r).toLowerCase().includes(q) ||
       (r.titular_conductor && r.titular_conductor.toLowerCase().includes(q)) ||
       (r.titular_tarjeton && String(r.titular_tarjeton).toLowerCase().includes(q)) ||
       (r.relevo_conductor && r.relevo_conductor.toLowerCase().includes(q)) ||
@@ -99,10 +106,11 @@ export default function HistorialRelevos() {
     if (!q) return bitacora;
     return bitacora.filter(b => {
       const eco = String(b.economico || '').toLowerCase();
+      const tipo = getTipoDisplay(b).toLowerCase();
       const usr = String(b.usuario_nombre || '').toLowerCase();
       const accion = formatAccion(b.tipo_accion).toLowerCase();
       const det = String(b.detalles || '').toLowerCase();
-      return eco.includes(q) || usr.includes(q) || accion.includes(q) || det.includes(q);
+      return eco.includes(q) || tipo.includes(q) || usr.includes(q) || accion.includes(q) || det.includes(q);
     });
   }, [bitacora, busqueda]);
 
@@ -110,8 +118,8 @@ export default function HistorialRelevos() {
     if (!relevosFiltrados || relevosFiltrados.length === 0) return;
 
     const worksheetData = relevosFiltrados.map(r => ({
-      'ECO': r.economico || '',
-      'TIPO DE UNIDAD': r.tipo ? (String(r.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(r.tipo).toUpperCase()) : '',
+      'TIPO UNIDAD': getTipoDisplay(r),
+      'ECONÓMICO': r.economico ? String(r.economico).padStart(3, '0') : '',
       'RUTA': r.ruta || 'SIN RUTA',
       'TARJETÓN TITULAR': r.titular_tarjeton || '',
       'CONDUCTOR TITULAR': r.titular_conductor || 'SIN ASIGNAR',
@@ -301,8 +309,8 @@ export default function HistorialRelevos() {
               <table className="historial-table" style={{ width: '100%', tableLayout: 'auto' }}>
                 <thead>
                   <tr>
-                    <th style={{ minWidth: '70px' }}>ECO</th>
-                    <th style={{ minWidth: '120px' }}>TIPO UNIDAD</th>
+                    <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
+                    <th style={{ minWidth: '110px' }}>ECONÓMICO</th>
                     <th style={{ minWidth: '130px' }}>RUTA</th>
                     <th style={{ minWidth: '220px' }}>CONDUCTOR TITULAR</th>
                     <th style={{ minWidth: '220px' }}>CONDUCTOR RELEVO</th>
@@ -313,8 +321,8 @@ export default function HistorialRelevos() {
                 <tbody>
                   {relevosFiltrados.map((r, i) => (
                     <tr key={i}>
-                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{r.economico}</td>
-                      <td style={{ fontWeight: '600' }}>{r.tipo ? (String(r.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(r.tipo).toUpperCase()) : '-'}</td>
+                      <td style={{ fontWeight: '600', color: '#334155' }}>{getTipoDisplay(r) || '—'}</td>
+                      <td style={{ fontWeight: '800', color: '#0f172a' }}>{r.economico ? String(r.economico).padStart(3, '0') : '—'}</td>
                       <td style={{ fontWeight: '700', color: '#1e3a8a' }}>{r.ruta || 'SIN RUTA'}</td>
                       <td>
                         <span style={{ fontWeight: '700', color: '#6b1d33', marginRight: '0.5rem' }}>[{r.titular_tarjeton || '-'}]</span>
@@ -351,7 +359,7 @@ export default function HistorialRelevos() {
               <thead>
                 <tr>
                   <th>HORA</th>
-                  <th>ECO</th>
+                  <th>ECONÓMICO</th>
                   <th>USUARIO</th>
                   <th>TIPO DE ACCIÓN</th>
                   <th>DETALLES DE RELEVO</th>
@@ -363,7 +371,7 @@ export default function HistorialRelevos() {
                     <td style={{ fontWeight: '700', color: '#475569' }}>
                       {b.hora ? new Date(b.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
                     </td>
-                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{b.economico}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{b.economico ? String(b.economico).padStart(3, '0') : '—'}</td>
                     <td style={{ fontWeight: '600', color: '#334155' }}>{b.usuario_nombre || 'Sistema'}</td>
                     <td>
                       <span className="estatus-badge" style={getAccionBadgeStyle(b.tipo_accion)}>
@@ -399,7 +407,7 @@ export default function HistorialRelevos() {
                   {relevosPorRuta[rutaName].map((item, idx) => (
                     <div key={idx} style={{ padding: '0.5rem 0', borderBottom: idx === relevosPorRuta[rutaName].length - 1 ? 'none' : '1px dashed #f1f5f9', fontSize: '0.85rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
-                        <span style={{ fontWeight: '800', color: '#0f172a' }}>ECO {item.economico}</span>
+                        <span style={{ fontWeight: '800', color: '#0f172a' }}>ECO {String(item.economico).padStart(3, '0')}</span>
                         <span style={{ fontWeight: '700', color: '#475569' }}>{item.relevo_hora || '—'}</span>
                       </div>
                       <div style={{ fontSize: '0.8rem', color: '#475569' }}>

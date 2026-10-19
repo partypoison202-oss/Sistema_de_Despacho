@@ -240,7 +240,7 @@ export default function HistorialGeneral() {
     if (activeTab === 'cambios') {
       return activeData.filter(d => {
         const eco = String(d.economico || '').toLowerCase();
-        const tipo = String(d.tipo_unidad || '').toLowerCase();
+        const tipo = String(d.tipo_unidad || d.tipo || '').toLowerCase();
         const accion = formatAccion(d.tipo_accion).toLowerCase();
         const ant = String(d.estatus_anterior || '').toLowerCase();
         const nvo = String(d.estatus_nuevo || '').toLowerCase();
@@ -253,7 +253,7 @@ export default function HistorialGeneral() {
     if (activeTab === 'resumen') {
       return activeData.filter(d => {
         const eco = String(d.economico || '').toLowerCase();
-        const tipo = String(d.tipo || '').toLowerCase();
+        const tipo = String(d.tipo || d.tipo_unidad || '').toLowerCase();
         const rutas = String(d.rutas || '').toLowerCase();
         const cond = String(d.conductores || '').toLowerCase();
         const est = String(d.estatuses || '').toLowerCase();
@@ -267,7 +267,7 @@ export default function HistorialGeneral() {
     // inicio o fin
     return activeData.filter(d => {
       const eco = String(d.economico || '').toLowerCase();
-      const tipo = String(d.tipo || '').toLowerCase();
+      const tipo = String(d.tipo || d.tipo_unidad || '').toLowerCase();
       const ruta = String(d.ruta || '').toLowerCase();
       const tarj = String(d.numero_tarjeton || '').toLowerCase();
       const cond = String(d.nombre_conductor || '').toLowerCase();
@@ -281,6 +281,12 @@ export default function HistorialGeneral() {
     });
   }, [activeData, busqueda, activeTab]);
 
+  const getTipoDisplay = (d) => {
+    const t = d.tipo || d.tipo_unidad;
+    if (!t) return '';
+    return String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase();
+  };
+
   const exportToExcel = () => {
     const dataToExport = busqueda.trim() ? filteredData : activeData;
     if (!dataToExport || dataToExport.length === 0) return;
@@ -289,8 +295,8 @@ export default function HistorialGeneral() {
     if (activeTab === 'cambios') {
       worksheetData = dataToExport.map(d => ({
         'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'MODIFICACIÓN': formatAccion(d.tipo_accion),
         'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
         'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
@@ -299,8 +305,8 @@ export default function HistorialGeneral() {
       }));
     } else if (activeTab === 'resumen') {
       worksheetData = dataToExport.map(d => ({
-        'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-        'ECO': d.economico || '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'RUTAS': d.rutas || '',
         'TARJETONES': d.conductores || '',
         'ESTATUS': d.estatuses || '',
@@ -310,8 +316,8 @@ export default function HistorialGeneral() {
       }));
     } else {
       worksheetData = dataToExport.map(d => ({
-        'TIPO DE UNIDAD': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-        'ECO': d.economico || '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'RUTA': d.ruta || '',
         'TARJETÓN TITULAR': d.numero_tarjeton || '',
         'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
@@ -463,8 +469,8 @@ export default function HistorialGeneral() {
               <thead>
                 <tr>
                   <th style={{ minWidth: '100px' }}>HORA</th>
-                  <th style={{ minWidth: '80px' }}>ECO</th>
                   <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
+                  <th style={{ minWidth: '90px' }}>ECONÓMICO</th>
                   <th style={{ minWidth: '180px' }}>MODIFICACIÓN</th>
                   <th style={{ minWidth: '140px' }}>VALOR ANTERIOR</th>
                   <th style={{ minWidth: '140px' }}>VALOR NUEVO</th>
@@ -476,8 +482,8 @@ export default function HistorialGeneral() {
                 {filteredData.map((d, i) => (
                   <tr key={d.id || i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
-                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
-                    <td style={{ fontWeight: '600' }}>{d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '-'}</td>
+                    <td style={{ fontWeight: '600' }}>{getTipoDisplay(d) || '-'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '-'}</td>
                     <td>
                       <span className="estatus-badge" style={getAccionBadgeStyle(d.tipo_accion)}>
                         {formatAccion(d.tipo_accion)}
@@ -507,7 +513,7 @@ export default function HistorialGeneral() {
               <thead>
                 <tr>
                   <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
-                  <th style={{ minWidth: '80px' }}>ECO</th>
+                  <th style={{ minWidth: '90px' }}>ECONÓMICO</th>
                   <th style={{ minWidth: '180px' }}>RUTAS</th>
                   <th style={{ minWidth: '150px' }}>TARJETONES</th>
                   <th style={{ minWidth: '160px' }}>ESTATUS</th>
@@ -519,10 +525,10 @@ export default function HistorialGeneral() {
               <tbody>
                 {filteredData.map((d, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
-                    <td style={{ fontWeight: '700' }}>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{getTipoDisplay(d) || '-'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '-'}</td>
                     <td>{d.rutas}</td>
-                    <td style={{ fontWeight: '600', color: '#1e3a8a' }}>{d.conductores}</td>
+                    <td>{d.conductores}</td>
                     <td>{d.estatuses}</td>
                     <td className="text-center">{d.acoples}</td>
                     <td className="text-center">{d.corridas}</td>
@@ -547,7 +553,7 @@ export default function HistorialGeneral() {
               <thead>
                 <tr>
                   <th style={{ minWidth: '130px' }}>TIPO UNIDAD</th>
-                  <th style={{ minWidth: '80px' }}>ECO</th>
+                  <th style={{ minWidth: '90px' }}>ECONÓMICO</th>
                   <th style={{ minWidth: '130px' }}>RUTA</th>
                   <th style={{ minWidth: '110px' }}>TARJETÓN</th>
                   <th style={{ minWidth: '200px' }}>CONDUCTOR</th>
@@ -560,8 +566,8 @@ export default function HistorialGeneral() {
               <tbody>
                 {filteredData.map((d, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
-                    <td style={{ fontWeight: '700' }}>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{getTipoDisplay(d) || '-'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '-'}</td>
                     <td>{d.ruta || '-'}</td>
                     <td>
                       <div>{d.numero_tarjeton || '-'}</div>

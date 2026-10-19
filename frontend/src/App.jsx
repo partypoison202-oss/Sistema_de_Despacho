@@ -3,7 +3,13 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import GlobalClock from './components/GlobalClock/GlobalClock';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { lazy, Suspense } from 'react';
+
+function RealtimeSyncManager() {
+  useRealtimeSync();
+  return null;
+}
 
 // ── Carga inmediata (siempre necesarios) ──────────────────────────────────────
 import Login from './pages/Login/Login';
@@ -101,6 +107,7 @@ function PageLoader() {
 function App() {
   return (
     <AuthProvider>
+      <RealtimeSyncManager />
       <GlobalClock />
       <ScrollToTop />
       <BrowserRouter>

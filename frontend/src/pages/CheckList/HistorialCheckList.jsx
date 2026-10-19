@@ -148,10 +148,14 @@ const ChecklistPreviewInline = ({ previewChecklist, setPreviewId, setLightboxIma
                 </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-6 mb-6">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-7 mb-6">
                 <div className="rounded-lg bg-gray-50 p-3 sm:col-span-1">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Tipo Unidad</p>
-                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{previewChecklist.tipo_unidad}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-gray-800">{previewChecklist.tipo_unidad ? String(previewChecklist.tipo_unidad).toUpperCase() : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3 sm:col-span-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Económico</p>
+                    <p className="mt-0.5 text-sm font-extrabold text-gray-900">{previewChecklist.economico ? String(previewChecklist.economico).padStart(3, '0') : '—'}</p>
                 </div>
                 <div className="rounded-lg bg-gray-50 p-3 sm:col-span-1">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Servicio / Ruta</p>
@@ -628,7 +632,8 @@ export default function HistorialCheckList() {
                                         <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white first:rounded-tl-xl">#</th>
                                         <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Fecha / Hora</th>
                                         <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Inspector</th>
-                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Tipo Unidad</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">TIPO UNIDAD</th>
+                                        <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">ECONÓMICO</th>
                                         <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Conductor</th>
                                         <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white">Servicio / Ruta</th>
                                         <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-white text-center">Bien</th>
@@ -669,8 +674,11 @@ export default function HistorialCheckList() {
                                                 <td className="px-5 py-3 text-sm text-gray-700">{c.user_name}</td>
                                                 <td className="px-5 py-3">
                                                     <span className="rounded-full bg-guinda-700/10 px-2.5 py-1 text-xs font-semibold text-guinda-700">
-                                                        {c.tipo_unidad}
+                                                        {c.tipo_unidad ? String(c.tipo_unidad).toUpperCase() : '—'}
                                                     </span>
+                                                </td>
+                                                <td className="px-5 py-3 font-extrabold text-slate-900">
+                                                    {c.economico ? String(c.economico).padStart(3, '0') : '—'}
                                                 </td>
                                                 <td className="px-5 py-3">
                                                     <p className="text-sm font-medium text-gray-800">{condNombre}</p>
@@ -680,7 +688,7 @@ export default function HistorialCheckList() {
                                                 <td className="px-5 py-3 text-center">
                                                     <span className="inline-flex items-center justify-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">
                                                         {c.total_bien}
-                                                    </span>
+                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3 text-center">
                                                     <span className="inline-flex items-center justify-center rounded-lg bg-red-50 px-2.5 py-1 text-xs font-bold text-red-500">
@@ -724,7 +732,7 @@ export default function HistorialCheckList() {
                                             </tr>
                                             {previewId === c.id && (
                                                 <tr className="bg-gray-50/50">
-                                                    <td colSpan="9" className="p-0 border-b border-gray-200">
+                                                    <td colSpan="10" className="p-0 border-b border-gray-200">
                                                         <div className="p-4 sm:p-6 animate-in slide-in-from-top-2">
                                                             <ChecklistPreviewInline 
                                                                 previewChecklist={c}

@@ -88,7 +88,7 @@ export default function HistorialDespacho() {
     if (activeTab === 'cambios') {
       return activeData.filter(d => {
         const eco = String(d.economico || '').toLowerCase();
-        const tipo = String(d.tipo_unidad || '').toLowerCase();
+        const tipo = String(d.tipo_unidad || d.tipo || '').toLowerCase();
         const accion = formatAccion(d.tipo_accion).toLowerCase();
         const ant = String(d.estatus_anterior || '').toLowerCase();
         const nvo = String(d.estatus_nuevo || '').toLowerCase();
@@ -101,7 +101,7 @@ export default function HistorialDespacho() {
     // inicio o fin
     return activeData.filter(d => {
       const eco = String(d.economico || '').toLowerCase();
-      const tipo = String(d.tipo || '').toLowerCase();
+      const tipo = String(d.tipo || d.tipo_unidad || '').toLowerCase();
       const ruta = String(d.ruta || '').toLowerCase();
       const tarj = String(d.numero_tarjeton || '').toLowerCase();
       const cond = String(d.nombre_conductor || '').toLowerCase();
@@ -121,20 +121,25 @@ export default function HistorialDespacho() {
 
     let worksheetData;
     if (activeTab === 'cambios') {
-      worksheetData = dataToExport.map(d => ({
-        'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
-        'MODIFICACIÓN': formatAccion(d.tipo_accion),
-        'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
-        'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
-        'DETALLES': d.detalles || '',
-        'USUARIO': d.usuario_nombre || 'SISTEMA'
-      }));
+      worksheetData = dataToExport.map(d => {
+        const t = d.tipo_unidad || d.tipo;
+        return {
+          'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+          'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
+          'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
+          'MODIFICACIÓN': formatAccion(d.tipo_accion),
+          'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
+          'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
+          'DETALLES': d.detalles || '',
+          'USUARIO': d.usuario_nombre || 'SISTEMA'
+        };
+      });
     } else {
-      worksheetData = dataToExport.map(d => ({
-        'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-        'ECO': d.economico || '',
+      worksheetData = dataToExport.map(d => {
+        const t = d.tipo || d.tipo_unidad;
+        return {
+          'TIPO UNIDAD': t ? (String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase()) : '',
+          'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'RUTA': d.ruta || '',
         'TARJETÓN TITULAR': d.numero_tarjeton || '',
         'CONDUCTOR TITULAR': d.nombre_conductor || 'SIN ASIGNAR',
@@ -142,10 +147,11 @@ export default function HistorialDespacho() {
         'CONDUCTOR RELEVO': d.relevo_conductor || '',
         'HORA RELEVO': d.relevo_hora || '',
         'CORRIDAS FALTANTES': d.corridas || '',
-        'CICLO PERDIDO': d.ciclo || '',
-        'MOTIVO DE FALTANTE': d.motivo || '',
-        'ESTATUS FINAL': d.estatus || ''
-      }));
+          'CICLO PERDIDO': d.ciclo || '',
+          'MOTIVO DE FALTANTE': d.motivo || '',
+          'ESTATUS FINAL': d.estatus || ''
+        };
+      });
     }
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -277,8 +283,8 @@ export default function HistorialDespacho() {
               <thead>
                 <tr>
                   <th>HORA</th>
-                  <th>ECO</th>
                   <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>MODIFICACIÓN</th>
                   <th>VALOR ANTERIOR</th>
                   <th>VALOR NUEVO</th>
@@ -290,8 +296,8 @@ export default function HistorialDespacho() {
                 {filteredData.map((d, i) => (
                   <tr key={d.id || i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
-                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
-                    <td style={{ fontWeight: '600' }}>{d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '-'}</td>
+                    <td style={{ fontWeight: '600' }}>{(d.tipo_unidad || d.tipo) ? (String(d.tipo_unidad || d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo_unidad || d.tipo).toUpperCase()) : '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>
                       <span className="estatus-badge" style={getAccionBadgeStyle(d.tipo_accion)}>
                         {formatAccion(d.tipo_accion)}
@@ -320,8 +326,8 @@ export default function HistorialDespacho() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th>TIPO</th>
-                  <th>ECO</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>RUTA</th>
                   <th>TARJETÓN</th>
                   <th>CONDUCTOR</th>
@@ -334,8 +340,8 @@ export default function HistorialDespacho() {
               <tbody>
                 {filteredData.map((d, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
-                    <td style={{ fontWeight: '700' }}>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{(d.tipo || d.tipo_unidad) ? (String(d.tipo || d.tipo_unidad).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo || d.tipo_unidad).toUpperCase()) : '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>{d.ruta || '-'}</td>
                     <td>
                       <div>{d.numero_tarjeton || '-'}</div>

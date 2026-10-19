@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use App\Helpers\BitacoraHelper;
 use App\Helpers\BitacoraConductorHelper;
 use App\Models\Conductor;
+use App\Services\SyncService;
 
 class PlataformaController extends Controller
 {
@@ -838,6 +839,7 @@ class PlataformaController extends Controller
             );
 
             DB::commit();
+            SyncService::notifyChange();
             return response()->json([
                 'status' => 'success',
                 'message' => 'Movimiento registrado correctamente',

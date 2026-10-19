@@ -92,25 +92,29 @@ export default function HistorialMantenimiento() {
   const datosFiltrados = activeData.filter(d => {
     if (!filtroBusqueda) return true;
     const busqueda = filtroBusqueda.toLowerCase();
+    const rawTipo = d.tipo || d.tipo_unidad;
+    const tipoStr = rawTipo ? (String(rawTipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(rawTipo).toUpperCase()).toLowerCase() : '';
+    const ecoStr = String(d.economico || '').toLowerCase();
     
     if (activeTab === 'cambios') {
-      const ecoStr = String(d.economico || '').toLowerCase();
       const detallesStr = String(d.detalles || '').toLowerCase();
       const usrStr = String(d.usuario_nombre || '').toLowerCase();
-      return ecoStr.includes(busqueda) || detallesStr.includes(busqueda) || usrStr.includes(busqueda);
+      return tipoStr.includes(busqueda) || ecoStr.includes(busqueda) || detallesStr.includes(busqueda) || usrStr.includes(busqueda);
     } else if (activeTab === 'checklists') {
-      const tipoStr = d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()).toLowerCase() : '';
-      const ecoStr = String(d.economico || '').toLowerCase();
       const cinchoStr = String(d.numero_cincho || '').toLowerCase();
       return tipoStr.includes(busqueda) || ecoStr.includes(busqueda) || cinchoStr.includes(busqueda);
     } else {
-      const tipoStr = d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()).toLowerCase() : '';
-      const ecoStr = String(d.economico || '').toLowerCase();
       const motivoStr = String(d.motivo_estatus || '').toLowerCase();
       const fallaStr = String(d.falla || '').toLowerCase();
       return tipoStr.includes(busqueda) || ecoStr.includes(busqueda) || motivoStr.includes(busqueda) || fallaStr.includes(busqueda);
     }
   });
+
+  const getTipoDisplay = (d) => {
+    const t = d.tipo || d.tipo_unidad;
+    if (!t) return '';
+    return String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase();
+  };
 
   const exportToExcel = () => {
     if (datosFiltrados.length === 0) return;
@@ -119,8 +123,8 @@ export default function HistorialMantenimiento() {
     if (activeTab === 'cambios') {
       worksheetData = datosFiltrados.map(d => ({
         'HORA': d.hora ? new Date(d.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
-        'ECO': d.economico || '',
-        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'MODIFICACIÓN': formatAccion(d.tipo_accion),
         'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
         'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
@@ -129,8 +133,8 @@ export default function HistorialMantenimiento() {
       }));
     } else if (activeTab === 'checklists') {
       worksheetData = datosFiltrados.map(d => ({
-        'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-        'ECO': d.economico || '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'COMBUSTIBLE': d.nivel_combustible || '',
         'ADBLUE': d.nivel_adblue || '',
         'KILOMETRAJE': d.kilometraje || '',
@@ -140,8 +144,8 @@ export default function HistorialMantenimiento() {
       }));
     } else {
       worksheetData = datosFiltrados.map(d => ({
-        'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-        'ECO': d.economico || '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
         'ESTATUS': d.estatus || '',
         'MOTIVO DE ESTATUS (BAJA)': d.motivo_estatus || '',
         'FALLA REPORTADA': d.falla || ''
@@ -161,8 +165,8 @@ export default function HistorialMantenimiento() {
 
   const exportRowToExcel = (d) => {
     const worksheetData = [{
-      'TIPO': d.tipo ? (String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()) : '',
-      'ECO': d.economico || '',
+      'TIPO UNIDAD': getTipoDisplay(d),
+      'ECONÓMICO': d.economico ? String(d.economico).padStart(3, '0') : '',
       'COMBUSTIBLE': d.nivel_combustible || '',
       'ADBLUE': d.nivel_adblue || '',
       'KILOMETRAJE': d.kilometraje || '',
@@ -309,8 +313,8 @@ export default function HistorialMantenimiento() {
               <thead>
                 <tr>
                   <th>HORA</th>
-                  <th>ECO</th>
                   <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>MODIFICACIÓN</th>
                   <th>VALOR ANTERIOR</th>
                   <th>VALOR NUEVO</th>
@@ -322,8 +326,8 @@ export default function HistorialMantenimiento() {
                 {datosFiltrados.map((d, i) => (
                   <tr key={d.id || i}>
                     <td style={{ fontWeight: '700', color: '#64748b' }}>{formatearHora(d.hora)}</td>
-                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico}</td>
-                    <td style={{ fontWeight: '600' }}>{d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '-'}</td>
+                    <td style={{ fontWeight: '600' }}>{getTipoDisplay(d) || '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>
                       <span className="estatus-badge" style={getAccionBadgeStyle(d.tipo_accion)}>
                         {formatAccion(d.tipo_accion)}
@@ -348,8 +352,8 @@ export default function HistorialMantenimiento() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th>TIPO</th>
-                  <th>ECO</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>COMBUSTIBLE</th>
                   <th>ADBLUE</th>
                   <th>KILOMETRAJE</th>
@@ -362,8 +366,8 @@ export default function HistorialMantenimiento() {
               <tbody>
                 {datosFiltrados.map((d, i) => (
                   <tr key={i}>
-                    <td>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
-                    <td>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{getTipoDisplay(d) || '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>{d.nivel_combustible || '-'}</td>
                     <td>{d.nivel_adblue || '-'}</td>
                     <td>{d.kilometraje || '-'}</td>
@@ -399,8 +403,8 @@ export default function HistorialMantenimiento() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th>TIPO</th>
-                  <th>ECO</th>
+                  <th>TIPO UNIDAD</th>
+                  <th>ECONÓMICO</th>
                   <th>ESTATUS</th>
                   <th>MOTIVO DE ESTATUS (BAJA)</th>
                   <th>FALLA REPORTADA</th>
@@ -409,8 +413,8 @@ export default function HistorialMantenimiento() {
               <tbody>
                 {datosFiltrados.map((d, i) => (
                   <tr key={i}>
-                    <td style={{ fontWeight: '600' }}>{String(d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo).toUpperCase()}</td>
-                    <td style={{ fontWeight: '700' }}>{d.economico}</td>
+                    <td style={{ fontWeight: '600' }}>{getTipoDisplay(d) || '—'}</td>
+                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                     <td>
                       <span className={`estatus-badge estatus-${String(d.estatus || 'operacion').toLowerCase()}`}>
                         {d.estatus}
