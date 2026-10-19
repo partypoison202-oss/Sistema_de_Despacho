@@ -356,6 +356,30 @@ export default function Mantenimiento() {
                   </span>
                 </button>
               </div>
+
+              {/* Botón hacia Historial Mantenimiento (Revisión e Historial de Folios Previos) */}
+              <div className="mantenimiento__actions-extra">
+                <button
+                  type="button"
+                  className="mant-btn mant-btn--historial"
+                  onClick={() => navigate('/historial/mantenimiento', { state: { tab: 'folios' } })}
+                  title="Ir a Historial de Mantenimiento - Revisión e Historial de Folios Previos"
+                >
+                  <svg className="mant-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v5h5" />
+                    <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
+                    <path d="M12 7v5l4 2" />
+                  </svg>
+                  <span>
+                    <strong>Historial de Mantenimiento</strong>
+                    <small>Revisión e Historial de Folios Previos</small>
+                  </span>
+                  <svg className="mant-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
@@ -10,14 +11,21 @@ import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import './Historial.css';
 
 export default function HistorialMantenimiento() {
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [selectedFecha, setSelectedFecha] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [filtroBusqueda, setFiltroBusqueda] = useState('');
-  const [activeTab, setActiveTab] = useState('folios'); // 'folios', 'inicio', 'cambios', 'fin', 'checklists'
+  const [activeTab, setActiveTab] = useState(location?.state?.tab || 'folios'); // 'folios', 'inicio', 'cambios', 'fin', 'checklists'
   const [verSoloFechaFolios, setVerSoloFechaFolios] = useState(true);
   const [filtroTipoFolio, setFiltroTipoFolio] = useState('todos'); // 'todos', 'con_folio', 'pendientes', 'mantenimiento'
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (location?.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+  }, [location?.state?.tab]);
 
   // Estados para Modal de Edición de Folio / Fecha
   const [modalEdicionOpen, setModalEdicionOpen] = useState(false);
