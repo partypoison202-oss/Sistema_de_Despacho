@@ -744,7 +744,7 @@ class HistorialOperativoController extends Controller
             'folio_mantenimiento' => 'nullable|string|max:50',
             'fecha_folio_mantenimiento' => 'nullable|string',
             'numero_incidencia' => 'nullable|string|max:50',
-            'motivo_auditoria' => 'required|string|min:3|max:500'
+            'motivo_auditoria' => 'required|string|min:5|max:500'
         ]);
 
         $registro = DB::table('informacion_operativa')->where('id', $request->id)->first();
@@ -755,10 +755,10 @@ class HistorialOperativoController extends Controller
         $unidad = DB::table('unidades')->where('id', $registro->unidad_id)->first();
         $eco = $unidad ? $unidad->numero_eco : $registro->unidad_id;
 
-        $nuevoFolio = $request->filled('folio_mantenimiento') ? trim($request->folio_mantenimiento) : null;
-        $nuevaIncidencia = $request->filled('numero_incidencia') ? trim($request->numero_incidencia) : null;
+        $nuevoFolio = $request->filled('folio_mantenimiento') ? mb_strtoupper(trim($request->folio_mantenimiento), 'UTF-8') : null;
+        $nuevaIncidencia = $request->filled('numero_incidencia') ? mb_strtoupper(trim($request->numero_incidencia), 'UTF-8') : null;
         $nuevaFecha = $request->filled('fecha_folio_mantenimiento') ? $request->fecha_folio_mantenimiento : null;
-        $motivoAuditoria = trim($request->motivo_auditoria);
+        $motivoAuditoria = mb_strtoupper(trim($request->motivo_auditoria), 'UTF-8');
 
         // Validar que el folio no esté duplicado en otra unidad
         if ($nuevoFolio) {

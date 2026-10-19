@@ -541,10 +541,10 @@ export default function HistorialMantenimiento() {
   const handleGuardarEdicionFolio = async (e) => {
     if (e) e.preventDefault();
 
-    if (!formMotivoCambio.trim() || formMotivoCambio.trim().length < 3) {
+    if (!formMotivoCambio.trim() || formMotivoCambio.trim().length < 5) {
       Swal.fire({
-        title: 'Motivo Requerido',
-        text: 'Debe ingresar una justificación o motivo para registrar este cambio en la bitácora.',
+        title: 'Motivo Obligatorio',
+        text: 'Debe ingresar una justificación obligatoria de al menos 5 caracteres para poder registrar este cambio en la bitácora.',
         icon: 'warning',
         confirmButtonColor: '#691B31'
       });
@@ -566,7 +566,7 @@ export default function HistorialMantenimiento() {
           numero_incidencia: formIncidencia.trim() ? formIncidencia.trim().toUpperCase() : null,
           folio_mantenimiento: formFolio.trim() ? formFolio.trim().toUpperCase() : null,
           fecha_folio_mantenimiento: formFechaFolio ? `${formFechaFolio} 12:00:00` : null,
-          motivo_auditoria: formMotivoCambio.trim()
+          motivo_auditoria: formMotivoCambio.trim().toUpperCase()
         })
       });
 
@@ -1686,14 +1686,15 @@ export default function HistorialMantenimiento() {
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#691B31' }}>
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                     </svg>
-                    Motivo de la Modificación *
+                    Motivo de la Modificación * (OBLIGATORIO)
                   </label>
                   <textarea
                     rows="3"
                     value={formMotivoCambio}
-                    onChange={(e) => setFormMotivoCambio(e.target.value)}
-                    placeholder="Escriba la justificación del cambio para la bitácora histórica (ej. Corrección en folio físico emitido por taller)..."
+                    onChange={(e) => setFormMotivoCambio(e.target.value.toUpperCase())}
+                    placeholder="ESCRIBA LA JUSTIFICACIÓN OBLIGATORIA DEL CAMBIO PARA LA BITÁCORA HISTÓRICA (EJ. CORRECCIÓN EN FOLIO FÍSICO EMITIDO POR TALLER)..."
                     className="textarea-luxury"
+                    style={{ textTransform: 'uppercase' }}
                     required
                     disabled={isGuardandoEdicion}
                   />
