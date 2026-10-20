@@ -907,7 +907,7 @@ export default function HistorialMantenimiento() {
           </div>
         </div>
 
-        <div className="historial-header">
+        <div className={`historial-header ${isDropdownOpen ? 'dropdown-open-active' : ''}`}>
           <div className="historial-header-title-box">
             <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
               Registro Diario de Mantenimiento
@@ -4326,6 +4326,8 @@ export default function HistorialMantenimiento() {
 
         /* Barra de Encabezado Superior Compacta y Ordenada */
         .historial-header {
+          position: relative;
+          z-index: 50;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -4338,11 +4340,16 @@ export default function HistorialMantenimiento() {
           margin-bottom: 1.5rem;
           flex-wrap: wrap;
         }
+        .historial-header.dropdown-open-active {
+          z-index: 120;
+        }
         .historial-header-title-box {
           flex: 1 1 320px;
           min-width: 260px;
         }
         .historial-toolbar-controls {
+          position: relative;
+          z-index: 70;
           display: flex;
           align-items: center;
           gap: 0.75rem;
@@ -4350,6 +4357,8 @@ export default function HistorialMantenimiento() {
           flex-shrink: 0;
         }
         .historial-date-control {
+          position: relative;
+          z-index: 80;
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -4369,6 +4378,7 @@ export default function HistorialMantenimiento() {
         .custom-dropdown-container {
           position: relative;
           min-width: 145px;
+          z-index: 90;
         }
         .custom-dropdown-trigger {
           display: flex;
