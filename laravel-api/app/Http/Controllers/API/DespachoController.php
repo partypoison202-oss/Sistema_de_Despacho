@@ -1291,12 +1291,12 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+            if ($tieneServicioAsignado) {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
             } else {
-                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+                $data['estatus'] = 'reserva';
             }
 
             if (strtolower($data['estatus']) === 'reserva') {
@@ -1801,12 +1801,17 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+            if ($tieneServicioAsignado) {
+                // Si la unidad tiene asignada una ruta, conductor o corrida,
+                // su estatus operativo DEBE ser 'operacion', sin importar si previamente
+                // venía marcada como 'reserva', 'mantenimiento' o 'percance'.
+                // De lo contrario, la condición posterior de mantenimiento/reserva
+                // borraría la ruta y conductor asignados.
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
             } else {
-                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+                $data['estatus'] = 'reserva';
             }
 
             if (strtolower($data['estatus']) === 'reserva') {
@@ -2192,12 +2197,12 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+            if ($tieneServicioAsignado) {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
             } else {
-                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+                $data['estatus'] = 'reserva';
             }
 
             if (strtolower($data['estatus']) === 'reserva') {

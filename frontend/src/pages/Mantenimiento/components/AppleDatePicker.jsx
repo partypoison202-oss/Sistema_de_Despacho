@@ -133,12 +133,15 @@ const AppleDatePicker = ({ value, onChange, placeholder = "Seleccionar fecha", d
     if (!value) return placeholder;
     const parts = value.split('-');
     if (parts.length === 3) {
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
       if (mode === 'month') {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
         const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         return `${meses[d.getMonth()]} ${d.getFullYear()}`;
       }
-      return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+      const day = String(parts[2]).padStart(2, '0');
+      const month = String(parts[1]).padStart(2, '0');
+      const year = parts[0];
+      return `${day}/${month}/${year}`;
     }
     return value;
   };

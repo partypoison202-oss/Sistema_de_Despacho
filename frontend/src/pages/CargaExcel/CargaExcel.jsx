@@ -61,16 +61,13 @@ const mismoValor = (a, b, k) => valorComparable(a?.[k]) === valorComparable(b?.[
 // hora). Para editar y guardar se debe usar siempre al titular real; de lo contrario, al guardar el relevo
 // quedaría como titular y duplicado en la misma unidad.
 const normalizarFilaServidor = (item) => {
-  let row = item;
+  let row = { ...item };
   if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
-    row = { ...row, ESTATUS: 'reserva' };
+    row.ESTATUS = 'reserva';
   }
-  if (row.TARJETON && 'TARJETON_TITULAR' in row) {
-    row = {
-      ...row,
-      TARJETON: row.TARJETON_TITULAR || '',
-      NOMBRE_CONDUCTOR: row.CONDUCTOR_TITULAR || '',
-    };
+  if ('TARJETON_TITULAR' in row && row.TARJETON_TITULAR) {
+    row.TARJETON = row.TARJETON_TITULAR;
+    row.NOMBRE_CONDUCTOR = row.CONDUCTOR_TITULAR || row.NOMBRE_CONDUCTOR || '';
   }
   return row;
 };
@@ -205,10 +202,17 @@ export default function CargaExcel({ isPasteles = false }) {
   // realmente modificadas y detectar si alguien más las cambió mientras se editaba.
   const baselineRef = useRef(new Map());
 
+  const normalizeEcoKey = (eco) => String(eco ?? '').trim().replace(/^0+/, '') || '0';
+
   useEffect(() => {
     if (serverData && !hasChanges) {
       const dataToSet = serverData.map(normalizarFilaServidor);
-      baselineRef.current = new Map(dataToSet.map(r => [String(r.ECONOMICO), r]));
+      const newMap = new Map();
+      dataToSet.forEach(r => {
+        newMap.set(String(r.ECONOMICO), r);
+        newMap.set(normalizeEcoKey(r.ECONOMICO), r);
+      });
+      baselineRef.current = newMap;
       setPreviewData(dataToSet);
     }
   }, [serverData, hasChanges]);
@@ -399,29 +403,14 @@ export default function CargaExcel({ isPasteles = false }) {
         newDriverConductor.estado_servicio = 'en_servicio';
       }
 
-      // Desvincular de cualquier otra unidad donde estuviera asignado (como titular o relevo) para evitar duplicados
-      const normVal = normalizeTarjeton(valStr);
-      for (let i = 0; i < updatedData.length; i++) {
-        if (i !== index) {
-          if (normalizeTarjeton(updatedData[i]['RELEVO_TARJETON']) === normVal) {
-            updatedData[i] = {
-              ...updatedData[i],
-              RELEVO_TARJETON: '',
-              RELEVO_CONDUCTOR: ''
-            };
-          }
-          if (normalizeTarjeton(updatedData[i]['TARJETON']) === normVal) {
-            updatedData[i] = {
-              ...updatedData[i],
-              TARJETON: '',
-              NOMBRE_CONDUCTOR: ''
-            };
-          }
-        }
-      }
-
       updatedData[index]['RELEVO_TARJETON'] = valStr;
       updatedData[index]['RELEVO_CONDUCTOR'] = newDriverName;
+      if (valStr) {
+        const st = String(updatedData[index]['ESTATUS'] || '').toLowerCase();
+        if (st === 'reserva' || st === 'mantenimiento' || st === 'percance' || st.includes('no_programada') || st.includes('no programada')) {
+          updatedData[index]['ESTATUS'] = 'operacion';
+        }
+      }
       setPreviewData(updatedData);
       setHasChanges(true);
       return;
@@ -471,33 +460,18 @@ export default function CargaExcel({ isPasteles = false }) {
         newDriverConductor.estado_servicio = 'en_servicio';
       }
 
-      // Desvincular de cualquier otra unidad donde estuviera asignado (como titular o relevo) para evitar duplicados
-      const normVal = normalizeTarjeton(valStr);
-      for (let i = 0; i < updatedData.length; i++) {
-        if (i !== index) {
-          if (normalizeTarjeton(updatedData[i]['TARJETON']) === normVal) {
-            updatedData[i] = {
-              ...updatedData[i],
-              TARJETON: '',
-              NOMBRE_CONDUCTOR: ''
-            };
-          }
-          if (normalizeTarjeton(updatedData[i]['RELEVO_TARJETON']) === normVal) {
-            updatedData[i] = {
-              ...updatedData[i],
-              RELEVO_TARJETON: '',
-              RELEVO_CONDUCTOR: ''
-            };
-          }
-        }
-      }
-
       if (isPasteles && currentTarjeton && normalizeTarjeton(currentTarjeton) !== normalizeTarjeton(valStr)) {
         await solicitarFaltaSiAplica(currentTarjeton, currentDriverName, currentEco, 'conductor');
       }
 
       updatedData[index]['TARJETON'] = valStr;
       updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
+      if (valStr) {
+        const st = String(updatedData[index]['ESTATUS'] || '').toLowerCase();
+        if (st === 'reserva' || st === 'mantenimiento' || st === 'percance' || st.includes('no_programada') || st.includes('no programada')) {
+          updatedData[index]['ESTATUS'] = 'operacion';
+        }
+      }
       setPreviewData(updatedData);
       setHasChanges(true);
       return;
@@ -528,18 +502,6 @@ export default function CargaExcel({ isPasteles = false }) {
         newManiobristaCatalog.estado_servicio = 'en_servicio';
       }
 
-      // Desvincular de cualquier otra unidad donde estuviera asignado como maniobrista
-      const normVal = normalizeTarjeton(valStr);
-      for (let i = 0; i < updatedData.length; i++) {
-        if (i !== index && normalizeTarjeton(updatedData[i]['TARJETON_MANIOBRISTA']) === normVal) {
-          updatedData[i] = {
-            ...updatedData[i],
-            TARJETON_MANIOBRISTA: '',
-            NOMBRE_MANIOBRISTA: ''
-          };
-        }
-      }
-
       updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
       updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
       setPreviewData(updatedData);
@@ -555,8 +517,20 @@ export default function CargaExcel({ isPasteles = false }) {
     } else if (field === 'HORA_DE_ACOPLE' || field === 'HORA_SALIDA_PATIO') {
       updatedData[index]['HORA_DE_ACOPLE'] = value;
       updatedData[index]['HORA_SALIDA_PATIO'] = value;
+      if (value) {
+        const st = String(updatedData[index]['ESTATUS'] || '').toLowerCase();
+        if (st === 'reserva' || st === 'mantenimiento' || st === 'percance' || st.includes('no_programada') || st.includes('no programada')) {
+          updatedData[index]['ESTATUS'] = 'operacion';
+        }
+      }
     } else {
       updatedData[index][field] = value;
+      if ((field === 'RUTA' || field === 'CORRIDAS') && value) {
+        const st = String(updatedData[index]['ESTATUS'] || '').toLowerCase();
+        if (st === 'reserva' || st === 'mantenimiento' || st === 'percance' || st.includes('no_programada') || st.includes('no programada')) {
+          updatedData[index]['ESTATUS'] = 'operacion';
+        }
+      }
     }
 
     setPreviewData(updatedData);
@@ -826,7 +800,8 @@ export default function CargaExcel({ isPasteles = false }) {
     // otras unidades en ese lapso, este guardado las regresaba a su valor viejo ("se borran datos").
     const baseline = baselineRef.current;
     const modificadas = previewData.filter((row) => {
-      const base = baseline.get(String(row.ECONOMICO));
+      const ecoKey = normalizeEcoKey(row.ECONOMICO);
+      const base = baseline.get(ecoKey) || baseline.get(String(row.ECONOMICO));
       return !base || JSON.stringify(base) !== JSON.stringify(row);
     });
 
@@ -844,10 +819,12 @@ export default function CargaExcel({ isPasteles = false }) {
     let frescos;
     try {
       const datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva] });
-      frescos = new Map(datosFrescos.map((item) => {
+      frescos = new Map();
+      datosFrescos.forEach((item) => {
         const r = normalizarFilaServidor(item);
-        return [String(r.ECONOMICO), r];
-      }));
+        frescos.set(String(r.ECONOMICO), r);
+        frescos.set(normalizeEcoKey(r.ECONOMICO), r);
+      });
     } catch (e) {
       Swal.fire({
         icon: 'error',
@@ -862,8 +839,9 @@ export default function CargaExcel({ isPasteles = false }) {
     const conflictosPorEco = [];
     modificadas.forEach((row) => {
       const eco = String(row.ECONOMICO);
-      const base = baseline.get(eco);
-      const fresca = frescos.get(eco);
+      const ecoKey = normalizeEcoKey(eco);
+      const base = baseline.get(ecoKey) || baseline.get(eco);
+      const fresca = frescos.get(ecoKey) || frescos.get(eco);
       if (!base || !fresca) {
         filasAGuardar.push({ eco, merged: row, conflictos: [] });
         return;
