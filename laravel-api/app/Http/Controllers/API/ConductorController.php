@@ -1312,26 +1312,73 @@ class ConductorController extends Controller
             ->orWhereNull('estatus')
             ->get();
 
+        // Si el mes incluye el día de hoy, sincronizar asistencias del día
+        $todayStr = date('Y-m-d');
+        if ($todayStr >= $startOfMonth->toDateString() && $todayStr <= $endOfMonth->toDateString()) {
+            DespachoController::sincronizarAsistenciasHoy();
+        }
+
         // Obtener historial operativo de asistencias validadas en el mes
-        $historialMap = []; // [tarjetonNormalizado][YYYY-MM-DD] = true
+        $historialMap = [];        // [tarjetonKey][YYYY-MM-DD] = true
+        $nombreHistorialMap = [];  // [nombreTokens][YYYY-MM-DD] = true
         
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('historial_operativo')) {
                 $registrosHistorial = DB::table('historial_operativo')
                     ->whereBetween('fecha_historial', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                    ->whereNotNull('numero_tarjeton')
-                    ->where('numero_tarjeton', '!=', '')
-                    ->whereNotNull('hora_real_salida_patio')
-                    ->where('hora_real_salida_patio', '!=', '')
-                    ->where('hora_real_salida_patio', '!=', '00:00:00')
-                    ->where('hora_real_salida_patio', '!=', '00:00')
-                    ->select('fecha_historial', 'numero_tarjeton')
+                    ->where(function($q) {
+                        $q->where(function($q2) {
+                            $q2->whereNotNull('hora_real_salida_patio')
+                               ->where('hora_real_salida_patio', '!=', '')
+                               ->where('hora_real_salida_patio', '!=', '00:00:00')
+                               ->where('hora_real_salida_patio', '!=', '00:00');
+                        })->orWhere(function($q3) {
+                            $q3->whereNotNull('hora_salida')
+                               ->where('hora_salida', '!=', '')
+                               ->where('hora_salida', '!=', '00:00:00')
+                               ->where('hora_salida', '!=', '00:00');
+                        })->orWhere(DB::raw('LOWER(estatus)'), 'operacion');
+                    })
+                    ->select('fecha_historial', 'numero_tarjeton', 'relevo_tarjeton', 'nombre_conductor', 'relevo_conductor')
                     ->get();
 
                 foreach ($registrosHistorial as $h) {
-                    $tarjNorm = preg_replace('/\D/', '', (string)$h->numero_tarjeton);
-                    if ($tarjNorm) {
-                        $historialMap[$tarjNorm][$h->fecha_historial] = true;
+                    $fecha = $h->fecha_historial;
+
+                    if (!empty($h->numero_tarjeton)) {
+                        $candidatos = PlataformaController::obtenerCandidatosTarjeton($h->numero_tarjeton);
+                        foreach ($candidatos as $cand) {
+                            $historialMap[$cand][$fecha] = true;
+                        }
+                        $tarjNorm = (string)(int)preg_replace('/\D/', '', (string)$h->numero_tarjeton);
+                        if ($tarjNorm !== '0') {
+                            $historialMap[$tarjNorm][$fecha] = true;
+                        }
+                    }
+
+                    if (!empty($h->relevo_tarjeton)) {
+                        $candidatosRel = PlataformaController::obtenerCandidatosTarjeton($h->relevo_tarjeton);
+                        foreach ($candidatosRel as $candRel) {
+                            $historialMap[$candRel][$fecha] = true;
+                        }
+                        $tarjRelNorm = (string)(int)preg_replace('/\D/', '', (string)$h->relevo_tarjeton);
+                        if ($tarjRelNorm !== '0') {
+                            $historialMap[$tarjRelNorm][$fecha] = true;
+                        }
+                    }
+
+                    if (!empty($h->nombre_conductor)) {
+                        $tokens = DespachoController::tokenizarNombre($h->nombre_conductor);
+                        if ($tokens) {
+                            $nombreHistorialMap[$tokens][$fecha] = true;
+                        }
+                    }
+
+                    if (!empty($h->relevo_conductor)) {
+                        $tokensRel = DespachoController::tokenizarNombre($h->relevo_conductor);
+                        if ($tokensRel) {
+                            $nombreHistorialMap[$tokensRel][$fecha] = true;
+                        }
                     }
                 }
             }
@@ -1340,24 +1387,61 @@ class ConductorController extends Controller
         }
 
         // Consultar informacion_operativa si el mes incluye el día de hoy
-        $todayStr = date('Y-m-d');
         if ($todayStr >= $startOfMonth->toDateString() && $todayStr <= $endOfMonth->toDateString()) {
             try {
                 if (\Illuminate\Support\Facades\Schema::hasTable('informacion_operativa')) {
                     $hoyOps = DB::table('informacion_operativa')
-                        ->whereNotNull('numero_tarjeton')
-                        ->where('numero_tarjeton', '!=', '')
-                        ->whereNotNull('hora_real_salida_patio')
-                        ->where('hora_real_salida_patio', '!=', '')
-                        ->where('hora_real_salida_patio', '!=', '00:00:00')
-                        ->where('hora_real_salida_patio', '!=', '00:00')
-                        ->select('numero_tarjeton')
+                        ->where(function($q) {
+                            $q->whereNotNull('hora_real_salida_patio')
+                               ->where('hora_real_salida_patio', '!=', '')
+                               ->where('hora_real_salida_patio', '!=', '00:00:00')
+                               ->where('hora_real_salida_patio', '!=', '00:00');
+                        })
+                        ->orWhere(function($q) {
+                            $q->where(DB::raw('LOWER(estatus)'), 'operacion')
+                               ->where(function($q2) {
+                                   $q2->whereNotNull('hora_salida_patio')
+                                      ->orWhereNotNull('hora_salida');
+                               });
+                        })
+                        ->select('numero_tarjeton', 'relevo_tarjeton', 'nombre_conductor', 'relevo_conductor')
                         ->get();
 
                     foreach ($hoyOps as $op) {
-                        $tarjNorm = preg_replace('/\D/', '', (string)$op->numero_tarjeton);
-                        if ($tarjNorm) {
-                            $historialMap[$tarjNorm][$todayStr] = true;
+                        if (!empty($op->numero_tarjeton)) {
+                            $candidatos = PlataformaController::obtenerCandidatosTarjeton($op->numero_tarjeton);
+                            foreach ($candidatos as $cand) {
+                                $historialMap[$cand][$todayStr] = true;
+                            }
+                            $tarjNorm = (string)(int)preg_replace('/\D/', '', (string)$op->numero_tarjeton);
+                            if ($tarjNorm !== '0') {
+                                $historialMap[$tarjNorm][$todayStr] = true;
+                            }
+                        }
+
+                        if (!empty($op->relevo_tarjeton)) {
+                            $candidatosRel = PlataformaController::obtenerCandidatosTarjeton($op->relevo_tarjeton);
+                            foreach ($candidatosRel as $candRel) {
+                                $historialMap[$candRel][$todayStr] = true;
+                            }
+                            $tarjRelNorm = (string)(int)preg_replace('/\D/', '', (string)$op->relevo_tarjeton);
+                            if ($tarjRelNorm !== '0') {
+                                $historialMap[$tarjRelNorm][$todayStr] = true;
+                            }
+                        }
+
+                        if (!empty($op->nombre_conductor)) {
+                            $tokens = DespachoController::tokenizarNombre($op->nombre_conductor);
+                            if ($tokens) {
+                                $nombreHistorialMap[$tokens][$todayStr] = true;
+                            }
+                        }
+
+                        if (!empty($op->relevo_conductor)) {
+                            $tokensRel = DespachoController::tokenizarNombre($op->relevo_conductor);
+                            if ($tokensRel) {
+                                $nombreHistorialMap[$tokensRel][$todayStr] = true;
+                            }
                         }
                     }
                 }
@@ -1370,26 +1454,59 @@ class ConductorController extends Controller
         $resultado = [];
 
         foreach ($conductores as $c) {
-            $tarjetonRaw = $c->tarjeton ?: '';
-            $tarjetonNum = preg_replace('/\D/', '', $tarjetonRaw);
-            
-            // Faltas del conductor
-            $rawDetalle = $c->faltas_detalle;
-            $faltasDetalle = [];
-            if (is_array($rawDetalle)) {
-                $faltasDetalle = $rawDetalle;
-            } elseif (is_string($rawDetalle) && !empty($rawDetalle)) {
-                $parsed = json_decode($rawDetalle, true);
-                if (is_array($parsed)) $faltasDetalle = $parsed;
+            $tarjetonRaw = trim((string)($c->tarjeton ?? ''));
+            $candidatosCond = PlataformaController::obtenerCandidatosTarjeton($tarjetonRaw);
+            $tarjetonNum = (string)(int)preg_replace('/\D/', '', $tarjetonRaw);
+            $nombreTokensCond = DespachoController::tokenizarNombre(($c->nombres ?? '') . ' ' . ($c->apellidos ?? ''));
+
+            // Parsear JSONs del conductor
+            $parseArray = function ($json) {
+                if (empty($json)) return [];
+                if (is_array($json)) return $json;
+                if (is_string($json)) {
+                    $d = json_decode($json, true);
+                    return is_array($d) ? $d : [];
+                }
+                return [];
+            };
+
+            // Asistencias explícitas / manuales
+            $asistenciasFechasMap = [];
+            foreach ($parseArray($c->asistencias_detalle) as $a) {
+                $aFecha = $a['fecha'] ?? null;
+                if ($aFecha && $aFecha !== 'Fecha sin registrar') {
+                    $asistenciasFechasMap[substr((string)$aFecha, 0, 10)] = true;
+                }
             }
 
+            // Faltas del conductor
             $faltasFechasMap = [];
-            foreach ($faltasDetalle as $f) {
+            foreach ($parseArray($c->faltas_detalle) as $f) {
                 $fFecha = $f['fecha'] ?? null;
                 if ($fFecha && $fFecha !== 'Fecha sin registrar') {
-                    $fFechaClean = substr($fFecha, 0, 10);
-                    $faltasFechasMap[$fFechaClean] = true;
+                    $faltasFechasMap[substr((string)$fFecha, 0, 10)] = true;
                 }
+            }
+
+            // Descansos
+            $descansosFechasMap = [];
+            foreach ($parseArray($c->descansos_detalle) as $d) {
+                $dFecha = $d['fecha'] ?? null;
+                if ($dFecha) $descansosFechasMap[substr((string)$dFecha, 0, 10)] = true;
+            }
+
+            // Vacaciones
+            $vacacionesFechasMap = [];
+            foreach ($parseArray($c->vacaciones_detalle) as $v) {
+                $vFecha = $v['fecha'] ?? null;
+                if ($vFecha) $vacacionesFechasMap[substr((string)$vFecha, 0, 10)] = true;
+            }
+
+            // Incapacidades
+            $incapacidadesFechasMap = [];
+            foreach ($parseArray($c->incapacidades_detalle) as $inc) {
+                $incFecha = $inc['fecha'] ?? null;
+                if ($incFecha) $incapacidadesFechasMap[substr((string)$incFecha, 0, 10)] = true;
             }
 
             // Si el estado de servicio es 'falta' y hoy cae en el mes
@@ -1410,12 +1527,40 @@ class ConductorController extends Controller
 
                 $codigo = null;
 
-                if (isset($faltasFechasMap[$dateStr])) {
-                    $codigo = 'F';
-                    $countF++;
-                } elseif ($tarjetonNum && isset($historialMap[$tarjetonNum][$dateStr])) {
+                $tieneAsistencia = isset($asistenciasFechasMap[$dateStr]);
+                if (!$tieneAsistencia) {
+                    foreach ($candidatosCond as $cand) {
+                        if (isset($historialMap[$cand][$dateStr])) {
+                            $tieneAsistencia = true;
+                            break;
+                        }
+                    }
+                }
+                if (!$tieneAsistencia && $tarjetonNum !== '0' && isset($historialMap[$tarjetonNum][$dateStr])) {
+                    $tieneAsistencia = true;
+                }
+                if (!$tieneAsistencia && $nombreTokensCond && isset($nombreHistorialMap[$nombreTokensCond][$dateStr])) {
+                    $tieneAsistencia = true;
+                }
+                if (!$tieneAsistencia && $dateStr === $todayStr && $c->estado_servicio === 'en_servicio') {
+                    $tieneAsistencia = true;
+                }
+
+                if ($tieneAsistencia) {
                     $codigo = 'A';
                     $countA++;
+                } elseif (isset($faltasFechasMap[$dateStr])) {
+                    $codigo = 'F';
+                    $countF++;
+                } elseif (isset($incapacidadesFechasMap[$dateStr])) {
+                    $codigo = 'I';
+                    $countI++;
+                } elseif (isset($vacacionesFechasMap[$dateStr])) {
+                    $codigo = 'V';
+                    $countV++;
+                } elseif (isset($descansosFechasMap[$dateStr])) {
+                    $codigo = 'D';
+                    $countD++;
                 }
 
                 $diasMatriz[$dayKey] = $codigo;
@@ -1678,6 +1823,42 @@ class ConductorController extends Controller
             $incapacidadesDetalle = $parseArray($conductor->incapacidades_detalle);
             $amonestacionesDetalle = $parseArray($conductor->amonestaciones_detalle);
             $accidentesDetalle = $parseArray($conductor->accidentes_siniestros_detalle);
+            $asistenciasDetalle = $parseArray($conductor->asistencias_detalle);
+
+            // A0. Asistencias registradas en Despacho / asistencias_detalle
+            foreach ($asistenciasDetalle as $idx => $as) {
+                $asFecha = $as['fecha'] ?? null;
+                if (!$asFecha || $asFecha === 'Fecha sin registrar') continue;
+                $asFechaStr = substr((string)$asFecha, 0, 10);
+                if ($asFechaStr < $desdeStr || $asFechaStr > $hastaStr) continue;
+
+                $yaExiste = collect($eventos)->contains(fn($ev) => $ev['fecha'] === $asFechaStr && $ev['tipo'] === 'ASISTENCIA');
+                if (!$yaExiste) {
+                    $eco = $as['unidad'] ?? 'S/N';
+                    $ruta = $as['ruta'] ?? 'Ruta despachada';
+                    $esRelevo = !empty($as['es_relevo']);
+                    $horaSal = $as['hora_salida'] ?? null;
+                    $titulo = $esRelevo ? "Asistencia en Relevo (Unidad {$eco})" : "Asistencia en Despacho (Unidad {$eco})";
+                    $detalles = "Ruta: {$ruta}" . ($horaSal ? " | Salida: {$horaSal}" : '');
+
+                    $eventos[] = [
+                        'id' => $as['id'] ?? ('asistencia_det_' . $idx),
+                        'fecha' => $asFechaStr,
+                        'created_at' => $as['created_at'] ?? ($asFechaStr . ' 06:00:00'),
+                        'tipo' => 'ASISTENCIA',
+                        'subtipo' => $esRelevo ? 'RELEVO' : 'DESPACHO_REGULAR',
+                        'titulo' => $titulo,
+                        'descripcion' => $as['motivo'] ?? "Servicio despachado en Ruta {$ruta}",
+                        'detalles' => $detalles,
+                        'origen' => 'Despacho Operativo',
+                        'usuario' => 'Despacho',
+                        'badge_color' => '#15803d',
+                        'badge_bg' => '#dcfce7',
+                        'icono' => 'bus',
+                        'meta' => $as
+                    ];
+                }
+            }
 
             // A. Faltas y Faltas Justificadas
             foreach ($faltasDetalle as $idx => $f) {
