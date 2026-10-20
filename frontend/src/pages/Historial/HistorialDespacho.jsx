@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import './Historial.css';
 
 export default function HistorialDespacho() {
@@ -30,10 +31,12 @@ export default function HistorialDespacho() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Autoseleccionar la fecha más reciente al cargar las fechas
+  // Autoseleccionar la fecha más reciente al cargar las fechas (o hoy)
   useEffect(() => {
     if (fechas.length > 0 && !selectedFecha) {
       setSelectedFecha(fechas[0]);
+    } else if (!selectedFecha) {
+      setSelectedFecha(new Date().toISOString().split('T')[0]);
     }
   }, [fechas, selectedFecha]);
 
@@ -130,7 +133,7 @@ export default function HistorialDespacho() {
           'MODIFICACIÓN': formatAccion(d.tipo_accion),
           'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
           'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
-          'DETALLES': d.detalles || '',
+          'DETALLES': formatDetallesTexto(d.detalles, d.estatus_anterior, d.estatus_nuevo),
           'USUARIO': d.usuario_nombre || 'SISTEMA'
         };
       });
@@ -182,39 +185,18 @@ export default function HistorialDespacho() {
       <main className="historial-content">
         <div className="historial-header">
           <h2>Registro de Operación de Despacho</h2>
-          <div className="historial-filter">
-            <label>Seleccionar Fecha:</label>
-            <div className="custom-dropdown-container" ref={dropdownRef}>
-              <button
-                type="button"
-                className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
-                onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
-                disabled={cargando}
-              >
-                {selectedFecha || 'SELECCIONAR'}
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 10l5 5 5-5H7z" />
-                </svg>
-              </button>
-              {isDropdownOpen && (
-                <div className="custom-dropdown-menu">
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {fechas.map(f => (
-                      <button
-                        key={f}
-                        type="button"
-                        className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
-                        onClick={() => handleFechaChange(f)}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                    {fechas.length === 0 && (
-                      <div className="custom-dropdown-item" style={{ color: '#9ca3af' }}>Sin fechas disponibles</div>
-                    )}
-                  </div>
-                </div>
-              )}
+          <div className="historial-filter" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
+              <div style={{ minWidth: '160px' }}>
+                <AppleDatePicker
+                  value={selectedFecha}
+                  onChange={(val) => {
+                    if (val) setSelectedFecha(val);
+                  }}
+                  disableFuture={false}
+                />
+              </div>
             </div>
 
             <button
@@ -228,7 +210,7 @@ export default function HistorialDespacho() {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Excel
+              Descargar Excel
             </button>
           </div>
         </div>
@@ -305,7 +287,14 @@ export default function HistorialDespacho() {
                     </td>
                     <td style={{ fontWeight: '700', color: '#dc2626' }}>{d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : '-'}</td>
                     <td style={{ fontWeight: '700', color: '#16a34a' }}>{d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : '-'}</td>
-                    <td style={{ minWidth: '350px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4', color: '#334155' }}>{d.detalles || 'Sin detalles adicionales'}</td>
+                    <td style={{ minWidth: '350px', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.4' }}>
+                      <DetalleOperacion
+                        detalles={d.detalles}
+                        estatusAnterior={d.estatus_anterior}
+                        estatusNuevo={d.estatus_nuevo}
+                        fallback="Sin detalles adicionales"
+                      />
+                    </td>
                     <td style={{ fontWeight: '600', whiteSpace: 'nowrap' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                   </tr>
                 ))}

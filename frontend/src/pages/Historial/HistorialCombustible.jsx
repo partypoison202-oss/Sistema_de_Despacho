@@ -5,7 +5,7 @@ import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
@@ -140,7 +140,7 @@ export default function HistorialCombustible() {
           'MODIFICACIÓN': formatAccion(d.tipo_accion),
           'VALOR ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
           'VALOR NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
-          'DETALLES': d.detalles || '',
+          'DETALLES': formatDetallesTexto(d.detalles, d.estatus_anterior, d.estatus_nuevo),
           'USUARIO': d.usuario_nombre || 'SISTEMA'
         };
       });
@@ -355,7 +355,7 @@ export default function HistorialCombustible() {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Excel
+              Descargar Excel
             </button>
           </div>
         </div>
@@ -508,13 +508,20 @@ export default function HistorialCombustible() {
                       <td style={{ fontWeight: '600' }}>{(d.tipo_unidad || d.tipo) ? (String(d.tipo_unidad || d.tipo).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(d.tipo_unidad || d.tipo).toUpperCase()) : '—'}</td>
                       <td style={{ fontWeight: '800', color: '#0f172a' }}>{d.economico ? String(d.economico).padStart(3, '0') : '—'}</td>
                       <td>
-                        <span className={`estatus-badge ${getAccionBadgeStyle(d.tipo_accion)}`}>
+                        <span className="estatus-badge" style={getAccionBadgeStyle(d.tipo_accion)}>
                           {formatAccion(d.tipo_accion)}
                         </span>
                       </td>
                       <td>{d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A'}</td>
                       <td style={{ fontWeight: '600' }}>{d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A'}</td>
-                      <td style={{ maxWidth: '300px' }}>{d.detalles || '-'}</td>
+                      <td style={{ maxWidth: '350px' }}>
+                        <DetalleOperacion
+                          detalles={d.detalles}
+                          estatusAnterior={d.estatus_anterior}
+                          estatusNuevo={d.estatus_nuevo}
+                          fallback="-"
+                        />
+                      </td>
                       <td style={{ fontWeight: '500', color: '#4b5563' }}>{d.usuario_nombre || 'SISTEMA'}</td>
                     </tr>
                   ))

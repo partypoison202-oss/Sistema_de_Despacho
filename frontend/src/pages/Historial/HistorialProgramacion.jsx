@@ -5,6 +5,8 @@ import { AuthContext } from '../../context/AuthContext';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import HistorialSearchBar from './HistorialSearchBar';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import './Historial.css';
 
 export default function HistorialProgramacion({ isPastelesOnly = false }) {
@@ -42,8 +44,14 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
   useEffect(() => {
     if (fechas.length > 0 && !selectedFecha) {
       setSelectedFecha(fechas[0]);
+    } else if (!selectedFecha && !isLoadingFechas) {
+      const d = new Date();
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      setSelectedFecha(`${yr}-${mo}-${da}`);
     }
-  }, [fechas, selectedFecha]);
+  }, [fechas, selectedFecha, isLoadingFechas]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -224,7 +232,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
         'ACCIÓN / MOVIMIENTO': d.tipo_accion || '',
         'ESTATUS ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
         'ESTATUS NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
-        'DETALLES': d.detalles || '',
+        'DETALLES': formatDetallesTexto(d.detalles, d.estatus_anterior, d.estatus_nuevo),
         'USUARIO': d.usuario_nombre || 'SISTEMA',
         'ROL': d.usuario_rol || ''
       }));
@@ -316,36 +324,18 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
             </p>
           </div>
 
-          <div className="historial-filter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
-            <div className="custom-dropdown-container" ref={dropdownRef}>
-              <button
-                type="button"
-                className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
-                onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
-                disabled={cargando}
-              >
-                {selectedFecha || 'SELECCIONAR'}
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 10l5 5 5-5H7z" />
-                </svg>
-              </button>
-              {isDropdownOpen && (
-                <div className="custom-dropdown-menu">
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {fechas.map(f => (
-                      <button
-                        key={f}
-                        type="button"
-                        className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
-                        onClick={() => handleFechaChange(f)}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div className="historial-filter" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
+              <div style={{ minWidth: '160px' }}>
+                <AppleDatePicker
+                  value={selectedFecha}
+                  onChange={(val) => {
+                    if (val) setSelectedFecha(val);
+                  }}
+                  disableFuture={false}
+                />
+              </div>
             </div>
 
             <button
@@ -359,7 +349,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Excel
+              Descargar Excel
             </button>
           </div>
         </div>
@@ -501,7 +491,14 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
                         </td>
                         <td style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>{c.estatus_anterior ? String(c.estatus_anterior).toUpperCase() : '—'}</td>
                         <td style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: '700' }}>{c.estatus_nuevo ? String(c.estatus_nuevo).toUpperCase() : '—'}</td>
-                        <td style={{ fontSize: '0.85rem', color: '#334155' }}>{c.detalles || 'Sin observaciones'}</td>
+                        <td>
+                          <DetalleOperacion
+                            detalles={c.detalles}
+                            estatusAnterior={c.estatus_anterior}
+                            estatusNuevo={c.estatus_nuevo}
+                            fallback="Sin observaciones"
+                          />
+                        </td>
                         <td style={{ fontSize: '0.8rem' }}>
                           <span style={{ fontWeight: '700', color: '#1e293b', display: 'block' }}>{c.usuario_nombre || 'Sistema'}</span>
                           {c.usuario_rol && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{c.usuario_rol}</span>}
