@@ -65,8 +65,8 @@ Anteriormente, el sistema asumía una sola fecha para la estancia en taller. Sin
 - **Falla o Diagnóstico Reportado**: Se integró el campo editable de Falla en el modal. Si la unidad arrastraba una falla antigua (como `"LUCES"` en el ECO 005), el usuario ahora puede verla, corregirla, cambiarla o vaciarla si no aplica para el nuevo folio.
 - **Corrección Crítica de Sobreescritura**: Se eliminó el código que sobreescribía la fecha de registro con `Carbon::now()` al guardar cambios de incidencia. Ahora se respeta la fecha seleccionada por el usuario o se preserva la original.
 - **Trazabilidad y Control Operativo**:
-  - Muestra tarjetas duales con los tiempos de estancia y fechas de inicio.
-  - Cuadro comparativo: Registro Actual vs Antecedente Inmediato (con botón para restaurar valor previo).
+  - Muestra tarjetas duales con los tiempos de estancia y fechas de inicio (`Tiempo en Incidencia` y `Tiempo con Folio Físico`).
+  - Edición exclusiva del registro actual (se retiraron botones y bloques de antecedentes previos para mantener una captura directa y libre de confusiones).
   - Justificación obligatoria en mayúsculas registrada en `bitacora_cambios_unidades` para auditoría total.
 
 ---
