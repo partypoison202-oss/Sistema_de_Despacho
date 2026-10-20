@@ -595,7 +595,7 @@ class DespachoController extends Controller
                 'hora_salida_patio' => $horaSalidaPatioEfectiva,
                 'acople' => $acopleEfectivo,
                 'hora_real_salida_patio' => $horaRealSalida,
-                'hora_encierro' => $estatus === 'operacion' ? null : ($encierro?->hora_encierro ?? ($unidad->hora_encierro ?? null)),
+                'hora_encierro' => $unidad->hora_encierro ?? ($encierro?->hora_encierro ?? null),
                 'folio_mantenimiento' => $unidad->folio_mantenimiento,
                 'numero_incidencia' => $unidad->numero_incidencia,
                 'fecha_folio_mantenimiento' => $unidad->fecha_folio_mantenimiento,
@@ -834,9 +834,9 @@ class DespachoController extends Controller
                 }
 
                 if ($encierroHoy && $estatus !== 'operacion') {
-                    $info->hora_encierro = $encierroHoy->hora_encierro;
+                    $info->hora_encierro = $encierroHoy->hora_encierro ?? $info->hora_encierro;
                 } elseif ($estatus === 'operacion') {
-                    $info->hora_encierro = null;
+                    // Mantener la hora de encierro programada ($info->hora_encierro ya viene de la BD)
                     if ($encierroHoy) {
                         DB::table('historial_operativo')
                             ->where('unidad_id', $unidadBase->id)
@@ -1111,10 +1111,48 @@ class DespachoController extends Controller
             $numeroEco = ltrim($ecoVal, '0');
             $numeroEcoClean = str_pad($numeroEco === '' ? '0' : $numeroEco, 3, '0', STR_PAD_LEFT);
 
-            $unidad = $unidadesMap->get($ecoVal) ?? $unidadesMap->get($numeroEcoClean) ?? $unidadesMap->get($numeroEco);
+            $unidad = $unidadesMap->get($ecoVal) 
+                ?? $unidadesMap->get($numeroEcoClean) 
+                ?? $unidadesMap->get($numeroEco)
+                ?? $unidadesMap->get(str_pad($numeroEco === '' ? '0' : $numeroEco, 4, '0', STR_PAD_LEFT));
+            if (! $unidad && $ecoVal !== '') {
+                $unidadDb = DB::table('unidades')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                    ->select('unidades.id', 'unidades.numero_eco', DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_display'))
+                    ->where('unidades.numero_eco', $ecoVal)
+                    ->orWhere('unidades.numero_eco', $numeroEcoClean)
+                    ->orWhere('unidades.numero_eco', $numeroEco)
+                    ->first();
+                if ($unidadDb) {
+                    $unidad = $unidadDb;
+                    $unidadesMap->put($ecoVal, $unidad);
+                    $unidadesMap->put($numeroEcoClean, $unidad);
+                    $unidadesMap->put($numeroEco, $unidad);
+                } else {
+                    $tipoReq = !empty($fila['TIPO_DE_UNIDAD']) ? trim((string)$fila['TIPO_DE_UNIDAD']) : 'VAGONETA';
+                    $transporteId = DB::table('transportes')
+                        ->whereRaw("LOWER(nombre) LIKE ?", ['%'.strtolower($tipoReq).'%'])
+                        ->value('id') ?? (DB::table('transportes')->value('id') ?? 1);
+                    $newId = DB::table('unidades')->insertGetId([
+                        'numero_eco' => $numeroEcoClean,
+                        'tipo' => $tipoReq,
+                        'transporte_id' => $transporteId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $unidad = (object) [
+                        'id' => $newId,
+                        'numero_eco' => $numeroEcoClean,
+                        'tipo_display' => $tipoReq,
+                    ];
+                    $unidadesMap->put($ecoVal, $unidad);
+                    $unidadesMap->put($numeroEcoClean, $unidad);
+                    $unidadesMap->put($numeroEco, $unidad);
+                }
+            }
+
             if (! $unidad) {
                 $errores[] = "ECO no encontrado: {$numeroEcoClean}";
-
                 continue;
             }
 
@@ -1195,17 +1233,22 @@ class DespachoController extends Controller
                 if ($acopleVal === '' && !empty($prevInfo->acople)) {
                     $acopleVal = trim((string) $prevInfo->acople);
                 }
-                if ($horaEncierroVal === '' && !empty($prevInfo->hora_encierro)) {
-                    $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
-                }
                 if ($corridasVal === '' && !empty($prevInfo->corridas)) {
                     $corridasVal = (string) $prevInfo->corridas;
                 }
             }
 
+            // Preservar hora de encierro si no se proporcionó una nueva
+            if ($horaEncierroVal === '' && $prevInfo && !empty($prevInfo->hora_encierro)) {
+                $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
+            }
+
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
-            $rutaVal = (string) ($fila['RUTA'] ?? '');
+            $rutaVal = substr(trim((string) ($fila['RUTA'] ?? '')), 0, 20);
+            if (str_contains(strtolower($rutaVal), 'seleccione')) {
+                $rutaVal = '';
+            }
             if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
                 $rutaVal = (string) $prevInfo->ruta;
             }
@@ -1225,9 +1268,9 @@ class DespachoController extends Controller
                 'hora_encierro' => $horaEncierroVal === '' ? null : $horaEncierroVal,
                 'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? '')) ?: ($unidad->tipo_display ?? 'Desconocido'),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
-                'patio_norte' => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'patio_norte' => (bool) filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'itinerario' => filter_var($fila['ITINERARIO'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'itinerario' => (bool) filter_var($fila['ITINERARIO'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'hora_incorporacion' => trim((string) ($fila['HORA_INCORPORACION'] ?? '')) ?: null,
                 'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
             ];
@@ -1255,11 +1298,11 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = null;
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
-                $data['patio_norte'] = 'false';
+                $data['patio_norte'] = false;
                 $data['transporte_patio_norte'] = 'false';
-                $data['itinerario'] = 'false';
+                $data['itinerario'] = false;
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
                 $data['falla'] = null;
@@ -1278,11 +1321,11 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = null;
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
-                $data['patio_norte'] = 'false';
+                $data['patio_norte'] = false;
                 $data['transporte_patio_norte'] = 'false';
-                $data['itinerario'] = 'false';
+                $data['itinerario'] = false;
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
                 $prevInfo = $infoOperativaRegistros->get($unidad->id);
@@ -1496,10 +1539,20 @@ class DespachoController extends Controller
         self::procesarEncierrosAutomaticos();
         SyncService::notifyChange();
 
+        if (count($errores) > 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocurrieron errores al procesar unidades: '.implode('; ', $errores),
+                'errores' => $errores,
+                'creados' => $creados,
+                'actualizados' => $actualizados,
+            ], 422);
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => "Proceso finalizado. Creados: {$creados}, Actualizados: {$actualizados}, Eliminados: {$eliminados}",
-            'errores' => $errores,
+            'errores' => [],
         ], 200);
     }
 
@@ -1565,10 +1618,48 @@ class DespachoController extends Controller
             $numeroEco = ltrim($ecoVal, '0');
             $numeroEcoClean = str_pad($numeroEco === '' ? '0' : $numeroEco, 3, '0', STR_PAD_LEFT);
 
-            $unidad = $unidadesMap->get($ecoVal) ?? $unidadesMap->get($numeroEcoClean) ?? $unidadesMap->get($numeroEco);
+            $unidad = $unidadesMap->get($ecoVal) 
+                ?? $unidadesMap->get($numeroEcoClean) 
+                ?? $unidadesMap->get($numeroEco)
+                ?? $unidadesMap->get(str_pad($numeroEco === '' ? '0' : $numeroEco, 4, '0', STR_PAD_LEFT));
+            if (! $unidad && $ecoVal !== '') {
+                $unidadDb = DB::table('unidades')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                    ->select('unidades.id', 'unidades.numero_eco', DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_display'))
+                    ->where('unidades.numero_eco', $ecoVal)
+                    ->orWhere('unidades.numero_eco', $numeroEcoClean)
+                    ->orWhere('unidades.numero_eco', $numeroEco)
+                    ->first();
+                if ($unidadDb) {
+                    $unidad = $unidadDb;
+                    $unidadesMap->put($ecoVal, $unidad);
+                    $unidadesMap->put($numeroEcoClean, $unidad);
+                    $unidadesMap->put($numeroEco, $unidad);
+                } else {
+                    $tipoReq = !empty($fila['TIPO_DE_UNIDAD']) ? trim((string)$fila['TIPO_DE_UNIDAD']) : 'VAGONETA';
+                    $transporteId = DB::table('transportes')
+                        ->whereRaw("LOWER(nombre) LIKE ?", ['%'.strtolower($tipoReq).'%'])
+                        ->value('id') ?? (DB::table('transportes')->value('id') ?? 1);
+                    $newId = DB::table('unidades')->insertGetId([
+                        'numero_eco' => $numeroEcoClean,
+                        'tipo' => $tipoReq,
+                        'transporte_id' => $transporteId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $unidad = (object) [
+                        'id' => $newId,
+                        'numero_eco' => $numeroEcoClean,
+                        'tipo_display' => $tipoReq,
+                    ];
+                    $unidadesMap->put($ecoVal, $unidad);
+                    $unidadesMap->put($numeroEcoClean, $unidad);
+                    $unidadesMap->put($numeroEco, $unidad);
+                }
+            }
+
             if (! $unidad) {
                 $errores[] = "ECO no encontrado: {$numeroEcoClean}";
-
                 continue;
             }
 
@@ -1642,11 +1733,22 @@ class DespachoController extends Controller
                 }
             }
 
+            // Preservar hora_encierro existente si la fila no la especifica explícitamente (independiente del origen)
+            if ($horaEncierroVal === '' && $prevInfo && !empty($prevInfo->hora_encierro)) {
+                $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
+            }
+
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
-            $rutaVal = (string) ($fila['RUTA'] ?? '');
+            $rutaVal = trim((string) ($fila['RUTA'] ?? ''));
             if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
                 $rutaVal = (string) $prevInfo->ruta;
+            }
+            if (stripos($rutaVal, 'seleccione') !== false) {
+                $rutaVal = '';
+            }
+            if (mb_strlen($rutaVal) > 20) {
+                $rutaVal = mb_substr($rutaVal, 0, 20);
             }
 
             $data = [
@@ -1694,7 +1796,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = null;
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -1717,7 +1819,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = null;
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -1810,6 +1912,14 @@ class DespachoController extends Controller
         $eliminados = 0;
 
 
+        if (count($errores) > 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Ocurrieron errores al procesar unidades de mañana: '.implode('; ', $errores),
+                'errores' => $errores,
+            ], 422);
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => "Proceso finalizado. Creados: {$creados}, Actualizados: {$actualizados}, Eliminados: {$eliminados}",
@@ -1886,9 +1996,50 @@ class DespachoController extends Controller
 
             $unidad = $unidadesMap->get($ecoVal) ?? $unidadesMap->get($numeroEcoClean) ?? $unidadesMap->get($numeroEco);
             if (! $unidad) {
-                $errores[] = "ECO no encontrado: {$numeroEcoClean}";
+                // Búsqueda directa en base de datos para no perder registros si el mapa en memoria difiere
+                $foundDirect = DB::table('unidades')
+                    ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                    ->select('unidades.id', 'unidades.numero_eco', DB::raw('COALESCE(unidades.tipo, transportes.nombre) as tipo_display'))
+                    ->where('unidades.numero_eco', $ecoVal)
+                    ->orWhere('unidades.numero_eco', $numeroEcoClean)
+                    ->orWhere('unidades.numero_eco', $numeroEco)
+                    ->first();
 
-                continue;
+                if ($foundDirect) {
+                    $unidad = $foundDirect;
+                    $unidadesMap->put($ecoVal, $unidad);
+                    $unidadesMap->put($numeroEcoClean, $unidad);
+                } else {
+                    // Auto-registrar la unidad en el catálogo si no existe en producción
+                    try {
+                        $tipoReq = trim((string) ($fila['TIPO_DE_UNIDAD'] ?? ''));
+                        $transporteId = 1;
+                        if (stripos($tipoReq, 'vagoneta') !== false || (int)$numeroEco >= 200) {
+                            $transporteId = 3;
+                        }
+                        $nuevoId = DB::table('unidades')->insertGetId([
+                            'transporte_id' => $transporteId,
+                            'numero_eco' => $numeroEcoClean,
+                            'tipo' => $tipoReq ?: ($transporteId === 3 ? 'VAGONETA' : 'AUTOBUS'),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $unidad = (object)[
+                            'id' => $nuevoId,
+                            'numero_eco' => $numeroEcoClean,
+                            'tipo_display' => $tipoReq ?: ($transporteId === 3 ? 'VAGONETA' : 'AUTOBUS'),
+                        ];
+                        $unidadesMap->put($ecoVal, $unidad);
+                        $unidadesMap->put($numeroEcoClean, $unidad);
+                    } catch (\Throwable $th) {
+                        \Log::warning("No se pudo auto-registrar unidad {$numeroEcoClean} en festivo: ".$th->getMessage());
+                    }
+                }
+
+                if (! $unidad) {
+                    $errores[] = "ECO no encontrado: {$numeroEcoClean}";
+                    continue;
+                }
             }
 
             $unidadesProcesadasIds[] = $unidad->id;
@@ -1961,11 +2112,22 @@ class DespachoController extends Controller
                 }
             }
 
+            // Preservar hora_encierro existente si la fila no la especifica explícitamente (independiente del origen)
+            if ($horaEncierroVal === '' && $prevInfo && !empty($prevInfo->hora_encierro)) {
+                $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
+            }
+
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
-            $rutaVal = (string) ($fila['RUTA'] ?? '');
+            $rutaVal = trim((string) ($fila['RUTA'] ?? ''));
             if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
                 $rutaVal = (string) $prevInfo->ruta;
+            }
+            if (stripos($rutaVal, 'seleccione') !== false) {
+                $rutaVal = '';
+            }
+            if (mb_strlen($rutaVal) > 20) {
+                $rutaVal = mb_substr($rutaVal, 0, 20);
             }
 
             $data = [
@@ -2013,7 +2175,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = null;
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -2036,7 +2198,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = null;
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -2134,6 +2296,14 @@ class DespachoController extends Controller
                 $errores[] = 'Error al eliminar registros obsoletos: '.$e->getMessage();
                 $eliminados = 0;
             }
+        }
+
+        if (count($errores) > 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Ocurrieron errores al procesar unidades ({$dia}): ".implode('; ', $errores),
+                'errores' => $errores,
+            ], 422);
         }
 
         return response()->json([
@@ -2380,7 +2550,7 @@ class DespachoController extends Controller
                         $insertRow['relevo_hora'] = null;
                         $insertRow['hora_desincorporacion'] = null;
                         $insertRow['hora_incorporacion'] = null;
-                        $insertRow['hora_encierro'] = null;
+                        $insertRow['hora_encierro'] = !empty($arrayRow['hora_encierro']) ? $arrayRow['hora_encierro'] : (!empty($bloqueada['hora_encierro']) ? $bloqueada['hora_encierro'] : null);
                         $insertRow['fecha_registro'] = $fechaHoy;
 
                         $insertRow = array_intersect_key($insertRow, $targetCols);
@@ -2487,7 +2657,7 @@ class DespachoController extends Controller
                             $insertRow['hora_salida'] = null;
                         }
                         if (isset($targetCols['hora_encierro'])) {
-                            $insertRow['hora_encierro'] = null;
+                            $insertRow['hora_encierro'] = $bloqueada['hora_encierro'] ?? null;
                         }
                         if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
                             $insertRow['firma_base64'] = null;
@@ -2817,7 +2987,7 @@ class DespachoController extends Controller
                     $insertRow['relevo_hora'] = null;
                     $insertRow['hora_desincorporacion'] = null;
                     $insertRow['hora_incorporacion'] = null;
-                    $insertRow['hora_encierro'] = null;
+                    $insertRow['hora_encierro'] = !empty($arrayRow['hora_encierro']) ? $arrayRow['hora_encierro'] : (!empty($bloqueada['hora_encierro']) ? $bloqueada['hora_encierro'] : null);
                     $insertRow['fecha_registro'] = $fechaHoy;
 
                     $insertRow = array_intersect_key($insertRow, $targetCols);
@@ -2908,7 +3078,7 @@ class DespachoController extends Controller
                         $insertRow['hora_salida'] = null;
                     }
                     if (isset($targetCols['hora_encierro'])) {
-                        $insertRow['hora_encierro'] = null;
+                        $insertRow['hora_encierro'] = $bloqueada['hora_encierro'] ?? null;
                     }
                     if (!in_array(strtolower(trim($insertRow['estatus'] ?? '')), ['mantenimiento', 'percance'])) {
                         $insertRow['firma_base64'] = null;
@@ -3530,6 +3700,7 @@ class DespachoController extends Controller
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin('informacion_operativa_manana', 'unidades.id', '=', 'informacion_operativa_manana.unidad_id')
             ->select(
+                'unidades.id as unidad_id',
                 'unidades.numero_eco',
                 DB::raw("COALESCE(NULLIF(informacion_operativa_manana.tipo, ''), transportes.nombre) as tipo"),
                 'informacion_operativa_manana.ruta',
@@ -3539,6 +3710,7 @@ class DespachoController extends Controller
                 'informacion_operativa_manana.nombre_maniobrista',
                 $hasRelevo ? 'informacion_operativa_manana.relevo_tarjeton' : DB::raw('NULL as relevo_tarjeton'),
                 $hasRelevo ? 'informacion_operativa_manana.relevo_conductor' : DB::raw('NULL as relevo_conductor'),
+                $hasRelevo ? 'informacion_operativa_manana.relevo_hora' : DB::raw('NULL as relevo_hora'),
                 DB::raw("COALESCE(informacion_operativa_manana.estatus, 'reserva') as estatus"),
                 'informacion_operativa_manana.falla',
                 'informacion_operativa_manana.corridas',
@@ -3571,11 +3743,15 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
+                'UNIDAD_ID' => $reg->unidad_id,
+                'unidad_id' => $reg->unidad_id,
                 'TIPO_DE_UNIDAD' => strtoupper((string) ($reg->tipo ?? '')),
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->tarjeton,
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
+                'TARJETON_TITULAR' => $reg->tarjeton,
+                'CONDUCTOR_TITULAR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
                 'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
@@ -3661,6 +3837,7 @@ class DespachoController extends Controller
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->leftJoin($tableName, 'unidades.id', '=', "{$tableName}.unidad_id")
             ->select(
+                'unidades.id as unidad_id',
                 'unidades.numero_eco',
                 DB::raw("COALESCE({$tableName}.tipo, transportes.nombre) as tipo"),
                 "{$tableName}.ruta",
@@ -3703,11 +3880,15 @@ class DespachoController extends Controller
 
         $formateados = $registros->map(function ($reg) {
             return [
+                'UNIDAD_ID' => $reg->unidad_id,
+                'unidad_id' => $reg->unidad_id,
                 'TIPO_DE_UNIDAD' => strtoupper((string) ($reg->tipo ?? '')),
                 'RUTA' => $reg->ruta,
                 'ECONOMICO' => $reg->numero_eco,
                 'TARJETON' => $reg->tarjeton,
                 'NOMBRE_CONDUCTOR' => $reg->nombre_conductor,
+                'TARJETON_TITULAR' => $reg->tarjeton,
+                'CONDUCTOR_TITULAR' => $reg->nombre_conductor,
                 'TARJETON_MANIOBRISTA' => $reg->tarjeton_maniobrista,
                 'NOMBRE_MANIOBRISTA' => $reg->nombre_maniobrista,
                 'RELEVO_TARJETON' => $reg->relevo_tarjeton ?? '',
