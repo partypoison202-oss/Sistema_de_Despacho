@@ -125,6 +125,7 @@ class DespachoController extends Controller
                 'hora_salida_patio' => $horaAcople === '' ? null : $horaAcople,
                 'hora_encierro' => $horaEncierro === '' ? null : $horaEncierro,
                 'itinerario' => filter_var($fila['ITINERARIO'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
+                'hora_incorporacion' => trim((string) ($fila['HORA_INCORPORACION'] ?? '')) ?: null,
                 'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
                 'fecha_registro' => now(),
             ];
@@ -1270,9 +1271,21 @@ class DespachoController extends Controller
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte' => (bool) filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'itinerario' => (bool) filter_var($fila['ITINERARIO'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                'hora_incorporacion' => trim((string) ($fila['HORA_INCORPORACION'] ?? '')) ?: null,
-                'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
+                'itinerario' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? (filter_var($prevInfo->itinerario ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                    : (array_key_exists('ITINERARIO', $fila) || array_key_exists('itinerario', $fila)
+                        ? (filter_var($fila['ITINERARIO'] ?? ($fila['itinerario'] ?? false), FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                        : (($prevInfo && isset($prevInfo->itinerario)) ? (filter_var($prevInfo->itinerario, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false') : 'false')),
+                'hora_incorporacion' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? ($prevInfo->hora_incorporacion ?? null)
+                    : (array_key_exists('HORA_INCORPORACION', $fila) || array_key_exists('hora_incorporacion', $fila)
+                        ? (trim((string) ($fila['HORA_INCORPORACION'] ?? ($fila['hora_incorporacion'] ?? ''))) ?: null)
+                        : ($prevInfo->hora_incorporacion ?? null)),
+                'hora_desincorporacion' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? ($prevInfo->hora_desincorporacion ?? null)
+                    : (array_key_exists('HORA_DESINCORPORACION', $fila) || array_key_exists('hora_desincorporacion', $fila)
+                        ? (trim((string) ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))) ?: null)
+                        : ($prevInfo->hora_desincorporacion ?? null)),
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
@@ -1768,9 +1781,21 @@ class DespachoController extends Controller
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte' => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'itinerario' => filter_var($fila['ITINERARIO'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'hora_incorporacion' => trim((string) ($fila['HORA_INCORPORACION'] ?? '')) ?: null,
-                'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
+                'itinerario' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? (filter_var($prevInfo->itinerario ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                    : (array_key_exists('ITINERARIO', $fila) || array_key_exists('itinerario', $fila)
+                        ? (filter_var($fila['ITINERARIO'] ?? ($fila['itinerario'] ?? false), FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                        : (($prevInfo && isset($prevInfo->itinerario)) ? (filter_var($prevInfo->itinerario, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false') : 'false')),
+                'hora_incorporacion' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? ($prevInfo->hora_incorporacion ?? null)
+                    : (array_key_exists('HORA_INCORPORACION', $fila) || array_key_exists('hora_incorporacion', $fila)
+                        ? (trim((string) ($fila['HORA_INCORPORACION'] ?? ($fila['hora_incorporacion'] ?? ''))) ?: null)
+                        : ($prevInfo->hora_incorporacion ?? null)),
+                'hora_desincorporacion' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? ($prevInfo->hora_desincorporacion ?? null)
+                    : (array_key_exists('HORA_DESINCORPORACION', $fila) || array_key_exists('hora_desincorporacion', $fila)
+                        ? (trim((string) ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))) ?: null)
+                        : ($prevInfo->hora_desincorporacion ?? null)),
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
@@ -2147,9 +2172,21 @@ class DespachoController extends Controller
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
                 'patio_norte' => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'itinerario' => filter_var($fila['ITINERARIO'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
-                'hora_incorporacion' => trim((string) ($fila['HORA_INCORPORACION'] ?? '')) ?: null,
-                'hora_desincorporacion' => trim((string) ($fila['HORA_DESINCORPORACION'] ?? '')) ?: null,
+                'itinerario' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? (filter_var($prevInfo->itinerario ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                    : (array_key_exists('ITINERARIO', $fila) || array_key_exists('itinerario', $fila)
+                        ? (filter_var($fila['ITINERARIO'] ?? ($fila['itinerario'] ?? false), FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
+                        : (($prevInfo && isset($prevInfo->itinerario)) ? (filter_var($prevInfo->itinerario, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false') : 'false')),
+                'hora_incorporacion' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? ($prevInfo->hora_incorporacion ?? null)
+                    : (array_key_exists('HORA_INCORPORACION', $fila) || array_key_exists('hora_incorporacion', $fila)
+                        ? (trim((string) ($fila['HORA_INCORPORACION'] ?? ($fila['hora_incorporacion'] ?? ''))) ?: null)
+                        : ($prevInfo->hora_incorporacion ?? null)),
+                'hora_desincorporacion' => ($origen === 'RELEVOS' && $prevInfo)
+                    ? ($prevInfo->hora_desincorporacion ?? null)
+                    : (array_key_exists('HORA_DESINCORPORACION', $fila) || array_key_exists('hora_desincorporacion', $fila)
+                        ? (trim((string) ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))) ?: null)
+                        : ($prevInfo->hora_desincorporacion ?? null)),
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
@@ -2603,17 +2640,13 @@ class DespachoController extends Controller
 
                     // Reiniciar campos de validación para el nuevo día operativo (reinicio limpio de operaciones)
                     // Las unidades en mantenimiento o percance ya fueron procesadas y preservadas arriba.
+                    // NOTA: hora_desincorporacion y hora_incorporacion NO se reinician porque corresponden
+                    // al itinerario programado de la unidad (al igual que hora_salida_patio y hora_encierro).
                     if (array_key_exists('hora_real_salida_patio', $insertRow)) {
                         $insertRow['hora_real_salida_patio'] = null;
                     }
                     if (array_key_exists('hora_salida', $insertRow)) {
                         $insertRow['hora_salida'] = null;
-                    }
-                    if (array_key_exists('hora_desincorporacion', $insertRow)) {
-                        $insertRow['hora_desincorporacion'] = null;
-                    }
-                    if (array_key_exists('hora_incorporacion', $insertRow)) {
-                        $insertRow['hora_incorporacion'] = null;
                     }
                     if (array_key_exists('firma_base64', $insertRow)) {
                         // Solo reiniciar firma de salida de patio; preservar firma de mantenimiento si la unidad está en taller
@@ -2752,12 +2785,7 @@ class DespachoController extends Controller
                 if (isset($targetCols['hora_salida'])) {
                     $updateOperacion['hora_salida'] = null;
                 }
-                if (isset($targetCols['hora_desincorporacion'])) {
-                    $updateOperacion['hora_desincorporacion'] = null;
-                }
-                if (isset($targetCols['hora_incorporacion'])) {
-                    $updateOperacion['hora_incorporacion'] = null;
-                }
+                // NOTA: hora_desincorporacion y hora_incorporacion se conservan intactas junto con el resto del itinerario programado
                 if (isset($targetCols['firma_base64'])) {
                     $updateOperacion['firma_base64'] = null;
                 }
