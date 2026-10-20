@@ -24,6 +24,16 @@ class ItinerarioController extends Controller
         return preg_replace('/\s+/', ' ', $str);
     }
 
+    private function normalizarNombreTokens($str)
+    {
+        $base = $this->normalizarNombre($str);
+        if (empty($base)) return '';
+        $clean = preg_replace('/[^A-Z0-9\s]/', ' ', $base);
+        $words = preg_split('/\s+/', $clean, -1, PREG_SPLIT_NO_EMPTY);
+        sort($words);
+        return implode(' ', $words);
+    }
+
     /**
      * Obtiene la matriz de asistencias en un rango de fechas
      */
@@ -64,8 +74,9 @@ class ItinerarioController extends Controller
         }
 
         // Mapeo de asistencias de Despacho (historial_operativo e informacion_operativa)
-        $historialMap = []; // [tarjetonKey][YYYY-MM-DD] = true
-        $nombreMap = [];    // [nombreNormalizado][YYYY-MM-DD] = true
+        $historialMap = [];      // [tarjetonKey][YYYY-MM-DD] = true
+        $nombreMap = [];         // [nombreNormalizado][YYYY-MM-DD] = true
+        $nombreTokensMap = [];   // [nombreTokens][YYYY-MM-DD] = true
 
         try {
             $registrosHistorial = DB::table('historial_operativo')
@@ -77,9 +88,11 @@ class ItinerarioController extends Controller
                 $fecha = $h->fecha_historial;
 
                 if (!empty($h->numero_tarjeton)) {
-                    $tRaw = trim((string)$h->numero_tarjeton);
-                    $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
-                    $historialMap[$tRaw][$fecha] = true;
+                    $candidatos = PlataformaController::obtenerCandidatosTarjeton($h->numero_tarjeton);
+                    foreach ($candidatos as $cand) {
+                        $historialMap[$cand][$fecha] = true;
+                    }
+                    $tNum = (string)(int)preg_replace('/\D/', '', (string)$h->numero_tarjeton);
                     if ($tNum !== '0') {
                         $historialMap[$tNum][$fecha] = true;
                     }
@@ -87,15 +100,21 @@ class ItinerarioController extends Controller
 
                 if (!empty($h->nombre_conductor)) {
                     $nNorm = $this->normalizarNombre($h->nombre_conductor);
+                    $nTokens = $this->normalizarNombreTokens($h->nombre_conductor);
                     if ($nNorm) {
                         $nombreMap[$nNorm][$fecha] = true;
+                    }
+                    if ($nTokens) {
+                        $nombreTokensMap[$nTokens][$fecha] = true;
                     }
                 }
 
                 if (!empty($h->relevo_tarjeton)) {
-                    $tRawRel = trim((string)$h->relevo_tarjeton);
-                    $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
-                    $historialMap[$tRawRel][$fecha] = true;
+                    $candidatosRel = PlataformaController::obtenerCandidatosTarjeton($h->relevo_tarjeton);
+                    foreach ($candidatosRel as $candRel) {
+                        $historialMap[$candRel][$fecha] = true;
+                    }
+                    $tNumRel = (string)(int)preg_replace('/\D/', '', (string)$h->relevo_tarjeton);
                     if ($tNumRel !== '0') {
                         $historialMap[$tNumRel][$fecha] = true;
                     }
@@ -103,8 +122,12 @@ class ItinerarioController extends Controller
 
                 if (!empty($h->relevo_conductor)) {
                     $nNormRel = $this->normalizarNombre($h->relevo_conductor);
+                    $nTokensRel = $this->normalizarNombreTokens($h->relevo_conductor);
                     if ($nNormRel) {
                         $nombreMap[$nNormRel][$fecha] = true;
+                    }
+                    if ($nTokensRel) {
+                        $nombreTokensMap[$nTokensRel][$fecha] = true;
                     }
                 }
             }
@@ -114,18 +137,22 @@ class ItinerarioController extends Controller
 
         $hoy = Carbon::today()->format('Y-m-d');
 
-        // Si hoy cae en el rango, incluir informacion_operativa para asistencias en tiempo real
+        // Si hoy cae en el rango, sincronizar asistencias activas e incluir informacion_operativa
         if ($hoy >= $desde->toDateString() && $hoy <= $hasta->toDateString()) {
             try {
+                DespachoController::sincronizarAsistenciasHoy();
+
                 $hoyOps = DB::table('informacion_operativa')
-                    ->select(['numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor'])
+                    ->select(['numero_tarjeton', 'nombre_conductor', 'relevo_tarjeton', 'relevo_conductor', 'hora_real_salida_patio', 'estatus'])
                     ->get();
 
                 foreach ($hoyOps as $op) {
                     if (!empty($op->numero_tarjeton)) {
-                        $tRaw = trim((string)$op->numero_tarjeton);
-                        $tNum = (string)(int)preg_replace('/\D/', '', $tRaw);
-                        $historialMap[$tRaw][$hoy] = true;
+                        $candidatos = PlataformaController::obtenerCandidatosTarjeton($op->numero_tarjeton);
+                        foreach ($candidatos as $cand) {
+                            $historialMap[$cand][$hoy] = true;
+                        }
+                        $tNum = (string)(int)preg_replace('/\D/', '', (string)$op->numero_tarjeton);
                         if ($tNum !== '0') {
                             $historialMap[$tNum][$hoy] = true;
                         }
@@ -133,15 +160,21 @@ class ItinerarioController extends Controller
 
                     if (!empty($op->nombre_conductor)) {
                         $nNorm = $this->normalizarNombre($op->nombre_conductor);
+                        $nTokens = $this->normalizarNombreTokens($op->nombre_conductor);
                         if ($nNorm) {
                             $nombreMap[$nNorm][$hoy] = true;
+                        }
+                        if ($nTokens) {
+                            $nombreTokensMap[$nTokens][$hoy] = true;
                         }
                     }
 
                     if (!empty($op->relevo_tarjeton)) {
-                        $tRawRel = trim((string)$op->relevo_tarjeton);
-                        $tNumRel = (string)(int)preg_replace('/\D/', '', $tRawRel);
-                        $historialMap[$tRawRel][$hoy] = true;
+                        $candidatosRel = PlataformaController::obtenerCandidatosTarjeton($op->relevo_tarjeton);
+                        foreach ($candidatosRel as $candRel) {
+                            $historialMap[$candRel][$hoy] = true;
+                        }
+                        $tNumRel = (string)(int)preg_replace('/\D/', '', (string)$op->relevo_tarjeton);
                         if ($tNumRel !== '0') {
                             $historialMap[$tNumRel][$hoy] = true;
                         }
@@ -149,8 +182,12 @@ class ItinerarioController extends Controller
 
                     if (!empty($op->relevo_conductor)) {
                         $nNormRel = $this->normalizarNombre($op->relevo_conductor);
+                        $nTokensRel = $this->normalizarNombreTokens($op->relevo_conductor);
                         if ($nNormRel) {
                             $nombreMap[$nNormRel][$hoy] = true;
+                        }
+                        if ($nTokensRel) {
+                            $nombreTokensMap[$nTokensRel][$hoy] = true;
                         }
                     }
                 }
@@ -176,8 +213,10 @@ class ItinerarioController extends Controller
 
         foreach ($conductores as $conductor) {
             $tarjetonRaw = trim((string)($conductor->tarjeton ?? ''));
+            $candidatosTarjetonCond = PlataformaController::obtenerCandidatosTarjeton($tarjetonRaw);
             $tarjetonNum = (string)(int)preg_replace('/\D/', '', $tarjetonRaw);
             $nombreCondNorm = $this->normalizarNombre($conductor->nombres . ' ' . $conductor->apellidos);
+            $nombreCondTokens = $this->normalizarNombreTokens($conductor->nombres . ' ' . $conductor->apellidos);
 
             $fila = [
                 'id' => $conductor->id,
@@ -220,20 +259,41 @@ class ItinerarioController extends Controller
                 $estadoDia = '';
                 $motivo = '';
 
-                $tieneAsistencia = 
-                    (isset($historialMap[$tarjetonRaw][$fechaStr])) ||
-                    ($tarjetonNum !== '0' && isset($historialMap[$tarjetonNum][$fechaStr])) ||
-                    ($nombreCondNorm && isset($nombreMap[$nombreCondNorm][$fechaStr])) ||
-                    (isset($asistenciasManuales[$fechaStr])) ||
-                    ($fechaStr === $hoy && $conductor->estado_servicio === 'en_servicio');
+                $tieneAsistencia = false;
+                foreach ($candidatosTarjetonCond as $cand) {
+                    if (isset($historialMap[$cand][$fechaStr])) {
+                        $tieneAsistencia = true;
+                        break;
+                    }
+                }
+                if (!$tieneAsistencia && $tarjetonNum !== '0' && isset($historialMap[$tarjetonNum][$fechaStr])) {
+                    $tieneAsistencia = true;
+                }
+                if (!$tieneAsistencia && $nombreCondNorm && isset($nombreMap[$nombreCondNorm][$fechaStr])) {
+                    $tieneAsistencia = true;
+                }
+                if (!$tieneAsistencia && $nombreCondTokens && isset($nombreTokensMap[$nombreCondTokens][$fechaStr])) {
+                    $tieneAsistencia = true;
+                }
+                if (!$tieneAsistencia && isset($asistenciasManuales[$fechaStr])) {
+                    $tieneAsistencia = true;
+                }
+                if (!$tieneAsistencia && $fechaStr === $hoy && $conductor->estado_servicio === 'en_servicio') {
+                    $tieneAsistencia = true;
+                }
 
-                // Prioridad: Asistencia Manual > F > I > V > D > AP > DP > R > A (Despacho) > (-) día futuro > (vacío)
+                // Prioridad: Asistencia Registrada/Manual > F > I > V > D > AP > DP > R > A (Despacho) > (-) día futuro > (vacío)
                 if (isset($asistenciasManuales[$fechaStr])) {
                     $estadoDia = 'A';
-                    $motivo = $asistenciasManuales[$fechaStr] ?: 'Asistencia asignada manualmente';
+                    $motivo = $asistenciasManuales[$fechaStr] ?: 'Asistencia registrada';
                 } elseif (isset($faltas[$fechaStr])) {
-                    $estadoDia = 'F';
-                    $motivo = $faltas[$fechaStr];
+                    if ($tieneAsistencia) {
+                        $estadoDia = 'A';
+                        $motivo = 'Asistencia registrada en Despacho';
+                    } else {
+                        $estadoDia = 'F';
+                        $motivo = $faltas[$fechaStr];
+                    }
                 } elseif (isset($incapacidades[$fechaStr])) {
                     $estadoDia = 'I';
                     $motivo = $incapacidades[$fechaStr];
@@ -241,8 +301,13 @@ class ItinerarioController extends Controller
                     $estadoDia = 'V';
                     $motivo = $vacaciones[$fechaStr];
                 } elseif (isset($descansos[$fechaStr])) {
-                    $estadoDia = 'D';
-                    $motivo = $descansos[$fechaStr];
+                    if ($tieneAsistencia) {
+                        $estadoDia = 'A';
+                        $motivo = 'Asistencia en Despacho (Día programado de descanso laborado)';
+                    } else {
+                        $estadoDia = 'D';
+                        $motivo = $descansos[$fechaStr];
+                    }
                 } elseif (isset($permutas[$fechaStr])) {
                     $itemP = $permutas[$fechaStr];
                     $tipoP = is_array($itemP) ? ($itemP['tipo'] ?? null) : null;
