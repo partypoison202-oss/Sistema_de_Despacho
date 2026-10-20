@@ -5742,6 +5742,7 @@ class DespachoController extends Controller
 
             $historialBatch = [];
             $unidadesActualizar = [];
+            $totalProcesadas = 0;
 
             foreach ($cargas as $tecKey => $items) {
                 if (!is_array($items)) {
