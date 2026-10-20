@@ -209,7 +209,6 @@ export default function CargaExcel({ isPasteles = false }) {
       const dataToSet = serverData.map(normalizarFilaServidor);
       const newMap = new Map();
       dataToSet.forEach(r => {
-        newMap.set(String(r.ECONOMICO), r);
         newMap.set(normalizeEcoKey(r.ECONOMICO), r);
       });
       baselineRef.current = newMap;
@@ -801,7 +800,7 @@ export default function CargaExcel({ isPasteles = false }) {
     const baseline = baselineRef.current;
     const modificadas = previewData.filter((row) => {
       const ecoKey = normalizeEcoKey(row.ECONOMICO);
-      const base = baseline.get(ecoKey) || baseline.get(String(row.ECONOMICO));
+      const base = baseline.get(ecoKey);
       return !base || JSON.stringify(base) !== JSON.stringify(row);
     });
 
@@ -819,12 +818,10 @@ export default function CargaExcel({ isPasteles = false }) {
     let frescos;
     try {
       const datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva] });
-      frescos = new Map();
-      datosFrescos.forEach((item) => {
+      frescos = new Map(datosFrescos.map((item) => {
         const r = normalizarFilaServidor(item);
-        frescos.set(String(r.ECONOMICO), r);
-        frescos.set(normalizeEcoKey(r.ECONOMICO), r);
-      });
+        return [normalizeEcoKey(r.ECONOMICO), r];
+      }));
     } catch (e) {
       Swal.fire({
         icon: 'error',
@@ -840,8 +837,8 @@ export default function CargaExcel({ isPasteles = false }) {
     modificadas.forEach((row) => {
       const eco = String(row.ECONOMICO);
       const ecoKey = normalizeEcoKey(eco);
-      const base = baseline.get(ecoKey) || baseline.get(eco);
-      const fresca = frescos.get(ecoKey) || frescos.get(eco);
+      const base = baseline.get(ecoKey);
+      const fresca = frescos.get(ecoKey);
       if (!base || !fresca) {
         filasAGuardar.push({ eco, merged: row, conflictos: [] });
         return;
@@ -883,7 +880,7 @@ export default function CargaExcel({ isPasteles = false }) {
 
     // Estado resultante de toda la tabla (servidor actual + mis cambios) para validar duplicados
     const tablaResultante = new Map(frescos);
-    filasAGuardar.forEach((f) => tablaResultante.set(f.eco, f.merged));
+    filasAGuardar.forEach((f) => tablaResultante.set(normalizeEcoKey(f.eco), f.merged));
     const filasValidacion = Array.from(tablaResultante.values());
     const payloadUnidades = filasAGuardar.map((f) => f.merged);
 
@@ -926,7 +923,9 @@ export default function CargaExcel({ isPasteles = false }) {
     });
 
     tarjetonAssignments.forEach((asignaciones) => {
-      if (asignaciones.length > 1) {
+      // Filtrar asignaciones únicas por unidad (eco) para verificar que realmente sean distintas unidades
+      const ecosUnicos = new Set(asignaciones.map(a => normalizeEcoKey(a.eco)));
+      if (ecosUnicos.size > 1) {
         duplicados.push(asignaciones);
       }
     });
