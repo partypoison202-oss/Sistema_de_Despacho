@@ -78,6 +78,7 @@ const Maniobristas           = lazy(() => lazyRetry(() => import('./pages/Maniob
 const InfraccionDashboard    = lazy(() => lazyRetry(() => import('./pages/Infraccion/InfraccionDashboard')));
 const DashboardMesaControl   = lazy(() => lazyRetry(() => import('./pages/MesadeControl/DashboardMesaControl')));
 const DetalleUnidadMesaControl = lazy(() => lazyRetry(() => import('./pages/MesadeControl/DetalleUnidadMesaControl')));
+const ControlCombustible     = lazy(() => lazyRetry(() => import('./pages/Combustible/ControlCombustible')));
 
 // ── Spinner de carga mientras se descarga el chunk de la ruta ─────────────────
 function PageLoader() {
@@ -358,10 +359,10 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Carga de Combustible */}
+            {/* Control de Combustible */}
             <Route path="/carga-combustible" element={
               <ProtectedRoute allowedModules={['carga_combustible']}>
-                <Mantenimiento />
+                <ControlCombustible />
               </ProtectedRoute>
             } />
             <Route path="/carga-combustible/:tipoTransporte" element={

@@ -291,16 +291,16 @@ export default function HistorialCombustible() {
 
   return (
     <div className="historial-page">
-      <Header title="Historial Carga de Combustible" hideBackButton={false} />
+      <Header title="Historial Control de Combustible" hideBackButton={false} />
 
       <main className="historial-content">
         <div className="historial-header">
           <div>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-              Registro Histórico de Carga de Combustible
+              Registro Histórico de Control de Combustible
             </h2>
             <p style={{ margin: '0.35rem 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
-              Consulta bitácoras de despacho de diesel, adblue, odómetros y reportes diarios.
+              Consulta bitácoras de despacho de diésel, gasolina, adblue, odómetros y reportes semanales.
             </p>
           </div>
 

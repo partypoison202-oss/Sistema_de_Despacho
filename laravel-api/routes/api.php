@@ -270,6 +270,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/mantenimiento/generar-folio', [DespachoController::class, 'generarFolioMantenimiento']);
     Route::get('/mantenimiento/reporte-combustible', [DespachoController::class, 'reporteCombustibleDiario']);
     Route::post('/mantenimiento/reporte-combustible', [DespachoController::class, 'registrarReporteCombustible']);
+    Route::get('/combustible/cargas-diarias', [DespachoController::class, 'getCargasCombustibleDiarias']);
+    Route::post('/combustible/guardar-masivo', [DespachoController::class, 'guardarCargasCombustibleMasivo']);
+    Route::get('/combustible/resumen-semanal', [DespachoController::class, 'getResumenSemanalCombustible']);
 
 
     // Gestión de Conductores
