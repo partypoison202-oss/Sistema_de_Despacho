@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Helpers\BitacoraHelper;
 use App\Http\Controllers\Controller;
+use App\Models\Conductor;
 use App\Services\SyncService;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
@@ -3098,6 +3099,13 @@ class DespachoController extends Controller
 
                 // Registrar acción detallada en la bitácora de cambios
                 if ($request->filled('hora_real_salida_patio')) {
+                    self::registrarAsistenciaDespacho(
+                        $registro->unidad_id,
+                        $request->hora_real_salida_patio,
+                        $request->all(),
+                        $registro
+                    );
+
                     BitacoraHelper::registrarCambio(
                         $registro->unidad_id,
                         'VALIDAR_DESPACHO',
@@ -3966,6 +3974,14 @@ class DespachoController extends Controller
                     ->where('id', $registroOperativo->id)
                     ->update($updateData);
 
+                $horaSalidaValidada = $request->hora_real_salida_patio ?: Carbon::now('America/Mexico_City')->format('H:i:s');
+                self::registrarAsistenciaDespacho(
+                    $unidad->id,
+                    $horaSalidaValidada,
+                    $request->all(),
+                    $registroOperativo
+                );
+
                 BitacoraHelper::registrarCambio(
                     $unidad->id,
                     'VALIDAR_DESPACHO',
@@ -3985,6 +4001,336 @@ class DespachoController extends Controller
             \Log::error('Error en validarDespacho: '.$e->getMessage());
 
             return response()->json(['status' => 'error', 'message' => 'Error al validar: '.$e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Registra la asistencia del conductor y relevo al despachar/validar una unidad.
+     * Actualiza asistencias_detalle en conductores, estado_servicio='en_servicio',
+     * limpia faltas/descansos en conflicto para esa fecha y sincroniza historial_operativo.
+     */
+    public static function registrarAsistenciaDespacho($unidadId, $horaRealSalida, $datosContexto = [], $registroActual = null)
+    {
+        try {
+            $fechaHoy = Carbon::now('America/Mexico_City')->toDateString();
+
+            // 1. Obtener datos operativos más recientes de la unidad
+            $info = $registroActual;
+            if (!$info || !isset($info->numero_tarjeton)) {
+                $info = DB::table('informacion_operativa')->where('unidad_id', $unidadId)->first();
+            }
+
+            if (!$info && empty($datosContexto)) {
+                return;
+            }
+
+            $unidad = DB::table('unidades')->where('id', $unidadId)->first();
+            $eco = $unidad ? $unidad->numero_eco : ($datosContexto['numero_eco'] ?? null);
+
+            $ruta = $datosContexto['ruta'] ?? ($info->ruta ?? null);
+            $tarjetonTitular = $datosContexto['tarjeton'] ?? ($datosContexto['numero_tarjeton'] ?? ($info->numero_tarjeton ?? null));
+            $nombreTitular = $datosContexto['conductor'] ?? ($datosContexto['nombre_conductor'] ?? ($info->nombre_conductor ?? null));
+
+            $relevoTarjeton = $datosContexto['relevo_tarjeton'] ?? ($info->relevo_tarjeton ?? null);
+            $relevoConductor = $datosContexto['relevo_conductor'] ?? ($info->relevo_conductor ?? null);
+
+            $horaSalidaEfectiva = !empty($horaRealSalida) ? $horaRealSalida : ($datosContexto['hora_salida_patio'] ?? ($info->hora_salida_patio ?? Carbon::now('America/Mexico_City')->format('H:i:s')));
+
+            // 2. Procesar conductor titular
+            if (!empty($tarjetonTitular) || !empty($nombreTitular)) {
+                $condTitular = self::buscarConductorFlexible($tarjetonTitular, $nombreTitular);
+                if ($condTitular) {
+                    self::asignarAsistenciaConductorIndividual($condTitular, $fechaHoy, [
+                        'numero_eco' => $eco,
+                        'ruta' => $ruta,
+                        'hora_salida' => $horaSalidaEfectiva,
+                        'es_relevo' => false,
+                        'motivo' => "Despacho validado en Unidad {$eco} (Ruta {$ruta})"
+                    ]);
+                }
+            }
+
+            // 3. Procesar conductor relevo si está asignado
+            if (!empty($relevoTarjeton) || !empty($relevoConductor)) {
+                $condRelevo = self::buscarConductorFlexible($relevoTarjeton, $relevoConductor);
+                if ($condRelevo) {
+                    self::asignarAsistenciaConductorIndividual($condRelevo, $fechaHoy, [
+                        'numero_eco' => $eco,
+                        'ruta' => $ruta,
+                        'hora_salida' => $horaSalidaEfectiva,
+                        'es_relevo' => true,
+                        'motivo' => "Relevo despachado en Unidad {$eco} (Ruta {$ruta})"
+                    ]);
+                }
+            }
+
+            // 4. Sincronizar en historial_operativo para la fecha de hoy
+            if (Schema::hasTable('historial_operativo')) {
+                $historialCols = array_flip(Schema::getColumnListing('historial_operativo'));
+                $updateHist = [];
+
+                if (isset($historialCols['hora_real_salida_patio']) && !empty($horaSalidaEfectiva)) {
+                    $updateHist['hora_real_salida_patio'] = $horaSalidaEfectiva;
+                }
+                if (isset($historialCols['hora_salida']) && !empty($horaSalidaEfectiva)) {
+                    $updateHist['hora_salida'] = $horaSalidaEfectiva;
+                }
+                if (!empty($tarjetonTitular)) {
+                    $updateHist['numero_tarjeton'] = $tarjetonTitular;
+                }
+                if (!empty($nombreTitular)) {
+                    $updateHist['nombre_conductor'] = $nombreTitular;
+                }
+                if (!empty($ruta)) {
+                    $updateHist['ruta'] = $ruta;
+                }
+                if (!empty($relevoTarjeton)) {
+                    $updateHist['relevo_tarjeton'] = $relevoTarjeton;
+                }
+                if (!empty($relevoConductor)) {
+                    $updateHist['relevo_conductor'] = $relevoConductor;
+                }
+                $updateHist['updated_at'] = Carbon::now('America/Mexico_City');
+
+                $affected = DB::table('historial_operativo')
+                    ->where('unidad_id', $unidadId)
+                    ->where('fecha_historial', $fechaHoy)
+                    ->update($updateHist);
+
+                // Si no existía registro en historial_operativo para hoy, crearlo
+                if ($affected === 0 && $unidad) {
+                    $insertHist = array_merge([
+                        'unidad_id' => $unidadId,
+                        'fecha_historial' => $fechaHoy,
+                        'momento' => 'INICIO',
+                        'tipo' => $unidad->tipo_transporte ?? ($info->tipo ?? 'Autobús'),
+                        'estatus' => 'operacion',
+                        'created_at' => Carbon::now('America/Mexico_City'),
+                    ], $updateHist);
+                    $insertValido = array_intersect_key($insertHist, $historialCols);
+                    DB::table('historial_operativo')->insert($insertValido);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error en DespachoController::registrarAsistenciaDespacho: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Búsqueda flexible de conductor por tarjetón o nombre, tolerante a ceros a la izquierda
+     * y orden de nombres/apellidos.
+     */
+    public static function buscarConductorFlexible($tarjeton, $nombre = null)
+    {
+        // 1. Búsqueda por tarjetón usando PlataformaController
+        if (!empty($tarjeton)) {
+            $rawTarjeton = trim((string)$tarjeton);
+            if (!in_array(strtolower($rawTarjeton), ['sin tarjeton', 'seleccione', 's/t', 'null', '0'])) {
+                $cond = PlataformaController::buscarConductorPorTarjeton($rawTarjeton);
+                if ($cond) {
+                    return Conductor::find($cond->id);
+                }
+
+                // Intentar buscar candidatos extrayendo dígitos exactos
+                $soloDigitos = preg_replace('/\D/', '', $rawTarjeton);
+                if (!empty($soloDigitos)) {
+                    $candidatos = PlataformaController::obtenerCandidatosTarjeton($soloDigitos);
+                    $cond = DB::table('conductores')
+                        ->whereIn('tarjeton', $candidatos)
+                        ->first();
+                    if ($cond) {
+                        return Conductor::find($cond->id);
+                    }
+                }
+            }
+        }
+
+        // 2. Búsqueda por nombre si se proporcionó
+        if (!empty($nombre)) {
+            $nombreLimpio = trim((string)$nombre);
+            if (!in_array(strtolower($nombreLimpio), ['sin conductor', 'seleccione', 's/c', 'null'])) {
+                $tokensBuscados = self::tokenizarNombre($nombreLimpio);
+                if (!empty($tokensBuscados)) {
+                    $conductores = Conductor::where('estatus', '!=', 'baja')
+                        ->orWhereNull('estatus')
+                        ->get();
+
+                    $coincidencias = [];
+                    foreach ($conductores as $c) {
+                        $nombreCompleto1 = ($c->nombres ?? '') . ' ' . ($c->apellidos ?? '');
+                        $tokens1 = self::tokenizarNombre($nombreCompleto1);
+                        if ($tokensBuscados === $tokens1) {
+                            return $c;
+                        }
+
+                        $significativosBuscados = array_filter(explode(' ', $tokensBuscados), fn($w) => strlen($w) >= 3);
+                        $significativosC = array_filter(explode(' ', $tokens1), fn($w) => strlen($w) >= 3);
+                        if (!empty($significativosBuscados) && !empty($significativosC)) {
+                            $interseccion = array_intersect($significativosBuscados, $significativosC);
+                            if (count($interseccion) === count($significativosBuscados) && count($interseccion) >= 2) {
+                                $coincidencias[] = $c;
+                            }
+                        }
+                    }
+
+                    // Solo si hay exactamente una coincidencia unívoca (evitar ambigüedad)
+                    if (count($coincidencias) === 1) {
+                        return $coincidencias[0];
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static function tokenizarNombre($str)
+    {
+        if (empty($str)) return '';
+        $str = mb_strtoupper(trim((string)$str), 'UTF-8');
+        $unwanted = [
+            'Á'=>'A', 'É'=>'E', 'Í'=>'I', 'Ó'=>'O', 'Ú'=>'U', 'Ü'=>'U', 'Ñ'=>'N'
+        ];
+        $str = strtr($str, $unwanted);
+        $str = preg_replace('/[^A-Z0-9\s]/', ' ', $str);
+        $words = preg_split('/\s+/', $str, -1, PREG_SPLIT_NO_EMPTY);
+        sort($words);
+        return implode(' ', $words);
+    }
+
+    /**
+     * Asigna la asistencia a un conductor en su asistencias_detalle,
+     * limpia faltas y descansos en conflicto para esa fecha, y actualiza estado_servicio.
+     */
+    public static function asignarAsistenciaConductorIndividual($conductor, $fecha, $datosExtra = [])
+    {
+        if (!$conductor) return;
+
+        $rawAsist = $conductor->asistencias_detalle;
+        $asistencias = is_array($rawAsist) ? $rawAsist : (is_string($rawAsist) ? (json_decode($rawAsist, true) ?: []) : []);
+
+        $motivo = $datosExtra['motivo'] ?? "Asistencia registrada en Despacho";
+        $yaExiste = false;
+        $modificado = false;
+
+        foreach ($asistencias as &$item) {
+            if (isset($item['fecha']) && substr((string)$item['fecha'], 0, 10) === $fecha) {
+                $yaExiste = true;
+                if (($item['unidad'] ?? '') !== ($datosExtra['numero_eco'] ?? '')) {
+                    $item['motivo'] = $motivo;
+                    $item['estado'] = 'asistencia';
+                    if (!empty($datosExtra['numero_eco'])) $item['unidad'] = $datosExtra['numero_eco'];
+                    if (!empty($datosExtra['ruta'])) $item['ruta'] = $datosExtra['ruta'];
+                    if (isset($datosExtra['es_relevo'])) $item['es_relevo'] = $datosExtra['es_relevo'];
+                    if (!empty($datosExtra['hora_salida'])) $item['hora_salida'] = $datosExtra['hora_salida'];
+                    $modificado = true;
+                }
+                break;
+            }
+        }
+        unset($item);
+
+        if (!$yaExiste) {
+            $asistencias[] = [
+                'id' => 'asistencia_despacho_' . time() . '_' . random_int(1000, 9999),
+                'fecha' => $fecha,
+                'motivo' => $motivo,
+                'estado' => 'asistencia',
+                'unidad' => $datosExtra['numero_eco'] ?? null,
+                'ruta' => $datosExtra['ruta'] ?? null,
+                'es_relevo' => !empty($datosExtra['es_relevo']),
+                'hora_salida' => $datosExtra['hora_salida'] ?? null,
+                'created_at' => Carbon::now('America/Mexico_City')->toDateTimeString(),
+            ];
+            $modificado = true;
+        }
+
+        // Limpiar de faltas_detalle cualquier falta NO justificada para esta misma fecha
+        $rawF = $conductor->faltas_detalle;
+        $arrF = is_array($rawF) ? $rawF : (is_string($rawF) ? (json_decode($rawF, true) ?: []) : []);
+        $nuevasF = [];
+        $remF = 0;
+        foreach ($arrF as $item) {
+            $fFecha = is_array($item) ? substr((string)($item['fecha'] ?? ''), 0, 10) : '';
+            $esJustificada = is_array($item) && ((isset($item['estado']) && $item['estado'] === 'justificada') || !empty($item['justificada']));
+            if ($fFecha === $fecha && !$esJustificada) {
+                $remF++;
+            } else {
+                $nuevasF[] = $item;
+            }
+        }
+        if ($remF > 0) {
+            $conductor->faltas_detalle = $nuevasF;
+            $conductor->faltas = max(0, ((int)($conductor->faltas ?? 0)) - $remF);
+            $modificado = true;
+        }
+
+        // Limpiar de descansos_detalle si estaba programado descanso
+        $rawD = $conductor->descansos_detalle;
+        $arrD = is_array($rawD) ? $rawD : (is_string($rawD) ? (json_decode($rawD, true) ?: []) : []);
+        $nuevosD = array_values(array_filter($arrD, function($item) use ($fecha) {
+            $dFecha = is_array($item) ? substr((string)($item['fecha'] ?? ''), 0, 10) : '';
+            return $dFecha !== $fecha;
+        }));
+        if (count($nuevosD) !== count($arrD)) {
+            $conductor->descansos_detalle = $nuevosD;
+            $modificado = true;
+        }
+
+        // Si la fecha es hoy, marcar en servicio
+        $hoy = Carbon::today('America/Mexico_City')->toDateString();
+        if ($fecha === $hoy && $conductor->estado_servicio !== 'en_servicio') {
+            $conductor->estado_servicio = 'en_servicio';
+            $modificado = true;
+        }
+
+        if ($modificado) {
+            $conductor->asistencias_detalle = $asistencias;
+            $conductor->save();
+        }
+    }
+
+    /**
+     * Sincroniza retroactivamente las asistencias del día de hoy para todas las unidades
+     * que ya cuenten con hora real de salida de patio o estatus operación.
+     * Incluye throttle en caché para evitar sobrecarga en peticiones concurrentes.
+     */
+    public static function sincronizarAsistenciasHoy()
+    {
+        try {
+            $fechaHoy = Carbon::now('America/Mexico_City')->toDateString();
+            $cacheKey = 'sync_asistencias_hoy_' . $fechaHoy;
+            if (Cache::has($cacheKey)) {
+                return;
+            }
+            Cache::put($cacheKey, true, 180); // 3 minutos de throttle
+
+            if (!Schema::hasTable('informacion_operativa')) {
+                return;
+            }
+
+            $unidadesValidadas = DB::table('informacion_operativa')
+                ->where(function($q) {
+                    $q->whereNotNull('hora_real_salida_patio')
+                      ->where('hora_real_salida_patio', '!=', '')
+                      ->where('hora_real_salida_patio', '!=', '00:00:00')
+                      ->where('hora_real_salida_patio', '!=', '00:00');
+                })
+                ->orWhere(function($q) {
+                    $q->where(DB::raw('LOWER(estatus)'), 'operacion')
+                      ->where(function($q2) {
+                          $q2->whereNotNull('hora_salida_patio')
+                             ->orWhereNotNull('hora_salida');
+                      });
+                })
+                ->get();
+
+            foreach ($unidadesValidadas as $info) {
+                $horaSalida = !empty($info->hora_real_salida_patio) ? $info->hora_real_salida_patio : ($info->hora_salida_patio ?? ($info->hora_salida ?? '06:00:00'));
+                self::registrarAsistenciaDespacho($info->unidad_id, $horaSalida, [], $info);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error en DespachoController::sincronizarAsistenciasHoy: ' . $e->getMessage());
         }
     }
 
