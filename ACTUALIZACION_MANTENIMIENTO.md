@@ -62,7 +62,7 @@ Anteriormente, el sistema asumía una sola fecha para la estancia en taller. Sin
 - **Fecha de Incidencia Editable**: Anteriormente solo se podía editar la fecha del folio. Ahora el modal incluye:
   - Selector de **Fecha de la Incidencia** con `AppleDatePicker`.
   - Selector de **Fecha del Folio Físico** con `AppleDatePicker`.
-- **Vista Previa de Falla o Motivo de Ingreso (Solo Lectura)**: La falla y diagnóstico asentados al ingresar a taller ahora se muestran exclusivamente como una tarjeta informativa de consulta (vista previa de por qué la unidad está en mantenimiento), eliminando el campo de edición en este modal para proteger la integridad del reporte original.
+- **Enfoque Exclusivo en Folios e Incidencias**: El modal se enfoca estrictamente en la actualización de folios, incidencias y sus fechas correspondientes, eliminando campos o vistas previas redundantes de fallas (la falla y diagnóstico se consultan directamente en su respectiva columna de la tabla).
 - **Corrección Crítica de Sobreescritura**: Se eliminó el código que sobreescribía la fecha de registro con `Carbon::now()` al guardar cambios de incidencia. Ahora se respeta la fecha seleccionada por el usuario o se preserva la original.
 - **Trazabilidad y Control Operativo**:
   - Muestra tarjetas duales con los tiempos de estancia y fechas de inicio (`Tiempo en Incidencia` y `Tiempo con Folio Físico`).

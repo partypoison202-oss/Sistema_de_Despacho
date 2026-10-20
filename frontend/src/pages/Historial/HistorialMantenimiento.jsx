@@ -1848,35 +1848,6 @@ export default function HistorialMantenimiento() {
                   </div>
                 </div>
 
-                {/* Vista previa de falla / motivo de mantenimiento (solo lectura) */}
-                {(() => {
-                  const fallaInfoModal = getFallaDetalle(folioEditando);
-                  return (
-                    <div className="preview-falla-mantenimiento-luxury">
-                      <div className="preview-falla-header">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-                        </svg>
-                        <span>Falla o Motivo de Ingreso a Taller (Vista Previa)</span>
-                      </div>
-                      <div className="preview-falla-body">
-                        <div className="preview-falla-main">
-                          <span className={`preview-falla-badge ${fallaInfoModal.esGenerico ? 'generico' : 'especifico'}`}>
-                            {fallaInfoModal.texto}
-                          </span>
-                          {folioEditando.diagnostico && (
-                            <span className="preview-diagnostico-tag" title={folioEditando.diagnostico}>
-                              Diag: <strong>{folioEditando.diagnostico}</strong>
-                            </span>
-                          )}
-                        </div>
-                        <span className="preview-falla-hint">
-                          Reporte registrado al asignar mantenimiento. No se edita desde este módulo de folios.
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })()}
 
                 <div className="form-group-luxury highlight-required">
                   <label>
@@ -4171,72 +4142,6 @@ export default function HistorialMantenimiento() {
         }
 
 
-        /* Vista Previa de Falla / Motivo en Modal */
-        .preview-falla-mantenimiento-luxury {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-left: 3px solid #691B31;
-          border-radius: 9px;
-          padding: 10px 14px;
-          margin-bottom: 1.15rem;
-        }
-        .preview-falla-header {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.74rem;
-          font-weight: 800;
-          color: #475569;
-          text-transform: uppercase;
-          letter-spacing: 0.4px;
-          margin-bottom: 6px;
-        }
-        .preview-falla-body {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .preview-falla-main {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-        .preview-falla-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 3px 9px;
-          border-radius: 6px;
-          font-size: 0.84rem;
-          font-weight: 700;
-          text-transform: uppercase;
-        }
-        .preview-falla-badge.especifico {
-          background: #fdf2f4;
-          color: #691B31;
-          border: 1px solid #fecdd3;
-        }
-        .preview-falla-badge.generico {
-          background: #f1f5f9;
-          color: #64748b;
-          border: 1px solid #e2e8f0;
-        }
-        .preview-diagnostico-tag {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          background: #eff6ff;
-          color: #1e40af;
-          border: 1px solid #bfdbfe;
-          border-radius: 6px;
-          padding: 3px 8px;
-          font-size: 0.76rem;
-        }
-        .preview-falla-hint {
-          font-size: 0.72rem;
-          color: #64748b;
-          margin-top: 2px;
-        }
 
         .callout-icon {
           color: #ea580c;
