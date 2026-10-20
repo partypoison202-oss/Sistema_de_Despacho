@@ -40,8 +40,8 @@ class FixMantenimientoColumns extends Command
             ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_kilometraje decimal(10,2) null;
             ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS hora_encierro varchar(20) null;
 
-            -- Inyectar columnas de relevo de forma segura en todas las tablas operativas que existan
-            DO \$\$
+            -- Inyectar columnas de relevo y hora_encierro de forma segura en todas las tablas operativas que existan
+            DO $$
             DECLARE
                 t text;
                 tables text[] := ARRAY[
@@ -51,6 +51,7 @@ class FixMantenimientoColumns extends Command
                     'informacion_operativa_domingo',
                     'informacion_operativa_lunes',
                     'informacion_operativa_festivo',
+                    'programacion_inicial',
                     'historial_operativo'
                 ];
             BEGIN
@@ -61,9 +62,17 @@ class FixMantenimientoColumns extends Command
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null';
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS acople varchar(50) null';
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_salida_patio varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_encierro varchar(20) null';
                     END IF;
                 END LOOP;
-            END \$\$;
+
+                -- Asegurar que la unidad 233 exista en el catálogo de unidades si aún no está registrada
+                IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'unidades') THEN
+                    INSERT INTO unidades (transporte_id, numero_eco, tipo, created_at, updated_at)
+                    SELECT 3, '233', 'VAGONETA', NOW(), NOW()
+                    WHERE NOT EXISTS (SELECT 1 FROM unidades WHERE TRIM(numero_eco) IN ('233', '0233'));
+                END IF;
+            END $$;
         ";
 
         $dbUser = config('database.connections.pgsql.username') ?: env('DB_USERNAME', 'postgres');
@@ -113,7 +122,8 @@ class FixMantenimientoColumns extends Command
             '2026_09_03_144654_add_numero_incidencia_to_informacion_operativa',
             '2026_09_03_171543_add_mantenimiento_fields_to_informacion_operativa',
             '2026_09_04_141635_add_hora_encierro_to_historial_operativo',
-            '2026_09_09_150000_add_relevo_fields_to_operativas_tables'
+            '2026_09_09_150000_add_relevo_fields_to_operativas_tables',
+            '2026_10_15_120000_add_hora_encierro_to_operativas_tables',
         ];
 
         foreach($migraciones as $migracion) {

@@ -998,6 +998,10 @@ export default function CargaExcel({ isPasteles = false }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Error al guardar');
 
+      if (result.status === 'error' || (Array.isArray(result.errores) && result.errores.length > 0)) {
+        throw new Error(result.message || result.errores.join('; '));
+      }
+
       setHasChanges(false);
       Swal.fire({
         icon: 'success',
@@ -1006,6 +1010,7 @@ export default function CargaExcel({ isPasteles = false }) {
         confirmButtonColor: '#c5a059'
       });
       queryClient.invalidateQueries({ queryKey: ['despacho-datos'] });
+      queryClient.invalidateQueries({ queryKey: ['despacho-datos', tabActiva] });
       return true;
     } catch (error) {
       Swal.fire({
