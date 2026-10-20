@@ -1090,6 +1090,9 @@ class DespachoController extends Controller
 
         $infoOperativaRegistros = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
         $infoOperativaIds = $infoOperativaRegistros->map(fn ($r) => $r->id)->all();
+        $origen = strtoupper(trim((string) ($request->input('origen') ?? '')));
+        // Guardado parcial: el frontend envía solo las unidades modificadas. No se deben eliminar las no enviadas.
+        $parcial = $request->boolean('parcial');
 
         $unidadesProcesadasIds = [];
         $tarjetonesEnServicio = [];
@@ -1116,6 +1119,8 @@ class DespachoController extends Controller
             }
 
             $unidadesProcesadasIds[] = $unidad->id;
+
+            $prevInfo = $infoOperativaRegistros->get($unidad->id);
 
             // Procesar Conductor
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
@@ -1146,7 +1151,18 @@ class DespachoController extends Controller
             // Procesar Relevo
             $relevoTarjetonVal = trim((string) ($fila['RELEVO_TARJETON'] ?? ''));
             $relevoConductorNombre = '';
-            if ($relevoTarjetonVal !== '') {
+            $relevoHoraVal = trim((string) ($fila['RELEVO_HORA'] ?? ''));
+
+            // Si el guardado NO proviene de RELEVOS (ej: viene de PROGRAMACION o PASTELES)
+            // y la fila entrante no incluye relevo pero en BD ya existía uno guardado, PRESERVARLO
+            if ($origen !== 'RELEVOS' && $relevoTarjetonVal === '' && $prevInfo && !empty($prevInfo->relevo_tarjeton)) {
+                $relevoTarjetonVal = trim((string) $prevInfo->relevo_tarjeton);
+                $relevoConductorNombre = trim((string) ($prevInfo->relevo_conductor ?? ''));
+                $relevoHoraVal = trim((string) ($prevInfo->relevo_hora ?? ''));
+                if ($relevoTarjetonVal !== '') {
+                    $tarjetonesEnServicio[] = $relevoTarjetonVal;
+                }
+            } elseif ($relevoTarjetonVal !== '') {
                 $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($relevoCatalog) {
                     $relevoConductorNombre = mb_strtoupper(trim($relevoCatalog->nombre), 'UTF-8');
@@ -1164,17 +1180,45 @@ class DespachoController extends Controller
             $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_REAL_SALIDA_PATIO'] ?? $fila['HORA_SALIDA'] ?? ''));
 
+            // Si proviene de RELEVOS, los campos de titular no se gestionan en este módulo: preservar de BD si vienen vacíos
+            if ($origen === 'RELEVOS' && $prevInfo) {
+                if ($tarjetonVal === '' && !empty($prevInfo->numero_tarjeton)) {
+                    $tarjetonVal = trim((string) $prevInfo->numero_tarjeton);
+                    $conductorNombre = trim((string) ($prevInfo->nombre_conductor ?? ''));
+                    if ($tarjetonVal !== '') {
+                        $tarjetonesEnServicio[] = $tarjetonVal;
+                    }
+                }
+                if ($horaProgVal === '' && !empty($prevInfo->hora_salida_patio)) {
+                    $horaProgVal = trim((string) $prevInfo->hora_salida_patio);
+                }
+                if ($acopleVal === '' && !empty($prevInfo->acople)) {
+                    $acopleVal = trim((string) $prevInfo->acople);
+                }
+                if ($horaEncierroVal === '' && !empty($prevInfo->hora_encierro)) {
+                    $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
+                }
+                if ($corridasVal === '' && !empty($prevInfo->corridas)) {
+                    $corridasVal = (string) $prevInfo->corridas;
+                }
+            }
+
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
+            $rutaVal = (string) ($fila['RUTA'] ?? '');
+            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
+                $rutaVal = (string) $prevInfo->ruta;
+            }
+
             $data = [
-                'ruta' => (string) ($fila['RUTA'] ?? ''),
+                'ruta' => $rutaVal,
                 'numero_tarjeton' => $tarjetonVal,
                 'nombre_conductor' => $conductorNombre,
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista' => $maniobristaNombre,
-                'relevo_tarjeton' => trim((string) ($fila['RELEVO_TARJETON'] ?? '')),
+                'relevo_tarjeton' => $relevoTarjetonVal,
                 'relevo_conductor' => preg_replace('/\s*\(\d+\)$/', '', $relevoConductorNombre !== '' ? $relevoConductorNombre : trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''))),
-                'relevo_hora' => trim((string) ($fila['RELEVO_HORA'] ?? '')),
+                'relevo_hora' => $relevoHoraVal,
                 'corridas' => $corridasVal === '' ? null : (int) $corridasVal,
                 'hora_salida_patio' => $horaProgVal === '' ? null : $horaProgVal,
                 'acople' => $acopleVal === '' ? null : $acopleVal,
@@ -1189,7 +1233,7 @@ class DespachoController extends Controller
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
-            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']));
+            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
             if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
                 $data['estatus'] = 'operacion';
@@ -1316,13 +1360,22 @@ class DespachoController extends Controller
                         if ($oldTarjeton !== $newTarjeton) {
                             $cambiosDetalles[] = 'CONDUCTOR: '.($prev->nombre_conductor ?: 'SIN ASIGNAR').' ('.($oldTarjeton ?: 'S/T').') -> '.($data['nombre_conductor'] ?: 'SIN ASIGNAR').' ('.($newTarjeton ?: 'S/T').')';
                         }
+                        $oldRelevo = trim((string) ($prev->relevo_tarjeton ?? ''));
+                        $newRelevo = trim((string) ($data['relevo_tarjeton'] ?? ''));
+                        $oldRelevoHora = trim((string) ($prev->relevo_hora ?? ''));
+                        $newRelevoHora = trim((string) ($data['relevo_hora'] ?? ''));
+                        if ($oldRelevo !== $newRelevo || $oldRelevoHora !== $newRelevoHora) {
+                            $cambiosDetalles[] = 'RELEVO: '.($prev->relevo_conductor ?: 'SIN RELEVO').' ('.($oldRelevo ?: 'S/T').' '.$oldRelevoHora.') -> '.($data['relevo_conductor'] ?: 'SIN RELEVO').' ('.($newRelevo ?: 'S/T').' '.$newRelevoHora.')';
+                        }
 
                         if (! empty($cambiosDetalles)) {
                             try {
+                                $tipoAccion = ($origen === 'RELEVOS') ? 'RELEVOS_T6' : ($origen === 'PASTELES' ? 'PROGRAMACION_PASTELES' : 'PROGRAMACION_LOGISTICA');
+                                $prefijo = ($origen === 'RELEVOS') ? 'MODIFICACIÓN EN RELEVOS T6' : ($origen === 'PASTELES' ? 'MODIFICACIÓN EN PROGRAMACIÓN (PASTELES)' : 'MODIFICACIÓN EN PROGRAMACIÓN');
                                 BitacoraHelper::registrarCambio(
                                     $unidad->id,
-                                    'PROGRAMACION_LOGISTICA',
-                                    'MODIFICACIÓN EN PROGRAMACIÓN (PASTELES) - '.implode(' | ', $cambiosDetalles),
+                                    $tipoAccion,
+                                    $prefijo.' - '.implode(' | ', $cambiosDetalles),
                                     $prev->estatus ?? null,
                                     $data['estatus'] ?? null
                                 );
@@ -1369,6 +1422,33 @@ class DespachoController extends Controller
             }
         }
 
+        if ($parcial) {
+            // El payload solo trae unidades modificadas: recalcular quién está en servicio con TODA la tabla,
+            // para no marcar como disponibles a los conductores de unidades que no se enviaron.
+            $registrosServicio = DB::table('informacion_operativa')
+                ->select('numero_tarjeton', 'relevo_tarjeton', 'tarjeton_maniobrista')
+                ->get();
+            foreach ($registrosServicio as $rs) {
+                foreach ([$rs->numero_tarjeton, $rs->relevo_tarjeton] as $t) {
+                    $t = trim((string) $t);
+                    if ($t === '') {
+                        continue;
+                    }
+                    $cat = $conductoresMap->get($t) ?? $conductoresMap->get(ltrim($t, '0')) ?? $conductoresMap->get(str_pad(ltrim($t, '0'), 4, '0', STR_PAD_LEFT));
+                    if ($cat) {
+                        $tarjetonesEnServicio[] = $cat->tarjeton;
+                    }
+                }
+                $tm = trim((string) $rs->tarjeton_maniobrista);
+                if ($tm !== '') {
+                    $catM = $maniobristasMap->get($tm) ?? $maniobristasMap->get(ltrim($tm, '0')) ?? $maniobristasMap->get(str_pad(ltrim($tm, '0'), 4, '0', STR_PAD_LEFT));
+                    if ($catM) {
+                        $maniobristasEnServicio[] = $catM->tarjeton;
+                    }
+                }
+            }
+        }
+
         if (! empty($tarjetonesEnServicio)) {
             DB::table('conductores')
                 ->whereIn('tarjeton', array_unique($tarjetonesEnServicio))
@@ -1381,30 +1461,33 @@ class DespachoController extends Controller
                 ->update(['estado_servicio' => 'en_servicio']);
         }
 
-        try {
-            $unidadesEliminadas = DB::table('informacion_operativa')
-                ->whereNotIn('unidad_id', $unidadesProcesadasIds)
-                ->get();
-            foreach ($unidadesEliminadas as $uElim) {
-                try {
-                    BitacoraHelper::registrarCambio(
-                        $uElim->unidad_id,
-                        'PROGRAMACION_LOGISTICA',
-                        'UNIDAD RETIRADA DE LA PROGRAMACIÓN DEL DÍA (PASTELES)',
-                        $uElim->estatus,
-                        'no_programada'
-                    );
-                } catch (\Throwable $th) {
-                    \Log::warning('Error registrando bitácora eliminación en actualizar: '.$th->getMessage());
+        $eliminados = 0;
+        if (! $parcial) {
+            try {
+                $unidadesEliminadas = DB::table('informacion_operativa')
+                    ->whereNotIn('unidad_id', $unidadesProcesadasIds)
+                    ->get();
+                foreach ($unidadesEliminadas as $uElim) {
+                    try {
+                        BitacoraHelper::registrarCambio(
+                            $uElim->unidad_id,
+                            'PROGRAMACION_LOGISTICA',
+                            'UNIDAD RETIRADA DE LA PROGRAMACIÓN DEL DÍA (PASTELES)',
+                            $uElim->estatus,
+                            'no_programada'
+                        );
+                    } catch (\Throwable $th) {
+                        \Log::warning('Error registrando bitácora eliminación en actualizar: '.$th->getMessage());
+                    }
                 }
+                $eliminados = DB::table('informacion_operativa')
+                    ->whereNotIn('unidad_id', $unidadesProcesadasIds)
+                    ->delete();
+            } catch (\Exception $e) {
+                \Log::error('Fallo al eliminar registros no enviados: '.$e->getMessage());
+                $errores[] = 'Error al eliminar registros obsoletos: '.$e->getMessage();
+                $eliminados = 0;
             }
-            $eliminados = DB::table('informacion_operativa')
-                ->whereNotIn('unidad_id', $unidadesProcesadasIds)
-                ->delete();
-        } catch (\Exception $e) {
-            \Log::error('Fallo al eliminar registros no enviados: '.$e->getMessage());
-            $errores[] = 'Error al eliminar registros obsoletos: '.$e->getMessage();
-            $eliminados = 0;
         }
 
         // Asegurar snapshot de inicio únicamente si aún no existe, sin sobrescribir el congelado del cambio de día operativo
@@ -1468,6 +1551,7 @@ class DespachoController extends Controller
         $infoOperativaMananaRegistros = DB::table('informacion_operativa_manana')->get()->keyBy('unidad_id');
         $infoOperativaHoyRegistros = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
         $infoOperativaIds = $infoOperativaMananaRegistros->map(fn ($r) => $r->id)->all();
+        $origen = strtoupper(trim((string) ($request->input('origen') ?? '')));
 
         $unidadesProcesadasIds = [];
         $actualizados = 0;
@@ -1489,6 +1573,7 @@ class DespachoController extends Controller
             }
 
             $unidadesProcesadasIds[] = $unidad->id;
+            $prevInfo = $infoOperativaMananaRegistros->get($unidad->id);
 
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
@@ -1515,7 +1600,13 @@ class DespachoController extends Controller
             // Procesar Relevo
             $relevoTarjetonVal = trim((string) ($fila['RELEVO_TARJETON'] ?? ''));
             $relevoConductorNombre = '';
-            if ($relevoTarjetonVal !== '') {
+            $relevoHoraVal = trim((string) ($fila['RELEVO_HORA'] ?? ''));
+
+            if ($origen !== 'RELEVOS' && $relevoTarjetonVal === '' && $prevInfo && !empty($prevInfo->relevo_tarjeton)) {
+                $relevoTarjetonVal = trim((string) $prevInfo->relevo_tarjeton);
+                $relevoConductorNombre = trim((string) ($prevInfo->relevo_conductor ?? ''));
+                $relevoHoraVal = trim((string) ($prevInfo->relevo_hora ?? ''));
+            } elseif ($relevoTarjetonVal !== '') {
                 $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($relevoCatalog) {
                     $relevoConductorNombre = mb_strtoupper(trim($relevoCatalog->nombre), 'UTF-8');
@@ -1532,17 +1623,41 @@ class DespachoController extends Controller
             $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
+            if ($origen === 'RELEVOS' && $prevInfo) {
+                if ($tarjetonVal === '' && !empty($prevInfo->numero_tarjeton)) {
+                    $tarjetonVal = trim((string) $prevInfo->numero_tarjeton);
+                    $conductorNombre = trim((string) ($prevInfo->nombre_conductor ?? ''));
+                }
+                if ($horaProgVal === '' && !empty($prevInfo->hora_salida_patio)) {
+                    $horaProgVal = trim((string) $prevInfo->hora_salida_patio);
+                }
+                if ($acopleVal === '' && !empty($prevInfo->acople)) {
+                    $acopleVal = trim((string) $prevInfo->acople);
+                }
+                if ($horaEncierroVal === '' && !empty($prevInfo->hora_encierro)) {
+                    $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
+                }
+                if ($corridasVal === '' && !empty($prevInfo->corridas)) {
+                    $corridasVal = (string) $prevInfo->corridas;
+                }
+            }
+
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
+            $rutaVal = (string) ($fila['RUTA'] ?? '');
+            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
+                $rutaVal = (string) $prevInfo->ruta;
+            }
+
             $data = [
-                'ruta' => (string) ($fila['RUTA'] ?? ''),
+                'ruta' => $rutaVal,
                 'numero_tarjeton' => $tarjetonVal,
                 'nombre_conductor' => $conductorNombre,
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista' => $maniobristaNombre,
-                'relevo_tarjeton' => trim((string) ($fila['RELEVO_TARJETON'] ?? '')),
+                'relevo_tarjeton' => $relevoTarjetonVal,
                 'relevo_conductor' => preg_replace('/\s*\(\d+\)$/', '', $relevoConductorNombre !== '' ? $relevoConductorNombre : trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''))),
-                'relevo_hora' => trim((string) ($fila['RELEVO_HORA'] ?? '')),
+                'relevo_hora' => $relevoHoraVal,
                 'corridas' => $corridasVal === '' ? null : (int) $corridasVal,
                 'hora_salida_patio' => $horaProgVal === '' ? null : $horaProgVal,
                 'acople' => $acopleVal === '' ? null : $acopleVal,
@@ -1557,7 +1672,7 @@ class DespachoController extends Controller
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
-            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']));
+            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
             if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
                 $data['estatus'] = 'operacion';
@@ -1755,6 +1870,7 @@ class DespachoController extends Controller
         $infoOperativaEspecificoRegistros = DB::table($tableName)->get()->keyBy('unidad_id');
         $infoOperativaHoyRegistros = DB::table('informacion_operativa')->get()->keyBy('unidad_id');
         $infoOperativaIds = $infoOperativaEspecificoRegistros->map(fn ($r) => $r->id)->all();
+        $origen = strtoupper(trim((string) ($request->input('origen') ?? '')));
 
         $unidadesProcesadasIds = [];
         $actualizados = 0;
@@ -1776,6 +1892,7 @@ class DespachoController extends Controller
             }
 
             $unidadesProcesadasIds[] = $unidad->id;
+            $prevInfo = $infoOperativaEspecificoRegistros->get($unidad->id);
 
             $tarjetonVal = trim((string) ($fila['TARJETON'] ?? ''));
             $conductorNombre = '';
@@ -1802,7 +1919,13 @@ class DespachoController extends Controller
             // Procesar Relevo
             $relevoTarjetonVal = trim((string) ($fila['RELEVO_TARJETON'] ?? ''));
             $relevoConductorNombre = '';
-            if ($relevoTarjetonVal !== '') {
+            $relevoHoraVal = trim((string) ($fila['RELEVO_HORA'] ?? ''));
+
+            if ($origen !== 'RELEVOS' && $relevoTarjetonVal === '' && $prevInfo && !empty($prevInfo->relevo_tarjeton)) {
+                $relevoTarjetonVal = trim((string) $prevInfo->relevo_tarjeton);
+                $relevoConductorNombre = trim((string) ($prevInfo->relevo_conductor ?? ''));
+                $relevoHoraVal = trim((string) ($prevInfo->relevo_hora ?? ''));
+            } elseif ($relevoTarjetonVal !== '') {
                 $relevoCatalog = $conductoresMap->get($relevoTarjetonVal) ?? $conductoresMap->get(ltrim($relevoTarjetonVal, '0')) ?? $conductoresMap->get(str_pad(ltrim($relevoTarjetonVal, '0'), 4, '0', STR_PAD_LEFT));
                 if ($relevoCatalog) {
                     $relevoConductorNombre = mb_strtoupper(trim($relevoCatalog->nombre), 'UTF-8');
@@ -1819,17 +1942,41 @@ class DespachoController extends Controller
             $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
+            if ($origen === 'RELEVOS' && $prevInfo) {
+                if ($tarjetonVal === '' && !empty($prevInfo->numero_tarjeton)) {
+                    $tarjetonVal = trim((string) $prevInfo->numero_tarjeton);
+                    $conductorNombre = trim((string) ($prevInfo->nombre_conductor ?? ''));
+                }
+                if ($horaProgVal === '' && !empty($prevInfo->hora_salida_patio)) {
+                    $horaProgVal = trim((string) $prevInfo->hora_salida_patio);
+                }
+                if ($acopleVal === '' && !empty($prevInfo->acople)) {
+                    $acopleVal = trim((string) $prevInfo->acople);
+                }
+                if ($horaEncierroVal === '' && !empty($prevInfo->hora_encierro)) {
+                    $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
+                }
+                if ($corridasVal === '' && !empty($prevInfo->corridas)) {
+                    $corridasVal = (string) $prevInfo->corridas;
+                }
+            }
+
             $registroId = $infoOperativaIds[$unidad->id] ?? null;
 
+            $rutaVal = (string) ($fila['RUTA'] ?? '');
+            if ($origen === 'RELEVOS' && $rutaVal === '' && $prevInfo && !empty($prevInfo->ruta)) {
+                $rutaVal = (string) $prevInfo->ruta;
+            }
+
             $data = [
-                'ruta' => (string) ($fila['RUTA'] ?? ''),
+                'ruta' => $rutaVal,
                 'numero_tarjeton' => $tarjetonVal,
                 'nombre_conductor' => $conductorNombre,
                 'tarjeton_maniobrista' => $tarjetonManiobristaVal,
                 'nombre_maniobrista' => $maniobristaNombre,
-                'relevo_tarjeton' => trim((string) ($fila['RELEVO_TARJETON'] ?? '')),
+                'relevo_tarjeton' => $relevoTarjetonVal,
                 'relevo_conductor' => preg_replace('/\s*\(\d+\)$/', '', $relevoConductorNombre !== '' ? $relevoConductorNombre : trim((string) ($fila['RELEVO_CONDUCTOR'] ?? ''))),
-                'relevo_hora' => trim((string) ($fila['RELEVO_HORA'] ?? '')),
+                'relevo_hora' => $relevoHoraVal,
                 'corridas' => $corridasVal === '' ? null : (int) $corridasVal,
                 'hora_salida_patio' => $horaProgVal === '' ? null : $horaProgVal,
                 'acople' => $acopleVal === '' ? null : $acopleVal,
@@ -1844,7 +1991,7 @@ class DespachoController extends Controller
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
-            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']));
+            $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
             if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
                 $data['estatus'] = 'operacion';
@@ -1976,14 +2123,17 @@ class DespachoController extends Controller
             }
         }
 
-        try {
-            $eliminados = DB::table($tableName)
-                ->whereNotIn('unidad_id', $unidadesProcesadasIds)
-                ->delete();
-        } catch (\Exception $e) {
-            \Log::error("Fallo al eliminar registros no enviados ({$dia}): ".$e->getMessage());
-            $errores[] = 'Error al eliminar registros obsoletos: '.$e->getMessage();
-            $eliminados = 0;
+        $eliminados = 0;
+        if (! $request->boolean('parcial')) {
+            try {
+                $eliminados = DB::table($tableName)
+                    ->whereNotIn('unidad_id', $unidadesProcesadasIds)
+                    ->delete();
+            } catch (\Exception $e) {
+                \Log::error("Fallo al eliminar registros no enviados ({$dia}): ".$e->getMessage());
+                $errores[] = 'Error al eliminar registros obsoletos: '.$e->getMessage();
+                $eliminados = 0;
+            }
         }
 
         return response()->json([

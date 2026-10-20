@@ -885,33 +885,53 @@ export default function ExcelPreview({
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
                                              onClick={(e) => {
                                               e.stopPropagation();
+                                              if (isSelected) {
+                                                setOpenDropdown({ rowIndex: null, field: null });
+                                                return;
+                                              }
                                               const estadoEfectivo = getEstadoEfectivo(c);
                                               if (estadoEfectivo === 'falta') return;
                                               
-                                              if (estadoEfectivo === 'en_servicio') {
+                                              const normC = normalizeTarjeton(c.tarjeton);
+                                              const prevAssignment = data.find((f, fIdx) => {
+                                                if (fIdx === originalIndex) {
+                                                  if (h === 'TARJETON') return normalizeTarjeton(f['RELEVO_TARJETON']) === normC;
+                                                  if (h === 'RELEVO_TARJETON') return normalizeTarjeton(f['TARJETON']) === normC;
+                                                  return false;
+                                                }
+                                                return (
+                                                  normalizeTarjeton(f['TARJETON']) === normC ||
+                                                  normalizeTarjeton(f['RELEVO_TARJETON']) === normC
+                                                );
+                                              });
+
+                                              if (prevAssignment || estadoEfectivo === 'en_servicio') {
                                                 // Cerrar el dropdown ANTES de abrir el Swal
                                                 setOpenDropdown({ rowIndex: null, field: null });
                                                 
-                                                const prevAssignment = data.find(f => 
-                                                  normalizeTarjeton(f['TARJETON']) === normalizeTarjeton(c.tarjeton) || 
-                                                  normalizeTarjeton(f['RELEVO_TARJETON']) === normalizeTarjeton(c.tarjeton)
-                                                );
-                                                
-                                                let asigText = '';
+                                                let eco = 'N/A';
+                                                let ruta = 'Sin ruta';
+                                                let rol = 'Servicio';
                                                 if (prevAssignment) {
-                                                  const eco = prevAssignment['ECONÓMICO'] || 'N/A';
-                                                  const ruta = prevAssignment['RUTA'] || 'N/A';
-                                                  asigText = `\n\nActualmente está asignado a la unidad ECO: ${eco} (Ruta: ${ruta}).`;
+                                                  eco = prevAssignment['ECONOMICO'] || prevAssignment['ECONÓMICO'] || 'N/A';
+                                                  ruta = prevAssignment['RUTA'] || 'Sin ruta';
+                                                  rol = normalizeTarjeton(prevAssignment['TARJETON']) === normC ? 'Titular' : 'Relevo';
                                                 }
 
+                                                const currentEco = fila['ECONOMICO'] || fila['ECONÓMICO'] || 'N/A';
+                                                const currentRol = h === 'RELEVO_TARJETON' ? 'Relevo' : 'Titular';
+
                                                 Swal.fire({
-                                                  title: 'Conductor en Servicio',
-                                                  text: `El conductor ${c.nombre} (Tarjetón: ${c.tarjeton}) ya se encuentra en servicio.${asigText}\n\n¿Estás seguro de que deseas reasignarlo a esta unidad?`,
+                                                  title: 'Alerta: Tarjetón Duplicado',
+                                                  html: `<div style="text-align: left; font-size: 0.92rem; line-height: 1.5;">
+                                                    <p>El tarjetón <b>${c.tarjeton}</b> del conductor <b>${c.nombre}</b> ya se encuentra asignado en el Económico <b>${eco}</b> (como <b>${rol}</b>${ruta !== 'Sin ruta' ? `, Ruta <b>${ruta}</b>` : ''}).</p>
+                                                    <p style="margin-top: 0.6rem;">¿Deseas reasignarlo a la unidad <b>Eco #${currentEco}</b> (como <b>${currentRol}</b>) y <b>retirarlo</b> de la unidad Eco #${eco} para evitar duplicados?</p>
+                                                  </div>`,
                                                   icon: 'warning',
                                                   showCancelButton: true,
                                                   confirmButtonColor: '#c29b53',
                                                   cancelButtonColor: '#6b1d33',
-                                                  confirmButtonText: 'Sí, reasignar',
+                                                  confirmButtonText: 'Sí, reasignar y transferir',
                                                   cancelButtonText: 'Cancelar'
                                                 }).then((result) => {
                                                   if (result.isConfirmed) {
@@ -1066,32 +1086,42 @@ export default function ExcelPreview({
                                             className={`dropdown-menu__item ${isSelected ? 'dropdown-menu__item--selected' : ''}`}
                                              onClick={(e) => {
                                               e.stopPropagation();
+                                              if (isSelected) {
+                                                setOpenDropdown({ rowIndex: null, field: null });
+                                                return;
+                                              }
                                               const estadoEfectivo = getEstadoEfectivo(c);
                                               if (estadoEfectivo === 'falta') return;
                                               
-                                              if (estadoEfectivo === 'en_servicio') {
+                                              const normC = normalizeTarjeton(c.tarjeton);
+                                              const prevAssignment = data.find((f, fIdx) => 
+                                                fIdx !== originalIndex && normalizeTarjeton(f['TARJETON_MANIOBRISTA']) === normC
+                                              );
+                                              
+                                              if (prevAssignment || estadoEfectivo === 'en_servicio') {
                                                 // Cerrar el dropdown ANTES de abrir el Swal
                                                 setOpenDropdown({ rowIndex: null, field: null });
                                                 
-                                                const prevAssignment = data.find(f => 
-                                                  normalizeTarjeton(f['TARJETON_MANIOBRISTA']) === normalizeTarjeton(c.tarjeton)
-                                                );
-                                                
-                                                let asigText = '';
+                                                let eco = 'N/A';
+                                                let ruta = 'Sin ruta';
                                                 if (prevAssignment) {
-                                                  const eco = prevAssignment['ECONÓMICO'] || 'N/A';
-                                                  const ruta = prevAssignment['RUTA'] || 'N/A';
-                                                  asigText = `\n\nActualmente está asignado a la unidad ECO: ${eco} (Ruta: ${ruta}).`;
+                                                  eco = prevAssignment['ECONOMICO'] || prevAssignment['ECONÓMICO'] || 'N/A';
+                                                  ruta = prevAssignment['RUTA'] || 'Sin ruta';
                                                 }
 
+                                                const currentEco = fila['ECONOMICO'] || fila['ECONÓMICO'] || 'N/A';
+
                                                 Swal.fire({
-                                                  title: 'Maniobrista en Servicio',
-                                                  text: `El maniobrista ${c.nombre} (Tarjetón: ${c.tarjeton}) ya se encuentra en servicio.${asigText}\n\n¿Estás seguro de que deseas reasignarlo a esta unidad?`,
+                                                  title: 'Alerta: Maniobrista Duplicado',
+                                                  html: `<div style="text-align: left; font-size: 0.92rem; line-height: 1.5;">
+                                                    <p>El tarjetón <b>${c.tarjeton}</b> del maniobrista <b>${c.nombre}</b> ya se encuentra asignado en el Económico <b>${eco}</b>${ruta !== 'Sin ruta' ? ` (Ruta: <b>${ruta}</b>)` : ''}.</p>
+                                                    <p style="margin-top: 0.6rem;">¿Deseas reasignarlo a la unidad <b>Eco #${currentEco}</b> y <b>retirarlo</b> de la unidad Eco #${eco} para evitar duplicados?</p>
+                                                  </div>`,
                                                   icon: 'warning',
                                                   showCancelButton: true,
                                                   confirmButtonColor: '#c29b53',
                                                   cancelButtonColor: '#6b1d33',
-                                                  confirmButtonText: 'Sí, reasignar',
+                                                  confirmButtonText: 'Sí, reasignar y transferir',
                                                   cancelButtonText: 'Cancelar'
                                                 }).then((result) => {
                                                   if (result.isConfirmed) {

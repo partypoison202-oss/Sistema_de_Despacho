@@ -16,6 +16,85 @@ import ModalCiclos from './ModalCiclos';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
 
+// Campos que se editan juntos (si cambia uno del grupo, se considera cambiado todo el grupo).
+const GRUPOS_FILA = [
+  ['ESTATUS'],
+  ['RUTA'],
+  ['CORRIDAS'],
+  ['TARJETON', 'NOMBRE_CONDUCTOR'],
+  ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'],
+  ['TARJETON_MANIOBRISTA', 'NOMBRE_MANIOBRISTA'],
+  ['HORA_DE_ACOPLE', 'HORA_SALIDA_PATIO', 'ACOPLE'],
+  ['HORA_ENCIERRO', 'hora_encierro'],
+  ['PATIO_NORTE', 'TRANSPORTE_PATIO_NORTE'],
+  ['ITINERARIO'],
+  ['HORA_INCORPORACION'],
+  ['HORA_DESINCORPORACION'],
+  ['FALLA', 'CICLO', 'MOTIVO', 'MOTIVO_ESTATUS'],
+];
+
+const ETIQUETAS_GRUPO = {
+  ESTATUS: 'Estatus',
+  RUTA: 'Ruta',
+  CORRIDAS: 'Corridas',
+  TARJETON: 'Conductor titular',
+  RELEVO_TARJETON: 'Relevo',
+  TARJETON_MANIOBRISTA: 'Maniobrista',
+  HORA_DE_ACOPLE: 'Horario de salida/acople',
+  HORA_ENCIERRO: 'Hora de encierro',
+  PATIO_NORTE: 'Patio Norte',
+  ITINERARIO: 'Itinerario',
+  HORA_INCORPORACION: 'Hora de incorporación',
+  HORA_DESINCORPORACION: 'Hora de desincorporación',
+  FALLA: 'Falla/Ciclo/Motivo',
+};
+
+const valorComparable = (v) => {
+  if (v === null || v === undefined || v === false) return '';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+};
+
+const mismoValor = (a, b, k) => valorComparable(a?.[k]) === valorComparable(b?.[k]);
+
+// /despacho/hoy devuelve en TARJETON/NOMBRE_CONDUCTOR al conductor "efectivo" (el de relevo si ya pasó su
+// hora). Para editar y guardar se debe usar siempre al titular real; de lo contrario, al guardar el relevo
+// quedaría como titular y duplicado en la misma unidad.
+const normalizarFilaServidor = (item) => {
+  let row = item;
+  if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
+    row = { ...row, ESTATUS: 'reserva' };
+  }
+  if (row.TARJETON && 'TARJETON_TITULAR' in row) {
+    row = {
+      ...row,
+      TARJETON: row.TARJETON_TITULAR || '',
+      NOMBRE_CONDUCTOR: row.CONDUCTOR_TITULAR || '',
+    };
+  }
+  return row;
+};
+
+// Fusiona mis cambios (mine) contra el estado actual del servidor (fresh), usando como referencia lo que
+// vi al cargar (base). Solo se aplican MIS cambios; todo lo demás se toma del servidor.
+// Si yo y otra persona cambiamos lo mismo con valores distintos, se reporta como conflicto.
+const fusionarFila = (mine, base, fresh) => {
+  const usadas = new Set(GRUPOS_FILA.flat());
+  const grupos = [...GRUPOS_FILA];
+  Object.keys(mine).forEach((k) => { if (!usadas.has(k)) grupos.push([k]); });
+
+  const merged = { ...fresh };
+  const conflictos = [];
+  grupos.forEach((g) => {
+    if (g.every((k) => mismoValor(mine, base, k))) return; // yo no lo toqué
+    const servidorCambio = g.some((k) => !mismoValor(fresh, base, k));
+    const iguales = g.every((k) => mismoValor(fresh, mine, k));
+    if (servidorCambio && !iguales) conflictos.push(g);
+    g.forEach((k) => { if (k in mine) merged[k] = mine[k]; });
+  });
+  return { merged, conflictos };
+};
+
 export default function CargaExcel({ isPasteles = false }) {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -122,14 +201,14 @@ export default function CargaExcel({ isPasteles = false }) {
   });
 
 
+  // Snapshot de lo que está en el servidor al cargar (por ECONOMICO). Permite guardar solo las unidades
+  // realmente modificadas y detectar si alguien más las cambió mientras se editaba.
+  const baselineRef = useRef(new Map());
+
   useEffect(() => {
     if (serverData && !hasChanges) {
-      const dataToSet = serverData.map(item => {
-        if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
-          return { ...item, ESTATUS: 'reserva' };
-        }
-        return item;
-      });
+      const dataToSet = serverData.map(normalizarFilaServidor);
+      baselineRef.current = new Map(dataToSet.map(r => [String(r.ECONOMICO), r]));
       setPreviewData(dataToSet);
     }
   }, [serverData, hasChanges]);
@@ -292,7 +371,6 @@ export default function CargaExcel({ isPasteles = false }) {
         return;
       }
 
-      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.RELEVO_TARJETON) === normalizeTarjeton(valStr));
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
       const newDriverName = newDriverConductor ? (newDriverConductor.nombre || '').toUpperCase() : '';
 
@@ -321,36 +399,32 @@ export default function CargaExcel({ isPasteles = false }) {
         newDriverConductor.estado_servicio = 'en_servicio';
       }
 
-      if (existingRowIndex !== -1) {
-        updatedData[existingRowIndex] = { ...updatedData[existingRowIndex] };
-        const existingRow = updatedData[existingRowIndex];
-        const currentUnitDriverTarjeton = updatedData[index]['RELEVO_TARJETON'];
-        const currentUnitDriverName = updatedData[index]['RELEVO_CONDUCTOR'];
-
-        const confirm = await Swal.fire({
-          title: 'Conductor en servicio',
-          text: `El conductor de relevo ${newDriverName} ya está asignado a la unidad ${existingRow.ECONOMICO}. ¿Deseas hacer el cambio?`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#c5a059',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Sí, hacer cambio',
-          cancelButtonText: 'Cancelar'
-        });
-
-        if (confirm.isConfirmed) {
-          updatedData[index]['RELEVO_TARJETON'] = valStr;
-          updatedData[index]['RELEVO_CONDUCTOR'] = newDriverName;
-          updatedData[existingRowIndex]['RELEVO_TARJETON'] = currentUnitDriverTarjeton;
-          updatedData[existingRowIndex]['RELEVO_CONDUCTOR'] = currentUnitDriverName;
-          setPreviewData(updatedData);
-          setHasChanges(true);
+      // Desvincular de cualquier otra unidad donde estuviera asignado (como titular o relevo) para evitar duplicados
+      const normVal = normalizeTarjeton(valStr);
+      for (let i = 0; i < updatedData.length; i++) {
+        if (i !== index) {
+          if (normalizeTarjeton(updatedData[i]['RELEVO_TARJETON']) === normVal) {
+            updatedData[i] = {
+              ...updatedData[i],
+              RELEVO_TARJETON: '',
+              RELEVO_CONDUCTOR: ''
+            };
+          }
+          if (normalizeTarjeton(updatedData[i]['TARJETON']) === normVal) {
+            updatedData[i] = {
+              ...updatedData[i],
+              TARJETON: '',
+              NOMBRE_CONDUCTOR: ''
+            };
+          }
         }
-        return;
-      } else {
-        updatedData[index]['RELEVO_TARJETON'] = valStr;
-        updatedData[index]['RELEVO_CONDUCTOR'] = newDriverName;
       }
+
+      updatedData[index]['RELEVO_TARJETON'] = valStr;
+      updatedData[index]['RELEVO_CONDUCTOR'] = newDriverName;
+      setPreviewData(updatedData);
+      setHasChanges(true);
+      return;
     }
 
     if (field === 'TARJETON') {
@@ -369,7 +443,6 @@ export default function CargaExcel({ isPasteles = false }) {
         return;
       }
 
-      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.TARJETON) === normalizeTarjeton(valStr));
       const newDriverConductor = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(valStr));
       const newDriverName = newDriverConductor ? (newDriverConductor.nombre || '').toUpperCase() : '';
 
@@ -398,39 +471,36 @@ export default function CargaExcel({ isPasteles = false }) {
         newDriverConductor.estado_servicio = 'en_servicio';
       }
 
-      if (existingRowIndex !== -1) {
-        updatedData[existingRowIndex] = { ...updatedData[existingRowIndex] };
-        const existingRow = updatedData[existingRowIndex];
-        const currentUnitDriverTarjeton = updatedData[index]['TARJETON'];
-        const currentUnitDriverName = updatedData[index]['NOMBRE_CONDUCTOR'];
-
-        const confirm = await Swal.fire({
-          title: 'Conductor en servicio',
-          text: `El conductor ${newDriverName} ya está asignado a la unidad ${existingRow.ECONOMICO}. ¿Deseas hacer el cambio?`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#c5a059',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Sí, hacer cambio',
-          cancelButtonText: 'Cancelar'
-        });
-
-        if (confirm.isConfirmed) {
-          updatedData[index]['TARJETON'] = valStr;
-          updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
-          updatedData[existingRowIndex]['TARJETON'] = currentUnitDriverTarjeton;
-          updatedData[existingRowIndex]['NOMBRE_CONDUCTOR'] = currentUnitDriverName;
-          setPreviewData(updatedData);
-          setHasChanges(true);
+      // Desvincular de cualquier otra unidad donde estuviera asignado (como titular o relevo) para evitar duplicados
+      const normVal = normalizeTarjeton(valStr);
+      for (let i = 0; i < updatedData.length; i++) {
+        if (i !== index) {
+          if (normalizeTarjeton(updatedData[i]['TARJETON']) === normVal) {
+            updatedData[i] = {
+              ...updatedData[i],
+              TARJETON: '',
+              NOMBRE_CONDUCTOR: ''
+            };
+          }
+          if (normalizeTarjeton(updatedData[i]['RELEVO_TARJETON']) === normVal) {
+            updatedData[i] = {
+              ...updatedData[i],
+              RELEVO_TARJETON: '',
+              RELEVO_CONDUCTOR: ''
+            };
+          }
         }
-        return;
-      } else {
-        if (isPasteles && currentTarjeton && normalizeTarjeton(currentTarjeton) !== normalizeTarjeton(valStr)) {
-          await solicitarFaltaSiAplica(currentTarjeton, currentDriverName, currentEco, 'conductor');
-        }
-        updatedData[index]['TARJETON'] = valStr;
-        updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
       }
+
+      if (isPasteles && currentTarjeton && normalizeTarjeton(currentTarjeton) !== normalizeTarjeton(valStr)) {
+        await solicitarFaltaSiAplica(currentTarjeton, currentDriverName, currentEco, 'conductor');
+      }
+
+      updatedData[index]['TARJETON'] = valStr;
+      updatedData[index]['NOMBRE_CONDUCTOR'] = newDriverName;
+      setPreviewData(updatedData);
+      setHasChanges(true);
+      return;
     } else if (field === 'TARJETON_MANIOBRISTA') {
       if (valStr === '') {
         updatedData[index]['TARJETON_MANIOBRISTA'] = '';
@@ -440,7 +510,6 @@ export default function CargaExcel({ isPasteles = false }) {
         return;
       }
 
-      const existingRowIndex = updatedData.findIndex((row, idx) => idx !== index && normalizeTarjeton(row.TARJETON_MANIOBRISTA) === normalizeTarjeton(valStr));
       const newManiobristaCatalog = catalogManiobristas.find(m => normalizeTarjeton(m.tarjeton) === normalizeTarjeton(valStr));
       const newManiobristaName = newManiobristaCatalog ? newManiobristaCatalog.nombre : '';
 
@@ -459,36 +528,23 @@ export default function CargaExcel({ isPasteles = false }) {
         newManiobristaCatalog.estado_servicio = 'en_servicio';
       }
 
-      if (existingRowIndex !== -1) {
-        updatedData[existingRowIndex] = { ...updatedData[existingRowIndex] };
-        const existingRow = updatedData[existingRowIndex];
-        const currentUnitManiobristaTarjeton = updatedData[index]['TARJETON_MANIOBRISTA'];
-        const currentUnitManiobristaName = updatedData[index]['NOMBRE_MANIOBRISTA'];
-
-        const confirm = await Swal.fire({
-          title: 'Maniobrista en servicio',
-          text: `El maniobrista ${newManiobristaName} ya está asignado a la unidad ${existingRow.ECONOMICO}. ¿Deseas hacer el cambio?`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#c5a059',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Sí, hacer cambio',
-          cancelButtonText: 'Cancelar'
-        });
-
-        if (confirm.isConfirmed) {
-          updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
-          updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
-          updatedData[existingRowIndex]['TARJETON_MANIOBRISTA'] = currentUnitManiobristaTarjeton;
-          updatedData[existingRowIndex]['NOMBRE_MANIOBRISTA'] = currentUnitManiobristaName;
-          setPreviewData(updatedData);
-          setHasChanges(true);
+      // Desvincular de cualquier otra unidad donde estuviera asignado como maniobrista
+      const normVal = normalizeTarjeton(valStr);
+      for (let i = 0; i < updatedData.length; i++) {
+        if (i !== index && normalizeTarjeton(updatedData[i]['TARJETON_MANIOBRISTA']) === normVal) {
+          updatedData[i] = {
+            ...updatedData[i],
+            TARJETON_MANIOBRISTA: '',
+            NOMBRE_MANIOBRISTA: ''
+          };
         }
-        return;
-      } else {
-        updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
-        updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
       }
+
+      updatedData[index]['TARJETON_MANIOBRISTA'] = valStr;
+      updatedData[index]['NOMBRE_MANIOBRISTA'] = newManiobristaName;
+      setPreviewData(updatedData);
+      setHasChanges(true);
+      return;
     } else if (field === 'ECONOMICO') {
       const shortcutEco = valStr ? valStr.padStart(3, '0') : '';
       const unidad = catalogUnidades.find(u => trimString(u.numero_eco) === shortcutEco || trimString(u.numero_eco) === valStr);
@@ -765,6 +821,165 @@ export default function CargaExcel({ isPasteles = false }) {
       return false;
     }
 
+    // ─── Solo se envían las unidades que ESTE usuario modificó, fusionadas con el estado actual ───
+    // Antes se enviaba la tabla completa cargada hace minutos: si otra persona/módulo había cambiado
+    // otras unidades en ese lapso, este guardado las regresaba a su valor viejo ("se borran datos").
+    const baseline = baselineRef.current;
+    const modificadas = previewData.filter((row) => {
+      const base = baseline.get(String(row.ECONOMICO));
+      return !base || JSON.stringify(base) !== JSON.stringify(row);
+    });
+
+    if (modificadas.length === 0) {
+      setHasChanges(false);
+      Swal.fire({
+        icon: 'info',
+        title: 'Sin cambios',
+        text: 'No hay modificaciones pendientes por guardar.',
+        confirmButtonColor: '#c5a059'
+      });
+      return false;
+    }
+
+    let frescos;
+    try {
+      const datosFrescos = await fetchDatos({ queryKey: ['despacho-datos', tabActiva] });
+      frescos = new Map(datosFrescos.map((item) => {
+        const r = normalizarFilaServidor(item);
+        return [String(r.ECONOMICO), r];
+      }));
+    } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'No se pudo verificar el estado actual',
+        text: 'No se guardó nada para evitar sobrescribir cambios de otros usuarios. Intenta de nuevo.',
+        confirmButtonColor: '#6b1d33'
+      });
+      return false;
+    }
+
+    const filasAGuardar = [];
+    const conflictosPorEco = [];
+    modificadas.forEach((row) => {
+      const eco = String(row.ECONOMICO);
+      const base = baseline.get(eco);
+      const fresca = frescos.get(eco);
+      if (!base || !fresca) {
+        filasAGuardar.push({ eco, merged: row, conflictos: [] });
+        return;
+      }
+      const { merged, conflictos } = fusionarFila(row, base, fresca);
+      filasAGuardar.push({ eco, merged, conflictos, fresca });
+      if (conflictos.length > 0) conflictosPorEco.push({ eco, conflictos });
+    });
+
+    if (conflictosPorEco.length > 0) {
+      const etiqueta = (g) => ETIQUETAS_GRUPO[g[0]] || g[0];
+      const listaHtml = conflictosPorEco
+        .map((c) => `<li><b>Eco ${c.eco}</b>: ${c.conflictos.map(etiqueta).join(', ')}</li>`)
+        .join('');
+      const decision = await Swal.fire({
+        icon: 'warning',
+        title: 'Otra persona modificó estas unidades',
+        html: `<div style="text-align: left; font-size: 0.9rem;">
+          <p>Mientras editabas, otro usuario cambió lo siguiente en las mismas unidades:</p>
+          <ul style="margin-top: 0.5rem; padding-left: 1.2rem; line-height: 1.5;">${listaHtml}</ul>
+          <p style="margin-top: 0.8rem; font-weight: 600;">¿Qué valor deseas conservar en esos campos?</p>
+        </div>`,
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonColor: '#c5a059',
+        denyButtonColor: '#6b7280',
+        cancelButtonColor: '#6b1d33',
+        confirmButtonText: 'Usar mis cambios',
+        denyButtonText: 'Conservar lo guardado',
+        cancelButtonText: 'Cancelar'
+      });
+      if (decision.isDismissed) return false;
+      if (decision.isDenied) {
+        filasAGuardar.forEach((f) => {
+          f.conflictos.forEach((g) => g.forEach((k) => { if (f.fresca && k in f.fresca) f.merged[k] = f.fresca[k]; }));
+        });
+      }
+    }
+
+    // Estado resultante de toda la tabla (servidor actual + mis cambios) para validar duplicados
+    const tablaResultante = new Map(frescos);
+    filasAGuardar.forEach((f) => tablaResultante.set(f.eco, f.merged));
+    const filasValidacion = Array.from(tablaResultante.values());
+    const payloadUnidades = filasAGuardar.map((f) => f.merged);
+
+    // Validar que no existan tarjetones duplicados en unidades en operación
+    const tarjetonAssignments = new Map();
+    const duplicados = [];
+
+    filasValidacion.forEach((row) => {
+      const eco = row.ECONOMICO || 'S/N';
+      const rawSt = String(row.ESTATUS || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (rawSt.includes('reserva') || rawSt.includes('mantenimiento') || rawSt.includes('no_programada') || rawSt.includes('no programada')) {
+        return;
+      }
+
+      if (row.TARJETON && String(row.TARJETON).trim() !== '') {
+        const tNorm = normalizeTarjeton(row.TARJETON);
+        if (!tarjetonAssignments.has(tNorm)) {
+          tarjetonAssignments.set(tNorm, []);
+        }
+        tarjetonAssignments.get(tNorm).push({
+          eco,
+          rol: 'Titular',
+          tarjeton: row.TARJETON,
+          conductor: row.NOMBRE_CONDUCTOR || 'Conductor'
+        });
+      }
+
+      if (row.RELEVO_TARJETON && String(row.RELEVO_TARJETON).trim() !== '') {
+        const tNorm = normalizeTarjeton(row.RELEVO_TARJETON);
+        if (!tarjetonAssignments.has(tNorm)) {
+          tarjetonAssignments.set(tNorm, []);
+        }
+        tarjetonAssignments.get(tNorm).push({
+          eco,
+          rol: 'Relevo',
+          tarjeton: row.RELEVO_TARJETON,
+          conductor: row.RELEVO_CONDUCTOR || 'Conductor'
+        });
+      }
+    });
+
+    tarjetonAssignments.forEach((asignaciones) => {
+      if (asignaciones.length > 1) {
+        duplicados.push(asignaciones);
+      }
+    });
+
+    if (duplicados.length > 0) {
+      const listaDuplicadosHtml = duplicados.map(asigs => {
+        const primer = asigs[0];
+        const ecosList = asigs.map(a => `<b>Eco ${a.eco}</b> (${a.rol})`).join(' y ');
+        return `<li><b>Tarjetón ${primer.tarjeton}</b> (${primer.conductor}): asignado en ${ecosList}</li>`;
+      }).join('');
+
+      const confirmDuplicados = await Swal.fire({
+        icon: 'warning',
+        title: 'Tarjetones Duplicados Detectados',
+        html: `<div style="text-align: left; font-size: 0.9rem;">
+          <p>Se detectó que los siguientes conductores están asignados a más de una unidad activa al mismo tiempo:</p>
+          <ul style="margin-top: 0.5rem; padding-left: 1.2rem; line-height: 1.5; color: #1f2937;">${listaDuplicadosHtml}</ul>
+          <p style="margin-top: 0.8rem; color: #b91c1c; font-weight: 600;">¿Deseas continuar y guardar de todos modos o prefieres cancelar y corregir las asignaciones?</p>
+        </div>`,
+        showCancelButton: true,
+        confirmButtonColor: '#c5a059',
+        cancelButtonColor: '#6b1d33',
+        confirmButtonText: 'Guardar de todos modos',
+        cancelButtonText: 'Cancelar y corregir'
+      });
+
+      if (!confirmDuplicados.isConfirmed) {
+        return false;
+      }
+    }
+
     try {
       let url = `${API_BASE}/api/despacho/actualizar`;
       if (tabActiva === 'MANANA') url = `${API_BASE}/api/despacho/actualizar-manana`;
@@ -773,7 +988,11 @@ export default function CargaExcel({ isPasteles = false }) {
       const response = await fetch(url, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ unidades: previewData })
+        body: JSON.stringify({ 
+          unidades: payloadUnidades,
+          parcial: true,
+          origen: isRelevos ? 'RELEVOS' : isPasteles ? 'PASTELES' : 'PROGRAMACION'
+        })
       });
 
       const result = await response.json();
