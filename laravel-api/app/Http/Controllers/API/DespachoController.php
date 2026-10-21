@@ -1138,8 +1138,6 @@ class DespachoController extends Controller
                         'numero_eco' => $numeroEcoClean,
                         'tipo' => $tipoReq,
                         'transporte_id' => $transporteId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
                     $unidad = (object) [
                         'id' => $newId,
@@ -1289,7 +1287,6 @@ class DespachoController extends Controller
                     : (array_key_exists('HORA_DESINCORPORACION', $fila) || array_key_exists('hora_desincorporacion', $fila)
                         ? (trim((string) ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))) ?: null)
                         : ($prevInfo->hora_desincorporacion ?? null)),
-                'updated_at' => now(),
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
@@ -1663,8 +1660,6 @@ class DespachoController extends Controller
                         'numero_eco' => $numeroEcoClean,
                         'tipo' => $tipoReq,
                         'transporte_id' => $transporteId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
                     $unidad = (object) [
                         'id' => $newId,
@@ -1802,7 +1797,6 @@ class DespachoController extends Controller
                     : (array_key_exists('HORA_DESINCORPORACION', $fila) || array_key_exists('hora_desincorporacion', $fila)
                         ? (trim((string) ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))) ?: null)
                         : ($prevInfo->hora_desincorporacion ?? null)),
-                'updated_at' => now(),
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
@@ -2058,8 +2052,6 @@ class DespachoController extends Controller
                             'transporte_id' => $transporteId,
                             'numero_eco' => $numeroEcoClean,
                             'tipo' => $tipoReq ?: ($transporteId === 3 ? 'VAGONETA' : 'AUTOBUS'),
-                            'created_at' => now(),
-                            'updated_at' => now(),
                         ]);
                         $unidad = (object)[
                             'id' => $nuevoId,
@@ -2199,7 +2191,6 @@ class DespachoController extends Controller
                     : (array_key_exists('HORA_DESINCORPORACION', $fila) || array_key_exists('hora_desincorporacion', $fila)
                         ? (trim((string) ($fila['HORA_DESINCORPORACION'] ?? ($fila['hora_desincorporacion'] ?? ''))) ?: null)
                         : ($prevInfo->hora_desincorporacion ?? null)),
-                'updated_at' => now(),
             ];
 
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
