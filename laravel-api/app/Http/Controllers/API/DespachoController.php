@@ -1138,8 +1138,6 @@ class DespachoController extends Controller
                         'numero_eco' => $numeroEcoClean,
                         'tipo' => $tipoReq,
                         'transporte_id' => $transporteId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
                     $unidad = (object) [
                         'id' => $newId,
@@ -1662,8 +1660,6 @@ class DespachoController extends Controller
                         'numero_eco' => $numeroEcoClean,
                         'tipo' => $tipoReq,
                         'transporte_id' => $transporteId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
                     $unidad = (object) [
                         'id' => $newId,
@@ -2056,8 +2052,6 @@ class DespachoController extends Controller
                             'transporte_id' => $transporteId,
                             'numero_eco' => $numeroEcoClean,
                             'tipo' => $tipoReq ?: ($transporteId === 3 ? 'VAGONETA' : 'AUTOBUS'),
-                            'created_at' => now(),
-                            'updated_at' => now(),
                         ]);
                         $unidad = (object)[
                             'id' => $nuevoId,
