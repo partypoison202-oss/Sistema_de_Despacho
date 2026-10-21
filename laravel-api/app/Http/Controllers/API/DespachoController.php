@@ -611,7 +611,7 @@ class DespachoController extends Controller
                 'relevo_conductor' => $relevoConductorResp,
                 'relevo_tarjeton' => $relevoTarjetonResp,
                 'relevo_hora' => $relevoHoraResp,
-                'itinerario' => (bool) ($unidad->itinerario ?? false),
+                'itinerario' => filter_var($unidad->itinerario ?? false, FILTER_VALIDATE_BOOLEAN),
                 'hora_incorporacion' => $unidad->hora_incorporacion ?? null,
                 'hora_desincorporacion' => $unidad->hora_desincorporacion ?? null,
                 'desincorporada_itinerario' => self::esDesincorporadaPorItinerario(
@@ -968,7 +968,7 @@ class DespachoController extends Controller
                     'observaciones' => $info->observaciones,
                     'hora_real_salida_patio_legacy' => $horaSalidaLegacy,
                     'transporte_patio_norte' => $info->transporte_patio_norte,
-                    'itinerario' => (bool) ($info->itinerario ?? false),
+                    'itinerario' => filter_var($info->itinerario ?? false, FILTER_VALIDATE_BOOLEAN),
                     'hora_incorporacion' => $info->hora_incorporacion ?? null,
                     'hora_desincorporacion' => $info->hora_desincorporacion ?? null,
                     'desincorporada_itinerario' => self::esDesincorporadaPorItinerario(
@@ -1291,7 +1291,7 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+            if ($tieneServicioAsignado && $estatusReq === '') {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -1801,7 +1801,7 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+            if ($tieneServicioAsignado && $estatusReq === '') {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -2192,7 +2192,7 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && ($estatusReq === '' || $estatusReq === 'reserva')) {
+            if ($tieneServicioAsignado && $estatusReq === '') {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
@@ -3657,8 +3657,8 @@ class DespachoController extends Controller
                 'hora_encierro' => $reg->hora_encierro,
                 'HORA_SALIDA' => $horaSalidaEfectiva,
                 'HORA_REAL_SALIDA_PATIO' => $horaSalidaEfectiva,
-                'PATIO_NORTE' => (bool) $reg->patio_norte,
-                'ITINERARIO' => (bool) $reg->itinerario,
+                'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN),
+                'ITINERARIO' => filter_var($reg->itinerario, FILTER_VALIDATE_BOOLEAN),
                 'HORA_INCORPORACION' => $isDesincorporada ? null : $reg->hora_incorporacion,
                 'HORA_DESINCORPORACION' => $isDesincorporada ? null : $reg->hora_desincorporacion,
                 'DESINCORPORADA_ITINERARIO' => $isDesincItinerario,
@@ -3805,8 +3805,8 @@ class DespachoController extends Controller
                 'hora_encierro' => $reg->hora_encierro,
                 'HORA_SALIDA' => $reg->hora_real_salida_patio,
                 'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
-                'PATIO_NORTE' => (bool) $reg->patio_norte,
-                'ITINERARIO' => (bool) $reg->itinerario,
+                'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN),
+                'ITINERARIO' => filter_var($reg->itinerario, FILTER_VALIDATE_BOOLEAN),
                 'HORA_INCORPORACION' => $reg->hora_incorporacion,
                 'HORA_DESINCORPORACION' => $reg->hora_desincorporacion,
                 'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
@@ -3942,8 +3942,8 @@ class DespachoController extends Controller
                 'hora_encierro' => $reg->hora_encierro,
                 'HORA_SALIDA' => $reg->hora_real_salida_patio,
                 'HORA_REAL_SALIDA_PATIO' => $reg->hora_real_salida_patio,
-                'PATIO_NORTE' => (bool) $reg->patio_norte,
-                'ITINERARIO' => (bool) $reg->itinerario,
+                'PATIO_NORTE' => filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN),
+                'ITINERARIO' => filter_var($reg->itinerario, FILTER_VALIDATE_BOOLEAN),
                 'HORA_INCORPORACION' => $reg->hora_incorporacion,
                 'HORA_DESINCORPORACION' => $reg->hora_desincorporacion,
                 'MANTENIMIENTO_CONDUCTOR' => $reg->mantenimiento_conductor,
@@ -4251,8 +4251,8 @@ class DespachoController extends Controller
                 'hora_encierro' => $hasHoraEncierro ? $reg->hora_encierro : '',
                 'HORA_SALIDA' => $hasHoraSalida ? $reg->hora_real_salida_patio : '',
                 'HORA_REAL_SALIDA_PATIO' => $hasHoraSalida ? $reg->hora_real_salida_patio : '',
-                'PATIO_NORTE' => $hasPatioNorte ? (bool) $reg->patio_norte : false,
-                'ITINERARIO' => $hasItinerario ? (bool) $reg->itinerario : false,
+                'PATIO_NORTE' => $hasPatioNorte ? filter_var($reg->patio_norte, FILTER_VALIDATE_BOOLEAN) : false,
+                'ITINERARIO' => $hasItinerario ? filter_var($reg->itinerario, FILTER_VALIDATE_BOOLEAN) : false,
                 'HORA_INCORPORACION' => $hasHoraIncorp ? $reg->hora_incorporacion : '',
                 'HORA_DESINCORPORACION' => $hasHoraDesinc ? $reg->hora_desincorporacion : '',
             ];
@@ -6894,7 +6894,7 @@ class DespachoController extends Controller
                     'relevo_tarjeton' => $r->relevo_tarjeton ?? '',
                     'relevo_conductor' => $r->relevo_conductor ?? '',
                     'relevo_hora' => $r->relevo_hora ?? '',
-                    'itinerario' => (bool) ($r->itinerario ?? false),
+                    'itinerario' => filter_var($r->itinerario ?? false, FILTER_VALIDATE_BOOLEAN),
                     'hora_incorporacion' => $r->hora_incorporacion ?? '',
                     'hora_desincorporacion' => $r->hora_desincorporacion ?? '',
                 ];
