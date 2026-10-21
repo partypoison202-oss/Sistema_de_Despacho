@@ -922,16 +922,17 @@ export default function ExcelPreview({
                                                 const currentRol = h === 'RELEVO_TARJETON' ? 'Relevo' : 'Titular';
 
                                                 Swal.fire({
-                                                  title: 'Alerta: Tarjetón Duplicado',
-                                                  html: `<div style="text-align: left; font-size: 0.92rem; line-height: 1.5;">
-                                                    <p>El tarjetón <b>${c.tarjeton}</b> del conductor <b>${c.nombre}</b> ya se encuentra asignado en el Económico <b>${eco}</b> (como <b>${rol}</b>${ruta !== 'Sin ruta' ? `, Ruta <b>${ruta}</b>` : ''}).</p>
-                                                    <p style="margin-top: 0.6rem;">¿Deseas reasignarlo a la unidad <b>Eco #${currentEco}</b> (como <b>${currentRol}</b>) y <b>retirarlo</b> de la unidad Eco #${eco} para evitar duplicados?</p>
+                                                  title: 'Reasignación de Conductor',
+                                                  html: `<div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: #334155;">
+                                                    <p>El conductor <b>${c.nombre}</b> (Tarjetón <b>${c.tarjeton}</b>) ya se encuentra asignado en el Económico <b>${eco}</b> (como <b>${rol}</b>${ruta !== 'Sin ruta' ? `, Ruta <b>${ruta}</b>` : ''}).</p>
+                                                    <p style="margin-top: 0.75rem;">¿Deseas transferirlo a la unidad <b>Eco #${currentEco}</b> (como <b>${currentRol}</b>)? Se retirará automáticamente de la unidad Eco #${eco}.</p>
                                                   </div>`,
-                                                  icon: 'warning',
+                                                  icon: 'info',
                                                   showCancelButton: true,
+                                                  reverseButtons: true,
                                                   confirmButtonColor: '#c29b53',
-                                                  cancelButtonColor: '#6b1d33',
-                                                  confirmButtonText: 'Sí, reasignar y transferir',
+                                                  cancelButtonColor: '#64748b',
+                                                  confirmButtonText: 'Sí, reasignar conductor',
                                                   cancelButtonText: 'Cancelar'
                                                 }).then((result) => {
                                                   if (result.isConfirmed) {
@@ -1112,16 +1113,17 @@ export default function ExcelPreview({
                                                 const currentEco = fila['ECONOMICO'] || fila['ECONÓMICO'] || 'N/A';
 
                                                 Swal.fire({
-                                                  title: 'Alerta: Maniobrista Duplicado',
-                                                  html: `<div style="text-align: left; font-size: 0.92rem; line-height: 1.5;">
-                                                    <p>El tarjetón <b>${c.tarjeton}</b> del maniobrista <b>${c.nombre}</b> ya se encuentra asignado en el Económico <b>${eco}</b>${ruta !== 'Sin ruta' ? ` (Ruta: <b>${ruta}</b>)` : ''}.</p>
-                                                    <p style="margin-top: 0.6rem;">¿Deseas reasignarlo a la unidad <b>Eco #${currentEco}</b> y <b>retirarlo</b> de la unidad Eco #${eco} para evitar duplicados?</p>
+                                                  title: 'Reasignación de Maniobrista',
+                                                  html: `<div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: #334155;">
+                                                    <p>El maniobrista <b>${c.nombre}</b> (Tarjetón <b>${c.tarjeton}</b>) ya se encuentra asignado en el Económico <b>${eco}</b>${ruta !== 'Sin ruta' ? ` (Ruta: <b>${ruta}</b>)` : ''}.</p>
+                                                    <p style="margin-top: 0.75rem;">¿Deseas transferirlo a la unidad <b>Eco #${currentEco}</b>? Se retirará automáticamente de la unidad Eco #${eco}.</p>
                                                   </div>`,
-                                                  icon: 'warning',
+                                                  icon: 'info',
                                                   showCancelButton: true,
+                                                  reverseButtons: true,
                                                   confirmButtonColor: '#c29b53',
-                                                  cancelButtonColor: '#6b1d33',
-                                                  confirmButtonText: 'Sí, reasignar y transferir',
+                                                  cancelButtonColor: '#64748b',
+                                                  confirmButtonText: 'Sí, reasignar maniobrista',
                                                   cancelButtonText: 'Cancelar'
                                                 }).then((result) => {
                                                   if (result.isConfirmed) {
