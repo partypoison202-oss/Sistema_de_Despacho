@@ -27,5 +27,12 @@ class NeonImportSeeder extends Seeder
         DB::unprepared($sql);
         
         $this->command->info('¡Importación completada exitosamente sin conflictos!');
+
+        // Asegurar que todas las unidades tengan su tipo poblado desde transportes
+        try {
+            DB::statement("UPDATE unidades SET tipo = transportes.nombre FROM transportes WHERE unidades.transporte_id = transportes.id AND (unidades.tipo IS NULL OR TRIM(unidades.tipo) = '')");
+        } catch (\Throwable $e) {
+            // Ignorar si transportes no existe
+        }
     }
 }

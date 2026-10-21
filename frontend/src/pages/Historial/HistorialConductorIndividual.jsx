@@ -1027,11 +1027,11 @@ export default function HistorialConductorIndividual() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th style={{ width: '130px' }}>Fecha</th>
-                  <th style={{ width: '180px' }}>Tipo de Evento</th>
-                  <th style={{ width: '260px' }}>Evento / Asignación</th>
-                  <th>Descripción / Detalles Operativos</th>
-                  <th style={{ width: '160px' }}>Origen / Auditor</th>
+                  <th style={{ width: '130px' }}>FECHA</th>
+                  <th style={{ width: '180px' }}>TIPO DE EVENTO</th>
+                  <th style={{ width: '260px' }}>EVENTO / ASIGNACIÓN</th>
+                  <th>DESCRIPCIÓN / DETALLES OPERATIVOS</th>
+                  <th style={{ width: '160px' }}>ORIGEN / AUDITOR</th>
                 </tr>
               </thead>
               <tbody>

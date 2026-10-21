@@ -196,7 +196,7 @@ const historialItems = [
         <path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5" />
       </svg>
     ),
-    label: 'HISTORIAL CARGA DE COMBUSTIBLE',
+    label: 'HISTORIAL CONTROL DE COMBUSTIBLE',
     color: 'teal',
     allowedRoles: ['ADMINISTRADOR', 'LECTURA', 'MANTENIMIENTO', 'CARGA_DE_COMBUSTIBLE'],
   }

@@ -91,32 +91,41 @@ export default function HistorialMesaControl() {
     }
   };
 
+  const getTipoDisplay = (d) => {
+    const t = d.tipo || d.tipo_unidad;
+    if (!t) return '';
+    return String(t).toUpperCase() === 'URBANUS' ? 'URBANUSS' : String(t).toUpperCase();
+  };
+
   // Filtrado de cambios
   const cambiosFiltrados = cambios.filter((c) => {
     const q = busqueda.toLowerCase().trim();
+    const tipoVal = getTipoDisplay(c).toLowerCase();
     const matchesSearch =
       !q ||
       (c.economico && String(c.economico).toLowerCase().includes(q)) ||
-      (c.tipo_unidad && c.tipo_unidad.toLowerCase().includes(q)) ||
+      tipoVal.includes(q) ||
       (c.tipo_accion && c.tipo_accion.toLowerCase().includes(q)) ||
       (c.detalles && c.detalles.toLowerCase().includes(q)) ||
       (c.usuario_nombre && c.usuario_nombre.toLowerCase().includes(q));
 
-    const matchesTipo = !filtroTipo || String(c.tipo_unidad || '').toUpperCase() === filtroTipo.toUpperCase();
+    const matchesTipo = !filtroTipo || getTipoDisplay(c).toUpperCase() === filtroTipo.toUpperCase();
     return matchesSearch && matchesTipo;
   });
 
   // Filtrado de flota
   const flotaFiltrada = flota.filter((u) => {
     const q = busqueda.toLowerCase().trim();
+    const tipoVal = getTipoDisplay(u).toLowerCase();
     const matchesSearch =
       !q ||
       (u.economico && String(u.economico).toLowerCase().includes(q)) ||
+      tipoVal.includes(q) ||
       (u.nombre_conductor && u.nombre_conductor.toLowerCase().includes(q)) ||
       (u.ruta && u.ruta.toLowerCase().includes(q)) ||
       (u.numero_tarjeton && String(u.numero_tarjeton).toLowerCase().includes(q));
 
-    const matchesTipo = !filtroTipo || String(u.tipo || u.tipo_unidad || '').toUpperCase() === filtroTipo.toUpperCase();
+    const matchesTipo = !filtroTipo || getTipoDisplay(u).toUpperCase() === filtroTipo.toUpperCase();
     return matchesSearch && matchesTipo;
   });
 
@@ -125,8 +134,8 @@ export default function HistorialMesaControl() {
       if (cambiosFiltrados.length === 0) return;
       const worksheetData = cambiosFiltrados.map((d) => ({
         HORA: formatearHora(d.hora),
-        ECO: d.economico || '',
-        'TIPO DE UNIDAD': d.tipo_unidad ? String(d.tipo_unidad).toUpperCase() : '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        ECONÓMICO: d.economico ? String(d.economico).padStart(3, '0') : '',
         'TIPO DE ACCIÓN': formatAccion(d.tipo_accion),
         'ESTATUS ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
         'ESTATUS NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
@@ -147,8 +156,8 @@ export default function HistorialMesaControl() {
     } else {
       if (flotaFiltrada.length === 0) return;
       const worksheetData = flotaFiltrada.map((d) => ({
-        ECO: d.economico || '',
-        TIPO: d.tipo || d.tipo_unidad || '',
+        'TIPO UNIDAD': getTipoDisplay(d),
+        ECONÓMICO: d.economico ? String(d.economico).padStart(3, '0') : '',
         ESTATUS: d.estatus ? String(d.estatus).toUpperCase() : '',
         RUTA: d.ruta || 'SIN RUTA',
         TARJETÓN: d.numero_tarjeton || '',
@@ -365,8 +374,8 @@ export default function HistorialMesaControl() {
                 <thead>
                   <tr>
                     <th style={{ width: '85px' }}>Hora</th>
-                    <th style={{ width: '90px' }}>Unidad</th>
-                    <th style={{ width: '110px' }}>Tipo</th>
+                    <th style={{ width: '130px' }}>TIPO UNIDAD</th>
+                    <th style={{ width: '110px' }}>ECONÓMICO</th>
                     <th>Acción / Movimiento</th>
                     <th>De (Anterior)</th>
                     <th>A (Nuevo)</th>
@@ -382,11 +391,11 @@ export default function HistorialMesaControl() {
                         <td style={{ fontWeight: '700', color: '#64748b', fontSize: '0.8rem' }}>
                           {formatearHora(c.hora)}
                         </td>
-                        <td style={{ fontWeight: '800', color: '#601a2a' }}>
-                          {c.economico ? `ECO${String(c.economico).padStart(3, '0')}` : '—'}
-                        </td>
                         <td style={{ fontWeight: '600', color: '#334155' }}>
-                          {c.tipo_unidad ? String(c.tipo_unidad).toUpperCase() : '—'}
+                          {getTipoDisplay(c) || '—'}
+                        </td>
+                        <td style={{ fontWeight: '800', color: '#0f172a' }}>
+                          {c.economico ? String(c.economico).padStart(3, '0') : '—'}
                         </td>
                         <td>
                           <span
@@ -448,8 +457,8 @@ export default function HistorialMesaControl() {
             <table className="historial-table">
               <thead>
                 <tr>
-                  <th style={{ width: '90px' }}>Unidad</th>
-                  <th style={{ width: '110px' }}>Tipo</th>
+                  <th style={{ width: '130px' }}>TIPO UNIDAD</th>
+                  <th style={{ width: '110px' }}>ECONÓMICO</th>
                   <th style={{ width: '130px' }}>Estatus</th>
                   <th>Ruta</th>
                   <th>Tarjetón</th>
@@ -464,11 +473,11 @@ export default function HistorialMesaControl() {
                   const estStyle = getEstatusBadgeStyle(u.estatus);
                   return (
                     <tr key={i}>
-                      <td style={{ fontWeight: '800', color: '#601a2a' }}>
-                        {u.economico ? `ECO${String(u.economico).padStart(3, '0')}` : '—'}
-                      </td>
                       <td style={{ fontWeight: '600', color: '#334155' }}>
-                        {u.tipo || u.tipo_unidad || '—'}
+                        {getTipoDisplay(u) || '—'}
+                      </td>
+                      <td style={{ fontWeight: '800', color: '#0f172a' }}>
+                        {u.economico ? String(u.economico).padStart(3, '0') : '—'}
                       </td>
                       <td>
                         <span

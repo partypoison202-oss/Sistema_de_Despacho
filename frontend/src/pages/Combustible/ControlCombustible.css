@@ -1,0 +1,1184 @@
+/* src/pages/Combustible/ControlCombustible.css */
+
+.control-combustible-page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-family: inherit;
+}
+
+.combustible-content {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 3rem 2rem;
+}
+
+/* Header principal */
+.combustible-header-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.combustible-title-group h1 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #6b1d33;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+.combustible-badge-tag {
+  font-size: 0.72rem;
+  background: rgba(107, 29, 51, 0.1);
+  color: #6b1d33;
+  border: 1px solid rgba(107, 29, 51, 0.25);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.combustible-subtitle {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.combustible-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+/* KPI Cards */
+.combustible-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.15rem;
+  margin-bottom: 1.75rem;
+}
+
+.combustible-kpi-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.15rem 1.35rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.combustible-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -3px rgba(0, 0, 0, 0.07);
+}
+
+.combustible-kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.combustible-kpi-icon.diesel {
+  background: rgba(107, 29, 51, 0.1);
+  color: #6b1d33;
+}
+
+.combustible-kpi-icon.adblue {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
+}
+
+.combustible-kpi-icon.gasolina {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.combustible-kpi-icon.flota {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.combustible-kpi-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.combustible-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.combustible-kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+}
+
+.combustible-kpi-hint {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+/* Pestañas Principales (Captura Diaria vs Resumen Semanal) */
+/* Contenedor unificado de pestañas con selector de fecha a la derecha */
+.combustible-tabs-bar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.combustible-main-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: -2px; /* Alinea el borde activo con el contenedor */
+}
+
+.combustible-tabs-date-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.4rem;
+}
+
+.combustible-apple-picker-wrap {
+  min-width: 175px;
+}
+
+.combustible-tabs-date-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.combustible-loading-pill {
+  font-size: 0.76rem;
+  color: #6b1d33;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.combustible-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #6b1d33;
+  display: inline-block;
+  animation: pulse 1s infinite;
+}
+
+.combustible-main-tab-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #64748b;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.combustible-main-tab-btn:hover {
+  color: #6b1d33;
+  background: rgba(107, 29, 51, 0.04);
+}
+
+.combustible-main-tab-btn.active {
+  color: #6b1d33;
+  font-weight: 800;
+}
+
+.combustible-main-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #6b1d33;
+  border-radius: 4px;
+}
+
+/* Sub-pestañas de tecnologías (Urbanuss, Zafiro, Orion, Vagoneta) */
+.tecnologia-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.tecnologia-pill {
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  padding: 0.5rem 1.15rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.tecnologia-pill:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.tecnologia-pill.active {
+  background: #6b1d33;
+  color: #ffffff;
+  border-color: #6b1d33;
+  box-shadow: 0 4px 10px -2px rgba(107, 29, 51, 0.35);
+}
+
+.tecnologia-pill-count {
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 800;
+}
+
+.tecnologia-pill.active .tecnologia-pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Barra de herramientas / búsqueda de captura */
+.captura-toolbar {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.captura-search-box {
+  position: relative;
+  min-width: 280px;
+  flex: 1;
+  max-width: 450px;
+}
+
+.captura-search-input {
+  width: 100%;
+  padding: 0.55rem 1rem 0.55rem 2.4rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.88rem;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.captura-search-input:focus {
+  border-color: #6b1d33;
+  box-shadow: 0 0 0 3px rgba(107, 29, 51, 0.12);
+}
+
+.captura-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  width: 16px;
+  height: 16px;
+}
+
+/* Tooltip interactivo del foquito (Tip) */
+.captura-tip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.captura-tip-btn {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.captura-tip-btn:hover {
+  background: #fde68a;
+  transform: scale(1.08);
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.2);
+}
+
+.captura-tip-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -10px;
+  background: #1e293b;
+  color: #ffffff;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  pointer-events: none;
+  animation: tipFadeIn 0.15s ease-out;
+}
+
+.captura-tip-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  right: 18px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent #1e293b transparent;
+}
+
+@keyframes tipFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tabla de Captura Rápida Tipo Excel */
+.captura-table-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.captura-table-header-banner {
+  background: #6b1d33;
+  color: #ffffff;
+  padding: 0.65rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.captura-subtotal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.captura-subtotal-badge .subtotal-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+.captura-subtotal-badge .subtotal-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: monospace;
+}
+
+
+.captura-table-wrap {
+  overflow-x: auto;
+  max-height: 65vh;
+}
+
+.captura-excel-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+}
+
+.captura-excel-table thead th {
+  background: #7a233b;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #521526;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  white-space: nowrap;
+}
+
+.captura-excel-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.captura-excel-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.captura-excel-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.captura-excel-table td {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.88rem;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.captura-eco-badge {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #0f172a;
+  background: #f1f5f9;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-family: monospace;
+}
+
+/* Inputs de celda tipo hoja de cálculo */
+.captura-cell-input {
+  width: 100%;
+  max-width: 140px;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+  outline: none;
+  transition: all 0.15s ease;
+  font-family: monospace;
+}
+
+.captura-cell-input:focus {
+  border-color: #6b1d33;
+  box-shadow: 0 0 0 3px rgba(107, 29, 51, 0.18);
+  background: #fffdf5;
+}
+
+.captura-cell-input.modified {
+  border-color: #059669;
+  background-color: #f0fdf4;
+  color: #065f46;
+}
+
+/* Fila de Totales */
+.captura-excel-table tfoot td {
+  background: #e2e8f0;
+  font-weight: 800;
+  color: #0f172a;
+  padding: 0.85rem 1rem;
+  border-top: 2px solid #cbd5e1;
+  font-size: 0.95rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
+/* Acciones flotantes / guardar */
+.captura-bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.15rem 1.5rem;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.btn-guardar-combustible {
+  background-color: #6b1d33;
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px -2px rgba(107, 29, 51, 0.4);
+}
+
+.btn-guardar-combustible:hover {
+  background-color: #551426;
+  transform: translateY(-1px);
+}
+
+.btn-excel-combustible {
+  background-color: #10b981;
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-excel-combustible:hover {
+  background-color: #059669;
+}
+
+/* ==========================================================================
+   Tablas de Resumen Semanal (DIESEL / GASOLINA)
+   ========================================================================== */
+.semanal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.semanal-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.semanal-header {
+  background: #6b1d33;
+  color: #ffffff;
+  padding: 0.85rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.semanal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.semanal-table-wrap {
+  overflow-x: auto;
+}
+
+.semanal-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.semanal-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #cbd5e1;
+  border-right: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.semanal-table th:first-child {
+  text-align: left;
+}
+
+.semanal-table th.total-col,
+.semanal-table td.total-col {
+  background: #fffbeb;
+  font-weight: 900;
+  color: #92400e;
+  border-left: 2px solid #fcd34d;
+}
+
+.semanal-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #f1f5f9;
+  font-weight: 600;
+  color: #334155;
+  font-family: monospace;
+}
+
+.semanal-table td:first-child {
+  text-align: left;
+  font-weight: 700;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.semanal-table tr.total-row td {
+  background: #fef08a !important; /* Amarillo fuerte como en el Excel */
+  color: #713f12 !important;
+  font-weight: 900;
+  border-top: 2px solid #ca8a04;
+  border-bottom: 2px solid #ca8a04;
+  font-size: 1rem;
+}
+
+.semanal-table tr.total-row td.total-col {
+  background: #fde047 !important;
+  color: #0f172a !important;
+}
+
+/* ==========================================================================
+   Estilos de Reporte Diario / Estadísticas de Combustible
+.reporte-diario-sheet {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.reporte-title-header {
+  background: linear-gradient(135deg, #4a0418 0%, #6b1d33 60%, #831843 100%);
+  color: #ffffff;
+  padding: 1.6rem 2rem;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(107, 29, 51, 0.25);
+}
+
+.reporte-title-header h2 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  opacity: 0.92;
+  text-transform: uppercase;
+  margin: 0 0 0.4rem 0;
+  color: #fce7f3;
+}
+
+.reporte-title-header h1 {
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.reporte-meta-bar {
+  background: #ffffff;
+  border-bottom: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.85rem 2rem;
+  gap: 1.5rem;
+}
+
+.reporte-meta-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.reporte-meta-box .meta-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reporte-meta-box .meta-val {
+  background: #fef08a;
+  padding: 0.35rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #713f12;
+  border: 1px solid #fde047;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
+
+/* Barra superior de métricas del reporte */
+.reporte-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #6b1d33;
+  color: #ffffff;
+}
+
+.reporte-kpi-cell {
+  padding: 0.85rem 1rem;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  background: #ffffff;
+}
+
+.reporte-kpi-cell:last-child {
+  border-right: none;
+}
+
+.reporte-kpi-cell .cell-title {
+  background: #6b1d33;
+  color: #ffffff;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin: -0.85rem -1rem 0.65rem -1rem;
+}
+
+.reporte-kpi-cell .cell-number {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+/* Banner de sección */
+.reporte-section-banner {
+  background: #6b1d33;
+  color: #ffffff;
+  padding: 0.65rem 1.5rem;
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-align: center;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Tabla del reporte diario */
+.reporte-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.reporte-table th {
+  background: #6b1d33;
+  color: #ffffff;
+  padding: 0.7rem 0.85rem;
+  font-weight: 800;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  border: 1px solid #521526;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.reporte-table td {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.reporte-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.reporte-table tr.total-row td {
+  background: #6b1d33;
+  color: #ffffff;
+  font-weight: 800;
+  border-color: #521526;
+  font-size: 0.95rem;
+}
+
+/* Badges de porcentaje de abastecimiento */
+.badge-abastecimiento {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.badge-abastecimiento.alto {
+  background: #86efac;
+  color: #065f46;
+}
+
+.badge-abastecimiento.medio {
+  background: #fef08a;
+  color: #854d0e;
+}
+
+.badge-abastecimiento.bajo {
+  background: #fca5a5;
+  color: #991b1b;
+}
+
+/* Dropdown Personalizado con Identidad Institucional */
+.stm-custom-dropdown {
+  position: relative;
+  width: 100%;
+  min-width: 190px;
+}
+
+.stm-dropdown-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.stm-dropdown-trigger:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.stm-dropdown-trigger.open {
+  border-color: #601a2a;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.15);
+  background-color: #ffffff;
+}
+
+.stm-dropdown-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.stm-dropdown-arrow {
+  color: #601a2a;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.stm-dropdown-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+/* Menú flotante de opciones */
+.stm-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.18), 0 4px 6px -2px rgba(0, 0, 0, 0.08);
+  padding: 0.35rem;
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+  animation: fadeInDropdown 0.15s ease-out;
+}
+
+/* Apertura hacia arriba para las filas inferiores evitando desplazar la tabla */
+.stm-dropdown-menu.dropup {
+  top: auto;
+  bottom: calc(100% + 4px);
+  box-shadow: 0 -10px 25px -3px rgba(0, 0, 0, 0.18), 0 -4px 6px -2px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes fadeInDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stm-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stm-dropdown-item:hover {
+  background-color: #f7eaef; /* guinda light institucional */
+  color: #601a2a; /* guinda institucional */
+}
+
+.stm-dropdown-item.selected {
+  background-color: #601a2a; /* guinda institucional */
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.stm-dropdown-item.selected:hover {
+  background-color: #4a0418;
+  color: #ffffff;
+}
+
+.reporte-input-observaciones {
+  width: 100%;
+  min-width: 160px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.reporte-input-observaciones:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.reporte-input-observaciones:focus {
+  border-color: #601a2a;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(96, 26, 42, 0.15);
+}
+
+/* Gráficas / Lectura visual */
+.reporte-visual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem 2rem 2rem;
+  background: #ffffff;
+}
+
+.grafica-col-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: #fafaf9;
+}
+
+.grafica-title {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 1.25rem 0;
+}
+
+/* Barras visuales SVG / CSS */
+.grafica-bars-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 250px;
+  padding-top: 35px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #94a3b8;
+  border-left: 2px solid #94a3b8;
+  position: relative;
+  overflow: visible;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  width: 75px;
+  position: relative;
+}
+
+.bar-group.double {
+  width: 85px;
+}
+
+.bar-double-wrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.bar-subcol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.bar-pillar {
+  width: 44px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+  position: relative;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.bar-pillar.gold {
+  background: linear-gradient(180deg, #fef08a 0%, #fde047 50%, #ca8a04 100%);
+  border: 1px solid #ca8a04;
+}
+
+.bar-pillar.maroon {
+  background: linear-gradient(180deg, #831843 0%, #6b1d33 50%, #4a0418 100%);
+  border: 1px solid #4a0418;
+}
+
+.bar-pillar.white {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  border: 1.5px solid #cbd5e1;
+}
+
+.bar-val-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  line-height: 1;
+  text-align: center;
+}
+
+.bar-foot-label {
+  position: absolute;
+  bottom: -24px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Botón de Descargar de sección */
+.section-toolbar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.btn-descargar-reporte {
+  background-color: #6b1d33;
+  color: #ffffff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(107, 29, 51, 0.25);
+}
+
+.btn-descargar-reporte:hover {
+  background-color: #521526;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+  .combustible-date-badge-wrap {
+    position: static !important;
+    transform: none !important;
+    margin: 1rem auto 0 auto;
+    justify-content: center;
+  }
+}

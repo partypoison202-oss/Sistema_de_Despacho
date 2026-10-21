@@ -278,13 +278,13 @@ export default function Mantenimiento() {
       <div className="mantenimiento">
         <Header />
         <main className="mantenimiento__main">
-          <p className="page-eyebrow">SELECCIONE EL TIPO DE TRANSPORTE</p>
+          <p className="page-eyebrow">{isInspeccion ? 'SISTEMA DE GESTIÓN OPERATIVA' : 'SELECCIONE EL TIPO DE TRANSPORTE'}</p>
           <h1 className="page-title">
-            {isInspeccion ? 'CARGA DE COMBUSTIBLE' : 'MANTENIMIENTO PARQUE VEHICULAR'}
+            {isInspeccion ? 'CONTROL DE COMBUSTIBLE' : 'MANTENIMIENTO PARQUE VEHICULAR'}
           </h1>
           <p className="mantenimiento__subtitle text-gray-500 dark:text-gray-300">
             {isInspeccion
-              ? 'Toque la imagen del transporte para comenzar la carga de combustible'
+              ? 'Captura diaria de combustible, AdBlue y seguimiento semanal de consumos'
               : 'Toque la imagen del transporte para comenzar el mantenimiento'}
           </p>
 

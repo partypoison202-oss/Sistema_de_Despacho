@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use App\Helpers\BitacoraHelper;
 use App\Helpers\BitacoraConductorHelper;
 use App\Models\Conductor;
+use App\Services\SyncService;
 
 class PlataformaController extends Controller
 {
@@ -165,6 +166,17 @@ class PlataformaController extends Controller
                         }
                         $datosUpdate['nombre_conductor'] = $nombreCond;
                         DB::table('conductores')->where('id', $cond->id)->update(['estado_servicio' => 'en_servicio']);
+                        DespachoController::asignarAsistenciaConductorIndividual(
+                            Conductor::find($cond->id),
+                            $fechaHoyMex,
+                            [
+                                'numero_eco' => $unidad->numero_eco ?? null,
+                                'ruta' => $request->ruta,
+                                'hora_salida' => $datosUpdate['hora_real_salida_patio'],
+                                'es_relevo' => false,
+                                'motivo' => "Incorporación a operación en Unidad " . ($unidad->numero_eco ?? '') . " (Ruta " . ($request->ruta ?? '') . ")"
+                            ]
+                        );
                     }
                 }
                 $datosUpdate['ruta'] = $request->ruta;
@@ -838,6 +850,7 @@ class PlataformaController extends Controller
             );
 
             DB::commit();
+            SyncService::notifyChange();
             return response()->json([
                 'status' => 'success',
                 'message' => 'Movimiento registrado correctamente',
