@@ -7,7 +7,7 @@ import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { lazy, Suspense } from 'react';
 
 function RealtimeSyncManager() {
-  useRealtimeSync();
+  // Sincronización / versionado en tiempo real desactivado para evitar sobrecarga y problemas de despliegue
   return null;
 }
 

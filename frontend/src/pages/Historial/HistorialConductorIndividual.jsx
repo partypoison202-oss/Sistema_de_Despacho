@@ -8,6 +8,7 @@ import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import { getProfileImageUrl } from '../../utils/imageUrl';
 import { generarPDFHistorialConductor } from '../../utils/generarPDFHistorialConductor';
 import HistorialSearchBar from './HistorialSearchBar';
+import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import './Historial.css';
 
 export default function HistorialConductorIndividual() {
@@ -205,7 +206,7 @@ export default function HistorialConductorIndividual() {
       'SUBTIPO': ev.subtipo || '-',
       'TÍTULO / ASIGNACIÓN': ev.titulo || '',
       'DESCRIPCIÓN OPERATIVA': ev.descripcion || '',
-      'DETALLES / JUSTIFICACIÓN': ev.detalles || '',
+      'DETALLES / JUSTIFICACIÓN': formatDetallesTexto(ev.detalles, ev.estatus_anterior, ev.estatus_nuevo),
       'ORIGEN': ev.origen || 'Sistema',
       'USUARIO RESPONSABLE': ev.usuario || 'Sistema'
     }));
@@ -629,7 +630,7 @@ export default function HistorialConductorIndividual() {
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                Excel
+                Descargar Excel
               </button>
 
               <button
@@ -1100,8 +1101,13 @@ export default function HistorialConductorIndividual() {
                             {ev.descripcion}
                           </div>
                           {ev.detalles && (
-                            <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.2rem', lineHeight: '1.4' }}>
-                              {ev.detalles}
+                            <div style={{ marginTop: '0.35rem' }}>
+                              <DetalleOperacion
+                                detalles={ev.detalles}
+                                estatusAnterior={ev.estatus_anterior}
+                                estatusNuevo={ev.estatus_nuevo}
+                                fallback=""
+                              />
                             </div>
                           )}
                         </td>
@@ -1274,8 +1280,13 @@ export default function HistorialConductorIndividual() {
                         {ev.descripcion}
                       </div>
                       {ev.detalles && (
-                        <div style={{ fontSize: '0.775rem', color: '#64748b', marginTop: '0.3rem', fontStyle: 'italic' }}>
-                          {ev.detalles}
+                        <div style={{ marginTop: '0.35rem' }}>
+                          <DetalleOperacion
+                            detalles={ev.detalles}
+                            estatusAnterior={ev.estatus_anterior}
+                            estatusNuevo={ev.estatus_nuevo}
+                            fallback=""
+                          />
                         </div>
                       )}
                     </div>

@@ -1138,8 +1138,6 @@ class DespachoController extends Controller
                         'numero_eco' => $numeroEcoClean,
                         'tipo' => $tipoReq,
                         'transporte_id' => $transporteId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
                     $unidad = (object) [
                         'id' => $newId,
@@ -1269,7 +1267,10 @@ class DespachoController extends Controller
                 'hora_encierro' => $horaEncierroVal === '' ? null : $horaEncierroVal,
                 'tipo' => trim((string) ($fila['TIPO_DE_UNIDAD'] ?? '')) ?: ($unidad->tipo_display ?? 'Desconocido'),
                 'estatus' => trim((string) ($fila['ESTATUS'] ?? 'operacion')),
-                'patio_norte' => (bool) filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                // Compatibilidad estricta con PostgreSQL (Neon / Rocky Linux):
+                // Se usa 'true' : 'false' en cadena porque PDO enviaría (bool) false como 0 entero,
+                // lo que dispararía SQLSTATE[42804] Datatype mismatch en columnas booleanas.
+                'patio_norte' => filter_var($fila['PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'transporte_patio_norte' => filter_var($fila['TRANSPORTE_PATIO_NORTE'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false',
                 'itinerario' => ($origen === 'RELEVOS' && $prevInfo)
                     ? (filter_var($prevInfo->itinerario ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false')
@@ -1291,12 +1292,12 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && $estatusReq === '') {
+            if ($tieneServicioAsignado) {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
             } else {
-                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+                $data['estatus'] = 'reserva';
             }
 
             if (strtolower($data['estatus']) === 'reserva') {
@@ -1313,9 +1314,10 @@ class DespachoController extends Controller
                 $data['acople'] = null;
                 $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
-                $data['patio_norte'] = false;
+                // Valores booleanos como strings para compatibilidad PostgreSQL
+                $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
-                $data['itinerario'] = false;
+                $data['itinerario'] = 'false';
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
                 $data['falla'] = null;
@@ -1336,9 +1338,10 @@ class DespachoController extends Controller
                 $data['acople'] = null;
                 $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
                 $data['hora_real_salida_patio'] = null;
-                $data['patio_norte'] = false;
+                // Valores booleanos como strings para compatibilidad PostgreSQL
+                $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
-                $data['itinerario'] = false;
+                $data['itinerario'] = 'false';
                 $data['hora_incorporacion'] = null;
                 $data['hora_desincorporacion'] = null;
                 $prevInfo = $infoOperativaRegistros->get($unidad->id);
@@ -1657,8 +1660,6 @@ class DespachoController extends Controller
                         'numero_eco' => $numeroEcoClean,
                         'tipo' => $tipoReq,
                         'transporte_id' => $transporteId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
                     ]);
                     $unidad = (object) [
                         'id' => $newId,
@@ -1801,12 +1802,17 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && $estatusReq === '') {
+            if ($tieneServicioAsignado) {
+                // Si la unidad tiene asignada una ruta, conductor o corrida,
+                // su estatus operativo DEBE ser 'operacion', sin importar si previamente
+                // venía marcada como 'reserva', 'mantenimiento' o 'percance'.
+                // De lo contrario, la condición posterior de mantenimiento/reserva
+                // borraría la ruta y conductor asignados.
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
             } else {
-                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+                $data['estatus'] = 'reserva';
             }
 
             if (strtolower($data['estatus']) === 'reserva') {
@@ -2046,8 +2052,6 @@ class DespachoController extends Controller
                             'transporte_id' => $transporteId,
                             'numero_eco' => $numeroEcoClean,
                             'tipo' => $tipoReq ?: ($transporteId === 3 ? 'VAGONETA' : 'AUTOBUS'),
-                            'created_at' => now(),
-                            'updated_at' => now(),
                         ]);
                         $unidad = (object)[
                             'id' => $nuevoId,
@@ -2192,12 +2196,12 @@ class DespachoController extends Controller
             $estatusReq = strtolower(trim((string) ($fila['ESTATUS'] ?? '')));
             $tieneServicioAsignado = ($data['ruta'] !== '' || $data['numero_tarjeton'] !== '' || !empty($data['corridas']) || $data['relevo_tarjeton'] !== '');
 
-            if ($tieneServicioAsignado && $estatusReq === '') {
+            if ($tieneServicioAsignado) {
                 $data['estatus'] = 'operacion';
             } elseif (!empty($estatusReq)) {
                 $data['estatus'] = $estatusReq;
             } else {
-                $data['estatus'] = $tieneServicioAsignado ? 'operacion' : 'reserva';
+                $data['estatus'] = 'reserva';
             }
 
             if (strtolower($data['estatus']) === 'reserva') {

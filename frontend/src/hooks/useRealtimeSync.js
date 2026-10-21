@@ -37,7 +37,7 @@ export function broadcastUnitChange(version = null) {
  * realice un cambio de estatus, conductor, horario o asignación.
  */
 export function useRealtimeSync(options = {}) {
-  const { enabled = true, intervalMs = 1500 } = options;
+  const { enabled = false, intervalMs = 1500 } = options;
   const queryClient = useQueryClient();
   const lastVersionRef = useRef(null);
   const isFetchingRef = useRef(false);

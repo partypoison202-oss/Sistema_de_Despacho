@@ -5,6 +5,8 @@ import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
 import HistorialSearchBar from './HistorialSearchBar';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
+import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import './Historial.css';
 
 export default function HistorialConductores() {
@@ -44,8 +46,14 @@ export default function HistorialConductores() {
   useEffect(() => {
     if (fechas.length > 0 && !selectedFecha) {
       setSelectedFecha(fechas[0]);
+    } else if (!selectedFecha && !isLoading) {
+      const d = new Date();
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      setSelectedFecha(`${yr}-${mo}-${da}`);
     }
-  }, [fechas, selectedFecha]);
+  }, [fechas, selectedFecha, isLoading]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -83,7 +91,7 @@ export default function HistorialConductores() {
       'OPERADOR': a.nombre_conductor || 'DESCONOCIDO',
       'ACCIÓN': a.tipo_accion || 'S/N',
       'USUARIO': a.usuario_nombre || 'Sistema',
-      'DETALLES': a.detalles || '',
+      'DETALLES': formatDetallesTexto(a.detalles, a.estatus_anterior, a.estatus_nuevo),
       'FECHA Y HORA': a.created_at ? new Date(a.created_at).toLocaleString('es-MX') : ''
     }));
 
@@ -204,35 +212,17 @@ export default function HistorialConductores() {
               {isFetching ? 'Actualizando...' : 'Actualizar'}
             </button>
 
-            <span style={{ fontWeight: '700', color: '#334155' }}>Fecha:</span>
-            <div className="custom-dropdown-container" ref={dropdownRef}>
-              <button
-                type="button"
-                className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
-                onClick={() => !isLoading && setIsDropdownOpen(!isDropdownOpen)}
-                disabled={isLoading}
-              >
-                {selectedFecha || 'SELECCIONAR'}
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 10l5 5 5-5H7z" />
-                </svg>
-              </button>
-              {isDropdownOpen && (
-                <div className="custom-dropdown-menu">
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {fechas.map(f => (
-                      <button
-                        key={f}
-                        type="button"
-                        className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
-                        onClick={() => handleFechaChange(f)}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
+              <div style={{ minWidth: '160px' }}>
+                <AppleDatePicker
+                  value={selectedFecha}
+                  onChange={(val) => {
+                    if (val) setSelectedFecha(val);
+                  }}
+                  disableFuture={false}
+                />
+              </div>
             </div>
 
             <button
@@ -246,7 +236,7 @@ export default function HistorialConductores() {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Excel
+              Descargar Excel
             </button>
           </div>
         </div>
@@ -397,8 +387,13 @@ export default function HistorialConductores() {
                             {a.usuario_nombre || 'Sistema'}
                           </span>
                         </td>
-                        <td style={{ color: '#334155', fontSize: '0.875rem', lineHeight: '1.4' }}>
-                          {a.detalles || 'Sin detalles'}
+                        <td>
+                          <DetalleOperacion
+                            detalles={a.detalles}
+                            estatusAnterior={a.estatus_anterior}
+                            estatusNuevo={a.estatus_nuevo}
+                            fallback="Sin detalles"
+                          />
                         </td>
                         <td style={{ whiteSpace: 'nowrap', color: '#64748b', fontSize: '0.825rem', fontWeight: '600' }}>
                           {horaFormatted}

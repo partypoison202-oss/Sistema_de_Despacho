@@ -31,16 +31,8 @@ class FixMantenimientoColumns extends Command
         
         // El SQL crudo
         $sql = "
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS numero_incidencia varchar(50) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS folio_mantenimiento varchar(50) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_conductor varchar(255) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_tarjeton varchar(100) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_ruta varchar(100) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_corrida varchar(100) null;
-            ALTER TABLE informacion_operativa ADD COLUMN IF NOT EXISTS mantenimiento_kilometraje decimal(10,2) null;
-            ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS hora_encierro varchar(20) null;
-
-            -- Inyectar columnas de relevo y hora_encierro de forma segura en todas las tablas operativas que existan
+            -- Inyectar columnas completas de relevo, mantenimiento, horarios y timestamps
+            -- de forma segura en todas las tablas operativas para garantizar paridad estructural 100%
             DO $$
             DECLARE
                 t text;
@@ -51,8 +43,7 @@ class FixMantenimientoColumns extends Command
                     'informacion_operativa_domingo',
                     'informacion_operativa_lunes',
                     'informacion_operativa_festivo',
-                    'programacion_inicial',
-                    'historial_operativo'
+                    'programacion_inicial'
                 ];
             BEGIN
                 FOREACH t IN ARRAY tables LOOP
@@ -62,14 +53,44 @@ class FixMantenimientoColumns extends Command
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS relevo_hora varchar(255) null';
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS acople varchar(50) null';
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_salida_patio varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_real_salida_patio varchar(50) null';
                         EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_encierro varchar(20) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS numero_incidencia varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS folio_mantenimiento varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS fecha_folio_mantenimiento date null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS mantenimiento_conductor varchar(255) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS mantenimiento_tarjeton varchar(100) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS mantenimiento_ruta varchar(100) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS mantenimiento_corrida varchar(100) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS mantenimiento_kilometraje decimal(10,2) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS falla_reportada text null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS diagnostico text null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS firma_base64 text null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS id_firma varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS fecha_firma timestamp null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS km_ultima_lectura varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS patio_norte boolean default false';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS transporte_patio_norte boolean default false';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS itinerario boolean default false';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_incorporacion varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS hora_desincorporacion varchar(50) null';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS updated_at timestamp null default now()';
+                        EXECUTE 'ALTER TABLE ' || quote_ident(t) || ' ADD COLUMN IF NOT EXISTS created_at timestamp null default now()';
                     END IF;
                 END LOOP;
 
+                -- Inyectar hora_encierro y timestamps en historial_operativo si existe
+                IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'historial_operativo') THEN
+                    EXECUTE 'ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS hora_encierro varchar(20) null';
+                    EXECUTE 'ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS hora_real_salida_patio varchar(50) null';
+                    EXECUTE 'ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS updated_at timestamp null default now()';
+                    EXECUTE 'ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS created_at timestamp null default now()';
+                END IF;
+
                 -- Asegurar que la unidad 233 exista en el catálogo de unidades si aún no está registrada
                 IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'unidades') THEN
-                    INSERT INTO unidades (transporte_id, numero_eco, tipo, created_at, updated_at)
-                    SELECT 3, '233', 'VAGONETA', NOW(), NOW()
+                    INSERT INTO unidades (transporte_id, numero_eco, tipo)
+                    SELECT 3, '233', 'VAGONETA'
                     WHERE NOT EXISTS (SELECT 1 FROM unidades WHERE TRIM(numero_eco) IN ('233', '0233'));
                 END IF;
             END $$;

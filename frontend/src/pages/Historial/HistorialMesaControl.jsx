@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import Header from '../../components/Header/Header';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
+import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import './Historial.css';
 
 export default function HistorialMesaControl() {
@@ -37,8 +38,14 @@ export default function HistorialMesaControl() {
   useEffect(() => {
     if (fechas.length > 0 && !selectedFecha) {
       setSelectedFecha(fechas[0]);
+    } else if (!selectedFecha && !isLoadingFechas) {
+      const d = new Date();
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      setSelectedFecha(`${yr}-${mo}-${da}`);
     }
-  }, [fechas, selectedFecha]);
+  }, [fechas, selectedFecha, isLoadingFechas]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -139,7 +146,7 @@ export default function HistorialMesaControl() {
         'TIPO DE ACCIÓN': formatAccion(d.tipo_accion),
         'ESTATUS ANTERIOR': d.estatus_anterior ? String(d.estatus_anterior).toUpperCase() : 'N/A',
         'ESTATUS NUEVO': d.estatus_nuevo ? String(d.estatus_nuevo).toUpperCase() : 'N/A',
-        DETALLES: d.detalles || '',
+        DETALLES: formatDetallesTexto(d.detalles, d.estatus_anterior, d.estatus_nuevo),
         'USUARIO RESPONSABLE': d.usuario_nombre || 'SISTEMA',
         ROL: d.usuario_rol || '—',
       }));
@@ -219,36 +226,18 @@ export default function HistorialMesaControl() {
             </p>
           </div>
 
-          <div className="historial-filter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
-            <div className="custom-dropdown-container" ref={dropdownRef}>
-              <button
-                type="button"
-                className={`custom-dropdown-trigger ${isDropdownOpen ? 'open' : ''}`}
-                onClick={() => !cargando && setIsDropdownOpen(!isDropdownOpen)}
-                disabled={cargando}
-              >
-                {selectedFecha || 'SELECCIONAR'}
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 10l5 5 5-5H7z" />
-                </svg>
-              </button>
-              {isDropdownOpen && (
-                <div className="custom-dropdown-menu">
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {fechas.map((f) => (
-                      <button
-                        key={f}
-                        type="button"
-                        className={`custom-dropdown-item ${selectedFecha === f ? 'selected' : ''}`}
-                        onClick={() => handleFechaChange(f)}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+          <div className="historial-filter" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontWeight: '700', color: '#334155' }}>Fecha:</label>
+              <div style={{ minWidth: '160px' }}>
+                <AppleDatePicker
+                  value={selectedFecha}
+                  onChange={(val) => {
+                    if (val) setSelectedFecha(val);
+                  }}
+                  disableFuture={false}
+                />
+              </div>
             </div>
 
             <button
@@ -262,7 +251,7 @@ export default function HistorialMesaControl() {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Excel
+              Descargar Excel
             </button>
           </div>
         </div>
@@ -424,8 +413,13 @@ export default function HistorialMesaControl() {
                             {c.estatus_nuevo ? String(c.estatus_nuevo).toUpperCase() : '—'}
                           </span>
                         </td>
-                        <td style={{ fontSize: '0.83rem', color: '#334155' }}>
-                          {c.detalles || 'Sin observaciones'}
+                        <td>
+                          <DetalleOperacion
+                            detalles={c.detalles}
+                            estatusAnterior={c.estatus_anterior}
+                            estatusNuevo={c.estatus_nuevo}
+                            fallback="Sin observaciones"
+                          />
                         </td>
                         <td style={{ fontSize: '0.8rem' }}>
                           <span style={{ fontWeight: '700', color: '#1e293b', display: 'block' }}>

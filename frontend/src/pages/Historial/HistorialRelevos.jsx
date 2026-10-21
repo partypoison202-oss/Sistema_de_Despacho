@@ -4,7 +4,7 @@ import Header from '../../components/Header/Header';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import * as XLSX from 'xlsx';
 import API_BASE from '../../config/api';
-import { formatAccion, getAccionBadgeStyle } from '../../utils/historialHelper';
+import { formatAccion, getAccionBadgeStyle, DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
 import HistorialSearchBar from './HistorialSearchBar';
 import './Historial.css';
 
@@ -231,7 +231,7 @@ export default function HistorialRelevos() {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Excel
+              Descargar Excel
             </button>
           </div>
         </div>
@@ -378,7 +378,14 @@ export default function HistorialRelevos() {
                         {formatAccion(b.tipo_accion)}
                       </span>
                     </td>
-                    <td style={{ color: '#334155', fontSize: '0.9rem' }}>{b.detalles || '—'}</td>
+                    <td>
+                      <DetalleOperacion
+                        detalles={b.detalles}
+                        estatusAnterior={b.estatus_anterior}
+                        estatusNuevo={b.estatus_nuevo}
+                        fallback="—"
+                      />
+                    </td>
                   </tr>
                 ))}
                 {bitacoraFiltrada.length === 0 && (
