@@ -878,84 +878,7 @@ export default function CargaExcel({ isPasteles = false }) {
       }
     }
 
-    // Estado resultante de toda la tabla (servidor actual + mis cambios) para validar duplicados
-    const tablaResultante = new Map(frescos);
-    filasAGuardar.forEach((f) => tablaResultante.set(normalizeEcoKey(f.eco), f.merged));
-    const filasValidacion = Array.from(tablaResultante.values());
     const payloadUnidades = filasAGuardar.map((f) => f.merged);
-
-    // Validar que no existan tarjetones duplicados en unidades en operación
-    const tarjetonAssignments = new Map();
-    const duplicados = [];
-
-    filasValidacion.forEach((row) => {
-      const eco = row.ECONOMICO || 'S/N';
-      const rawSt = String(row.ESTATUS || 'operacion').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      if (rawSt.includes('reserva') || rawSt.includes('mantenimiento') || rawSt.includes('no_programada') || rawSt.includes('no programada')) {
-        return;
-      }
-
-      if (row.TARJETON && String(row.TARJETON).trim() !== '') {
-        const tNorm = normalizeTarjeton(row.TARJETON);
-        if (!tarjetonAssignments.has(tNorm)) {
-          tarjetonAssignments.set(tNorm, []);
-        }
-        tarjetonAssignments.get(tNorm).push({
-          eco,
-          rol: 'Titular',
-          tarjeton: row.TARJETON,
-          conductor: row.NOMBRE_CONDUCTOR || 'Conductor'
-        });
-      }
-
-      if (row.RELEVO_TARJETON && String(row.RELEVO_TARJETON).trim() !== '') {
-        const tNorm = normalizeTarjeton(row.RELEVO_TARJETON);
-        if (!tarjetonAssignments.has(tNorm)) {
-          tarjetonAssignments.set(tNorm, []);
-        }
-        tarjetonAssignments.get(tNorm).push({
-          eco,
-          rol: 'Relevo',
-          tarjeton: row.RELEVO_TARJETON,
-          conductor: row.RELEVO_CONDUCTOR || 'Conductor'
-        });
-      }
-    });
-
-    tarjetonAssignments.forEach((asignaciones) => {
-      // Filtrar asignaciones únicas por unidad (eco) para verificar que realmente sean distintas unidades
-      const ecosUnicos = new Set(asignaciones.map(a => normalizeEcoKey(a.eco)));
-      if (ecosUnicos.size > 1) {
-        duplicados.push(asignaciones);
-      }
-    });
-
-    if (duplicados.length > 0) {
-      const listaDuplicadosHtml = duplicados.map(asigs => {
-        const primer = asigs[0];
-        const ecosList = asigs.map(a => `<b>Eco ${a.eco}</b> (${a.rol})`).join(' y ');
-        return `<li><b>Tarjetón ${primer.tarjeton}</b> (${primer.conductor}): asignado en ${ecosList}</li>`;
-      }).join('');
-
-      const confirmDuplicados = await Swal.fire({
-        icon: 'warning',
-        title: 'Tarjetones Duplicados Detectados',
-        html: `<div style="text-align: left; font-size: 0.9rem;">
-          <p>Se detectó que los siguientes conductores están asignados a más de una unidad activa al mismo tiempo:</p>
-          <ul style="margin-top: 0.5rem; padding-left: 1.2rem; line-height: 1.5; color: #1f2937;">${listaDuplicadosHtml}</ul>
-          <p style="margin-top: 0.8rem; color: #b91c1c; font-weight: 600;">¿Deseas continuar y guardar de todos modos o prefieres cancelar y corregir las asignaciones?</p>
-        </div>`,
-        showCancelButton: true,
-        confirmButtonColor: '#c5a059',
-        cancelButtonColor: '#6b1d33',
-        confirmButtonText: 'Guardar de todos modos',
-        cancelButtonText: 'Cancelar y corregir'
-      });
-
-      if (!confirmDuplicados.isConfirmed) {
-        return false;
-      }
-    }
 
     try {
       let url = `${API_BASE}/api/despacho/actualizar`;
@@ -1793,7 +1716,7 @@ export default function CargaExcel({ isPasteles = false }) {
               {isRelevos ? (
                 'Gestiona, asiste y concilia los relevos operativos de los T6'
               ) : isPasteles ? (
-                <>Organiza la programación operativa para el día de mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
+                <>Vista y gestión de la programación correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
               ) : tabActiva === 'HOY' ? (
                 <>Vista del reporte correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
               ) : tabActiva === 'MANANA' ? (
@@ -1814,8 +1737,8 @@ export default function CargaExcel({ isPasteles = false }) {
               borderRadius: '6px', 
               fontSize: '0.85rem', 
               fontWeight: '500',
-              visibility: (!isRelevos && (tabActiva === 'MANANA' || isPasteles)) ? 'visible' : 'hidden',
-              pointerEvents: (!isRelevos && (tabActiva === 'MANANA' || isPasteles)) ? 'auto' : 'none'
+              visibility: (!isRelevos && !isPasteles && tabActiva === 'MANANA') ? 'visible' : 'hidden',
+              pointerEvents: (!isRelevos && !isPasteles && tabActiva === 'MANANA') ? 'auto' : 'none'
             }}>
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
