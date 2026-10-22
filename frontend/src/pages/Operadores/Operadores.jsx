@@ -1098,7 +1098,9 @@ export default function Operadores() {
   }, [filteredConductores, indiceInicioKardex, kardexPorPagina]);
 
   const isAdmin = user?.role?.codigo === 'ADMINISTRADOR';
-  const canEdit = user?.modulos?.includes('operadores') || isAdmin || user?.role?.codigo === 'GESTOR_OPERADORES';
+  const isGestor = user?.role?.codigo === 'GESTOR_OPERADORES';
+  const hasModulo = user?.modulos?.some?.((m) => (typeof m === 'object' ? m.modulo_codigo : m) === 'operadores') || user?.modulos?.includes('operadores');
+  const canEdit = hasModulo || isAdmin || isGestor;
 
   return (
     <div className="operadores-layout">
@@ -1350,7 +1352,7 @@ export default function Operadores() {
                               </button>
                             )}
 
-                            {isAdmin && (
+                            {canEdit && (
                               <button
                                 type="button"
                                 className="btn-action baja"
