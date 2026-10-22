@@ -2457,64 +2457,99 @@ class DespachoController extends Controller
                         $inicialInsert[] = array_intersect_key($inicialRowFiltered, $inicialCols);
                     }
 
-                    // 3. Registrar en snapshot de historial_operativo (momento = 'INICIO') con su estatus programado
-                    // Esto garantiza que Monitoreo de la Operación (Centro de Control) y Resumen de Despacho
-                    // muestren el total programado real fijado (ej. 91) aun si la unidad se encuentra en taller.
-                    $snapshotItem = [
-                        'fecha_historial' => $fechaHoy,
-                        'momento'         => 'INICIO',
-                        'unidad_id'       => $unidadId,
-                        'ruta'            => $arrayRow['ruta'] ?? null,
-                        'numero_tarjeton' => $arrayRow['numero_tarjeton'] ?? null,
-                        'nombre_conductor'=> $arrayRow['nombre_conductor'] ?? null,
-                        'tipo'            => $arrayRow['tipo'] ?? null,
-                        'estatus'         => $esProgramadaOperacion ? 'operacion' : ($arrayRow['estatus'] ?? 'reserva'),
-                        'falla'           => $arrayRow['falla'] ?? null,
-                        'corridas'        => $arrayRow['corridas'] ?? null,
-                        'ciclo'           => $arrayRow['ciclo'] ?? null,
-                        'motivo'          => $arrayRow['motivo'] ?? null,
-                        'motivo_estatus'  => $arrayRow['motivo_estatus'] ?? null,
-                        'hora_salida_patio' => $arrayRow['hora_salida_patio'] ?? ($arrayRow['hora_programada'] ?? null),
-                        'fecha_registro'  => $fechaHoy,
-                        'created_at'      => now(),
-                        'updated_at'      => now(),
-                    ];
-                    if (isset($historialCols['tarjeton_maniobrista'])) {
-                        $snapshotItem['tarjeton_maniobrista'] = $arrayRow['tarjeton_maniobrista'] ?? null;
-                        $snapshotItem['nombre_maniobrista']   = $arrayRow['nombre_maniobrista'] ?? null;
+                    // 3. Registrar en snapshot de historial_operativo (momento = 'INICIO') con su estatus real
+                    // Si la unidad está en Mantenimiento o Percance, su estado inicial real de jornada es TALLER.
+                    $seMantieneEnMantenimiento = false;
+                    $bloqueada = null;
+                    if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
+                        $seMantieneEnMantenimiento = true;
+                        $bloqueada = (array) $unidadesBloqueadas->get($unidadId);
                     }
-                    if (isset($historialCols['acople'])) {
-                        $snapshotItem['acople'] = $arrayRow['acople'] ?? null;
-                    }
-                    if (isset($historialCols['itinerario'])) {
-                        $snapshotItem['itinerario'] = filter_var($arrayRow['itinerario'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
-                    }
-                    if (isset($historialCols['hora_incorporacion'])) {
-                        $snapshotItem['hora_incorporacion'] = $arrayRow['hora_incorporacion'] ?? null;
-                    }
-                    if (isset($historialCols['hora_desincorporacion'])) {
-                        $snapshotItem['hora_desincorporacion'] = $arrayRow['hora_desincorporacion'] ?? null;
-                    }
-                    if (isset($historialCols['hora_encierro'])) {
-                        $snapshotItem['hora_encierro'] = $arrayRow['hora_encierro'] ?? null;
-                    }
-                    if (isset($historialCols['relevo_tarjeton'])) {
-                        $snapshotItem['relevo_tarjeton'] = $arrayRow['relevo_tarjeton'] ?? null;
-                        $snapshotItem['relevo_conductor'] = $arrayRow['relevo_conductor'] ?? null;
-                        $snapshotItem['relevo_hora'] = $arrayRow['relevo_hora'] ?? null;
+
+                    if ($seMantieneEnMantenimiento && $bloqueada) {
+                        $fallaSnap = $bloqueada['falla'] ?? ($bloqueada['falla_reportada'] ?? ($bloqueada['diagnostico'] ?? ($bloqueada['motivo_estatus'] ?? null)));
+                        $snapshotItem = [
+                            'fecha_historial' => $fechaHoy,
+                            'momento'         => 'INICIO',
+                            'unidad_id'       => $unidadId,
+                            'ruta'            => null,
+                            'numero_tarjeton' => null,
+                            'nombre_conductor'=> null,
+                            'tipo'            => $bloqueada['tipo'] ?? ($arrayRow['tipo'] ?? null),
+                            'estatus'         => $bloqueada['estatus'],
+                            'falla'           => $fallaSnap,
+                            'corridas'        => null,
+                            'ciclo'           => null,
+                            'motivo'          => $bloqueada['motivo'] ?? null,
+                            'motivo_estatus'  => !empty($bloqueada['motivo_estatus']) ? $bloqueada['motivo_estatus'] : strtoupper($bloqueada['estatus']),
+                            'hora_salida_patio' => null,
+                            'fecha_registro'  => $fechaHoy,
+                            'created_at'      => now(),
+                            'updated_at'      => now(),
+                        ];
+                        if (isset($historialCols['falla_reportada'])) {
+                            $snapshotItem['falla_reportada'] = $bloqueada['falla_reportada'] ?? $fallaSnap;
+                        }
+                        if (isset($historialCols['diagnostico'])) {
+                            $snapshotItem['diagnostico'] = $bloqueada['diagnostico'] ?? null;
+                        }
+                        if (isset($historialCols['observaciones'])) {
+                            $snapshotItem['observaciones'] = $bloqueada['observaciones'] ?? null;
+                        }
+                        if (isset($historialCols['folio_mantenimiento'])) {
+                            $snapshotItem['folio_mantenimiento'] = $bloqueada['folio_mantenimiento'] ?? null;
+                        }
+                    } else {
+                        $snapshotItem = [
+                            'fecha_historial' => $fechaHoy,
+                            'momento'         => 'INICIO',
+                            'unidad_id'       => $unidadId,
+                            'ruta'            => $arrayRow['ruta'] ?? null,
+                            'numero_tarjeton' => $arrayRow['numero_tarjeton'] ?? null,
+                            'nombre_conductor'=> $arrayRow['nombre_conductor'] ?? null,
+                            'tipo'            => $arrayRow['tipo'] ?? null,
+                            'estatus'         => $esProgramadaOperacion ? 'operacion' : ($arrayRow['estatus'] ?? 'reserva'),
+                            'falla'           => $arrayRow['falla'] ?? null,
+                            'corridas'        => $arrayRow['corridas'] ?? null,
+                            'ciclo'           => $arrayRow['ciclo'] ?? null,
+                            'motivo'          => $arrayRow['motivo'] ?? null,
+                            'motivo_estatus'  => $arrayRow['motivo_estatus'] ?? null,
+                            'hora_salida_patio' => $arrayRow['hora_salida_patio'] ?? ($arrayRow['hora_programada'] ?? null),
+                            'fecha_registro'  => $fechaHoy,
+                            'created_at'      => now(),
+                            'updated_at'      => now(),
+                        ];
+                        if (isset($historialCols['tarjeton_maniobrista'])) {
+                            $snapshotItem['tarjeton_maniobrista'] = $arrayRow['tarjeton_maniobrista'] ?? null;
+                            $snapshotItem['nombre_maniobrista']   = $arrayRow['nombre_maniobrista'] ?? null;
+                        }
+                        if (isset($historialCols['acople'])) {
+                            $snapshotItem['acople'] = $arrayRow['acople'] ?? null;
+                        }
+                        if (isset($historialCols['itinerario'])) {
+                            $snapshotItem['itinerario'] = filter_var($arrayRow['itinerario'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+                        if (isset($historialCols['hora_incorporacion'])) {
+                            $snapshotItem['hora_incorporacion'] = $arrayRow['hora_incorporacion'] ?? null;
+                        }
+                        if (isset($historialCols['hora_desincorporacion'])) {
+                            $snapshotItem['hora_desincorporacion'] = $arrayRow['hora_desincorporacion'] ?? null;
+                        }
+                        if (isset($historialCols['hora_encierro'])) {
+                            $snapshotItem['hora_encierro'] = $arrayRow['hora_encierro'] ?? null;
+                        }
+                        if (isset($historialCols['relevo_tarjeton'])) {
+                            $snapshotItem['relevo_tarjeton'] = $arrayRow['relevo_tarjeton'] ?? null;
+                            $snapshotItem['relevo_conductor'] = $arrayRow['relevo_conductor'] ?? null;
+                            $snapshotItem['relevo_hora'] = $arrayRow['relevo_hora'] ?? null;
+                        }
                     }
                     $snapshotInicioInsert[] = array_intersect_key($snapshotItem, $historialCols);
 
                     // 4. Si la unidad estaba en Mantenimiento o Percance:
                     // Se preserva INCONDICIONALMENTE en su estado de taller en informacion_operativa
                     // (no puede salir a operar hasta que sea formalmente liberada de taller).
-                    $seMantieneEnMantenimiento = false;
-                    if ($unidadId && $unidadesBloqueadas->has($unidadId)) {
-                        $seMantieneEnMantenimiento = true;
-                    }
-
-                    if ($seMantieneEnMantenimiento) {
-                        $bloqueada = (array) $unidadesBloqueadas->get($unidadId);
+                    if ($seMantieneEnMantenimiento && $bloqueada) {
                         unset($bloqueada['id']);
 
                         $insertRow = [];
@@ -2707,17 +2742,32 @@ class DespachoController extends Controller
 
                         // Registrar también en el snapshot de inicio como mantenimiento
                         $bloqArray = (array) $bloqueadaObj;
+                        $fallaSnapBloq = $bloqArray['falla'] ?? ($bloqArray['falla_reportada'] ?? ($bloqArray['diagnostico'] ?? ($bloqArray['motivo_estatus'] ?? null)));
                         $snapBloq = [
                             'fecha_historial' => $fechaHoy,
                             'momento'         => 'INICIO',
                             'unidad_id'       => $uId,
                             'tipo'            => $bloqArray['tipo'] ?? null,
                             'estatus'         => $bloqArray['estatus'] ?? 'mantenimiento',
-                            'motivo_estatus'  => $bloqArray['motivo_estatus'] ?? 'MANTENIMIENTO',
+                            'falla'           => $fallaSnapBloq,
+                            'motivo'          => $bloqArray['motivo'] ?? null,
+                            'motivo_estatus'  => !empty($bloqArray['motivo_estatus']) ? $bloqArray['motivo_estatus'] : strtoupper($bloqArray['estatus'] ?? 'MANTENIMIENTO'),
                             'fecha_registro'  => $fechaHoy,
                             'created_at'      => now(),
                             'updated_at'      => now(),
                         ];
+                        if (isset($historialCols['falla_reportada'])) {
+                            $snapBloq['falla_reportada'] = $bloqArray['falla_reportada'] ?? $fallaSnapBloq;
+                        }
+                        if (isset($historialCols['diagnostico'])) {
+                            $snapBloq['diagnostico'] = $bloqArray['diagnostico'] ?? null;
+                        }
+                        if (isset($historialCols['observaciones'])) {
+                            $snapBloq['observaciones'] = $bloqArray['observaciones'] ?? null;
+                        }
+                        if (isset($historialCols['folio_mantenimiento'])) {
+                            $snapBloq['folio_mantenimiento'] = $bloqArray['folio_mantenimiento'] ?? null;
+                        }
                         $snapshotInicioInsert[] = array_intersect_key($snapBloq, $historialCols);
                     }
                 }
@@ -2725,7 +2775,22 @@ class DespachoController extends Controller
                 if (! empty($inicialInsert)) {
                     // Limpiar snapshot previo de programacion_inicial de hoy para evitar duplicados en cambios forzados
                     DB::table('programacion_inicial')->where('fecha', $fechaHoy)->delete();
-                    foreach (array_chunk($inicialInsert, 50) as $chunk) {
+                    $defaultInicial = array_fill_keys(array_keys($inicialCols), null);
+                    unset($defaultInicial['id']);
+                    $normalizedInicial = array_map(function ($row) use ($defaultInicial, $inicialCols) {
+                        $merged = array_merge($defaultInicial, array_intersect_key($row, $inicialCols));
+                        if (array_key_exists('patio_norte', $merged)) {
+                            $merged['patio_norte'] = filter_var($merged['patio_norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+                        if (array_key_exists('itinerario', $merged)) {
+                            $merged['itinerario'] = filter_var($merged['itinerario'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+                        if (array_key_exists('transporte_patio_norte', $merged)) {
+                            $merged['transporte_patio_norte'] = filter_var($merged['transporte_patio_norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+                        return $merged;
+                    }, $inicialInsert);
+                    foreach (array_chunk($normalizedInicial, 50) as $chunk) {
                         DB::table('programacion_inicial')->insert($chunk);
                     }
                 }
@@ -2736,7 +2801,22 @@ class DespachoController extends Controller
                         ->where('fecha_historial', $fechaHoy)
                         ->where('momento', 'INICIO')
                         ->delete();
-                    foreach (array_chunk($snapshotInicioInsert, 50) as $chunk) {
+                    $defaultHistorial = array_fill_keys(array_keys($historialCols), null);
+                    unset($defaultHistorial['id']);
+                    $normalizedHistorial = array_map(function ($row) use ($defaultHistorial, $historialCols) {
+                        $merged = array_merge($defaultHistorial, array_intersect_key($row, $historialCols));
+                        if (array_key_exists('itinerario', $merged)) {
+                            $merged['itinerario'] = filter_var($merged['itinerario'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+                        if (array_key_exists('patio_norte', $merged)) {
+                            $merged['patio_norte'] = filter_var($merged['patio_norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+                        if (array_key_exists('transporte_patio_norte', $merged)) {
+                            $merged['transporte_patio_norte'] = filter_var($merged['transporte_patio_norte'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+                        }
+                        return $merged;
+                    }, $snapshotInicioInsert);
+                    foreach (array_chunk($normalizedHistorial, 50) as $chunk) {
                         DB::table('historial_operativo')->insert($chunk);
                     }
                 }
