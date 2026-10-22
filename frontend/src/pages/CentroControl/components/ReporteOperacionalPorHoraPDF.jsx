@@ -1,6 +1,7 @@
 import React from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { estaDesincorporadaPorItinerario } from '../../../utils/itinerarioUtils';
 
 const COLOR_GUINDA     = '#601a2a'; 
 const COLOR_GOLD       = '#c5a059';
@@ -43,16 +44,16 @@ const ReporteOperacionalPorHoraPDF = React.forwardRef(({ data }, ref) => {
 
           const horaSalida = getHoraSalida(unit);
           const isMantenimiento = estatus.includes('MANTENIMIENTO');
-          const isItinerario = estatus.includes('ITINERARIO') || estatus.includes('DESINCORPORADA') || estatus.includes('PERCANCE');
-          const isOperacionNoDespachada = estatus.includes('OPERACI') && !horaSalida;
+          const isItinerario = estaDesincorporadaPorItinerario(unit) || estatus.includes('ITINERARIO') || estatus.includes('DESINCORPORADA');
+          const isOperacionNoDespachada = estatus.includes('OPERACI') && !horaSalida && !isItinerario;
           const isReserva = (estatus.includes('RESERVA') && !estatus.includes('INTERMEDIA')) || isOperacionNoDespachada;
 
           if (isMantenimiento) {
               unidadesPorTecnologia[techKey].taller.push(unit);
-          } else if (isReserva) {
-              unidadesPorTecnologia[techKey].reserva.push(unit);
           } else if (isItinerario) {
               unidadesPorTecnologia[techKey].desincorporada.push(unit);
+          } else if (isReserva) {
+              unidadesPorTecnologia[techKey].reserva.push(unit);
           }
       }
   });

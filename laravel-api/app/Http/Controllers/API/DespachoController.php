@@ -2755,6 +2755,27 @@ class DespachoController extends Controller
 
                 DB::commit();
 
+                // Trasladar ciclos configurados para mañana al día operativo actual al ejecutarse el cambio de día
+                try {
+                    if (Schema::hasTable('programacion_ciclos')) {
+                        $fechaManana = Carbon::tomorrow('America/Mexico_City')->toDateString();
+                        $ciclosManana = DB::table('programacion_ciclos')->where('fecha_operativa', $fechaManana)->first();
+                        if ($ciclosManana && $ciclosManana->ciclos !== null) {
+                            $ahora = Carbon::now('America/Mexico_City');
+                            DB::table('programacion_ciclos')->updateOrInsert(
+                                ['fecha_operativa' => $fechaHoy],
+                                [
+                                    'ciclos' => (float) $ciclosManana->ciclos,
+                                    'updated_at' => $ahora,
+                                    'created_at' => $ahora,
+                                ]
+                            );
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('No se pudieron trasladar los ciclos de mañana a hoy: '.$e->getMessage());
+                }
+
                 Cache::forever('cambio_dia_operativo_ejecutado_'.$fechaHoy, true);
 
                 \Log::info("Cambio de día operativo automático completado con éxito desde {$sourceTable}. Unidades en mantenimiento/percance preservadas.");
@@ -4152,7 +4173,7 @@ class DespachoController extends Controller
      */
     public function obtenerInicioHoy()
     {
-        $fechaHoy = Carbon::today()->toDateString();
+        $fechaHoy = Carbon::today('America/Mexico_City')->toDateString();
 
         // Asegurar que exista el snapshot si se consulta
         BitacoraHelper::ensureInicioSnapshot();
@@ -7328,7 +7349,7 @@ class DespachoController extends Controller
 
         return response()->json([
             'fecha' => $fecha,
-            'ciclos' => $registro ? (int) $registro->ciclos : null,
+            'ciclos' => $registro ? (float) $registro->ciclos : null,
         ], 200);
     }
 
@@ -7336,18 +7357,18 @@ class DespachoController extends Controller
     {
         $request->validate([
             'fecha' => 'required|string',
-            'ciclos' => 'required|integer|min:0',
+            'ciclos' => 'required|numeric|min:0',
         ]);
 
         $fechaInput = $request->input('fecha', 'MANANA');
         $fecha = $this->resolverFechaCiclos($fechaInput);
-        $ciclos = (int) $request->input('ciclos');
+        $ciclos = round((float) $request->input('ciclos'), 2);
 
         if (!Schema::hasTable('programacion_ciclos')) {
             Schema::create('programacion_ciclos', function (Blueprint $table) {
                 $table->id();
                 $table->date('fecha_operativa')->unique();
-                $table->integer('ciclos');
+                $table->decimal('ciclos', 10, 2);
                 $table->timestamps();
             });
         }
