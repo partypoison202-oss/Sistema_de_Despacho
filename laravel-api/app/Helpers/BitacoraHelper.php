@@ -16,7 +16,7 @@ class BitacoraHelper
     public static function ensureInicioSnapshot($forzar = false)
     {
         try {
-            $hoy = Carbon::today()->toDateString();
+            $hoy = Carbon::today('America/Mexico_City')->toDateString();
 
             if ($forzar) {
                 DB::table('historial_operativo')

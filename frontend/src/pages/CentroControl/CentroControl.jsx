@@ -239,8 +239,8 @@ export default function CentroControl() {
     setIsGeneratingStats(true);
     try {
       // Usamos los mismos datos calculados que ya están en el componente:
-      // totales, modelData, y eficienciaGlobal
-      await generarPDFEstadisticasCentro(totales, modelData, eficienciaGlobal);
+      // totales, modelData, eficienciaGlobal, y apiData
+      await generarPDFEstadisticasCentro(totales, modelData, eficienciaGlobal, apiData);
 
       Swal.fire({
         icon: 'success',

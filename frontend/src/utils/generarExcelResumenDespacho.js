@@ -166,9 +166,72 @@ export async function descargarResumenDespachoExcel(setLoading) {
     const listaConductores = Array.isArray(dbConductores) ? dbConductores : [];
     const { modelStats, totales } = procesarModelos(listaUnidades);
     const { inicioDespacho, terminoDespacho } = calcularHorariosDespacho(listaUnidades);
+    const parseCiclo = (val) => {
+      if (val === null || val === undefined) return 0;
+      const str = String(val).trim();
+      if (!str || str === '-' || str === '--') return 0;
+      if (/^\d+\/\d+$/.test(str)) {
+        const [n, d] = str.split('/').map(Number);
+        return d !== 0 ? n / d : 0;
+      }
+      const mixedMatch = /^(\d+)\s+(\d+)\/(\d+)$/.exec(str);
+      if (mixedMatch) {
+        const entero = Number(mixedMatch[1]);
+        const n = Number(mixedMatch[2]);
+        const d = Number(mixedMatch[3]);
+        return d !== 0 ? entero + (n / d) : entero;
+      }
+      const numDirecto = Number(str.replace(',', '.'));
+      if (!Number.isNaN(numDirecto)) return numDirecto;
+
+      const tokens = str.split(/\s+/);
+      let sum = 0;
+      let found = false;
+      for (const token of tokens) {
+        const t = token.trim();
+        if (t.includes('/')) {
+          const parts = t.split('/');
+          if (parts.length === 2) {
+            const n = Number(parts[0]);
+            const d = Number(parts[1]);
+            if (!Number.isNaN(n) && !Number.isNaN(d) && d !== 0) {
+              sum += n / d;
+              found = true;
+            }
+          }
+        } else {
+          const n = Number(t.replace(',', '.'));
+          if (!Number.isNaN(n) && n > 0) {
+            sum += n;
+            found = true;
+          }
+        }
+      }
+      return found ? sum : 0;
+    };
+
+    const formatCiclo = (num) => {
+      if (!num || Number.isNaN(num) || num <= 0) return '0';
+      const entero = Math.floor(num);
+      const residuo = Math.round((num - entero) * 100) / 100;
+      if (Math.abs(residuo - 0.5) < 0.05) {
+        return entero === 0 ? '1/2' : `${entero} 1/2`;
+      }
+      if (Math.abs(residuo) < 0.05) return String(entero);
+      if (Math.abs(residuo - 0.25) < 0.05) {
+        return entero === 0 ? '1/4' : `${entero} 1/4`;
+      }
+      if (Math.abs(residuo - 0.75) < 0.05) {
+        return entero === 0 ? '3/4' : `${entero} 3/4`;
+      }
+      return Number.isInteger(num) ? String(num) : String(Number(num.toFixed(1)));
+    };
+
     const ciclosFaltantes = listaUnidades.filter(u => { const ciclo = u.CICLO || u.ciclo; return ciclo !== null && ciclo !== undefined && String(ciclo).trim() !== ''; });
-    const faltantesAlimentador = ciclosFaltantes.filter(u => { const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase(); const ruta = (u.RUTA || u.ruta || '').toUpperCase(); return !tipo.includes('URBANUS') && !ruta.startsWith('T-'); }).length;
-    const faltantesTroncal = ciclosFaltantes.filter(u => { const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase(); const ruta = (u.RUTA || u.ruta || '').toUpperCase(); return tipo.includes('URBANUS') || ruta.startsWith('T-'); }).length;
+    const sumCiclos = (unidades) => unidades.reduce((acc, u) => acc + parseCiclo(u.CICLO || u.ciclo), 0);
+    const faltantesAlimentador = sumCiclos(ciclosFaltantes.filter(u => { const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase(); const ruta = (u.RUTA || u.ruta || '').toUpperCase(); return !tipo.includes('URBANUS') && !ruta.startsWith('T-'); }));
+    const faltantesTroncal = sumCiclos(ciclosFaltantes.filter(u => { const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase(); const ruta = (u.RUTA || u.ruta || '').toUpperCase(); return tipo.includes('URBANUS') || ruta.startsWith('T-'); }));
+    const faltantesTotal = faltantesAlimentador + faltantesTroncal;
     const todayStr = new Date().toISOString().slice(0, 10);
     const { conductoresEnReserva, conductoresConFalta } = procesarConductores(listaConductores, listaReservasTarjeton, todayStr);
     const fechaFormateada = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -444,16 +507,16 @@ export async function descargarResumenDespachoExcel(setLoading) {
     ws.getCell('A20').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9C1E3F' } };
     ws.getCell('A20').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('A20').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('A20'));
-    ws.getCell('B20').value = faltantesAlimentador;
+    ws.getCell('B20').value = formatCiclo(faltantesAlimentador);
     ws.getCell('B20').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('B20'));
     ws.mergeCells('C20:D20');
     ws.getCell('C20').value = 'Servicio Troncal';
     ws.getCell('C20').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9C1E3F' } };
     ws.getCell('C20').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('C20').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('C20'));
-    ws.getCell('E20').value = faltantesTroncal;
+    ws.getCell('E20').value = formatCiclo(faltantesTroncal);
     ws.getCell('E20').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('E20'));
-    ws.getCell('F20').value = `Total: ${faltantesAlimentador + faltantesTroncal}`;
+    ws.getCell('F20').value = `Total: ${formatCiclo(faltantesTotal)}`;
     ws.getCell('F20').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF9C1E3F' } };
     ws.getCell('F20').font = { name: 'Arial', color: { argb: 'FFFFFFFF' }, bold: true };
     ws.getCell('F20').alignment = { horizontal: 'center', vertical: 'middle' }; applyThinBorders(ws.getCell('F20'));
