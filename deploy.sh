@@ -48,31 +48,38 @@ if [ "$REMOTE_PENDING" -gt 0 ]; then
 else
     # El código local ya coincide con origin/$BRANCH (ej. git pull ejecutado previamente)
     LAST_DEPLOYED=$(cat "${SCRIPT_DIR}/.last_deployed_commit" 2>/dev/null | tr -d '[:space:]' || echo "")
-    ORIG_HEAD_COMMIT=$(git rev-parse ORIG_HEAD 2>/dev/null || echo "")
     HEAD_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "")
 
     if [ -n "$LAST_DEPLOYED" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null && [ "$LAST_DEPLOYED" != "$HEAD_COMMIT" ]; then
         RANGE="${LAST_DEPLOYED}..HEAD"
         COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "0")
-        TIPO_DESPLIEGUE="CAMBIOS RECIENTES EN EL SERVIDOR (Descargados pero pendientes de compilar)"
+        TIPO_DESPLIEGUE="CAMBIOS PENDIENTES DESDE EL ÚLTIMO DESPLIEGUE (${COMMITS_COUNT} commits)"
         PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción de estos cambios? [s/N]: "
-    elif [ -n "$ORIG_HEAD_COMMIT" ] && git cat-file -e "${ORIG_HEAD_COMMIT}^{commit}" 2>/dev/null && [ "$ORIG_HEAD_COMMIT" != "$HEAD_COMMIT" ]; then
-        RANGE="${ORIG_HEAD_COMMIT}..HEAD"
-        COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "0")
-        TIPO_DESPLIEGUE="CAMBIOS RECIÉN DESCARGADOS CON GIT PULL (Listos para compilar y aplicar)"
-        PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción de estos cambios? [s/N]: "
-    fi
-
-    # Si aún no hay rango o COMMITS_COUNT es 0, mostrar los últimos commits activos
-    if [ -z "$RANGE" ] || [ "${COMMITS_COUNT:-0}" -eq 0 ]; then
-        if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            RANGE="HEAD~1..HEAD"
+    else
+        # Si aún no existe .last_deployed_commit (primer despliegue registrado)
+        # o si se forzó la re-compilación:
+        # Tomamos todos los commits y PRs de la jornada reciente (últimas 24 horas, o hasta 10 commits)
+        COUNT_24H=$(git rev-list --count --since="24 hours ago" HEAD 2>/dev/null || echo "0")
+        if [ "$COUNT_24H" -gt 0 ]; then
+            OLDEST_24H=$(git rev-list --since="24 hours ago" HEAD | tail -n 1)
+            if git rev-parse "${OLDEST_24H}~1" >/dev/null 2>&1; then
+                RANGE="${OLDEST_24H}~1..HEAD"
+            else
+                RANGE="${OLDEST_24H}..HEAD"
+            fi
+            COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "$COUNT_24H")
+            TIPO_DESPLIEGUE="CAMBIOS RECIENTES DE LA JORNADA LISTOS PARA COMPILAR Y APLICAR (${COMMITS_COUNT} commits)"
+            PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción de estos cambios? [s/N]: "
         else
-            RANGE="HEAD"
+            if git rev-parse HEAD~5 >/dev/null 2>&1; then
+                RANGE="HEAD~5..HEAD"
+            else
+                RANGE="HEAD~1..HEAD"
+            fi
+            COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "5")
+            TIPO_DESPLIEGUE="ÚLTIMOS CAMBIOS ACTIVOS EN EL SERVIDOR (Re-compilación y mantenimiento)"
+            PREGUNTA="¿Deseas forzar la re-compilación y mantenimiento de caché de todos modos? [s/N]: "
         fi
-        COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "1")
-        TIPO_DESPLIEGUE="EL SERVIDOR YA CUENTA CON LA VERSIÓN MÁS RECIENTE (Re-compilación / mantenimiento)"
-        PREGUNTA="¿Deseas forzar la re-compilación y mantenimiento de caché de todos modos? [s/N]: "
     fi
 fi
 
