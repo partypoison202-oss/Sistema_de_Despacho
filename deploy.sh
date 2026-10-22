@@ -6,6 +6,10 @@
 
 set -e
 
+# ── Asegurar ejecución en la raíz del proyecto ────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # ── Colores para la interfaz de consola ────────────────────────
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -21,97 +25,136 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${CYAN}${BOLD}🔍 VERIFICACIÓN Y DIAGNÓSTICO PREVIO AL DESPLIEGUE (ACOTMA)${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 
-# ── 1. Consultar estado remoto sin alterar archivos locales ───
+# ── 1. Consultar estado del repositorio y determinar rango de cambios ───
 echo -e "${CYAN}📡 Consultando actualizaciones en GitHub (origin/${BRANCH})...${NC}"
-git fetch origin "$BRANCH" --quiet
+git fetch origin "$BRANCH" --quiet 2>/dev/null || true
 
 CURRENT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "desconocido")
-REMOTE_COMMIT=$(git rev-parse --short "origin/$BRANCH" 2>/dev/null || echo "desconocido")
-COMMITS_COUNT=$(git rev-list --count "HEAD..origin/$BRANCH" 2>/dev/null || echo "0")
+REMOTE_COMMIT=$(git rev-parse --short "origin/$BRANCH" 2>/dev/null || echo "$CURRENT_COMMIT")
+REMOTE_PENDING=$(git rev-list --count "HEAD..origin/$BRANCH" 2>/dev/null || echo "0")
+
+PULL_NEEDED=false
+RANGE=""
+TIPO_DESPLIEGUE=""
+PREGUNTA=""
+
+if [ "$REMOTE_PENDING" -gt 0 ]; then
+    PULL_NEEDED=true
+    RANGE="HEAD..origin/$BRANCH"
+    COMMITS_COUNT="$REMOTE_PENDING"
+    TIPO_DESPLIEGUE="ACTUALIZACIONES PENDIENTES EN GITHUB (Listas para descargar y desplegar)"
+    PREGUNTA="¿Deseas descargar los cambios y proceder con el despliegue a Producción? [s/N]: "
+else
+    # El código local ya coincide con origin/$BRANCH (ej. git pull ejecutado previamente)
+    LAST_DEPLOYED=$(cat "${SCRIPT_DIR}/.last_deployed_commit" 2>/dev/null | tr -d '[:space:]' || echo "")
+    ORIG_HEAD_COMMIT=$(git rev-parse ORIG_HEAD 2>/dev/null || echo "")
+    HEAD_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "")
+
+    if [ -n "$LAST_DEPLOYED" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null && [ "$LAST_DEPLOYED" != "$HEAD_COMMIT" ]; then
+        RANGE="${LAST_DEPLOYED}..HEAD"
+        COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "0")
+        TIPO_DESPLIEGUE="CAMBIOS RECIENTES LISTOS PARA DESPLEGAR (Pendientes desde el último deploy)"
+        PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción? [s/N]: "
+    elif [ -n "$ORIG_HEAD_COMMIT" ] && git cat-file -e "${ORIG_HEAD_COMMIT}^{commit}" 2>/dev/null && [ "$ORIG_HEAD_COMMIT" != "$HEAD_COMMIT" ]; then
+        RANGE="${ORIG_HEAD_COMMIT}..HEAD"
+        COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "0")
+        TIPO_DESPLIEGUE="CAMBIOS RECIÉN DESCARGADOS CON GIT PULL (Listos para compilar y aplicar)"
+        PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción? [s/N]: "
+    fi
+
+    # Si aún no hay rango o COMMITS_COUNT es 0, mostrar los últimos commits activos
+    if [ -z "$RANGE" ] || [ "${COMMITS_COUNT:-0}" -eq 0 ]; then
+        if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            RANGE="HEAD~1..HEAD"
+        else
+            RANGE="HEAD"
+        fi
+        COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "1")
+        TIPO_DESPLIEGUE="VERSIÓN ACTUAL EN EL SERVIDOR (Re-compilación y mantenimiento de caché)"
+        PREGUNTA="¿Deseas forzar la re-compilación y mantenimiento de caché de todos modos? [s/N]: "
+    fi
+fi
 
 echo -e "   • Rama de destino:  ${BOLD}${BRANCH}${NC}"
 echo -e "   • Commit local:     ${BOLD}${CURRENT_COMMIT}${NC}"
 echo -e "   • Commit en GitHub: ${BOLD}${REMOTE_COMMIT}${NC}"
+echo -e "   • Estado / Modo:    ${CYAN}${BOLD}${TIPO_DESPLIEGUE}${NC}"
 
-if [ "$COMMITS_COUNT" -eq 0 ]; then
-    echo ""
-    echo -e "${YELLOW}ℹ️  El servidor ya se encuentra al día con origin/${BRANCH}.${NC}"
-    echo -e "${YELLOW}   No hay commits nuevos pendientes por descargar.${NC}"
-    echo ""
-    # Leer confirmación (compatible con sudo /dev/tty)
-    if [ -t 0 ]; then
-        read -r -p "¿Deseas forzar la re-compilación y mantenimiento de caché de todos modos? [s/N]: " FORZAR
-    else
-        read -r -p "¿Deseas forzar la re-compilación y mantenimiento de caché de todos modos? [s/N]: " FORZAR </dev/tty || FORZAR="n"
-    fi
+echo ""
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}${BOLD}📋 RESUMEN DETALLADO DE ACTUALIZACIONES (${COMMITS_COUNT} commits)${NC}"
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 
-    if [[ ! "$FORZAR" =~ ^[sS]$ ]]; then
-        echo -e "\n${GREEN}✔ Operación finalizada sin cambios. El servidor sigue activo.${NC}\n"
-        exit 0
-    fi
+# Mostrar commits con autor, fecha relativa y descripción completa
+git log "$RANGE" --format="format:%n  🔹 %C(bold)%s%C(reset) %C(dim)(%h)%C(reset)%n     %C(cyan)Autor:%C(reset) %an (%cr)%w(0,5,5)%+b" | sed 's/^/   /'
+echo ""
+
+echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
+echo -e "${CYAN}${BOLD}📁 ARCHIVOS MODIFICADOS:${NC}"
+echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
+git diff --stat "$RANGE" | sed 's/^/   /'
+
+# Detección inteligente de módulos de negocio impactados
+DIFF_FILES=$(git diff --name-only "$RANGE")
+
+echo ""
+echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
+echo -e "${YELLOW}${BOLD}🛠️  DIAGNÓSTICO DE IMPACTO EN EL SISTEMA:${NC}"
+echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
+
+if echo "$DIFF_FILES" | grep -qE "database/migrations"; then
+    echo -e "   ${RED}⚠️  [Base de Datos]:${NC} Detectadas NUEVAS migraciones (se ejecutarán con migrate --force):"
+    echo "$DIFF_FILES" | grep "database/migrations" | sed 's/^/      • /'
 else
+    echo -e "   ${GREEN}✔  [Base de Datos]:${NC} Sin cambios estructurales (cero riesgo en base de datos)."
+fi
+
+if echo "$DIFF_FILES" | grep -qE "Historial|Bitacora"; then
+    echo -e "   ${GREEN}✔  [Mantenimiento y Taller]:${NC} Actualizaciones en historial operativo, bitácora o reportes."
+fi
+
+if echo "$DIFF_FILES" | grep -qE "DespachoController|despacho"; then
+    echo -e "   ${GREEN}✔  [Despacho y Flota]:${NC} Ajustes en corte operativo, asignaciones o relevos."
+fi
+
+if echo "$DIFF_FILES" | grep -qE "Operadores|conductor"; then
+    echo -e "   ${GREEN}✔  [Control de Operadores]:${NC} Ajustes en gestión de conductores, permisos o bajas."
+fi
+
+if echo "$DIFF_FILES" | grep -qE "CentroControl|generarPDF"; then
+    echo -e "   ${GREEN}✔  [Centro de Control y Reportes]:${NC} Actualizaciones en reportes operativos o exportación de estadísticas."
+fi
+
+if echo "$DIFF_FILES" | grep -qE "^frontend/"; then
+    echo -e "   ${CYAN}✔  [Frontend React/Vite]:${NC} Cambios en interfaz detectados (se compilará el bundle)."
+else
+    echo -e "   ${BLUE}ℹ️  [Frontend React/Vite]:${NC} Sin modificaciones en la interfaz."
+fi
+
+if echo "$DIFF_FILES" | grep -qE "composer\.json|composer\.lock"; then
+    echo -e "   ${YELLOW}✔  [Backend Composer]:${NC} Nuevas librerías PHP detectadas (composer install requerido)."
+fi
+
+echo ""
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+
+# Pregunta de confirmación obligatoria con visualización previa garantizada
+if [ -p /dev/stdin ]; then
+    read -r CONFIRMAR || CONFIRMAR="n"
+elif [ -t 0 ]; then
+    read -r -p "$PREGUNTA" CONFIRMAR
+elif [ -r /dev/tty ]; then
+    read -r -p "$PREGUNTA" CONFIRMAR </dev/tty || CONFIRMAR="n"
+else
+    echo -n "$PREGUNTA"
+    read -r CONFIRMAR || CONFIRMAR="n"
+fi
+
+if [[ ! "$CONFIRMAR" =~ ^[sS]$ ]]; then
     echo ""
-    echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}📋 RESUMEN DETALLADO DE ACTUALIZACIONES PENDIENTES (${COMMITS_COUNT} commits)${NC}"
-    echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
-
-    # Mostrar commits con autor, fecha relativa y descripción completa
-    git log "HEAD..origin/$BRANCH" --format="format:%n  🔹 %C(bold)%s%C(reset)%n     %C(cyan)Autor:%C(reset) %an (%cr)%n%n     %C(yellow)Descripción:%C(reset)%n%b" | sed 's/^/   /'
-    echo ""
-
-    echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
-    echo -e "${CYAN}${BOLD}📁 ARCHIVOS MODIFICADOS:${NC}"
-    echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
-    git diff --stat "HEAD..origin/$BRANCH" | sed 's/^/   /'
-
-    # Detección inteligente de módulos de negocio impactados
-    DIFF_FILES=$(git diff --name-only "HEAD..origin/$BRANCH")
-
-    echo ""
-    echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
-    echo -e "${YELLOW}${BOLD}🛠️  DIAGNÓSTICO DE IMPACTO EN EL SISTEMA:${NC}"
-    echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
-
-    if echo "$DIFF_FILES" | grep -qE "database/migrations"; then
-        echo -e "   ${RED}⚠️  [Base de Datos]:${NC} Detectadas NUEVAS migraciones (se ejecutarán con migrate --force)."
-    else
-        echo -e "   ${GREEN}✔  [Base de Datos]:${NC} Sin cambios estructurales (cero riesgo en base de datos)."
-    fi
-
-    if echo "$DIFF_FILES" | grep -qE "Historial|Bitacora"; then
-        echo -e "   ${GREEN}✔  [Mantenimiento y Taller]:${NC} Actualizaciones en historial operativo, bitácora o reportes."
-    fi
-
-    if echo "$DIFF_FILES" | grep -qE "DespachoController|despacho"; then
-        echo -e "   ${GREEN}✔  [Despacho y Flota]:${NC} Ajustes en corte operativo, asignaciones o relevos."
-    fi
-
-    if echo "$DIFF_FILES" | grep -qE "^frontend/"; then
-        echo -e "   ${CYAN}✔  [Frontend React/Vite]:${NC} Cambios en interfaz detectados (se compilará el bundle)."
-    else
-        echo -e "   ${BLUE}ℹ️  [Frontend React/Vite]:${NC} Sin modificaciones en la interfaz."
-    fi
-
-    if echo "$DIFF_FILES" | grep -qE "composer\.json|composer\.lock"; then
-        echo -e "   ${YELLOW}✔  [Backend Composer]:${NC} Nuevas librerías PHP detectadas (composer install requerido)."
-    fi
-
-    echo ""
-    echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
-    
-    # Pregunta de confirmación obligatoria
-    if [ -t 0 ]; then
-        read -r -p "¿Deseas proceder con el despliegue a Producción? [s/N]: " CONFIRMAR
-    else
-        read -r -p "¿Deseas proceder con el despliegue a Producción? [s/N]: " CONFIRMAR </dev/tty || CONFIRMAR="n"
-    fi
-
-    if [[ ! "$CONFIRMAR" =~ ^[sS]$ ]]; then
-        echo ""
-        echo -e "${RED}❌ Despliegue cancelado por el usuario.${NC}"
-        echo -e "${YELLOW}ℹ️  No se descargó ningún commit ni se reinició ningún servicio.${NC}\n"
-        exit 0
-    fi
+    echo -e "${RED}❌ Despliegue cancelado por el usuario.${NC}"
+    echo -e "${YELLOW}ℹ️  No se realizó ninguna descarga ni se reinició ningún servicio.${NC}\n"
+    exit 0
 fi
 
 echo ""
@@ -158,8 +201,12 @@ fi
 echo -e "${GREEN}✔ Usando php: ${PHP_BIN}${NC}"
 
 # Paso 1: Actualizar código desde Git
-echo -e "\n${BLUE}📥 1. Descargando cambios desde Git (git pull origin ${BRANCH})...${NC}"
-git pull origin "$BRANCH"
+if [ "$PULL_NEEDED" = true ]; then
+    echo -e "\n${BLUE}📥 1. Descargando cambios desde Git (git pull origin ${BRANCH})...${NC}"
+    git pull origin "$BRANCH"
+else
+    echo -e "\n${GREEN}✔ 1. Código local ya sincronizado (no se requiere descarga adicional de Git).${NC}"
+fi
 
 # Paso 2: Instalación de dependencias del frontend y compilación con Vite
 echo -e "\n${BLUE}📦 2. Instalando dependencias y compilando Frontend (Vite)...${NC}"
@@ -203,6 +250,9 @@ cd ..
 echo -e "\n${BLUE}🔄 7. Reiniciando servicio web Nginx y PHP-FPM...${NC}"
 systemctl restart nginx 2>/dev/null || sudo systemctl restart nginx 2>/dev/null || true
 systemctl restart php-fpm 2>/dev/null || sudo systemctl restart php-fpm 2>/dev/null || true
+
+# Paso 8: Registrar el commit desplegado para futuros diagnósticos
+git rev-parse HEAD > "${SCRIPT_DIR}/.last_deployed_commit" 2>/dev/null || true
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
