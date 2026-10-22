@@ -45,8 +45,18 @@ class BitacoraHelper
                     $hasHoraIncorp = isset($historialCols['hora_incorporacion']);
                     $hasHoraDesinc = isset($historialCols['hora_desincorporacion']);
                     $hasHoraEncierro = isset($historialCols['hora_encierro']);
+                    $hasFallaReportada = isset($historialCols['falla_reportada']);
+                    $hasDiagnostico = isset($historialCols['diagnostico']);
+                    $hasObservaciones = isset($historialCols['observaciones']);
+                    $hasFolioMantenimiento = isset($historialCols['folio_mantenimiento']);
 
-                    $datosInsertar = $registros->map(function ($registro) use ($hoy, $historialCols, $hasManiobrista, $hasAcople, $hasHoraSalida, $hasHoraReal, $hasRelevo, $hasItinerario, $hasHoraIncorp, $hasHoraDesinc, $hasHoraEncierro) {
+                    $datosInsertar = $registros->map(function ($registro) use (
+                        $hoy, $historialCols, $hasManiobrista, $hasAcople, $hasHoraSalida, 
+                        $hasHoraReal, $hasRelevo, $hasItinerario, $hasHoraIncorp, $hasHoraDesinc, 
+                        $hasHoraEncierro, $hasFallaReportada, $hasDiagnostico, $hasObservaciones, $hasFolioMantenimiento
+                    ) {
+                        $fallaSnapshot = $registro->falla ?? ($registro->falla_reportada ?? ($registro->diagnostico ?? null));
+
                         $item = [
                             'fecha_historial' => $hoy,
                             'momento'         => 'INICIO',
@@ -56,7 +66,7 @@ class BitacoraHelper
                             'nombre_conductor'=> $registro->nombre_conductor,
                             'tipo'            => $registro->tipo,
                             'estatus'         => $registro->estatus,
-                            'falla'           => $registro->falla,
+                            'falla'           => $fallaSnapshot,
                             'corridas'        => $registro->corridas,
                             'ciclo'           => $registro->ciclo,
                             'motivo'          => $registro->motivo,
@@ -104,6 +114,22 @@ class BitacoraHelper
 
                         if ($hasHoraEncierro) {
                             $item['hora_encierro'] = $registro->hora_encierro ?? null;
+                        }
+
+                        if ($hasFallaReportada) {
+                            $item['falla_reportada'] = $registro->falla_reportada ?? $fallaSnapshot;
+                        }
+
+                        if ($hasDiagnostico) {
+                            $item['diagnostico'] = $registro->diagnostico ?? null;
+                        }
+
+                        if ($hasObservaciones) {
+                            $item['observaciones'] = $registro->observaciones ?? null;
+                        }
+
+                        if ($hasFolioMantenimiento) {
+                            $item['folio_mantenimiento'] = $registro->folio_mantenimiento ?? null;
                         }
 
                         return array_intersect_key($item, $historialCols);

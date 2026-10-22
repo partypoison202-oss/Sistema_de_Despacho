@@ -208,19 +208,42 @@ class HistorialOperativoController extends Controller
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
-            ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
+            ->whereIn(DB::raw('LOWER(historial_operativo.estatus)'), ['mantenimiento', 'percance', 'reserva'])
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
                 $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
                 $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
-                'historial_operativo.motivo_estatus',
-                'historial_operativo.falla'
+                DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.motivo_estatus), ''), UPPER(historial_operativo.estatus)) as motivo_estatus"),
+                DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.falla_reportada), ''), NULLIF(TRIM(historial_operativo.falla), ''), NULLIF(TRIM(historial_operativo.diagnostico), ''), NULLIF(TRIM(historial_operativo.observaciones), ''), NULLIF(TRIM(historial_operativo.motivo_estatus), ''), '-') as falla")
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
             ->get();
+
+        $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
+        $esHoy = ($fecha === $fechaHoyMex || $fecha === Carbon::today()->toDateString());
+
+        if ($inicio->isEmpty() && $esHoy) {
+            \App\Helpers\BitacoraHelper::ensureInicioSnapshot(false);
+            $inicio = DB::table('informacion_operativa')
+                ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->whereIn(DB::raw('LOWER(informacion_operativa.estatus)'), ['mantenimiento', 'percance', 'reserva'])
+                ->select(
+                    'informacion_operativa.id as id_historial',
+                    'unidades.numero_eco as economico',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
+                    'informacion_operativa.estatus',
+                    DB::raw("COALESCE(NULLIF(TRIM(informacion_operativa.motivo_estatus), ''), UPPER(informacion_operativa.estatus)) as motivo_estatus"),
+                    DB::raw("COALESCE(NULLIF(TRIM(informacion_operativa.falla_reportada), ''), NULLIF(TRIM(informacion_operativa.falla), ''), NULLIF(TRIM(informacion_operativa.diagnostico), ''), NULLIF(TRIM(informacion_operativa.observaciones), ''), NULLIF(TRIM(informacion_operativa.motivo_estatus), ''), '-') as falla")
+                )
+                ->orderBy('informacion_operativa.tipo')
+                ->orderBy('unidades.numero_eco')
+                ->get();
+        }
 
         if ($inicio->isEmpty()) {
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
@@ -228,16 +251,16 @@ class HistorialOperativoController extends Controller
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
                 ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
-                ->where('momento', 'FIN')
-                ->whereIn('historial_operativo.estatus', ['MANTENIMIENTO', 'RESERVA'])
+                ->whereIn('momento', ['FIN', 'INICIO'])
+                ->whereIn(DB::raw('LOWER(historial_operativo.estatus)'), ['mantenimiento', 'percance', 'reserva'])
                 ->select(
                     'historial_operativo.id as id_historial',
                     'unidades.numero_eco as economico',
                     $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
                     $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                     'historial_operativo.estatus',
-                    'historial_operativo.motivo_estatus',
-                    'historial_operativo.falla'
+                    DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.motivo_estatus), ''), UPPER(historial_operativo.estatus)) as motivo_estatus"),
+                    DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.falla_reportada), ''), NULLIF(TRIM(historial_operativo.falla), ''), NULLIF(TRIM(historial_operativo.diagnostico), ''), NULLIF(TRIM(historial_operativo.observaciones), ''), NULLIF(TRIM(historial_operativo.motivo_estatus), ''), '-') as falla")
                 )
                 ->orderBy('historial_operativo.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -509,42 +532,71 @@ class HistorialOperativoController extends Controller
      */
     public function getHistorialMantenimiento($fecha)
     {
-        // 1. Inicio (unidades que iniciaron en mantenimiento)
+        $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
+        $esHoy = ($fecha === $fechaHoyMex || $fecha === Carbon::today()->toDateString());
+
+        // Si es el día de hoy y aún no existe el snapshot de inicio, asegurar su creación
+        if ($esHoy) {
+            \App\Helpers\BitacoraHelper::ensureInicioSnapshot(false);
+        }
+
+        // 1. Inicio (unidades que iniciaron en mantenimiento o percance)
         $inicio = DB::table('historial_operativo')
             ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'INICIO')
-            ->where('historial_operativo.estatus', 'MANTENIMIENTO')
+            ->whereIn(DB::raw('LOWER(historial_operativo.estatus)'), ['mantenimiento', 'percance'])
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
                 $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
                 $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
-                'historial_operativo.motivo_estatus',
-                'historial_operativo.falla'
+                DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.motivo_estatus), ''), UPPER(historial_operativo.estatus)) as motivo_estatus"),
+                DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.falla_reportada), ''), NULLIF(TRIM(historial_operativo.falla), ''), NULLIF(TRIM(historial_operativo.diagnostico), ''), NULLIF(TRIM(historial_operativo.observaciones), ''), NULLIF(TRIM(historial_operativo.motivo_estatus), ''), '-') as falla")
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
             ->get();
 
+        // Fallback 1: Si es hoy y el snapshot de inicio no tiene unidades en mantenimiento pero en informacion_operativa sí las hay
+        if ($inicio->isEmpty() && $esHoy) {
+            $inicio = DB::table('informacion_operativa')
+                ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
+                ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
+                ->whereIn(DB::raw('LOWER(informacion_operativa.estatus)'), ['mantenimiento', 'percance'])
+                ->select(
+                    'informacion_operativa.id as id_historial',
+                    'unidades.numero_eco as economico',
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
+                    $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
+                    'informacion_operativa.estatus',
+                    DB::raw("COALESCE(NULLIF(TRIM(informacion_operativa.motivo_estatus), ''), UPPER(informacion_operativa.estatus)) as motivo_estatus"),
+                    DB::raw("COALESCE(NULLIF(TRIM(informacion_operativa.falla_reportada), ''), NULLIF(TRIM(informacion_operativa.falla), ''), NULLIF(TRIM(informacion_operativa.diagnostico), ''), NULLIF(TRIM(informacion_operativa.observaciones), ''), NULLIF(TRIM(informacion_operativa.motivo_estatus), ''), '-') as falla")
+                )
+                ->orderBy('informacion_operativa.tipo')
+                ->orderBy('unidades.numero_eco')
+                ->get();
+        }
+
+        // Fallback 2: Si es un día histórico y no hay snapshot de inicio, buscar en el cierre o inicio del día previo
         if ($inicio->isEmpty()) {
             $prevDate = Carbon::parse($fecha)->subDay()->toDateString();
             $inicio = DB::table('historial_operativo')
                 ->join('unidades', 'historial_operativo.unidad_id', '=', 'unidades.id')
                 ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
                 ->where('fecha_historial', $prevDate)
-                ->where('momento', 'FIN')
-                ->where('historial_operativo.estatus', 'MANTENIMIENTO')
+                ->whereIn('momento', ['FIN', 'INICIO'])
+                ->whereIn(DB::raw('LOWER(historial_operativo.estatus)'), ['mantenimiento', 'percance'])
                 ->select(
                     'historial_operativo.id as id_historial',
                     'unidades.numero_eco as economico',
                     $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
                     $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                     'historial_operativo.estatus',
-                    'historial_operativo.motivo_estatus',
-                    'historial_operativo.falla'
+                    DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.motivo_estatus), ''), UPPER(historial_operativo.estatus)) as motivo_estatus"),
+                    DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.falla_reportada), ''), NULLIF(TRIM(historial_operativo.falla), ''), NULLIF(TRIM(historial_operativo.diagnostico), ''), NULLIF(TRIM(historial_operativo.observaciones), ''), NULLIF(TRIM(historial_operativo.motivo_estatus), ''), '-') as falla")
                 )
                 ->orderBy('historial_operativo.tipo')
                 ->orderBy('unidades.numero_eco')
@@ -580,33 +632,33 @@ class HistorialOperativoController extends Controller
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
             ->where('fecha_historial', $fecha)
             ->where('momento', 'FIN')
-            ->where('historial_operativo.estatus', 'MANTENIMIENTO')
+            ->whereIn(DB::raw('LOWER(historial_operativo.estatus)'), ['mantenimiento', 'percance'])
             ->select(
                 'historial_operativo.id as id_historial',
                 'unidades.numero_eco as economico',
                 $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo'),
                 $this->tipoUnidadRaw('historial_operativo.tipo', 'tipo_unidad'),
                 'historial_operativo.estatus',
-                'historial_operativo.motivo_estatus',
-                'historial_operativo.falla'
+                DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.motivo_estatus), ''), UPPER(historial_operativo.estatus)) as motivo_estatus"),
+                DB::raw("COALESCE(NULLIF(TRIM(historial_operativo.falla_reportada), ''), NULLIF(TRIM(historial_operativo.falla), ''), NULLIF(TRIM(historial_operativo.diagnostico), ''), NULLIF(TRIM(historial_operativo.observaciones), ''), NULLIF(TRIM(historial_operativo.motivo_estatus), ''), '-') as falla")
             )
             ->orderBy('historial_operativo.tipo')
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        if ($fin->isEmpty() && $fecha === Carbon::today()->toDateString()) {
+        if ($fin->isEmpty() && $esHoy) {
             $fin = DB::table('informacion_operativa')
                 ->join('unidades', 'informacion_operativa.unidad_id', '=', 'unidades.id')
                 ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
-                ->where('informacion_operativa.estatus', 'mantenimiento')
+                ->whereIn(DB::raw('LOWER(informacion_operativa.estatus)'), ['mantenimiento', 'percance'])
                 ->select(
                     'informacion_operativa.id as id_historial',
                     'unidades.numero_eco as economico',
                     $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo'),
                     $this->tipoUnidadRaw('informacion_operativa.tipo', 'tipo_unidad'),
                     'informacion_operativa.estatus',
-                    'informacion_operativa.motivo_estatus',
-                    'informacion_operativa.falla'
+                    DB::raw("COALESCE(NULLIF(TRIM(informacion_operativa.motivo_estatus), ''), UPPER(informacion_operativa.estatus)) as motivo_estatus"),
+                    DB::raw("COALESCE(NULLIF(TRIM(informacion_operativa.falla_reportada), ''), NULLIF(TRIM(informacion_operativa.falla), ''), NULLIF(TRIM(informacion_operativa.diagnostico), ''), NULLIF(TRIM(informacion_operativa.observaciones), ''), NULLIF(TRIM(informacion_operativa.motivo_estatus), ''), '-') as falla")
                 )
                 ->orderBy('informacion_operativa.tipo')
                 ->orderBy('unidades.numero_eco')
