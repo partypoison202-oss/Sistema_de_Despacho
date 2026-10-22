@@ -42,8 +42,8 @@ if [ "$REMOTE_PENDING" -gt 0 ]; then
     PULL_NEEDED=true
     RANGE="HEAD..origin/$BRANCH"
     COMMITS_COUNT="$REMOTE_PENDING"
-    TIPO_DESPLIEGUE="ACTUALIZACIONES PENDIENTES EN GITHUB (Listas para descargar y desplegar)"
-    PREGUNTA="¿Deseas descargar los cambios y proceder con el despliegue a Producción? [s/N]: "
+    TIPO_DESPLIEGUE="HAY ${COMMITS_COUNT} COMMITS NUEVOS EN GITHUB QUE EL SERVIDOR NO TIENE AÚN"
+    PREGUNTA="¿Deseas descargar estos ${COMMITS_COUNT} commits y proceder con el despliegue a Producción? [s/N]: "
 else
     # El código local ya coincide con origin/$BRANCH (ej. git pull ejecutado previamente)
     LAST_DEPLOYED=$(cat "${SCRIPT_DIR}/.last_deployed_commit" 2>/dev/null | tr -d '[:space:]' || echo "")
@@ -53,13 +53,13 @@ else
     if [ -n "$LAST_DEPLOYED" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null && [ "$LAST_DEPLOYED" != "$HEAD_COMMIT" ]; then
         RANGE="${LAST_DEPLOYED}..HEAD"
         COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "0")
-        TIPO_DESPLIEGUE="CAMBIOS RECIENTES LISTOS PARA DESPLEGAR (Pendientes desde el último deploy)"
-        PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción? [s/N]: "
+        TIPO_DESPLIEGUE="CAMBIOS RECIENTES EN EL SERVIDOR (Descargados pero pendientes de compilar)"
+        PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción de estos cambios? [s/N]: "
     elif [ -n "$ORIG_HEAD_COMMIT" ] && git cat-file -e "${ORIG_HEAD_COMMIT}^{commit}" 2>/dev/null && [ "$ORIG_HEAD_COMMIT" != "$HEAD_COMMIT" ]; then
         RANGE="${ORIG_HEAD_COMMIT}..HEAD"
         COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "0")
         TIPO_DESPLIEGUE="CAMBIOS RECIÉN DESCARGADOS CON GIT PULL (Listos para compilar y aplicar)"
-        PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción? [s/N]: "
+        PREGUNTA="¿Deseas proceder con la compilación y despliegue a Producción de estos cambios? [s/N]: "
     fi
 
     # Si aún no hay rango o COMMITS_COUNT es 0, mostrar los últimos commits activos
@@ -70,19 +70,19 @@ else
             RANGE="HEAD"
         fi
         COMMITS_COUNT=$(git rev-list --count "$RANGE" 2>/dev/null || echo "1")
-        TIPO_DESPLIEGUE="VERSIÓN ACTUAL EN EL SERVIDOR (Re-compilación y mantenimiento de caché)"
+        TIPO_DESPLIEGUE="EL SERVIDOR YA CUENTA CON LA VERSIÓN MÁS RECIENTE (Re-compilación / mantenimiento)"
         PREGUNTA="¿Deseas forzar la re-compilación y mantenimiento de caché de todos modos? [s/N]: "
     fi
 fi
 
-echo -e "   • Rama de destino:  ${BOLD}${BRANCH}${NC}"
-echo -e "   • Commit local:     ${BOLD}${CURRENT_COMMIT}${NC}"
-echo -e "   • Commit en GitHub: ${BOLD}${REMOTE_COMMIT}${NC}"
-echo -e "   • Estado / Modo:    ${CYAN}${BOLD}${TIPO_DESPLIEGUE}${NC}"
+echo -e "   • Rama de trabajo:             ${BOLD}${BRANCH}${NC}"
+echo -e "   • Commit activo en Servidor:   ${BOLD}${CURRENT_COMMIT}${NC}"
+echo -e "   • Último commit en GitHub:     ${BOLD}${REMOTE_COMMIT}${NC}"
+echo -e "   • Diagnóstico:                 ${CYAN}${BOLD}${TIPO_DESPLIEGUE}${NC}"
 
 echo ""
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}${BOLD}📋 RESUMEN DETALLADO DE ACTUALIZACIONES (${COMMITS_COUNT} commits)${NC}"
+echo -e "${GREEN}${BOLD}📋 COMPARATIVA: LO QUE NO TIENE EL SERVIDOR Y SE METERÁ (${COMMITS_COUNT} commits)${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 
 # Mostrar commits con autor, fecha relativa y descripción completa
@@ -92,7 +92,12 @@ echo ""
 echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
 echo -e "${CYAN}${BOLD}📁 ARCHIVOS MODIFICADOS:${NC}"
 echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
-git diff --stat "$RANGE" | sed 's/^/   /'
+STAT_OUTPUT=$(git diff --stat "$RANGE")
+if [ -n "$STAT_OUTPUT" ]; then
+    echo "$STAT_OUTPUT" | sed 's/^/   /'
+else
+    echo -e "   ${CYAN}ℹ️  Sin diferencias directas de archivos (commit de integración/merge).${NC}"
+fi
 
 # Detección inteligente de módulos de negocio impactados
 DIFF_FILES=$(git diff --name-only "$RANGE")
