@@ -17,6 +17,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m'
 
 BRANCH="${1:-main}"
@@ -85,9 +86,35 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${GREEN}${BOLD}📋 COMPARATIVA: LO QUE NO TIENE EL SERVIDOR Y SE METERÁ (${COMMITS_COUNT} commits)${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 
-# Mostrar commits con autor, fecha relativa y descripción completa
-git log "$RANGE" --format="format:%n  🔹 %C(bold)%s%C(reset) %C(dim)(%h)%C(reset)%n     %C(cyan)Autor:%C(reset) %an (%cr)%w(0,5,5)%+b" | sed 's/^/   /'
-echo ""
+# Mostrar commits con autor, fecha relativa, número de PR y descripción completa
+for HASH in $(git rev-list "$RANGE"); do
+    AUTOR=$(git log -1 --format="%an" "$HASH")
+    FECHA=$(git log -1 --format="%cr" "$HASH")
+    TITULO=$(git log -1 --format="%s" "$HASH")
+    BODY=$(git log -1 --format="%b" "$HASH")
+    SHORT_HASH=$(git log -1 --format="%h" "$HASH")
+    
+    if [[ "$TITULO" =~ Merge\ pull\ request\ #([0-9]+)\ from\ (.*) ]]; then
+        PR_NUM="${BASH_REMATCH[1]}"
+        PR_RAMA="${BASH_REMATCH[2]}"
+        PRIMERA_LINEA_BODY=$(echo "$BODY" | head -n 1 | sed 's/^[[:space:]]*//')
+        echo -e "   ${CYAN}${BOLD}🔀 [Pull Request #${PR_NUM}]${NC} ${DIM}(${SHORT_HASH})${NC} • Rama: ${YELLOW}${PR_RAMA}${NC}"
+        echo -e "      👤 ${BOLD}Aprobado por:${NC} ${AUTOR} (${FECHA})"
+        if [ -n "$PRIMERA_LINEA_BODY" ]; then
+            echo -e "      📌 ${BOLD}De qué fue:${NC}   ${GREEN}${PRIMERA_LINEA_BODY}${NC}"
+        fi
+        echo ""
+    else
+        echo -e "   🔹 ${BOLD}${TITULO}${NC} ${DIM}(${SHORT_HASH})${NC}"
+        echo -e "      👤 ${BOLD}Desarrollador:${NC} ${AUTOR} (${FECHA})"
+        BODY_CLEAN=$(echo "$BODY" | sed '/^[[:space:]]*$/d')
+        if [ -n "$BODY_CLEAN" ]; then
+            echo -e "      📝 ${BOLD}Qué cambiará:${NC}"
+            echo "$BODY_CLEAN" | sed 's/^/         • /'
+        fi
+        echo ""
+    fi
+done
 
 echo -e "${BLUE}────────────────────────────────────────────────────────────────${NC}"
 echo -e "${CYAN}${BOLD}📁 ARCHIVOS MODIFICADOS:${NC}"
