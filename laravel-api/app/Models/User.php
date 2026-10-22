@@ -29,7 +29,8 @@ class User extends Authenticatable
         'contrasena',
         'activo',
         'rol_id',
-        'foto_url'
+        'foto_url',
+        'ultima_conexion'
     ];
 
     protected $hidden = [

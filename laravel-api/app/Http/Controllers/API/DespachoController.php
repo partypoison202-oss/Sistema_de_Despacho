@@ -1216,7 +1216,7 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
+            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? $fila['HORA DE ENCIERRO'] ?? $fila['horaEncierro'] ?? $fila['HORA_DE_ENCIERRO'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_REAL_SALIDA_PATIO'] ?? $fila['HORA_SALIDA'] ?? ''));
 
             // Si proviene de RELEVOS, los campos de titular no se gestionan en este módulo: preservar de BD si vienen vacíos
@@ -1727,7 +1727,7 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
+            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? $fila['HORA DE ENCIERRO'] ?? $fila['horaEncierro'] ?? $fila['HORA_DE_ENCIERRO'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
             if ($origen === 'RELEVOS' && $prevInfo) {
@@ -2121,7 +2121,7 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
+            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? $fila['HORA DE ENCIERRO'] ?? $fila['horaEncierro'] ?? $fila['HORA_DE_ENCIERRO'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
             if ($origen === 'RELEVOS' && $prevInfo) {
@@ -5289,9 +5289,8 @@ class DespachoController extends Controller
             $updateData['motivo_estatus'] = $motivoEstatus ?: 'OPERACION';
             $updateData['falla'] = null;
             $updateData['motivo'] = null;
-            $updateData['hora_encierro'] = null;
 
-            // Si la unidad vuelve a entrar en operación, eliminar cualquier encierro previo de hoy
+            // Si la unidad vuelve a entrar en operación, eliminar cualquier encierro previo de hoy en el historial
             $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
             DB::table('historial_operativo')
                 ->where('unidad_id', $unidad->id)
@@ -5469,7 +5468,7 @@ class DespachoController extends Controller
                     'cambio_motivo' => $motivoEstatus ?: 'REEMPLAZO',
                     'falla' => null,
                     'motivo' => null,
-                    'hora_encierro' => null,
+                    'hora_encierro' => $registroOperativo->hora_encierro ?? null,
                     'updated_at' => now(),
                 ];
 
@@ -7157,7 +7156,7 @@ class DespachoController extends Controller
                             'itinerario'                => $itinerarioVal,
                             'hora_incorporacion'        => null,
                             'hora_desincorporacion'     => null,
-                            'hora_encierro'             => null,
+                            'hora_encierro'             => $horaEncierro !== '' ? $horaEncierro : null,
                         ];
                     } else {
                         $insertData[] = [
@@ -7167,7 +7166,7 @@ class DespachoController extends Controller
                             'itinerario' => $itinerarioVal,
                             'hora_incorporacion' => null,
                             'hora_desincorporacion' => null,
-                            'hora_encierro' => null,
+                            'hora_encierro' => $horaEncierro !== '' ? $horaEncierro : null,
                         ];
                     }
                 } else {

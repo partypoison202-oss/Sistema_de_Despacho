@@ -25,7 +25,7 @@ const GRUPOS_FILA = [
   ['RELEVO_TARJETON', 'RELEVO_CONDUCTOR', 'RELEVO_HORA'],
   ['TARJETON_MANIOBRISTA', 'NOMBRE_MANIOBRISTA'],
   ['HORA_DE_ACOPLE', 'HORA_SALIDA_PATIO', 'ACOPLE'],
-  ['HORA_ENCIERRO', 'hora_encierro'],
+  ['HORA_ENCIERRO', 'hora_encierro', 'HORA DE ENCIERRO'],
   ['PATIO_NORTE', 'TRANSPORTE_PATIO_NORTE'],
   ['ITINERARIO'],
   ['HORA_INCORPORACION'],
@@ -69,6 +69,10 @@ const normalizarFilaServidor = (item) => {
     row.TARJETON = row.TARJETON_TITULAR;
     row.NOMBRE_CONDUCTOR = row.CONDUCTOR_TITULAR || row.NOMBRE_CONDUCTOR || '';
   }
+  const encierroVal = row.HORA_ENCIERRO || row.hora_encierro || row['HORA DE ENCIERRO'] || '';
+  row.HORA_ENCIERRO = encierroVal;
+  row.hora_encierro = encierroVal;
+  row['HORA DE ENCIERRO'] = encierroVal;
   return row;
 };
 
@@ -522,6 +526,10 @@ export default function CargaExcel({ isPasteles = false }) {
           updatedData[index]['ESTATUS'] = 'operacion';
         }
       }
+    } else if (field === 'HORA_ENCIERRO' || field === 'hora_encierro' || field === 'HORA DE ENCIERRO') {
+      updatedData[index]['HORA_ENCIERRO'] = value;
+      updatedData[index]['hora_encierro'] = value;
+      updatedData[index]['HORA DE ENCIERRO'] = value;
     } else {
       updatedData[index][field] = value;
       if ((field === 'RUTA' || field === 'CORRIDAS') && value) {
@@ -1320,6 +1328,8 @@ export default function CargaExcel({ isPasteles = false }) {
                             'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
                             'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
                             'HORA DE ENCIERRO': hEncierro,
+                            'HORA_ENCIERRO': hEncierro,
+                            'hora_encierro': hEncierro,
                             'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
                             'PATIO_NORTE': isPatioNorte,
                             'ITINERARIO': isItinerario,
@@ -1415,6 +1425,7 @@ export default function CargaExcel({ isPasteles = false }) {
              'HORA DE ACOPLE': horaAcople,
              'HORA DE ENCIERRO': horaEncierro,
              'HORA_ENCIERRO': horaEncierro,
+             'hora_encierro': horaEncierro,
              'HORA ENTRADA T6': horaEntradaT6,
              'HORA DE DESINCORPORACION': horaDesinc,
              'HORA DE INCORPORACION': horaIncorp,
@@ -2040,6 +2051,12 @@ export default function CargaExcel({ isPasteles = false }) {
             HORA_DE_ACOPLE: outgoing.HORA_DE_ACOPLE || outgoing.HORA_SALIDA_PATIO || '',
             HORA_SALIDA_PATIO: outgoing.HORA_SALIDA_PATIO || outgoing.HORA_DE_ACOPLE || '',
             ACOPLE: outgoing.ACOPLE,
+            HORA_ENCIERRO: outgoing.HORA_ENCIERRO || outgoing.hora_encierro || outgoing['HORA DE ENCIERRO'] || '',
+            hora_encierro: outgoing.HORA_ENCIERRO || outgoing.hora_encierro || outgoing['HORA DE ENCIERRO'] || '',
+            'HORA DE ENCIERRO': outgoing.HORA_ENCIERRO || outgoing.hora_encierro || outgoing['HORA DE ENCIERRO'] || '',
+            ITINERARIO: outgoing.ITINERARIO ?? false,
+            HORA_INCORPORACION: outgoing.HORA_INCORPORACION || '',
+            HORA_DESINCORPORACION: outgoing.HORA_DESINCORPORACION || '',
             HORA_REAL_SALIDA_PATIO: fueDespachada ? outgoing.HORA_REAL_SALIDA_PATIO : '',
             PATIO_NORTE: outgoing.PATIO_NORTE,
             TARJETON_MANIOBRISTA: outgoing.TARJETON_MANIOBRISTA,

@@ -119,7 +119,13 @@ export default function Usuarios() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isModalOpen) {
+        fetchData();
+      }
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [isModalOpen]);
 
   // Prevenir scroll de fondo cuando el modal está abierto
   useEffect(() => {
@@ -825,9 +831,30 @@ export default function Usuarios() {
                   filteredUsers.map((user) => (
                     <tr key={user.id}>
                       <td>
-                        <UserAvatar fotoUrl={user.foto_url} nombre={user.nombre_completo || user.usuario} size={40} />
+                        <UserAvatar
+                          fotoUrl={user.foto_url}
+                          nombre={user.nombre_completo || user.usuario}
+                          size={42}
+                          isOnline={Boolean(user.is_online)}
+                          showStatus={true}
+                        />
                       </td>
-                      <td>{user.nombre_completo || user.usuario || 'Sin nombre'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: '600', color: '#1e293b' }}>
+                            {user.nombre_completo || user.usuario || 'Sin nombre'}
+                          </span>
+                          {user.is_online ? (
+                            <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }}></span> En línea
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'inline-block' }}></span> {user.last_seen_text && user.last_seen_text !== 'Desconectado' ? `Últ. vez: ${user.last_seen_text}` : 'Desconectado'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td>{user.usuario}</td>
                       <td>
                         <span className={`role-badge ${getRoleBadgeClass(user.role?.nombre)}`}>

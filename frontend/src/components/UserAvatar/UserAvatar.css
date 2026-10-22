@@ -1,0 +1,60 @@
+.user-avatar-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+  border-radius: 50% !important;
+  background: transparent !important;
+}
+
+.user-avatar-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-sizing: border-box;
+  z-index: 2;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.user-avatar-badge--online {
+  background-color: #22c55e;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 0 8px rgba(34, 197, 94, 0.65);
+}
+
+.user-avatar-badge--online::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  border: 2px solid #22c55e;
+  animation: avatarPulse 2.4s infinite cubic-bezier(0.45, 0, 0.55, 1);
+  pointer-events: none;
+}
+
+.user-avatar-badge--offline {
+  background-color: #94a3b8;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+@keyframes avatarPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+  60% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
