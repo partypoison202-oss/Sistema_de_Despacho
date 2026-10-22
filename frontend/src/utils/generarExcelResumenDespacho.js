@@ -174,7 +174,7 @@ export async function descargarResumenDespachoExcel(setLoading) {
         const [n, d] = str.split('/').map(Number);
         return d !== 0 ? n / d : 0;
       }
-      const mixedMatch = str.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+      const mixedMatch = /^(\d+)\s+(\d+)\/(\d+)$/.exec(str);
       if (mixedMatch) {
         const entero = Number(mixedMatch[1]);
         const n = Number(mixedMatch[2]);
@@ -182,22 +182,36 @@ export async function descargarResumenDespachoExcel(setLoading) {
         return d !== 0 ? entero + (n / d) : entero;
       }
       const numDirecto = Number(str.replace(',', '.'));
-      if (!isNaN(numDirecto)) return numDirecto;
-      const matchMixedTexto = str.match(/(\d+)\s+(\d+)\/(\d+)/);
-      if (matchMixedTexto) {
-        return Number(matchMixedTexto[1]) + (Number(matchMixedTexto[2]) / Number(matchMixedTexto[3]));
+      if (!Number.isNaN(numDirecto)) return numDirecto;
+
+      const tokens = str.split(/\s+/);
+      let sum = 0;
+      let found = false;
+      for (const token of tokens) {
+        const t = token.trim();
+        if (t.includes('/')) {
+          const parts = t.split('/');
+          if (parts.length === 2) {
+            const n = Number(parts[0]);
+            const d = Number(parts[1]);
+            if (!Number.isNaN(n) && !Number.isNaN(d) && d !== 0) {
+              sum += n / d;
+              found = true;
+            }
+          }
+        } else {
+          const n = Number(t.replace(',', '.'));
+          if (!Number.isNaN(n) && n > 0) {
+            sum += n;
+            found = true;
+          }
+        }
       }
-      const matchFracTexto = str.match(/(\d+)\/(\d+)/);
-      if (matchFracTexto) {
-        return Number(matchFracTexto[1]) / Number(matchFracTexto[2]);
-      }
-      const matchFloatTexto = str.match(/\d+(\.\d+)?/);
-      if (matchFloatTexto) return parseFloat(matchFloatTexto[0]);
-      return 0;
+      return found ? sum : 0;
     };
 
     const formatCiclo = (num) => {
-      if (!num || isNaN(num) || num <= 0) return '0';
+      if (!num || Number.isNaN(num) || num <= 0) return '0';
       const entero = Math.floor(num);
       const residuo = Math.round((num - entero) * 100) / 100;
       if (Math.abs(residuo - 0.5) < 0.05) {

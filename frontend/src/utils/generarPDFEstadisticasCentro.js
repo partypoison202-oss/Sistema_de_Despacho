@@ -168,7 +168,6 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         resConductores,
         resMonitoreo,
         resCiclosHoy,
-        resCiclosManana,
         resInicioHoy
     ] = await Promise.all([
         apiDataParam ? Promise.resolve(null) : fetch(`${API_BASE}/api/despacho/hoy`, { headers: authHeaders }).catch(() => null),
@@ -179,7 +178,6 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         fetch(`${API_BASE}/api/conductores?incluir_bajas=true`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/despacho/monitoreo-conductores/todos`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/despacho/ciclos?fecha=HOY`, { headers: authHeaders }).catch(() => null),
-        fetch(`${API_BASE}/api/despacho/ciclos?fecha=MANANA`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/despacho/inicio-hoy`, { headers: authHeaders }).catch(() => null)
     ]);
 
@@ -226,8 +224,8 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         if (!t) return '';
         const digits = String(t).replace(/\D/g, '').trim();
         if (digits) {
-            const num = parseInt(digits, 10);
-            return isNaN(num) ? digits : String(num);
+            const num = Number.parseInt(digits, 10);
+            return Number.isNaN(num) ? digits : String(num);
         }
         return String(t).toUpperCase().trim();
     };
@@ -325,8 +323,8 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
             // Si la falta fue registrada en las últimas 36 horas
             let esReciente = false;
             if (f.id && typeof f.id === 'string' && f.id.startsWith('falta_')) {
-                const ts = parseInt(f.id.split('_')[1], 10);
-                if (!isNaN(ts) && (Date.now() / 1000 - ts) < 129600 && (Date.now() / 1000 - ts) >= -3600) {
+                const ts = Number.parseInt(f.id.split('_')[1], 10);
+                if (!Number.isNaN(ts) && (Date.now() / 1000 - ts) < 129600 && (Date.now() / 1000 - ts) >= -3600) {
                     esReciente = true;
                 }
             }
@@ -479,15 +477,18 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // Procesamiento de corridas faltantes
     const parseCiclo = (val) => {
         if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return Number.isNaN(val) ? 0 : val;
         const str = String(val).trim();
         if (!str || str === '-' || str === '--') return 0;
+
+        if (str === '1/2') return 0.5;
 
         if (/^\d+\/\d+$/.test(str)) {
             const [n, d] = str.split('/').map(Number);
             return d !== 0 ? n / d : 0;
         }
 
-        const mixedMatch = str.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+        const mixedMatch = /^(\d+)\s+(\d+)\/(\d+)$/.exec(str);
         if (mixedMatch) {
             const entero = Number(mixedMatch[1]);
             const n = Number(mixedMatch[2]);
@@ -496,26 +497,36 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         }
 
         const numDirecto = Number(str.replace(',', '.'));
-        if (!isNaN(numDirecto)) return numDirecto;
+        if (!Number.isNaN(numDirecto)) return numDirecto;
 
-        const matchMixedTexto = str.match(/(\d+)\s+(\d+)\/(\d+)/);
-        if (matchMixedTexto) {
-            return Number(matchMixedTexto[1]) + (Number(matchMixedTexto[2]) / Number(matchMixedTexto[3]));
+        const tokens = str.split(/\s+/);
+        let sum = 0;
+        let found = false;
+        for (const token of tokens) {
+            const t = token.trim();
+            if (t.includes('/')) {
+                const parts = t.split('/');
+                if (parts.length === 2) {
+                    const n = Number(parts[0]);
+                    const d = Number(parts[1]);
+                    if (!Number.isNaN(n) && !Number.isNaN(d) && d !== 0) {
+                        sum += n / d;
+                        found = true;
+                    }
+                }
+            } else {
+                const n = Number(t.replace(',', '.'));
+                if (!Number.isNaN(n) && n > 0) {
+                    sum += n;
+                    found = true;
+                }
+            }
         }
-        const matchFracTexto = str.match(/(\d+)\/(\d+)/);
-        if (matchFracTexto) {
-            return Number(matchFracTexto[1]) / Number(matchFracTexto[2]);
-        }
-        const matchFloatTexto = str.match(/\d+(\.\d+)?/);
-        if (matchFloatTexto) {
-            return parseFloat(matchFloatTexto[0]);
-        }
-
-        return 0;
+        return found ? sum : 0;
     };
 
     const formatCiclo = (num) => {
-        if (!num || isNaN(num) || num <= 0) return '0';
+        if (!num || Number.isNaN(num) || num <= 0) return '0';
         const entero = Math.floor(num);
         const residuo = Math.round((num - entero) * 100) / 100;
         const enteroStr = entero.toLocaleString('es-MX');
@@ -576,11 +587,11 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         if (!val) return null;
         const str = String(val).trim();
         if (!str || str === '--:--' || str === '-' || str.toLowerCase() === 'null') return null;
-        const match = str.match(/(\d{1,2}):(\d{2})/);
+        const match = /(\d{1,2}):(\d{2})/.exec(str);
         if (!match) return null;
-        const h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+        const h = Number.parseInt(match[1], 10);
+        const m = Number.parseInt(match[2], 10);
+        if (Number.isNaN(h) || Number.isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
         return {
             formatted: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
             minutes: h * 60 + m
@@ -608,8 +619,8 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         const rawEco = String(u.ECONOMICO || u.numero_eco || '').trim();
         const fallbackIni = mapaInicioPorEco.get(rawEco) || {};
         const ecoDef = rawEco || String(fallbackIni.ECONOMICO || fallbackIni.numero_eco || '').trim();
-        const ecoNum = parseInt(ecoDef, 10);
-        const eco = (!isNaN(ecoNum) && ecoNum > 0) ? String(ecoNum).padStart(3, '0') : ecoDef;
+        const ecoNum = Number.parseInt(ecoDef, 10);
+        const eco = (!Number.isNaN(ecoNum) && ecoNum > 0) ? String(ecoNum).padStart(3, '0') : ecoDef;
 
         const rutaRaw = String(u.RUTA || u.ruta || fallbackIni.RUTA || fallbackIni.ruta || '').trim();
         const corridaRaw = String(
@@ -671,10 +682,10 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
     // Deduplicar por ruta + corrida o por número de económico, y ordenar cronológicamente
     const corridasMap = new Map();
-    pendientes.forEach(item => {
+    pendientes.forEach((item, idx) => {
         const key = (item.corrida && item.ruta && item.ruta !== 'SIN RUTA')
             ? `${item.ruta}_${item.corrida}`
-            : `eco_${item.eco || Math.random()}`;
+            : (item.eco ? `eco_${item.eco}` : `item_${idx}`);
         if (!corridasMap.has(key) || item.minutes < corridasMap.get(key).minutes) {
             corridasMap.set(key, item);
         }
@@ -693,17 +704,15 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     const ph = pdf.internal.pageSize.getHeight();
 
     // Pre-cargar imágenes concurrentemente
-    const [bannerImg, stmImg, hgoImg, conductoresImg] = await Promise.all([
+    const [bannerImg, stmImg, hgoImg, conductoresImg, loadedModelImages] = await Promise.all([
         loadImage('/images/banner_swoosh_reporte.png'),
         loadImage('/images/sistema_de_tm.webp'),
         loadImage('/images/escudo_hidalgo.png'),
-        loadImage('/images/conductores_reporte.png')
+        loadImage('/images/conductores_reporte.png'),
+        Promise.all(modelData.map(async (m) => [m.id, await loadImage(m.image)]))
     ]);
 
-    const modelImages = {};
-    for (const m of modelData) {
-        modelImages[m.id] = await loadImage(m.image);
-    }
+    const modelImages = Object.fromEntries(loadedModelImages);
 
     // ==========================================
     // PÁGINA 1: KPIs Y DESGLOSE POR TIPO
@@ -1210,7 +1219,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     pdf.rect(p3X, p3CursorY, p3W, obsHeight, 'FD');
 
     // Valor de ciclos programados (dinámico desde módulo de programación y logística)
-    const ciclosFinal = (ciclosRegistrados !== null && !isNaN(ciclosRegistrados)) 
+    const ciclosFinal = (ciclosRegistrados !== null && !Number.isNaN(ciclosRegistrados)) 
         ? ciclosRegistrados 
         : 2371.5;
     

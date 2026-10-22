@@ -11,18 +11,18 @@ const getAuthHeaders = () => {
 };
 
 export const parseCicloInput = (val) => {
-  if (val === null || val === undefined) return NaN;
+  if (val === null || val === undefined) return Number.NaN;
   const str = String(val).trim();
-  if (!str || str === '-' || str === '--') return NaN;
+  if (!str || str === '-' || str === '--') return Number.NaN;
 
   // Fracción simple: "1/2", "3/4"
   if (/^\d+\/\d+$/.test(str)) {
     const [n, d] = str.split('/').map(Number);
-    return d !== 0 ? n / d : NaN;
+    return d !== 0 ? n / d : Number.NaN;
   }
 
   // Fracción mixta: "1 1/2", "20 1/2"
-  const mixedMatch = str.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  const mixedMatch = /^(\d+)\s+(\d+)\/(\d+)$/.exec(str);
   if (mixedMatch) {
     const entero = Number(mixedMatch[1]);
     const n = Number(mixedMatch[2]);
@@ -32,13 +32,13 @@ export const parseCicloInput = (val) => {
 
   // Decimal directo: "20.5" o "20,5"
   const numDirecto = Number(str.replace(',', '.'));
-  if (!isNaN(numDirecto)) return numDirecto;
+  if (!Number.isNaN(numDirecto)) return numDirecto;
 
-  return NaN;
+  return Number.NaN;
 };
 
 export const formatCicloDisplay = (num) => {
-  if (num === null || num === undefined || isNaN(num) || num < 0) return '0';
+  if (num === null || num === undefined || Number.isNaN(num) || num < 0) return '0';
   const entero = Math.floor(num);
   const residuo = Math.round((num - entero) * 100) / 100;
   const enteroStr = entero.toLocaleString('es-MX');

@@ -683,9 +683,12 @@ export default function DetalleUnidadMantenimiento() {
       ? formatearEco(unidadSeleccionada.eco)
       : formatearEco(extraerNumeroEco(unidad));
 
-    const estadoInicial = unidadSeleccionada?.desincorporada_itinerario
-      ? 'desinc_itinerario'
-      : (unidadSeleccionada ? unidadSeleccionada.estado : null);
+    let estadoInicial = null;
+    if (unidadSeleccionada?.desincorporada_itinerario) {
+      estadoInicial = 'desinc_itinerario';
+    } else if (unidadSeleccionada) {
+      estadoInicial = unidadSeleccionada.estado;
+    }
 
     setSelectedOption(ecoSeleccionado);
     setSelectedEstado(estadoInicial);
@@ -1375,7 +1378,7 @@ export default function DetalleUnidadMantenimiento() {
                             boxShadow: '0 2px 10px rgba(217, 119, 6, 0.2)'
                           }}>
                             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
-                            DESINCORPORADA POR ITINERARIO
+                            <span>DESINCORPORADA POR ITINERARIO</span>
                           </div>
                         )}
                       </div>
