@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+﻿import jsPDF from 'jspdf';
 import API_BASE from '../config/api';
 
 const COLOR_GUINDA      = [96, 26, 42]; 
@@ -706,7 +706,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // Pre-cargar imágenes concurrentemente
     const [bannerImg, stmImg, hgoImg, conductoresImg, loadedModelImages] = await Promise.all([
         loadImage('/images/banner_swoosh_reporte.png'),
-        loadImage('/images/sistema_de_tm.webp'),
+        loadImage('/images/acotma_logo_connombre_contorno_v2.png'),
         loadImage('/images/escudo_hidalgo.png'),
         loadImage('/images/conductores_reporte.png'),
         Promise.all(modelData.map(async (m) => [m.id, await loadImage(m.image)]))

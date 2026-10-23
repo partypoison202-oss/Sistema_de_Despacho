@@ -31,7 +31,7 @@ function formatHourWithSec(hStr) {
   return `${hh}:${mm}:${ss}`;
 }
 
-// Carga imagen, la dibuja en un canvas, opcionalmente la pinta de blanco y devuelve PNG Base64
+// Carga imagen, la dibuja en un canvas, opcionalmente la pinta de blanco y devuelve { base64, width, height }
 const fetchImageAsPng = async (url, tintWhite = false) => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -49,7 +49,7 @@ const fetchImageAsPng = async (url, tintWhite = false) => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
       
-      resolve(canvas.toDataURL('image/png'));
+      resolve({ base64: canvas.toDataURL('image/png'), width: img.width, height: img.height });
     };
     img.onerror = () => resolve(null);
     img.src = url;
@@ -281,17 +281,22 @@ export async function descargarResumenDespachoExcel(setLoading) {
     }
 
     try {
-        // Logo SITMAH (Izquierda) - columna A
-        const imgSitmah = await fetchImageAsPng('/images/sitmah_logo.webp', false);
-        if (imgSitmah) { 
-            const imageId = wb.addImage({ base64: imgSitmah, extension: 'png' }); 
-            ws.addImage(imageId, { tl: { col: 0.05, row: 0.3 }, ext: { width: 110, height: 42 } }); 
+        const LOGO_ALTO_PX = 44; // altura fija en píxeles para ambos logos (simetría)
+
+        // Logo ACOTMA con nombre (Izquierda) — ancho proporcional
+        const acotmaResult = await fetchImageAsPng('/images/acotma_logo_connombre_contorno_v2.png', false);
+        if (acotmaResult) {
+            const anchoAcotma = Math.round((acotmaResult.width / acotmaResult.height) * LOGO_ALTO_PX);
+            const imageId = wb.addImage({ base64: acotmaResult.base64, extension: 'png' });
+            ws.addImage(imageId, { tl: { col: 0.05, row: 0.2 }, ext: { width: anchoAcotma, height: LOGO_ALTO_PX } });
         }
-        // Logo STM - ajustado
-        const imgStm = await fetchImageAsPng('/images/sistema_de_tm.webp', false);
-        if (imgStm) { 
-            const imageId3 = wb.addImage({ base64: imgStm, extension: 'png' }); 
-            ws.addImage(imageId3, { tl: { col: 5.95, row: 0.4 }, ext: { width: 85, height: 38 } }); 
+
+        // Logo Escudo Hidalgo (Derecha) — ancho proporcional
+        const hidalgoResult = await fetchImageAsPng('/images/escudo_hidalgo.png', false);
+        if (hidalgoResult) {
+            const anchoHidalgo = Math.round((hidalgoResult.width / hidalgoResult.height) * LOGO_ALTO_PX);
+            const imageId3 = wb.addImage({ base64: hidalgoResult.base64, extension: 'png' });
+            ws.addImage(imageId3, { tl: { col: 5.6, row: 0.2 }, ext: { width: anchoHidalgo, height: LOGO_ALTO_PX } });
         }
     } catch(e) { console.log(e); }
 
@@ -330,7 +335,7 @@ export async function descargarResumenDespachoExcel(setLoading) {
         for (const bus of buses) {
             const imgBus = await fetchImageAsPng(bus.path, false);
             if(imgBus) {
-                const imgId = wb.addImage({ base64: imgBus, extension: 'png' });
+                const imgId = wb.addImage({ base64: imgBus.base64, extension: 'png' });
                 const offsetCol = (colPx - bus.w) / (2 * colPx) + 0.45;
                 const offsetRow = (rowPx - bus.h) / (2 * rowPx);
                 ws.addImage(imgId, { tl: { col: bus.col + offsetCol, row: 6 + offsetRow }, ext: { width: bus.w, height: bus.h } });

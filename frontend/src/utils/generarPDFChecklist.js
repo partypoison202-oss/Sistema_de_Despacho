@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+﻿import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import CONDUCTORES from '../data/conductores';
 
@@ -152,9 +152,9 @@ export const generarPDFChecklist = async (checklist, accion = 'download') => {
         const margin   = 14;
         let   y        = HEADER_H + 9;
 
-        // ── Cargar logo ──────────────────────────────────────────────────────
+        // ── Cargar logo ACOTMA ──────────────────────────────────────────────
         // Convertimos a PNG transparente para jsPDF
-        const logoRaw  = await loadImage('/images/sistema_de_tm.webp');
+        const logoRaw  = await loadImage('/images/acotma_logo_connombre_contorno_v2.png');
         const logoImg  = logoRaw ? convertLogoToPNG(logoRaw) : null;
 
         // ── Encabezado primera página ────────────────────────────────────────
