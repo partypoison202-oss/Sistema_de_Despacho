@@ -1,0 +1,49 @@
+--- frontend/src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
++++ frontend/src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
+@@ -97,6 +97,7 @@
+ 
+   const [perdidaCiclos, setPerdidaCiclos] = useState('');
+   const [perdidaMotivo, setPerdidaMotivo] = useState('');
++  const [perdidaMotivoOtro, setPerdidaMotivoOtro] = useState('');
+   const [dropdownMotivoOpen, setDropdownMotivoOpen] = useState(false);
+   const [dropdownCiclosOpen, setDropdownCiclosOpen] = useState(false);
+   const [huboCorridasPerdidas, setHuboCorridasPerdidas] = useState(false);
+@@ -1007,6 +1008,18 @@
+                         )}
+                       </div>
++
++                      {perdidaMotivo === 'Otro' && (
++                        <div style={{ gridColumn: '1 / -1' }}>
++                          <input
++                            type="text"
++                            className="interactive-input"
++                            style={{ width: '100%', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.85rem', background: 'var(--tw-color-white)' }}
++                            placeholder="Especifique el motivo..."
++                            value={perdidaMotivoOtro}
++                            onChange={(e) => setPerdidaMotivoOtro(e.target.value ? e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase() : '')}
++                            disabled={guardandoPerdida}
++                          />
++                        </div>
++                      )}
+                     </div>
+                   </>
+                 )}
+@@ -1015,7 +1028,7 @@
+ 
+             <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">
+                <button
+                   type="button"
+-                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo))}
++                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'Otro' && !perdidaMotivoOtro.trim())))}
+                   onClick={async () => {
+                     setGuardandoSalida(true);
+@@ -1029,7 +1042,8 @@
+                       if (handleSaveHoras) {
+                         await handleSaveHoras(formHoraProgramada, calculatedAcople, horaParaGuardar, observaciones);
+                         
+                         if (huboCorridasPerdidas && perdidaCiclos && perdidaMotivo) {
+-                          await handleSavePerdida(perdidaCiclos, perdidaMotivo);
++                          const finalMotivo = perdidaMotivo === 'Otro' ? perdidaMotivoOtro.trim() : perdidaMotivo;
++                          await handleSavePerdida(perdidaCiclos, finalMotivo);
+                         }
+ 

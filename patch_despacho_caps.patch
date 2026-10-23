@@ -1,0 +1,38 @@
+--- frontend/src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
++++ frontend/src/pages/Unidades/componentsdetalleunidad/UnitInfoPanel.jsx
+@@ -1013,7 +1013,7 @@
+                             style={{ width: '100%', padding: '0 0.85rem', height: '2.3rem', fontSize: '0.85rem', background: 'var(--tw-color-white)' }}
+                             placeholder="Especifique el motivo..."
+                             value={perdidaMotivoOtro}
+-                            onChange={(e) => setPerdidaMotivoOtro(e.target.value ? e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase() : '')}
++                            onChange={(e) => setPerdidaMotivoOtro(e.target.value ? e.target.value.toUpperCase() : '')}
+                             disabled={guardandoPerdida}
+                           />
+                         </div>
+@@ -1025,7 +1025,7 @@
+                         </button>
+                         {dropdownMotivoOpen && (
+                           <div className="dropdown-menu" style={{ width: '100%', minWidth: '150%', top: '100%', zIndex: 999, right: 0 }}>
+                             <div className="dropdown-menu__scroll" style={{ maxHeight: '12rem' }}>
+-                              {['Falla Mecánica', 'Accidente', 'Tráfico', 'Falta de Operador', 'Falta de Unidad', 'Otro'].map(mot => (
++                              {['FALLA MECÁNICA', 'ACCIDENTE', 'TRÁFICO', 'FALTA DE OPERADOR', 'FALTA DE UNIDAD', 'OTRO'].map(mot => (
+                                 <button key={mot} type="button" className="dropdown-menu__item" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textAlign: 'left' }} onClick={() => { setPerdidaMotivo(mot); setDropdownMotivoOpen(false); }}>
+                                   {mot}
+@@ -1045,15 +1045,15 @@
+             <div style={{ gridColumn: '1 / -1', display: 'flex', marginTop: '1rem' }} className="animate-fade-in-up">
+                <button
+                   type="button"
+-                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'Otro' && !perdidaMotivoOtro.trim())))}
++                  disabled={isPlataforma || isReservaOrMantenimiento || guardandoSalida || !!salidaCongelada || (huboCorridasPerdidas && (!perdidaCiclos || !perdidaMotivo || (perdidaMotivo === 'OTRO' && !perdidaMotivoOtro.trim())))}
+                   onClick={async () => {
+                     setGuardandoSalida(true);
+                     const now = new Date();
+@@ -1058,7 +1058,7 @@
+                         await handleSaveHoras(formHoraProgramada, calculatedAcople, horaParaGuardar, observaciones);
+                         
+                         if (huboCorridasPerdidas && perdidaCiclos && perdidaMotivo) {
+-                          const finalMotivo = perdidaMotivo === 'Otro' ? perdidaMotivoOtro.trim() : perdidaMotivo;
++                          const finalMotivo = perdidaMotivo === 'OTRO' ? perdidaMotivoOtro.trim() : perdidaMotivo;
+                           await handleSavePerdida(perdidaCiclos, finalMotivo);
+                         }
+ 

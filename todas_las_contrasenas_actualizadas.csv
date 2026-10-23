@@ -1,0 +1,40 @@
+Nombre Completo,Usuario,Rol,Contraseña Original (Sugerida)
+Enrique Hernandez Hernandez,Enrique_Hernandez,Administrador,HHE_A26
+Luis Ángel Vargas Gutiérrez,Luis_Vargas,Administrador,VGL_A26
+Jeanet García Chávez,Jeanet_Garcia,Administrador,GCJ_A26
+Israel Moreno Gómez,Israel_Moreno,Administrador,MGI_A26
+Bacilio Tapia Padilla,Bacilio_Tapia,Despacho,TPB_DD26
+César Jiménez,Cesar_Jimenez,Despacho,JC_DD26
+Fausto Valdez Téllez,Fausto_Valdez,Despacho,VTF_DD26
+Omar Avilés Lugo,Omar_Aviles,Gestor de Operadores,ALO_CD26
+Iván Martínez Acosta,Ivan_Martinez,Gestor de Operadores,MAI_CD26
+Humberto Cabrera Román,Humberto_Cabrera,Lectura,CRH_L26
+Miguel Ángel Monzalvo Muñoz,Miguel_Monzalvo,Lectura,MMM_L26
+José Alberto Montiel Balderrama,Jose_Montiel,Lectura,MBJ_L26
+Karen Guadalupe Rodríguez Blanco,Karen_Rodriguez,Mantenimiento,RBK_ME26
+Gabriel García Vázquez,Gabriel_Garcia,Mantenimiento,GVG_ME26
+Jorge Nava Vinte,Jorge_Nava,Mantenimiento,NVJ_ME26
+César Arturo Badillo Martinez,Cesar_Badillo,Mantenimiento,BMC_ME26
+Miguel Odón,Miguel_Odon,Despacho,OM_DD26
+Daniel Luna Cortez,Daniel_Luna,Programación,LCD_PY26
+Mario Alejandro Lazcano Aguilar,Mario_Lazcano,Programación,LAM_PY26
+Jorge Leal Ramírez,Jorge_Leal,Programación,LRJ_PY26
+Diana Karina Vázquez García,Diana_Vazquez,Centro de Control,VGD_CC26
+Bonifacio Alpizar López,Bonifacio_Alpizar,Centro de Control,ALB_CC26
+Emilio Corona Montufar,Emilio_Corona,Centro de Control,CME_CC26
+Fernando Ramos Lira,Fernando_Ramos,Despacho,RLF_DD26
+Guadalupe Santos Callejas,Guadalupe_Santos,Despacho,SCG_DD26
+Marino Román Velázquez,Marino_Roman,Despacho,RVM_DD26
+Jairo Jared Jiménez Ramírez,Jairo_Jimenez,Despacho,JRJ_DD26
+Jose Gabriel Angeles Martinez,Jose_Angeles,Encierro,AMJ_EN26
+Otoniel Pérez Moreno,Otoniel_Perez,Mantenimiento,PMO_ME26
+Erick Herrera Chávez,Erick_Herrera,Mantenimiento,HCE_ME26
+Angélica Gonzalez Santos,Angelica_Gonzalez,Mesa de Control,GSA_MC26
+Ricardo Macías Vargas,Ricardo_Macias,Pasteles,MVR_PM26
+Victor Esteban Alonso Garcia,Victor_Alonso,Pasteles,AGV_PM26
+Ramón Bautista Rodríguez,Ramon_Bautista,Mantenimiento,BRR_ME26
+Edgar Gomez García,Edgar_Gomez,Mantenimiento,GGE_ME26
+Adrián Isidro Lopéz,Adrian_Isidro,Mantenimiento,ILA_ME26
+Raquel Aguilar Rodríguez,Raquel_Aguilar,Mantenimiento,ARR_ME26
+Miguel Ángel Perez Rodriguez,Miguel_Perez,Pasteles,PRM_PM26
+David Fragoso Martinez,David_Fragoso,Centro de Control,FMD_CC26

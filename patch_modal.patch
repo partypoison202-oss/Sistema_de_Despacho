@@ -1,0 +1,51 @@
+--- frontend/src/pages/MesadeControl/DetalleUnidadMesaControl.jsx
++++ frontend/src/pages/MesadeControl/DetalleUnidadMesaControl.jsx
+@@ -1432,6 +1432,15 @@
+         >
+           <div className="custom-modal-content">
++            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.2rem', marginTop: '0.5rem' }}>
++              <div style={{ 
++                width: '80px', height: '80px', borderRadius: '50%', border: '4px solid #87adbd', 
++                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#87adbd', 
++              }}>
++                <span style={{ fontSize: '3.5rem', fontWeight: 'bold', marginTop: '-0.3rem' }}>?</span>
++              </div>
++            </div>
+             <h2 className="custom-modal-title">
+-              {modalEstatusNuevo === 'operacion' ? 'Asignar Conductor y Ruta' :
++              {modalEstatusNuevo === 'operacion' ? '¿Asignar Conductor y Ruta?' :
+-                modalEstatusNuevo === 'reserva' ? 'Cambiar a RESERVA' :
+-                  modalEstatusNuevo === 'percance' ? 'Cambiar a PERCANCE' :
+-                    'Cambiar a MANTENIMIENTO'}
++                modalEstatusNuevo === 'reserva' ? '¿Cambiar a RESERVA?' :
++                  modalEstatusNuevo === 'percance' ? '¿Cambiar a PERCANCE?' :
++                    '¿Cambiar a MANTENIMIENTO?'}
+             </h2>
+ 
+             {/* Sección de Información Actual */}
+-            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: '#f8fafc', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
++            <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'transparent', marginBottom: '1.5rem', color: '#545454', fontSize: '1.125rem' }}>
+-              <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+-                <strong>ECO:</strong> {selectedOption}
+-              </p>
+-              {datosOperativos.conductor && (
+-                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+-                  <strong>Conductor:</strong> {datosOperativos.conductor}
+-                </p>
+-              )}
+-              {datosOperativos.tarjeton && (
+-                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+-                  <strong>Tarjetón:</strong> {datosOperativos.tarjeton}
+-                </p>
+-              )}
+-              {datosOperativos.ruta && (
+-                <p style={{ color: '#0b162c', fontSize: '0.9rem', fontWeight: 500 }}>
+-                  <strong>Ruta:</strong> {datosOperativos.ruta}
+-                </p>
+-              )}
++              <p style={{ marginBottom: '0.25rem' }}>Estás a punto de modificar el estatus de la unidad <strong>{selectedOption}</strong>.</p>
++              {datosOperativos.conductor && (
++                <p style={{ fontSize: '0.95rem', color: '#718096' }}>Conductor actual: {datosOperativos.conductor} ({datosOperativos.tarjeton})</p>
++              )}
+             </div>
+ 
