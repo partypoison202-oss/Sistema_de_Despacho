@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { headerConfig } from '../../config/header';
 import { AuthContext, getDefaultRoute } from '../../context/AuthContext';
 import AjustesModal from './AjustesModal';
+import GestionRutasModal from './GestionRutasModal';
 import UserAvatar from '../UserAvatar/UserAvatar';
 import Swal from 'sweetalert2';
 import './Header.css';
@@ -11,6 +12,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
   const { user, logout } = useContext(AuthContext);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showAjustes, setShowAjustes] = useState(false);
+  const [showGestionRutas, setShowGestionRutas] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const profileRef = useRef(null);
@@ -181,6 +183,14 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   }}>
                     Ajustes
                   </button>
+                  {user.role.codigo === 'ADMINISTRADOR' && (
+                    <button className="profile-menu-btn" onClick={() => {
+                      setShowProfileMenu(false);
+                      setShowGestionRutas(true);
+                    }}>
+                      Gestión de Rutas
+                    </button>
+                  )}
                   {((user.modulos && user.modulos.some(m => (typeof m === 'object' ? m.modulo_codigo : m) === 'operadores')) || user.role.codigo === 'ADMINISTRADOR') && (
                     <button className="profile-menu-btn" onClick={() => {
                       handleConfirmExit(() => {
@@ -223,6 +233,7 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
       </div>
 
       {showAjustes && <AjustesModal onClose={() => setShowAjustes(false)} />}
+      {showGestionRutas && <GestionRutasModal onClose={() => setShowGestionRutas(false)} />}
     </header>
   );
 }

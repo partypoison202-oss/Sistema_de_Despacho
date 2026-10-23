@@ -16,6 +16,7 @@ use App\Http\Controllers\API\ReservaController;
 use App\Http\Controllers\API\HistorialOperativoController;
 use App\Http\Controllers\API\BitacoraController;
 use App\Http\Controllers\API\InfraccionController;
+use App\Http\Controllers\API\RutaController;
 use App\Http\Controllers\ObservacionCatalogoController;
 
 use Illuminate\Support\Facades\Schema;
@@ -234,6 +235,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    // Gestión del Catálogo de Rutas
+    Route::get('/rutas', [RutaController::class, 'index']);
+    Route::post('/rutas', [RutaController::class, 'store']);
+    Route::put('/rutas/{id}', [RutaController::class, 'update']);
+    Route::delete('/rutas/{id}', [RutaController::class, 'destroy']);
 
     // Gestión de Despacho
     Route::get('/reservas/autorizadas', [ReservaController::class, 'getReservasPorFecha']);

@@ -1,0 +1,75 @@
+/* ==========================================================================
+   MODAL DE GESTIÓN DE RUTAS (DESDE MENÚ DE PERFIL)
+   ========================================================================== */
+
+.rutas-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.rutas-modal-content {
+  background-color: #ffffff;
+  border-radius: 12px;
+  width: 94%;
+  max-width: 720px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  animation: slideDown 0.25s ease-out;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rutas-modal-header {
+  background-color: var(--color-maroon, #601a2a);
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rutas-modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.rutas-modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.rutas-modal-close:hover {
+  opacity: 0.8;
+}
+
+.rutas-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}

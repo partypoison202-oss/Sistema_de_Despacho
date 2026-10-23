@@ -5676,12 +5676,23 @@ class DespachoController extends Controller
      */
     public function obtenerRutas()
     {
-        $troncales = DB::table('rutas')->where('tipo', 'troncal')->pluck('ruta');
-        $alimentadoras = DB::table('rutas')->where('tipo', 'alimentadora')->pluck('ruta');
+        $troncales = DB::table('rutas')->where('tipo', 'troncal')->pluck('ruta')->sort(function ($a, $b) {
+            return RutaController::compararCodigosRuta($a, $b);
+        })->values();
+
+        $alimentadoras = DB::table('rutas')->where('tipo', 'alimentadora')->pluck('ruta')->sort(function ($a, $b) {
+            return RutaController::compararCodigosRuta($a, $b);
+        })->values();
+
+        $descripciones = DB::table('rutas')
+            ->whereNotNull('descripcion')
+            ->where('descripcion', '!=', '')
+            ->pluck('descripcion', 'ruta');
 
         return response()->json([
             'troncales' => $troncales,
             'alimentadoras' => $alimentadoras,
+            'descripciones' => $descripciones,
         ], 200);
     }
 

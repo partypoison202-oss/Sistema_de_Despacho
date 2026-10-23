@@ -8,6 +8,7 @@ import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticas
 import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import { generarPDFProgramacionOperativa } from '../../utils/generarPDFProgramacionOperativa';
 import { estaDesincorporadaPorItinerario } from '../../utils/itinerarioUtils';
+import { compareRutas } from '../../utils/rutaUtils';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
@@ -130,6 +131,25 @@ export default function CentroControl() {
     queryFn: fetchInicioHoy,
     staleTime: 60000 * 30, // 30 min (congelado de inicio de día)
     refetchOnWindowFocus: false,
+  });
+
+  // Catálogo maestro de rutas y descripciones desde la base de datos
+  const fetchRutasCatalogo = async () => {
+    const token = (localStorage.getItem('token') || sessionStorage.getItem('token'));
+    const res = await fetch(`${API_BASE}/api/despacho/rutas`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) return { troncales: [], alimentadoras: [], descripciones: {} };
+    return res.json();
+  };
+
+  const { data: rutasCatalogo } = useQuery({
+    queryKey: ['despacho-rutas'],
+    queryFn: fetchRutasCatalogo,
+    staleTime: 60000 * 5,
   });
 
   const normStr = (str) =>
@@ -420,17 +440,20 @@ export default function CentroControl() {
       if (!routesMap[key]) {
         const isTroncal = key.startsWith('T');
         const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
+        const descripcionesMap = rutasCatalogo?.descripciones || {};
+        const dbDesc = descripcionesMap[key] || descripcionesMap[cleanKey] || descripcionesMap[rawRuta];
         const info = ROUTE_DESCRIPTIONS[key] || {
           tipo: isTroncal ? 'troncal' : 'alimentadora',
           label: isTroncal ? key : cleanKey,
           desc: `Ruta ${cleanKey}`
         };
+        const descFinal = dbDesc || info.desc;
         routesMap[key] = {
           id: key,
           key,
           tipo: info.tipo,
           label: info.label,
-          desc: info.desc,
+          desc: descFinal,
           units: [],
         };
       }
@@ -484,7 +507,7 @@ export default function CentroControl() {
       if (a.tipo === 'troncal' && b.tipo !== 'troncal') return -1;
       if (a.tipo !== 'troncal' && b.tipo === 'troncal') return 1;
 
-      return a.key.localeCompare(b.key, undefined, { numeric: true, sensitivity: 'base' });
+      return compareRutas(a.key, b.key);
     });
   }, [apiData]);
 

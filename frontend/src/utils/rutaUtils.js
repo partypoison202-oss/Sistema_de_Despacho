@@ -23,51 +23,84 @@ export const normalizeRutaClave = (ruta) => {
  * Lista canónica y oficial de rutas alimentadoras en orden secuencial de menor a mayor.
  */
 export const OFFICIAL_ALIMENTADORAS_ORDER = [
-  '1A', '1B', '2A', '2B', '2D', '2E', '3', '4A', '5', '6',
+  '1A', '1B', '2A', '2B', '2D', '2E', '3', '4A', '4B', '5', '6',
   '7', '8', '9', '10', '11', '12', '13', '14', '15A', '15B',
   '15C', '16', '17', '19', '20B'
 ];
 
 /**
- * Ordena rutas de menor a mayor respetando el orden oficial (iniciando en 1A y finalizando en 20B).
+ * Desglosa un código de ruta para extraer categoría (Troncal vs Alimentadora),
+ * número secuencial y sufijo de letra.
+ */
+export const parseRutaParts = (raw) => {
+  const str = String(raw || '').trim().toUpperCase();
+  if (!str || str.includes('SIN ASIGNAR')) {
+    return { isTroncal: false, num: 999999, suffix: '', original: str };
+  }
+
+  // Detectar si es troncal
+  const isTroncal = /^T(?:RONCAL)?(?:\s*[-_]?\s*\d|\d|$)/i.test(str);
+
+  // Limpiar prefijos comunes como TRONCAL, ALIMENTADORA, RA, RUTA
+  let clean = str
+    .replace(/^(?:TRONCAL|ALIMENTADORA|RA|RUTA)\s*[-_]?\s*/i, '')
+    .trim();
+
+  // Si era troncal y quedó como T01 o T-01, remover la T inicial para extraer el número
+  if (isTroncal && /^T\s*[-_]?\s*/i.test(clean)) {
+    clean = clean.replace(/^T\s*[-_]?\s*/i, '').trim();
+  }
+
+  // Extraer número y sufijo de letras
+  const match = clean.match(/^(\d+)\s*[-_]?\s*([A-Z]*)$/i);
+  if (match) {
+    return {
+      isTroncal,
+      num: parseInt(match[1], 10),
+      suffix: match[2] || '',
+      original: str,
+    };
+  }
+
+  // Si no encaja en formato numérico puro, intentar encontrar primer número
+  const numMatch = clean.match(/(\d+)/);
+  const num = numMatch ? parseInt(numMatch[1], 10) : 999999;
+  const suffix = clean.replace(/\d+/g, '').replace(/[^A-Z]/g, '');
+
+  return { isTroncal, num, suffix, original: str };
+};
+
+/**
+ * Ordena rutas de menor a mayor numéricamente y alfabéticamente por sufijo.
+ * Prioriza rutas Troncales al inicio y luego Alimentadoras en estricto orden ascendente.
  */
 export const compareRutas = (a, b) => {
   if (!a && !b) return 0;
-  if (!a || a === 'SIN ASIGNAR') return 1;
-  if (!b || b === 'SIN ASIGNAR') return -1;
+  if (!a || String(a).toUpperCase().includes('SIN ASIGNAR')) return 1;
+  if (!b || String(b).toUpperCase().includes('SIN ASIGNAR')) return -1;
 
   const cleanA = String(a).trim().toUpperCase();
   const cleanB = String(b).trim().toUpperCase();
 
   if (cleanA === cleanB) return 0;
 
-  // Comparar primero contra el orden oficial de alimentadoras si ambas coinciden
-  const idxA = OFFICIAL_ALIMENTADORAS_ORDER.indexOf(cleanA);
-  const idxB = OFFICIAL_ALIMENTADORAS_ORDER.indexOf(cleanB);
-  if (idxA !== -1 && idxB !== -1) {
-    return idxA - idxB;
+  const pA = parseRutaParts(cleanA);
+  const pB = parseRutaParts(cleanB);
+
+  // Troncales van primero
+  if (pA.isTroncal !== pB.isTroncal) {
+    return pA.isTroncal ? -1 : 1;
   }
-  if (idxA !== -1) return -1;
-  if (idxB !== -1) return 1;
 
-  // Extraer prefijos opcionales, número base y sufijo de letra
-  const regex = /(?:RA|RUTA|R|T)?\s*0*(\d+)\s*([A-Z]*)/i;
-  const matchA = cleanA.match(regex);
-  const matchB = cleanB.match(regex);
+  // Orden numérico de menor a mayor
+  if (pA.num !== pB.num) {
+    return pA.num - pB.num;
+  }
 
-  if (matchA && matchB) {
-    const numA = parseInt(matchA[1], 10);
-    const numB = parseInt(matchB[1], 10);
-
-    if (numA !== numB) {
-      return numA - numB;
-    }
-
-    const suffixA = matchA[2] || '';
-    const suffixB = matchB[2] || '';
-    if (suffixA !== suffixB) {
-      return suffixA.localeCompare(suffixB);
-    }
+  // Orden alfabético por sufijo de letra (ej. 1A antes de 1B, 2A antes de 2B, etc.)
+  const sufCmp = pA.suffix.localeCompare(pB.suffix);
+  if (sufCmp !== 0) {
+    return sufCmp;
   }
 
   return cleanA.localeCompare(cleanB, undefined, { numeric: true, sensitivity: 'base' });
@@ -77,5 +110,6 @@ export default {
   normalizeRuta,
   normalizeRutaClave,
   OFFICIAL_ALIMENTADORAS_ORDER,
+  parseRutaParts,
   compareRutas,
 };
