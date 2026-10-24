@@ -14,7 +14,7 @@ const MODELOS_CONFIG = [
 const MAPA_RUTAS = {
   'T-01': 'T01', 'T-02': 'T02', 'T-04': 'T04', 'T-05': 'T05',
   'RA 2A': '2A', 'RA 2B': '2B', '20B': '20B', 'RA 2D': '2D', 
-  'RA 3': '03', 'RA 4': '04', 'RA 6': '06', 'RA 8': '08', 
+  'RA 3': '03', 'RA 4': '04', 'RA 4B': '04B', 'RA 6': '06', 'RA 8': '08', 
   'RA 11': '11', 'RA 14': '14', 'RA 15A': '15A', 'RA 15B': '15B',
 };
 
@@ -103,7 +103,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     const rutaKey = m ? 'RA ' + m[1].toUpperCase() : 'RA ' + clean;
 
     const RUTAS_OFICIALES = [
-      'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
+      'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 'RA 4B',
       'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B'
     ];
 
@@ -115,7 +115,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
 
   const RUTAS_TRONCAL_DEFAULT = ['T-01', 'T-02', 'T-04', 'T-05'];
   const RUTAS_ALIMENTADORA_DEFAULT = [
-    'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
+    'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 'RA 4B',
     'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B',
     'RA-SIN ASIGNAR'
   ];

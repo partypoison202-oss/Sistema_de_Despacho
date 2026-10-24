@@ -15,6 +15,7 @@ import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import ModalCiclos from './ModalCiclos';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
+import { compareRutas } from '../../utils/rutaUtils';
 
 // Campos que se editan juntos (si cambia uno del grupo, se considera cambiado todo el grupo).
 const GRUPOS_FILA = [
@@ -1189,9 +1190,11 @@ export default function CargaExcel({ isPasteles = false }) {
     const workbook = XLSX.utils.book_new();
 
     // ─── HOJA 1: GUÍA DE LLENADO ───
+    const troncalesOrdenadas = (catalogRutasObj.troncales || []).slice().sort(compareRutas);
+    const alimentadorasOrdenadas = (catalogRutasObj.alimentadoras || []).slice().sort(compareRutas);
     const rutasDisponibles = [
-      ...(catalogRutasObj.troncales || []),
-      ...(catalogRutasObj.alimentadoras || [])
+      ...troncalesOrdenadas,
+      ...alimentadorasOrdenadas
     ].join(', ');
 
     const guiaHoja = [
@@ -1369,7 +1372,10 @@ export default function CargaExcel({ isPasteles = false }) {
            // SERVICIO viene como RUTA-CORRIDA (ej. T05-06 o 1A 01)
            const servicio = normalizedRow['SERVICIO'] || '';
            const partesServicio = servicio.includes('-') ? servicio.split('-') : servicio.split(/\s+/);
-           const ruta = (partesServicio[0] || '').trim();
+           const rutaRaw = (partesServicio[0] || '').trim().toUpperCase();
+           const ruta = (!rutaRaw.startsWith('T') && /^0*(\d+[A-Z]*)$/i.test(rutaRaw))
+             ? rutaRaw.replace(/^0*(\d+[A-Z]*)$/i, '$1')
+             : rutaRaw;
            const corridaRaw = (partesServicio[1] || '').trim();
            const corrida = corridaRaw !== '' && !isNaN(parseInt(corridaRaw, 10)) ? String(parseInt(corridaRaw, 10)) : corridaRaw;
            const tarjeton = normalizedRow['TARJETON'] || '';

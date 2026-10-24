@@ -56,9 +56,11 @@ if [ -z "$PHP_BIN" ]; then
 fi
 echo -e "${GREEN}✔ Usando php: ${PHP_BIN}${NC}"
 
+BRANCH="${1:-despliegue-hoy}"
+
 # Paso 1: Actualizar código desde Git
-echo -e "${BLUE}📥 1. Actualizando repositorio (git pull origin main)...${NC}"
-git pull origin main
+echo -e "${BLUE}📥 1. Actualizando repositorio (git pull origin ${BRANCH})...${NC}"
+git pull origin "$BRANCH"
 
 # Paso 2: Instalación de dependencias del frontend y compilación con Vite
 echo -e "${BLUE}📦 2. Instalando dependencias y compilando Frontend (Vite)...${NC}"

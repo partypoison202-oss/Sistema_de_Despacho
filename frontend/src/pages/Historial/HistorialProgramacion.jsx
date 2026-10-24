@@ -7,6 +7,7 @@ import API_BASE from '../../config/api';
 import HistorialSearchBar from './HistorialSearchBar';
 import AppleDatePicker from '../Mantenimiento/components/AppleDatePicker';
 import { DetalleOperacion, formatDetallesTexto } from '../../utils/historialHelper';
+import { compareRutas } from '../../utils/rutaUtils';
 import './Historial.css';
 
 export default function HistorialProgramacion({ isPastelesOnly = false }) {
@@ -198,7 +199,7 @@ export default function HistorialProgramacion({ isPastelesOnly = false }) {
       sin_conductor,
       total_cambios: rawCambios.length,
       por_tipo: Object.values(tiposMap),
-      por_ruta: Object.values(rutasMap)
+      por_ruta: Object.values(rutasMap).sort((a, b) => compareRutas(a.ruta, b.ruta))
     };
   }, [baseProgramacion, filtroModo, serverResumen, rawCambios.length]);
 

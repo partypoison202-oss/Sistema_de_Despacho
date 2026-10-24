@@ -3535,23 +3535,24 @@ class DespachoController extends Controller
         $hoyUtc = Carbon::now('UTC')->toDateString();
         $horaActual = Carbon::now('America/Mexico_City')->format('H:i');
 
-        $idsEncerradasHoy = DB::table('historial_operativo')
+        $encierrosHoy = DB::table('historial_operativo')
             ->where('momento', 'ENCIERRO')
             ->where(function ($q) use ($hoyMexico, $hoyUtc) {
                 $q->whereIn('fecha_historial', [$hoyMexico, $hoyUtc])
                     ->orWhereDate('created_at', $hoyMexico)
                     ->orWhereDate('created_at', $hoyUtc);
             })
-            ->pluck('unidad_id')
-            ->map(fn ($id) => (int) $id)
-            ->toArray();
+            ->orderBy('id', 'desc')
+            ->get()
+            ->keyBy('unidad_id');
+
+        $idsEncerradasHoy = $encierrosHoy->keys()->map(fn ($id) => (int) $id)->toArray();
 
         $idsOperacion = DB::table('informacion_operativa')
             ->whereRaw("LOWER(estatus) = 'operacion'")
             ->pluck('unidad_id')
             ->map(fn ($id) => (int) $id)
             ->toArray();
-        $idsEncerradasHoy = array_values(array_diff($idsEncerradasHoy, $idsOperacion));
 
         $registros = DB::table('unidades')
             ->leftJoin('transportes', 'unidades.transporte_id', '=', 'transportes.id')
@@ -3598,16 +3599,28 @@ class DespachoController extends Controller
             ->orderBy('unidades.numero_eco')
             ->get();
 
-        $formateados = $registros->map(function ($reg) use ($idsEncerradasHoy, $horaActual) {
+        $formateados = $registros->map(function ($reg) use ($idsEncerradasHoy, $encierrosHoy, $horaActual) {
             $estatusNorm = strtolower(trim($reg->estatus ?? 'reserva'));
             $isOperacion = ($estatusNorm === 'operacion');
 
             // Una unidad solo está encerrada si NO está en operación y figura en historial de encierro
             $isEncerrada = ! $isOperacion && in_array((int) $reg->unidad_id, $idsEncerradasHoy, true);
+            $encierroReg = $isEncerrada ? $encierrosHoy->get($reg->unidad_id) : null;
 
             // Solo desincorporamos datos de servicio si está en mantenimiento o percance
             $isDesincorporada = in_array($estatusNorm, ['mantenimiento', 'percance'], true);
-            $horaSalidaEfectiva = $isDesincorporada ? null : $reg->hora_real_salida_patio;
+            $horaSalidaEfectiva = $isDesincorporada 
+                ? null 
+                : ($reg->hora_real_salida_patio ?: ($encierroReg?->hora_real_salida_patio ?? $encierroReg?->hora_salida ?? null));
+
+            // Evaluar si es un encierro por cumplimiento programado / fin de turno
+            $motivoEncierro = strtolower((string) ($reg->motivo_estatus ?: ($encierroReg?->motivo_estatus ?? '')));
+            $isFinTurno = str_contains($motivoEncierro, 'fin de turno') || 
+                          str_contains($motivoEncierro, 'encierro programado') || 
+                          str_contains($motivoEncierro, 'encierro regular');
+
+            // Solo cuenta como turno cumplido si fue encerrada estrictamente por fin de turno/programado
+            $isTurnoCumplido = $isEncerrada && $isFinTurno && !in_array($estatusNorm, ['mantenimiento', 'percance'], true);
 
             // Relevo dinámico si ya entró en vigor por horario
             $conductorEfectivo = $reg->nombre_conductor;
@@ -3675,6 +3688,10 @@ class DespachoController extends Controller
                 'MANTENIMIENTO_KILOMETRAJE' => $reg->mantenimiento_kilometraje,
                 'YA_ENCERRADA' => $isEncerrada,
                 'ya_encerrada' => $isEncerrada,
+                'TURNO_CUMPLIDO' => $isTurnoCumplido,
+                'turno_cumplido' => $isTurnoCumplido,
+                'ENCERRO_PROGRAMADO' => $isTurnoCumplido,
+                'encierro_programado' => $isTurnoCumplido,
             ];
         });
 
@@ -5573,12 +5590,27 @@ class DespachoController extends Controller
      */
     public function obtenerRutas()
     {
-        $troncales = DB::table('rutas')->where('tipo', 'troncal')->pluck('ruta');
-        $alimentadoras = DB::table('rutas')->where('tipo', 'alimentadora')->pluck('ruta');
+        $troncales = DB::table('rutas')->where('tipo', 'troncal')->orderBy('ruta')->pluck('ruta');
+        $alimentadorasRaw = DB::table('rutas')->where('tipo', 'alimentadora')->pluck('ruta')->toArray();
+
+        $ordenOficial = [
+            '1A', '1B', '2A', '2B', '2D', '2E', '3', '4', '4A', '4B', '5', '6',
+            '7', '8', '9', '10', '11', '12', '13', '14', '15A', '15B',
+            '15C', '16', '17', '19', '20B'
+        ];
+
+        usort($alimentadorasRaw, function ($a, $b) use ($ordenOficial) {
+            $idxA = array_search(trim(strtoupper($a)), $ordenOficial, true);
+            $idxB = array_search(trim(strtoupper($b)), $ordenOficial, true);
+            if ($idxA !== false && $idxB !== false) return $idxA - $idxB;
+            if ($idxA !== false) return -1;
+            if ($idxB !== false) return 1;
+            return strnatcasecmp($a, $b);
+        });
 
         return response()->json([
             'troncales' => $troncales,
-            'alimentadoras' => $alimentadoras,
+            'alimentadoras' => array_values($alimentadorasRaw),
         ], 200);
     }
 

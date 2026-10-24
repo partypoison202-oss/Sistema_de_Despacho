@@ -80,18 +80,30 @@ export default function ResumenDespacho() {
           const progActual = units.filter(d => normStr(d.ESTATUS || d.estatus).includes('OPERACI')).length;
           const prog = hasSnapshot ? progInicio : (progActual || units.length);
 
+          const isEncierroCumplido = (d) => {
+            const status = normStr(d.ESTATUS || d.estatus);
+            if (status.includes('MANTENIMIENTO') || status.includes('PERCANCE') || status.includes('TALLER')) return false;
+            if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+            const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+            if (!isEncerrada) return false;
+            const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
+            return motivo.includes('fin de turno') ||
+              motivo.includes('encierro programado') ||
+              motivo.includes('encierro regular');
+          };
+
           const oper = units.filter(d => {
             const status = normStr(d.ESTATUS || d.estatus);
             const isOper = status.includes('OPERACI');
             const isValidadaOMesa = !!(d.HORA_REAL_SALIDA_PATIO || d.HORA_SALIDA) || !!d.MOTIVO_ESTATUS || !!d.CAMBIO_DESDE;
-            return isOper && isValidadaOMesa;
+            return (isOper && isValidadaOMesa) || isEncierroCumplido(d);
           }).length;
           const mantUnits = units.filter(d => {
             const status = normStr(d.ESTATUS || d.estatus);
             return status.includes('MANTENIMIENTO');
           });
           const mant = mantUnits.length;
-          const efi = prog > 0 ? Math.round((oper / prog) * 100) : 0;
+          const efi = prog > 0 ? Math.min(100, Math.round((oper / prog) * 100)) : 0;
           
           const fallasPorTipo = {};
           mantUnits.forEach(u => {

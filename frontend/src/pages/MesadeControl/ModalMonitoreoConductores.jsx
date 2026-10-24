@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import API_BASE from '../../config/api';
 import './ModalMonitoreoConductores.css';
+import { compareRutas } from '../../utils/rutaUtils';
 
 export default function ModalMonitoreoConductores({
   isOpen,
@@ -60,7 +61,7 @@ export default function ModalMonitoreoConductores({
       if (u.ruta_actual && u.ruta_actual !== 'Sin ruta') setRutas.add(u.ruta_actual);
       if (u.ruta_inicial && u.ruta_inicial !== 'Sin ruta') setRutas.add(u.ruta_inicial);
     });
-    return Array.from(setRutas).sort();
+    return Array.from(setRutas).sort(compareRutas);
   }, [unidades]);
 
   // Filtrado reactivo de conductores con falta

@@ -41,6 +41,7 @@ const RUTAS_RA = [
     { value: 'RA-02E', label: 'RA-02E' },
     { value: 'RA-03', label: 'RA-03' },
     { value: 'RA-04', label: 'RA-04' },
+    { value: 'RA-04B', label: 'RA-04B' },
     { value: 'RA-05', label: 'RA-05' },
     { value: 'RA-06', label: 'RA-06' },
     { value: 'RA-07', label: 'RA-07' },
