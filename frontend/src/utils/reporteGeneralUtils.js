@@ -110,7 +110,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       return 'RA ' + clean;
     }
 
-    return 'RA-SIN ASIGNAR';
+    return null;
   };
 
   const RUTAS_TRONCAL_DEFAULT = ['T-01', 'T-02', 'T-04', 'T-05'];
@@ -120,7 +120,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
   ];
 
   const contadoresRutas = {};
-  [...RUTAS_TRONCAL_DEFAULT, ...RUTAS_ALIMENTADORA_DEFAULT, 'RA-SIN ASIGNAR'].forEach((r) => {
+  [...RUTAS_TRONCAL_DEFAULT, ...RUTAS_ALIMENTADORA_DEFAULT].forEach((r) => {
     const isTroncal = r.startsWith('T-');
     contadoresRutas[r] = {
       ruta: r,
@@ -152,6 +152,9 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       const rutaRaw = reg.RUTA ?? reg.ruta ?? reg.NOMBRE_RUTA ?? reg.no_ruta ?? '';
       const rutaKey = normalizarRutaReporte(rutaRaw, tipo);
 
+      // Si no tiene ruta asignada o es SIN ASIGNAR, no se contabiliza en el reporte
+      if (!rutaKey || rutaKey.toUpperCase().includes('SIN ASIGNAR')) return;
+
       if (!contadoresRutas[rutaKey]) {
         const isTroncalRuta = rutaKey.startsWith('T-');
         contadoresRutas[rutaKey] = {
@@ -165,27 +168,21 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     }
   });
 
-  // Troncales ordenadas: mostrar las base O las que tengan operación
+  // Troncales ordenadas: solo servicios oficiales (sin T-SIN ASIGNAR)
   const troncalesList = Object.values(contadoresRutas)
-    .filter((r) => r.tipo === 'troncal' && (r.ruta !== 'T-SIN ASIGNAR' || r.en_operacion > 0))
+    .filter((r) => r.tipo === 'troncal' && !r.ruta.toUpperCase().includes('SIN ASIGNAR'))
     .sort((a, b) => compareRutas(a.ruta, b.ruta));
 
-  // Alimentadoras ordenadas: mostrar las que tengan unidades en operación
+  // Alimentadoras ordenadas: solo rutas con unidades en operación (sin RA-SIN ASIGNAR)
   let alimentadorasList = Object.values(contadoresRutas)
-    .filter((r) => r.tipo === 'alimentadora' && r.ruta !== 'RA-SIN ASIGNAR' && r.en_operacion > 0)
+    .filter((r) => r.tipo === 'alimentadora' && !r.ruta.toUpperCase().includes('SIN ASIGNAR') && r.en_operacion > 0)
     .sort((a, b) => compareRutas(a.ruta, b.ruta));
 
-  // Si no hay unidades en operación (ej. inicio de jornada), mostrar las base
+  // Si no hay unidades en operación (ej. inicio de jornada previa al despacho), mostrar las base
   if (alimentadorasList.length === 0) {
     alimentadorasList = RUTAS_ALIMENTADORA_DEFAULT
-      .filter((r) => r !== 'RA-SIN ASIGNAR')
+      .filter((r) => !r.toUpperCase().includes('SIN ASIGNAR'))
       .map((r) => contadoresRutas[r] || { ruta: r, tipo: 'alimentadora', en_operacion: 0, en_mantenimiento: 0 });
-  }
-
-  // Agregar RA-SIN ASIGNAR al final si tiene unidades en operacion
-  const sinAsignarAlim = contadoresRutas['RA-SIN ASIGNAR'];
-  if (sinAsignarAlim && sinAsignarAlim.en_operacion > 0) {
-    alimentadorasList.push(sinAsignarAlim);
   }
 
   const dataRutas = [
