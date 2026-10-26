@@ -3641,9 +3641,8 @@ class DespachoController extends Controller
             $estatusNorm = strtolower(trim($reg->estatus ?? 'reserva'));
             $isOperacion = ($estatusNorm === 'operacion');
 
-            // Una unidad solo está encerrada si NO está en operación y figura en historial de encierro
-            $isEncerrada = ! $isOperacion && in_array((int) $reg->unidad_id, $idsEncerradasHoy, true);
-            $encierroReg = $isEncerrada ? $encierrosHoy->get($reg->unidad_id) : null;
+            // Encierro histórico si existe
+            $encierroReg = $encierrosHoy->get($reg->unidad_id);
 
             // Solo desincorporamos datos de servicio si está en mantenimiento o percance
             $isDesincorporada = in_array($estatusNorm, ['mantenimiento', 'percance'], true);
@@ -3678,7 +3677,15 @@ class DespachoController extends Controller
                                str_contains($motivoEncierro, 'mantenimiento') ||
                                str_contains($motivoEncierro, 'taller');
 
-            // Cuenta como turno cumplido si fue encerrada y no fue por falla o percance mecánico/vial
+            // Una unidad está encerrada si NO está en operación y:
+            // 1. Figura en historial de encierro de hoy, O
+            // 2. Su motivo operativo actual indica encierro programado / fin de turno
+            $isEncerrada = ! $isOperacion && (
+                in_array((int) $reg->unidad_id, $idsEncerradasHoy, true) ||
+                ($isFinTurno && ! $esFallaOPercance)
+            );
+
+            // Solo cuenta como turno cumplido si fue encerrada y no fue por falla o percance
             $isTurnoCumplido = $isEncerrada && ! $isDesincorporada && ($isFinTurno || empty($motivoEncierro) || ! $esFallaOPercance);
 
             // Relevo dinámico si ya entró en vigor por horario
