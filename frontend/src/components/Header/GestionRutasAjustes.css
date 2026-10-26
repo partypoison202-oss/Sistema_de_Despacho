@@ -450,6 +450,12 @@
   color: #dc2626;
 }
 
+.form-instruction {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
 .form-input {
   padding: 0.6rem 0.8rem;
   border: 1px solid #d1d5db;
@@ -459,6 +465,11 @@
   color: #111827;
   text-transform: uppercase;
   transition: all 0.2s ease;
+}
+
+.form-input--trayecto {
+  text-transform: none !important;
+  font-weight: 500;
 }
 
 .form-input:focus {

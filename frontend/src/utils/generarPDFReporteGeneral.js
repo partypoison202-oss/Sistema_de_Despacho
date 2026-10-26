@@ -162,8 +162,9 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
         body.push(row);
     });
 
-    const alimPaddingY = alimentadoras.length > 12 ? 0.8 : 1.1;
-    const alimFontSize = alimentadoras.length > 12 ? 8.5 : 9.5;
+    const alimCount = alimentadoras.length;
+    const alimPaddingY = alimCount > 18 ? 0.45 : alimCount > 13 ? 0.75 : 1.1;
+    const alimFontSize = alimCount > 18 ? 7.8 : alimCount > 13 ? 8.5 : 9.5;
 
     // ALIMENTADORAS
     alimentadoras.forEach((item, i) => {

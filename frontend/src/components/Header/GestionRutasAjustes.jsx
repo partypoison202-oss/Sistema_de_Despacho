@@ -406,7 +406,7 @@ export default function GestionRutasAjustes() {
 
               <div className="form-group">
                 <label className="form-label" htmlFor="descripcion_ruta">
-                  Trayecto / Nombre de Ruta <span className="text-optional">(De dónde a dónde)</span>
+                  Trayecto / Nombre de Ruta <span className="form-instruction">(Indica el recorrido de dónde a dónde)</span>
                 </label>
                 <input
                   id="descripcion_ruta"
@@ -415,9 +415,9 @@ export default function GestionRutasAjustes() {
                   value={descripcionInput}
                   onChange={(e) => setDescripcionInput(e.target.value)}
                   maxLength={150}
-                  className="form-input"
+                  className="form-input form-input--trayecto"
                 />
-                <span className="form-hint">Nombre que se mostrará en las tarjetas de Monitoreo de Operación.</span>
+                <span className="form-hint">Escribe la descripción del trayecto que se mostrará en las tarjetas de Monitoreo de Operación.</span>
               </div>
 
               <div className="form-group">
@@ -434,7 +434,8 @@ export default function GestionRutasAjustes() {
                       onChange={() => setTipoInput('troncal')}
                     />
                     <div className="tipo-option-content">
-                      <span className="tipo-title">Urbanuss</span>
+                      <span className="tipo-title">Troncal</span>
+                      <span className="tipo-subtitle">Urbanuss</span>
                     </div>
                   </label>
 
@@ -447,7 +448,8 @@ export default function GestionRutasAjustes() {
                       onChange={() => setTipoInput('alimentadora')}
                     />
                     <div className="tipo-option-content">
-                      <span className="tipo-title">Zafiro, Orión y Vagoneta</span>
+                      <span className="tipo-title">Alimentadora</span>
+                      <span className="tipo-subtitle">Zafiro, Orión y Vagoneta</span>
                     </div>
                   </label>
                 </div>

@@ -3,6 +3,7 @@ import API_BASE from '../config/api';
 import { generarPDFReporteGeneral } from './generarPDFReporteGeneral';
 import { generarPDFReporteUnidades } from './generarPDFReporteUnidades';
 import { generarPDFProgramacionOperativa } from './generarPDFProgramacionOperativa';
+import { compareRutas } from './rutaUtils';
 
 const MODELOS_CONFIG = [
   { id: 'URBANUS' },
@@ -67,7 +68,7 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     en_servicio: acc.en_servicio + t.en_servicio,
   }), { programadas: 0, en_servicio: 0 });
 
-  // Función normalizadora de rutas basada en Monitoreo Operativo
+  // Función normalizadora de rutas para Reporte General de Operaciones
   const normalizarRutaReporte = (rawRuta, tipoUnidad) => {
     const tipoNorm = normStr(tipoUnidad);
     const isTroncal = tipoNorm.includes('URBANU');
@@ -80,49 +81,53 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     let clean = rutaStr.toUpperCase().trim();
 
     // Troncal explícita: T01, T-01, T 01, T1
-    const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)/i);
+    const tMatch = clean.match(/^T\s*[-_]?\s*0*(\d+)([A-Z]*)/i);
     if (tMatch) {
-      return 'T-' + tMatch[1].padStart(2, '0');
+      return 'T-' + tMatch[1].padStart(2, '0') + (tMatch[2] ? tMatch[2].toUpperCase() : '');
     }
 
     // Troncal por tipo de unidad si sólo viene el número
     if (isTroncal) {
-      const numMatch = clean.match(/^0*(\d+)/);
+      const numMatch = clean.match(/^0*(\d+)([A-Z]*)/);
       if (numMatch) {
-        return 'T-' + numMatch[1].padStart(2, '0');
+        return 'T-' + numMatch[1].padStart(2, '0') + (numMatch[2] ? numMatch[2].toUpperCase() : '');
       }
       return 'T-SIN ASIGNAR';
     }
 
-    // Alimentadoras
-    clean = clean.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '').trim();
-    if (clean === '4A') clean = '4';
-    if (clean === '20B') clean = '2B';
+    // Alimentadoras: Limpiar prefijos comunes como RA, ALIMENTADORA, RUTA
+    clean = clean.replace(/^(?:RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '').trim();
 
-    const m = clean.match(/^0*(\d+[A-Z]*)/i);
-    const rutaKey = m ? 'RA ' + m[1].toUpperCase() : 'RA ' + clean;
-
-    const RUTAS_OFICIALES = [
-      'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
-      'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B'
-    ];
-
-    if (RUTAS_OFICIALES.includes(rutaKey)) {
-      return rutaKey;
+    // Extraer número y letra (ej. 1A, 2A, 4A, 4B, 18, 20C, 21A)
+    const m = clean.match(/^0*(\d+\s*[A-Z]*)/i);
+    if (m) {
+      const formatted = m[1].replace(/\s+/g, '').toUpperCase();
+      return 'RA ' + formatted;
     }
+
+    // Si tiene otro identificador alfanumérico
+    if (clean) {
+      return 'RA ' + clean;
+    }
+
     return 'RA-SIN ASIGNAR';
   };
 
   const RUTAS_TRONCAL_DEFAULT = ['T-01', 'T-02', 'T-04', 'T-05'];
   const RUTAS_ALIMENTADORA_DEFAULT = [
-    'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 
-    'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B',
-    'RA-SIN ASIGNAR'
+    'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 'RA 4B',
+    'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B'
   ];
 
   const contadoresRutas = {};
-  [...RUTAS_TRONCAL_DEFAULT, ...RUTAS_ALIMENTADORA_DEFAULT].forEach((r) => {
-    contadoresRutas[r] = { en_operacion: 0, en_mantenimiento: 0 };
+  [...RUTAS_TRONCAL_DEFAULT, ...RUTAS_ALIMENTADORA_DEFAULT, 'RA-SIN ASIGNAR'].forEach((r) => {
+    const isTroncal = r.startsWith('T-');
+    contadoresRutas[r] = {
+      ruta: r,
+      tipo: isTroncal ? 'troncal' : 'alimentadora',
+      en_operacion: 0,
+      en_mantenimiento: 0
+    };
   });
 
   let troncalMantenimientoTotal = 0;
@@ -147,28 +152,43 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       const rutaRaw = reg.RUTA ?? reg.ruta ?? reg.NOMBRE_RUTA ?? reg.no_ruta ?? '';
       const rutaKey = normalizarRutaReporte(rutaRaw, tipo);
 
-      if (contadoresRutas[rutaKey]) {
-        contadoresRutas[rutaKey].en_operacion++;
-      } else {
-        const fallback = isTroncal ? 'T-01' : 'RA-SIN ASIGNAR';
-        if (contadoresRutas[fallback]) {
-          contadoresRutas[fallback].en_operacion++;
-        }
+      if (!contadoresRutas[rutaKey]) {
+        const isTroncalRuta = rutaKey.startsWith('T-');
+        contadoresRutas[rutaKey] = {
+          ruta: rutaKey,
+          tipo: isTroncalRuta ? 'troncal' : 'alimentadora',
+          en_operacion: 0,
+          en_mantenimiento: 0
+        };
       }
+      contadoresRutas[rutaKey].en_operacion++;
     }
   });
 
+  // Troncales ordenadas
+  const troncalesList = Object.values(contadoresRutas)
+    .filter((r) => r.tipo === 'troncal')
+    .sort((a, b) => compareRutas(a.ruta, b.ruta));
+
+  // Alimentadoras ordenadas: mostrar las rutas base O las que tengan unidades en operacion
+  const alimentadorasList = Object.values(contadoresRutas)
+    .filter((r) => r.tipo === 'alimentadora' && r.ruta !== 'RA-SIN ASIGNAR')
+    .filter((r) => RUTAS_ALIMENTADORA_DEFAULT.includes(r.ruta) || r.en_operacion > 0)
+    .sort((a, b) => compareRutas(a.ruta, b.ruta));
+
+  // Agregar RA-SIN ASIGNAR al final si tiene unidades en operacion
+  const sinAsignarAlim = contadoresRutas['RA-SIN ASIGNAR'];
+  if (sinAsignarAlim && sinAsignarAlim.en_operacion > 0) {
+    alimentadorasList.push(sinAsignarAlim);
+  }
+
   const dataRutas = [
-    ...RUTAS_TRONCAL_DEFAULT.map((r, i) => ({
-      ruta: r,
-      tipo: 'troncal',
-      en_operacion: contadoresRutas[r]?.en_operacion || 0,
+    ...troncalesList.map((r, i) => ({
+      ...r,
       en_mantenimiento: i === 0 ? troncalMantenimientoTotal : 0,
     })),
-    ...RUTAS_ALIMENTADORA_DEFAULT.map((r, i) => ({
-      ruta: r,
-      tipo: 'alimentadora',
-      en_operacion: contadoresRutas[r]?.en_operacion || 0,
+    ...alimentadorasList.map((r, i) => ({
+      ...r,
       en_mantenimiento: i === 0 ? alimMantenimientoTotal : 0,
     })),
   ];
