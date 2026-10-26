@@ -113,6 +113,53 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     const vagonetaImg = await loadImage('/images/vagoneta frente.webp');
     const orionImg    = await loadImage('/images/orionfrente.webp');
 
+    const totalRows = troncales.length + alimentadoras.length;
+
+    // Altura inicial y márgenes adaptativos según volumen de rutas
+    const startY = totalRows > 20 ? 35 : 38;
+
+    // Ajuste dinámico de tipografía y paddings según el número de filas totales
+    let headPaddingY = 1.3;
+    let headFontSize = 14;
+    let troncalPaddingY = 1.6;
+    let troncalFontSize = 11;
+    let alimPaddingY = 1.0;
+    let alimFontSize = 9.2;
+    let spanOperacionFontSize = 24;
+    let spanMantoFontSize = 9.5;
+    let spanTotalFontSize = 28;
+
+    if (totalRows > 26) {
+        headPaddingY = 0.55;
+        headFontSize = 12;
+        troncalPaddingY = 0.65;
+        troncalFontSize = 8.5;
+        alimPaddingY = 0.32;
+        alimFontSize = 6.8;
+        spanOperacionFontSize = 17;
+        spanMantoFontSize = 7.0;
+        spanTotalFontSize = 19;
+    } else if (totalRows > 20) {
+        headPaddingY = 0.75;
+        headFontSize = 13;
+        troncalPaddingY = 0.9;
+        troncalFontSize = 9.2;
+        alimPaddingY = 0.45;
+        alimFontSize = 7.5;
+        spanOperacionFontSize = 19;
+        spanMantoFontSize = 8.0;
+        spanTotalFontSize = 22;
+    } else if (totalRows > 15) {
+        headPaddingY = 1.0;
+        troncalPaddingY = 1.2;
+        troncalFontSize = 10.0;
+        alimPaddingY = 0.7;
+        alimFontSize = 8.2;
+        spanOperacionFontSize = 21;
+        spanMantoFontSize = 8.5;
+        spanTotalFontSize = 24;
+    }
+
     // TABLA A LA DERECHA
     const head = [
         [
@@ -123,14 +170,14 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
                     ? `${troncales.length} SERVICIOS DE TRONCAL`
                     : `${alimentadoras.length} RUTA ALIMENTADORA`, 
                 rowSpan: 2, 
-                styles: { halign: 'center', valign: 'middle', fontSize: 7, fillColor: COLOR_GUINDA } 
+                styles: { halign: 'center', valign: 'middle', fontSize: totalRows > 24 ? 6.5 : 7, fillColor: COLOR_GUINDA, cellPadding: { top: headPaddingY, bottom: headPaddingY } } 
             },
-            { content: `N° UNIDADES`, colSpan: 4, styles: { halign: 'center', fontSize: 15 } }
+            { content: `N° UNIDADES`, colSpan: 4, styles: { halign: 'center', fontSize: headFontSize, cellPadding: { top: headPaddingY, bottom: headPaddingY } } }
         ],
         [
-            { content: 'EN OPERACIÓN', colSpan: 2, styles: { halign: 'center', fillColor: COLOR_GOLD } },
-            { content: 'PATIO TERMINAL\nTÉLLEZ', styles: { halign: 'center', fillColor: COLOR_BEIGE, textColor: COLOR_GUINDA } },
-            { content: 'TOTAL', styles: { halign: 'center' } }
+            { content: 'EN OPERACIÓN', colSpan: 2, styles: { halign: 'center', fillColor: COLOR_GOLD, cellPadding: { top: headPaddingY, bottom: headPaddingY } } },
+            { content: 'PATIO TERMINAL\nTÉLLEZ', styles: { halign: 'center', fillColor: COLOR_BEIGE, textColor: COLOR_GUINDA, cellPadding: { top: headPaddingY, bottom: headPaddingY } } },
+            { content: 'TOTAL', styles: { halign: 'center', cellPadding: { top: headPaddingY, bottom: headPaddingY } } }
         ]
     ];
 
@@ -139,32 +186,28 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     // TRONCALES
     troncales.forEach((item, i) => {
         const row = [
-            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: 11.5, textColor: [0,0,0], cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 } } },
-            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: 11, cellPadding: { top: 1.8, bottom: 1.8, left: 1.5, right: 1.5 } } }
+            { content: item.ruta, styles: { halign: 'center', fontStyle: 'bold', fontSize: troncalFontSize, textColor: [0,0,0], cellPadding: { top: troncalPaddingY, bottom: troncalPaddingY, left: 1.5, right: 1.5 } } },
+            { content: item.en_operacion, styles: { halign: 'center', textColor: COLOR_GUINDA, fontSize: troncalFontSize, cellPadding: { top: troncalPaddingY, bottom: troncalPaddingY, left: 1.5, right: 1.5 } } }
         ];
         if (i === 0) {
             row.push({ 
                 content: `${troncalOperacion}`, 
                 rowSpan: Math.max(1, troncales.length), 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 24 } 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: spanOperacionFontSize, cellPadding: { top: troncalPaddingY, bottom: troncalPaddingY, left: 1, right: 1 } } 
             });
             row.push({ 
                 content: `${troncalMantenimiento}\nUNIDADES\nEN MANTENIMIENTO`, 
                 rowSpan: Math.max(1, troncales.length), 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 9.5 } 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: spanMantoFontSize, cellPadding: { top: troncalPaddingY, bottom: troncalPaddingY, left: 1, right: 1 } } 
             });
             row.push({ 
                 content: `${troncalTotal}`, 
                 rowSpan: Math.max(1, troncales.length), 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 28 } 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: spanTotalFontSize, cellPadding: { top: troncalPaddingY, bottom: troncalPaddingY, left: 1, right: 1 } } 
             });
         }
         body.push(row);
     });
-
-    const alimCount = alimentadoras.length;
-    const alimPaddingY = alimCount > 18 ? 0.45 : alimCount > 13 ? 0.75 : 1.1;
-    const alimFontSize = alimCount > 18 ? 7.8 : alimCount > 13 ? 8.5 : 9.5;
 
     // ALIMENTADORAS
     alimentadoras.forEach((item, i) => {
@@ -176,17 +219,17 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
             row.push({ 
                 content: `${alimentadoraOperacion}`, 
                 rowSpan: Math.max(1, alimentadoras.length), 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 24 } 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: spanOperacionFontSize, cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1, right: 1 } } 
             });
             row.push({ 
                 content: `${alimentadoraMantenimiento}\nUNIDADES\nEN MANTENIMIENTO`, 
                 rowSpan: Math.max(1, alimentadoras.length), 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: 9.5 } 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: COLOR_GUINDA, fontSize: spanMantoFontSize, cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1, right: 1 } } 
             });
             row.push({ 
                 content: `${alimentadoraTotal}`, 
                 rowSpan: Math.max(1, alimentadoras.length), 
-                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: 28 } 
+                styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0,0,0], fontSize: spanTotalFontSize, cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1, right: 1 } } 
             });
         }
         body.push(row);
@@ -197,8 +240,8 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     let alimEndY = 0;
 
     autoTable(pdf, {
-        startY: 40,
-        margin: { left: 98, right: 10.4, bottom: 8 },
+        startY: startY,
+        margin: { left: 98, right: 10.4, bottom: 6 },
         tableWidth: 171,
         pageBreak: 'avoid',
         head: head,
@@ -207,7 +250,8 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
         headStyles: {
             fillColor: COLOR_GUINDA,
             textColor: COLOR_WHITE,
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            cellPadding: { top: headPaddingY, bottom: headPaddingY, left: 1, right: 1 }
         },
         columnStyles: {
             0: { cellWidth: 42 },
@@ -217,7 +261,8 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
             4: { cellWidth: 33 }
         },
         styles: {
-            fontSize: 9,
+            fontSize: alimFontSize,
+            cellPadding: { top: alimPaddingY, bottom: alimPaddingY, left: 1, right: 1 },
             valign: 'middle',
             lineColor: [0, 0, 0],
             lineWidth: 0.5
@@ -240,14 +285,22 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
         }
     });
 
-    const finalTroncalEnd = troncalEndY || 102;
+    // Garantizar estrictamente 1 sola página: si se generase página extra, limpiarla
+    if (pdf.internal.getNumberOfPages() > 1) {
+        while (pdf.internal.getNumberOfPages() > 1) {
+            pdf.deletePage(pdf.internal.getNumberOfPages());
+        }
+    }
+    pdf.setPage(1);
+
+    const finalTroncalEnd = troncalEndY || (startY + 30);
     const finalAlimStart  = alimStartY || finalTroncalEnd;
     const finalAlimEnd    = alimEndY || (pdf.lastAutoTable ? pdf.lastAutoTable.finalY : 175);
 
     // Caja 1 (Urbanus) - Alineada con la sección de Troncales
     const c1_x = 23;
     const c1_w = 70;
-    const c1_y = 40;
+    const c1_y = startY;
     const c1_h = (finalTroncalEnd - c1_y) - 1.5;
 
     pdf.setFillColor(...COLOR_BEIGE);
