@@ -117,15 +117,39 @@ export default function Usuarios() {
     }
   };
 
+  const fetchOnlineStatuses = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/users/status-online`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const statuses = await res.json();
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => {
+          const info = statuses[u.id];
+          if (!info) return u;
+          return {
+            ...u,
+            is_online: Boolean(info.is_online),
+            last_seen: info.last_seen,
+            last_seen_text: info.last_seen_text || 'Desconectado',
+          };
+        })
+      );
+    } catch (_err) {
+      // Silencioso
+    }
+  };
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible' && !isModalOpen) {
-        fetchData();
+        fetchOnlineStatuses();
       }
     }, 20000);
     return () => clearInterval(interval);
-  }, [isModalOpen]);
+  }, [isModalOpen, token]);
 
   // Prevenir scroll de fondo cuando el modal está abierto
   useEffect(() => {

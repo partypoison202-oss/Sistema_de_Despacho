@@ -33,11 +33,16 @@ class UserController extends Controller
             ->toArray();
 
         // 2. Obtener la última conexión persistida en la tabla usuarios (incluso si cerró sesión y borró su token)
-        $ultimasConexiones = DB::table('usuarios')
-            ->whereIn('id', $userIds)
-            ->whereNotNull('ultima_conexion')
-            ->pluck('ultima_conexion', 'id')
-            ->toArray();
+        $ultimasConexiones = [];
+        try {
+            $ultimasConexiones = DB::table('usuarios')
+                ->whereIn('id', $userIds)
+                ->whereNotNull('ultima_conexion')
+                ->pluck('ultima_conexion', 'id')
+                ->toArray();
+        } catch (\Throwable $e) {
+            // Silencioso si la columna 'ultima_conexion' aún no ha sido inyectada en la BD del servidor
+        }
 
         $tz = config('app.timezone', 'America/Mexico_City');
         $ahora = Carbon::now($tz);

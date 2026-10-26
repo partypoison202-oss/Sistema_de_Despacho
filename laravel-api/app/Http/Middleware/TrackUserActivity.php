@@ -19,8 +19,10 @@ class TrackUserActivity
             return $next($request);
         }
 
+        $response = $next($request);
+
         try {
-            $user = $request->user();
+            $user = $request->user() ?: $request->user('sanctum');
             if ($user && isset($user->id)) {
                 $tz = config('app.timezone', 'America/Mexico_City');
                 Cache::put('user_online_' . $user->id, true, now()->addMinutes(5));
@@ -28,17 +30,24 @@ class TrackUserActivity
 
                 $token = $user->currentAccessToken();
                 if ($token && method_exists($token, 'forceFill')) {
-                    $token->forceFill(['last_used_at' => now()])->save();
+                    try {
+                        $token->forceFill(['last_used_at' => now()])->save();
+                    } catch (\Throwable $e) {
+                    }
                 }
 
-                if (!$user->ultima_conexion || now()->diffInSeconds($user->ultima_conexion) > 60) {
-                    $user->forceFill(['ultima_conexion' => now()])->save();
+                try {
+                    if (!isset($user->ultima_conexion) || !$user->ultima_conexion || now()->diffInSeconds($user->ultima_conexion) > 60) {
+                        $user->forceFill(['ultima_conexion' => now()])->save();
+                    }
+                } catch (\Throwable $e) {
+                    // Silencioso si la columna aún no existe en producción
                 }
             }
         } catch (\Throwable $e) {
             // Silencioso para no interferir con la respuesta principal
         }
 
-        return $next($request);
+        return $response;
     }
 }
