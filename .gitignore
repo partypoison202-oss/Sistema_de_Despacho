@@ -6,5 +6,7 @@ frontend/dist/
 
 # Archivos temporales de exportación
 laravel-api/export.sql
-.env    
+.env
 .last_deployed_commit
+contrasenas_originales.txt
+

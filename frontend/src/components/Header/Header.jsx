@@ -158,6 +158,8 @@ export default function Header({ title, eyebrow, hideLogos, hideBackButton = fal
                   nombre={user.nombre_completo}
                   size={54}
                   className="app-header__avatar"
+                  isOnline={true}
+                  showStatus={true}
                 />
               </button>
 

@@ -46,7 +46,18 @@ const construirResumen = (registros, tipo) => {
 
   registros.forEach((registro) => {
     const estRaw = String(registro.estatus || '').toLowerCase().trim();
-    if (!estRaw.includes('operaci')) return;
+    const isEncerrada = Boolean(registro.YA_ENCERRADA || registro.ya_encerrada || registro.TURNO_CUMPLIDO || registro.turno_cumplido);
+    const motivo = String(registro.motivo_estatus || registro.motivo || '').toLowerCase();
+    const isFinTurno = (
+      Boolean(registro.TURNO_CUMPLIDO || registro.turno_cumplido) ||
+      (Boolean(registro.YA_ENCERRADA || registro.ya_encerrada) && (
+        motivo.includes('fin de turno') ||
+        motivo.includes('encierro programado') ||
+        motivo.includes('encierro regular')
+      ))
+    );
+
+    if (!estRaw.includes('operaci') && !isFinTurno) return;
 
     const ruta = normalizarRuta(registro.ruta);
     const coincide = tipo === 'troncal' ? esRutaTroncal(ruta) : esRutaAlimentador(ruta);
@@ -62,7 +73,7 @@ const construirResumen = (registros, tipo) => {
     };
 
     const estatus = normalizarEstatus(registro.estatus);
-    if (estatus === 'OPERACION') {
+    if (estatus === 'OPERACION' || isFinTurno) {
       entrada.operando += 1;
     } else {
       entrada.fuera += 1;

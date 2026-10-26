@@ -70,13 +70,28 @@ function procesarModelos(listaUnidades) {
       const tipo = (u.TIPO_DE_UNIDAD || u.tipo || '').toUpperCase().trim();
       return matchPattern.some(p => tipo.includes(p));
     });
-    const prog = units.filter(d => (d.ESTATUS || d.estatus || '').toUpperCase().trim().includes('OPERACI')).length;
+    const isEncierroCumplido = (d) => {
+      if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+      const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+      if (status.includes('MANTENIMIENTO') || status.includes('PERCANCE') || status.includes('TALLER')) return false;
+      const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+      if (!isEncerrada) return false;
+      const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
+      return motivo.includes('fin de turno') ||
+        motivo.includes('encierro programado') ||
+        motivo.includes('encierro regular');
+    };
+
+    const prog = units.filter(d => {
+      const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
+      return status.includes('OPERACI') || isEncierroCumplido(d);
+    }).length;
 
     const oper = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       const isOper = status.includes('OPERACI');
       const isValidada = Boolean(d.HORA_REAL_SALIDA_PATIO || d.hora_real_salida_patio || d.HORA_SALIDA || d.hora_salida || d.MOTIVO_ESTATUS || d.CAMBIO_DESDE);
-      return isOper && isValidada;
+      return (isOper && isValidada) || isEncierroCumplido(d);
     }).length;
     const mantUnits = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
@@ -84,9 +99,9 @@ function procesarModelos(listaUnidades) {
     });
     const reservaUnits = units.filter(d => {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
-      return status.includes('RESERVA');
+      return status.includes('RESERVA') && !isEncierroCumplido(d);
     });
-    const efi = prog > 0 ? Math.round((oper / prog) * 100) : 0;
+    const efi = prog > 0 ? Math.min(100, Math.round((oper / prog) * 100)) : 0;
     const ecosReserva = reservaUnits
       .map(u => String(u.ECONOMICO || u.numero_eco || '').trim())
       .filter(Boolean)

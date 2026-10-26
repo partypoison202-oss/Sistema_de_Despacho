@@ -38,6 +38,7 @@ const ROUTE_DESCRIPTIONS = {
   '3': { tipo: 'alimentadora', label: '3', desc: '3 Real de Toledo - Efrén Rebolledo' },
   '4': { tipo: 'alimentadora', label: '4', desc: '4 Fracc. Lomas de Plata - T. Edad' },
   '4A': { tipo: 'alimentadora', label: '4', desc: '4 Fracc. Lomas de Plata - T. Edad' },
+  '4B': { tipo: 'alimentadora', label: '4B', desc: '4B Paseos de la Plata / E. San Antonio' },
   '5': { tipo: 'alimentadora', label: '5', desc: '5 Parque Urbano - E. Mexicano' },
   '6': { tipo: 'alimentadora', label: '6', desc: '6 Hogares Unión - E. Mexicano' },
   '7': { tipo: 'alimentadora', label: '7', desc: '7 Rancho La Colonia - E. F. Ángeles' },
@@ -188,10 +189,27 @@ export default function CentroControl() {
       // Percance = todas las que tienen estatus 'percance'
       const unidadesPercance     = units.filter((d) => getEstatus(d).includes('PERCANCE'));
 
+      // Encierro programado / Fin de turno cumplido (unidades que ya completaron su servicio programado)
+      const unidadesEncerradasProgramadas = units.filter((d) => {
+        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+
+        const est = getEstatus(d);
+        if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
+
+        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+        if (!isEncerrada) return false;
+
+        const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
+        return motivo.includes('fin de turno') ||
+          motivo.includes('encierro programado') ||
+          motivo.includes('encierro regular');
+      });
+
       const total        = units.length;
       const operacion    = unidadesOperacion.length;
       const desincItinerario = unidadesDesincItinerario.length;
       const circulando   = unidadesCirculando.length;
+      const encerradasProgramadas = unidadesEncerradasProgramadas.length;
       const mantenimiento = unidadesMantenimiento.length;
       const reserva      = unidadesReserva.length;
       const percance     = unidadesPercance.length;
@@ -209,8 +227,8 @@ export default function CentroControl() {
         : 0;
 
       // Si el snapshot está disponible, se respeta el congelado de inicio de día para cada modelo.
-      // Solo si el snapshot aún no tiene datos o es primera carga, usamos las unidades de operación actuales.
-      const programadas = hasSnapshot ? programadasInicio : (unidadesOperacion.length || total);
+      // Si aún no hay snapshot, programadas contempla la flota total asignada al servicio.
+      const programadas = hasSnapshot ? programadasInicio : (total || unidadesOperacion.length);
 
       return {
         ...mc,
@@ -219,6 +237,7 @@ export default function CentroControl() {
         operacion,
         desincItinerario,
         circulando,
+        encerradasProgramadas,
         reserva,
         mantenimiento,
         percance,
@@ -226,6 +245,7 @@ export default function CentroControl() {
         unidadesOperacion,
         unidadesDesincItinerario,
         unidadesCirculando,
+        unidadesEncerradasProgramadas,
         unidadesReserva,
         unidadesMantenimiento,
         unidadesPercance,
@@ -240,15 +260,18 @@ export default function CentroControl() {
       programadas: acc.programadas + m.programadas,
       operacion: acc.operacion + m.operacion,
       desincItinerario: (acc.desincItinerario || 0) + (m.desincItinerario || 0),
+      encerradasProgramadas: (acc.encerradasProgramadas || 0) + (m.encerradasProgramadas || 0),
       circulando: (acc.circulando || 0) + (m.circulando || 0),
       reserva: acc.reserva + m.reserva,
       mantenimiento: acc.mantenimiento + m.mantenimiento,
       percance: (acc.percance || 0) + (m.percance || 0),
     }),
-    { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
+    { total: 0, programadas: 0, operacion: 0, desincItinerario: 0, encerradasProgramadas: 0, circulando: 0, reserva: 0, mantenimiento: 0, percance: 0 }
   );
 
-  const eficienciaGlobal = totales.programadas > 0 ? Math.min(100, Math.round(((totales.circulando + (totales.desincItinerario || 0)) / totales.programadas) * 100)) : 0;
+  const eficienciaGlobal = totales.programadas > 0 
+    ? Math.min(100, Math.round(((totales.circulando + (totales.desincItinerario || 0) + (totales.encerradasProgramadas || 0)) / totales.programadas) * 100)) 
+    : 0;
 
   const handleGenerarReporte = () => {
     descargarReportesGeneralesConAlerta(setIsGenerating);
@@ -520,16 +543,32 @@ export default function CentroControl() {
       const unidadesReserva = units.filter((d) => getEstatus(d) === 'RESERVA');
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
       const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
+      const unidadesEncerradasProgramadas = units.filter((d) => {
+        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+
+        const est = getEstatus(d);
+        if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
+
+        const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
+        if (!isEncerrada) return false;
+
+        const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
+        return motivo.includes('fin de turno') ||
+          motivo.includes('encierro programado') ||
+          motivo.includes('encierro regular');
+      });
 
       const total = units.length;
       const operacion = unidadesOperacion.length;
       const desincItinerario = unidadesDesincItinerario.length;
       const circulando = unidadesCirculando.length;
+      const encerradasProgramadas = unidadesEncerradasProgramadas.length;
       const reserva = unidadesReserva.length;
       const mantenimiento = unidadesMantenimiento.length;
       const percance = unidadesPercance.length;
-      const programadas = unidadesOperacion.length || units.length;
-      const eficiencia = programadas > 0 ? Math.min(100, Math.round((circulando / programadas) * 100)) : 0;
+      const cumplidasRuta = circulando + desincItinerario + encerradasProgramadas;
+      const programadas = units.length;
+      const eficiencia = programadas > 0 ? Math.min(100, Math.round((cumplidasRuta / programadas) * 100)) : 0;
 
       return {
         ...r,
@@ -538,6 +577,7 @@ export default function CentroControl() {
         operacion,
         desincItinerario,
         circulando,
+        encerradasProgramadas,
         reserva,
         mantenimiento,
         percance,
@@ -1004,7 +1044,7 @@ export default function CentroControl() {
                         <span className="centro-status-dot" style={{ backgroundColor: '#d97706' }} />
                         <span className="centro-status-label" style={{ fontWeight: '600', color: '#92400e' }}>Eficiencia</span>
                         <span className="centro-status-percent" style={{ color: '#b45309', backgroundColor: '#fef3c7', fontWeight: 'bold' }}>
-                          {cargando ? '—' : `${Math.min(100, Math.round(pct(m.circulando, m.operacion || m.programadas)))}%`}
+                          {cargando ? '—' : `${Math.min(100, Math.round(pct(m.circulando + (m.desincItinerario || 0) + (m.encerradasProgramadas || 0), m.programadas || m.total)))}%`}
                         </span>
                         <span className="centro-status-value"></span>
                       </div>

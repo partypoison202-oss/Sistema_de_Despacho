@@ -23,7 +23,7 @@ export const normalizeRutaClave = (ruta) => {
  * Lista canónica y oficial de rutas alimentadoras en orden secuencial de menor a mayor.
  */
 export const OFFICIAL_ALIMENTADORAS_ORDER = [
-  '1A', '1B', '2A', '2B', '2D', '2E', '3', '4A', '4B', '5', '6',
+  '1A', '1B', '2A', '2B', '2D', '2E', '3', '4', '4A', '4B', '5', '6',
   '7', '8', '9', '10', '11', '12', '13', '14', '15A', '15B',
   '15C', '16', '17', '19', '20B'
 ];

@@ -40,10 +40,11 @@ echo -e "  ${BLUE}[1]${NC} Matriz de Usuarios y Permisos (Seguro: Actualiza y ag
 echo -e "  ${BLUE}[2]${NC} Conductores desde Plantilla JSON (${RED}PELIGRO:${NC} Borra toda la tabla de conductores e historial)"
 echo -e "  ${BLUE}[3]${NC} Ambos"
 echo -e "  ${BLUE}[4]${NC} Extraer/Exportar Contraseñas y Usuarios (a formato CSV para Excel)"
+echo -e "  ${BLUE}[5]${NC} Inyectar estructura de Conexión Activa (ultima_conexion y trigger PostgreSQL)"
 echo -e "  ${BLUE}[0]${NC} Cancelar y salir"
 echo ""
 
-read -p "Elige una opción [0-4]: " opcion
+read -p "Elige una opción [0-5]: " opcion
 
 cd laravel-api
 
@@ -98,6 +99,11 @@ case $opcion in
         echo -e "Archivo creado:"
         echo -e " - laravel-api/export_usuarios_completo.csv"
         echo -e "${YELLOW}(Nota: Puedes abrir este archivo CSV directamente en Excel)${NC}"
+        ;;
+    5)
+        echo -e "\n${BLUE}🔄 Inyectando columna 'ultima_conexion' y trigger de PostgreSQL...${NC}"
+        "$PHP_BIN" artisan db:arreglar-permisos
+        echo -e "${GREEN}✔ Estructura de Conexión Activa y triggers verificados exitosamente.${NC}"
         ;;
     0)
         echo -e "${GREEN}Saliendo sin hacer cambios...${NC}"

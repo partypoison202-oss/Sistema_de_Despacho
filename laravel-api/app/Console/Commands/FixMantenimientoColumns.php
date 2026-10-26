@@ -87,6 +87,43 @@ class FixMantenimientoColumns extends Command
                     EXECUTE 'ALTER TABLE historial_operativo ADD COLUMN IF NOT EXISTS created_at timestamp null default now()';
                 END IF;
 
+                -- Inyectar columna ultima_conexion en tabla usuarios si no existe
+                IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'usuarios') THEN
+                    EXECUTE 'ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultima_conexion timestamp null';
+                END IF;
+
+                -- Inyectar trigger para sincronización automática de última conexión
+                IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'personal_access_tokens') AND EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'usuarios') THEN
+                    CREATE OR REPLACE FUNCTION trg_sync_user_ultima_conexion()
+                    RETURNS TRIGGER AS \$trg\$
+                    BEGIN
+                        IF (TG_OP = 'DELETE') THEN
+                            IF OLD.tokenable_type = 'App\\Models\\User' AND OLD.tokenable_id IS NOT NULL THEN
+                                UPDATE usuarios 
+                                SET ultima_conexion = GREATEST(COALESCE(ultima_conexion, '2000-01-01'::timestamp), COALESCE(OLD.last_used_at, NOW()))
+                                WHERE id = OLD.tokenable_id;
+                            END IF;
+                            RETURN OLD;
+                        ELSIF (TG_OP = 'UPDATE' OR TG_OP = 'INSERT') THEN
+                            IF NEW.tokenable_type = 'App\\Models\\User' AND NEW.tokenable_id IS NOT NULL AND NEW.last_used_at IS NOT NULL THEN
+                                UPDATE usuarios 
+                                SET ultima_conexion = GREATEST(COALESCE(ultima_conexion, '2000-01-01'::timestamp), NEW.last_used_at)
+                                WHERE id = NEW.tokenable_id;
+                            END IF;
+                            RETURN NEW;
+                        END IF;
+                        RETURN NULL;
+                    END;
+                    \$trg\$ LANGUAGE plpgsql;
+
+                    DROP TRIGGER IF EXISTS trigger_sync_user_ultima_conexion ON personal_access_tokens;
+
+                    CREATE TRIGGER trigger_sync_user_ultima_conexion
+                    BEFORE DELETE OR INSERT OR UPDATE OF last_used_at ON personal_access_tokens
+                    FOR EACH ROW
+                    EXECUTE FUNCTION trg_sync_user_ultima_conexion();
+                END IF;
+
                 -- Asegurar que la unidad 233 exista en el catálogo de unidades si aún no está registrada
                 IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'unidades') THEN
                     INSERT INTO unidades (transporte_id, numero_eco, tipo)
@@ -145,6 +182,8 @@ class FixMantenimientoColumns extends Command
             '2026_09_04_141635_add_hora_encierro_to_historial_operativo',
             '2026_09_09_150000_add_relevo_fields_to_operativas_tables',
             '2026_10_15_120000_add_hora_encierro_to_operativas_tables',
+            '2026_10_21_160500_add_ultima_conexion_to_usuarios_table',
+            '2026_10_21_162500_create_trigger_for_user_ultima_conexion',
         ];
 
         foreach($migraciones as $migracion) {

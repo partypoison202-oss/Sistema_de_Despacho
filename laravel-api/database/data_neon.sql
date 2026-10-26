@@ -57,6 +57,7 @@ INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('26', '16', 'alimentadora') O
 INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('27', '17', 'alimentadora') ON CONFLICT (id) DO UPDATE SET "ruta" = EXCLUDED."ruta", "tipo" = EXCLUDED."tipo";
 INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('28', '19', 'alimentadora') ON CONFLICT (id) DO UPDATE SET "ruta" = EXCLUDED."ruta", "tipo" = EXCLUDED."tipo";
 INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('29', '20B', 'alimentadora') ON CONFLICT (id) DO UPDATE SET "ruta" = EXCLUDED."ruta", "tipo" = EXCLUDED."tipo";
+INSERT INTO "rutas" ("id", "ruta", "tipo") VALUES ('30', '4B', 'alimentadora') ON CONFLICT (id) DO UPDATE SET "ruta" = EXCLUDED."ruta", "tipo" = EXCLUDED."tipo";
 SELECT setval(pg_get_serial_sequence('rutas', 'id'), COALESCE((SELECT MAX(id) FROM "rutas"), 1));
 
 -- Tabla: secciones_unidad

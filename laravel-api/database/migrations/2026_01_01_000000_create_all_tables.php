@@ -51,6 +51,7 @@ return new class extends Migration
                 $table->boolean('activo')->default(true);
                 $table->foreignId('rol_id')->nullable()->constrained('roles');
                 $table->longText('foto_url')->nullable();
+                $table->timestamp('ultima_conexion')->nullable();
                 $table->timestamp('fecha_creacion')->nullable();
                 $table->timestamp('fecha_actualizacion')->nullable();
             });
@@ -58,6 +59,11 @@ return new class extends Migration
             if (!Schema::hasColumn('usuarios', 'foto_url')) {
                 Schema::table('usuarios', function (Blueprint $table) {
                     $table->longText('foto_url')->nullable();
+                });
+            }
+            if (!Schema::hasColumn('usuarios', 'ultima_conexion')) {
+                Schema::table('usuarios', function (Blueprint $table) {
+                    $table->timestamp('ultima_conexion')->nullable();
                 });
             }
         }
@@ -791,6 +797,40 @@ return new class extends Migration
                 $table->string('descripcion', 500);
                 $table->timestamps();
             });
+        }
+
+        // ─── Trigger Sincronización Última Conexión ───────────────────
+        if (Schema::hasTable('personal_access_tokens') && Schema::hasTable('usuarios')) {
+            \Illuminate\Support\Facades\DB::unprepared("
+                CREATE OR REPLACE FUNCTION trg_sync_user_ultima_conexion()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    IF (TG_OP = 'DELETE') THEN
+                        IF OLD.tokenable_type = 'App\\Models\\User' AND OLD.tokenable_id IS NOT NULL THEN
+                            UPDATE usuarios 
+                            SET ultima_conexion = GREATEST(COALESCE(ultima_conexion, '2000-01-01'::timestamp), COALESCE(OLD.last_used_at, NOW()))
+                            WHERE id = OLD.tokenable_id;
+                        END IF;
+                        RETURN OLD;
+                    ELSIF (TG_OP = 'UPDATE' OR TG_OP = 'INSERT') THEN
+                        IF NEW.tokenable_type = 'App\\Models\\User' AND NEW.tokenable_id IS NOT NULL AND NEW.last_used_at IS NOT NULL THEN
+                            UPDATE usuarios 
+                            SET ultima_conexion = GREATEST(COALESCE(ultima_conexion, '2000-01-01'::timestamp), NEW.last_used_at)
+                            WHERE id = NEW.tokenable_id;
+                        END IF;
+                        RETURN NEW;
+                    END IF;
+                    RETURN NULL;
+                END;
+                $$ LANGUAGE plpgsql;
+
+                DROP TRIGGER IF EXISTS trigger_sync_user_ultima_conexion ON personal_access_tokens;
+
+                CREATE TRIGGER trigger_sync_user_ultima_conexion
+                BEFORE DELETE OR INSERT OR UPDATE OF last_used_at ON personal_access_tokens
+                FOR EACH ROW
+                EXECUTE FUNCTION trg_sync_user_ultima_conexion();
+            ");
         }
     }
 

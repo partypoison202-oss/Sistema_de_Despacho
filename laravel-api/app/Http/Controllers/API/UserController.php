@@ -7,16 +7,115 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class UserController extends Controller
 {
+    /**
+     * Calcula la presencia en línea y formato de última conexión
+     * combinando caché y tokens de sesión compartidos en la base de datos Neon.
+     */
+    private function calcularPresencia(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+
+        $actividadTokens = DB::table('personal_access_tokens')
+            ->where('tokenable_type', 'App\Models\User')
+            ->whereIn('tokenable_id', $userIds)
+            ->whereNotNull('last_used_at')
+            ->groupBy('tokenable_id')
+            ->select('tokenable_id', DB::raw('MAX(last_used_at) as ultimo_uso'))
+            ->pluck('ultimo_uso', 'tokenable_id')
+            ->toArray();
+
+        // 2. Obtener la última conexión persistida en la tabla usuarios (incluso si cerró sesión y borró su token)
+        $ultimasConexiones = [];
+        try {
+            $ultimasConexiones = DB::table('usuarios')
+                ->whereIn('id', $userIds)
+                ->whereNotNull('ultima_conexion')
+                ->pluck('ultima_conexion', 'id')
+                ->toArray();
+        } catch (\Throwable $e) {
+            // Silencioso si la columna 'ultima_conexion' aún no ha sido inyectada en la BD del servidor
+        }
+
+        $tz = config('app.timezone', 'America/Mexico_City');
+        $ahora = Carbon::now($tz);
+        $resultado = [];
+
+        foreach ($userIds as $id) {
+            $isOnlineFromCache = Cache::has('user_online_' . $id);
+            $lastSeenFromCache = Cache::get('user_last_seen_' . $id);
+
+            // Determinar la fecha/hora más reciente entre el token de sesión y el registro del usuario
+            $fechaToken = isset($actividadTokens[$id]) ? Carbon::parse($actividadTokens[$id], $tz) : null;
+            $fechaUsuario = isset($ultimasConexiones[$id]) ? Carbon::parse($ultimasConexiones[$id], $tz) : null;
+
+            $carbonUltimo = null;
+            if ($fechaToken && $fechaUsuario) {
+                $carbonUltimo = $fechaToken->greaterThan($fechaUsuario) ? $fechaToken : $fechaUsuario;
+            } else {
+                $carbonUltimo = $fechaToken ?: $fechaUsuario;
+            }
+
+            // En línea SOLAMENTE si tiene token activo en personal_access_tokens en los últimos 5 minutos O caché activa
+            $isOnlineFromToken = ($fechaToken && abs($ahora->diffInMinutes($fechaToken, false)) <= 5);
+            $isOnline = $isOnlineFromCache || $isOnlineFromToken;
+            $lastSeenText = 'Desconectado';
+
+            if ($isOnline) {
+                $lastSeenText = 'En línea';
+            } elseif ($carbonUltimo) {
+                // Mostrar la hora exacta de la última vez que estuvo activo
+                if ($carbonUltimo->isToday()) {
+                    $lastSeenText = 'Hoy ' . $carbonUltimo->format('g:i A');
+                } elseif ($carbonUltimo->isYesterday()) {
+                    $lastSeenText = 'Ayer ' . $carbonUltimo->format('g:i A');
+                } else {
+                    $lastSeenText = $carbonUltimo->format('d/m/Y g:i A');
+                }
+            }
+
+            $resultado[$id] = [
+                'is_online' => $isOnline,
+                'last_seen' => $carbonUltimo ? $carbonUltimo->toIso8601String() : $lastSeenFromCache,
+                'last_seen_text' => $lastSeenText,
+            ];
+        }
+
+        return $resultado;
+    }
+
     public function index()
     {
         $users = User::with(['role', 'modulos'])
             ->where('usuario', '!=', 'sitmah_root')
             ->orderBy('id', 'asc')
             ->get();
+
+        $presencias = $this->calcularPresencia($users->pluck('id')->toArray());
+
+        $users->transform(function ($u) use ($presencias) {
+            $info = $presencias[$u->id] ?? null;
+            $u->is_online = $info['is_online'] ?? false;
+            $u->last_seen = $info['last_seen'] ?? null;
+            $u->last_seen_text = $info['last_seen_text'] ?? 'Desconectado';
+            return $u;
+        });
+
         return response()->json($users);
+    }
+
+    public function onlineStatuses()
+    {
+        $userIds = User::where('usuario', '!=', 'sitmah_root')->pluck('id')->toArray();
+        $statuses = $this->calcularPresencia($userIds);
+        return response()->json($statuses);
     }
 
     /**

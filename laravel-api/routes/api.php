@@ -228,9 +228,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/heartbeat', [AuthController::class, 'heartbeat']);
 
     // Gestión de Usuarios
     Route::get('/users/roles', [UserController::class, 'roles']);
+    Route::get('/users/status-online', [UserController::class, 'onlineStatuses']);
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     Route::put('/users/{id}', [UserController::class, 'update']);

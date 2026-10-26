@@ -141,7 +141,6 @@ class PlataformaController extends Controller
                 $datosUpdate['motivo_estatus'] = 'INCORPORACION';
                 $datosUpdate['falla'] = null;
                 $datosUpdate['motivo'] = null;
-                $datosUpdate['hora_encierro'] = null;
 
                 // Si la unidad tenía un encierro registrado previamente hoy, liberarlo/eliminarlo
                 $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
@@ -375,7 +374,7 @@ class PlataformaController extends Controller
                         'cambio_motivo'         => $request->motivo ? strtoupper($request->motivo) : 'REEMPLAZO',
                         'falla'                 => null,
                         'motivo'                => null,
-                        'hora_encierro'         => null,
+                        'hora_encierro'         => $registroOperativo->hora_encierro ?? null,
                     ];
                     
                     // Limpiamos el conductor de la unidad original, ya que se pasó al reemplazo

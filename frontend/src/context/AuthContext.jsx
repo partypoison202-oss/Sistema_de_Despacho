@@ -65,6 +65,40 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
+  // Heartbeat periódico para presencia en línea (punto verde en tiempo real)
+  useEffect(() => {
+    if (!token) return;
+
+    const sendHeartbeat = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+      fetch(`${API_BASE}/api/heartbeat`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).catch(() => {});
+    };
+
+    sendHeartbeat();
+
+    const timer = setInterval(sendHeartbeat, 40000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        sendHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [token]);
+
   const login = (userData, authToken) => {
     setUser(userData);
     setToken(authToken);

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { compareRutas } from '../../utils/rutaUtils';
 import API_BASE from '../../config/api';
 import './ModalMonitoreoConductores.css';
+import { compareRutas } from '../../utils/rutaUtils';
 
 export default function ModalMonitoreoConductores({
   isOpen,
