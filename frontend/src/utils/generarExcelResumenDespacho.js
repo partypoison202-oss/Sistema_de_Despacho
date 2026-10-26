@@ -75,11 +75,32 @@ function procesarModelos(listaUnidades) {
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       if (status.includes('MANTENIMIENTO') || status.includes('PERCANCE') || status.includes('TALLER')) return false;
       const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
-      if (!isEncerrada) return false;
       const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
-      return motivo.includes('fin de turno') ||
-        motivo.includes('encierro programado') ||
-        motivo.includes('encierro regular');
+
+      const esFallaOPercance = motivo.includes('falla') ||
+        motivo.includes('averia') ||
+        motivo.includes('siniestro') ||
+        motivo.includes('taller') ||
+        motivo.includes('mantenimiento') ||
+        motivo.includes('percance');
+
+      if (isEncerrada && !esFallaOPercance) return true;
+
+      const esEncierroMotivo = motivo.includes('fin de turno') ||
+        motivo.includes('encierro') ||
+        motivo.includes('turno cumplido') ||
+        motivo.includes('cumplio turno') ||
+        motivo.includes('cumplió turno') ||
+        motivo.includes('cumplimiento') ||
+        motivo.includes('termino de turno') ||
+        motivo.includes('término de turno') ||
+        motivo.includes('servicio concluido') ||
+        motivo.includes('fin de servicio') ||
+        motivo.includes('concluyo servicio') ||
+        motivo.includes('concluyó servicio') ||
+        motivo.includes('fin de jornada');
+
+      return esEncierroMotivo && !esFallaOPercance;
     };
 
     const prog = units.filter(d => {

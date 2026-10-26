@@ -47,13 +47,31 @@ const construirResumen = (registros, tipo) => {
     const estRaw = String(registro.estatus || '').toLowerCase().trim();
     const isEncerrada = Boolean(registro.YA_ENCERRADA || registro.ya_encerrada || registro.TURNO_CUMPLIDO || registro.turno_cumplido);
     const motivo = String(registro.motivo_estatus || registro.motivo || '').toLowerCase();
+    const esFallaOPercance = motivo.includes('falla') ||
+      motivo.includes('averia') ||
+      motivo.includes('siniestro') ||
+      motivo.includes('taller') ||
+      motivo.includes('mantenimiento') ||
+      motivo.includes('percance');
+
+    const esEncierroMotivo = motivo.includes('fin de turno') ||
+      motivo.includes('encierro') ||
+      motivo.includes('turno cumplido') ||
+      motivo.includes('cumplio turno') ||
+      motivo.includes('cumplió turno') ||
+      motivo.includes('cumplimiento') ||
+      motivo.includes('termino de turno') ||
+      motivo.includes('término de turno') ||
+      motivo.includes('servicio concluido') ||
+      motivo.includes('fin de servicio') ||
+      motivo.includes('concluyo servicio') ||
+      motivo.includes('concluyó servicio') ||
+      motivo.includes('fin de jornada');
+
     const isFinTurno = (
       Boolean(registro.TURNO_CUMPLIDO || registro.turno_cumplido) ||
-      (Boolean(registro.YA_ENCERRADA || registro.ya_encerrada) && (
-        motivo.includes('fin de turno') ||
-        motivo.includes('encierro programado') ||
-        motivo.includes('encierro regular')
-      ))
+      (!esFallaOPercance && Boolean(registro.YA_ENCERRADA || registro.ya_encerrada)) ||
+      (!esFallaOPercance && esEncierroMotivo)
     );
 
     if (!estRaw.includes('operaci') && !isFinTurno) return;
