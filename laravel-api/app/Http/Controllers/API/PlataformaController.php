@@ -141,7 +141,6 @@ class PlataformaController extends Controller
                 $datosUpdate['motivo_estatus'] = 'INCORPORACION';
                 $datosUpdate['falla'] = null;
                 $datosUpdate['motivo'] = null;
-                $datosUpdate['hora_encierro'] = null;
 
                 // Si la unidad tenía un encierro registrado previamente hoy, liberarlo/eliminarlo
                 $fechaHoyMex = Carbon::now('America/Mexico_City')->toDateString();
@@ -375,14 +374,14 @@ class PlataformaController extends Controller
                         'cambio_motivo'         => $request->motivo ? strtoupper($request->motivo) : 'REEMPLAZO',
                         'falla'                 => null,
                         'motivo'                => null,
-                        'hora_encierro'         => null,
+                        'hora_encierro'         => $registroOperativo->hora_encierro ?? null,
                     ];
                     
                     // Limpiamos el conductor de la unidad original, ya que se pasó al reemplazo
                     $datosUpdate['numero_tarjeton'] = null;
                     $datosUpdate['nombre_conductor'] = null;
 
-                    foreach (['patio_norte', 'transporte_patio_norte'] as $boolCol) {
+                    foreach (['patio_norte', 'transporte_patio_norte', 'itinerario'] as $boolCol) {
                         if (array_key_exists($boolCol, $datosReemplazo)) {
                             $val = filter_var($datosReemplazo[$boolCol], FILTER_VALIDATE_BOOLEAN);
                             $datosReemplazo[$boolCol] = $val ? 'true' : 'false';
@@ -796,7 +795,7 @@ class PlataformaController extends Controller
 
             // Sincronizar el cambio con informacion_operativa
             if ($registroOperativo && !empty($datosUpdate)) {
-                foreach (['patio_norte', 'transporte_patio_norte'] as $boolCol) {
+                foreach (['patio_norte', 'transporte_patio_norte', 'itinerario'] as $boolCol) {
                     if (array_key_exists($boolCol, $datosUpdate)) {
                         $val = filter_var($datosUpdate[$boolCol], FILTER_VALIDATE_BOOLEAN);
                         $datosUpdate[$boolCol] = $val ? 'true' : 'false';
