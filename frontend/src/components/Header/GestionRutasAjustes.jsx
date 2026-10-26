@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
@@ -27,6 +28,17 @@ export default function GestionRutasAjustes() {
   const [tipoInput, setTipoInput] = useState('alimentadora');
   const [descripcionInput, setDescripcionInput] = useState('');
   const [errorInput, setErrorInput] = useState('');
+
+  // Bloquear scroll de fondo cuando el formulario esté abierto
+  useEffect(() => {
+    if (modalFormOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [modalFormOpen]);
 
   // 1. Obtener listado de rutas desde la API
   const { data: responseData, isLoading, refetch } = useQuery({
@@ -215,78 +227,81 @@ export default function GestionRutasAjustes() {
 
   return (
     <div className="gestion-rutas">
-      {/* Cabecera y descripción explicativa */}
-      <div className="gestion-rutas__intro">
-        <div className="gestion-rutas__intro-text">
-          <h3 className="gestion-rutas__title">Catálogo Maestro de Rutas</h3>
-          <p className="gestion-rutas__subtitle">
-            Administra las rutas troncales y alimentadoras conectadas a la base de datos.
-            Cualquier cambio se reflejará al instante en las tablas de programación y despacho.
-          </p>
+      {/* Controles superiores fijados (Sticky al hacer scroll) */}
+      <div className="gestion-rutas__sticky-header">
+        {/* Cabecera y descripción explicativa */}
+        <div className="gestion-rutas__intro">
+          <div className="gestion-rutas__intro-text">
+            <h3 className="gestion-rutas__title">Catálogo Maestro de Rutas</h3>
+            <p className="gestion-rutas__subtitle">
+              Administra las rutas troncales y alimentadoras conectadas a la base de datos.
+              Cualquier cambio se reflejará al instante en las tablas de programación y despacho.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-nueva-ruta"
+            onClick={handleAbrirCrear}
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Nueva Ruta
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn-nueva-ruta"
-          onClick={handleAbrirCrear}
-        >
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Nueva Ruta
-        </button>
-      </div>
 
-      {/* Selector de Pestañas / Filtro por Tipo */}
-      <div className="gestion-rutas__tabs">
-        <button
-          type="button"
-          className={`tab-chip ${filtroTipo === 'todas' ? 'active' : ''}`}
-          onClick={() => setFiltroTipo('todas')}
-        >
-          Todas
-          <span className="tab-count">{totales.todas}</span>
-        </button>
-        <button
-          type="button"
-          className={`tab-chip tab-chip--troncal ${filtroTipo === 'troncal' ? 'active' : ''}`}
-          onClick={() => setFiltroTipo('troncal')}
-        >
-          Troncales
-          <span className="tab-count">{totales.troncales}</span>
-        </button>
-        <button
-          type="button"
-          className={`tab-chip tab-chip--alimentadora ${filtroTipo === 'alimentadora' ? 'active' : ''}`}
-          onClick={() => setFiltroTipo('alimentadora')}
-        >
-          Alimentadoras
-          <span className="tab-count">{totales.alimentadoras}</span>
-        </button>
-      </div>
+        {/* Selector de Pestañas / Filtro por Tipo */}
+        <div className="gestion-rutas__tabs">
+          <button
+            type="button"
+            className={`tab-chip ${filtroTipo === 'todas' ? 'active' : ''}`}
+            onClick={() => setFiltroTipo('todas')}
+          >
+            Todas
+            <span className="tab-count">{totales.todas}</span>
+          </button>
+          <button
+            type="button"
+            className={`tab-chip tab-chip--troncal ${filtroTipo === 'troncal' ? 'active' : ''}`}
+            onClick={() => setFiltroTipo('troncal')}
+          >
+            Troncales
+            <span className="tab-count">{totales.troncales}</span>
+          </button>
+          <button
+            type="button"
+            className={`tab-chip tab-chip--alimentadora ${filtroTipo === 'alimentadora' ? 'active' : ''}`}
+            onClick={() => setFiltroTipo('alimentadora')}
+          >
+            Alimentadoras
+            <span className="tab-count">{totales.alimentadoras}</span>
+          </button>
+        </div>
 
-      {/* Buscador */}
-      <div className="gestion-rutas__search-bar">
-        <div className="search-input-wrapper">
-          <svg className="search-icon" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Buscar ruta (ej. T01, 1A, 15C)..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="rutas-search-input"
-          />
-          {busqueda && (
-            <button
-              type="button"
-              className="search-clear-btn"
-              onClick={() => setBusqueda('')}
-              title="Limpiar búsqueda"
-            >
-              ×
-            </button>
-          )}
+        {/* Buscador */}
+        <div className="gestion-rutas__search-bar">
+          <div className="search-input-wrapper">
+            <svg className="search-icon" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Buscar ruta (ej. T01, 1A, 15C)..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="rutas-search-input"
+            />
+            {busqueda && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setBusqueda('')}
+                title="Limpiar búsqueda"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -363,7 +378,7 @@ export default function GestionRutasAjustes() {
       </div>
 
       {/* Mini-Modal / Formulario para Agregar o Editar */}
-      {modalFormOpen && (
+      {modalFormOpen && createPortal(
         <div className="ruta-form-overlay" onClick={cerrarFormulario}>
           <div className="ruta-form-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ruta-form-modal__header">
@@ -419,8 +434,7 @@ export default function GestionRutasAjustes() {
                       onChange={() => setTipoInput('troncal')}
                     />
                     <div className="tipo-option-content">
-                      <span className="tipo-title">Troncal</span>
-                      <span className="tipo-subtitle">Para unidades Urbanuss (T01, T02...)</span>
+                      <span className="tipo-title">Urbanuss</span>
                     </div>
                   </label>
 
@@ -433,8 +447,7 @@ export default function GestionRutasAjustes() {
                       onChange={() => setTipoInput('alimentadora')}
                     />
                     <div className="tipo-option-content">
-                      <span className="tipo-title">Alimentadora</span>
-                      <span className="tipo-subtitle">Para Zafiro, Orión y Vagoneta (1A, 2B...)</span>
+                      <span className="tipo-title">Zafiro, Orión y Vagoneta</span>
                     </div>
                   </label>
                 </div>
@@ -468,7 +481,8 @@ export default function GestionRutasAjustes() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
