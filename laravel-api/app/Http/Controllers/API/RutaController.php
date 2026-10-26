@@ -7,6 +7,7 @@ use App\Models\Ruta;
 use App\Services\SyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class RutaController extends Controller
 {
@@ -200,11 +201,36 @@ class RutaController extends Controller
             ], 422);
         }
 
+        $codigoAnterior = $ruta->ruta;
         $ruta->update([
             'ruta' => $codigoLimpio,
             'tipo' => $tipoLimpio,
             'descripcion' => $descripcionLimpia,
         ]);
+
+        // Si se renombró el código, sincronizar en tablas operativas activas
+        if ($codigoAnterior !== $codigoLimpio) {
+            $codigoAntLimpio = strtoupper(trim($codigoAnterior));
+            $codigoAntSinPrefijo = preg_replace('/^(?:RA|T|RUTA|ALIMENTADORA|TRONCAL)\s*[-_]?\s*/i', '', $codigoAntLimpio);
+
+            $actualizarRutaEnTabla = function ($tabla) use ($codigoAntLimpio, $codigoAntSinPrefijo, $codigoLimpio) {
+                if (!Schema::hasTable($tabla) || !Schema::hasColumn($tabla, 'ruta')) {
+                    return;
+                }
+                DB::table($tabla)
+                    ->where(function ($q) use ($codigoAntLimpio, $codigoAntSinPrefijo) {
+                        $q->whereRaw('UPPER(TRIM(ruta)) = ?', [$codigoAntLimpio])
+                          ->orWhereRaw('UPPER(TRIM(ruta)) = ?', [$codigoAntSinPrefijo])
+                          ->orWhereRaw("UPPER(TRIM(ruta)) = ?", ['RA ' . $codigoAntSinPrefijo])
+                          ->orWhereRaw("UPPER(TRIM(ruta)) = ?", ['T-' . $codigoAntSinPrefijo])
+                          ->orWhereRaw("UPPER(TRIM(ruta)) = ?", ['T' . $codigoAntSinPrefijo]);
+                    })
+                    ->update(['ruta' => $codigoLimpio]);
+            };
+
+            $actualizarRutaEnTabla('informacion_operativa');
+            $actualizarRutaEnTabla('informacion_operativa_manana');
+        }
 
         SyncService::notifyChange();
 
@@ -216,7 +242,7 @@ class RutaController extends Controller
     }
 
     /**
-     * Elimina una ruta del catálogo.
+     * Elimina una ruta del catálogo y limpia asignaciones en unidades activas.
      */
     public function destroy($id)
     {
@@ -230,6 +256,28 @@ class RutaController extends Controller
 
         $codigo = $ruta->ruta;
         $ruta->delete();
+
+        // Limpiar asignaciones de la ruta eliminada en las unidades operativas activas
+        $codigoLimpio = strtoupper(trim($codigo));
+        $codigoSinPrefijo = preg_replace('/^(?:RA|T|RUTA|ALIMENTADORA|TRONCAL)\s*[-_]?\s*/i', '', $codigoLimpio);
+
+        $limpiarRutaEnTabla = function ($tabla) use ($codigoLimpio, $codigoSinPrefijo) {
+            if (!Schema::hasTable($tabla) || !Schema::hasColumn($tabla, 'ruta')) {
+                return;
+            }
+            DB::table($tabla)
+                ->where(function ($q) use ($codigoLimpio, $codigoSinPrefijo) {
+                    $q->whereRaw('UPPER(TRIM(ruta)) = ?', [$codigoLimpio])
+                      ->orWhereRaw('UPPER(TRIM(ruta)) = ?', [$codigoSinPrefijo])
+                      ->orWhereRaw("UPPER(TRIM(ruta)) = ?", ['RA ' . $codigoSinPrefijo])
+                      ->orWhereRaw("UPPER(TRIM(ruta)) = ?", ['T-' . $codigoSinPrefijo])
+                      ->orWhereRaw("UPPER(TRIM(ruta)) = ?", ['T' . $codigoSinPrefijo]);
+                })
+                ->update(['ruta' => null]);
+        };
+
+        $limpiarRutaEnTabla('informacion_operativa');
+        $limpiarRutaEnTabla('informacion_operativa_manana');
 
         SyncService::notifyChange();
 

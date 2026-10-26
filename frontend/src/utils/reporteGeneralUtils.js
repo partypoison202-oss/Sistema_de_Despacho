@@ -19,7 +19,7 @@ const MAPA_RUTAS = {
   'RA 11': '11', 'RA 14': '14', 'RA 15A': '15A', 'RA 15B': '15B',
 };
 
-export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
+export const procesarDatosReportesGenerales = (apiData, inicioData = null, catalogoRutas = null) => {
   const list = Array.isArray(apiData) ? apiData : [];
   const listInicio = Array.isArray(inicioData) ? inicioData : null;
 
@@ -113,18 +113,53 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     return null;
   };
 
-  const RUTAS_TRONCAL_DEFAULT = ['T-01', 'T-02', 'T-04', 'T-05'];
-  const RUTAS_ALIMENTADORA_DEFAULT = [
-    'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 'RA 4B',
-    'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B'
-  ];
+  const catalogoList = Array.isArray(catalogoRutas)
+    ? catalogoRutas
+    : (Array.isArray(catalogoRutas?.data) ? catalogoRutas.data : []);
+
+  // Extraer Troncales del Catálogo dinámico
+  const troncalesDelCatalogo = catalogoList
+    .filter((r) => (r.tipo || '').toLowerCase() === 'troncal')
+    .map((r) => normalizarRutaReporte(r.ruta, 'URBANUS'))
+    .filter((r) => r && !r.toUpperCase().includes('SIN ASIGNAR'));
+
+  const RUTAS_TRONCAL_DEFAULT = troncalesDelCatalogo.length > 0 
+    ? [...new Set(troncalesDelCatalogo)]
+    : ['T-01', 'T-02', 'T-04', 'T-05'];
+
+  // Extraer Alimentadoras del Catálogo dinámico
+  const alimentadorasDelCatalogo = catalogoList
+    .filter((r) => (r.tipo || '').toLowerCase() === 'alimentadora')
+    .map((r) => normalizarRutaReporte(r.ruta, 'ZAFIRO'))
+    .filter((r) => r && !r.toUpperCase().includes('SIN ASIGNAR'));
+
+  const RUTAS_ALIMENTADORA_DEFAULT = alimentadorasDelCatalogo.length > 0
+    ? [...new Set(alimentadorasDelCatalogo)]
+    : [
+      'RA 2A', 'RA 2B', 'RA 2D', 'RA 3', 'RA 4', 'RA 4B',
+      'RA 6', 'RA 8', 'RA 11', 'RA 14', 'RA 15A', 'RA 15B'
+    ];
+
+  // Set de rutas válidas en el catálogo (para excluir del reporte rutas eliminadas)
+  const rutasValidasSet = new Set();
+  if (catalogoList.length > 0) {
+    catalogoList.forEach((r) => {
+      const normCodigo = normStr(r.ruta);
+      const cleanNum = normCodigo.replace(/^(?:RA|T|ALIMENTADORA|TRONCAL|RUTA)\s*[-_]?\s*/i, '').trim();
+      const normReporte = normalizarRutaReporte(r.ruta, r.tipo === 'troncal' ? 'URBANUS' : 'ZAFIRO');
+
+      if (normCodigo) rutasValidasSet.add(normCodigo);
+      if (cleanNum) rutasValidasSet.add(cleanNum);
+      if (normReporte) rutasValidasSet.add(normReporte);
+    });
+  }
 
   const contadoresRutas = {};
-  [...RUTAS_TRONCAL_DEFAULT, ...RUTAS_ALIMENTADORA_DEFAULT].forEach((r) => {
-    const isTroncal = r.startsWith('T-');
+  // Inicializar siempre todas las Troncales oficiales del catálogo
+  RUTAS_TRONCAL_DEFAULT.forEach((r) => {
     contadoresRutas[r] = {
       ruta: r,
-      tipo: isTroncal ? 'troncal' : 'alimentadora',
+      tipo: 'troncal',
       en_operacion: 0,
       en_mantenimiento: 0
     };
@@ -155,6 +190,16 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
       // Si no tiene ruta asignada o es SIN ASIGNAR, no se contabiliza en el reporte
       if (!rutaKey || rutaKey.toUpperCase().includes('SIN ASIGNAR')) return;
 
+      // Si tenemos catálogo de rutas, verificar que no haya sido eliminada
+      if (catalogoList.length > 0) {
+        const rawNorm = normStr(rutaRaw);
+        const cleanNum = rawNorm.replace(/^(?:RA|T|ALIMENTADORA|TRONCAL|RUTA)\s*[-_]?\s*/i, '').trim();
+        const esValida = rutasValidasSet.has(rutaKey) || rutasValidasSet.has(rawNorm) || rutasValidasSet.has(cleanNum);
+        if (!esValida) {
+          return;
+        }
+      }
+
       if (!contadoresRutas[rutaKey]) {
         const isTroncalRuta = rutaKey.startsWith('T-');
         contadoresRutas[rutaKey] = {
@@ -168,12 +213,12 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
     }
   });
 
-  // Troncales ordenadas: solo servicios oficiales (sin T-SIN ASIGNAR)
+  // Troncales ordenadas: todos los servicios oficiales del catálogo (sin T-SIN ASIGNAR)
   const troncalesList = Object.values(contadoresRutas)
     .filter((r) => r.tipo === 'troncal' && !r.ruta.toUpperCase().includes('SIN ASIGNAR'))
     .sort((a, b) => compareRutas(a.ruta, b.ruta));
 
-  // Alimentadoras ordenadas: solo rutas con unidades en operación (sin RA-SIN ASIGNAR)
+  // Alimentadoras ordenadas: rutas activas con unidades en operación (sin RA-SIN ASIGNAR)
   let alimentadorasList = Object.values(contadoresRutas)
     .filter((r) => r.tipo === 'alimentadora' && !r.ruta.toUpperCase().includes('SIN ASIGNAR') && r.en_operacion > 0)
     .sort((a, b) => compareRutas(a.ruta, b.ruta));
@@ -207,38 +252,56 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null) => {
 export const descargarReportesGeneralesConAlerta = async (setLoading, queryClient = null) => {
   setLoading(true);
   try {
-    let data = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-hoy']) : null;
-    let inicioData = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-inicio-hoy']) : null;
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const authHeaders = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    };
+
+    let data = null;
+    let inicioData = null;
+    let catalogoRutas = null;
+
+    try {
+      const [resHoy, resInicio, resRutas] = await Promise.all([
+        fetch(`${API_BASE}/api/despacho/hoy`, { headers: authHeaders }),
+        fetch(`${API_BASE}/api/despacho/inicio-hoy`, { headers: authHeaders }).catch(() => null),
+        fetch(`${API_BASE}/api/rutas`, { headers: authHeaders }).catch(() => null),
+      ]);
+
+      if (resHoy && resHoy.ok) {
+        data = await resHoy.json();
+        if (queryClient?.setQueryData) {
+          queryClient.setQueryData(['despacho-hoy'], data);
+        }
+      }
+
+      if (resInicio && resInicio.ok) {
+        inicioData = await resInicio.json();
+        if (queryClient?.setQueryData) {
+          queryClient.setQueryData(['despacho-inicio-hoy'], inicioData);
+        }
+      }
+
+      if (resRutas && resRutas.ok) {
+        const rutasJson = await resRutas.json();
+        catalogoRutas = rutasJson?.data || rutasJson || [];
+        if (queryClient?.setQueryData) {
+          queryClient.setQueryData(['catalogo-rutas-admin'], rutasJson);
+        }
+      }
+    } catch (fetchErr) {
+      console.warn('Error al consultar datos frescos para reportes:', fetchErr);
+    }
 
     if (!data || !Array.isArray(data) || data.length === 0) {
-      const res = await fetch(`${API_BASE}/api/despacho/hoy`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      });
-      if (!res.ok) throw new Error('Error al consultar datos');
-      data = await res.json();
-      if (queryClient?.setQueryData) {
-        queryClient.setQueryData(['despacho-hoy'], data);
-      }
+      data = queryClient?.getQueryData ? queryClient.getQueryData(['despacho-hoy']) : [];
+    }
+    if (!catalogoRutas) {
+      catalogoRutas = queryClient?.getQueryData ? queryClient.getQueryData(['catalogo-rutas-admin']) : [];
     }
 
-    if (!inicioData || !Array.isArray(inicioData) || inicioData.length === 0) {
-      try {
-        const resInicio = await fetch(`${API_BASE}/api/despacho/inicio-hoy`, {
-          headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-        });
-        if (resInicio.ok) {
-          inicioData = await resInicio.json();
-          if (queryClient?.setQueryData) {
-            queryClient.setQueryData(['despacho-inicio-hoy'], inicioData);
-          }
-        }
-      } catch (e) {
-        inicioData = null;
-      }
-    }
-
-    const { dataUnidades, dataRutas, totalsRutas } = procesarDatosReportesGenerales(data, inicioData);
+    const { dataUnidades, dataRutas, totalsRutas } = procesarDatosReportesGenerales(data, inicioData, catalogoRutas);
     await generarPDFReporteGeneral(dataRutas, totalsRutas);
     await generarPDFReporteUnidades(dataUnidades);
     Swal.fire({

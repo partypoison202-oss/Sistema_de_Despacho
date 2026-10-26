@@ -85,6 +85,7 @@ export default function GestionRutasAjustes() {
       queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
       queryClient.invalidateQueries({ queryKey: ['despacho-rutas'] });
       queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+      refetch();
       cerrarFormulario();
 
       Swal.fire({
@@ -115,11 +116,30 @@ export default function GestionRutasAjustes() {
       }
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, deletedId) => {
+      // Actualización inmediata del cache local para remoción instantánea en UI
+      queryClient.setQueryData(['catalogo-rutas-admin'], (old) => {
+        if (!old) return old;
+        const currentList = Array.isArray(old.data) ? old.data : (Array.isArray(old) ? old : []);
+        const updatedList = currentList.filter(item => item.id !== deletedId);
+        return {
+          ...old,
+          data: updatedList,
+          troncales: updatedList.filter(item => item.tipo === 'troncal'),
+          alimentadoras: updatedList.filter(item => item.tipo === 'alimentadora'),
+          totales: {
+            todas: updatedList.length,
+            troncales: updatedList.filter(item => item.tipo === 'troncal').length,
+            alimentadoras: updatedList.filter(item => item.tipo === 'alimentadora').length,
+          }
+        };
+      });
+
       queryClient.invalidateQueries({ queryKey: ['catalogo-rutas-admin'] });
       queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
       queryClient.invalidateQueries({ queryKey: ['despacho-rutas'] });
       queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
+      refetch();
 
       Swal.fire({
         icon: 'success',

@@ -41,7 +41,7 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
         throw new Error("No hay datos para generar el reporte.");
     }
 
-    const troncales = data.filter(item => (item.tipo === 'troncal' || item.ruta.startsWith('T-')) && !item.ruta.toUpperCase().includes('SIN ASIGNAR') && (item.en_operacion > 0 || item.en_mantenimiento > 0 || ['T-01', 'T-02', 'T-04', 'T-05'].includes(item.ruta)));
+    const troncales = data.filter(item => (item.tipo === 'troncal' || item.ruta.startsWith('T-')) && !item.ruta.toUpperCase().includes('SIN ASIGNAR'));
     const alimentadoras = data.filter(item => (item.tipo === 'alimentadora' || item.ruta.startsWith('RA') || item.ruta.startsWith('ORION')) && !item.ruta.toUpperCase().includes('SIN ASIGNAR') && (item.en_operacion > 0 || item.en_mantenimiento > 0));
 
     const troncalOperacion     = troncales.reduce((s, r) => s + Number(r.en_operacion), 0);
