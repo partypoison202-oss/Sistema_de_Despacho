@@ -66,7 +66,6 @@ const normalizeRutaKey = (rawRuta, tipoUnidad) => {
   if (tMatch) return 'T' + tMatch[1].padStart(2, '0');
 
   clean = clean.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
-  if (clean === '4A') clean = '4';
   const m = clean.match(/^0*(\d+[A-Z]*)/i);
   if (m) return m[1].toUpperCase();
   return clean;
@@ -427,7 +426,48 @@ export default function CentroControl() {
   const routeData = React.useMemo(() => {
     const list = Array.isArray(apiData) ? apiData : [];
     const routesMap = {};
+    const descripcionesMap = rutasCatalogo?.descripciones || {};
 
+    // 1. Sembrar primero todas las rutas registradas en el catálogo maestro (Neon DB)
+    (rutasCatalogo?.troncales || []).forEach((r) => {
+      const key = normalizeRutaKey(r, 'troncal') || r;
+      const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
+      const dbDesc = descripcionesMap[key] || descripcionesMap[cleanKey] || descripcionesMap[r];
+      const info = ROUTE_DESCRIPTIONS[key] || {
+        tipo: 'troncal',
+        label: key.startsWith('T') && !key.includes('-') && key.length >= 3 ? `T-${key.slice(1)}` : key,
+        desc: `Troncal ${key}`
+      };
+      routesMap[key] = {
+        id: key,
+        key,
+        tipo: 'troncal',
+        label: info.label || key,
+        desc: dbDesc || info.desc,
+        units: [],
+      };
+    });
+
+    (rutasCatalogo?.alimentadoras || []).forEach((r) => {
+      const key = normalizeRutaKey(r, 'alimentadora') || r;
+      const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
+      const dbDesc = descripcionesMap[key] || descripcionesMap[cleanKey] || descripcionesMap[r];
+      const info = ROUTE_DESCRIPTIONS[key] || {
+        tipo: 'alimentadora',
+        label: cleanKey,
+        desc: `Ruta ${cleanKey}`
+      };
+      routesMap[key] = {
+        id: key,
+        key,
+        tipo: 'alimentadora',
+        label: info.label || cleanKey,
+        desc: dbDesc || info.desc,
+        units: [],
+      };
+    });
+
+    // 2. Asignar las unidades activas a cada ruta correspondiente
     list.forEach((u) => {
       const est = (u.ESTATUS || '').toLowerCase().trim();
       if (est === 'no_programada' || est === 'no programada') return;
@@ -438,22 +478,20 @@ export default function CentroControl() {
       if (!key) return;
 
       if (!routesMap[key]) {
-        const isTroncal = key.startsWith('T');
+        const isTroncal = key.startsWith('T') || (tipoUnidad && tipoUnidad.toLowerCase().includes('troncal'));
         const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
-        const descripcionesMap = rutasCatalogo?.descripciones || {};
         const dbDesc = descripcionesMap[key] || descripcionesMap[cleanKey] || descripcionesMap[rawRuta];
         const info = ROUTE_DESCRIPTIONS[key] || {
           tipo: isTroncal ? 'troncal' : 'alimentadora',
           label: isTroncal ? key : cleanKey,
           desc: `Ruta ${cleanKey}`
         };
-        const descFinal = dbDesc || info.desc;
         routesMap[key] = {
           id: key,
           key,
-          tipo: info.tipo,
-          label: info.label,
-          desc: descFinal,
+          tipo: info.tipo || (isTroncal ? 'troncal' : 'alimentadora'),
+          label: info.label || cleanKey,
+          desc: dbDesc || info.desc,
           units: [],
         };
       }
@@ -509,7 +547,7 @@ export default function CentroControl() {
 
       return compareRutas(a.key, b.key);
     });
-  }, [apiData]);
+  }, [apiData, rutasCatalogo]);
 
   const troncalesCount = React.useMemo(() => routeData.filter(r => r.tipo === 'troncal').length, [routeData]);
   const alimentadorasCount = React.useMemo(() => routeData.filter(r => r.tipo === 'alimentadora').length, [routeData]);

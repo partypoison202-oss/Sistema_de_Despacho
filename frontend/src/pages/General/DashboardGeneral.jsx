@@ -8,6 +8,7 @@ import TablaFaltantes from './components/TablaFaltantes';
 import TablaBitacoraGeneral from './components/TablaBitacoraGeneral';        // NUEVO
 import TablaRutasAlimentadoras from './components/TablaRutasAlimentadoras';  // NUEVO
 import { transportModules } from '../../config/transportModules';
+import { compareRutas } from '../../utils/rutaUtils';
 import API_BASE from '../../config/api';
 import './DashboardGeneral.css';
 
@@ -130,7 +131,7 @@ const construirFaltantes = (registros) =>
         motivo: registro.motivo ? String(registro.motivo) : '',
       };
     })
-    .sort((a, b) => a.ruta.localeCompare(b.ruta) || a.eco.localeCompare(b.eco));
+    .sort((a, b) => compareRutas(a.ruta, b.ruta) || a.eco.localeCompare(b.eco));
 
 // ========== Componente principal ==========
 export default function Dashboard() {

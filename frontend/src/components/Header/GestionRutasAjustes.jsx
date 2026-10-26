@@ -72,6 +72,7 @@ export default function GestionRutasAjustes() {
       queryClient.invalidateQueries({ queryKey: ['catalogo-rutas-admin'] });
       queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
       queryClient.invalidateQueries({ queryKey: ['despacho-rutas'] });
+      queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
       cerrarFormulario();
 
       Swal.fire({
@@ -106,6 +107,7 @@ export default function GestionRutasAjustes() {
       queryClient.invalidateQueries({ queryKey: ['catalogo-rutas-admin'] });
       queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] });
       queryClient.invalidateQueries({ queryKey: ['despacho-rutas'] });
+      queryClient.invalidateQueries({ queryKey: ['despacho-hoy'] });
 
       Swal.fire({
         icon: 'success',
