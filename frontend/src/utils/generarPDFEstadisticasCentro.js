@@ -162,9 +162,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     const [
         resDespacho,
         resReservasHoy,
-        resReservasManana,
         resReservasLocal,
-        resReservasTodas,
         resConductores,
         resMonitoreo,
         resCiclosHoy,
@@ -172,9 +170,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     ] = await Promise.all([
         apiDataParam ? Promise.resolve(null) : fetch(`${API_BASE}/api/despacho/hoy`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/reservas/autorizadas?fecha=HOY`, { headers: authHeaders }).catch(() => null),
-        fetch(`${API_BASE}/api/reservas/autorizadas?fecha=MANANA`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/reservas/autorizadas?fecha=${todayLocalStr}`, { headers: authHeaders }).catch(() => null),
-        fetch(`${API_BASE}/api/reservas/autorizadas?fecha=TODAS`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/conductores?incluir_bajas=true`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/despacho/monitoreo-conductores/todos`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/api/despacho/ciclos?fecha=HOY`, { headers: authHeaders }).catch(() => null),
@@ -193,7 +189,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     }
     if (!Array.isArray(listaInicio)) listaInicio = [];
 
-    // Extraer tarjetones autorizados de reservas (HOY, fecha actual, MANANA o TODAS)
+    // Extraer tarjetones autorizados de reservas exclusivamente para HOY
     let listaReservasTarjeton = [];
     const parseTarjetones = async (res) => {
         if (!res?.ok) return [];
@@ -205,19 +201,15 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         }
     };
 
-    const [tarjHoy, tarjLocal, tarjManana, tarjTodas] = await Promise.all([
+    const [tarjHoy, tarjLocal] = await Promise.all([
         parseTarjetones(resReservasHoy),
-        parseTarjetones(resReservasLocal),
-        parseTarjetones(resReservasManana),
-        parseTarjetones(resReservasTodas)
+        parseTarjetones(resReservasLocal)
     ]);
 
-    // Combinar TODOS los tarjetones de reserva de cualquier pestaña/fecha operativa
+    // Combinar únicamente los tarjetones de reserva autorizados para HOY
     listaReservasTarjeton = Array.from(new Set([
-        ...tarjTodas,
         ...tarjHoy,
-        ...tarjLocal,
-        ...tarjManana
+        ...tarjLocal
     ]));
 
     const normalizeTarjetonKey = (t) => {
@@ -260,22 +252,27 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         } catch {}
     }
 
-    const dTomorrow = new Date(nowLocal);
-    dTomorrow.setDate(dTomorrow.getDate() + 1);
-    const tomorrowLocalStr = `${dTomorrow.getFullYear()}-${String(dTomorrow.getMonth() + 1).padStart(2, '0')}-${String(dTomorrow.getDate()).padStart(2, '0')}`;
-
-    const dYesterday = new Date(nowLocal);
-    dYesterday.setDate(dYesterday.getDate() - 1);
-    const yesterdayLocalStr = `${dYesterday.getFullYear()}-${String(dYesterday.getMonth() + 1).padStart(2, '0')}-${String(dYesterday.getDate()).padStart(2, '0')}`;
-
     // =========================================================================
     // PROCESAMIENTO DE FALTAS DEL DÍA (CONDUCTORES NORMALES Y EN RESERVA)
     // =========================================================================
     const conductoresConFalta = [];
     const tarjetonesFaltaSet = new Set();
 
-    // 1. Integrar faltas identificadas por Mesa de Control (monitoreo-conductores: plataforma_movimientos, kardex, etc.)
+    // 1. Integrar faltas identificadas por Mesa de Control (monitoreo-conductores: estrictamente faltas/inasistencias de hoy)
     conductoresFaltaMonitoreo.forEach(cm => {
+        const estadoMon = String(cm.estado_servicio || cm.estado || '').toLowerCase().trim();
+        const observaciones = String(cm.observaciones || cm.motivo || '').toLowerCase().trim();
+
+        // Excluir descansos, vacaciones, permutas, permisos e incapacidades (NO son faltas injustificadas)
+        const esInasistenciaNoFalta = estadoMon === 'descanso' || estadoMon === 'vacaciones' || 
+                                      estadoMon === 'permiso' || estadoMon === 'incapacidad' || 
+                                      estadoMon === 'permuta';
+        if (esInasistenciaNoFalta) return;
+
+        const esFaltaDirecta = estadoMon === 'falta' || estadoMon === 'inasistencia' || 
+                               observaciones.includes('falta') || observaciones.includes('inasistencia');
+        if (!esFaltaDirecta) return;
+
         const tKey = normalizeTarjetonKey(cm.tarjeton);
         if (tKey && !tarjetonesFaltaSet.has(tKey)) {
             tarjetonesFaltaSet.add(tKey);
@@ -293,10 +290,8 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         }
     });
 
-    // 2. Integrar faltas registradas en catálogo (tanto conductores en reserva como normales)
+    // 2. Integrar faltas registradas en catálogo estrictamente para la fecha de HOY
     listaConductores.forEach(c => {
-        const estado = String(c.estado_servicio || '').toLowerCase();
-        
         let faltas = [];
         const raw = c.faltas_detalle;
         if (Array.isArray(raw)) faltas = raw;
@@ -313,41 +308,19 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
         const tieneFaltaHoy = faltas.some(f => {
             const fDate = String(f.fecha || '').slice(0, 10);
-            const esFechaCoincidente = (
-                fDate === todayLocalStr || 
-                fDate === todayIsoStr || 
-                fDate === tomorrowLocalStr ||
-                fDate === yesterdayLocalStr
-            );
-            
-            // Si la falta fue registrada en las últimas 36 horas
-            let esReciente = false;
-            if (f.id && typeof f.id === 'string' && f.id.startsWith('falta_')) {
-                const ts = Number.parseInt(f.id.split('_')[1], 10);
-                if (!Number.isNaN(ts) && (Date.now() / 1000 - ts) < 129600 && (Date.now() / 1000 - ts) >= -3600) {
-                    esReciente = true;
-                }
-            }
-
+            const esFechaCoincidente = (fDate === todayLocalStr || fDate === todayIsoStr);
             const noJustificada = !f.justificada && f.estado !== 'justificada' && f.estado !== 'retardo';
-            return (esFechaCoincidente || esReciente) && noJustificada;
+            return esFechaCoincidente && noJustificada;
         });
 
         const tieneAsistenciaFalta = asistencias.some(a => {
             const aDate = String(a.fecha || '').slice(0, 10);
-            const esFecha = (
-                aDate === todayLocalStr || 
-                aDate === todayIsoStr || 
-                aDate === tomorrowLocalStr || 
-                aDate === yesterdayLocalStr
-            );
+            const esFecha = (aDate === todayLocalStr || aDate === todayIsoStr);
             const esFalta = String(a.estado || '').toLowerCase() === 'falta' || String(a.estado || '').toLowerCase() === 'inasistencia';
             return esFecha && esFalta;
         });
 
-        const esEstadoFalta = estado === 'falta' || estado === 'inasistencia';
-
-        if (tieneFaltaHoy || tieneAsistenciaFalta || esEstadoFalta) {
+        if (tieneFaltaHoy || tieneAsistenciaFalta) {
             const tKey = normalizeTarjetonKey(c.tarjeton) || String(c.id);
             if (tKey && !tarjetonesFaltaSet.has(tKey)) {
                 tarjetonesFaltaSet.add(tKey);
@@ -356,17 +329,17 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         }
     });
 
-    // 3. Detectar si en las unidades operativas se reportó falta de conductor
+    // 3. Detectar si en las unidades operativas se reportó falta específica de conductor (no falla mecánica)
     listaUnidades.forEach(u => {
         const textoMotivo = [
-            u.MOTIVO_ESTATUS, u.CAMBIO_MOTIVO, u.FALLA, u.MOTIVO, u.MOTIVO_FALTANTE, u.FALLA_REPORTADA, u.ESTATUS
+            u.MOTIVO_ESTATUS, u.CAMBIO_MOTIVO, u.FALLA, u.MOTIVO, u.MOTIVO_FALTANTE, u.FALLA_REPORTADA
         ].map(m => String(m || '').toLowerCase()).join(' ');
 
-        const esFaltaReportada = /\bfalta\b/i.test(textoMotivo) || 
-                                 /\binasistencia\b/i.test(textoMotivo) ||
-                                 /\bno se present[oó]\b/i.test(textoMotivo);
+        const esFaltaConductor = /\bfalta\s+de\s+(?:conductor|operador)\b/i.test(textoMotivo) || 
+                                 /\binasistencia\s+de\s+(?:conductor|operador)\b/i.test(textoMotivo) ||
+                                 /\b(?:conductor|operador)\s+no\s+se\s+present[oó]\b/i.test(textoMotivo);
 
-        if (esFaltaReportada) {
+        if (esFaltaConductor) {
             const tarj = String(u.TARJETON || u.tarjeton || u.numero_tarjeton || u.CAMBIO_DESDE || '').trim();
             const tKey = normalizeTarjetonKey(tarj);
             if (tKey && !tarjetonesFaltaSet.has(tKey)) {
@@ -390,89 +363,85 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     // =========================================================================
     // PROCESAMIENTO DE CONDUCTORES EN RESERVA (PROGRAMACIÓN Y LOGÍSTICA)
     // =========================================================================
-    // Conductores autorizados desde Programación y Logística (ModalReservaT6)
-    // o con estado_servicio marcado como reserva, excluyendo aquellos con falta no justificada hoy.
-    const conductoresEnReserva = [];
+    const conductoresEnReservaTotal = [];
     const tarjetonesReservaSet = new Set();
 
-    listaConductores.forEach(c => {
-        const tKey = normalizeTarjetonKey(c.tarjeton);
-        const estado = String(c.estado_servicio || '').toLowerCase();
-        const isAuth = tKey !== '' && setReservasAutorizadas.has(tKey);
-        const isReservaEstado = estado === 'reserva' || estado === 'en_reserva';
-        const tieneFaltaHoy = tKey !== '' && tarjetonesFaltaSet.has(tKey);
-
-        if ((isAuth || isReservaEstado) && !tieneFaltaHoy) {
-            if (tKey && !tarjetonesReservaSet.has(tKey)) {
+    // 1. Tomar los conductores autorizados exclusivamente para la jornada de HOY
+    if (setReservasAutorizadas.size > 0) {
+        setReservasAutorizadas.forEach(tKey => {
+            if (!tarjetonesReservaSet.has(tKey) && !tarjetonesFaltaSet.has(tKey)) {
                 tarjetonesReservaSet.add(tKey);
-                conductoresEnReserva.push(c);
+                const enCatalogo = listaConductores.find(c => normalizeTarjetonKey(c.tarjeton) === tKey);
+                if (enCatalogo) {
+                    conductoresEnReservaTotal.push(enCatalogo);
+                } else {
+                    conductoresEnReservaTotal.push({
+                        tarjeton: tKey,
+                        nombre: `Operador Tarjetón ${formatFolio(tKey)}`,
+                        tipo_conductor: 'C',
+                        estado_servicio: 'reserva'
+                    });
+                }
             }
-        }
-    });
+        });
+    } else {
+        // Fallback si no existieran registros en reservas_autorizadas para hoy
+        listaConductores.forEach(c => {
+            const tKey = normalizeTarjetonKey(c.tarjeton);
+            const estado = String(c.estado_servicio || '').toLowerCase();
+            const isReservaEstado = estado === 'reserva' || estado === 'en_reserva';
+            const tieneFaltaHoy = tKey !== '' && tarjetonesFaltaSet.has(tKey);
 
-    // Si algún tarjetón de reservas_autorizadas no estaba en listaConductores activos
-    setReservasAutorizadas.forEach(tKey => {
-        if (!tarjetonesReservaSet.has(tKey) && !tarjetonesFaltaSet.has(tKey)) {
-            const enCatalogo = listaConductores.find(c => normalizeTarjetonKey(c.tarjeton) === tKey);
-            if (enCatalogo) {
-                tarjetonesReservaSet.add(tKey);
-                conductoresEnReserva.push(enCatalogo);
-            } else {
-                tarjetonesReservaSet.add(tKey);
-                conductoresEnReserva.push({
-                    tarjeton: tKey,
-                    nombre: `Operador Tarjetón ${formatFolio(tKey)}`,
-                    tipo_conductor: 'C',
-                    estado_servicio: 'reserva'
-                });
+            if (isReservaEstado && !tieneFaltaHoy) {
+                if (tKey && !tarjetonesReservaSet.has(tKey)) {
+                    tarjetonesReservaSet.add(tKey);
+                    conductoresEnReservaTotal.push(c);
+                }
             }
-        }
-    });
+        });
+    }
 
-    // Incluir también si en la lista operativa actual de despacho alguna unidad tiene estatus reserva con conductor asignado (y sin falta)
+    // 2. Identificar qué conductores ya están asignados a unidades en servicio/operación o relevo
+    const tarjetonesEnServicioSet = new Set();
+    const nombresEnServicioSet = new Set();
+
     listaUnidades.forEach(u => {
         const est = String(u.ESTATUS || u.estatus || '').toLowerCase().trim();
-        const isUnitReserva = est === 'reserva' || est.includes('reserva') || est === 'en_reserva';
-        if (!isUnitReserva) return;
+        const isOperacion = est === 'operacion' || est.includes('operacion') || est === 'circulando' || est === 'itinerario';
+        if (isOperacion) {
+            const tarj = normalizeTarjetonKey(u.TARJETON || u.tarjeton || u.numero_tarjeton);
+            const tarjRelevo = normalizeTarjetonKey(u.RELEVO_TARJETON || u.relevo_tarjeton);
+            const nom = String(u.NOMBRE_CONDUCTOR || u.nombre_conductor || u.CONDUCTOR || u.conductor || '').trim().toLowerCase();
+            const nomRelevo = String(u.RELEVO_CONDUCTOR || u.relevo_conductor || '').trim().toLowerCase();
 
-        const tarj = String(u.TARJETON || u.tarjeton || u.numero_tarjeton || u.NUMERO_TARJETON || '').trim();
-        const nom = String(u.NOMBRE_CONDUCTOR || u.nombre_conductor || u.CONDUCTOR || u.conductor || '').trim();
-        const tKey = normalizeTarjetonKey(tarj);
-
-        if (tKey && !tarjetonesReservaSet.has(tKey) && !tarjetonesFaltaSet.has(tKey)) {
-            tarjetonesReservaSet.add(tKey);
-            const enCatalogo = listaConductores.find(c => normalizeTarjetonKey(c.tarjeton) === tKey);
-            if (enCatalogo) {
-                conductoresEnReserva.push(enCatalogo);
-            } else {
-                conductoresEnReserva.push({
-                    tarjeton: tarj,
-                    nombre: nom || `Operador Tarjetón ${formatFolio(tarj)}`,
-                    tipo_conductor: u.TIPO_DE_UNIDAD || u.tipo || 'C',
-                    estado_servicio: 'reserva'
-                });
-            }
-        } else if (!tKey && nom) {
-            const enCatalogo = listaConductores.find(c => {
-                const cNom = String(c.nombre || `${c.nombres || ''} ${c.apellidos || ''}`).toLowerCase().trim();
-                return cNom && (cNom === nom.toLowerCase() || cNom.includes(nom.toLowerCase()) || nom.toLowerCase().includes(cNom));
-            });
-            if (enCatalogo) {
-                const cKey = normalizeTarjetonKey(enCatalogo.tarjeton);
-                if (cKey && !tarjetonesReservaSet.has(cKey) && !tarjetonesFaltaSet.has(cKey)) {
-                    tarjetonesReservaSet.add(cKey);
-                    conductoresEnReserva.push(enCatalogo);
-                }
-            } else {
-                conductoresEnReserva.push({
-                    tarjeton: '',
-                    nombre: nom,
-                    tipo_conductor: u.TIPO_DE_UNIDAD || u.tipo || 'C',
-                    estado_servicio: 'reserva'
-                });
-            }
+            if (tarj) tarjetonesEnServicioSet.add(tarj);
+            if (tarjRelevo) tarjetonesEnServicioSet.add(tarjRelevo);
+            if (nom) nombresEnServicioSet.add(nom);
+            if (nomRelevo) nombresEnServicioSet.add(nomRelevo);
         }
     });
+
+    listaConductores.forEach(c => {
+        const estado = String(c.estado_servicio || '').toLowerCase().trim();
+        if (estado === 'en_servicio') {
+            const tKey = normalizeTarjetonKey(c.tarjeton);
+            if (tKey) tarjetonesEnServicioSet.add(tKey);
+            const cNom = String(c.nombre || `${c.nombres || ''} ${c.apellidos || ''}`).toLowerCase().trim();
+            if (cNom) nombresEnServicioSet.add(cNom);
+        }
+    });
+
+    const isEnServicio = (c) => {
+        const tKey = normalizeTarjetonKey(c.tarjeton);
+        if (tKey && tarjetonesEnServicioSet.has(tKey)) return true;
+        const nom = String(c.nombre || c.nombre_completo || `${c.nombres || ''} ${c.apellidos || ''}`).toLowerCase().trim();
+        if (nom && nombresEnServicioSet.has(nom)) return true;
+        return false;
+    };
+
+    // Filtrar: los conductores disponibles son aquellos de reserva que aún NO han entrado a servicio
+    const conductoresEnReservaDisponibles = conductoresEnReservaTotal.filter(c => !isEnServicio(c));
+    const conductoresEnReserva = conductoresEnReservaDisponibles;
 
     // Procesamiento de corridas faltantes
     const parseCiclo = (val) => {
@@ -957,7 +926,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
     // Filas Resumen
     const pcRows = [
-        { label: 'Reservas programadas', val: conductoresEnReserva.length },
+        { label: 'Reservas programadas', val: conductoresEnReservaTotal.length },
         { label: 'Reservas por corridas faltantes', val: 0 },
         { label: 'Faltas de conductor', val: conductoresConFalta.length }
     ];
