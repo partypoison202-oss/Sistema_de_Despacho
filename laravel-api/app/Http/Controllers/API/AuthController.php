@@ -30,7 +30,19 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = null;
+        for ($i = 0; $i < 3; $i++) {
+            try {
+                $token = $user->createToken('auth_token')->plainTextToken;
+                break;
+            } catch (\Throwable $e) {
+                if ($i === 2) {
+                    \Illuminate\Support\Facades\Log::error("Error crítico generando token para {$user->usuario}: " . $e->getMessage());
+                    throw $e;
+                }
+                usleep(150000); // 150ms
+            }
+        }
 
         // Cargar módulos del usuario (con fallback por rol si no tiene registros)
         $modulos = $this->resolverModulosUsuario($user);
