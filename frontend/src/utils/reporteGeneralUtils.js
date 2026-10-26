@@ -165,6 +165,16 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null, catal
     };
   });
 
+  // Inicializar siempre todas las Alimentadoras oficiales del catálogo (incluso si tienen 0 unidades)
+  RUTAS_ALIMENTADORA_DEFAULT.forEach((r) => {
+    contadoresRutas[r] = {
+      ruta: r,
+      tipo: 'alimentadora',
+      en_operacion: 0,
+      en_mantenimiento: 0
+    };
+  });
+
   let troncalMantenimientoTotal = 0;
   let alimMantenimientoTotal = 0;
 
@@ -218,17 +228,10 @@ export const procesarDatosReportesGenerales = (apiData, inicioData = null, catal
     .filter((r) => r.tipo === 'troncal' && !r.ruta.toUpperCase().includes('SIN ASIGNAR'))
     .sort((a, b) => compareRutas(a.ruta, b.ruta));
 
-  // Alimentadoras ordenadas: rutas activas con unidades en operación (sin RA-SIN ASIGNAR)
-  let alimentadorasList = Object.values(contadoresRutas)
-    .filter((r) => r.tipo === 'alimentadora' && !r.ruta.toUpperCase().includes('SIN ASIGNAR') && r.en_operacion > 0)
+  // Alimentadoras ordenadas: todas las rutas del catálogo oficial (sin RA-SIN ASIGNAR)
+  const alimentadorasList = Object.values(contadoresRutas)
+    .filter((r) => r.tipo === 'alimentadora' && !r.ruta.toUpperCase().includes('SIN ASIGNAR'))
     .sort((a, b) => compareRutas(a.ruta, b.ruta));
-
-  // Si no hay unidades en operación (ej. inicio de jornada previa al despacho), mostrar las base
-  if (alimentadorasList.length === 0) {
-    alimentadorasList = RUTAS_ALIMENTADORA_DEFAULT
-      .filter((r) => !r.toUpperCase().includes('SIN ASIGNAR'))
-      .map((r) => contadoresRutas[r] || { ruta: r, tipo: 'alimentadora', en_operacion: 0, en_mantenimiento: 0 });
-  }
 
   const dataRutas = [
     ...troncalesList.map((r, i) => ({

@@ -42,7 +42,7 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     }
 
     const troncales = data.filter(item => (item.tipo === 'troncal' || item.ruta.startsWith('T-')) && !item.ruta.toUpperCase().includes('SIN ASIGNAR'));
-    const alimentadoras = data.filter(item => (item.tipo === 'alimentadora' || item.ruta.startsWith('RA') || item.ruta.startsWith('ORION')) && !item.ruta.toUpperCase().includes('SIN ASIGNAR') && (item.en_operacion > 0 || item.en_mantenimiento > 0));
+    const alimentadoras = data.filter(item => (item.tipo === 'alimentadora' || item.ruta.startsWith('RA') || item.ruta.startsWith('ORION')) && !item.ruta.toUpperCase().includes('SIN ASIGNAR'));
 
     const troncalOperacion     = troncales.reduce((s, r) => s + Number(r.en_operacion), 0);
     const troncalMantenimiento = totalsExtra?.troncalMantenimiento !== undefined 

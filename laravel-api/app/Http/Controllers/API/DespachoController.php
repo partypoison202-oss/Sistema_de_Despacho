@@ -5676,23 +5676,30 @@ class DespachoController extends Controller
      */
     public function obtenerRutas()
     {
-        $troncales = DB::table('rutas')->where('tipo', 'troncal')->pluck('ruta')->sort(function ($a, $b) {
-            return RutaController::compararCodigosRuta($a, $b);
+        $todasLasRutas = DB::table('rutas')->get()->sort(function ($a, $b) {
+            return RutaController::compararCodigosRuta($a->ruta, $b->ruta);
         })->values();
 
-        $alimentadoras = DB::table('rutas')->where('tipo', 'alimentadora')->pluck('ruta')->sort(function ($a, $b) {
-            return RutaController::compararCodigosRuta($a, $b);
-        })->values();
+        $troncales = $todasLasRutas->where('tipo', 'troncal')->pluck('ruta')->values();
+        $alimentadoras = $todasLasRutas->where('tipo', 'alimentadora')->pluck('ruta')->values();
 
-        $descripciones = DB::table('rutas')
-            ->whereNotNull('descripcion')
-            ->where('descripcion', '!=', '')
-            ->pluck('descripcion', 'ruta');
+        $descripciones = [];
+        foreach ($todasLasRutas as $r) {
+            if (!empty($r->descripcion)) {
+                $descripciones[$r->ruta] = $r->descripcion;
+                $descripciones[strtoupper(trim($r->ruta))] = $r->descripcion;
+                $clean = preg_replace('/^(?:RA|T|RUTA|ALIMENTADORA|TRONCAL)\s*[-_]?\s*/i', '', $r->ruta);
+                if ($clean) {
+                    $descripciones[$clean] = $r->descripcion;
+                }
+            }
+        }
 
         return response()->json([
             'troncales' => $troncales,
             'alimentadoras' => $alimentadoras,
             'descripciones' => $descripciones,
+            'catalogo' => $todasLasRutas,
         ], 200);
     }
 

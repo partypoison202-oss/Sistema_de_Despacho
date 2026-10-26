@@ -428,74 +428,84 @@ export default function CentroControl() {
     const routesMap = {};
     const descripcionesMap = rutasCatalogo?.descripciones || {};
 
+    // Obtener catálogo maestro completo desde la base de datos
+    const catalogoItems = Array.isArray(rutasCatalogo?.catalogo) && rutasCatalogo.catalogo.length > 0
+      ? rutasCatalogo.catalogo
+      : [
+          ...(rutasCatalogo?.troncales || []).map((r) => ({ ruta: r, tipo: 'troncal' })),
+          ...(rutasCatalogo?.alimentadoras || []).map((r) => ({ ruta: r, tipo: 'alimentadora' })),
+        ];
+
     // 1. Sembrar primero todas las rutas registradas en el catálogo maestro (Neon DB)
-    (rutasCatalogo?.troncales || []).forEach((r) => {
-      const key = normalizeRutaKey(r, 'troncal') || r;
-      const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
-      const dbDesc = descripcionesMap[key] || descripcionesMap[cleanKey] || descripcionesMap[r];
-      const info = ROUTE_DESCRIPTIONS[key] || {
-        tipo: 'troncal',
-        label: key.startsWith('T') && !key.includes('-') && key.length >= 3 ? `T-${key.slice(1)}` : key,
-        desc: `Troncal ${key}`
-      };
-      routesMap[key] = {
-        id: key,
-        key,
-        tipo: 'troncal',
-        label: info.label || key,
-        desc: dbDesc || info.desc,
+    catalogoItems.forEach((r) => {
+      const rutaRaw = (r.ruta || '').toString().trim();
+      const tipo = (r.tipo || 'alimentadora').toLowerCase();
+      const isTroncal = tipo === 'troncal';
+      const normKey = normalizeRutaKey(rutaRaw, tipo) || rutaRaw;
+      const cleanKey = normKey.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
+
+      // Identificador único para evitar colisiones entre troncales y alimentadoras con mismo identificador
+      const uniqueId = `${tipo}_${normKey}`;
+
+      // La descripción ingresada en BD por el usuario SIEMPRE tiene la máxima prioridad
+      const dbDesc = r.descripcion || descripcionesMap[rutaRaw] || descripcionesMap[normKey] || descripcionesMap[cleanKey];
+      const fallbackDesc = ROUTE_DESCRIPTIONS[normKey]?.desc || (isTroncal ? `Troncal ${rutaRaw}` : `Ruta ${rutaRaw}`);
+
+      // El identificador/badge en la tarjeta es exactamente el código registrado por el usuario
+      const label = r.ruta || (isTroncal ? normKey : cleanKey);
+
+      routesMap[uniqueId] = {
+        id: uniqueId,
+        key: normKey,
+        rawRuta: rutaRaw,
+        tipo,
+        label,
+        desc: dbDesc || fallbackDesc,
         units: [],
       };
     });
 
-    (rutasCatalogo?.alimentadoras || []).forEach((r) => {
-      const key = normalizeRutaKey(r, 'alimentadora') || r;
-      const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
-      const dbDesc = descripcionesMap[key] || descripcionesMap[cleanKey] || descripcionesMap[r];
-      const info = ROUTE_DESCRIPTIONS[key] || {
-        tipo: 'alimentadora',
-        label: cleanKey,
-        desc: `Ruta ${cleanKey}`
-      };
-      routesMap[key] = {
-        id: key,
-        key,
-        tipo: 'alimentadora',
-        label: info.label || cleanKey,
-        desc: dbDesc || info.desc,
-        units: [],
-      };
-    });
-
-    // 2. Asignar las unidades activas a cada ruta correspondiente
+    // 2. Asignar las unidades activas a cada ruta correspondiente respetando el tipo
     list.forEach((u) => {
       const est = (u.ESTATUS || '').toLowerCase().trim();
       if (est === 'no_programada' || est === 'no programada') return;
 
       const rawRuta = (u.RUTA ?? u.NOMBRE_RUTA ?? u.NO_RUTA ?? u.RUTA_ASIGNADA ?? '').toString().trim();
       const tipoUnidad = (u.TIPO_DE_UNIDAD || u.tipo || '').toString().trim();
-      const key = normalizeRutaKey(rawRuta, tipoUnidad);
-      if (!key) return;
+      const isTroncalUnidad = tipoUnidad.toUpperCase().includes('URBANU') || tipoUnidad.toLowerCase() === 'troncal';
+      const unidadTipo = isTroncalUnidad ? 'troncal' : 'alimentadora';
 
-      if (!routesMap[key]) {
-        const isTroncal = key.startsWith('T') || (tipoUnidad && tipoUnidad.toLowerCase().includes('troncal'));
-        const cleanKey = key.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
-        const dbDesc = descripcionesMap[key] || descripcionesMap[cleanKey] || descripcionesMap[rawRuta];
-        const info = ROUTE_DESCRIPTIONS[key] || {
-          tipo: isTroncal ? 'troncal' : 'alimentadora',
-          label: isTroncal ? key : cleanKey,
-          desc: `Ruta ${cleanKey}`
-        };
-        routesMap[key] = {
-          id: key,
-          key,
-          tipo: info.tipo || (isTroncal ? 'troncal' : 'alimentadora'),
-          label: info.label || cleanKey,
-          desc: dbDesc || info.desc,
-          units: [],
-        };
+      const normKey = normalizeRutaKey(rawRuta, tipoUnidad);
+      if (!normKey) return;
+
+      const targetId = `${unidadTipo}_${normKey}`;
+
+      if (routesMap[targetId]) {
+        routesMap[targetId].units.push(u);
+      } else {
+        // Buscar coincidencia si la clave normalizada ya existe para ese tipo
+        const existingKey = Object.keys(routesMap).find(
+          (k) => routesMap[k].key === normKey && routesMap[k].tipo === unidadTipo
+        );
+
+        if (existingKey) {
+          routesMap[existingKey].units.push(u);
+        } else {
+          const cleanKey = normKey.replace(/^(RA|ALIMENTADORA|RUTA)\s*[-_]?\s*/i, '');
+          const dbDesc = descripcionesMap[normKey] || descripcionesMap[cleanKey] || descripcionesMap[rawRuta];
+          const fallbackDesc = ROUTE_DESCRIPTIONS[normKey]?.desc || (isTroncalUnidad ? `Troncal ${normKey}` : `Ruta ${cleanKey}`);
+
+          routesMap[targetId] = {
+            id: targetId,
+            key: normKey,
+            rawRuta,
+            tipo: unidadTipo,
+            label: isTroncalUnidad ? normKey : cleanKey,
+            desc: dbDesc || fallbackDesc,
+            units: [u],
+          };
+        }
       }
-      routesMap[key].units.push(u);
     });
 
     const result = Object.values(routesMap).map((r) => {
@@ -1066,7 +1076,7 @@ export default function CentroControl() {
 
                     return (
                       <div
-                        key={r.key}
+                        key={r.id || r.key}
                         className={`centro-route-card centro-route-card--${cardModifier} ${!cargando ? 'centro-route-card--clickable' : ''}`}
                         style={cargando ? { opacity: 0.8, cursor: 'not-allowed' } : {}}
                         onClick={() => !cargando && navigate(`/centro-control/detalle/ruta-${r.key}`, { state: { model: { ...r, isRoute: true } } })}
