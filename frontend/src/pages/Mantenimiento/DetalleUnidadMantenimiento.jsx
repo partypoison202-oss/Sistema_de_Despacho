@@ -337,7 +337,7 @@ export default function DetalleUnidadMantenimiento() {
     return matchNumeros ? String(matchNumeros[0]).padStart(3, '0') : '';
   };
 
-  // Cerrar dropdowns del modal
+  // Cerrar dropdowns del modal y selectores de unidad
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (modalConductorRef.current && !modalConductorRef.current.contains(e.target)) {
@@ -345,6 +345,9 @@ export default function DetalleUnidadMantenimiento() {
       }
       if (modalRutaRef.current && !modalRutaRef.current.contains(e.target)) {
         setModalEstatusRutaDropdown(false);
+      }
+      if (unitSelectorsRef.current && !unitSelectorsRef.current.contains(e.target)) {
+        setOpenDropdown(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -516,9 +519,12 @@ export default function DetalleUnidadMantenimiento() {
 
   const unidadesPorEstado = (estado) => (unidadesList || []).filter((u) => {
     if (estado === 'operacion') {
-      return u.estado === 'operacion' && !u.desincorporada_itinerario;
+      return (u.estado || '').toLowerCase() === 'operacion' && !u.desincorporada_itinerario;
     }
-    return u.estado === estado;
+    if (estado === 'desinc_itinerario') {
+      return Boolean(u.desincorporada_itinerario);
+    }
+    return (u.estado || '').toLowerCase() === estado.toLowerCase() && !u.desincorporada_itinerario;
   });
   const unidadesReserva = unidadesPorEstado('reserva');
 
@@ -677,8 +683,15 @@ export default function DetalleUnidadMantenimiento() {
       ? formatearEco(unidadSeleccionada.eco)
       : formatearEco(extraerNumeroEco(unidad));
 
+    let estadoInicial = null;
+    if (unidadSeleccionada?.desincorporada_itinerario) {
+      estadoInicial = 'desinc_itinerario';
+    } else if (unidadSeleccionada) {
+      estadoInicial = unidadSeleccionada.estado;
+    }
+
     setSelectedOption(ecoSeleccionado);
-    setSelectedEstado(unidadSeleccionada ? unidadSeleccionada.estado : null);
+    setSelectedEstado(estadoInicial);
     setOpenDropdown(null);
     setCargandoDatos(true);
 
@@ -711,6 +724,7 @@ export default function DetalleUnidadMantenimiento() {
       });
 
       if (resultado.status === 'success') {
+        const isDesincItin = Boolean(resultado.desincorporada_itinerario ?? unidadSeleccionada?.desincorporada_itinerario);
         const horaDespacho = resultado.hora_real_salida_patio || resultado.hora_salida_patio || resultado.acople || null;
         setDatosOperativos({
           conductor: resultado.conductor || 'No reportado hoy',
@@ -734,8 +748,9 @@ export default function DetalleUnidadMantenimiento() {
           mantenimiento_ruta: resultado.mantenimiento_ruta || null,
           mantenimiento_corrida: resultado.mantenimiento_corrida || null,
           mantenimiento_kilometraje: resultado.mantenimiento_kilometraje || null,
+          desincorporada_itinerario: isDesincItin,
         });
-        setSelectedEstado(resultado.estatus || unidadSeleccionada?.estado || 'operacion');
+        setSelectedEstado(isDesincItin ? 'desinc_itinerario' : (resultado.estatus || unidadSeleccionada?.estado || 'operacion'));
       } else {
         setDatosOperativos({
           conductor: 'No reportado hoy',
@@ -1297,6 +1312,18 @@ export default function DetalleUnidadMantenimiento() {
               onSelectUnit={handleSelectUnit}
             />
             <UnitSelector
+              isOpen={openDropdown === 'reserva'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'reserva' : null)}
+              selectedOption={selectedOption}
+              selectedEstado={selectedEstado}
+              estado="reserva"
+              titulo="Reserva"
+              unidades={unidadesPorEstado('reserva')}
+              cargandoUnidades={cargandoUnidades}
+              configActual={configActual}
+              onSelectUnit={handleSelectUnit}
+            />
+            <UnitSelector
               isOpen={openDropdown === 'percance'}
               setIsOpen={(open) => setOpenDropdown(open ? 'percance' : null)}
               selectedOption={selectedOption}
@@ -1309,13 +1336,13 @@ export default function DetalleUnidadMantenimiento() {
               onSelectUnit={handleSelectUnit}
             />
             <UnitSelector
-              isOpen={openDropdown === 'reserva'}
-              setIsOpen={(open) => setOpenDropdown(open ? 'reserva' : null)}
+              isOpen={openDropdown === 'desinc_itinerario'}
+              setIsOpen={(open) => setOpenDropdown(open ? 'desinc_itinerario' : null)}
               selectedOption={selectedOption}
               selectedEstado={selectedEstado}
-              estado="reserva"
-              titulo="Reserva"
-              unidades={unidadesPorEstado('reserva')}
+              estado="desinc_itinerario"
+              titulo="Desinc. Itinerario"
+              unidades={unidadesPorEstado('desinc_itinerario')}
               cargandoUnidades={cargandoUnidades}
               configActual={configActual}
               onSelectUnit={handleSelectUnit}
@@ -1335,6 +1362,25 @@ export default function DetalleUnidadMantenimiento() {
                       <div className="dashboard-header-card__eyebrow">{configActual.title}</div>
                       <h2 className="dashboard-header-card__eco">{selectedOption}</h2>
                       <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {datosOperativos?.desincorporada_itinerario && (
+                          <div style={{
+                            background: 'rgba(245, 158, 11, 0.15)',
+                            border: '1.5px solid #d97706',
+                            color: '#fef3c7',
+                            padding: '0.35rem 0.85rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.04em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            boxShadow: '0 2px 10px rgba(217, 119, 6, 0.2)'
+                          }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
+                            <span>DESINCORPORADA POR ITINERARIO</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

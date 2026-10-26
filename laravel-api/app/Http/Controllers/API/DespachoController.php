@@ -1214,7 +1214,10 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
+            $horaEncierroEspecificada = array_key_exists('HORA_ENCIERRO', $fila) || array_key_exists('hora_encierro', $fila);
+            $horaEncierroVal = array_key_exists('HORA_ENCIERRO', $fila)
+                ? trim((string) ($fila['HORA_ENCIERRO'] ?? ''))
+                : trim((string) ($fila['hora_encierro'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_REAL_SALIDA_PATIO'] ?? $fila['HORA_SALIDA'] ?? ''));
 
             // Si proviene de RELEVOS, los campos de titular no se gestionan en este módulo: preservar de BD si vienen vacíos
@@ -1238,7 +1241,7 @@ class DespachoController extends Controller
             }
 
             // Preservar hora de encierro si no se proporcionó una nueva
-            if ($horaEncierroVal === '' && $prevInfo && !empty($prevInfo->hora_encierro)) {
+            if (!$horaEncierroEspecificada && $prevInfo && !empty($prevInfo->hora_encierro)) {
                 $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
             }
 
@@ -1312,7 +1315,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : null;
                 $data['hora_real_salida_patio'] = null;
                 // Valores booleanos como strings para compatibilidad PostgreSQL
                 $data['patio_norte'] = 'false';
@@ -1336,7 +1339,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : null;
                 $data['hora_real_salida_patio'] = null;
                 // Valores booleanos como strings para compatibilidad PostgreSQL
                 $data['patio_norte'] = 'false';
@@ -1725,7 +1728,10 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
+            $horaEncierroEspecificada = array_key_exists('HORA_ENCIERRO', $fila) || array_key_exists('hora_encierro', $fila);
+            $horaEncierroVal = array_key_exists('HORA_ENCIERRO', $fila)
+                ? trim((string) ($fila['HORA_ENCIERRO'] ?? ''))
+                : trim((string) ($fila['hora_encierro'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
             if ($origen === 'RELEVOS' && $prevInfo) {
@@ -1748,7 +1754,7 @@ class DespachoController extends Controller
             }
 
             // Preservar hora_encierro existente si la fila no la especifica explícitamente (independiente del origen)
-            if ($horaEncierroVal === '' && $prevInfo && !empty($prevInfo->hora_encierro)) {
+            if (!$horaEncierroEspecificada && $prevInfo && !empty($prevInfo->hora_encierro)) {
                 $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
             }
 
@@ -1827,7 +1833,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : null;
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -1850,7 +1856,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : null;
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -2119,7 +2125,10 @@ class DespachoController extends Controller
             $corridasVal = trim((string) ($fila['CORRIDAS'] ?? ''));
             $horaProgVal = trim((string) ($fila['HORA_SALIDA_PATIO'] ?? $fila['HORA_DE_ACOPLE'] ?? ''));
             $acopleVal = trim((string) ($fila['ACOPLE'] ?? ''));
-            $horaEncierroVal = trim((string) ($fila['HORA_ENCIERRO'] ?? $fila['hora_encierro'] ?? ''));
+            $horaEncierroEspecificada = array_key_exists('HORA_ENCIERRO', $fila) || array_key_exists('hora_encierro', $fila);
+            $horaEncierroVal = array_key_exists('HORA_ENCIERRO', $fila)
+                ? trim((string) ($fila['HORA_ENCIERRO'] ?? ''))
+                : trim((string) ($fila['hora_encierro'] ?? ''));
             $horaSalidaRealVal = trim((string) ($fila['HORA_SALIDA'] ?? ''));
 
             if ($origen === 'RELEVOS' && $prevInfo) {
@@ -2142,7 +2151,7 @@ class DespachoController extends Controller
             }
 
             // Preservar hora_encierro existente si la fila no la especifica explícitamente (independiente del origen)
-            if ($horaEncierroVal === '' && $prevInfo && !empty($prevInfo->hora_encierro)) {
+            if (!$horaEncierroEspecificada && $prevInfo && !empty($prevInfo->hora_encierro)) {
                 $horaEncierroVal = trim((string) $prevInfo->hora_encierro);
             }
 
@@ -2216,7 +2225,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : null;
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -2239,7 +2248,7 @@ class DespachoController extends Controller
                 $data['corridas'] = null;
                 $data['hora_salida_patio'] = null;
                 $data['acople'] = null;
-                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : ($prevInfo->hora_encierro ?? null);
+                $data['hora_encierro'] = $horaEncierroVal !== '' ? $horaEncierroVal : null;
                 $data['hora_real_salida_patio'] = null;
                 $data['patio_norte'] = 'false';
                 $data['transporte_patio_norte'] = 'false';
@@ -2754,6 +2763,27 @@ class DespachoController extends Controller
                 }
 
                 DB::commit();
+
+                // Trasladar ciclos configurados para mañana al día operativo actual al ejecutarse el cambio de día
+                try {
+                    if (Schema::hasTable('programacion_ciclos')) {
+                        $fechaManana = Carbon::tomorrow('America/Mexico_City')->toDateString();
+                        $ciclosManana = DB::table('programacion_ciclos')->where('fecha_operativa', $fechaManana)->first();
+                        if ($ciclosManana && $ciclosManana->ciclos !== null) {
+                            $ahora = Carbon::now('America/Mexico_City');
+                            DB::table('programacion_ciclos')->updateOrInsert(
+                                ['fecha_operativa' => $fechaHoy],
+                                [
+                                    'ciclos' => (float) $ciclosManana->ciclos,
+                                    'updated_at' => $ahora,
+                                    'created_at' => $ahora,
+                                ]
+                            );
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('No se pudieron trasladar los ciclos de mañana a hoy: '.$e->getMessage());
+                }
 
                 Cache::forever('cambio_dia_operativo_ejecutado_'.$fechaHoy, true);
 
@@ -3614,13 +3644,14 @@ class DespachoController extends Controller
                 : ($reg->hora_real_salida_patio ?: ($encierroReg?->hora_real_salida_patio ?? $encierroReg?->hora_salida ?? null));
 
             // Evaluar si es un encierro por cumplimiento programado / fin de turno
-            $motivoEncierro = strtolower((string) ($reg->motivo_estatus ?: ($encierroReg?->motivo_estatus ?? '')));
+            $motivoEncierro = strtolower((string) ($encierroReg?->motivo_estatus ?? $reg->motivo_estatus ?? ''));
             $isFinTurno = str_contains($motivoEncierro, 'fin de turno') || 
                           str_contains($motivoEncierro, 'encierro programado') || 
                           str_contains($motivoEncierro, 'encierro regular');
 
-            // Solo cuenta como turno cumplido si fue encerrada estrictamente por fin de turno/programado
-            $isTurnoCumplido = $isEncerrada && $isFinTurno && !in_array($estatusNorm, ['mantenimiento', 'percance'], true);
+            // Solo cuenta como turno cumplido si fue encerrada estrictamente por fin de turno/programado.
+            // Si ya cumplió su turno programado y fue encerrada, cuenta como turno cumplido incluso si después ingresó a taller/mantenimiento.
+            $isTurnoCumplido = $isEncerrada && $isFinTurno;
 
             // Relevo dinámico si ya entró en vigor por horario
             $conductorEfectivo = $reg->nombre_conductor;
@@ -4169,7 +4200,7 @@ class DespachoController extends Controller
      */
     public function obtenerInicioHoy()
     {
-        $fechaHoy = Carbon::today()->toDateString();
+        $fechaHoy = Carbon::today('America/Mexico_City')->toDateString();
 
         // Asegurar que exista el snapshot si se consulta
         BitacoraHelper::ensureInicioSnapshot();
@@ -7360,7 +7391,7 @@ class DespachoController extends Controller
 
         return response()->json([
             'fecha' => $fecha,
-            'ciclos' => $registro ? (int) $registro->ciclos : null,
+            'ciclos' => $registro ? (float) $registro->ciclos : null,
         ], 200);
     }
 
@@ -7368,18 +7399,18 @@ class DespachoController extends Controller
     {
         $request->validate([
             'fecha' => 'required|string',
-            'ciclos' => 'required|integer|min:0',
+            'ciclos' => 'required|numeric|min:0',
         ]);
 
         $fechaInput = $request->input('fecha', 'MANANA');
         $fecha = $this->resolverFechaCiclos($fechaInput);
-        $ciclos = (int) $request->input('ciclos');
+        $ciclos = round((float) $request->input('ciclos'), 2);
 
         if (!Schema::hasTable('programacion_ciclos')) {
             Schema::create('programacion_ciclos', function (Blueprint $table) {
                 $table->id();
                 $table->date('fecha_operativa')->unique();
-                $table->integer('ciclos');
+                $table->decimal('ciclos', 10, 2);
                 $table->timestamps();
             });
         }

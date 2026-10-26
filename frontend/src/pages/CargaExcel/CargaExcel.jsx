@@ -15,7 +15,6 @@ import ModalComparativaAlimentadoras from './ModalComparativaAlimentadoras';
 import ModalCiclos from './ModalCiclos';
 import './CargaExcel.css';
 import API_BASE from '../../config/api';
-import { compareRutas } from '../../utils/rutaUtils';
 
 // Campos que se editan juntos (si cambia uno del grupo, se considera cambiado todo el grupo).
 const GRUPOS_FILA = [
@@ -523,6 +522,9 @@ export default function CargaExcel({ isPasteles = false }) {
           updatedData[index]['ESTATUS'] = 'operacion';
         }
       }
+    } else if (field === 'HORA_ENCIERRO' || field === 'hora_encierro') {
+      updatedData[index]['HORA_ENCIERRO'] = value;
+      updatedData[index]['hora_encierro'] = value;
     } else {
       updatedData[index][field] = value;
       if ((field === 'RUTA' || field === 'CORRIDAS') && value) {
@@ -889,7 +891,7 @@ export default function CargaExcel({ isPasteles = false }) {
       const response = await fetch(url, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           unidades: payloadUnidades,
           parcial: true,
           origen: isRelevos ? 'RELEVOS' : isPasteles ? 'PASTELES' : 'PROGRAMACION'
@@ -1190,11 +1192,9 @@ export default function CargaExcel({ isPasteles = false }) {
     const workbook = XLSX.utils.book_new();
 
     // ─── HOJA 1: GUÍA DE LLENADO ───
-    const troncalesOrdenadas = (catalogRutasObj.troncales || []).slice().sort(compareRutas);
-    const alimentadorasOrdenadas = (catalogRutasObj.alimentadoras || []).slice().sort(compareRutas);
     const rutasDisponibles = [
-      ...troncalesOrdenadas,
-      ...alimentadorasOrdenadas
+      ...(catalogRutasObj.troncales || []),
+      ...(catalogRutasObj.alimentadoras || [])
     ].join(', ');
 
     const guiaHoja = [
@@ -1250,7 +1250,7 @@ export default function CargaExcel({ isPasteles = false }) {
       try {
         const bstr = evt.target.result;
         const workbook = XLSX.read(bstr, { type: 'binary' });
-        
+
         const newData = [...previewData];
         const errores = [];
         const actualizaciones = [];
@@ -1260,81 +1260,81 @@ export default function CargaExcel({ isPasteles = false }) {
 
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-          
+
           if (!jsonData || jsonData.length === 0) return;
 
           // Validar columnas requeridas globalmente en la hoja
           const firstRowKeys = Object.keys(jsonData[0] || {}).map(k => k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_'));
           const requiredCols = {
-              'ECONOMICO': 'ECONOMICO',
-              'SERVICIO': 'SERVICIO',
-              'TARJETON': 'TARJETON',
-              'HORA_DE_SALIDA_DE_PATIO': 'HORA DE SALIDA DE PATIO',
-              'HORA_DE_ACOPLE': 'HORA DE ACOPLE'
+            'ECONOMICO': 'ECONOMICO',
+            'SERVICIO': 'SERVICIO',
+            'TARJETON': 'TARJETON',
+            'HORA_DE_SALIDA_DE_PATIO': 'HORA DE SALIDA DE PATIO',
+            'HORA_DE_ACOPLE': 'HORA DE ACOPLE'
           };
-          
+
           let faltanColumnas = false;
           Object.keys(requiredCols).forEach(reqKey => {
-              if (!firstRowKeys.includes(reqKey)) {
-                  errores.push(`Hoja "${sheetName}": Falta la columna obligatoria "${requiredCols[reqKey]}". Por favor usa la plantilla correcta.`);
-                  faltanColumnas = true;
-              }
-          });
-          
-          if (faltanColumnas) return; // Si faltan columnas, saltarse el procesamiento de filas de esta hoja
-          
-          if (tabActiva === 'MANANA') {
-              // Para MANANA, acumulamos todo directo para mandar al backend
-              jsonData.forEach((row, index) => {
-                    const normalizedRow = {};
-                    Object.keys(row).forEach(k => {
-                        const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
-                        normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
-                        if (cleanKey.startsWith('HORA')) {
-                            const v = row[k];
-                            let horaTexto;
-                            if (typeof v === 'number' && v >= 0 && v < 1) {
-                                const totalMin = Math.round(v * 24 * 60) % (24 * 60);
-                                horaTexto = `${String(Math.floor(totalMin / 60)).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
-                            } else {
-                                const s = String(v ?? '').trim();
-                                const m = s.match(/^(\d{1,2}):(\d{2})/);
-                                horaTexto = m ? `${m[1].padStart(2, '0')}:${m[2]}` : s;
-                            }
-                            normalizedRow[cleanKey] = horaTexto;
-                        }
-                    });
-                    
-                    if (normalizedRow['ECONOMICO']) {
-                        const isPatioNorte = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'TRUE' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === '1' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SÍ' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SI';
-                        const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
-                        const hDesinc = normalizedRow['HORA_DE_DESINCORPORACION'] || normalizedRow['HORA_DESINCORPORACION'] || '';
-                        const hIncorp = normalizedRow['HORA_DE_INCORPORACION'] || normalizedRow['HORA_INCORPORACION'] || '';
-                        const hEncierro = normalizedRow['HORA_DE_ENCIERRO'] || normalizedRow['HORA_ENCIERRO'] || normalizedRow['ENCIERRO'] || '';
-
-                        actualizaciones.push({
-                            'HOJA': sheetName,
-                            'FILA': index + 2,
-                            'ECONOMICO': normalizedRow['ECONOMICO'],
-                            'SERVICIO': normalizedRow['SERVICIO'],
-                            'TARJETON': normalizedRow['TARJETON'],
-                            'CONDUCTOR': (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
-                            'NOMBRE_CONDUCTOR': (normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
-                            'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
-                            'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
-                            'HORA DE ENCIERRO': hEncierro,
-                            'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
-                            'PATIO_NORTE': isPatioNorte,
-                            'ITINERARIO': isItinerario,
-                            'HORA DE DESINCORPORACION': hDesinc,
-                            'HORA DE INCORPORACION': hIncorp
-                        });
-                    }
-                });
-                return;
+            if (!firstRowKeys.includes(reqKey)) {
+              errores.push(`Hoja "${sheetName}": Falta la columna obligatoria "${requiredCols[reqKey]}". Por favor usa la plantilla correcta.`);
+              faltanColumnas = true;
             }
+          });
 
-            const aHoraTexto = (v) => {
+          if (faltanColumnas) return; // Si faltan columnas, saltarse el procesamiento de filas de esta hoja
+
+          if (tabActiva === 'MANANA') {
+            // Para MANANA, acumulamos todo directo para mandar al backend
+            jsonData.forEach((row, index) => {
+              const normalizedRow = {};
+              Object.keys(row).forEach(k => {
+                const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
+                normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
+                if (cleanKey.startsWith('HORA')) {
+                  const v = row[k];
+                  let horaTexto;
+                  if (typeof v === 'number' && v >= 0 && v < 1) {
+                    const totalMin = Math.round(v * 24 * 60) % (24 * 60);
+                    horaTexto = `${String(Math.floor(totalMin / 60)).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+                  } else {
+                    const s = String(v ?? '').trim();
+                    const m = s.match(/^(\d{1,2}):(\d{2})/);
+                    horaTexto = m ? `${m[1].padStart(2, '0')}:${m[2]}` : s;
+                  }
+                  normalizedRow[cleanKey] = horaTexto;
+                }
+              });
+
+              if (normalizedRow['ECONOMICO']) {
+                const isPatioNorte = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'TRUE' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === '1' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SÍ' || normalizedRow['TRANSPORTE_PATIO_NORTE'] === 'SI';
+                const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
+                const hDesinc = normalizedRow['HORA_DE_DESINCORPORACION'] || normalizedRow['HORA_DESINCORPORACION'] || '';
+                const hIncorp = normalizedRow['HORA_DE_INCORPORACION'] || normalizedRow['HORA_INCORPORACION'] || '';
+                const hEncierro = normalizedRow['HORA_DE_ENCIERRO'] || normalizedRow['HORA_ENCIERRO'] || normalizedRow['ENCIERRO'] || '';
+
+                actualizaciones.push({
+                  'HOJA': sheetName,
+                  'FILA': index + 2,
+                  'ECONOMICO': normalizedRow['ECONOMICO'],
+                  'SERVICIO': normalizedRow['SERVICIO'],
+                  'TARJETON': normalizedRow['TARJETON'],
+                  'CONDUCTOR': (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
+                  'NOMBRE_CONDUCTOR': (normalizedRow['NOMBRE_CONDUCTOR'] || normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE'] || '').toUpperCase(),
+                  'HORA DE SALIDA DE PATIO': normalizedRow['HORA_DE_SALIDA_DE_PATIO'],
+                  'HORA DE ACOPLE': normalizedRow['HORA_DE_ACOPLE'],
+                  'HORA DE ENCIERRO': hEncierro,
+                  'HORA ENTRADA T6': normalizedRow['HORA_ENTRADA_T6'],
+                  'PATIO_NORTE': isPatioNorte,
+                  'ITINERARIO': isItinerario,
+                  'HORA DE DESINCORPORACION': hDesinc,
+                  'HORA DE INCORPORACION': hIncorp
+                });
+              }
+            });
+            return;
+          }
+
+          const aHoraTexto = (v) => {
 
             if (typeof v === 'number' && v >= 0 && v < 1) {
               const totalMin = Math.round(v * 24 * 60) % (24 * 60);
@@ -1346,86 +1346,83 @@ export default function CargaExcel({ isPasteles = false }) {
           };
 
           jsonData.forEach((row, index) => {
-           const normalizedRow = {};
-           Object.keys(row).forEach(k => {
-             // Removemos acentos para asegurar un match correcto con las columnas de la plantilla
-             const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
-             normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
-             if (cleanKey.startsWith('HORA') || cleanKey.includes('ENCIERRO')) normalizedRow[`RAW_${cleanKey}`] = row[k];
-           });
+            const normalizedRow = {};
+            Object.keys(row).forEach(k => {
+              // Removemos acentos para asegurar un match correcto con las columnas de la plantilla
+              const cleanKey = k.trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '_');
+              normalizedRow[cleanKey] = String(row[k]).trim().toUpperCase();
+              if (cleanKey.startsWith('HORA') || cleanKey.includes('ENCIERRO')) normalizedRow[`RAW_${cleanKey}`] = row[k];
+            });
 
-           const eco = normalizedRow['ECONOMICO'] || '';
-           if (!eco) return; // Si no hay económico, ignorar fila
+            const eco = normalizedRow['ECONOMICO'] || '';
+            if (!eco) return; // Si no hay económico, ignorar fila
 
-           const tipoFila = normalizarTipoUnidad(normalizedRow['TIPO_UNIDAD'] || sheetName);
-           const ecoNum = parseInt(eco, 10);
-           const mismoEco = (d) => {
-             const dNum = parseInt(String(d.ECONOMICO).trim(), 10);
-             return (!isNaN(ecoNum) && !isNaN(dNum)) ? dNum === ecoNum : String(d.ECONOMICO).trim() === eco;
-           };
-           const existingIndex = newData.findIndex(d => mismoEco(d) && normalizarTipoUnidad(d.TIPO_DE_UNIDAD) === tipoFila);
-           if (existingIndex === -1) {
+            const tipoFila = normalizarTipoUnidad(normalizedRow['TIPO_UNIDAD'] || sheetName);
+            const ecoNum = parseInt(eco, 10);
+            const mismoEco = (d) => {
+              const dNum = parseInt(String(d.ECONOMICO).trim(), 10);
+              return (!isNaN(ecoNum) && !isNaN(dNum)) ? dNum === ecoNum : String(d.ECONOMICO).trim() === eco;
+            };
+            const existingIndex = newData.findIndex(d => mismoEco(d) && normalizarTipoUnidad(d.TIPO_DE_UNIDAD) === tipoFila);
+            if (existingIndex === -1) {
               errores.push(`Hoja "${sheetName}", Fila ${index + 2}: El económico ${eco} (${tipoFila}) no se encuentra en la programación actual.`);
               return;
-           }
+            }
 
-           // SERVICIO viene como RUTA-CORRIDA (ej. T05-06 o 1A 01)
-           const servicio = normalizedRow['SERVICIO'] || '';
-           const partesServicio = servicio.includes('-') ? servicio.split('-') : servicio.split(/\s+/);
-           const rutaRaw = (partesServicio[0] || '').trim().toUpperCase();
-           const ruta = (!rutaRaw.startsWith('T') && /^0*(\d+[A-Z]*)$/i.test(rutaRaw))
-             ? rutaRaw.replace(/^0*(\d+[A-Z]*)$/i, '$1')
-             : rutaRaw;
-           const corridaRaw = (partesServicio[1] || '').trim();
-           const corrida = corridaRaw !== '' && !isNaN(parseInt(corridaRaw, 10)) ? String(parseInt(corridaRaw, 10)) : corridaRaw;
-           const tarjeton = normalizedRow['TARJETON'] || '';
-           const horaSalida = aHoraTexto(normalizedRow['RAW_HORA_DE_SALIDA_DE_PATIO']);
-           const horaAcople = aHoraTexto(normalizedRow['RAW_HORA_DE_ACOPLE']);
-           const horaEncierro = aHoraTexto(normalizedRow['RAW_HORA_DE_ENCIERRO'] || normalizedRow['RAW_HORA_ENCIERRO'] || normalizedRow['RAW_ENCIERRO']) || '';
-           const horaDesinc = aHoraTexto(normalizedRow['RAW_HORA_DE_DESINCORPORACION'] || normalizedRow['RAW_HORA_DESINCORPORACION']) || '';
-           const horaIncorp = aHoraTexto(normalizedRow['RAW_HORA_DE_INCORPORACION'] || normalizedRow['RAW_HORA_INCORPORACION']) || '';
-           const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
-           const pn = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI';
+            // SERVICIO viene como RUTA-CORRIDA (ej. T05-06 o 1A 01)
+            const servicio = normalizedRow['SERVICIO'] || '';
+            const partesServicio = servicio.includes('-') ? servicio.split('-') : servicio.split(/\s+/);
+            const ruta = (partesServicio[0] || '').trim();
+            const corridaRaw = (partesServicio[1] || '').trim();
+            const corrida = corridaRaw !== '' && !isNaN(parseInt(corridaRaw, 10)) ? String(parseInt(corridaRaw, 10)) : corridaRaw;
+            const tarjeton = normalizedRow['TARJETON'] || '';
+            const horaSalida = aHoraTexto(normalizedRow['RAW_HORA_DE_SALIDA_DE_PATIO']);
+            const horaAcople = aHoraTexto(normalizedRow['RAW_HORA_DE_ACOPLE']);
+            const horaEncierro = aHoraTexto(normalizedRow['RAW_HORA_DE_ENCIERRO'] || normalizedRow['RAW_HORA_ENCIERRO'] || normalizedRow['RAW_ENCIERRO']) || '';
+            const horaDesinc = aHoraTexto(normalizedRow['RAW_HORA_DE_DESINCORPORACION'] || normalizedRow['RAW_HORA_DESINCORPORACION']) || '';
+            const horaIncorp = aHoraTexto(normalizedRow['RAW_HORA_DE_INCORPORACION'] || normalizedRow['RAW_HORA_INCORPORACION']) || '';
+            const isItinerario = normalizedRow['ITINERARIO'] === 'TRUE' || normalizedRow['ITINERARIO'] === '1' || normalizedRow['ITINERARIO'] === 'SÍ' || normalizedRow['ITINERARIO'] === 'SI';
+            const pn = normalizedRow['PATIO_NORTE'] === 'TRUE' || normalizedRow['PATIO_NORTE'] === '1' || normalizedRow['PATIO_NORTE'] === 'SÍ' || normalizedRow['PATIO_NORTE'] === 'SI';
 
-           let nombreConductor = '';
-           if (tarjeton) {
-             const conductorObj = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(tarjeton));
-             if (!conductorObj) {
-               errores.push(`Hoja "${sheetName}", Fila ${index + 2} (Eco ${eco}): El tarjetón ${tarjeton} no existe o no está activo.`);
-             } else {
-               nombreConductor = (conductorObj.nombre || '').toUpperCase();
-             }
-           } else if (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']) {
-             nombreConductor = String(normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']).trim().toUpperCase();
-           }
+            let nombreConductor = '';
+            if (tarjeton) {
+              const conductorObj = catalogConductores.find(c => normalizeTarjeton(c.tarjeton) === normalizeTarjeton(tarjeton));
+              if (!conductorObj) {
+                errores.push(`Hoja "${sheetName}", Fila ${index + 2} (Eco ${eco}): El tarjetón ${tarjeton} no existe o no está activo.`);
+              } else {
+                nombreConductor = (conductorObj.nombre || '').toUpperCase();
+              }
+            } else if (normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']) {
+              nombreConductor = String(normalizedRow['CONDUCTOR'] || normalizedRow['NOMBRE_CONDUCTOR']).trim().toUpperCase();
+            }
 
-           const horaEntradaT6 = aHoraTexto(normalizedRow['RAW_HORA_ENTRADA_T6']) || '';
+            const horaEntradaT6 = aHoraTexto(normalizedRow['RAW_HORA_ENTRADA_T6']) || '';
 
-           actualizaciones.push({
-             index: existingIndex,
-             ECONOMICO: eco,
-             SERVICIO: servicio,
-             TARJETON: tarjeton,
-             ruta,
-             corrida,
-             tarjeton,
-             nombreConductor: (nombreConductor || '').toUpperCase(),
-             horaSalida,
-             horaAcople,
-             horaEncierro,
-             horaEntrada: horaEntradaT6,
-             horaDesinc,
-             horaIncorp,
-             itinerario: isItinerario,
-             'HORA DE SALIDA DE PATIO': horaSalida,
-             'HORA DE ACOPLE': horaAcople,
-             'HORA DE ENCIERRO': horaEncierro,
-             'HORA_ENCIERRO': horaEncierro,
-             'HORA ENTRADA T6': horaEntradaT6,
-             'HORA DE DESINCORPORACION': horaDesinc,
-             'HORA DE INCORPORACION': horaIncorp,
-             pn
-           });
+            actualizaciones.push({
+              index: existingIndex,
+              ECONOMICO: eco,
+              SERVICIO: servicio,
+              TARJETON: tarjeton,
+              ruta,
+              corrida,
+              tarjeton,
+              nombreConductor: (nombreConductor || '').toUpperCase(),
+              horaSalida,
+              horaAcople,
+              horaEncierro,
+              horaEntrada: horaEntradaT6,
+              horaDesinc,
+              horaIncorp,
+              itinerario: isItinerario,
+              'HORA DE SALIDA DE PATIO': horaSalida,
+              'HORA DE ACOPLE': horaAcople,
+              'HORA DE ENCIERRO': horaEncierro,
+              'HORA_ENCIERRO': horaEncierro,
+              'HORA ENTRADA T6': horaEntradaT6,
+              'HORA DE DESINCORPORACION': horaDesinc,
+              'HORA DE INCORPORACION': horaIncorp,
+              pn
+            });
           });
         });
 
@@ -1433,94 +1430,94 @@ export default function CargaExcel({ isPasteles = false }) {
           throw new Error('El archivo Excel no contiene unidades para cargar.');
         }
 
-        
+
         if (tabActiva === 'MANANA') {
-            if (actualizaciones.length === 0) {
-                Swal.fire({ icon: 'warning', title: 'Excel vacío', text: 'No se encontraron datos para procesar.' });
-                if (fileInputRef.current) fileInputRef.current.value = '';
-                return;
-            }
-            
-            Swal.fire({
-                title: 'Procesando...',
-                text: 'Enviando programación del día siguiente',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-            
-            fetch(`${API_BASE}/api/despacho/cargar-programacion-excel`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeaders(),
-                },
-                body: JSON.stringify({ datos: actualizaciones })
-            })
+          if (actualizaciones.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Excel vacío', text: 'No se encontraron datos para procesar.' });
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+          }
+
+          Swal.fire({
+            title: 'Procesando...',
+            text: 'Enviando programación del día siguiente',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+          });
+
+          fetch(`${API_BASE}/api/despacho/cargar-programacion-excel`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders(),
+            },
+            body: JSON.stringify({ datos: actualizaciones })
+          })
             .then(res => res.json())
             .then(resData => {
-                if (resData.errores && resData.errores.length > 0) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Datos con errores',
-                        html: '<div style="max-height: 200px; overflow-y: auto; text-align: left; font-size: 0.85em;">' + resData.errores.join('<br/>') + '</div>',
-                        confirmButtonColor: '#c5a059'
-                    });
-                } else if (resData.error) {
-                    throw new Error(resData.error || resData.message);
-                } else {
-                    Swal.fire({ icon: 'success', title: '¡Éxito!', text: 'Programación cargada correctamente.', timer: 2000, showConfirmButton: false });
-                    refetchData();
-                }
+              if (resData.errores && resData.errores.length > 0) {
+                Swal.fire({
+                  icon: 'warning',
+                  title: 'Datos con errores',
+                  html: '<div style="max-height: 200px; overflow-y: auto; text-align: left; font-size: 0.85em;">' + resData.errores.join('<br/>') + '</div>',
+                  confirmButtonColor: '#c5a059'
+                });
+              } else if (resData.error) {
+                throw new Error(resData.error || resData.message);
+              } else {
+                Swal.fire({ icon: 'success', title: '¡Éxito!', text: 'Programación cargada correctamente.', timer: 2000, showConfirmButton: false });
+                refetchData();
+              }
             })
             .catch(err => {
-                Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Error al enviar los datos al servidor.' });
+              Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Error al enviar los datos al servidor.' });
             })
             .finally(() => {
-                if (fileInputRef.current) fileInputRef.current.value = '';
+              if (fileInputRef.current) fileInputRef.current.value = '';
             });
-            
-            return;
+
+          return;
         }
 
         if (errores.length > 0) {
 
-           Swal.fire({
-             icon: 'error',
-             title: 'Errores en el archivo',
-             html: `<div style="text-align: left; max-height: 200px; overflow-y: auto; font-size: 0.9em;">
+          Swal.fire({
+            icon: 'error',
+            title: 'Errores en el archivo',
+            html: `<div style="text-align: left; max-height: 200px; overflow-y: auto; font-size: 0.9em;">
                       <ul style="padding-left: 20px; margin: 0;">
                         ${errores.map(err => `<li style="margin-bottom: 4px;">${err}</li>`).join('')}
                       </ul>
                     </div>
                     <p style="margin-top: 10px; font-weight: bold; color: #dc2626;">No se ha cargado ninguna fila. Por favor corrige el archivo y vuelve a subirlo.</p>`,
-             confirmButtonColor: '#6b1d33',
-             width: '500px'
-           });
-           if (fileInputRef.current) fileInputRef.current.value = '';
-           return;
+            confirmButtonColor: '#6b1d33',
+            width: '500px'
+          });
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
         }
 
         actualizaciones.forEach(act => {
-           newData[act.index].RUTA = act.ruta;
-           newData[act.index].CORRIDAS = act.corrida;
-           newData[act.index].TARJETON = act.tarjeton;
-           newData[act.index].NOMBRE_CONDUCTOR = (act.nombreConductor || '').toUpperCase();
-           newData[act.index].HORA_SALIDA_PATIO = act.horaSalida;
-           newData[act.index].ACOPLE = act.horaAcople;
-           newData[act.index].HORA_DE_ACOPLE = act.horaAcople;
-           newData[act.index].HORA_ENCIERRO = act.horaEncierro;
-           newData[act.index].hora_encierro = act.horaEncierro;
-           if (act.pn) newData[act.index].PATIO_NORTE = true;
-           newData[act.index].ITINERARIO = act.itinerario;
-           newData[act.index].HORA_DESINCORPORACION = act.horaDesinc;
-           newData[act.index].HORA_INCORPORACION = act.horaIncorp;
+          newData[act.index].RUTA = act.ruta;
+          newData[act.index].CORRIDAS = act.corrida;
+          newData[act.index].TARJETON = act.tarjeton;
+          newData[act.index].NOMBRE_CONDUCTOR = (act.nombreConductor || '').toUpperCase();
+          newData[act.index].HORA_SALIDA_PATIO = act.horaSalida;
+          newData[act.index].ACOPLE = act.horaAcople;
+          newData[act.index].HORA_DE_ACOPLE = act.horaAcople;
+          newData[act.index].HORA_ENCIERRO = act.horaEncierro;
+          newData[act.index].hora_encierro = act.horaEncierro;
+          if (act.pn) newData[act.index].PATIO_NORTE = true;
+          newData[act.index].ITINERARIO = act.itinerario;
+          newData[act.index].HORA_DESINCORPORACION = act.horaDesinc;
+          newData[act.index].HORA_INCORPORACION = act.horaIncorp;
 
-           const tieneServicio = act.ruta || act.tarjeton || act.corrida;
-           if (tieneServicio) {
-              newData[act.index].ESTATUS = 'operacion';
-           } else {
-              newData[act.index].ESTATUS = 'reserva';
-           }
+          const tieneServicio = act.ruta || act.tarjeton || act.corrida;
+          if (tieneServicio) {
+            newData[act.index].ESTATUS = 'operacion';
+          } else {
+            newData[act.index].ESTATUS = 'reserva';
+          }
         });
 
         setPreviewData(newData);
@@ -1542,10 +1539,10 @@ export default function CargaExcel({ isPasteles = false }) {
           confirmButtonColor: 'var(--color-maroon)'
         });
       }
-      
+
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
-    
+
     reader.readAsBinaryString(file);
   };
 
@@ -1564,7 +1561,7 @@ export default function CargaExcel({ isPasteles = false }) {
       });
       if (!response.ok) throw new Error('Error al obtener datos de inicio');
       const data = await response.json();
-      
+
       const finalData = data.map(item => {
         if (item.ESTATUS === 'no_programada' || item.ESTATUS === 'no programada') {
           return { ...item, ESTATUS: 'reserva' };
@@ -1680,10 +1677,7 @@ export default function CargaExcel({ isPasteles = false }) {
       setHasChanges(false);
       setVerInicio(false);
       setTabActiva('HOY');
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['despacho-datos'] }),
-        queryClient.invalidateQueries({ queryKey: ['capturista-catalogos'] }),
-      ]);
+      await queryClient.invalidateQueries();
       await refetchData();
 
     } catch (error) {
@@ -1712,81 +1706,81 @@ export default function CargaExcel({ isPasteles = false }) {
         <div className="excel-top-bar" style={{ flexDirection: 'column' }}>
           <div style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem', marginBottom: '20px' }}>
             <div className="page-header-container" style={{ margin: '0', flex: '1 1 400px', textAlign: 'center', minWidth: '300px' }}>
-            <p className="page-eyebrow">
-              {isRelevos ? 'GESTIÓN DE OPERACIONES' : 'SISTEMA DE'}
-            </p>
-            <h1 className="page-title">
-              {isRelevos ? 'RELEVOS DE T6' : isPasteles ? 'PROGRAMACIÓN Y LOGÍSTICA (PASTELES)' : 'PROGRAMACIÓN Y LOGÍSTICA'}
-            </h1>
-            <p className="excel-subtitle">
-              {isRelevos ? (
-                'Gestiona, asiste y concilia los relevos operativos de los T6'
-              ) : isPasteles ? (
-                <>Vista y gestión de la programación correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
-              ) : tabActiva === 'HOY' ? (
-                <>Vista del reporte correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
-              ) : tabActiva === 'MANANA' ? (
-                <>Edición de la programación correspondiente a mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
-              ) : (
-                'Organiza, edita y concilia la programación operativa directamente en el sistema'
-              )}
-            </p>
-            <div style={{ 
-              marginTop: '12px', 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              backgroundColor: '#fffbeb', 
-              color: '#92400e', 
-              border: '1px solid #fcd34d', 
-              padding: '8px 14px', 
-              borderRadius: '6px', 
-              fontSize: '0.85rem', 
-              fontWeight: '500',
-              visibility: (!isRelevos && !isPasteles && tabActiva === 'MANANA') ? 'visible' : 'hidden',
-              pointerEvents: (!isRelevos && !isPasteles && tabActiva === 'MANANA') ? 'auto' : 'none'
-            }}>
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span><strong>Nota importante:</strong> La programación operativa de esta pantalla se transferirá automáticamente al día en curso a las 12:00 AM (medianoche).</span>
+              <p className="page-eyebrow">
+                {isRelevos ? 'GESTIÓN DE OPERACIONES' : 'SISTEMA DE'}
+              </p>
+              <h1 className="page-title">
+                {isRelevos ? 'RELEVOS DE T6' : isPasteles ? 'PROGRAMACIÓN Y LOGÍSTICA (PASTELES)' : 'PROGRAMACIÓN Y LOGÍSTICA'}
+              </h1>
+              <p className="excel-subtitle">
+                {isRelevos ? (
+                  'Gestiona, asiste y concilia los relevos operativos de los T6'
+                ) : isPasteles ? (
+                  <>Vista y gestión de la programación correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
+                ) : tabActiva === 'HOY' ? (
+                  <>Vista del reporte correspondiente al día de hoy: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaHoyStr}</span></>
+                ) : tabActiva === 'MANANA' ? (
+                  <>Edición de la programación correspondiente a mañana: <span style={{ color: 'var(--color-maroon, #6b1d33)', fontWeight: 'bold', backgroundColor: 'rgba(197, 160, 89, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>{fechaMananaStr}</span></>
+                ) : (
+                  'Organiza, edita y concilia la programación operativa directamente en el sistema'
+                )}
+              </p>
+              <div style={{
+                marginTop: '12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#fffbeb',
+                color: '#92400e',
+                border: '1px solid #fcd34d',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                fontWeight: '500',
+                visibility: (!isRelevos && !isPasteles && tabActiva === 'MANANA') ? 'visible' : 'hidden',
+                pointerEvents: (!isRelevos && !isPasteles && tabActiva === 'MANANA') ? 'auto' : 'none'
+              }}>
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span><strong>Nota importante:</strong> La programación operativa de esta pantalla se transferirá automáticamente al día en curso a las 12:00 AM (medianoche).</span>
+              </div>
             </div>
-          </div>
 
-          {!isPasteles && (
-            <div className="excel-tabs-container" style={{ margin: '0', flexShrink: 0 }}>
-              <button
-                className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
-                onClick={() => {
-                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                  setHasChanges(false);
-                  setTabActiva('HOY');
-                }}
-              >
-                Día Operativo (Actual)
-              </button>
-              <button
-                className={`excel-tab-btn ${tabActiva === 'MANANA' ? 'active' : ''}`}
-                onClick={() => {
-                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                  setHasChanges(false);
-                  setTabActiva('MANANA');
-                }}
-              >
-                Día Siguiente
-              </button>
-              <button
-                className={`excel-tab-btn ${tabActiva === 'FESTIVO' ? 'active' : ''}`}
-                onClick={() => {
-                  if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
-                  setHasChanges(false);
-                  setTabActiva('FESTIVO');
-                }}
-              >
-                Días Festivos
-              </button>
-            </div>
-          )}
+            {!isPasteles && (
+              <div className="excel-tabs-container" style={{ margin: '0', flexShrink: 0 }}>
+                <button
+                  className={`excel-tab-btn ${tabActiva === 'HOY' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                    setHasChanges(false);
+                    setTabActiva('HOY');
+                  }}
+                >
+                  Día Operativo (Actual)
+                </button>
+                <button
+                  className={`excel-tab-btn ${tabActiva === 'MANANA' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                    setHasChanges(false);
+                    setTabActiva('MANANA');
+                  }}
+                >
+                  Día Siguiente
+                </button>
+                <button
+                  className={`excel-tab-btn ${tabActiva === 'FESTIVO' ? 'active' : ''}`}
+                  onClick={() => {
+                    if (hasChanges && !window.confirm("Tienes cambios sin guardar. ¿Deseas descartarlos y cambiar de pestaña?")) return;
+                    setHasChanges(false);
+                    setTabActiva('FESTIVO');
+                  }}
+                >
+                  Días Festivos
+                </button>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem 0.75rem', flexWrap: 'wrap', width: '100%' }}>
@@ -1831,7 +1825,7 @@ export default function CargaExcel({ isPasteles = false }) {
               </svg>
               Reserva T6
             </button>
-            {tabActiva === 'MANANA' && !isRelevos && (
+            {!isRelevos && (tabActiva === 'MANANA' || tabActiva === 'HOY' || isPasteles) && (
               <button
                 type="button"
                 onClick={() => setShowCiclosModal(true)}
@@ -1959,11 +1953,11 @@ export default function CargaExcel({ isPasteles = false }) {
         )}
       </main>
 
-      <ModalTrasladoPatioNorte 
-        isOpen={showTrasladoModal} 
-        onClose={() => setShowTrasladoModal(false)} 
-        previewData={previewData} 
-        logoUrl="/images/logo_tuzobus.png" 
+      <ModalTrasladoPatioNorte
+        isOpen={showTrasladoModal}
+        onClose={() => setShowTrasladoModal(false)}
+        previewData={previewData}
+        logoUrl="/images/logo_tuzobus.png"
       />
 
       <ModalReservaT6
@@ -1977,8 +1971,8 @@ export default function CargaExcel({ isPasteles = false }) {
       <ModalCiclos
         isOpen={showCiclosModal}
         onClose={() => setShowCiclosModal(false)}
-        tabActiva={tabActiva}
-        fechaTexto={fechaMananaStr}
+        tabActiva={isPasteles ? 'HOY' : tabActiva}
+        fechaTexto={isPasteles || tabActiva === 'HOY' ? fechaHoyStr : fechaMananaStr}
       />
 
       <ModalComparativaAlimentadoras
