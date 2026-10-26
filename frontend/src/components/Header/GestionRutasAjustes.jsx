@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import API_BASE from '../../config/api';
-import { compareRutas } from '../../utils/rutaUtils';
+import { compareRutas, formatRutaDescription } from '../../utils/rutaUtils';
 import './GestionRutasAjustes.css';
 
 const getAuthHeaders = () => {
@@ -202,12 +202,16 @@ export default function GestionRutasAjustes() {
       return;
     }
 
+    const cleanDescripcion = descripcionInput.trim()
+      ? formatRutaDescription(cleanCodigo, descripcionInput.trim())
+      : '';
+
     setErrorInput('');
     guardarRutaMutation.mutate({
       id: rutaEnEdicion?.id,
       ruta: cleanCodigo,
       tipo: tipoInput,
-      descripcion: descripcionInput.trim()
+      descripcion: cleanDescripcion
     });
   };
 
@@ -362,8 +366,8 @@ export default function GestionRutasAjustes() {
                       </span>
                     </div>
                     {r.descripcion && (
-                      <span className="ruta-desc-text" title={r.descripcion}>
-                        {r.descripcion}
+                      <span className="ruta-desc-text" title={formatRutaDescription(r.ruta, r.descripcion)}>
+                        {formatRutaDescription(r.ruta, r.descripcion)}
                       </span>
                     )}
                   </div>
@@ -437,7 +441,13 @@ export default function GestionRutasAjustes() {
                   maxLength={150}
                   className="form-input form-input--trayecto"
                 />
-                <span className="form-hint">Escribe la descripción del trayecto que se mostrará en las tarjetas de Monitoreo de Operación.</span>
+                <span className="form-hint">
+                  {codigoInput.trim() && descripcionInput.trim() ? (
+                    <>Vista previa en tarjetas: <strong>{formatRutaDescription(codigoInput.trim().toUpperCase(), descripcionInput.trim())}</strong></>
+                  ) : (
+                    'Escribe el trayecto. El sistema antepone automáticamente el código oficial (ej. T-05 Parador (Téllez - Centro) o 2A San Alfonso - Matilde).'
+                  )}
+                </span>
               </div>
 
               <div className="form-group">

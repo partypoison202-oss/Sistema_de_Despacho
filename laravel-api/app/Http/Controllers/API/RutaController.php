@@ -85,6 +85,32 @@ class RutaController extends Controller
     }
 
     /**
+     * Asegura que la descripción guardada siempre contenga el código oficial de la ruta
+     * (ej. "T-05 Parador (Téllez - Centro)" o "2A San Alfonso - Matilde"),
+     * evitando que quede solo el nombre del trayecto aislado (ej. "San juan,- San mateo").
+     */
+    public static function normalizarDescripcionRuta(string $codigo, ?string $descripcion, string $tipo = 'alimentadora'): string
+    {
+        $codigoTrim = strtoupper(trim($codigo));
+        $descTrim = trim($descripcion ?? '');
+
+        if ($descTrim === '') {
+            return strtolower($tipo) === 'troncal' ? "{$codigoTrim} Troncal" : "{$codigoTrim} Alimentadora";
+        }
+
+        $cleanCodigo = preg_replace('/[^A-Z0-9]/', '', $codigoTrim);
+        $prefix = strtoupper(substr($descTrim, 0, min(strlen($descTrim), strlen($codigoTrim) + 10)));
+        $cleanPrefix = preg_replace('/[^A-Z0-9]/', '', $prefix);
+
+        // Si ya empieza con el código o con "RUTA" + código
+        if (str_starts_with($cleanPrefix, $cleanCodigo) || str_starts_with($cleanPrefix, 'RUTA' . $cleanCodigo)) {
+            return $descTrim;
+        }
+
+        return "{$codigoTrim} {$descTrim}";
+    }
+
+    /**
      * Obtiene el listado completo de rutas ordenadas naturalmente de menor a mayor y alfabéticamente.
      */
     public function index(Request $request)
@@ -134,7 +160,11 @@ class RutaController extends Controller
 
         $codigoLimpio = strtoupper(trim($request->ruta));
         $tipoLimpio = strtolower(trim($request->tipo));
-        $descripcionLimpia = $request->filled('descripcion') ? trim($request->descripcion) : null;
+        $descripcionLimpia = self::normalizarDescripcionRuta(
+            $codigoLimpio,
+            $request->filled('descripcion') ? trim($request->descripcion) : null,
+            $tipoLimpio
+        );
 
         // Verificar unicidad case-insensitive
         $existe = Ruta::whereRaw('LOWER(TRIM(ruta)) = ?', [strtolower($codigoLimpio)])->first();
@@ -187,7 +217,11 @@ class RutaController extends Controller
 
         $codigoLimpio = strtoupper(trim($request->ruta));
         $tipoLimpio = strtolower(trim($request->tipo));
-        $descripcionLimpia = $request->filled('descripcion') ? trim($request->descripcion) : null;
+        $descripcionLimpia = self::normalizarDescripcionRuta(
+            $codigoLimpio,
+            $request->filled('descripcion') ? trim($request->descripcion) : null,
+            $tipoLimpio
+        );
 
         // Verificar unicidad excluyendo la actual
         $existe = Ruta::whereRaw('LOWER(TRIM(ruta)) = ?', [strtolower($codigoLimpio)])

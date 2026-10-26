@@ -8,7 +8,7 @@ import { generarPDFEstadisticasCentro } from '../../utils/generarPDFEstadisticas
 import { generarPDFReporteOperacionalPorHora } from '../../utils/generarPDFReporteOperacionalPorHora';
 import { generarPDFProgramacionOperativa } from '../../utils/generarPDFProgramacionOperativa';
 import { estaDesincorporadaPorItinerario } from '../../utils/itinerarioUtils';
-import { compareRutas } from '../../utils/rutaUtils';
+import { compareRutas, formatRutaDescription } from '../../utils/rutaUtils';
 import './CentroControl.css';
 import API_BASE from '../../config/api';
 // Mismos IDs / etiquetas que en ResumenDespacho.jsx para mantener consistencia
@@ -483,7 +483,7 @@ export default function CentroControl() {
         rawRuta: rutaRaw,
         tipo,
         label,
-        desc: dbDesc || fallbackDesc,
+        desc: formatRutaDescription(label, dbDesc || fallbackDesc),
         units: [],
       };
     });
@@ -518,13 +518,14 @@ export default function CentroControl() {
           const dbDesc = descripcionesMap[normKey] || descripcionesMap[cleanKey] || descripcionesMap[rawRuta];
           const fallbackDesc = ROUTE_DESCRIPTIONS[normKey]?.desc || (isTroncalUnidad ? `Troncal ${normKey}` : `Ruta ${cleanKey}`);
 
+          const label = isTroncalUnidad ? normKey : cleanKey;
           routesMap[targetId] = {
             id: targetId,
             key: normKey,
             rawRuta,
             tipo: unidadTipo,
-            label: isTroncalUnidad ? normKey : cleanKey,
-            desc: dbDesc || fallbackDesc,
+            label,
+            desc: formatRutaDescription(label, dbDesc || fallbackDesc),
             units: [u],
           };
         }

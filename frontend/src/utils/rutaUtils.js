@@ -106,10 +106,34 @@ export const compareRutas = (a, b) => {
   return cleanA.localeCompare(cleanB, undefined, { numeric: true, sensitivity: 'base' });
 };
 
+/**
+ * Asegura que la descripción de la ruta siempre comience con su identificador oficial
+ * (ej. "T-05 Parador (Téllez - Centro)" o "2A San Alfonso - Matilde"),
+ * evitando que quede solo el nombre del trayecto aislado (ej. "San juan,- San mateo").
+ */
+export const formatRutaDescription = (label, desc) => {
+  const cleanLabel = String(label || '').trim();
+  const cleanDesc = String(desc || '').trim();
+  if (!cleanDesc) return cleanLabel;
+  if (!cleanLabel) return cleanDesc;
+
+  const rawCleanLabel = cleanLabel.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const prefix = cleanDesc.slice(0, cleanLabel.length + 10).toUpperCase();
+  const rawPrefix = prefix.replace(/[^A-Z0-9]/g, '');
+
+  if (rawPrefix.startsWith(rawCleanLabel) || rawPrefix.startsWith('RUTA' + rawCleanLabel)) {
+    return cleanDesc;
+  }
+
+  return `${cleanLabel} ${cleanDesc}`;
+};
+
 export default {
   normalizeRuta,
   normalizeRutaClave,
   OFFICIAL_ALIMENTADORAS_ORDER,
   parseRutaParts,
   compareRutas,
+  formatRutaDescription,
 };
+
