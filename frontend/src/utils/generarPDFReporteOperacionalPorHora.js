@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { estaDesincorporadaPorItinerario } from './itinerarioUtils';
 
 const COLOR_GUINDA     = [96, 26, 42]; 
 const COLOR_GOLD       = [197, 160, 89];
@@ -59,8 +60,8 @@ export const generarPDFReporteOperacionalPorHora = async (data) => {
             // Clasificación dentro de patio
             const horaSalida = getHoraSalida(unit);
             const isMantenimiento = estatus.includes('MANTENIMIENTO');
-            const isItinerario = estatus.includes('ITINERARIO') || estatus.includes('DESINCORPORADA') || estatus.includes('PERCANCE');
-            const isOperacionNoDespachada = estatus.includes('OPERACI') && !horaSalida;
+            const isItinerario = estaDesincorporadaPorItinerario(unit) || estatus.includes('ITINERARIO') || estatus.includes('DESINCORPORADA');
+            const isOperacionNoDespachada = estatus.includes('OPERACI') && !horaSalida && !isItinerario;
             const isReserva = (estatus.includes('RESERVA') && !estatus.includes('INTERMEDIA')) || isOperacionNoDespachada;
 
             if (isMantenimiento) {

@@ -71,9 +71,9 @@ function procesarModelos(listaUnidades) {
       return matchPattern.some(p => tipo.includes(p));
     });
     const isEncierroCumplido = (d) => {
+      if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
       const status = (d.ESTATUS || d.estatus || '').toUpperCase().trim();
       if (status.includes('MANTENIMIENTO') || status.includes('PERCANCE') || status.includes('TALLER')) return false;
-      if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
       const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
       if (!isEncerrada) return false;
       const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();

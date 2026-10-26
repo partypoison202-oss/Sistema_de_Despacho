@@ -172,10 +172,10 @@ export default function CentroControl() {
 
       // Encierro programado / Fin de turno cumplido (unidades que ya completaron su servicio programado)
       const unidadesEncerradasProgramadas = units.filter((d) => {
+        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+
         const est = getEstatus(d);
         if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
-
-        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
 
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
         if (!isEncerrada) return false;
@@ -473,10 +473,10 @@ export default function CentroControl() {
       const unidadesMantenimiento = units.filter((d) => getEstatus(d) === 'MANTENIMIENTO');
       const unidadesPercance = units.filter((d) => getEstatus(d).includes('PERCANCE'));
       const unidadesEncerradasProgramadas = units.filter((d) => {
+        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
+
         const est = getEstatus(d);
         if (est === 'MANTENIMIENTO' || est.includes('PERCANCE') || est.includes('TALLER')) return false;
-
-        if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
 
         const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
         if (!isEncerrada) return false;

@@ -5,6 +5,7 @@ const COLOR_GUINDA      = [96, 26, 42];
 const COLOR_WHITE       = [255, 255, 255];
 const COLOR_GREEN       = [22, 163, 74];
 const COLOR_GOLD        = [180, 83, 9];
+const COLOR_AMBER       = [217, 119, 6];
 const COLOR_RED         = [220, 38, 38];
 const COLOR_ROSE        = [225, 29, 72];
 const COLOR_BLUE        = [37, 99, 235];
@@ -689,12 +690,12 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
     drawHeader(pdf, pw, fecha, bannerImg, stmImg, hgoImg);
     drawFooter(pdf, pw, ph, 1, 3);
 
-    // 6 Cajas de KPIs
+    // 7 Cajas de KPIs
     let currentY = 26;
     const marginX = 10;
     const totalW = pw - marginX * 2;
-    const gap = 3;
-    const boxWidth = (totalW - (gap * 5)) / 6;
+    const gap = 2.4;
+    const boxWidth = (totalW - (gap * 6)) / 7;
     const boxHeight = 21;
 
     const kpis = [
@@ -703,6 +704,7 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         { label: 'EN RESERVA', value: totales.reserva, color: COLOR_GOLD },
         { label: 'EN MANTENIMIENTO', value: totales.mantenimiento, color: COLOR_RED },
         { label: 'EN PERCANCE', value: totales.percance ?? 0, color: COLOR_ROSE },
+        { label: 'DESINCORPORADAS\nPOR ITINERARIO', lines: ['DESINCORPORADAS', 'POR ITINERARIO'], value: totales.desincItinerario ?? 0, color: COLOR_AMBER },
         { label: 'EFICIENCIA OPERATIVA', value: `${eficienciaGlobal}%`, color: COLOR_GOLD, bg: [254, 243, 199] }
     ];
 
@@ -719,18 +721,24 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         
         // Valor
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(18);
+        pdf.setFontSize(17);
         pdf.setTextColor(...kpi.color);
-        pdf.text(String(kpi.value), x + (boxWidth / 2) + 1, currentY + 10, { align: 'center' });
+        pdf.text(String(kpi.value), x + (boxWidth / 2) + 0.8, currentY + 9.5, { align: 'center' });
 
         // Etiqueta
         pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(5.2);
         pdf.setTextColor(...(kpi.bg ? kpi.color : COLOR_GRAY));
-        pdf.text(kpi.label, x + (boxWidth / 2) + 1, currentY + 16, { align: 'center' });
+        if (kpi.lines) {
+            pdf.setFontSize(4.4);
+            pdf.text(kpi.lines[0], x + (boxWidth / 2) + 0.8, currentY + 14.3, { align: 'center' });
+            pdf.text(kpi.lines[1], x + (boxWidth / 2) + 0.8, currentY + 17.5, { align: 'center' });
+        } else {
+            pdf.setFontSize(4.7);
+            pdf.text(kpi.label, x + (boxWidth / 2) + 0.8, currentY + 16, { align: 'center' });
+        }
     });
 
-    currentY += 26;
+    currentY += 25.5;
 
     // Título de sección
     pdf.setFont('helvetica', 'bold');
@@ -744,9 +752,9 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
     // Grid 2x2 para las 4 tecnologías
     const cardGapX = 6;
-    const cardGapY = 5;
+    const cardGapY = 4.5;
     const cardWidth = (totalW - cardGapX) / 2;
-    const cardHeight = 54;
+    const cardHeight = 57;
 
     modelData.forEach((m, idx) => {
         const col = idx % 2;
@@ -812,11 +820,12 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
         let currentBarX = barX;
         const activeSegments = [];
         if (m.operacion > 0) activeSegments.push({ val: m.operacion, color: COLOR_GREEN });
+        if ((m.desincItinerario || 0) > 0) activeSegments.push({ val: m.desincItinerario, color: COLOR_AMBER });
         if (m.reserva > 0) activeSegments.push({ val: m.reserva, color: COLOR_GOLD });
         if (m.mantenimiento > 0) activeSegments.push({ val: m.mantenimiento, color: COLOR_RED });
         if ((m.percance || 0) > 0) activeSegments.push({ val: m.percance, color: COLOR_ROSE });
 
-        const divisor = (m.total || m.programadas) > 0 ? (m.total || m.programadas) : (m.operacion + m.reserva + m.mantenimiento + (m.percance || 0));
+        const divisor = (m.total || m.programadas) > 0 ? (m.total || m.programadas) : (m.operacion + (m.desincItinerario || 0) + m.reserva + m.mantenimiento + (m.percance || 0));
 
         activeSegments.forEach((seg, i) => {
             const segW = divisor > 0 ? (seg.val / divisor) * barW : 0;
@@ -833,51 +842,54 @@ export const generarPDFEstadisticasCentro = async (totales, modelData, eficienci
 
         // Filas de desglose
         const pct = (val) => (m.total || m.programadas) > 0 ? Math.round((val / (m.total || m.programadas)) * 100) : 0;
-        const eficiencia = (m.operacion || m.programadas) > 0 ? Math.min(100, Math.round(((m.circulando || 0) / (m.operacion || m.programadas)) * 100)) : 0;
+        const eficiencia = (m.programadas || m.total || m.operacion) > 0 
+            ? Math.min(100, Math.round((((m.circulando || 0) + (m.desincItinerario || 0) + (m.encerradasProgramadas || 0)) / (m.programadas || m.total || m.operacion)) * 100)) 
+            : 0;
 
         const rows = [
             { label: 'Operación', val: m.operacion, p: pct(m.operacion), color: COLOR_GREEN, bg: [220, 252, 231] },
-            { label: 'Reserva', val: m.reserva, p: pct(m.reserva), color: COLOR_GOLD, bg: [254, 243, 199] },
-            { label: 'Mantenimiento', val: m.mantenimiento, p: pct(m.mantenimiento), color: COLOR_RED, bg: [254, 226, 226] },
-            { label: 'Percance', val: m.percance || 0, p: pct(m.percance || 0), color: COLOR_ROSE, bg: [255, 228, 230] },
-            { label: 'Eficiencia', val: null, p: eficiencia, color: COLOR_GOLD, bg: [254, 243, 199], isEficiencia: true }
+            { label: 'Desinc. Itinerario', val: m.desincItinerario || 0, p: pct(m.desincItinerario || 0), color: COLOR_AMBER, badgeColor: COLOR_GOLD, bg: [254, 243, 199] },
+            { label: 'Reserva', val: m.reserva, p: pct(m.reserva), color: COLOR_GOLD, badgeColor: COLOR_GOLD, bg: [254, 243, 199] },
+            { label: 'Mantenimiento', val: m.mantenimiento, p: pct(m.mantenimiento), color: COLOR_RED, badgeColor: COLOR_RED, bg: [254, 226, 226] },
+            { label: 'Percance', val: m.percance || 0, p: pct(m.percance || 0), color: COLOR_ROSE, badgeColor: COLOR_ROSE, bg: [255, 228, 230] },
+            { label: 'Eficiencia', val: null, p: eficiencia, color: COLOR_GOLD, badgeColor: COLOR_GOLD, bg: [254, 243, 199], isEficiencia: true }
         ];
 
-        let rowY = y + 23.5;
+        let rowY = y + 22.8;
         rows.forEach(r => {
             pdf.setDrawColor(243, 244, 246);
-            pdf.line(x + 6, rowY - 2.8, x + cardWidth - 6, rowY - 2.8);
+            pdf.line(x + 6, rowY - 2.5, x + cardWidth - 6, rowY - 2.5);
 
             // Viñeta punto
             pdf.setFillColor(...r.color);
-            pdf.circle(x + 8, rowY - 0.8, 1.1, 'F');
+            pdf.circle(x + 8, rowY - 0.7, 1.05, 'F');
 
             // Etiqueta
             pdf.setFont('helvetica', r.isEficiencia ? 'bold' : 'normal');
-            pdf.setFontSize(6.8);
+            pdf.setFontSize(6.5);
             pdf.setTextColor(...(r.isEficiencia ? r.color : COLOR_GRAY));
             pdf.text(r.label, x + 12, rowY);
 
             // Badge %
             const badgeW = 9;
-            const badgeH = 3.6;
+            const badgeH = 3.5;
             pdf.setFillColor(...r.bg);
-            pdf.roundedRect(x + cardWidth - 25, rowY - 2.8, badgeW, badgeH, 1.8, 1.8, 'F');
+            pdf.roundedRect(x + cardWidth - 25, rowY - 2.6, badgeW, badgeH, 1.7, 1.7, 'F');
             
             pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(5.5);
-            pdf.setTextColor(...r.color);
-            pdf.text(`${r.p}%`, x + cardWidth - 20.5, rowY - 0.4, { align: 'center' });
+            pdf.setFontSize(5.4);
+            pdf.setTextColor(...(r.badgeColor || r.color));
+            pdf.text(`${r.p}%`, x + cardWidth - 20.5, rowY - 0.3, { align: 'center' });
 
             // Valor numérico
             if (r.val !== null) {
                 pdf.setFont('helvetica', 'bold');
-                pdf.setFontSize(7.5);
+                pdf.setFontSize(7.3);
                 pdf.setTextColor(17, 24, 39);
                 pdf.text(String(r.val), x + cardWidth - 8, rowY, { align: 'right' });
             }
 
-            rowY += 6;
+            rowY += 5.3;
         });
     });
 

@@ -15,7 +15,7 @@ return new class extends Migration
             Schema::create('programacion_ciclos', function (Blueprint $table) {
                 $table->id();
                 $table->date('fecha_operativa')->unique();
-                $table->integer('ciclos');
+                $table->decimal('ciclos', 10, 2);
                 $table->timestamps();
             });
         }

@@ -81,9 +81,9 @@ export default function ResumenDespacho() {
           const prog = hasSnapshot ? progInicio : (progActual || units.length);
 
           const isEncierroCumplido = (d) => {
+            if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
             const status = normStr(d.ESTATUS || d.estatus);
             if (status.includes('MANTENIMIENTO') || status.includes('PERCANCE') || status.includes('TALLER')) return false;
-            if (Boolean(d.TURNO_CUMPLIDO || d.turno_cumplido)) return true;
             const isEncerrada = Boolean(d.YA_ENCERRADA || d.ya_encerrada);
             if (!isEncerrada) return false;
             const motivo = (d.MOTIVO_ESTATUS || d.motivo_estatus || d.MOTIVO || d.motivo || '').toString().toLowerCase();
