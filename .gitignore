@@ -8,5 +8,7 @@ frontend/dist/
 laravel-api/export.sql
 .env
 .last_deployed_commit
-contrasenas_originales.txt
-
+# Respaldos de base de datos
+backups_bd/
+*.sql
+*.sql.gz

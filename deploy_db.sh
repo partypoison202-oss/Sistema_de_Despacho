@@ -41,10 +41,11 @@ echo -e "  ${BLUE}[2]${NC} Conductores desde Plantilla JSON (${RED}PELIGRO:${NC}
 echo -e "  ${BLUE}[3]${NC} Ambos"
 echo -e "  ${BLUE}[4]${NC} Extraer/Exportar Contraseñas y Usuarios (a formato CSV para Excel)"
 echo -e "  ${BLUE}[5]${NC} Inyectar estructura de Conexión Activa (ultima_conexion y trigger PostgreSQL)"
+echo -e "  ${GREEN}[6]${NC} Respaldar Base de Datos AHORA (Generar archivo .sql.gz con fecha)"
 echo -e "  ${BLUE}[0]${NC} Cancelar y salir"
 echo ""
 
-read -p "Elige una opción [0-5]: " opcion
+read -p "Elige una opción [0-6]: " opcion
 
 cd laravel-api
 
@@ -104,6 +105,38 @@ case $opcion in
         echo -e "\n${BLUE}🔄 Inyectando columna 'ultima_conexion' y trigger de PostgreSQL...${NC}"
         "$PHP_BIN" artisan db:arreglar-permisos
         echo -e "${GREEN}✔ Estructura de Conexión Activa y triggers verificados exitosamente.${NC}"
+        ;;
+    6)
+        echo -e "\n${BLUE}💾 Generando respaldo completo de la base de datos...${NC}"
+        BACKUP_DIR="../backups_bd"
+        mkdir -p "$BACKUP_DIR"
+        DB_HOST=$(grep -E '^DB_HOST=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+        DB_PORT=$(grep -E '^DB_PORT=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+        DB_NAME=$(grep -E '^DB_DATABASE=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+        DB_USER=$(grep -E '^DB_USERNAME=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+        DB_PASS=$(grep -E '^DB_PASSWORD=' .env | cut -d= -f2- | tr -d ' "\r\n' | tr -d "'")
+        BACKUP_FILE="${BACKUP_DIR}/respaldo_${DB_NAME:-bd}_$(date +%F_%H%M%S).sql.gz"
+
+        PG_DUMP_BIN=""
+        for candidate in "$(which pg_dump 2>/dev/null)" "/usr/bin/pg_dump" "/usr/local/bin/pg_dump"; do
+            if [ -x "$candidate" ]; then
+                PG_DUMP_BIN="$candidate"
+                break
+            fi
+        done
+
+        if [ -n "$PG_DUMP_BIN" ] && [ -n "$DB_NAME" ]; then
+            if PGPASSWORD="$DB_PASS" "$PG_DUMP_BIN" -h "${DB_HOST:-127.0.0.1}" -p "${DB_PORT:-5432}" -U "$DB_USER" "$DB_NAME" 2>/dev/null | gzip > "$BACKUP_FILE" && [ -s "$BACKUP_FILE" ]; then
+                echo -e "${GREEN}✔ Respaldo creado exitosamente:${NC} ${BACKUP_FILE}"
+            elif sudo -u postgres pg_dump "$DB_NAME" 2>/dev/null | gzip > "$BACKUP_FILE" && [ -s "$BACKUP_FILE" ]; then
+                echo -e "${GREEN}✔ Respaldo creado exitosamente (vía postgres local):${NC} ${BACKUP_FILE}"
+            else
+                rm -f "$BACKUP_FILE" 2>/dev/null || true
+                echo -e "${RED}❌ Error: No se pudo generar el respaldo con pg_dump.${NC}"
+            fi
+        else
+            echo -e "${RED}❌ No se encontró la herramienta pg_dump instalada.${NC}"
+        fi
         ;;
     0)
         echo -e "${GREEN}Saliendo sin hacer cambios...${NC}"
