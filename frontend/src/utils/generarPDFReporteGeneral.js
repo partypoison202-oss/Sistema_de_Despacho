@@ -102,10 +102,14 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     pdf.setFontSize(16);
     pdf.text('SISTEMA DE TRANSPORTE METROPOLITANO', 15, ph - 20, { angle: 90 });
 
-    // FECHA ARRIBA A LA DERECHA
+    // FECHA CENTRADA ARRIBA DE LA TABLA
+    const tableX = 98;
+    const tableW = 171;
+    const tableCenterX = tableX + (tableW / 2);
     pdf.setTextColor(...COLOR_GUINDA);
-    pdf.setFontSize(16);
-    pdf.text(fecha, pw - 10, 35, { align: 'right' });
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(15);
+    pdf.text(fecha, tableCenterX, 31.5, { align: 'center' });
 
     // IMÁGENES A LA IZQUIERDA
     const urbanusImg  = await loadImage('/images/urbanu.webp');
@@ -116,7 +120,7 @@ export const generarPDFReporteGeneral = async (data, totalsExtra = null) => {
     const totalRows = troncales.length + alimentadoras.length;
 
     // Altura inicial y márgenes adaptativos según volumen de rutas
-    const startY = totalRows > 20 ? 35 : 38;
+    const startY = totalRows > 20 ? 36.5 : 39;
 
     // Ajuste dinámico de tipografía y paddings según el número de filas totales
     let headPaddingY = 1.3;
