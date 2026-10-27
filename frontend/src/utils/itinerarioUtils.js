@@ -23,6 +23,18 @@ export function getHoraActualHHMM() {
 }
 
 /**
+ * Obtiene la fecha actual local formateada en YYYY-MM-DD (hora de México / sistema).
+ * Evita el salto de día prematuro que ocasiona toISOString() después de las 18:00 hrs.
+ */
+export function getFechaActualLocal() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Determina si una unidad con estatus de operación se encuentra actualmente
  * desincorporada por itinerario.
  *
