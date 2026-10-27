@@ -299,6 +299,23 @@
   border-color: rgba(239, 68, 68, 0.2);
 }
 
+.btn-icon-kick {
+  color: #d97706;
+}
+
+.btn-icon-kick:hover {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.3);
+  transform: scale(1.05);
+}
+
+.btn-icon-kick:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;

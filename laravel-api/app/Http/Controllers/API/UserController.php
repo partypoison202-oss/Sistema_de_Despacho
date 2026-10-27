@@ -354,4 +354,32 @@ class UserController extends Controller
         $roles = Role::all();
         return response()->json($roles);
     }
+
+    public function cerrarSesion($id)
+    {
+        $user = User::findOrFail($id);
+
+        try {
+            // Revocar todos los tokens de acceso del usuario
+            $user->tokens()->delete();
+
+            // Limpiar presencia en caché
+            \Illuminate\Support\Facades\Cache::forget('user_online_' . $user->id);
+            \Illuminate\Support\Facades\Cache::forget('user_last_seen_' . $user->id);
+
+            // Registrar en bitácora de auditoría
+            \App\Helpers\BitacoraHelper::registrar(
+                'CERRAR_SESION_REMOTA',
+                "Se cerró la sesión activa del usuario {$user->usuario} (ID: {$user->id})"
+            );
+
+            return response()->json([
+                'message' => "La sesión de {$user->usuario} ha sido finalizada correctamente."
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Error al cerrar la sesión: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
