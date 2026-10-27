@@ -367,10 +367,9 @@ class UserController extends Controller
             \Illuminate\Support\Facades\Cache::forget('user_online_' . $user->id);
             \Illuminate\Support\Facades\Cache::forget('user_last_seen_' . $user->id);
 
-            // Registrar en bitácora de auditoría
-            \App\Helpers\BitacoraHelper::registrar(
-                'CERRAR_SESION_REMOTA',
-                "Se cerró la sesión activa del usuario {$user->usuario} (ID: {$user->id})"
+            // Registrar en log del sistema
+            \Illuminate\Support\Facades\Log::info(
+                "CERRAR_SESION_REMOTA: Se cerró la sesión activa del usuario {$user->usuario} (ID: {$user->id})"
             );
 
             return response()->json([
